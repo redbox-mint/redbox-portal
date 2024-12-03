@@ -99,14 +99,14 @@ export module Services {
         }
       });
       sails.on('lifted', function() {
-        sails.log.error('FigArticle - constructor start');
+        sails.log.verbose('FigService - constructor start');
         that.getFigPrivateLicenses()
           .then(function (response) {
-            sails.log.error('FigArticle - LOADED LICENSES');
+            sails.log.verbose('FigService - SUCCESSFULY LOADED LICENSES');
             that.figLicenses = response;
           })
           .catch(function (error) {
-            sails.log.error('FigArticle - ERROR LOADING LICENSES');
+            sails.log.error('FigService - ERROR LOADING LICENSES');
             sails.log.error(error);
           });
 
@@ -120,7 +120,7 @@ export module Services {
         that.dataLocationsPathInRecord = sails.config.figshareAPI.mapping.recordDataLocations;
         that.entityIdFAR = sails.config.figshareAPI.mapping.response.entityId;
         that.locationFAR = sails.config.figshareAPI.mapping.response.location;
-        sails.log.error('FigArticle - constructor end');
+        sails.log.error('FigService - constructor end');
       });
     }
 
@@ -169,7 +169,7 @@ export module Services {
             artifacts: sails.config.figshareAPI.mapping.artifacts
           }
           value = _.template(template)(context);      
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
         } else {
           value = _.get(record,standardField.rbName,standardField.defaultValue);
         }
@@ -191,7 +191,7 @@ export module Services {
             runtimeArtifacts: runtimeArtifacts
           }
           value = _.template(template)(context);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${value}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${value}`);
         } else {
           value = _.get(record,field.rbName,field.defaultValue);
         }
@@ -214,11 +214,11 @@ export module Services {
       //TODO FIXME this method may end up using if else if depending on the different use cases given it relays on a API call. It
       //also may be that this method logic will not need to be changed and will work as is for all use cases that are needed but 
       //it's not possible to know at this stage
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getAuthorUserIDs enter');
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - getAuthorUserIDs enter');
       let authorList = [];
       let uniqueAuthorByEmail = _.uniqBy(authors,'email[0]');
       let uniqueAuthors = _.uniqBy(uniqueAuthorByEmail,'text_full_name');
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - uniqueAuthors');
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uniqueAuthors');
       sails.log[this.createUpdateFigshareArticleLogLevel](uniqueAuthors);
       for(let author of uniqueAuthors) {
         sails.log[this.createUpdateFigshareArticleLogLevel](author);
@@ -231,18 +231,18 @@ export module Services {
 
             let config = this.getAxiosConfig('post','/account/institution/accounts/search', requestBody);
 
-            sails.log.info(`FigArticle - getAuthorUserIDs - userId ${userId} - ${config.method} - ${config.url}`);
+            sails.log.info(`FigService - getAuthorUserIDs - userId ${userId} - ${config.method} - ${config.url}`);
             try {
                 let response = await axios(config);
                 let authorData = response.data;
                 sails.log[this.createUpdateFigshareArticleLogLevel](authorData);
                 let figshareAccountUserID = {id: _.toNumber(authorData[0][this.accountIdFA]), user_id: _.toNumber(authorData[0][this.userIdFA])};
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - getAuthorUserIDs - author `);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getAuthorUserIDs - author `);
                 sails.log[this.createUpdateFigshareArticleLogLevel](figshareAccountUserID);
                 authorList.push(figshareAccountUserID);
             } catch (error) {
                 sails.log.error(error);
-                sails.log.error(`FigArticle - getAuthorUserIDs - author error`);
+                sails.log.error(`FigService - getAuthorUserIDs - author error`);
                 sails.log.error(author);
                 let otherContributor = this.getOtherContributor(author);
                 if(!_.isUndefined(otherContributor)) {
@@ -273,7 +273,7 @@ export module Services {
           record: record
         }
         authors = _.template(template)(context);      
-        sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- getContributorsFromRecord ----  template`);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- getContributorsFromRecord ----  template`);
       }
       sails.log[this.createUpdateFigshareArticleLogLevel](authors);
       return authors;
@@ -292,7 +292,7 @@ export module Services {
             artifacts: sails.config.figshareAPI.mapping.artifacts
           }
           value = _.template(template)(context);      
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- ${keyName} ----  template ---- ${value}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- ${keyName} ----  template ---- ${value}`);
         } else {
           value = _.get(record,customField.rbName,customField.defaultValue);
         }
@@ -320,7 +320,7 @@ export module Services {
             //catIDs.push(2);
           }
         }
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - findCategoryIDs - exit catIDs '+catIDs);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - findCategoryIDs - exit catIDs '+catIDs);
       }
       return catIDs;
     }
@@ -331,10 +331,10 @@ export module Services {
       //it may be possible that if all instances are using FOR 2020 codes then the mapping as it was implemented is
       //not needed but there may be in the future other institutions that may need a mapping of FOR codes other reasons
       //or it may be possible that the mapping file needs to be generated in a case by case basis for each institution
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - setArticleCategories`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - setArticleCategories`);
       if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.anzsrcForDP)) {
         let figCategoryIDs = this.findCategoryIDs(dataPublicationRecord[this.metadataPathInRecord][this.anzsrcForDP]);
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleCategories '+JSON.stringify(figCategoryIDs));
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - setArticleCategories '+JSON.stringify(figCategoryIDs));
         if(!_.isUndefined(figCategoryIDs) && !_.isEmpty(figCategoryIDs)){
           _.set(requestBody, this.categoriesFA, figCategoryIDs);
         }
@@ -345,7 +345,7 @@ export module Services {
     
       let config = this.getAxiosConfig('get','/account/licenses', null); 
 
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - getFigPrivateLicenses - ${config.method} - ${config.url}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getFigPrivateLicenses - ${config.method} - ${config.url}`);
       sails.log[this.createUpdateFigshareArticleLogLevel](config);
       try {
           let response = await axios(config);
@@ -379,9 +379,9 @@ export module Services {
 
     private async getArticleDetails(articleId) {
        let articleDetailsConfig = this.getAxiosConfig('get', `/account/articles/${articleId}`, null);
-       sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare checkStatusConfig ${articleDetailsConfig.method} - ${articleDetailsConfig.url}`);
+       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare checkStatusConfig ${articleDetailsConfig.method} - ${articleDetailsConfig.url}`);
        let responseArticleDetails = await axios(articleDetailsConfig);
-       sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseArticleDetails.status} statusText: ${responseArticleDetails.statusText}`);
+       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseArticleDetails.status} statusText: ${responseArticleDetails.statusText}`);
        let articleDetails = responseArticleDetails.data;
        return articleDetails;
     }
@@ -393,7 +393,7 @@ export module Services {
       }
 
       if(_.has(articleDetails, this.curationStatusFA) && articleDetails[this.curationStatusFA] == 'approved') {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - isArticleApprovedAndPublished - true');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - isArticleApprovedAndPublished - true');
         return true;
       } else {
         return false;
@@ -402,9 +402,9 @@ export module Services {
 
     private async getArticleFileList(articleId) {
       let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
       let responseArticleList = await axios(articleFileListConfig);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
       let articleFileList = responseArticleList.data;
       return articleFileList;
     }
@@ -417,7 +417,7 @@ export module Services {
       //Files in figshare article have to be status available. Status 'created' means that the file is still being uploaded to the article
       let fileUploadInProgress = _.find(articleFileList, ['status', 'created']);
       if(!_.isUndefined(fileUploadInProgress)) {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - isFileUploadInProgress - true');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - isFileUploadInProgress - true');
         return true;
       } else {
         return false;
@@ -429,7 +429,7 @@ export module Services {
       if(!_.isUndefined(articleFileList)) {
         stringifyFileList = JSON.stringify(articleFileList);
       }
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkArticleHasURLsOrFilesAttached - articleFileList before '+stringifyFileList);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkArticleHasURLsOrFilesAttached - articleFileList before '+stringifyFileList);
       sails.log[this.createUpdateFigshareArticleLogLevel](articleFileList);
       if(_.isUndefined(articleFileList) || _.isEmpty(articleFileList)) {
         articleFileList = await this.getArticleFileList(articleId);
@@ -437,12 +437,12 @@ export module Services {
       if(!_.isUndefined(articleFileList)) {
         stringifyFileList = JSON.stringify(articleFileList);
       }
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkArticleHasURLsOrFilesAttached - articleFileList after '+stringifyFileList);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkArticleHasURLsOrFilesAttached - articleFileList after '+stringifyFileList);
       sails.log[this.createUpdateFigshareArticleLogLevel](articleFileList);
       let fileUploadInProgress = _.find(articleFileList, ['status', 'created']);
       let filesOrURLsAttached = _.find(articleFileList, ['status', 'available']);
       if(_.isUndefined(fileUploadInProgress) && !_.isUndefined(filesOrURLsAttached)) {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkArticleHasURLsOrFilesAttached - true');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkArticleHasURLsOrFilesAttached - true');
         return true;
       } else {
         return false;
@@ -462,6 +462,7 @@ export module Services {
       }
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',this.figLicenses);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
 
       this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
 
@@ -479,25 +480,25 @@ export module Services {
       let requestBodyCreate = new FigshareArticleImpersonate();
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
-      let customFieldsImpersonate = _.clone(sails.config.figshareAPI.mapping.templates.customFields.create);
-      let customFieldsKeys = _.keys(customFieldsImpersonate);
+      let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.create);
+      let customFieldsKeys = _.keys(customFields);
 
       
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
       for(let customFieldKey of customFieldsKeys) {
-        this.setCustomFieldInRequestBody(dataPublicationRecord, customFieldsImpersonate, customFieldKey, sails.config.figshareAPI.mapping.customFields.create);
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey, sails.config.figshareAPI.mapping.customFields.create);
       }
 
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.create) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyCreate,standardField);
       }
 
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',figshareAccountAuthorIDs);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',this.figLicenses);
 
       this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
 
-      _.set(requestBodyCreate, sails.config.figshareAPI.mapping.customFields.path, customFieldsImpersonate);
+      _.set(requestBodyCreate, sails.config.figshareAPI.mapping.customFields.path, customFields);
       return requestBodyCreate;
     }
 
@@ -523,60 +524,65 @@ export module Services {
 
     private async sendDataPublicationToFigshare(dataPublicationRecord) {
       try {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - enter ');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - enter ');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
         let articleId; 
 
         if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.figArticleIdPathInRecord) && 
           !_.isUndefined(dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]) && 
           dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord] > 0) {
           articleId = dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
         } else {
           articleId = 0;
         }
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - articleId '+articleId);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - articleId '+articleId);
         let contributorsDP = this.getContributorsFromRecord(dataPublicationRecord);
-        sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - contributorsDP ${JSON.stringify(contributorsDP)}`);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - contributorsDP ${JSON.stringify(contributorsDP)}`);
         if(sails.config.figshareAPI.testMode) {
           this.figshareAccountAuthorIDs = [{ id: 1234, user_id: 1239 }];
         } else {
           this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
         }
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
           let requestBodyCreate = this.getArticleCreateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
           this.validateCreateArticleRequestBody(requestBodyCreate);
           //Need to pre validate the update request body as well before creating the article because if the article gets
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
           let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
           this.validateUpdateArticleRequestBody(dummyRequestBodyUpdate);
           
           let dummyEmbargoRequestBody = this.getEmbargoRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyEmbargoRequestBody));
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
           this.validateEmbargoRequestBody(dataPublicationRecord, dummyEmbargoRequestBody);
 
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before post -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before post -------------------------------------------');
           //config for create article
           let figshareArticleConfig = this.getAxiosConfig('post', '/account/articles', requestBodyCreate);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare ${figshareArticleConfig.method} - ${figshareArticleConfig.url}`);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before create');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare ${figshareArticleConfig.method} - ${figshareArticleConfig.url}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before create');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
 
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(requestBodyCreate));
 
@@ -609,7 +615,7 @@ export module Services {
               throw createError;
             }
           }
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseCreate.status} statusText: ${responseCreate.statusText}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseCreate.status} statusText: ${responseCreate.statusText}`);
 
           //Note that lodash isEmpty will return true if the value is a number therefore had to be removed from the condition 
           if(_.has(responseCreate.data, this.entityIdFAR)) {
@@ -619,18 +625,18 @@ export module Services {
             if(!_.isUndefined(articleId) && articleId > 0) {
 
               _.set(dataPublicationRecord,this.metadataPathInRecord+'.'+this.figArticleIdPathInRecord, articleId+'');
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare responseCreate.data.location '+responseCreate.data.location);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare responseCreate.data.location '+responseCreate.data.location);
 
               if(_.has(responseCreate.data, this.locationFAR) && !_.isEmpty(responseCreate.data.location)) {
                 
                 let articleLocationURL = responseCreate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare articleLocationURL '+articleLocationURL);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare articleLocationURL '+articleLocationURL);
                 _.set(dataPublicationRecord, this.metadataPathInRecord+'.'+this.figArticleURLPathInRecord, articleLocationURL);
                 
                 //https://docs.figshare.com/#private_article_publish
                 let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
                 let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare ${publishConfig.method} - ${publishConfig.url}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare ${publishConfig.method} - ${publishConfig.url}`);
                 
                 let responsePublish = {status: '', statusText: ''}
                 try {
@@ -640,7 +646,7 @@ export module Services {
                     throw updateError;
                   }
                 }
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
               }
             }
           }
@@ -654,9 +660,9 @@ export module Services {
           let fileUploadInProgress = await this.isFileUploadInProgress(articleId, articleFileList);
 
           if(articleApprovedPublished) {
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare cannot be modified any further after it has been Approved & Published`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare cannot be modified any further after it has been Approved & Published`);
           } else if(fileUploadInProgress) {
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare file uploads still in progress`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare file uploads still in progress`);
             sails.log[this.createUpdateFigshareArticleLogLevel](fileUploadInProgress);
             let customError: RBValidationError = new RBValidationError(TranslationService.t('@backend-Upload-In-Progress-validationMessage'));
             throw customError;
@@ -669,32 +675,32 @@ export module Services {
             
             //articleId is passed in then changed config to update (put) instead of create (post) config for update
             let figshareArticleConfig = this.getAxiosConfig('put', `/account/articles/${articleId}`, requestBodyUpdate); 
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before update articleId '+articleId);
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${figshareArticleConfig.method} - ${figshareArticleConfig.url}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before update articleId '+articleId);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${figshareArticleConfig.method} - ${figshareArticleConfig.url}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
             //update article without impersonate
             let responseUpdate = await axios(figshareArticleConfig);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseUpdate.status} statusText: ${responseUpdate.statusText}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare responseUpdate.data.location '+responseUpdate.data.location);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseUpdate.status} statusText: ${responseUpdate.statusText}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare responseUpdate.data.location '+responseUpdate.data.location);
             
             if(_.has(responseUpdate.data, this.locationFAR) && !_.isEmpty(responseUpdate.data.location)) {
 
               let articleLocationURL = responseUpdate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - articleLocationURL '+articleLocationURL);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - articleLocationURL '+articleLocationURL);
               _.set(dataPublicationRecord, this.metadataPathInRecord+'.'+this.figArticleURLPathInRecord, articleLocationURL);
 
               let requestBodyPublishAfterUpdate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before impersonate publish response location '+responseUpdate.data.location);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleURLPathInRecord]);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish response location '+responseUpdate.data.location);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleURLPathInRecord]);
               sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyPublishAfterUpdate);
 
               //https://docs.figshare.com/#private_article_publish
               let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterUpdate);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${publishConfig.method} - ${publishConfig.url}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${publishConfig.method} - ${publishConfig.url}`);
               let responsePublish = await axios(publishConfig);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
             }
           }
 
@@ -707,16 +713,16 @@ export module Services {
             this.validateEmbargoRequestBody(dataPublicationRecord, requestEmbargoBody);
             //Update full article embargo info because Figshare rules allow for full article embargo to be set regardless if there are files uploaded
             let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${embargoConfig.method} - ${embargoConfig.url}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoConfig.method} - ${embargoConfig.url}`);
             let responseEmbargo = await axios(embargoConfig);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
           
           } else if(requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false) {
 
             let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
             let responseEmbargoDelete = await axios(embargoDeleteConfig);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
           }
         }
         
@@ -738,7 +744,7 @@ export module Services {
         }
       }
 
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - validateEmbargoRequestBody - validMessage ${valid}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateEmbargoRequestBody - validMessage ${valid}`);
       if(valid != '') {
         let customError: RBValidationError = new RBValidationError(valid);
         throw customError;
@@ -783,8 +789,8 @@ export module Services {
       let passed = true;
       let context = {};
       let validations = _.get(field,'validations',{});
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- requestBody ---- ${JSON.stringify(requestBody)}`);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- field ---- ${JSON.stringify(field)} --- path ${customFieldPath}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- requestBody ---- ${JSON.stringify(requestBody)}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- field ---- ${JSON.stringify(field)} --- path ${customFieldPath}`);
       if(!_.isEmpty(validations)) {
         for(let validation of validations) {
           let template = _.get(validation,'template');
@@ -814,7 +820,7 @@ export module Services {
               }
             }
             passed = _.template(template)(context);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- field ---- ${field.figName} ----  template ---- ${passed}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- field ---- ${field.figName} ----  template ---- ${passed}`);
             if(!passed) {
               valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
             }
@@ -828,7 +834,7 @@ export module Services {
             } else {
               passed = true;
             }
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${field.figName} ----  maxLength ---- ${passed}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${field.figName} ----  maxLength ---- ${passed}`);
             if(!passed) {
               valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare') + maxLengthIs + maxLength);
             }
@@ -870,7 +876,7 @@ export module Services {
 
     private validateCreateArticleRequestBody(requestBody) {
       let valid = this.checkArticleCreateFields(requestBody);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - validateCreateArticleRequestBody - validMessage ${valid}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateCreateArticleRequestBody - validMessage ${valid}`);
       if(valid != '') {
         let customError: RBValidationError = new RBValidationError(valid);
         throw customError;
@@ -899,7 +905,7 @@ export module Services {
 
     private validateUpdateArticleRequestBody(requestBody) {
       let valid = this.checkArticleUpdateFields(requestBody);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - validateUpdateArticleRequestBody - validMessage ${valid}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateUpdateArticleRequestBody - validMessage ${valid}`);
       if(valid != '') {
         let customError: RBValidationError = new RBValidationError(valid);
         throw customError;
@@ -919,44 +925,44 @@ export module Services {
 
     private async checkUploadFilesPending(dataPublicationRecord, oid) {
       try {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - enter');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - enter');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
 
         let articleId;
         if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.figArticleIdPathInRecord) && 
           !_.isUndefined(dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]) && 
           dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord] > 0) {
           articleId = dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
         } else {
           articleId = 0;
         }
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - articleId '+articleId);
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - oid '+oid);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - articleId '+articleId);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - oid '+oid);
 
         if(articleId > 0) {
 
           //Check article curation status and if approved cannot be updated
           let checkStatusConfig = this.getAxiosConfig('get', `/account/articles/${articleId}`, null);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - ${checkStatusConfig.method} - ${checkStatusConfig.url}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${checkStatusConfig.method} - ${checkStatusConfig.url}`);
           let responseArticleDetails = await axios(checkStatusConfig);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - status: ${responseArticleDetails.status} statusText: ${responseArticleDetails.statusText}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseArticleDetails.status} statusText: ${responseArticleDetails.statusText}`);
           let articleDetails = responseArticleDetails.data;
 
           if(_.has(articleDetails, this.curationStatusFA) && articleDetails[this.curationStatusFA] == 'approved') {
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - cannot be modified any further after it has been Approved & Published`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - cannot be modified any further after it has been Approved & Published`);
           } else {
 
             //Try to upload files to article
             let that = this;
             let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
             let responseArticleList = await axios(articleFileListConfig);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
             let articleFileList = responseArticleList.data;
             let filePath = sails.config.figshareAPI.attachmentsFigshareTempDir;
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - attachmentsFigshareTempDir '+filePath);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - attachmentsFigshareTempDir '+filePath);
             
             if (!fs.existsSync(filePath)){
               fs.mkdirSync(filePath);
@@ -969,13 +975,13 @@ export module Services {
             if(accessRights == 'citation') {
               foundAttachment = false;
             }
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - foundAttachment '+foundAttachment);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - foundAttachment '+foundAttachment);
             
             if(foundAttachment) {
               //Files in figshare article have to be status available. Status 'created' means that the file is still being uploaded to the article
               let fileUploadInProgress = await this.isFileUploadInProgress(articleId, articleFileList);
               if(fileUploadInProgress) {
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - file uploads still in progress');
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - file uploads still in progress');
               }
 
               for(let attachmentFile of dataLocations) {
@@ -987,28 +993,28 @@ export module Services {
                   //check if the file has been uploaded already or not to the figshare article 
                   responseArticleList = await axios(articleFileListConfig);
                   articleFileList = responseArticleList.data;
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - article file list: '+JSON.stringify(articleFileList));
+                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - article file list: '+JSON.stringify(articleFileList));
                   let filePendingToBeUploaded = _.find(articleFileList, ['name', fileName]);
                   let fileFullPath = filePath + '/' +fileName;
                   let thresholdAppliedFileSize = fileSize + sails.config.figshareAPI.diskSpaceThreshold;
                   if(_.isUndefined(filePendingToBeUploaded) && !fileUploadInProgress) {
                     //if file name not found on the articleFileList means it's not yet uploaded and an agenda queue job needs to be queued 
-                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - attachmentsTempDir '+sails.config.figshareAPI.attachmentsTempDir);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - attachmentsTempDir '+sails.config.figshareAPI.attachmentsTempDir);
                     let diskSpace = await checkDiskSpace(sails.config.figshareAPI.attachmentsTempDir);
                     sails.log[this.createUpdateFigshareArticleLogLevel](diskSpace);
-                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - total file size '+fileSize);
-                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - total free disk space '+diskSpace.free);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - total file size '+fileSize);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - total free disk space '+diskSpace.free);
                     if(diskSpace.free > thresholdAppliedFileSize) {
-                      sails.log[that.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - saving file to temp location in ${fileFullPath}`);
-                      sails.log[that.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - start processing file upload ');
-                      sails.log[that.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - fileSize '+fileSize);
+                      sails.log[that.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - saving file to temp location in ${fileFullPath}`);
+                      sails.log[that.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - start processing file upload ');
+                      sails.log[that.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - fileSize '+fileSize);
                       //Refactor not to use agenda queue and processing only one file at a time per one data publication although concurrent file uploads can 
                       //happen with different data publication records and once a file upload process is finished it will do a recursive call to this method 
                       //checkUploadFilesPending to process to process the next file upload to Figshare
                       this.processFileUploadToFigshare(oid, attachId, articleId, dataPublicationRecord, fileName, fileSize);
                       break;
                     } else {
-                      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - Not enough free space on disk');
+                      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - Not enough free space on disk');
                     }
                   }
                 }
@@ -1029,9 +1035,9 @@ export module Services {
 
                   if(linkOnlyFileFound) {
                     let configDelete = this.getAxiosConfig('delete',`/account/articles/${articleId}/files/${linkOnlyId}`,{});
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - ${configDelete.method} - ${configDelete.url}`);
+                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${configDelete.method} - ${configDelete.url}`);
                     let responseDelete = await axios(configDelete);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - responseDelete status: ${responseDelete.status} statusText: ${responseDelete.statusText}`);
+                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - responseDelete status: ${responseDelete.status} statusText: ${responseDelete.statusText}`);
                     sails.log[this.createUpdateFigshareArticleLogLevel](responseDelete.data);
                   } 
             
@@ -1041,13 +1047,13 @@ export module Services {
                   }
                   let config = this.getAxiosConfig('post',`/account/articles/${articleId}/files`,requestBody);
                   
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - ${config.method} - ${config.url}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${config.method} - ${config.url}`);
                   let response = await axios(config);
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - response link only status: ${response.status} statusText: ${response.statusText}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - response link only status: ${response.status} statusText: ${response.statusText}`);
                   sails.log[this.createUpdateFigshareArticleLogLevel](response.data);
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - response link only '+response.data.location);
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - response link only '+response.data.location);
+                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
                   break;
                 }
               }
@@ -1062,15 +1068,15 @@ export module Services {
               //validate requestEmbargoBody
               this.validateEmbargoRequestBody(dataPublicationRecord, requestEmbargoBody);
               let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - ${embargoConfig.method} - ${embargoConfig.url}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${embargoConfig.method} - ${embargoConfig.url}`);
               let responseEmbargo = await axios(embargoConfig);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - checkUploadFilesPending - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
             } else if(requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false) {
             
               let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
               let responseEmbargoDelete = await axios(embargoDeleteConfig);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
             }
           }
         }
@@ -1097,9 +1103,9 @@ export module Services {
 
     public async processFileUploadToFigshare(oid, attachId, articleId, dataPublicationRecord, fileName, fileSize) {
 
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - enter');
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - oid '+oid);
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - attachId '+attachId);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - enter');
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - oid '+oid);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - attachId '+attachId);
       sails.log[this.createUpdateFigshareArticleLogLevel](attachId);
       let filePath = sails.config.figshareAPI.attachmentsFigshareTempDir;
       let fileFullPath = filePath+'/'+fileName;
@@ -1129,23 +1135,23 @@ export module Services {
             }); 
           }
         } catch(err) {
-          sails.log.error('FigArticle - processFileUploadToFigshare '+JSON.stringify(err));
+          sails.log.error('FigService - processFileUploadToFigshare '+JSON.stringify(err));
         }
 
         let fileStats =  fs.statSync(fileFullPath);
         let apoxFileSize = this.formatBytes(fileStats.size);
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - fileFullPath '+fileFullPath + ' apoxFileSize '+ apoxFileSize);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - fileFullPath '+fileFullPath + ' apoxFileSize '+ apoxFileSize);
 
         if(fs.existsSync(fileFullPath) && fileStats.size > 0) {
           
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - file saved to '+fileFullPath);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - file saved to '+fileFullPath);
           let uploadURL;
           let fileId;
           let uploadParts = [];
 
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - articleId '+articleId);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - fileName '+fileName);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - filePath '+filePath);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - articleId '+articleId);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - fileName '+fileName);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - filePath '+filePath);
           
           let requestStep1 =  
           {
@@ -1157,12 +1163,12 @@ export module Services {
           
           let configStep1 = this.getAxiosConfig('post',`/account/articles/${articleId}/files`,requestStep1);
           
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFileUploadToFigshare - ${configStep1.method} - ${configStep1.url}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFileUploadToFigshare - ${configStep1.method} - ${configStep1.url}`);
           let responseStep1 = await axios(configStep1);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFileUploadToFigshare- response step 1 status: ${responseStep1.status} statusText: ${responseStep1.statusText}`);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - response step 1 '+responseStep1.data.location);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFileUploadToFigshare- response step 1 status: ${responseStep1.status} statusText: ${responseStep1.statusText}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - response step 1 '+responseStep1.data.location);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
       
           //example reply
           /*
@@ -1186,9 +1192,9 @@ export module Services {
               headers: figHeaders
           };
       
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFileUploadToFigshare - ${configStep2.method} - ${configStep2.url}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFileUploadToFigshare - ${configStep2.method} - ${configStep2.url}`);
           let responseStep2 = await axios(configStep2);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFileUploadToFigshare - response step 2 status: ${responseStep2.status} statusText: ${responseStep2.statusText}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFileUploadToFigshare - response step 2 status: ${responseStep2.status} statusText: ${responseStep2.statusText}`);
           uploadURL = responseStep2.data.upload_url;
           fileId = responseStep2.data.id;
       
@@ -1210,9 +1216,9 @@ export module Services {
           }
           */
       
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - response step 2 - id '+fileId+' - url '+uploadURL);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - response step 2 - id '+fileId+' - url '+uploadURL);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
       
           let configStep3 = {
               method: 'get',
@@ -1220,9 +1226,9 @@ export module Services {
               headers: figHeaders
           };
       
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFileUploadToFigshare - ${configStep3.method} - ${configStep3.url}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFileUploadToFigshare - ${configStep3.method} - ${configStep3.url}`);
           let responseStep3 = await axios(configStep3);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFileUploadToFigshare - response step 3 status: ${responseStep3.status} statusText: ${responseStep3.statusText}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFileUploadToFigshare - response step 3 status: ${responseStep3.status} statusText: ${responseStep3.statusText}`);
           uploadParts = responseStep3.data.parts;
       
           //example reply
@@ -1246,7 +1252,7 @@ export module Services {
           */
 
           let totalParts = uploadParts.length;
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - uploadParts.length '+totalParts);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - uploadParts.length '+totalParts);
           if(!_.isUndefined(uploadParts) && uploadParts.length > 0) {
 
             if(uploadParts.length > 0) {
@@ -1267,7 +1273,7 @@ export module Services {
                 //return a promise or accept a callback or accept a callback but it's also not required
                 let bufferChunk = fs.createReadStream(fileFullPath, readStreamConfig);
                 
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFileUploadToFigshare - createReadStream end - totalParts '+totalParts+' partNo '+partNo+' fileName '+fileName);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - createReadStream end - totalParts '+totalParts+' partNo '+partNo+' fileName '+fileName);
                 let paramsImpersonate: {
                   impersonate: 0
                 }
@@ -1284,21 +1290,21 @@ export module Services {
                   url: `${uploadURL}/${partNo}`,
                   data: bufferChunk
                 }
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - ${configStep4.method} - ${configStep4.url}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - ${configStep4.method} - ${configStep4.url}`);
                 //this is when the read stream or file or bufferChunk is open and read therefore this is the only await that is required 
                 let responseStep4 = await axios(configStep4);
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - response step 4 status: ${responseStep4.status} statusText: ${responseStep4.statusText}`);
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - processFilePartUploadToFigshare - uploaded file chunk totalParts '+totalParts+' partNo '+partNo+' fileName '+fileName);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - response step 4 status: ${responseStep4.status} statusText: ${responseStep4.statusText}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFilePartUploadToFigshare - uploaded file chunk totalParts '+totalParts+' partNo '+partNo+' fileName '+fileName);
               }
 
               //complete upload step 5
               let requestBodyComplete = { impersonate: 0 };
               this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyComplete,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
               let configStep5 = this.getAxiosConfig('post', `/account/articles/${articleId}/files/${fileId}`, requestBodyComplete);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - ${configStep5.method} - ${configStep5.url}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - ${configStep5.method} - ${configStep5.url}`);
               let responseStep5 = await axios(configStep5);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - response step 5 status: ${responseStep5.status} statusText: ${responseStep5.statusText}`);
-              sails.log.info(`FigArticle - processFilePartUploadToFigshare - file upload completed articleId ${articleId} totalParts ${totalParts} fileName ${fileName}`);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - response step 5 status: ${responseStep5.status} statusText: ${responseStep5.statusText}`);
+              sails.log.info(`FigService - processFilePartUploadToFigshare - file upload completed articleId ${articleId} totalParts ${totalParts} fileName ${fileName}`);
 
               //Delete the file from the temp directory
               fs.unlinkSync(fileFullPath);
@@ -1318,20 +1324,20 @@ export module Services {
                 //validate requestEmbargoBody
                 this.validateEmbargoRequestBody(dataPublicationRecord, requestEmbargoBody);
                 let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - embargo - ${embargoConfig.method} - ${embargoConfig.url}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - embargo - ${embargoConfig.method} - ${embargoConfig.url}`);
                 let responseEmbargo = await axios(embargoConfig);
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
               } else if(requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false) {
             
                 let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
                 let responseEmbargoDelete = await axios(embargoDeleteConfig);
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
               }
             } 
           }
         } else {
-          sails.log.info(`FigArticle - processFileUploadToFigshare - filePath ${fileFullPath} not found articleId ${articleId}`);
+          sails.log.info(`FigService - processFileUploadToFigshare - filePath ${fileFullPath} not found articleId ${articleId}`);
         }
       
       } catch (error) {
@@ -1351,9 +1357,9 @@ export module Services {
 
       if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
         this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-        sails.log.info(`FigArticle - createUpdateFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - createUpdateFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
       } else {
-        sails.log.info(`FigArticle - createUpdateFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - createUpdateFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
 
       if (this.metTriggerCondition(oid, record, options) === 'true') {
@@ -1367,42 +1373,42 @@ export module Services {
 
       if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
         this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-        sails.log.info(`FigArticle - uploadFilesToFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
       } else {
-        sails.log.info(`FigArticle - uploadFilesToFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
       
       if (this.metTriggerCondition(oid, record, options) === 'true') {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - uploadFilesToFigshareArticle - enter');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - uploadFilesToFigshareArticle - oid '+oid);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - enter');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - oid '+oid);
         this.checkUploadFilesPending(record, oid);
       }
     }
 
     private async deleteFilesAndUpdateDataLocationEntries(dataPublicationRecord, oid) {
       try {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - deleteFilesAndUpdateDataLocationEntries - enter');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesAndUpdateDataLocationEntries - enter');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
 
         let articleId;
         if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.figArticleIdPathInRecord) && 
           !_.isUndefined(dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]) && 
           dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord] > 0) {
           articleId = dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - deleteFilesAndUpdateDataLocationEntries - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesAndUpdateDataLocationEntries - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
         } else {
           articleId = 0;
         }
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - deleteFilesAndUpdateDataLocationEntries - articleId '+articleId);
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - deleteFilesAndUpdateDataLocationEntries - oid '+oid);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesAndUpdateDataLocationEntries - articleId '+articleId);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesAndUpdateDataLocationEntries - oid '+oid);
 
         if(articleId > 0) {
 
           let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - deleteFilesAndUpdateDataLocationEntries - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesAndUpdateDataLocationEntries - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
           let responseArticleList = await axios(articleFileListConfig);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - deleteFilesAndUpdateDataLocationEntries - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesAndUpdateDataLocationEntries - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
           let articleFileList = responseArticleList.data;
 
           let dataLocations = dataPublicationRecord[this.metadataPathInRecord][this.dataLocationsPathInRecord];
@@ -1447,9 +1453,9 @@ export module Services {
 
       if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
         this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-        sails.log.info(`FigArticle - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
       } else {
-        sails.log.info(`FigArticle - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
     
       if (this.metTriggerCondition(oid, record, options) === 'true') {
@@ -1471,8 +1477,8 @@ export module Services {
         function: 'sails.services.figsharetriggerservice.processFileUploadToFigshare'
       };
       
-      sails.log.info(`FigArticle - queueFileUpload - Queueing up trigger using jobName ${jobName} articleId ${articleId} fileName ${fileName} fileSize ${fileSize}`);
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - queueFileUpload - queueMessage '+JSON.stringify(queueMessage));
+      sails.log.info(`FigService - queueFileUpload - Queueing up trigger using jobName ${jobName} articleId ${articleId} fileName ${fileName} fileSize ${fileSize}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueFileUpload - queueMessage '+JSON.stringify(queueMessage));
       this.queueService.now(jobName, queueMessage);
     }
 
