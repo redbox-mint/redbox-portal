@@ -142,6 +142,7 @@ export module Services {
       'exportAllPlans',
       'storeRecordAudit',
       'exists',
+      'transitionWorkflowStep',
       'setWorkflowStepRelatedMetadata',
       'transitionWorkflowStepMetadata',
       'triggerPreSaveTransitionWorkflowTriggers',
@@ -953,6 +954,10 @@ export module Services {
 
     async createRecordAudit?(record: any): Promise<any> {
       return await this.storageService.createRecordAudit(record);
+    }
+
+    public async transitionWorkflowStep(currentRec: any, recordType: any, nextStep: any, user: any, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true) {
+      throw new Error("Use separate calls to 'transitionWorkflowStepMetadata', 'triggerPreSaveTransitionWorkflowTriggers', and 'triggerPostSaveTransitionWorkflowTriggers' instead.")
     }
 
     public setWorkflowStepRelatedMetadata(currentRec: any, nextStep: any) {
