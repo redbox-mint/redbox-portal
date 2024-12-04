@@ -5,10 +5,7 @@ export class FigshareArticleUpdate {
     authors: any[];
     categories: number[];
     custom_fields: any;
-    funding: string;
     license: number;
-    resource_title: string;
-    resource_doi: string;
     defined_type: string;
     group_id: number;
 
