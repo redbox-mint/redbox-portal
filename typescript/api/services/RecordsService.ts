@@ -152,7 +152,7 @@ export module Services {
     ];
 
     protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
-      
+
       let metaMetadata = {};
       if (recordType.packageType) {
         _.set(metaMetadata,'packageType',recordType.packageType);
@@ -177,20 +177,28 @@ export module Services {
 
       return metaMetadata;
     }
-    
-    
+
+
     async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true, targetStep = null) {
 
+      //set the initial workflow metadata to the first step
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-      let formName = _.get(wfStep,'config.form');
+      this.setWorkflowStepRelatedMetadata(record, wfStep);
+
+      let formName = _.get(wfStep, 'config.form');
 
       let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
 
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
 
-      this.setWorkflowStepRelatedMetadata(record, wfStep);
-      
+      if (targetStep) {
+        wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
+        record = await this.triggerPreSaveTransitionWorkflowTriggers(null, record, recordType, wfStep, user);
+        this.setWorkflowStepRelatedMetadata(record, wfStep);
+      }
+
+
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
       // trigger the pre-save
@@ -250,26 +258,18 @@ export module Services {
           // update the metadata ...
           createResponse = await this.updateMeta(brand, oid, record, user, false, false);
         }
-        // FIX: targetStep not getting applied when creating new records. 
-        // Moved the target step outside of the datastream attachments update block
-        if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
-          sails.log.verbose(`RecordsService - create - before ajaxOk`);
 
-          if (targetStep) {
-            let wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
-            this.setWorkflowStepRelatedMetadata(record, wfStep);
-          }
-        } else {
-          sails.log.error('RecordsService - create - Failed to save record: ' + JSON.stringify(createResponse));
-          return createResponse;
-        }
 
         if (triggerPostSaveTriggers) {
           // post-save sync
           try {
-            createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
+            
+              createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
+              if (this.hasPostSaveSyncHooks(recordType, 'onCreate')) {
+                this.storageService.updateMeta(brand, oid, record, user);
+              }
           } catch (err) {
-            if(this.isValidationError(err)) {
+            if (this.isValidationError(err)) {
               createResponse.message = err.message;
             } else {
               createResponse.message = failedMessage;
@@ -279,11 +279,31 @@ export module Services {
             createResponse.success = false;
             let metadata = { postSaveSyncWarning: 'true' };
             createResponse.metadata = metadata;
-            sails.log.error('RecordsService create - error - createResponse '+JSON.stringify(createResponse));
+            sails.log.error('RecordsService create - error - createResponse ' + JSON.stringify(createResponse));
             return createResponse;
           }
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
+
+          if (!_.isEmpty(targetStep)) {
+            try {
+                createResponse = await this.triggerPostSaveTransitionWorkflowTriggers(createResponse['oid'], record, recordType, wfStep, user, createResponse);
+                if (createResponse && createResponse.isSuccessful()) {
+                  if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
+                    await this.storageService.updateMeta(brand, oid, record, user);
+                  }
+                } else {
+                  return createResponse;
+                }
+              
+            } catch (tErr) {
+              sails.log.error('RecordsService - create - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
+              sails.log.error(tErr);
+              createResponse.success = false;
+              createResponse.message = tErr.message;
+              return createResponse;
+            }
+          }
         }
 
         const recordOid = _.get(record, 'redboxOid');
@@ -308,8 +328,8 @@ export module Services {
     }
 
 
-    async updateMeta(brand:any, oid:any, record:any, user ? : any, triggerPreSaveTriggers:boolean = true, triggerPostSaveTriggers:boolean = true, nextStep:any = {}, metadata:any = {}):Promise<StorageServiceResponse> {
-      
+    async updateMeta(brand: any, oid: any, record: any, user?: any, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true, nextStep: any = {}, metadata: any = {}): Promise<StorageServiceResponse> {
+
       let updateResponse = new StorageServiceResponse();
       let preTriggerResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
@@ -318,16 +338,16 @@ export module Services {
       let origRecord = _.cloneDeep(record);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
       //This is done after cloning record to preserve origRecord during processing
-      if(!_.isEmpty(metadata)) {
+      if (!_.isEmpty(metadata)) {
         record.metadata = metadata;
       }
-      
+
       let recordType = null;
-      if(!_.isEmpty(brand)) {
+      if (!_.isEmpty(brand)) {
         recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
       }
 
-      if(!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
+      if (!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
         if (nextStep.config.authorization.transitionRoles != undefined) {
           if (nextStep.config.authorization.transitionRoles.length > 0) {
             let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
@@ -344,13 +364,12 @@ export module Services {
             }
           }
         }
-      
+
         if (hasPermissionToTransition && !_.isEmpty(nextStep) && !_.isEmpty(recordType)) {
           try {
             sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
             sails.log.verbose(`RecordService - updateMeta triggerPreSaveTransitionWorkflowTriggers - before - nextStep ${JSON.stringify(nextStep)}`);
             record = await this.triggerPreSaveTransitionWorkflowTriggers(updateResponse['oid'], record, recordType, nextStep, user);
-            // TODO: should the workflow metadata change before or after the pre-save triggers?
             this.transitionWorkflowStepMetadata(record, nextStep);
           } catch (err) {
             sails.log.verbose("RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error");
@@ -372,7 +391,7 @@ export module Services {
 
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
       record.metaMetadata.attachmentFields = form != undefined ? form.attachmentFields : [];
-      
+
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
@@ -381,7 +400,7 @@ export module Services {
           record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onUpdate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
-          if(this.isValidationError(err)) {
+          if (this.isValidationError(err)) {
             sails.log.error(err.message);
             updateResponse.message = err.message;
           } else {
@@ -421,21 +440,25 @@ export module Services {
       sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
-      sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful '+updateResponse.isSuccessful());
+      sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
       if (updateResponse.isSuccessful()) {
         //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
         //therefore try to set recordType if triggerPostSaveTriggers is true
-        if(_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
+        if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
-        // Trigger Post-save sync hooks ...
+          // Trigger Post-save sync hooks ...
           try {
-            sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
-            updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
+            
+              sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
+              updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
+              if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
+               await this.storageService.updateMeta(brand, oid, record, user);
+              }
           } catch (err) {
-            if(this.isValidationError(err)) {
+            if (this.isValidationError(err)) {
               updateResponse.message = err.message;
             } else {
               updateResponse.message = failedMessage;
@@ -445,7 +468,7 @@ export module Services {
             updateResponse.success = false;
             let metadataRes = { postSaveSyncWarning: 'true' };
             updateResponse.metadata = metadataRes;
-            sails.log.error('RecordsService - updateMeta - error - updateResponse '+JSON.stringify(updateResponse));
+            sails.log.error('RecordsService - updateMeta - error - updateResponse ' + JSON.stringify(updateResponse));
             return updateResponse;
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
@@ -454,16 +477,22 @@ export module Services {
 
           if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
             try {
-              updateResponse = await this.triggerPostSaveTransitionWorkflowTriggers(updateResponse['oid'], record, recordType, nextStep, user, updateResponse);
-              sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`);
-              sails.log.verbose(JSON.stringify(updateResponse));
-              if(updateResponse && updateResponse.isSuccessful()) {
-                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
-              } else {
-                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`);
-                return updateResponse;
-              }
-            } catch(tErr) {
+              
+                updateResponse = await this.triggerPostSaveTransitionWorkflowTriggers(updateResponse['oid'], record, recordType, nextStep, user, updateResponse);
+
+                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`);
+                sails.log.verbose(JSON.stringify(updateResponse));
+                if (updateResponse && updateResponse.isSuccessful()) {
+                  sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
+                  if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
+                    await this.storageService.updateMeta(brand, oid, record, user);
+                  }
+                } else {
+                  sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`);
+                  return updateResponse;
+                }
+              
+            } catch (tErr) {
               sails.log.error('RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
               sails.log.error(tErr);
               updateResponse.success = false;
@@ -483,15 +512,23 @@ export module Services {
       return updateResponse;
     }
 
-    getMeta(oid: any): Promise < any > {
+    hasPostSaveSyncHooks(recordType: any, mode: string): boolean {
+      let postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, []);
+      if (_.isArray(postSaveSyncHooks) && postSaveSyncHooks.length > 0) {
+        return true;
+      }
+      return false;
+    }
+
+    getMeta(oid: any): Promise<any> {
       return this.storageService.getMeta(oid);
     }
 
-    getRecordAudit(params: RecordAuditParams): Promise < any > {
+    getRecordAudit(params: RecordAuditParams): Promise<any> {
       return this.storageService.getRecordAudit(params);
     }
 
-    createBatch(type: any, data: any, harvestIdFldName: any): Promise < any > {
+    createBatch(type: any, data: any, harvestIdFldName: any): Promise<any> {
       return this.storageService.createBatch(type, data, harvestIdFldName);
     }
 
@@ -499,7 +536,7 @@ export module Services {
       this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
     }
 
-    getRelatedRecords(oid: any, brand: any): Promise < any > {
+    getRelatedRecords(oid: any, brand: any): Promise<any> {
       return this.storageService.getRelatedRecords(oid, brand);
     }
 
@@ -509,7 +546,7 @@ export module Services {
       return validationName == err.name ? err.message : defaultMessage;
     }
 
-    async delete(oid: any, permanentlyDelete:boolean, currentRec:any, recordType:any, user:any) {
+    async delete(oid: any, permanentlyDelete: boolean, currentRec: any, recordType: any, user: any) {
 
       let preTriggerResponse = new StorageServiceResponse();
       const failedMessage = "Failed to delete record, please check server logs.";
@@ -527,15 +564,15 @@ export module Services {
 
       let response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
-        let action:RecordAuditActionType = permanentlyDelete? RecordAuditActionType.destroyed : RecordAuditActionType.deleted;
-        this.auditRecord(oid,{}, user, action)
+        let action: RecordAuditActionType = permanentlyDelete ? RecordAuditActionType.destroyed : RecordAuditActionType.deleted;
+        this.auditRecord(oid, {}, user, action)
         this.searchService.remove(oid);
 
         try {
           sails.log.verbose('RecordsService - delete - calling triggerPostSaveSyncTriggers');
           response = await this.triggerPostSaveSyncTriggers(oid, currentRec, recordType, 'onDelete', user, response);
         } catch (err) {
-          if(this.isValidationError(err)) {
+          if (this.isValidationError(err)) {
             response.message = err.message;
           } else {
             response.message = failedMessage;
@@ -545,21 +582,21 @@ export module Services {
           response.success = false;
           let metadata = { postSaveSyncWarning: 'true' };
           response.metadata = metadata;
-          sails.log.error('RecordsService - delete - error - triggerPostSaveSyncTriggers '+JSON.stringify(response));
+          sails.log.error('RecordsService - delete - error - triggerPostSaveSyncTriggers ' + JSON.stringify(response));
           return response;
         }
         sails.log.verbose('RecordService - delete - calling triggerPostSaveTriggers');
-        
+
         this.triggerPostSaveTriggers(oid, currentRec, recordType, 'onDelete', user);
       }
       return response;
     }
 
-    updateNotificationLog(oid: any, record: any, options: any): Promise < any > {
+    updateNotificationLog(oid: any, record: any, options: any): Promise<any> {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
 
-    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode=undefined, secondarySort=undefined): Promise < any > {
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode = undefined, secondarySort = undefined): Promise<any> {
 
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode, secondarySort);
     }
@@ -573,7 +610,7 @@ export module Services {
     // Params:
     // oid - record idea
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
-    public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise < any > {
+    public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise<any> {
       sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
       let datastreams = await this.datastreamService.listDatastreams(oid, null);
       let attachments = [];
@@ -597,7 +634,7 @@ export module Services {
     /*
      *
      */
-    public async checkRedboxRunning(): Promise < any > {
+    public async checkRedboxRunning(): Promise<any> {
       // check if a valid storage plugin is loaded....
       if (!_.isEmpty(sails.config.storage)) {
         sails.log.info("ReDBox storage plugin is active!");
@@ -619,7 +656,7 @@ export module Services {
     }
 
 
-    public auditRecord(id: string, record: any, user: any, action:RecordAuditActionType = RecordAuditActionType.updated) {
+    public auditRecord(id: string, record: any, user: any, action: RecordAuditActionType = RecordAuditActionType.updated) {
       if (this.queueService == null) {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
@@ -631,8 +668,8 @@ export module Services {
         }
       }
       sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
-      _.unset(user,'password')
-      _.unset(user,'token')
+      _.unset(user, 'password')
+      _.unset(user, 'token')
       // storage_id is used as the main ID in searches
       let data = new RecordAuditModel(id, record, user, action)
       sails.log.verbose(JSON.stringify(data));
@@ -656,10 +693,10 @@ export module Services {
       });
     }
 
-    private info(): Promise < any > {
+    private info(): Promise<any> {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url, sails.config.record.api.info.method);
-      
+
       return axios(options);
     }
 
@@ -678,7 +715,7 @@ export module Services {
           'Content-Type': contentType
         }
       };
-      
+
       return opts;
     }
 
@@ -715,7 +752,7 @@ export module Services {
       }
       _.set(targetRecord, fieldName, linkData);
       sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
-      
+
       return await this.updateMeta(null, targetRecordOid, targetRecord);
     }
 
@@ -787,7 +824,7 @@ export module Services {
     }
 
 
-    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise < any > {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any> {
 
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
@@ -807,7 +844,7 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url, sails.config.record.api.search.method);
-      
+
       return Observable.fromPromise(axios(options))
         .flatMap(resp => {
           let response: any = resp;
@@ -933,23 +970,23 @@ export module Services {
       // });
     }
 
-    
 
-    async restoreRecord(oid: any, user:any): Promise<any> {
+
+    async restoreRecord(oid: any, user: any): Promise<any> {
       let record = await this.storageService.restoreRecord(oid);
       this.searchService.index(oid, record);
       this.auditRecord(oid, record, user, RecordAuditActionType.restored)
       return record
     }
 
-    async destroyDeletedRecord(oid: any, user:any): Promise<any> {
+    async destroyDeletedRecord(oid: any, user: any): Promise<any> {
       let record = await this.storageService.destroyDeletedRecord(oid);
       this.auditRecord(oid, record, user, RecordAuditActionType.destroyed)
       return record
     }
 
     async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, username: any, roles: any, brand: any, editAccessOnly: any, packageType: any, sort: any, fieldNames?: any, filterString?: any, filterMode?: any): Promise<any> {
-      return await this.storageService.getDeletedRecords(workflowState,recordType,start,rows,username,roles,brand,editAccessOnly,packageType,sort,fieldNames,filterString,filterMode);
+      return await this.storageService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode);
     }
 
     async createRecordAudit?(record: any): Promise<any> {
@@ -1003,7 +1040,7 @@ export module Services {
     public async triggerPostSaveTransitionWorkflowTriggers(oid: string, record: any, recordType: any, nextStep: any, user: object = undefined, response: any = {}) {
       try {
         if (!_.isEmpty(nextStep)) {
-          response = await this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onTransitionWorkflow', user, response);
+            response = await this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onTransitionWorkflow', user, response);
         }
       } catch (err) {
         if (this.isValidationError(err)) {
