@@ -210,7 +210,7 @@ export module Services {
 
       if (queryConfig.userQueryFields != null) {
         for(let userQueryField of queryConfig.userQueryFields) {
-          let searchProperty = queryConfig.queryField.property;
+          let searchProperty = userQueryField.property;
           query = query + '&fq=' + searchProperty + ':'+ _.get(user, userQueryField.userValueProperty, null);
         }
       }
