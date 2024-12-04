@@ -181,23 +181,26 @@ export module Services {
 
     async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true, targetStep = null) {
 
-      //set the initial workflow metadata to the first step
-      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-      this.setWorkflowStepRelatedMetadata(record, wfStep);
+     
 
+      
+      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
       let formName = _.get(wfStep, 'config.form');
 
       let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
 
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
+       //set the initial workflow metadata to the first step
+       this.setWorkflowStepRelatedMetadata(record, wfStep);
 
       if (targetStep) {
         wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
         record = await this.triggerPreSaveTransitionWorkflowTriggers(null, record, recordType, wfStep, user);
         this.setWorkflowStepRelatedMetadata(record, wfStep);
       }
-
+      
+      
 
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
