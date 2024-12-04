@@ -132,7 +132,6 @@ export module Services {
       'destroyDeletedRecord',
       'getDeletedRecords',
       'updateNotificationLog',
-      'transitionWorkflowStep',
       'triggerPreSaveTriggers',
       'triggerPostSaveTriggers',
       'triggerPostSaveSyncTriggers',
@@ -144,6 +143,9 @@ export module Services {
       'storeRecordAudit',
       'exists',
       'setWorkflowStepRelatedMetadata',
+      'transitionWorkflowStepMetadata',
+      'triggerPreSaveTransitionWorkflowTriggers',
+      'triggerPostSaveTransitionWorkflowTriggers',
       // 'updateDataStream',
       'handleUpdateDataStream'
     ];
@@ -345,8 +347,10 @@ export module Services {
         if (hasPermissionToTransition && !_.isEmpty(nextStep) && !_.isEmpty(recordType)) {
           try {
             sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
-            sails.log.verbose('RecordService - updateMeta transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
-            await this.transitionWorkflowStep(record, recordType, nextStep, user, true, false);
+            sails.log.verbose(`RecordService - updateMeta triggerPreSaveTransitionWorkflowTriggers - before - nextStep ${JSON.stringify(nextStep)}`);
+            record = await this.triggerPreSaveTransitionWorkflowTriggers(updateResponse['oid'], record, recordType, nextStep, user);
+            // TODO: should the workflow metadata change before or after the pre-save triggers?
+            this.transitionWorkflowStepMetadata(record, nextStep);
           } catch (err) {
             sails.log.verbose("RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error");
             sails.log.error(JSON.stringify(err));
@@ -449,13 +453,13 @@ export module Services {
 
           if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
             try {
-              updateResponse = await this.transitionWorkflowStep(record, recordType, nextStep, user, false, true);
-              sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep post save hook enter`);
+              updateResponse = await this.triggerPostSaveTransitionWorkflowTriggers(updateResponse['oid'], record, recordType, nextStep, user, updateResponse);
+              sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`);
               sails.log.verbose(JSON.stringify(updateResponse));
               if(updateResponse && updateResponse.isSuccessful()) {
-                sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep ajaxOk`);
+                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
               } else {
-                sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep post save hook not successful`);
+                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`);
                 return updateResponse;
               }
             } catch(tErr) {
@@ -951,37 +955,14 @@ export module Services {
       return await this.storageService.createRecordAudit(record);
     }
 
-    public async transitionWorkflowStep(currentRec: any, recordType: any, nextStep: any, user: any, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true) {
-
-      let oid = _.get(currentRec, 'redboxOid');
-      let updateResponse = new StorageServiceResponse();
-      updateResponse.oid = oid;
-      updateResponse.success = true;
-      
-      if (!_.isEmpty(nextStep)) {
-        if (triggerPreSaveTriggers) {
-          currentRec = await this.triggerPreSaveTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user);
-        }
-
-        this.setWorkflowStepRelatedMetadata(currentRec,nextStep);
-
-        if (triggerPostSaveTriggers) {
-
-          updateResponse = await this.triggerPostSaveSyncTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user, updateResponse);
-          
-          this.triggerPostSaveTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user);
-        }
-      }
-
-      return updateResponse;
+    public setWorkflowStepRelatedMetadata(currentRec: any, nextStep: any) {
+      sails.log.warn('Deprecated call to setWorkflowStepRelatedMetadata. Use transitionWorkflowStepMetadata instead.');
+      return this.transitionWorkflowStepMetadata(currentRec, nextStep);
     }
 
-
-    public setWorkflowStepRelatedMetadata(currentRec: any, nextStep: any) {
+    public transitionWorkflowStepMetadata(currentRec: any, nextStep: any) {
+      sails.log.verbose(`transitionWorkflowStepMetadata - start - previousWorkflow: ${currentRec.previousWorkflow}; workflow: ${currentRec.workflow}; nextStep: ${nextStep}`);
       if (!_.isEmpty(nextStep)) {
-        sails.log.verbose('setWorkflowStepRelatedMetadata - enter');
-        sails.log.verbose(nextStep);
-
         currentRec.previousWorkflow = currentRec.workflow;
         currentRec.workflow = nextStep.config.workflow;
         // TODO: validate data with form fields
@@ -991,19 +972,51 @@ export module Services {
           currentRec.metadata['@context'] = sails.config.jsonld.contexts[currentRec.metaMetadata.form];
         }
         //TODO: if this was all typed we probably don't need these sorts of initialisations
-        if(currentRec.authorization == undefined) {
+        if (currentRec.authorization == undefined) {
           currentRec.authorization = {
-            viewRoles:[],
-            editRoles:[],
-            edit:[],
-            view:[]
+            viewRoles: [],
+            editRoles: [],
+            edit: [],
+            view: []
           };
         }
-        
+
         // update authorizations based on workflow...
         currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
         currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
       }
+      sails.log.verbose(`transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRec.previousWorkflow}; workflow: ${currentRec.workflow}; nextStep: ${nextStep}`);
+    }
+
+    public async triggerPreSaveTransitionWorkflowTriggers(oid: string, record: any, recordType: object, nextStep: any, user: object = undefined) {
+      if (!_.isEmpty(nextStep)) {
+        record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onTransitionWorkflow', user);
+      }
+      return record;
+    }
+
+    public async triggerPostSaveTransitionWorkflowTriggers(oid: string, record: any, recordType: any, nextStep: any, user: object = undefined, response: any = {}) {
+      try {
+        if (!_.isEmpty(nextStep)) {
+          response = await this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onTransitionWorkflow', user, response);
+        }
+      } catch (err) {
+        if (this.isValidationError(err)) {
+          response.message = err.message;
+        } else {
+          response.message = "Failed to transition record workflow, please check server logs.";
+        }
+        sails.log.error(`${this.logHeader} Exception while running post save sync hooks when transitioning workflow: ${JSON.stringify(err)}`);
+        response.success = false;
+        response.metadata = {postSaveSyncWarning: 'true'};
+        sails.log.error(`RecordsService - triggerPostSaveTransitionWorkflowTriggers - error - response: ${JSON.stringify(response)}`);
+        return response;
+      }
+
+      if (!_.isEmpty(nextStep)) {
+        this.triggerPostSaveTriggers(oid, record, recordType, 'onTransitionWorkflow', user);
+      }
+      return response;
     }
 
     public async triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string = 'onUpdate', user: object = undefined) {
