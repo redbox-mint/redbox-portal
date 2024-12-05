@@ -155,12 +155,31 @@ export module Services {
       }
       return config;
     }
-    
+
+    private getValueFromObject(field:any, pathOrTemplate:any) {
+      let value:any;
+      if(pathOrTemplate.indexOf('<%') != -1) {
+        let context = {
+          moment: moment,
+          field: field,
+          artifacts: sails.config.figshareAPI.mapping.artifacts
+        }
+        value = _.template(pathOrTemplate)(context);      
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- getValueFromObject ---- ${JSON.stringify(field)}`);
+      } else {
+        value = _.get(field,pathOrTemplate);
+      }
+      return value;
+    }
+
     private setStandardFieldInRequestBody(record:any, requestBody:any, standardField:any) {
       let value = '';
       let template = _.get(standardField,'template','');
       let runByNameOnly = _.get(standardField,'runByNameOnly',false);
-      if(!runByNameOnly) {
+      let unset = _.get(standardField,'unset',false);
+      if(unset) {
+        _.unset(requestBody, standardField.figName);
+      } else if(!runByNameOnly) {
         if(template.indexOf('<%') != -1) {
           let context = {
             record: record,
@@ -210,24 +229,31 @@ export module Services {
       }
     }
     
+    //These method takes the list of contributors found in the ReDBox record and will try to match the
+    //ReDBox Id to a Figshare Id. The Identifier(s) to be used are defined in figshareAPI config file
     private async getAuthorUserIDs(authors:any) {
-      //TODO FIXME this method may end up using if else if depending on the different use cases given it relays on a API call. It
-      //also may be that this method logic will not need to be changed and will work as is for all use cases that are needed but 
-      //it's not possible to know at this stage
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - getAuthorUserIDs enter');
       let authorList = [];
       let uniqueAuthorByEmail = _.uniqBy(authors,'email[0]');
       let uniqueAuthors = _.uniqBy(uniqueAuthorByEmail,'text_full_name');
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uniqueAuthors');
       sails.log[this.createUpdateFigshareArticleLogLevel](uniqueAuthors);
+      let getAuthorTemplateRequests = sails.config.figshareAPI.mapping.templates.getAuthor;
+
+      let uniqueAuthorsControlList = _.clone(uniqueAuthors);
+
       for(let author of uniqueAuthors) {
         sails.log[this.createUpdateFigshareArticleLogLevel](author);
-        if(_.has(author, this.mintDCIdentifierDP)) {
-          let userId = author[this.mintDCIdentifierDP][0];
+
+        for(let requestBodyTemplate of getAuthorTemplateRequests) {
+          let userId = this.getValueFromObject(author,requestBodyTemplate.template);
+        
           if(!_.isUndefined(userId) && !_.isEmpty(userId)) {
-            let requestBody = {
-              institution_user_id: userId
-            };
+
+            let requestBody = _.clone(requestBodyTemplate);
+            _.unset(requestBody,'template');
+            let keys = _.keys(requestBody);
+            _.set(requestBody,keys[0],userId);
 
             let config = this.getAxiosConfig('post','/account/institution/accounts/search', requestBody);
 
@@ -240,31 +266,29 @@ export module Services {
                 sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getAuthorUserIDs - author `);
                 sails.log[this.createUpdateFigshareArticleLogLevel](figshareAccountUserID);
                 authorList.push(figshareAccountUserID);
+                _.remove(uniqueAuthorsControlList,author);
             } catch (error) {
                 sails.log.error(error);
                 sails.log.error(`FigService - getAuthorUserIDs - author error`);
                 sails.log.error(author);
-                let otherContributor = this.getOtherContributor(author);
-                if(!_.isUndefined(otherContributor)) {
-                  authorList.push(otherContributor);
-                }
             }
-          } else {
-            let otherContributor = this.getOtherContributor(author);
-            if(!_.isUndefined(otherContributor)) {
-              authorList.push(otherContributor);
-            }
-          }
-        } else {
-          let otherContributor = this.getOtherContributor(author);
-          if(!_.isUndefined(otherContributor)) {
-            authorList.push(otherContributor);
-          }
+          } 
         }
       }
+
+      for(let externalAuthor of uniqueAuthorsControlList) {
+        let otherContributor = this.getOtherContributor(externalAuthor);
+        if(!_.isUndefined(otherContributor)) {
+          authorList.push(otherContributor);
+        }
+      }
+
       return authorList;
     }
     
+    //This method allows for defining rules to gather a list of all relevant contributors from a ReDBox record
+    //The rules can be configured in the artifacts method getContributorsFromRecord that uses a lodash template 
+    //and these rules are meant to be project spefic and hence these are set in figshareAPI config file  
     private getContributorsFromRecord(record:any) {
       let authors = [];
       let template = sails.config.figshareAPI.mapping.artifacts.getContributorsFromRecord.template;
@@ -540,8 +564,8 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - articleId '+articleId);
         let contributorsDP = this.getContributorsFromRecord(dataPublicationRecord);
         sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - contributorsDP ${JSON.stringify(contributorsDP)}`);
-        if(sails.config.figshareAPI.testMode) {
-          this.figshareAccountAuthorIDs = [{ id: 1234, user_id: 1239 }];
+        if(!_.isEmpty(sails.config.figshareAPI.testUsers)) {
+          this.figshareAccountAuthorIDs = sails.config.figshareAPI.testUsers;
         } else {
           this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
         }
@@ -549,28 +573,23 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
           let requestBodyCreate = this.getArticleCreateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
           this.validateCreateArticleRequestBody(requestBodyCreate);
           //Need to pre validate the update request body as well before creating the article because if the article gets
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
           let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
           this.validateUpdateArticleRequestBody(dummyRequestBodyUpdate);
           
           let dummyEmbargoRequestBody = this.getEmbargoRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - embargoRequestBody ------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyEmbargoRequestBody));
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - embargoRequestBody ------------------------');
           this.validateEmbargoRequestBody(dataPublicationRecord, dummyEmbargoRequestBody);
 
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before post -------------------------------------------');
@@ -677,6 +696,8 @@ export module Services {
             let figshareArticleConfig = this.getAxiosConfig('put', `/account/articles/${articleId}`, requestBodyUpdate); 
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before update articleId '+articleId);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+            sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyUpdate);
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${figshareArticleConfig.method} - ${figshareArticleConfig.url}`);
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
