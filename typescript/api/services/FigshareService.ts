@@ -46,20 +46,12 @@ export module Services {
     private locationFAR = '';
 
     //Data publication metadata
-    private mintDCIdentifierDP = 'dc_identifier';
     private anzsrcForDP = 'anzsrcFor'; 
     private accessRightDP = 'access-rights';
-
-    //Figshare authors
-    private authorEmail = 'email';
-    private authorOrcid = 'orcid';
-    private authorTextFullName = 'text_full_name';
 
     //Figshare article
     private isEmbargoedFA = 'is_embargoed';
     private embargoTypeFA = 'embargo_type';
-    private accountIdFA = 'id'; //id = account id
-    private userIdFA = 'user_id'; //user_id = author id 
     private categoriesFA = 'categories';
     private curationStatusFA = 'curation_status';
 
@@ -217,17 +209,6 @@ export module Services {
         _.set(requestBody, field.figName, value);
       }
     }
-
-    private getOtherContributor(author) {
-      //orcid can be an array of 1 string element if it comes directly from mint on lookup or it can be a string if saved directly from redbox form 
-      if(!_.isUndefined(author[this.authorOrcid]) && _.isArray(author[this.authorOrcid]) && !_.isUndefined(author[this.authorOrcid][0]) && !_.isEmpty(author[this.authorOrcid][0])) {
-        return {name: author[this.authorTextFullName], email: author[this.authorEmail], orcid_id: author[this.authorOrcid][0]};
-      } else if (!_.isUndefined(author[this.authorOrcid]) && !_.isArray(author[this.authorOrcid]) && !_.isUndefined(author[this.authorOrcid]) && !_.isEmpty(author[this.authorOrcid])) {
-        return {name: author[this.authorTextFullName], email: author[this.authorEmail], orcid_id: author[this.authorOrcid]};
-      } else {
-        return {name: author[this.authorTextFullName], email: author[this.authorEmail]};
-      }
-    }
     
     //These method takes the list of contributors found in the ReDBox record and will try to match the
     //ReDBox Id to a Figshare Id. The Identifier(s) to be used are defined in figshareAPI config file
@@ -262,11 +243,13 @@ export module Services {
                 let response = await axios(config);
                 let authorData = response.data;
                 sails.log[this.createUpdateFigshareArticleLogLevel](authorData);
-                let figshareAccountUserID = {id: _.toNumber(authorData[0][this.accountIdFA]), user_id: _.toNumber(authorData[0][this.userIdFA])};
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getAuthorUserIDs - author `);
-                sails.log[this.createUpdateFigshareArticleLogLevel](figshareAccountUserID);
-                authorList.push(figshareAccountUserID);
-                _.remove(uniqueAuthorsControlList,author);
+                if(!_.isEmpty(authorData)) {
+                  let figshareAccountUserID = {id: _.toNumber(authorData[0][sails.config.figshareAPI.mapping.figshareAuthorUserId])};
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getAuthorUserIDs - author `);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](figshareAccountUserID);
+                  authorList.push(figshareAccountUserID);
+                  _.remove(uniqueAuthorsControlList,author);
+                }
             } catch (error) {
                 sails.log.error(error);
                 sails.log.error(`FigService - getAuthorUserIDs - author error`);
@@ -277,7 +260,7 @@ export module Services {
       }
 
       for(let externalAuthor of uniqueAuthorsControlList) {
-        let otherContributor = this.getOtherContributor(externalAuthor);
+        let otherContributor = {name: externalAuthor[sails.config.figshareAPI.mapping.recordAuthorExternalName]};
         if(!_.isUndefined(otherContributor)) {
           authorList.push(otherContributor);
         }
@@ -484,6 +467,7 @@ export module Services {
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyUpdate,standardField);
       }
+      //Step 3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',this.figLicenses);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
@@ -562,11 +546,13 @@ export module Services {
           articleId = 0;
         }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - articleId '+articleId);
+        //Step 1 - get list of contributors from record (Configurabe with lodash template)
         let contributorsDP = this.getContributorsFromRecord(dataPublicationRecord);
         sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - contributorsDP ${JSON.stringify(contributorsDP)}`);
         if(!_.isEmpty(sails.config.figshareAPI.testUsers)) {
           this.figshareAccountAuthorIDs = sails.config.figshareAPI.testUsers;
         } else {
+          //Step 2 - get list of contributors by matched Figshare IDs plus externals/unmatched added by name only (Configurabe with lodash template)
           this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
         }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
