@@ -413,16 +413,16 @@ export module Services {
       }
     }
 
-    private getArticleUpdateRequestBody(dataPublicationRecord:any, figshareAccountAuthorIDs:any, figCategoryIDs:any) {
+    private getArticleUpdateRequestBody(dataPublicationRecord:any, figshareAccountAuthorIDs:any, figCategoryIDs:any, figLicenceID:any) {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
       //group_id = 32014 = dataset
       //Item Type = defined_type = dataset 
       let requestBodyUpdate = new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType); 
 
-      //Step 3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
+      //FindAuthor_Step3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',this.figLicenses);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',figLicenceID);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
 
@@ -443,7 +443,7 @@ export module Services {
       return requestBodyUpdate;
     }
 
-    private getArticleCreateRequestBody(dataPublicationRecord:any, figshareAccountAuthorIDs:any, figCategoryIDs: any) {
+    private getArticleCreateRequestBody(dataPublicationRecord:any, figshareAccountAuthorIDs:any, figCategoryIDs: any, figLicenceID:any) {
       let requestBodyCreate = new FigshareArticleImpersonate();
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
@@ -451,7 +451,7 @@ export module Services {
       let customFieldsKeys = _.keys(customFields);
 
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',this.figLicenses);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',figLicenceID);
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
       
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
@@ -505,20 +505,26 @@ export module Services {
           articleId = 0;
         }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - articleId '+articleId);
-        //Step 1 - get list of contributors from record (Configurabe with lodash template)
+        //FindAuthor_Step1 - get list of contributors from record (Configurabe with lodash template)
         let contributorsDP = this.getContributorsFromRecord(dataPublicationRecord);
         sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - contributorsDP ${JSON.stringify(contributorsDP)}`);
         if(!_.isEmpty(sails.config.figshareAPI.testUsers)) {
           this.figshareAccountAuthorIDs = sails.config.figshareAPI.testUsers;
         } else {
-          //Step 2 - get list of contributors by matched Figshare IDs plus externals/unmatched added by name only (Configurabe with lodash template)
+          //FindAuthor_Step2 - get list of contributors by matched Figshare IDs plus externals/unmatched added by name only (Configurabe with lodash template)
           this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
         }
-        let figCategoryIDs = this.findCategoryIDs(dataPublicationRecord);
+        let figCategoryIDs = [];
+        if(!_.isEmpty(sails.config.figshareAPI.testCategories)) {
+          figCategoryIDs = sails.config.figshareAPI.testCategories;
+        } else {
+          //FindCat_Step1 - to get the list of Figshare category IDs from a ReDBox record (Configurabe with lodash template)
+          figCategoryIDs = this.findCategoryIDs(dataPublicationRecord);
+        }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
-          let requestBodyCreate = this.getArticleCreateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs,figCategoryIDs);
+          let requestBodyCreate = this.getArticleCreateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenses);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
@@ -526,7 +532,7 @@ export module Services {
           //Need to pre validate the update request body as well before creating the article because if the article gets
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
-          let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord,this.figshareAccountAuthorIDs,figCategoryIDs);
+          let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenses);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
@@ -634,7 +640,7 @@ export module Services {
           } else {
 
             //set request body for updating Figshare article
-            let requestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord,this.figshareAccountAuthorIDs,figCategoryIDs);
+            let requestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenses);
             sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyUpdate);
             this.validateUpdateArticleRequestBody(requestBodyUpdate);
             
