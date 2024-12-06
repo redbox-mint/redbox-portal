@@ -230,6 +230,7 @@ export class DmpFormComponent extends LoadableComponent {
     console.log("Saving the following values:");
     console.log(this.payLoad);
     this.needsSave = false;
+    this.failedValidationLinks = [];
     if (_.isEmpty(this.oid)) {
       return this.RecordsService.create(this.payLoad, this.recordType, targetStep).flatMap((res:any)=>{
         this.clearSaving();
