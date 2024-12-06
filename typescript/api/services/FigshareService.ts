@@ -45,21 +45,18 @@ export module Services {
     private entityIdFAR = '';
     private locationFAR = '';
 
-    //Data publication metadata
-    private anzsrcForDP = 'anzsrcFor'; 
     private accessRightDP = 'access-rights';
 
     //Figshare article
     private isEmbargoedFA = 'is_embargoed';
     private embargoTypeFA = 'embargo_type';
-    private categoriesFA = 'categories';
     private curationStatusFA = 'curation_status';
 
     private figArticleGroupId;
     private figArticleItemType;
     private figArticleEmbargoOptions;
     private figLicenses: any;
-    private for2020To2008Mapping: any;
+    private forCodesMapping: any;
 
     protected _exportedMethods: any = [
       'createUpdateFigshareArticle',
@@ -102,7 +99,7 @@ export module Services {
             sails.log.error(error);
           });
 
-        that.for2020To2008Mapping = sails.config.figshareFOR2020To2008Mapping.FORMapping2020To2008;
+        that.forCodesMapping = sails.config.figshareReDBoxFORMapping.FORMapping;
         that.figArticleGroupId = sails.config.figshareAPI.figArticleGroupId;
         that.figArticleItemType = sails.config.figshareAPI.figArticleItemType;
         that.figArticleEmbargoOptions = sails.config.figshareAPI.mapping.artifacts.figArticleEmbargoOptions;
@@ -307,45 +304,21 @@ export module Services {
       }
     }
   
-    private findCategoryIDs(dpCategories) {
+    private findCategoryIDs(record:any) {
       let catIDs = [];
-      if(!_.isUndefined(this.for2020To2008Mapping) && !_.isEmpty(this.for2020To2008Mapping)){
-        for (let dpCategory of dpCategories) {
-          let dpForNotation = dpCategory.notation;
-          if(dpForNotation.length > 4) {
-            let dpCategoryId = _.find(this.for2020To2008Mapping, ['FOR2020Code', dpForNotation]);
-            if(!_.isUndefined(dpCategoryId) && _.has(dpCategoryId, 'FigCatId') && dpCategoryId.FigCatId > 0) {
-              catIDs.push(dpCategoryId.FigCatId);
-            } else {
-              //In relation to ticket 1182 after Figshare migrated FOR Codes to 2020 the Uncategorized category doesn't exist anymore
-              //Figshare Uncategorized content 
-              //catIDs.push(2);
-            }
-          } else {
-            //In relation to ticket 1182 after Figshare migrated FOR Codes to 2020 the Uncategorized category doesn't exist anymore
-            //Figshare Uncategorized content 
-            //catIDs.push(2);
+      if(!_.isUndefined(this.forCodesMapping) && !_.isEmpty(this.forCodesMapping)){
+        let template = sails.config.figshareAPI.mapping.artifacts.getCategoryIDs.template;
+        if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
+          let context = {
+            record: record,
+            forCodes: this.forCodesMapping
           }
+          catIDs = _.template(template)(context);      
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- findCategoryIDs ----  template`);
         }
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - findCategoryIDs - exit catIDs '+catIDs);
+        sails.log[this.createUpdateFigshareArticleLogLevel](catIDs);
       }
       return catIDs;
-    }
-    
-    //FoR Codes 2020 converted to 2008
-    private setArticleCategories(dataPublicationRecord, requestBody) {
-      //TODO FIXME this method needs more consideration on how can it be made configurable or generic
-      //it may be possible that if all instances are using FOR 2020 codes then the mapping as it was implemented is
-      //not needed but there may be in the future other institutions that may need a mapping of FOR codes other reasons
-      //or it may be possible that the mapping file needs to be generated in a case by case basis for each institution
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - setArticleCategories`);
-      if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.anzsrcForDP)) {
-        let figCategoryIDs = this.findCategoryIDs(dataPublicationRecord[this.metadataPathInRecord][this.anzsrcForDP]);
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - setArticleCategories '+JSON.stringify(figCategoryIDs));
-        if(!_.isUndefined(figCategoryIDs) && !_.isEmpty(figCategoryIDs)){
-          _.set(requestBody, this.categoriesFA, figCategoryIDs);
-        }
-      }
     }
     
     private async getFigPrivateLicenses() {
@@ -359,24 +332,8 @@ export module Services {
           return response.data;
       } catch (error) {
           sails.log[this.createUpdateFigshareArticleLogLevel](error);
-          if(sails.config.figshareAPI.testMode) {
-            return [
-              {
-                "value": 1,
-                "name": "CC BY",
-                "url": "http://creativecommons.org/licenses/by/4.0"
-              },
-              {
-                "value": 2,
-                "name": "BSD 3-Clause",
-                "url": "https://opensource.org/licenses/BSD-3-Clause"
-              },
-              {
-                "value": 3,
-                "name": "InC 1.0",
-                "url": "https://rightsstatements.org/page/InC/1.0/?language=en"
-              }
-            ];
+          if(!_.isEmpty(sails.config.figshareAPI.testLicenses)) {
+            return sails.config.figshareAPI.testLicenses;
           } else {
             return null;
           }
@@ -456,23 +413,25 @@ export module Services {
       }
     }
 
-    private getArticleUpdateRequestBody(dataPublicationRecord, figshareAccountAuthorIDs) {
+    private getArticleUpdateRequestBody(dataPublicationRecord:any, figshareAccountAuthorIDs:any, figCategoryIDs:any) {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
       //group_id = 32014 = dataset
       //Item Type = defined_type = dataset 
       let requestBodyUpdate = new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType); 
 
+      //Step 3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',this.figLicenses);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
+
+      // this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
+
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyUpdate,standardField);
       }
-      //Step 3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',this.figLicenses);
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
-
-      this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
 
       let customFieldsKeys = _.keys(customFields);
       for(let customFieldKey of customFieldsKeys) {
@@ -484,13 +443,16 @@ export module Services {
       return requestBodyUpdate;
     }
 
-    private getArticleCreateRequestBody(dataPublicationRecord, figshareAccountAuthorIDs) {
+    private getArticleCreateRequestBody(dataPublicationRecord:any, figshareAccountAuthorIDs:any, figCategoryIDs: any) {
       let requestBodyCreate = new FigshareArticleImpersonate();
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.create);
       let customFieldsKeys = _.keys(customFields);
 
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',this.figLicenses);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
       
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
       for(let customFieldKey of customFieldsKeys) {
@@ -501,10 +463,7 @@ export module Services {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyCreate,standardField);
       }
 
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',this.figLicenses);
-
-      this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
+      // this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
 
       _.set(requestBodyCreate, sails.config.figshareAPI.mapping.customFields.path, customFields);
       return requestBodyCreate;
@@ -555,10 +514,11 @@ export module Services {
           //Step 2 - get list of contributors by matched Figshare IDs plus externals/unmatched added by name only (Configurabe with lodash template)
           this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
         }
+        let figCategoryIDs = this.findCategoryIDs(dataPublicationRecord);
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
-          let requestBodyCreate = this.getArticleCreateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
+          let requestBodyCreate = this.getArticleCreateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs,figCategoryIDs);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
@@ -566,7 +526,7 @@ export module Services {
           //Need to pre validate the update request body as well before creating the article because if the article gets
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
-          let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
+          let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord,this.figshareAccountAuthorIDs,figCategoryIDs);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
@@ -674,7 +634,7 @@ export module Services {
           } else {
 
             //set request body for updating Figshare article
-            let requestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
+            let requestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord,this.figshareAccountAuthorIDs,figCategoryIDs);
             sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyUpdate);
             this.validateUpdateArticleRequestBody(requestBodyUpdate);
             
