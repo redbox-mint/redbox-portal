@@ -168,7 +168,7 @@ export module Services {
       let unset = _.get(standardField,'unset',false);
       if(unset) {
         _.unset(requestBody, standardField.figName);
-      } else if(!runByNameOnly) {
+      } else if (!runByNameOnly) {
         if(template.indexOf('<%') != -1) {
           let context = {
             record: record,
@@ -190,7 +190,10 @@ export module Services {
       let field = _.find(config,{figName:fieldName});
       if(!_.isEmpty(field)) {
         let template = _.get(field,'template','');
-        if(template.indexOf('<%') != -1) {
+        let unset = _.get(field,'unset',false);
+        if(unset) {
+          _.unset(requestBody, field.figName);
+        } else if (template.indexOf('<%') != -1) {
           let context = {
             record: record,
             moment: moment,
@@ -286,6 +289,7 @@ export module Services {
                   sails.log[this.createUpdateFigshareArticleLogLevel](figshareAccountUserID);
                   authorList.push(figshareAccountUserID);
                   _.remove(uniqueAuthorsControlList,author);
+                  break;
                 }
             } catch (error) {
                 sails.log.error(error);
@@ -513,7 +517,7 @@ export module Services {
       //figArticleEmbargoOptions = [{id: 1780}] = administrator
       let requestEmbargoBody = new FigshareArticleEmbargo(0, false,'','','','',this.figArticleEmbargoOptions);
 
-      this.setFieldByNameInRequestBody(dataPublicationRecord,requestEmbargoBody,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',figshareAccountAuthorIDs);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestEmbargoBody,sails.config.figshareAPI.mapping.standardFields.embargo,'impersonate',figshareAccountAuthorIDs);
       
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.embargo) {
@@ -524,8 +528,8 @@ export module Services {
     }
 
     private getPublishRequestBody(figshareAccountAuthorIDs) {
-      let requestBody = { impersonate: 0 };
-      this.setFieldByNameInRequestBody({},requestBody,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',figshareAccountAuthorIDs);
+      let requestBody = sails.config.figshareAPI.mapping.templates.impersonate;
+      this.setFieldByNameInRequestBody({},requestBody,sails.config.figshareAPI.mapping.targetState.publish,'impersonate',figshareAccountAuthorIDs);
       return requestBody;
     }
 
@@ -644,20 +648,22 @@ export module Services {
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare articleLocationURL '+articleLocationURL);
                 _.set(dataPublicationRecord, this.metadataPathInRecord+'.'+this.figArticleURLPathInRecord, articleLocationURL);
                 
-                //https://docs.figshare.com/#private_article_publish
-                let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-                let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare ${publishConfig.method} - ${publishConfig.url}`);
-                
-                let responsePublish = {status: '', statusText: ''}
-                try {
-                  responsePublish = await axios(publishConfig);
-                } catch(updateError) {
-                  if(!sails.config.figshareAPI.testMode){
-                    throw updateError;
+                if(_.isUndefined(sails.config.figshareAPI.mapping.targetState.draft)) {
+                  //https://docs.figshare.com/#private_article_publish
+                  let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
+                  let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare ${publishConfig.method} - ${publishConfig.url}`);
+                  
+                  let responsePublish = {status: '', statusText: ''}
+                  try {
+                    responsePublish = await axios(publishConfig);
+                  } catch(updateError) {
+                    if(!sails.config.figshareAPI.testMode){
+                      throw updateError;
+                    }
                   }
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                 }
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
               }
             }
           }
@@ -704,16 +710,18 @@ export module Services {
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - articleLocationURL '+articleLocationURL);
               _.set(dataPublicationRecord, this.metadataPathInRecord+'.'+this.figArticleURLPathInRecord, articleLocationURL);
 
-              let requestBodyPublishAfterUpdate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish response location '+responseUpdate.data.location);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleURLPathInRecord]);
-              sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyPublishAfterUpdate);
+              if(_.isUndefined(sails.config.figshareAPI.mapping.targetState.draft)) {
+                let requestBodyPublishAfterUpdate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish response location '+responseUpdate.data.location);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleURLPathInRecord]);
+                sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyPublishAfterUpdate);
 
-              //https://docs.figshare.com/#private_article_publish
-              let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterUpdate);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${publishConfig.method} - ${publishConfig.url}`);
-              let responsePublish = await axios(publishConfig);
-              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                //https://docs.figshare.com/#private_article_publish
+                let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterUpdate);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${publishConfig.method} - ${publishConfig.url}`);
+                let responsePublish = await axios(publishConfig);
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+              }
             }
           }
 
@@ -767,7 +775,7 @@ export module Services {
     private checkArticleCreateFields(requestBody) {
       let valid = '';
       
-      let impersonate = sails.config.figshareAPI.mapping.standardFields.impersonate;
+      let impersonate = sails.config.figshareAPI.mapping.standardFields.create;
       if(!_.isEmpty(impersonate)) {
         for(let impersonateField of impersonate) {
           valid = this.validateFieldInRequestBody(requestBody,impersonateField);
@@ -1172,7 +1180,7 @@ export module Services {
             name: fileName,
             size: fileSize
           }
-          this.setFieldByNameInRequestBody(dataPublicationRecord,requestStep1,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
+          this.setFieldByNameInRequestBody(dataPublicationRecord,requestStep1,sails.config.figshareAPI.mapping.upload.attachments,'impersonate',this.figshareAccountAuthorIDs);
           
           let configStep1 = this.getAxiosConfig('post',`/account/articles/${articleId}/files`,requestStep1);
           
@@ -1290,7 +1298,7 @@ export module Services {
                 let paramsImpersonate: {
                   impersonate: 0
                 }
-                this.setFieldByNameInRequestBody(dataPublicationRecord,paramsImpersonate,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
+                this.setFieldByNameInRequestBody(dataPublicationRecord,paramsImpersonate,sails.config.figshareAPI.mapping.upload.attachments,'impersonate',this.figshareAccountAuthorIDs);
                 let configStep4 = {
                   headers: { 
                     'Content-Type': 'application/octet-stream',
@@ -1312,7 +1320,7 @@ export module Services {
 
               //complete upload step 5
               let requestBodyComplete = { impersonate: 0 };
-              this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyComplete,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
+              this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyComplete,sails.config.figshareAPI.mapping.upload.attachments,'impersonate',this.figshareAccountAuthorIDs);
               let configStep5 = this.getAxiosConfig('post', `/account/articles/${articleId}/files/${fileId}`, requestBodyComplete);
               sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - ${configStep5.method} - ${configStep5.url}`);
               let responseStep5 = await axios(configStep5);
