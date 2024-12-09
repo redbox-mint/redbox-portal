@@ -35,7 +35,7 @@
     "genson-js": "^0.0.8",
     "glob": "^11.0.0",
     "har-validator": "5.1.5",
-    "i18next": "^23.16.4",
+    "i18next": "^24.0.5",
     "i18next-fs-backend": "^2.3.2",
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
