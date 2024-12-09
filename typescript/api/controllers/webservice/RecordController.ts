@@ -891,8 +891,7 @@ export module Controllers {
         }
         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
-        await this.RecordsService.transitionWorkflowStep(record, recType, nextStep, req.user, true, true);
-        const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const response = await this.RecordsService.updateMeta(brand, oid, record, req.user, true, true, nextStep);
         this.apiRespond(req, res, response);
       } catch (err) {
         this.apiFailWrapper(req, res, 500, new APIErrorResponse("Failed to transition workflow, please check server logs."), err,
