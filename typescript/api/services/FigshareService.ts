@@ -166,6 +166,7 @@ export module Services {
       let template = _.get(standardField,'template','');
       let runByNameOnly = _.get(standardField,'runByNameOnly',false);
       let unset = _.get(standardField,'unset',false);
+      let unsetBeforeSet = _.get(standardField,'unsetBeforeSet',false);
       if(unset) {
         _.unset(requestBody, standardField.figName);
       } else if (!runByNameOnly) {
@@ -181,6 +182,9 @@ export module Services {
         } else {
           value = _.get(record,standardField.rbName,standardField.defaultValue);
         }
+        if(unsetBeforeSet) {
+          _.unset(requestBody, standardField.figName);
+        }
         _.set(requestBody, standardField.figName, value);
       }
     }
@@ -191,6 +195,7 @@ export module Services {
       if(!_.isEmpty(field)) {
         let template = _.get(field,'template','');
         let unset = _.get(field,'unset',false);
+        let unsetBeforeSet = _.get(field,'unsetBeforeSet',false);
         if(unset) {
           _.unset(requestBody, field.figName);
         } else if (template.indexOf('<%') != -1) {
@@ -205,6 +210,9 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${value}`);
         } else {
           value = _.get(record,field.rbName,field.defaultValue);
+        }
+        if(unsetBeforeSet) {
+          _.unset(requestBody, field.figName);
         }
         _.set(requestBody, field.figName, value);
       }
