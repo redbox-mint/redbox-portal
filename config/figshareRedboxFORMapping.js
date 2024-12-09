@@ -1,5 +1,5 @@
-module.exports.figshareFOR2020To2008Mapping = {
-  FORMapping2020To2008:
+module.exports.figshareReDBoxFORMapping = {
+  FORMapping:
     [
       {
         FOR2020Code: '300101',

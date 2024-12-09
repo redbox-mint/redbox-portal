@@ -231,7 +231,47 @@ export module Services {
             let requestBody = _.clone(requestBodyTemplate);
             _.unset(requestBody,'template');
             let keys = _.keys(requestBody);
-            _.set(requestBody,keys[0],userId);
+            let searchBy = keys[0];
+
+            //This code is added for the sole purpose of facilitating test/staging use case that some
+            //intitutions have a different domain in their test environment compared to production and 
+            //it's intended to be restrictive
+            if(searchBy == 'email') {
+              if(_.has(requestBody,'prefix') && _.isString(userId) && userId.indexOf('@') > 0) {
+                let tmpEmailArray = _.split(userId,'@');
+                if(tmpEmailArray.length == 2) {
+                  let tmpEmail = tmpEmailArray[0] + '@' + _.get(requestBody,'prefix','') + tmpEmailArray[1];
+                  userId = tmpEmail;
+                }
+                _.unset(requestBody,'prefix');
+              } else if(_.has(requestBody,'override') && _.isString(userId) && userId.indexOf('@') > 0) {
+                let tmpEmailArray = _.split(userId,'@');
+                if(tmpEmailArray.length == 2) {
+                  let tmpEmail = tmpEmailArray[0] + '@' + _.get(requestBody,'override','');
+                  userId = tmpEmail;
+                }
+                _.unset(requestBody,'override');
+              }
+            }
+
+            //set request body with the userId value that matches the searchBy template in example:
+            //
+            // 1- Search by email:
+            // {
+            //   institution_user_id: user1234
+            // }
+            //
+            // 2- Search by email:
+            // {
+            //   email: staging.user@institution.edu.au
+            // }
+            //
+            // 3- Search by symplectic_user_id:
+            // {
+            //   symplectic_user_id: user1234
+            // }
+            //
+            _.set(requestBody,searchBy,userId);
 
             let config = this.getAxiosConfig('post','/account/institution/accounts/search', requestBody);
 
