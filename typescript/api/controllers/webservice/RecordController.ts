@@ -422,6 +422,13 @@ export module Controllers {
           authorizationEdit.push(req.user.username);
           authorizationView.push(req.user.username);
         }
+        const authorization = {
+          edit: authorizationEdit,
+          view: authorizationView,
+          editPending: authorizationEditPending,
+          viewPending: authorizationViewPending
+        }
+
         var recordTypeObservable = RecordTypesService.get(brand, recordType);
 
         recordTypeObservable.subscribe(recordTypeModel => {
@@ -436,6 +443,8 @@ export module Controllers {
             } else {
               request["metadata"] = metadata;
             }
+            request["authorization"] = authorization;
+
             let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
             var obs = Observable.fromPromise(createPromise);
