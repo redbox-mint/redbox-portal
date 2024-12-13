@@ -743,6 +743,11 @@ export module Services {
             //Update full article embargo info because Figshare rules allow for full article embargo to be set regardless if there are files uploaded
             let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoConfig.method} - ${embargoConfig.url}`);
+            
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before embargo -------------------------------------------');
+            sails.log[this.createUpdateFigshareArticleLogLevel](requestEmbargoBody);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before embargo -------------------------------------------');
+            
             let responseEmbargo = await axios(embargoConfig);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
           
@@ -750,6 +755,11 @@ export module Services {
 
             let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
+
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before clear embargo -------------------------------------------');
+            sails.log[this.createUpdateFigshareArticleLogLevel](requestEmbargoBody);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before clear embargo -------------------------------------------');
+            
             let responseEmbargoDelete = await axios(embargoDeleteConfig);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
           }
