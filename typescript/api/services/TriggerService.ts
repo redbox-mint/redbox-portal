@@ -22,6 +22,7 @@ import {
   RBValidationError,
   BrandingModel,
   Services as services,
+  PopulateExportedMethods,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import { default as moment } from 'moment';
@@ -43,16 +44,9 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
+  @PopulateExportedMethods
   export class Trigger extends services.Core.Service {
 
-    protected _exportedMethods: any = [
-      'transitionWorkflow',
-      'runHooksSync',
-      'validateFieldUsingRegex',
-      'applyFieldLevelPermissions',
-      'validateFieldMapUsingRegex',
-      'runTemplatesOnRelatedRecord'
-    ];
 
     /**
      * Used in changing the workflow stages automatically based on configuration.
@@ -285,6 +279,22 @@ export module Services {
       return record;
     }
 
+    /**
+     * Trigger function that will run a lodash template that can be used to validate a record.
+     * The trigger expects the template to return an array of error objects of the format:
+     *  {
+     *   name: 'the field name that is in validation error',
+     *   label: 'the human readable label for the field',
+     *   error: 'optional error message'
+     *  }
+     * 
+     *  An empty array should be returned if no errors are found.
+     * 
+     * @param oid 
+     * @param record 
+     * @param options 
+     * @returns 
+     */
     public async validateFieldsUsingTemplate(oid, record, options) {
       sails.log.verbose('validateFieldsUsingTemplate - enter');
       if (this.metTriggerCondition(oid, record, options) === "true") {
@@ -328,7 +338,7 @@ export module Services {
           template = compiledTemplate;
         }
 
-        const errorFieldList = template({record: record, options: options});
+        const errorFieldList = template({oid:oid, record: record, options: options});
 
         
         const errorMap = { 
