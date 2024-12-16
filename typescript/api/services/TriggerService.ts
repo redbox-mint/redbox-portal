@@ -324,8 +324,6 @@ export module Services {
           moment: moment,
           numeral: numeral,
           _ : _,
-          addError: addError,
-          getErrorMessage: getErrorMessage,
           TranslationService: TranslationService
         }
 
@@ -337,7 +335,8 @@ export module Services {
           template = compiledTemplate;
         }
 
-        const errorFieldList = template({oid:oid, record: record, options: options});
+        const errorFieldList = template({oid:oid, record: record, options: options, addError: addError,
+          getErrorMessage: getErrorMessage});
 
         
         const errorMap = { 
