@@ -304,7 +304,6 @@ export module Services {
 
         const getErrorMessage = function (errorLanguageCode: string) {
           let baseErrorMessage = TranslationService.t(errorLanguageCode);
-          sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
           return baseErrorMessage;
         }
 
