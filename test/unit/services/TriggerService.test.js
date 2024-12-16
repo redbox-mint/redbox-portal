@@ -13,6 +13,7 @@ describe('The TriggerService', function () {
                 fieldLanguageCode: "title-required",
                 arrayObjFieldDBName: 'row-item',
                 trimLeadingAndTrailingSpacesBeforeValidation: true,
+                forceRun: true
                 // caseSensitive: true, - default
                 // allowNulls: true, - default
             };
@@ -31,6 +32,7 @@ describe('The TriggerService', function () {
                 trimLeadingAndTrailingSpacesBeforeValidation: false,
                 caseSensitive: true,
                 allowNulls: false,
+                forceRun: true
             };
             try {
                 await TriggerService.validateFieldUsingRegex(oid, record, options);
@@ -55,6 +57,7 @@ describe('The TriggerService', function () {
                 trimLeadingAndTrailingSpacesBeforeValidation: false,
                 caseSensitive: false,
                 allowNulls: true,
+                forceRun: true
             };
 
             try {
@@ -77,6 +80,7 @@ describe('The TriggerService', function () {
                 trimLeadingAndTrailingSpacesBeforeValidation: false,
                 caseSensitive: false,
                 allowNulls: true,
+                forceRun: true
             };
             const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql(record);
@@ -92,6 +96,7 @@ describe('The TriggerService', function () {
                 trimLeadingAndTrailingSpacesBeforeValidation: false,
                 caseSensitive: false,
                 allowNulls: false,
+                forceRun: true
             };
             try {
                 await TriggerService.validateFieldUsingRegex(oid, record, options);
@@ -114,7 +119,8 @@ describe('The TriggerService', function () {
                 if (_.get(record,'testing-field') !== 'valid-value') { 
                     addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
                 }
-                return errorList; %>`
+                return errorList; %>`,
+                forceRun: true
             };
             
             try {
@@ -134,7 +140,8 @@ describe('The TriggerService', function () {
                 if (_.get(record,'testing-field') !== 'valid-value') { 
                     addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
                 }
-                return errorList; %>`
+                return errorList; %>`,
+                forceRun: true
             };
             try {
                 const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
