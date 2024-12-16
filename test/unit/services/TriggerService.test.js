@@ -148,7 +148,8 @@ describe('The TriggerService', function () {
             } catch (err) {
                 expect(err).to.be.an('error');
                 expect(err.name).to.eq("RBValidationError");
-                expect(err.message).to.eq("Title is required Submission format is invalid");
+                const errorMap = JSON.parse(err.message)
+                expect(errorMap.errorFieldList[0].label).to.eq("Title is required");
             }
             
         });
