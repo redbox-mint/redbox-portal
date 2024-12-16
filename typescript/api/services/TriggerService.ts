@@ -285,25 +285,75 @@ export module Services {
       return record;
     }
 
+    public async validateFieldsUsingTemplate(oid, record, options) {
+      sails.log.verbose('validateFieldsUsingTemplate - enter');
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+
+        sails.log.verbose('validateFieldsUsingTemplate - metTriggerCondition');
+
+
+        const getErrorMessage = function (errorLanguageCode: string) {
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
+          return baseErrorMessage;
+        }
+
+        const addError = function (errorFieldList, name, label, errorLabel) {
+          let errorField:any = {};
+            _.set(errorField,'name', name);
+            _.set(errorField,'label',getErrorMessage(label));
+            let error = getErrorMessage(errorLabel);
+            if(error != '') {
+              _.set(errorField,'error',error);
+            }
+            errorFieldList.push(errorField);
+        }
+
+        let template = _.get(options,'template',"<% return []; %>");
+
+        const imports = {
+          moment: moment,
+          numeral: numeral,
+          _ : _,
+          addError: addError,
+          getErrorMessage: getErrorMessage,
+          TranslationService: TranslationService
+        }
+
+        let altErrorMessage = _.get(options,'altErrorMessage',[]);
+
+        if(_.isString(template)) {
+          const compiledTemplate = _.template(template, imports);
+          options.template = compiledTemplate;
+          template = compiledTemplate;
+        }
+
+        const errorFieldList = template({record: record, options: options});
+
+        
+        const errorMap = { 
+                         altErrorMessage: altErrorMessage,
+                         errorFieldList: errorFieldList
+                       };
+
+        if(!_.isEmpty(errorMap.errorFieldList)) {
+          let customError: RBValidationError;
+          customError = new RBValidationError(JSON.stringify(errorMap));
+          throw customError;
+        }
+
+        sails.log.debug('validateFieldsUsingTemplate data value passed check');
+      }
+      return record;
+    }
+
     public async validateFieldMapUsingRegex(oid, record, options) {
       sails.log.verbose('validateFieldMapUsingRegex - enter');
       if (this.metTriggerCondition(oid, record, options) === "true") {
 
         sails.log.verbose('validateFieldMapUsingRegex - metTriggerCondition');
 
-        // re-usable functions
-        const textRegex = function (value, regexPattern, caseSensitive) {
-          if(regexPattern == '') {
-            return true;
-          } else {
-            let flags = '';
-            if (caseSensitive) {
-              flags += 'i';
-            }
-            const re = new RegExp(regexPattern, flags);
-            return re.test(value);
-          }
-        }
+
         const getError = function (errorLanguageCode: string) {
           let baseErrorMessage = TranslationService.t(errorLanguageCode);
           sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
@@ -342,6 +392,7 @@ export module Services {
 
           return true;
         }
+
 
         let fieldObjectList = _.get(options,'fieldObjectList',[]);
         let altErrorMessage = _.get(options,'altErrorMessage',[]);
