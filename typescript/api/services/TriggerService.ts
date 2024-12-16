@@ -353,7 +353,19 @@ export module Services {
 
         sails.log.verbose('validateFieldMapUsingRegex - metTriggerCondition');
 
-
+        // re-usable functions
+        const textRegex = function (value, regexPattern, caseSensitive) {
+          if(regexPattern == '') {
+            return true;
+          } else {
+            let flags = '';
+            if (caseSensitive) {
+              flags += 'i';
+            }
+            const re = new RegExp(regexPattern, flags);
+            return re.test(value);
+          }
+        }
         const getError = function (errorLanguageCode: string) {
           let baseErrorMessage = TranslationService.t(errorLanguageCode);
           sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
@@ -392,7 +404,6 @@ export module Services {
 
           return true;
         }
-
 
         let fieldObjectList = _.get(options,'fieldObjectList',[]);
         let altErrorMessage = _.get(options,'altErrorMessage',[]);
