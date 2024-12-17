@@ -371,6 +371,7 @@ export class UtilityService {
     if (config.json == true && !_.isEmpty(templateRes)) {
       return JSON.parse(templateRes);
     }
-    return templateRes;
+    // Added to allow arbitrary execution of field functions that won't change the value of a field
+    return config.returnUndefinedOnEmpty && (_.isUndefined(templateRes) || _.isEmpty(templateRes)) ? undefined : templateRes;
   }
 }
