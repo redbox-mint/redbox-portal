@@ -53,6 +53,15 @@ module.exports.agendaQueue = {
         method: 'every',
         intervalOrSchedule: '5 minutes'
       }
+    },
+    {
+      name: 'Figshare-Upload-Service',
+      fnName: 'rdmpservice.processQueuedFileUploadToFigshare',
+      options: {
+        lockLifetime: 20 * 60 * 1000, //20 mins because there can be big files uploaded that can take long
+        lockLimit: 1,
+        concurrency: 1
+      }
     }
   ]
 };
