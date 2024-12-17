@@ -140,6 +140,10 @@ export class FieldBase<T> {
     this.groupName = options.groupName || null;
     this.editMode = _.isUndefined(options.editMode) ? false : options.editMode;
     this.readOnly = _.isUndefined(options.readOnly) ? false : options.readOnly;
+    if (this.readOnly) {
+      // automatically disable required field when readOnly is set
+      this.required = false;
+    }
     this.onChange = options['onChange'] || null;
     this.publish = options['publish'] || null;
     this.subscribe = options['subscribe'] || null;
