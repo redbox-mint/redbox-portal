@@ -161,6 +161,39 @@ export module Services {
       return value;
     }
 
+    private setFieldInRecord(record:any, article:any, field:any) {
+      let value = '';
+      let template = _.get(field,'template','');
+      let runByNameOnly = _.get(field,'runByNameOnly',false);
+      let unset = _.get(field,'unset',false);
+      let unsetBeforeSet = _.get(field,'unsetBeforeSet',false);
+      if(unset) {
+        _.unset(record, field.figName);
+      } else if (!runByNameOnly) {
+        if(template.indexOf('<%') != -1) {
+          let context = {
+            record: article,
+            moment: moment,
+            field: field,
+            artifacts: sails.config.figshareAPI.mapping.artifacts
+          }
+          value = _.template(template)(context);
+          if(_.isObject(value)) {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldInRecord ---- ${field.figName} ----  template ---- ${JSON.stringify(value)}`);
+          } else {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldInRecord ---- ${field.figName} ----  template ---- ${value}`);
+          }
+        } else {
+          let orignalValue = _.get(record,field.rbName)
+          value = _.get(article,field.figName,orignalValue);
+        }
+        if(unsetBeforeSet) {
+          _.unset(record, field.rbName);
+        }
+        _.set(record, field.rbName, value);
+      }
+    }
+
     private setStandardFieldInRequestBody(record:any, requestBody:any, standardField:any) {
       let value = '';
       let template = _.get(standardField,'template','');
@@ -177,8 +210,12 @@ export module Services {
             field: standardField,
             artifacts: sails.config.figshareAPI.mapping.artifacts
           }
-          value = _.template(template)(context);      
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
+          value = _.template(template)(context);
+          if(_.isObject(value)) {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(value)}`);
+          } else {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
+          }
         } else {
           value = _.get(record,standardField.rbName,standardField.defaultValue);
         }
@@ -207,7 +244,11 @@ export module Services {
             runtimeArtifacts: runtimeArtifacts
           }
           value = _.template(template)(context);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${value}`);
+          if(_.isObject(value)) {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${JSON.stringify(value)}`);
+          } else {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${value}`);
+          }
         } else {
           value = _.get(record,field.rbName,field.defaultValue);
         }
@@ -391,7 +432,6 @@ export module Services {
           }
       }
     }
-
 
     private async getArticleDetails(articleId) {
        let articleDetailsConfig = this.getAxiosConfig('get', `/account/articles/${articleId}`, null);
@@ -671,7 +711,6 @@ export module Services {
                   try {
                     responsePublish = await axios(publishConfig);
 
-                    //TODO FIXME after publish retrieve values from article to be set in record
                   } catch(updateError) {
                     if(!sails.config.figshareAPI.testMode){
                       throw updateError;
@@ -744,7 +783,14 @@ export module Services {
                 let responsePublish = await axios(publishConfig);
                 sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
 
-                //TODO FIXME after publish retrieve values from article to be set in record
+                if(!_.isEmpty(sails.config.figshareAPI.mapping.response.article)) {
+                  articleDetails = await this.getArticleDetails(articleId);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - after publish articleDetails ${JSON.stringify(articleDetails)}`);
+                  //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+                  for(let field of sails.config.figshareAPI.mapping.response.article) {
+                    this.setFieldInRecord(record,articleDetails,field);
+                  }
+                }
               }
             }
           }
