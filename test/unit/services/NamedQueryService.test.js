@@ -14,6 +14,7 @@ describe('The Named Query Service', function () {
       mongoQuery: {
         "daysDatePath": null,
         "isoDatePath": null,
+        "defaultIsoDatePath": null,
         "stringPath": null,
         "numberPath": null
       },
@@ -32,9 +33,16 @@ describe('The Named Query Service', function () {
           type: "date",
           queryType: "=>",
           path: "isoDatePath",
-          format: "isoDate",
+          format: "ISODate",
           whenUndefined: "defaultValue",
           defaultValue: "2024-12-17T00:00:00.000Z"
+        },
+        defaultIsoDateParam: {
+          type: "date",
+          queryType: "=>",
+          path: "defaultIsoDatePath",
+          whenUndefined: "defaultValue",
+          defaultValue: "2024-12-18T00:00:00.000Z"
         },
         stringParam: {
           type: "string",
@@ -59,6 +67,7 @@ describe('The Named Query Service', function () {
     NamedQueryService.setParamsInQuery(namedQueryConfig.mongoQuery, namedQueryConfig.queryParams, paramMap);
     expect(namedQueryConfig.mongoQuery.numberPath).to.equal(numberParamValue);
     expect(namedQueryConfig.mongoQuery.isoDatePath).to.deep.equal({ "=>": '2024-12-17T00:00:00.000Z'});
+    expect(namedQueryConfig.mongoQuery.defaultIsoDatePath).to.deep.equal({ "=>": '2024-12-18T00:00:00.000Z'});
     expect(namedQueryConfig.mongoQuery.stringPath).to.deep.equal({contains: 'defaultString'});
 
     const daysDateString = namedQueryConfig.mongoQuery.daysDatePath["<="]
@@ -99,9 +108,16 @@ describe('The Named Query Service', function () {
           type: "date",
           queryType: "=>",
           path: "isoDatePath",
-          format: "isoDate",
+          format: "ISODate",
           whenUndefined: "defaultValue",
           defaultValue: "2024-12-17T00:00:00.000Z"
+        },
+        defaultIsoDateParam: {
+          type: "date",
+          queryType: "=>",
+          path: "defaultIsoDatePath",
+          whenUndefined: "defaultValue",
+          defaultValue: "2024-12-18T00:00:00.000Z"
         },
         stringParam: {
           type: "string",
@@ -121,13 +137,15 @@ describe('The Named Query Service', function () {
 
     const daysDateParamValue = -2;
     const isoDateParamValue = "2024-12-18T00:00:00.000Z";
+    const defaultIsoDateParamValue = "2024-12-18T00:00:00.000Z";
     const stringParamValue = "passedString";
     const numberParamValue = 2;
-    let paramMap = {numberParam: numberParamValue, isoDateParam: isoDateParamValue, stringParam: stringParamValue, daysDateParam: daysDateParamValue};
+    let paramMap = {numberParam: numberParamValue, isoDateParam: isoDateParamValue, stringParam: stringParamValue, daysDateParam: daysDateParamValue, defaultIsoDateParamValue: defaultIsoDateParamValue};
 
     NamedQueryService.setParamsInQuery(namedQueryConfig.mongoQuery, namedQueryConfig.queryParams, paramMap);
     expect(namedQueryConfig.mongoQuery.numberPath).to.equal(numberParamValue);
     expect(namedQueryConfig.mongoQuery.isoDatePath).to.deep.equal({ "=>": isoDateParamValue});
+    expect(namedQueryConfig.mongoQuery.defaultIsoDatePath).to.deep.equal({ "=>": defaultIsoDateParamValue});
     expect(namedQueryConfig.mongoQuery.stringPath).to.deep.equal({contains: stringParamValue});
 
     const daysDateString = namedQueryConfig.mongoQuery.daysDatePath["<="]
