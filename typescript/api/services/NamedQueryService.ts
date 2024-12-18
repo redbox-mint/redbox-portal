@@ -253,26 +253,27 @@ export module Services {
             let query = {};
             if (_.isUndefined(value)) {
               if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
-                if(queryParam.format == NamedQueryFormatOptions.days) {
-                  let days = _.toInteger(queryParam.defaultValue);
-                  let nowDateAddOrSubtract = moment();
-                  if (days > 0) {
-                    //Going forward in time X number of days
-                    nowDateAddOrSubtract = nowDateAddOrSubtract.add(days, 'days');
-                  } else if(days < 0) {
-                    //This "additional" step makes the code self explanatory
-                    days = days * -1;
-                    //Going backwards in time X number of days
-                    nowDateAddOrSubtract = nowDateAddOrSubtract.subtract(days, 'days');
-                  }
-                  value = nowDateAddOrSubtract.toISOString();
-                } else if(queryParam.format == NamedQueryFormatOptions.ISODate) {
-                  value = queryParam.defaultValue;
-                }
-                query[queryParam.queryType] = value;
-                value = query;
+                value = queryParam.defaultValue;
               }
             }
+            if(queryParam.format == NamedQueryFormatOptions.days) {
+              let days = _.toInteger(value);
+              let nowDateAddOrSubtract = moment();
+              if (days > 0) {
+                //Going forward in time X number of days
+                nowDateAddOrSubtract = nowDateAddOrSubtract.add(days, 'days');
+              } else if(days < 0) {
+                //This "additional" step makes the code self explanatory
+                days = days * -1;
+                //Going backwards in time X number of days
+                nowDateAddOrSubtract = nowDateAddOrSubtract.subtract(days, 'days');
+              }
+              value = nowDateAddOrSubtract.toISOString();
+            } 
+
+            query[queryParam.queryType] = value;
+            value = query;
+            
           }
         }
         
@@ -314,8 +315,8 @@ enum NamedQueryWhenUndefinedOptions {
 }
 
 enum NamedQueryFormatOptions {
-  days,
-  ISODate
+  days = 'days',
+  ISODate = 'ISODate'
 }
 
 class QueryParameterDefinition {
