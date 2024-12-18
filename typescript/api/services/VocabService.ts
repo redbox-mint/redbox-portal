@@ -145,7 +145,7 @@ export module Services {
       return response.data;
     }
 
-    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
+    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user:any): Promise<any> {
 
       const queryConfig:VocabQueryConfig = sails.config.vocab.queries[sourceType];
 
@@ -159,7 +159,7 @@ export module Services {
         let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
-        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString);
+        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
 
         let dbResults = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         if(queryConfig.resultObjectMapping) {
@@ -168,7 +168,7 @@ export module Services {
           return dbResults;
         }
       } else if (queryConfig.querySource == 'solr') {
-        let solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json');
+        let solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json',user);
         let solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, null, solrQuery);
         if(queryConfig.resultObjectMapping) {
           return this.getResultObjectMappings(solrResults,queryConfig);
@@ -178,15 +178,20 @@ export module Services {
       }
     }
 
-    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string):any {
+    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user:any):any {
       let paramMap = {}
       if (queryConfig.queryField.type == 'text') {
         paramMap[queryConfig.queryField.property] = searchString;
       }
+      if (queryConfig.userQueryFields != null) {
+        for(let userQueryField of queryConfig.userQueryFields) {
+          paramMap[userQueryField.property] = _.get(user, userQueryField.userValueProperty, null);
+        }
+      }
       return paramMap;
     }
 
-    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json'):string {
+    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json',user):string {
       let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
@@ -200,6 +205,13 @@ export module Services {
           } else {
             query = query + value + '*';
           }
+        }
+      }
+
+      if (queryConfig.userQueryFields != null) {
+        for(let userQueryField of queryConfig.userQueryFields) {
+          let searchProperty = userQueryField.property;
+          query = query + '&fq=' + searchProperty + ':'+ _.get(user, userQueryField.userValueProperty, null);
         }
       }
 
