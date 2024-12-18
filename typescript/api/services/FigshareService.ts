@@ -227,6 +227,13 @@ export module Services {
             field: standardField,
             artifacts: sails.config.figshareAPI.mapping.artifacts
           }
+          if(standardField.figName == 'funding_list') {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField -----------------------------------`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.foaf:fundedBy_foaf:Agent'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.foaf:fundedBy_foaf:Agent'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.foaf:fundedBy_vivo:Grant'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.foaf:fundedBy_vivo:Grant'))}`);
+          }
           value = _.template(template)(context);
           if(_.isObject(value)) {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(value)}`);
@@ -240,6 +247,27 @@ export module Services {
           _.unset(requestBody, standardField.figName);
         }
         _.set(requestBody, standardField.figName, value);
+      }
+    }
+
+    private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string, customFieldsMappings:any) {
+      let customField = _.find(customFieldsMappings, { 'figName': keyName });
+      let value = '';
+      if(_.isObject(customField)) {
+        let template = _.get(customField,'template','');
+        if(template.indexOf('<%') != -1) {
+          let context = {
+            record: record,
+            moment: moment,
+            field: customField,
+            artifacts: sails.config.figshareAPI.mapping.artifacts
+          }
+          value = _.template(template)(context);      
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- ${keyName} ----  template ---- ${value}`);
+        } else {
+          value = _.get(record,customField.rbName,customField.defaultValue);
+        }
+        _.set(customFieldsTemplate, keyName, value);
       }
     }
 
@@ -392,27 +420,6 @@ export module Services {
       sails.log[this.createUpdateFigshareArticleLogLevel](authors);
       return authors;
     }
-
-    private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string, customFieldsMappings:any) {
-      let customField = _.find(customFieldsMappings, { 'figName': keyName });
-      let value = '';
-      if(_.isObject(customField)) {
-        let template = _.get(customField,'template','');
-        if(template.indexOf('<%') != -1) {
-          let context = {
-            record: record,
-            moment: moment,
-            field: customField,
-            artifacts: sails.config.figshareAPI.mapping.artifacts
-          }
-          value = _.template(template)(context);      
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- ${keyName} ----  template ---- ${value}`);
-        } else {
-          value = _.get(record,customField.rbName,customField.defaultValue);
-        }
-        _.set(customFieldsTemplate, keyName, value);
-      }
-    }
   
     private findCategoryIDs(record:any) {
       let catIDs = [];
@@ -525,17 +532,14 @@ export module Services {
     private getArticleUpdateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs:any, figLicenceID:any) {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
-      //group_id = 32014 = dataset
-      //Item Type = defined_type = dataset 
-      let requestBodyUpdate = new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType); 
+      //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
+      let requestBodyUpdate = _.cloneDeep(new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType)); 
 
       //FindAuthor_Step3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',figLicenceID);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
-
-      // this.setArticleCategories(record, requestBodyUpdate);
 
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
@@ -553,7 +557,8 @@ export module Services {
     }
 
     private getArticleCreateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs: any, figLicenceID:any) {
-      let requestBodyCreate = new FigshareArticleImpersonate();
+      //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
+      let requestBodyCreate = _.cloneDeep(new FigshareArticleImpersonate());
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.create);
@@ -572,14 +577,13 @@ export module Services {
         this.setStandardFieldInRequestBody(record,requestBodyCreate,standardField);
       }
 
-      // this.setArticleCategories(record, requestBodyCreate);
-
       _.set(requestBodyCreate, sails.config.figshareAPI.mapping.customFields.path, customFields);
       return requestBodyCreate;
     }
 
     private getEmbargoRequestBody(record, figshareAccountAuthorIDs) {
-      let requestEmbargoBody = new FigshareArticleEmbargo(0, false,'','','','',[]);
+      //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
+      let requestEmbargoBody = _.cloneDeep(new FigshareArticleEmbargo(0, false,'','','','',[]));
 
       this.setFieldByNameInRequestBody(record,requestEmbargoBody,sails.config.figshareAPI.mapping.standardFields.embargo,'impersonate',figshareAccountAuthorIDs);
       
