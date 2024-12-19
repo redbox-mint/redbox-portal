@@ -11,15 +11,43 @@ module.exports.figshareAPI = {
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
   figArticleItemType: 'dataset',
-  testMode: true,
+  testMode: false,
+  testUsers: [],
+  testLicenses: [],
+  testCategories: [],
+  // testLicenses: [
+  //   {
+  //     "value": 1,
+  //     "name": "CC BY",
+  //     "url": "http://creativecommons.org/licenses/by/4.0"
+  //   },
+  //   {
+  //     "value": 2,
+  //     "name": "BSD 3-Clause",
+  //     "url": "https://opensource.org/licenses/BSD-3-Clause"
+  //   },
+  //   {
+  //     "value": 3,
+  //     "name": "InC 1.0",
+  //     "url": "https://rightsstatements.org/page/InC/1.0/?language=en"
+  //   }
+  // ],
+  //testUsers: [{ id: 2657024, user_id: 3674908, email: 'uon-staging-figshare@redboxresearchdata.com.au' }],
+  //testCategories: [ 31196, 31272, 31266, 31372 ],
   mapping: {
-    recordFigArticleId: 'figshare_article_id',
-    recordFigArticleURL: 'figshare_article_location',
-    recordMetadata: 'metadata',
-    recordDataLocations: 'dataLocations',
+    recordFigArticleId: 'metadata.figshare_article_id',
+    recordFigArticleURL: 'metadata.figshare_article_location',
+    recordDataLocations: 'metadata.dataLocations',
+    recordAuthorExternalName: 'text_full_name',
+    recordAuthorUniqueBy: 'email',
+    figshareAuthorUserId: 'user_id', //user_id = author id
+    figshareIsEmbargoed: 'is_embargoed',
+    figshareEmbargoType: 'embargo_type',
+    figshareCurationStatus: 'curation_status',
     response: {
       entityId: 'entity_id',
-      location: 'location'
+      location: 'location',
+      article: []
     },
     artifacts: {
       authorResearchInstitute:  [
@@ -35,6 +63,19 @@ module.exports.figshareAPI = {
           {figshareName: 'Centre for Regional Advancement of Learning, Equity, Access and Participation (LEAP)', redboxName: ''}, //In Figshare only for historical purposes no need to be send across
           {figshareName: 'Centre for Regional Economics and Supply Chain (RESC)', redboxName: 'Centre for Regional Economies and Supply Chains (CRESC)'}
       ],
+      //This artifact allows to configure project specific rules to build a list of authors based of the particular structure of a
+      //ReDBox record. In example in CQU the contributor_ci field is joined with the list of users in contributors field but in UON 
+      //we just need the list from creators field but also ensuring each row is a valid entry row. The algorithim basic process is
+      //as below:
+      //
+      // FindAuthor_Step1 - Get list of contributors from a ReDBox record based of particular project specific fields and rules
+      // FindAuthor_Step2 - Iterate trhough the list of contributors generated in Step 1 to find/match Figshare IDs and those not found are 
+      //                    also added to the new list to be created as externals/unmatched authors by name only. This step requires calling 
+      //                    the API endpoint using identifiers that are also configurable
+      // FindAuthor_Step3 - Set the matched Figshare Author User IDs and External Authors Names to the correspondent Figshare field in the 
+      //                    create/update request to be sent to the API endpoint
+      //
+      //The artifact/method below is used by - Step 1 - to get the list of contributors from a ReDBox record 
       getContributorsFromRecord: {
         template: `<% let authors = [];
                      if(!_.isUndefined(record['metadata']['contributor_ci'])) {
@@ -55,10 +96,36 @@ module.exports.figshareAPI = {
                       return authors;
                     %>`
       },
-      figArticleEmbargoOptions: [{id: 1780}], //adminstrator stage
-      //figArticleEmbargoOptions: [{id: 105}], //adminstrator prod
+      //This artifact allows to configure project specific rules to build a list of categories based of the selected FOR codes
+      //from a ReDBox record in a similar way with the authors artifact with the difference that there is a mapping config file
+      //that has the FOR Codes and correspondent Figshare IDs for each category that is static instead of calling the API
+      //
+      // FindCat_Step1 - Get list of FOR codes from the project specific field of a ReDBox record and iterate trhough the static 
+      //                 file mapping list to find/match correspondent Figshare IDs
+      // FindCat_Step2 - Set the list matched Figshare categoriy IDs generated in Step 1 to the correspondent Figshare field in the 
+      //                 create/update request to be sent to the API endpoint 
+      //                  
+      //The artifact/method below is used by - FindCat_Step1 - to get the list of Figshare category IDs from a ReDBox record    
+      getCategoryIDs: {
+        template: `<% let catIDs = [];
+                    let dpCategories = _.get(record,'metadata.dc:subject_anzsrc:for',[]);
+                    for (let dpCategory of dpCategories) {
+                      let dpForNotation = _.get(dpCategory,'notation','');
+                      if(dpForNotation.length > 4) {
+                        let dpCategoryId = _.find(forCodes, ['FOR2020Code', dpForNotation]);
+                        if(!_.isUndefined(dpCategoryId) && _.has(dpCategoryId, 'FigCatId') && dpCategoryId.FigCatId > 0) {
+                          catIDs.push(dpCategoryId.FigCatId);
+                        }
+                      }
+                    }
+                    return catIDs;
+                    %>`
+      }
     },
     templates: {
+      impersonate: {
+        impersonate: 0
+      },
       customFields: {
         create: {
           'Open Access': ['No'],
@@ -78,7 +145,15 @@ module.exports.figshareAPI = {
           'Geolocation': '', // length 250
           'Full Text URL': ['']  
         }
-      }
+      },
+      getAuthor: [
+        {
+          institution_user_id: 0,
+          template: `<% let userId = field['dc_identifier'][0];
+                        return userId;
+                      %>`
+        }
+      ]
     },
     customFields: {
       path: 'custom_fields',
@@ -348,8 +423,64 @@ module.exports.figshareAPI = {
         }
       ]
     },
+    targetState: {
+      //To make the item created in Figshare to remain in Draft state uncomment "draft" and comment "publish" target state. 
+      //Also in either draft or publish target states the impersonate option may need to be set or unset as required by
+      //Figshare defined rules. Also it may be possible that if Administrative review is required on the Figshare platform
+      //then the review process may not be bypassable through the API and will be enforced by Figshare. If the institution 
+      //needs an article to be "Published" immediately, they will need to contact their Figshare administrator or support 
+      //to clarify if there's a way to configure the approval process differently for their account or assist in publishing
+      // 
+      // draft: []
+
+      //To make the item created in Figshare to go to Public/Publish state uncomment "publish" target state and comment "draft" 
+      //state. Also in either draft or publish target states the impersonate option may need to be set or unset as required by
+      //Figshare defined rules
+      //
+      publish: [
+        //The impersonate option must be included in the query string when using the 
+        //GET and DELETE methods, and in the body when using the POST and PUT methods
+        //https://docs.figshare.com/#figshare_documentation_api_description_impersonation
+        {
+          figName: 'impersonate', 
+          rbName: '',
+          unset: true
+        }
+      ]
+    },
+    upload: {
+      attachments: [
+        //The impersonate option must be included in the query string when using the 
+        //GET and DELETE methods, and in the body when using the POST and PUT methods
+        //https://docs.figshare.com/#figshare_documentation_api_description_impersonation
+        {
+          figName: 'impersonate', 
+          rbName: '',
+          unset: true
+        }
+      ],
+      //Evaluate project specific rules that can override the need to upload files present in data locations list
+      //
+      //In example if the form has a checkbox that can be ticked to ignore upload of files. This template evaluation 
+      //must return true to continue with upload or false to stop upload
+      // 
+      // override: {
+      //    template: `<%  eval rules %>`
+      //           }
+      //
+      //
+      //Leave empty if not needed
+      override: {
+        template: `<% let accessRights = _.get(record,'metadata.access-rights');
+                      if(accessRights == 'citation'){
+                        return true;
+                      }
+                      return false;
+                    %>`
+      }
+    },
     standardFields: {
-      impersonate: [
+      create: [
         //The impersonate option must be included in the query string when using the 
         //GET and DELETE methods, and in the body when using the POST and PUT methods
         //https://docs.figshare.com/#figshare_documentation_api_description_impersonation
@@ -376,9 +507,7 @@ module.exports.figshareAPI = {
               message: '@dataPublication-accountIdNotFound-validationMessage'
             }
           ]
-        }
-      ],
-      create: [
+        },
         { 
             figName: 'title', 
             rbName: 'metadata.title', 
@@ -392,37 +521,39 @@ module.exports.figshareAPI = {
         { 
             figName: 'keywords',
             rbName: 'metadata.finalKeywords',
-            defaultValue: ['']
+            defaultValue: []
+        },
+        //Field to be set by - FindCat_Step2 - using the list generated in - FindCat_Step1 - that is passed in the context of the lodash 
+        //template as a runtime artifact (because is genarated at runtime)
+        {
+            figName: 'categories',
+            rbName: '',
+            template: `<% let categories = field.defaultValue;
+                        if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
+                          categories = runtimeArtifacts;
+                        }
+                        return categories;
+                       %>`,
+            runByNameOnly: true, //Only the fields that are "run by name only" can use runtime artifacts 
+            defaultValue: [] //29888
         },
         {
             figName: 'license', 
             rbName: 'metadata.license-identifier',
-            template: `<% function findLicenseValue(figArtLicense) {
-                           let licenseValue = field.defaultValue;
-                           let tmpLic = figArtLicense.replace('https://', '');
-                           tmpLic = figArtLicense.replace('http://', '');
-                           for (let license of runtimeArtifacts) {
-                             if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(tmpLic)) {
-                               licenseValue = license.value;
-                             }
-                           }
-                           return licenseValue;
-                         }
-
-                         let accessType = _.get(record,'metadata.access-rights');
-                         if(_.isUndefined(accessType) || _.isEmpty(accessType) || accessType == 'citation') {
-                           let figArtLicenseDefault = record['metadata']['license-identifier-default'];
-                           let figArtLicenseIDDefault = findLicenseValue(figArtLicenseDefault);
-                           return figArtLicenseIDDefault;
-                         } else {
-                           if(_.has(record,'metadata.license-identifier')) {
-                             let figArtLicense = record['metadata']['license-identifier'];
-                             let figArtLicenseID = findLicenseValue(figArtLicense);
-                             return figArtLicenseID;
-                           }
-                         }
-                         return field.defaultValue;
-                       %>`,
+            template: `<% let licenseValue = field.defaultValue;
+                          if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)) {
+                            let figArtLicense = _.get(record,'metadata.license_identifier','');
+                            let tmpLic = figArtLicense.replace('https://', '');
+                            figArtLicense = tmpLic.replace('http://', '');
+                            for (let license of runtimeArtifacts) {
+                              if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(figArtLicense)) {
+                                licenseValue = license.value;
+                                return _.toNumber(licenseValue);
+                              }
+                            }
+                          }
+                          return licenseValue;
+                        %>`,
             defaultValue: 0,
             runByNameOnly: true,
             validations: [
@@ -441,22 +572,21 @@ module.exports.figshareAPI = {
         }
       ],
       update: [
+        //CQU Figshare environment doesn't allow to update the item by impersonating the author
+        //because the update is changing the item group therefore impersonate needs to be unset  
+        {
+          figName: 'impersonate', 
+          rbName: '',
+          unset: true
+        },
+        //Field to be set by - Step 3 - using the list generated in - Step 2 - that is passed in the context of the lodash template as
+        //a runtime artifact (because is genarated at runtime)
         {
             figName: 'authors',
-            rbName: 'metadata.title',
+            rbName: '',
             template: `<% let authors = field.defaultValue;
-                        let userIdFA = 'user_id';
                         if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
-                          for(let author of runtimeArtifacts) {
-                            if(!_.isUndefined(author[userIdFA])) {
-                              authors.push({ id: author[userIdFA] });
-                            } else if(!_.isUndefined(author['name'])) {
-                              let nonCQUAuthor = {name: author['name']};
-                              if(!_.isUndefined(nonCQUAuthor)) {
-                                authors.push(nonCQUAuthor);
-                              }
-                            }
-                          }
+                          authors = runtimeArtifacts;
                         }
                         return authors;
                        %>`,
@@ -477,6 +607,20 @@ module.exports.figshareAPI = {
             figName: 'keywords',
             rbName: 'metadata.finalKeywords',
             defaultValue: ['']
+        },
+        //Field to be set by - FindCat_Step2 - using the list generated in - FindCat_Step1 - that is passed in the context of the lodash 
+        //template as a runtime artifact (because is genarated at runtime)
+        { 
+            figName: 'categories',
+            rbName: '',
+            template: `<% let categories = field.defaultValue;
+                        if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
+                          categories = runtimeArtifacts;
+                        }
+                        return categories;
+                       %>`,
+            runByNameOnly: true, //Only the fields that are "run by name only" can use runtime artifacts 
+            defaultValue: [] //29888
         },
         {
             figName: 'funding',
@@ -546,32 +690,20 @@ module.exports.figshareAPI = {
         { 
             figName: 'license', 
             rbName: 'metadata.license-identifier',
-            template: `<% function findLicenseValue(figArtLicense) {
-                           let licenseValue = field.defaultValue;
-                           let tmpLic = figArtLicense.replace('https://', '');
-                           tmpLic = figArtLicense.replace('http://', '');
-                           for (let license of runtimeArtifacts) {
-                             if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(tmpLic)) {
-                               licenseValue = license.value;
-                             }
-                           }
-                           return licenseValue;
-                         }
-
-                         let accessType = _.get(record,'metadata.access-rights');
-                         if(_.isUndefined(accessType) || _.isEmpty(accessType) || accessType == 'citation') {
-                           let figArtLicenseDefault = record['metadata']['license-identifier-default'];
-                           let figArtLicenseIDDefault = findLicenseValue(figArtLicenseDefault);
-                           return figArtLicenseIDDefault;
-                         } else {
-                           if(_.has(record,'metadata.license-identifier')) {
-                             let figArtLicense = record['metadata']['license-identifier'];
-                             let figArtLicenseID = findLicenseValue(figArtLicense);
-                             return figArtLicenseID;
-                           }
-                         }
-                         return field.defaultValue;
-                       %>`,
+            template: `<% let licenseValue = field.defaultValue;
+                          if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)) {
+                            let figArtLicense = _.get(record,'metadata.license_identifier','');
+                            let tmpLic = figArtLicense.replace('https://', '');
+                            figArtLicense = tmpLic.replace('http://', '');
+                            for (let license of runtimeArtifacts) {
+                              if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(figArtLicense)) {
+                                licenseValue = license.value;
+                                return _.toNumber(licenseValue);
+                              }
+                            }
+                          }
+                          return licenseValue;
+                        %>`,
             defaultValue: 0,
             runByNameOnly: true,
             validations: [
@@ -693,17 +825,15 @@ module.exports.figshareAPI = {
                       %>`,
             defaultValue: ''
         },
+        //[{id: 1780}], //adminstrator stage
+        //[{id: 105}], //adminstrator prod
         {
-            figName: 'embargo_options',
-            rbName: '',
-            template: `<% let figArticleEmbargoOptions = artifacts.figArticleEmbargoOptions;
-                          if(!_.isUndefined(figArticleEmbargoOptions)) {
-                            return figArticleEmbargoOptions;
-                          } else {
-                            return field.defaultValue;
-                          }
-                       %>`,
-            defaultValue: []
+          figName: 'embargo_options',
+          rbName: '',
+          template: `<% let embargoOptions = field.defaultValue;
+                        return [embargoOptions]; 
+                      %>`,
+          defaultValue: {id: 1780}
         }
       ]
     }

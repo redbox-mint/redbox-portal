@@ -39,6 +39,8 @@ export module Services {
     private figArticleIdPathInRecord = '';
     private figArticleURLPathInRecord = '';
     private dataLocationsPathInRecord = '';
+    private recordAuthorExternalName = '';
+    private recordAuthorUniqueBy = '';
 
     //Figshare response
     private entityIdFAR = '';
@@ -106,6 +108,8 @@ export module Services {
         that.isEmbargoedFA = sails.config.figshareAPI.mapping.figshareIsEmbargoed;
         that.embargoTypeFA = sails.config.figshareAPI.mapping.figshareEmbargoType;
         that.curationStatusFA = sails.config.figshareAPI.mapping.figshareCurationStatus;
+        that.recordAuthorExternalName = sails.config.figshareAPI.mapping.recordAuthorExternalName;
+        that.recordAuthorUniqueBy = sails.config.figshareAPI.mapping.recordAuthorUniqueBy;
         sails.log.error('FigService - constructor end');
       });
     }
@@ -227,12 +231,21 @@ export module Services {
             field: standardField,
             artifacts: sails.config.figshareAPI.mapping.artifacts
           }
+          //TODO FIXME remove hard coded loggin 
           if(standardField.figName == 'funding_list') {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField -----------------------------------`);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.foaf:fundedBy_foaf:Agent'))}`);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.foaf:fundedBy_foaf:Agent'))}`);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.foaf:fundedBy_vivo:Grant'))}`);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.foaf:fundedBy_vivo:Grant'))}`);
+          } else if(standardField.figName == 'related_materials') {
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField -----------------------------------`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.dataLocations'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.dataLocations'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.relatedPublications'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.relatedPublications'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.relatedWebsites'))}`);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.relatedWebsites'))}`);
           }
           value = _.template(template)(context);
           if(_.isObject(value)) {
@@ -309,8 +322,10 @@ export module Services {
     private async getAuthorUserIDs(authors:any) {
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - getAuthorUserIDs enter');
       let authorList = [];
-      let uniqueAuthorByEmail = _.uniqBy(authors,'email[0]');
-      let uniqueAuthors = _.uniqBy(uniqueAuthorByEmail,'text_full_name');
+      let uniqueAuthors = authors;
+      if(!_.isUndefined(this.recordAuthorUniqueBy) && !_.isEmpty(this.recordAuthorUniqueBy)) {
+        uniqueAuthors = _.uniqBy(authors,this.recordAuthorUniqueBy);
+      }
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uniqueAuthors');
       sails.log[this.createUpdateFigshareArticleLogLevel](uniqueAuthors);
       let getAuthorTemplateRequests = sails.config.figshareAPI.mapping.templates.getAuthor;
@@ -395,7 +410,7 @@ export module Services {
       }
 
       for(let externalAuthor of uniqueAuthorsControlList) {
-        let otherContributor = {name: externalAuthor[sails.config.figshareAPI.mapping.recordAuthorExternalName]};
+        let otherContributor = {name: externalAuthor[this.recordAuthorExternalName]};
         if(!_.isUndefined(otherContributor)) {
           authorList.push(otherContributor);
         }
