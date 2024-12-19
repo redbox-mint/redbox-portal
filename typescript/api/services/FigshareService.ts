@@ -53,7 +53,7 @@ export module Services {
 
     private figArticleGroupId;
     private figArticleItemType;
-    private figLicenses: any;
+    private figLicenceIDs: any;
     private forCodesMapping: any;
 
     protected _exportedMethods: any = [
@@ -90,7 +90,7 @@ export module Services {
         that.getFigPrivateLicenses()
           .then(function (response) {
             sails.log.verbose('FigService - SUCCESSFULY LOADED LICENSES');
-            that.figLicenses = response;
+            that.figLicenceIDs = response;
           })
           .catch(function (error) {
             sails.log.error('FigService - ERROR LOADING LICENSES');
@@ -544,7 +544,7 @@ export module Services {
       }
     }
 
-    private getArticleUpdateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs:any, figLicenceID:any) {
+    private getArticleUpdateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs:any, figLicenceIDs:any) {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
@@ -552,7 +552,7 @@ export module Services {
 
       //FindAuthor_Step3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
-      this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',figLicenceID);
+      this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',figLicenceIDs);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
 
@@ -571,7 +571,7 @@ export module Services {
       return requestBodyUpdate;
     }
 
-    private getArticleCreateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs: any, figLicenceID:any) {
+    private getArticleCreateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs: any, figLicenceIDs:any) {
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
       let requestBodyCreate = _.cloneDeep(new FigshareArticleImpersonate());
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
@@ -580,7 +580,7 @@ export module Services {
       let customFieldsKeys = _.keys(customFields);
 
       this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
-      this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',figLicenceID);
+      this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',figLicenceIDs);
       this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
       
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
@@ -650,7 +650,7 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
-          let requestBodyCreate = this.getArticleCreateRequestBody(record, this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenses);
+          let requestBodyCreate = this.getArticleCreateRequestBody(record, this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenceIDs);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
@@ -658,7 +658,7 @@ export module Services {
           //Need to pre validate the update request body as well before creating the article because if the article gets
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
-          let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(record,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenses);
+          let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(record,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenceIDs);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
@@ -773,7 +773,7 @@ export module Services {
             throw customError;
           } else {
             //set request body for updating Figshare article
-            let requestBodyUpdate = this.getArticleUpdateRequestBody(record,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenses);
+            let requestBodyUpdate = this.getArticleUpdateRequestBody(record,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenceIDs);
             sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyUpdate);
             this.validateUpdateArticleRequestBody(requestBodyUpdate);
             
@@ -782,7 +782,7 @@ export module Services {
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before update articleId '+articleId);
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-            sails.log[this.createUpdateFigshareArticleLogLevel](this.figLicenses);
+            sails.log[this.createUpdateFigshareArticleLogLevel](this.figLicenceIDs);
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
             sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyUpdate);
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
