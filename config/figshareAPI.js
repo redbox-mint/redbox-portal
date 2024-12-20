@@ -2,15 +2,12 @@ module.exports.figshareAPI = {
   frontEndURL: 'https://cqu.figsh.com', //stage
   baseURL: 'https://api.figsh.com/v2', //stage
   APIToken: '', //Stage
-  figArticleGroupId: 32014, //Dataset stage
   //frontEndURL: 'https://cqu.figshare.com', //prod
   //baseURL: 'https://api.figshare.com/v2', //prod
   //APIToken: '', //Prod
-  //figArticleGroupId: 30527, //Dataset prod
   attachmentsTempDir: '/attachments',
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
-  figArticleItemType: 'dataset',
   testMode: false,
   testUsers: [],
   testLicenses: [],
@@ -35,15 +32,18 @@ module.exports.figshareAPI = {
   //testUsers: [{ id: 2657024, user_id: 3674908, email: 'uon-staging-figshare@redboxresearchdata.com.au' }],
   //testCategories: [ 31196, 31272, 31266, 31372 ],
   mapping: {
+    figshareItemGroupId: 32014, //Dataset stage
+    //figshareItemGroupId: 30527, //Dataset prod
+    figshareItemType: 'dataset',
+    figshareAuthorUserId: 'user_id', //user_id = author id
+    figshareIsEmbargoed: 'is_embargoed',
+    figshareEmbargoType: 'embargo_type',
+    figshareCurationStatus: 'curation_status',
     recordFigArticleId: 'metadata.figshare_article_id',
     recordFigArticleURL: 'metadata.figshare_article_location',
     recordDataLocations: 'metadata.dataLocations',
     recordAuthorExternalName: 'text_full_name',
     recordAuthorUniqueBy: 'email',
-    figshareAuthorUserId: 'user_id', //user_id = author id
-    figshareIsEmbargoed: 'is_embargoed',
-    figshareEmbargoType: 'embargo_type',
-    figshareCurationStatus: 'curation_status',
     response: {
       entityId: 'entity_id',
       location: 'location',

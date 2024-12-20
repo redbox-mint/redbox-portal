@@ -51,8 +51,8 @@ export module Services {
     private embargoTypeFA = '';
     private curationStatusFA = '';
 
-    private figArticleGroupId;
-    private figArticleItemType;
+    private figshareItemGroupId;
+    private figshareItemType;
     private figLicenceIDs: any;
     private forCodesMapping: any;
 
@@ -98,8 +98,8 @@ export module Services {
           });
 
         that.forCodesMapping = sails.config.figshareReDBoxFORMapping.FORMapping;
-        that.figArticleGroupId = sails.config.figshareAPI.figArticleGroupId;
-        that.figArticleItemType = sails.config.figshareAPI.figArticleItemType;
+        that.figshareItemGroupId = sails.config.figshareAPI.mapping.figshareItemGroupId;
+        that.figshareItemType = sails.config.figshareAPI.mapping.figshareItemType;
         that.figArticleIdPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleId;
         that.figArticleURLPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleURL;
         that.dataLocationsPathInRecord = sails.config.figshareAPI.mapping.recordDataLocations;
@@ -366,7 +366,7 @@ export module Services {
               }
             }
 
-            //set request body with the userId value that matches the searchBy template in example:
+            //Set request body with the userId value that matches the searchBy template in example:
             //
             // 1- Search by email:
             // {
@@ -548,7 +548,7 @@ export module Services {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
-      let requestBodyUpdate = _.cloneDeep(new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType)); 
+      let requestBodyUpdate = _.cloneDeep(new FigshareArticleUpdate(this.figshareItemGroupId,this.figshareItemType)); 
 
       //FindAuthor_Step3 - set list of contributors in request body to be sent to Fighare passed in as a runtime artifact
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
@@ -654,7 +654,7 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyCreate);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyCreate -------------------------');
-          this.validateCreateArticleRequestBody(requestBodyCreate);
+          this.validateCreateRequestBody(requestBodyCreate);
           //Need to pre validate the update request body as well before creating the article because if the article gets
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
@@ -662,7 +662,7 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - requestBodyUpdate -------------------------');
-          this.validateUpdateArticleRequestBody(dummyRequestBodyUpdate);
+          this.validateUpdateRequestBody(dummyRequestBodyUpdate);
           
           let dummyEmbargoRequestBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService before early validation - embargoRequestBody ------------------------');
@@ -775,7 +775,7 @@ export module Services {
             //set request body for updating Figshare article
             let requestBodyUpdate = this.getArticleUpdateRequestBody(record,this.figshareAccountAuthorIDs,figCategoryIDs,this.figLicenceIDs);
             sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyUpdate);
-            this.validateUpdateArticleRequestBody(requestBodyUpdate);
+            this.validateUpdateRequestBody(requestBodyUpdate);
             
             //articleId is passed in then changed config to update (put) instead of create (post) config for update
             let figshareArticleConfig = this.getAxiosConfig('put', `/account/articles/${articleId}`, requestBodyUpdate); 
@@ -885,7 +885,7 @@ export module Services {
       }
     }
 
-    private checkArticleCreateFields(requestBody) {
+    private checkCreateFields(requestBody) {
       let valid = '';
       
       let impersonate = sails.config.figshareAPI.mapping.standardFields.create;
@@ -916,9 +916,10 @@ export module Services {
     }
 
     private validateFieldInRequestBody(requestBody:any, field:any, customFieldPath:string ='', record:any={}) {
-      let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //'Invalid value for field: ';
-      let maxLengthIs =  TranslationService.t('@backend-maxlength-validationMessage'); //', maximum length is ';
-      let idNotFound = TranslationService.t('@backend-idNotFound-validationMessage'); //' Id Not Found in Figshare';
+      let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //Invalid value for field:
+      let maxLengthIs =  TranslationService.t('@backend-maxlength-validationMessage'); //maximum length is
+      let minLengthIs =  TranslationService.t('@backend-minlength-validationMessage'); //minimum length is
+      let idNotFound = TranslationService.t('@backend-idNotFound-validationMessage'); //Id Not Found in Figshare
       let valid = '';
       let passed = true;
       let context = {};
@@ -928,6 +929,7 @@ export module Services {
       if(!_.isEmpty(validations)) {
         for(let validation of validations) {
           let template = _.get(validation,'template');
+          let minLength = _.get(validation,'minLength',0);
           let maxLength = _.get(validation,'maxLength',0);
           let addPrefix = _.get(validation,'addPrefix',true);
           let addSuffix = _.get(validation,'addSuffix',false);
@@ -970,7 +972,21 @@ export module Services {
             }
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${field.figName} ----  maxLength ---- ${passed}`);
             if(!passed) {
-              valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare') + maxLengthIs + maxLength);
+              valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare')) + ' ' + maxLengthIs + ' ' + maxLength;
+            }
+          } else if (minLength > 0) {
+            let val = _.get(requestBody,field.figName,'');
+            if(customFieldPath != '') {
+              val = _.get(requestBody,customFieldPath+'.'+field.figName,'');
+            }
+            if(val.length <= minLength) {
+              passed = false;
+            } else {
+              passed = true;
+            }
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${field.figName} ----  minLength ---- ${passed}`);
+            if(!passed) {
+              valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare')) + ' ' + minLengthIs + ' ' + minLength;
             }
           } else if(regexValidation != ''){
             let val = _.get(requestBody,field.figName,'');
@@ -990,16 +1006,16 @@ export module Services {
           if(valid != ''){
             if(addPrefix) {
               if(overridePrefix != '') {
-                valid = overridePrefix + valid;
+                valid = TranslationService.t(overridePrefix) + ' ' + valid;
               } else {
-                valid = invalidValueForField + valid;
+                valid = invalidValueForField + ' ' +valid;
               }
             }
             if(addSuffix) {
               if(overrideSuffix != '') {
-                valid = valid + overrideSuffix;
+                valid = valid + ' ' + TranslationService.t(overrideSuffix);
               } else {
-                valid = valid + idNotFound;
+                valid = valid + ' ' + idNotFound;
               }
             }
           }
@@ -1008,8 +1024,8 @@ export module Services {
       return valid;
     }
 
-    private validateCreateArticleRequestBody(requestBody) {
-      let valid = this.checkArticleCreateFields(requestBody);
+    private validateCreateRequestBody(requestBody) {
+      let valid = this.checkCreateFields(requestBody);
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateCreateArticleRequestBody - validMessage ${valid}`);
       if(valid != '') {
         let customError: RBValidationError = new RBValidationError(valid);
@@ -1017,7 +1033,7 @@ export module Services {
       }
     }
 
-    private checkArticleUpdateFields(requestBody) {
+    private checkRequestUpdateFields(requestBody) {
       let valid = '';
 
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
@@ -1037,8 +1053,8 @@ export module Services {
       return valid;
     }
 
-    private validateUpdateArticleRequestBody(requestBody) {
-      let valid = this.checkArticleUpdateFields(requestBody);
+    private validateUpdateRequestBody(requestBody) {
+      let valid = this.checkRequestUpdateFields(requestBody);
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateUpdateArticleRequestBody - validMessage ${valid}`);
       if(valid != '') {
         let customError: RBValidationError = new RBValidationError(valid);
