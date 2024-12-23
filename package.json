@@ -24,7 +24,7 @@
     "core-js": "^3.39.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.0",
-    "csv-parser": "^3.0.0",
+    "csv-parser": "^3.1.0",
     "csv-stringify": "^6.5.2",
     "dotenv": "^16.4.7",
     "ejs": "3.1.10",
