@@ -91,36 +91,36 @@ jobs:
             sudo mkdir -p .tmp/junit/backend-bruno
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
-            #sudo chmod -R 777 .
-            #cd support/integration-testing
-            #npm run test:bruno
-            #npm run test:bruno:clean
-            #npm run test:mocha
-            #npm run test:mocha:clean
+            sudo chmod -R 777 .
+            cd support/integration-testing
+            npm run test:bruno
+            npm run test:bruno:clean
+            npm run test:mocha
+            npm run test:mocha:clean
       - run:
           name: Upload Bruno and mocha code coverage
           command: |
-            #/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-            #  --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-            #  --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-            #/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-            #  --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-            #  --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
       - run:
           name: Run angular tests
           # uses the codecov binary installed in previous step
           command: |
-            #chmod +x support/unit-testing/angular/testAngular.sh
-            #source support/unit-testing/angular/testAngular.sh
+            chmod +x support/unit-testing/angular/testAngular.sh
+            source support/unit-testing/angular/testAngular.sh
           when: always
       - run:
           name: Install npm packages for project
           command: |
             sudo chmod -R 777 .
-            #npm i
-      #- store_test_results:
-      #    path: .tmp/junit
+            npm i
+      - store_test_results:
+          path: .tmp/junit
   deploy:
     docker:
       - image: 'cimg/node:18.12'
