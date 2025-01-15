@@ -1147,17 +1147,18 @@ export module Controllers {
               let oid = existingRecord[0].redboxOid;
               let oldMetadata = existingRecord[0].metadata;
               let newMetadata = record['metadata']['data'];
-              let response = { 
-                details: '',
-                message: `skip update of harvestId ${harvestId} oid ${oid} metadata sent is equal to metadata in existing record`,
-                harvestId: harvestId,
-                oid: oid,
-                status: true
-              };
+              
               if(this.isMetadataEqual(newMetadata,oldMetadata)) {
+                const response =  {
+                  details: '',
+                  message: `skip update of harvestId ${harvestId} oid ${oid} metadata sent is equal to metadata in existing record`,
+                  harvestId: harvestId,
+                  oid: oid,
+                  status: true
+                }
                 recordResponses.push(response);
               } else {
-                response = await this.updateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid, harvestId, user);
+                const response = await this.updateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid, harvestId, user);
                 recordResponses.push(response);
               }
             }
