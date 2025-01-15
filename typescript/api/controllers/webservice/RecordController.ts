@@ -1139,6 +1139,11 @@ export module Controllers {
             if (existingRecord.length == 0) {
               recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'], harvestId, 'update', user));
             } else {
+              const merge = req.query['merge'];
+              let updateMode = 'update';
+              if(merge == 'true') {
+                updateMode = 'merge';
+              }
               let oid = existingRecord[0].redboxOid;
               let oldMetadata = existingRecord[0].metadata;
               let newMetadata = record['metadata']['data'];
@@ -1152,7 +1157,7 @@ export module Controllers {
               if(this.isMetadataEqual(newMetadata,oldMetadata)) {
                 recordResponses.push(response);
               } else {
-                response = await this.updateHarvestRecord(brand, recordTypeModel, 'update', newMetadata, oid, harvestId, user);
+                response = await this.updateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid, harvestId, user);
                 recordResponses.push(response);
               }
             }
@@ -1189,7 +1194,11 @@ export module Controllers {
           }
           let result = await this.RecordsService.updateMeta(brand, oid, record, user);
 
-          return new APIHarvestResponse(harvestId, oid, true, `Record updated successfully`)
+          let updateMessage = "Record updated successfully";
+          if(shouldMerge) {
+            updateMessage = "Record merged successfully";
+          }
+          return new APIHarvestResponse(harvestId, oid, true, updateMessage)
 
         } catch (error) {
           const result = new APIHarvestResponse(harvestId, oid, false, "Failed to update meta");
