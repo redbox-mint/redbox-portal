@@ -1,0 +1,58 @@
+meta {
+  name: Update HARVEST Legacy Record - merge
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/default/rdmp/api/mint/harvest/rdmp?merge=true
+  body: json
+  auth: none
+}
+
+query {
+  merge: true
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "records": [
+        {
+            "harvest_id": "s123456",
+            "metadata": {
+                "data": {
+                  "anExampleNewMergedProperty": "true"
+                }
+            }
+        }
+    ]
+  }
+}
+
+assert {
+  res.body[0].harvestId: eq s123456
+  res.body[0].message: eq Record updated successfully
+}
+
+tests {
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Test oid exists", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('oid');
+  });
+  
+  test("Test harvestId exists and value is as expected", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('harvestId');
+        expect(jsonData[0].harvestId).to.equal('s123456');
+  });
+}
