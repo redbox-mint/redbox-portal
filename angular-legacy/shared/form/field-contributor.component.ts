@@ -452,6 +452,15 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       this.formModel.controls[f].updateValueAndValidity({ onlySelf: true, emitEvent: false });
       this.formModel.controls[f].markAsTouched();
     });
+    // Fixed missing validation error when validation is enabled from an event-handler, i.e. 'enableValidators()' call. 
+    // Set the FormGroup error according to member status
+    if (this.isValid) {
+      this.formModel.setErrors(null);
+    } else {
+      this.formModel.setErrors({invalid: true});
+    }
+    this.formModel.updateValueAndValidity();
+    this.formModel.markAsTouched();
   }
 
   public getValidationError(): any {

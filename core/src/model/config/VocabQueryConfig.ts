@@ -3,6 +3,7 @@ export class VocabQueryConfig {
   databaseQuery: VocabDatabaseQueryConfig;
   searchQuery: VocabSolrQueryConfig;
   queryField: VocabQueryFieldConfig;
+  userQueryFields: VocabUserQueryFieldConfig[];
   resultObjectMapping: {
     [key: string]: string;
   };
@@ -25,5 +26,10 @@ export class VocabSolrQueryConfig {
 export class VocabQueryFieldConfig {
   property: string;
   type: string;
+}
+
+export declare class VocabUserQueryFieldConfig {
+  property: string;
+  userValueProperty: string;
 }
   

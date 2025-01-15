@@ -144,7 +144,7 @@ export module Controllers {
       const searchString = req.param('search');
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       try {
-        let response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'));
+        let response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'), req.user);
         this.ajaxOk(req, res, null, response, true);
       } catch(error) {
         sails.log.verbose("Error getting internal records:");
