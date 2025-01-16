@@ -433,7 +433,10 @@ export module Services {
       _.unset(record, 'id');
       _.unset(record, 'redboxOid');
       sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
-      record.metaMetadata.lastSavedBy = user.username;
+      //Some of the automated tests may be passing undefined or empty user
+      if(!_.isUndefined(user) && !_.isEmpty(_.get(user,'username',''))) {
+        record.metaMetadata.lastSavedBy = _.get(user,'username');
+      }
       record.metaMetadata.lastSaveDate = moment().format();
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
