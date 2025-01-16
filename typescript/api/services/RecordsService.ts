@@ -433,6 +433,8 @@ export module Services {
       _.unset(record, 'id');
       _.unset(record, 'redboxOid');
       sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
+      record.metaMetadata.lastSavedBy = user.username;
+      record.metaMetadata.lastSaveDate = moment().format();
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
       sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
