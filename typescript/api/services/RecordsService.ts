@@ -1107,7 +1107,13 @@ export module Services {
               try {
                 sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`);
                 let hookResponse = postSaveSyncHookFunction(oid, record, options, user, response);
-                response = await this.resolveHookResponse(hookResponse);
+                const returnType = options.returnType == undefined ? 'record' : options.returnType;
+                //TODO: response from these functions is not consistent, some return the record, some return the storage response
+                if (returnType == 'record') {
+                  record = await this.resolveHookResponse(hookResponse);
+                } else {
+                  response = await this.resolveHookResponse(hookResponse);
+                }
                 sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
                 sails.log.verbose(JSON.stringify(response));
                 sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`);
