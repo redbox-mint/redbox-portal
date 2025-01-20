@@ -210,7 +210,7 @@ describe('The EmailService', function () {
             const options = {triggerCondition: ""};
             const user = "";
             const response = "";
-            const result = await EmailService.sendRecordNotification(oid, record, options, user, response).toPromise();
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.equal(null);
         });
 
@@ -220,7 +220,7 @@ describe('The EmailService', function () {
             const options = {triggerCondition: "<%= record.testing %>"};
             const user = "";
             const response = {};
-            const result = await EmailService.sendRecordNotification(oid, record, options, user, response).toPromise();
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.equal(null);
         });
 
@@ -244,7 +244,7 @@ describe('The EmailService', function () {
             };
             const user = "";
             const response = {content: "response content"};
-            const result = await EmailService.sendRecordNotification(oid, record, options, user, response).toPromise();
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.equal(response);
         });
     });
