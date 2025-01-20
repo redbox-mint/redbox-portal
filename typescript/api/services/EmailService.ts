@@ -79,7 +79,7 @@ export module Services {
       cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
       bcc: string = _.get(sails.config.emailnotification.defaults, 'bcc', ''),
       otherSendOptions: { [dict_key: string]: any } = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
-    ): Observable<any> {
+    ): Observable<{ success: boolean, msg: string }> {
 
       return Observable.fromPromise(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc, otherSendOptions));
 
@@ -113,11 +113,11 @@ export module Services {
       cc: string,
       bcc: string,
       otherSendOptions: { [dict_key: string]: any } = {},
-    ): Promise<any> {
+    ): Promise<{ success: boolean, msg: string }> {
       if (!sails.config.emailnotification.settings.enabled) {
         sails.log.debug("Received email notification request, but is disabled. Ignoring.");
         return {
-          'code': '200',
+          'success': true,
           'msg': 'Email services disabled.'
         };
       }
@@ -129,7 +129,7 @@ export module Services {
       } catch (err) {
         sails.log.error(err);
         return {
-          'code': '500',
+          'success': false,
           'msg': 'Failed to establish mail transport connection.'
         };
       }
@@ -144,24 +144,23 @@ export module Services {
 
       message[msgFormat] = msgBody;
       let response = {
-        success: false
+        success: false,
+        msg: "",
       };
       sails.log.debug(`Email message to send will be ${JSON.stringify(message)}`)
       try {
         let sendResult = await transport.sendMail(message);
-        sails.log.info(`Email sent successfully. Message Id: ${sendResult.messageId}`);
-        response['msg'] = `Email sent successfully. Message Id: ${sendResult.messageId}`;
+        response.msg = `Email sent successfully. Message Id: ${sendResult.messageId}`;
         response.success = true;
+        sails.log.info(response.msg);
       } catch (err) {
-        response['msg'] = 'Email unable to be submitted';
+        response.msg = 'Email unable to be submitted';
+        response.success = false;
         sails.log.error("Email sending failed")
         sails.log.error(err)
       }
 
-
-
       return response;
-
     }
 
     /**
@@ -305,17 +304,19 @@ export module Services {
         ).toPromise();
 
 
-        if (sendResult['code'] == '200') {
-          // perform additional processing on success...
+        if (sendResult.success) {
+          sails.log.verbose(`Record send notification succeeded`);
           const postSendHooks = _.get(options, "onNotifySuccess", null);
           if (postSendHooks) {
+            sails.log.verbose(`Processing onNotifySuccess hooks`);
             _.each(postSendHooks, (postSendHook) => {
               const postSendHookFnName = _.get(postSendHook, 'function', null);
               if (postSendHookFnName) {
+                sails.log.verbose(`Pre notification onNotifySuccess hook: ${postSendHookFnName}`);
                 const postSendHookFn = eval(postSendHookFnName);
                 const postSendHookOpts = _.get(postSendHook, 'options', null);
                 postSendHookFn(oid, record, postSendHookOpts).subscribe(postSendRes => {
-                  sails.log.verbose(`Post notification sending hook completed: ${postSendHookFnName}`);
+                  sails.log.verbose(`Post notification sending hook completed: ${postSendHookFnName} with result ${JSON.stringify(postSendRes)}`);
                 });
               }
             });
