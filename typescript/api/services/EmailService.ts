@@ -322,6 +322,7 @@ export module Services {
               }
             }
             if (!_.isEmpty(response)) {
+              options.returnType = 'response';
               return Observable.of(response);
             } else {
               return Observable.of(record);
