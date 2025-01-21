@@ -17,7 +17,7 @@
     "@angular/forms": "^18.2.10",
     "@angular/platform-browser": "^18.2.10",
     "@angular/platform-browser-dynamic": "^18.2.10",
-    "@angular/router": "^18.2.10",
+    "@angular/router": "^19.1.2",
     "@ngx-formly/bootstrap": "^6.3.10",
     "@ngx-formly/core": "^6.3.6",
     "@researchdatabox/sails-ng-common": "^0.1.0",
