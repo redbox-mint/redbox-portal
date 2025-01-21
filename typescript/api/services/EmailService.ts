@@ -261,11 +261,13 @@ export module Services {
      * @return The response if provided or the record data.
      */
     public async sendRecordNotification(oid, record, options, user, response) {
+      const msgPartial = `for oid '${oid}' template '${options.template}'`;
       const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
+      let triggerConditionResult;
       if (isSailsEmailConfigDisabled) {
-        sails.log.verbose(`Not sending notification for oid '${oid}', config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
+        sails.log.verbose(`Not sending record notification ${msgPartial}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
         return record;
-      } else if (this.metTriggerCondition(oid, record, options) == "true") {
+      } else if ((triggerConditionResult = this.metTriggerCondition(oid, record, options)) == "true") {
         const variables = {
           imports: {
             record: record,
@@ -274,13 +276,13 @@ export module Services {
           record: record,
           oid: oid,
         };
-        sails.log.debug(`Sending record notification for oid: ${oid}`);
+        sails.log.debug(`Sending record notification ${msgPartial}`);
         sails.log.verbose(options);
         // send record notification
         const optionsEvaluated = this.evaluateProperties(options, {}, variables);
 
         if (!optionsEvaluated.toRendered) {
-          sails.log.error(`Error sending notification for oid: ${oid}, ` +
+          sails.log.error(`Error sending record notification ${msgPartial}, ` +
             `invalid 'To' address: ${optionsEvaluated.toRendered}. ` +
             `Please check your configuration 'to' option: ${_.get(options, 'to')}`);
           throw new Error('Invalid email address.');
@@ -289,9 +291,8 @@ export module Services {
         const buildResult = await optionsEvaluated.templateRendered.toPromise();
 
         if (buildResult['status'] != 200) {
-          sails.log.error(`Failed to build email result:`);
-          sails.log.error(buildResult);
-          throw new Error('Failed to build email body.');
+          sails.log.error(`Failed to build email body ${msgPartial}, result: ${buildResult}`);
+          throw new Error('Invalid email body.');
         }
         const sendResult = await this.sendMessage(
           optionsEvaluated.toRendered,
@@ -304,9 +305,8 @@ export module Services {
           _.get(options, 'otherSendOptions', {}),
         ).toPromise();
 
-
         if (sendResult.success) {
-          sails.log.verbose(`Record send notification succeeded`);
+          sails.log.verbose(`Record send notification succeeded ${msgPartial}`);
           const postSendHooks = _.get(options, "onNotifySuccess", null);
           if (postSendHooks) {
             sails.log.verbose(`Processing onNotifySuccess hooks`);
@@ -325,9 +325,9 @@ export module Services {
                 }
 
                 postSendHookResult.then(result => {
-                  sails.log.verbose(`Post notification sending hook '${postSendHookFnName}' completed with result: ${JSON.stringify(result)}`);
+                  sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' completed with result: ${JSON.stringify(result)}`);
                 }).catch(error => {
-                  sails.log.verbose(`Post notification sending hook '${postSendHookFnName}' failed with error: ${JSON.stringify(error)}`);
+                  sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' failed with error: ${JSON.stringify(error)}`);
                 });
               }
             });
@@ -341,8 +341,7 @@ export module Services {
         }
 
       } else {
-        sails.log.verbose(`Not sending notification for oid '${oid}', condition not met: ${_.get(options, "triggerCondition", "")}`)
-        sails.log.verbose(JSON.stringify(record));
+        sails.log.verbose(`Not sending notification ${msgPartial}, trigger condition not met ${_.get(options, "triggerCondition", "")} with result ${triggerConditionResult} for record ${JSON.stringify(record)}`)
       }
       if (!_.isEmpty(response)) {
         options.returnType = 'response';
