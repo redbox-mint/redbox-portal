@@ -229,7 +229,7 @@ describe('The EmailService', function () {
             }
         });
 
-        it('should send email when trigger condition matches', async function () {
+        it('should send email when trigger condition matches and execute onNotifySuccess', async function () {
             const oid = "test-oid";
             const record = {
                 metadata: {
@@ -245,12 +245,26 @@ describe('The EmailService', function () {
                 template: "publicationReview",
                 otherSendOptions: {
                     'replyTo': 'replyto@example.com',
-                }
+                },
+                onNotifySuccess: [
+                    {
+                        function: "sails.services.recordsservice.updateNotificationLog",
+                        options: {
+                            name: `Add notification log`,
+                            logName: "notification.log.testing",
+                            saveRecord: true,
+                            forceRun: true,
+                        },
+                    },
+                ],
             };
             const user = "";
             const response = {content: "response content"};
             const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.equal(response);
+            expect(options.returnType).to.equal("response");
+            expect(record.notification.log.testing).to.have.length(1);
+            expect(record.notification.log.testing[0].date).to.contain('T');
         });
     });
 });

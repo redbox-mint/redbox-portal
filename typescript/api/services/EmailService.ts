@@ -29,6 +29,7 @@ import 'rxjs/add/operator/toPromise';
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
+import {isObservable} from "rxjs";
 
 declare var sails: Sails;
 declare var _;
@@ -262,7 +263,7 @@ export module Services {
     public async sendRecordNotification(oid, record, options, user, response) {
       const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
       if (isSailsEmailConfigDisabled) {
-        sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
+        sails.log.verbose(`Not sending notification for oid '${oid}', config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
         return record;
       } else if (this.metTriggerCondition(oid, record, options) == "true") {
         const variables = {
@@ -315,8 +316,18 @@ export module Services {
                 sails.log.verbose(`Pre notification onNotifySuccess hook: ${postSendHookFnName}`);
                 const postSendHookFn = eval(postSendHookFnName);
                 const postSendHookOpts = _.get(postSendHook, 'options', null);
-                postSendHookFn(oid, record, postSendHookOpts).subscribe(postSendRes => {
-                  sails.log.verbose(`Post notification sending hook completed: ${postSendHookFnName} with result ${JSON.stringify(postSendRes)}`);
+                let postSendHookResult = postSendHookFn(oid, record, postSendHookOpts, user, response);
+
+                if (isObservable(postSendHookResult)) {
+                  postSendHookResult = postSendHookResult.toPromise();
+                } else {
+                  postSendHookResult = Promise.resolve(postSendHookResult);
+                }
+
+                postSendHookResult.then(result => {
+                  sails.log.verbose(`Post notification sending hook '${postSendHookFnName}' completed with result: ${JSON.stringify(result)}`);
+                }).catch(error => {
+                  sails.log.verbose(`Post notification sending hook '${postSendHookFnName}' failed with error: ${JSON.stringify(error)}`);
                 });
               }
             });
@@ -330,7 +341,7 @@ export module Services {
         }
 
       } else {
-        sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
+        sails.log.verbose(`Not sending notification for oid '${oid}', condition not met: ${_.get(options, "triggerCondition", "")}`)
         sails.log.verbose(JSON.stringify(record));
       }
       if (!_.isEmpty(response)) {
