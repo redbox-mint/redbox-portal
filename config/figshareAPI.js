@@ -39,6 +39,7 @@ module.exports.figshareAPI = {
     figshareIsEmbargoed: 'is_embargoed',
     figshareEmbargoType: 'embargo_type',
     figshareCurationStatus: 'curation_status',
+    figshareNeedsPublishAfterFileUpload: false,
     recordFigArticleId: 'metadata.figshare_article_id',
     recordFigArticleURL: 'metadata.figshare_article_location',
     recordDataLocations: 'metadata.dataLocations',
