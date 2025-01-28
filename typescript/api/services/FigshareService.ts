@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Services as services, DatastreamService, RBValidationError, QueueService, FigshareArticleImpersonate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
+import { Services as services, DatastreamService, RBValidationError, RecordsService, BrandingModel, FigshareArticleImpersonate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 const moment = require('moment');
 const axios = require('axios');
@@ -27,14 +27,14 @@ const checkDiskSpace = require('check-disk-space').default;
 
 declare let sails: Sails;
 declare let TranslationService;
-
+declare let BrandingService;
 
 export module Services {
 
   export class FigshareService extends services.Core.Service {
 
     private datastreamService: DatastreamService;
-    private queueService: QueueService;
+    private recordsService: RecordsService;
 
     private figArticleIdPathInRecord = '';
     private figArticleURLPathInRecord = '';
@@ -76,14 +76,9 @@ export module Services {
       let that = this;
       sails.on('ready', function () {
         let datastreamServiceName = sails.config.record.datastreamService;
-        let queueServiceName = sails.config.queue.serviceName;
         sails.log.error(`FigshareTrigger ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
           that.datastreamService = sails.services[datastreamServiceName];
-        }
-        sails.log.error(`FigshareTrigger ready, using queue service: ${queueServiceName}`);
-        if (queueServiceName != undefined) {
-          that.queueService = sails.services[queueServiceName];
         }
       });
       sails.on('lifted', function() {
@@ -558,7 +553,7 @@ export module Services {
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
 
-      //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+      //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(record,requestBodyUpdate,standardField);
       }
@@ -585,7 +580,7 @@ export module Services {
       this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',figLicenceIDs);
       this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
       
-      //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+      //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
       for(let customFieldKey of customFieldsKeys) {
         this.setCustomFieldInRequestBody(record, customFields, customFieldKey, sails.config.figshareAPI.mapping.customFields.create);
       }
@@ -604,7 +599,7 @@ export module Services {
 
       this.setFieldByNameInRequestBody(record,requestEmbargoBody,sails.config.figshareAPI.mapping.standardFields.embargo,'impersonate',figshareAccountAuthorIDs);
       
-      //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+      //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.embargo) {
         this.setStandardFieldInRequestBody(record,requestEmbargoBody,standardField);
       }
@@ -822,7 +817,7 @@ export module Services {
                 if(!_.isEmpty(sails.config.figshareAPI.mapping.response.article)) {
                   articleDetails = await this.getArticleDetails(articleId);
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - after publish articleDetails ${JSON.stringify(articleDetails)}`);
-                  //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+                  //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
                   for(let field of sails.config.figshareAPI.mapping.response.article) {
                     this.setFieldInRecord(record,articleDetails,field);
                   }
@@ -1190,9 +1185,11 @@ export module Services {
                 sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending ${publishConfig.method} - ${publishConfig.url}`);
                 let responsePublish = {status: '', statusText: ''}
                 try {
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - all file uploads finishes starting publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - all file uploads finished starting publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                   responsePublish = await axios(publishConfig);
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                  _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
+                  this.updateMeta(oid, record);
                 } catch(updateError) {
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending error: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending error: ${JSON.stringify(updateError)}`);
@@ -1246,6 +1243,8 @@ export module Services {
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - all file uploads finishes starting publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                       responsePublish = await axios(publishConfig);
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                      _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
+                      this.updateMeta(oid, record);
                     } catch(updateError) {
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending error: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending error: ${JSON.stringify(updateError)}`);
@@ -1586,8 +1585,6 @@ export module Services {
 
     private async deleteFilesAndUpdateDataLocationEntries(record, oid) {
 
-      //TODO FIXME check if this method needs refactoring 
-
       try {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesAndUpdateDataLocationEntries - enter');
@@ -1654,8 +1651,6 @@ export module Services {
 
     public deleteFilesFromRedbox (oid, record, options, user) {
 
-      //TODO FIXME check if this method needs refactoring 
-
       if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
         this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
         sails.log.info(`FigService - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
@@ -1670,24 +1665,11 @@ export module Services {
       }
     }
 
-    private queueFileUpload(attachId, oid, articleId, record, fileName, fileSize) {
-
-      let jobName = 'Figshare-Upload-Service';
-      let queueMessage = {
-        attachId: attachId,
-        oid: oid,
-        articleId: articleId,
-        dataPublicationRecord: record,
-        fileName: fileName,
-        fileSize: fileSize,
-        function: 'sails.services.figsharetriggerservice.processFileUploadToFigshare'
-      };
-      
-      sails.log.info(`FigService - queueFileUpload - Queueing up trigger using jobName ${jobName} articleId ${articleId} fileName ${fileName} fileSize ${fileSize}`);
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueFileUpload - queueMessage '+JSON.stringify(queueMessage));
-      this.queueService.now(jobName, queueMessage);
+    private updateMeta(oid, record) {
+      const brand:BrandingModel = BrandingService.getBrand('default');
+      this.recordsService.updateMeta(brand, oid, record);
     }
-
+    
   }
 }
 module.exports = new Services.FigshareService().exports();
