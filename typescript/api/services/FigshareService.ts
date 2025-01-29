@@ -1245,11 +1245,9 @@ export module Services {
                     sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending ${publishConfig.method} - ${publishConfig.url}`);
                     let responsePublish = {status: '', statusText: ''}
                     try {
-                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - all file uploads finishes starting publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - linkOnlyFileFound publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                       responsePublish = await axios(publishConfig);
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
-                      _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
-                      this.updateMeta(oid, record);
                     } catch(updateError) {
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending error: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending error: ${JSON.stringify(updateError)}`);
