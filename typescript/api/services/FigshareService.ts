@@ -28,13 +28,13 @@ const checkDiskSpace = require('check-disk-space').default;
 declare let sails: Sails;
 declare let TranslationService;
 declare let BrandingService;
+declare let RecordsService;
 
 export module Services {
 
   export class FigshareService extends services.Core.Service {
 
     private datastreamService: DatastreamService;
-    private recordsService: RecordsService;
 
     private figArticleIdPathInRecord = '';
     private figArticleURLPathInRecord = '';
@@ -1178,6 +1178,11 @@ export module Services {
                 }
               }
 
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - fileUploadsInProgress '+fileUploadsInProgress);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - articleFileList.length '+articleFileList.length);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - countFileAttachments '+countFileAttachments);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - figNeedsPublishAfterFileUpload '+this.figNeedsPublishAfterFileUpload);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - recordAllFilesUploaded '+sails.config.figshareAPI.mapping.recordAllFilesUploaded);
               if(!fileUploadsInProgress && articleFileList.length == countFileAttachments && this.figNeedsPublishAfterFileUpload) {
                 //https://docs.figshare.com/#private_article_publish
                 let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
@@ -1666,8 +1671,10 @@ export module Services {
     }
 
     private updateMeta(oid, record) {
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - updateMeta - enter');
       const brand:BrandingModel = BrandingService.getBrand('default');
-      this.recordsService.updateMeta(brand, oid, record);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - updateMeta - brand '+JSON.stringify(brand));
+      RecordsService.updateMeta(brand, oid, record);
     }
     
   }
