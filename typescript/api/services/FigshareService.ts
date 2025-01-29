@@ -60,7 +60,9 @@ export module Services {
       'createUpdateFigshareArticle',
       'uploadFilesToFigshareArticle',
       'deleteFilesFromRedbox',
-      'processFileUploadToFigshare'
+      'deleteFilesFromRedboxTrigger',
+      'processFileUploadToFigshare',
+      'queueDeleteFilesJob'
     ];
 
     private createUpdateFigshareArticleLogLevel = 'verbose';
@@ -1658,13 +1660,13 @@ export module Services {
       return record;
     }
 
-    public deleteFilesFromRedbox(oid, record, options, user) {
+    public deleteFilesFromRedboxTrigger(oid, record, options, user) {
 
       if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
         this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-        sails.log.info(`FigService - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - deleteFilesFromRedboxTrigger - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
       } else {
-        sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
+        sails.log.info(`FigService - deleteFilesFromRedboxTrigger - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
     
       if (this.metTriggerCondition(oid, record, options) === 'true') {
@@ -1674,7 +1676,18 @@ export module Services {
       }
     }
 
-    private queueDeleteFilesJob(oid, record) {
+    public deleteFilesFromRedbox(oid, record, options, user) {
+
+      if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
+        this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
+        sails.log.info(`FigService - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+      } else {
+        sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
+      }
+      return this.deleteFilesAndUpdateDataLocationEntries(record, oid);
+    }
+
+    public queueDeleteFilesJob(oid, record) {
 
       let jobName = 'Figshare-UploadedFilesCleanup-Service';
       let queueMessage = {
