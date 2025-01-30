@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Services as services, DatastreamService, RBValidationError, QueueService, StorageService, BrandingModel, FigshareArticleImpersonate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
+import { Services as services, DatastreamService, RBValidationError, QueueService, BrandingModel, FigshareArticleImpersonate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 const moment = require('moment');
 const axios = require('axios');
@@ -28,6 +28,7 @@ const checkDiskSpace = require('check-disk-space').default;
 declare let sails: Sails;
 declare let TranslationService;
 declare let BrandingService;
+declare let RecordsService;
 
 export module Services {
 
@@ -35,7 +36,6 @@ export module Services {
 
     private datastreamService: DatastreamService;
     private queueService: QueueService;
-    private storageService: StorageService;
 
     private figArticleIdPathInRecord = '';
     private figArticleURLPathInRecord = '';
@@ -82,7 +82,6 @@ export module Services {
       sails.on('ready', function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         let queueServiceName = sails.config.queue.serviceName;
-        let storageServiceName = sails.config.storage.serviceName;
         sails.log.verbose(`FigshareTrigger ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
           that.datastreamService = sails.services[datastreamServiceName];
@@ -90,10 +89,6 @@ export module Services {
         sails.log.verbose(`FigshareTrigger ready, using queue service: ${queueServiceName}`);
         if (queueServiceName != undefined) {
           that.queueService = sails.services[queueServiceName];
-        }
-        sails.log.verbose(`FigshareTrigger ready, using storage service: ${storageServiceName}`);
-        if (storageServiceName != undefined) {
-          that.storageService = sails.services[storageServiceName];
         }
       });
       sails.on('lifted', function() {
@@ -1631,7 +1626,7 @@ export module Services {
               if(!_.isUndefined(figFileDetails)) {
                 urlList.push(figFileDetails);
                 sails.log[this.createUpdateFigshareArticleLogLevel](attachmentFile);
-                this.datastreamService.removeDatastream(oid, attachmentFile); 
+                await this.datastreamService.removeDatastream(oid, attachmentFile); 
               }
             }
           }
@@ -1695,27 +1690,34 @@ export module Services {
           responsePublish = await axios(publishConfig);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
           this.queueDeleteFiles(oid,record,user);
-        } catch(updateError) {
+        } catch(error) {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${JSON.stringify(updateError)}`);
-          sails.log[this.createUpdateFigshareArticleLogLevel](updateError);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${JSON.stringify(error)}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](error);
         }
       }
     }
 
-    public deleteFilesFromRedbox(job: any) {
+    public async deleteFilesFromRedbox(job: any) {
       let data = job.attrs.data;
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesFromRedbox - data '+JSON.stringify(data));
       if(!_.isUndefined(data) && !_.isNull(data) && !_.isEmpty(data)) {
-        if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
-          this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-          sails.log.info(`FigService - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
-        } else {
-          sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
+        try {
+          if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
+            this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
+            sails.log.info(`FigService - deleteFilesFromRedbox - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+          } else {
+            sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
+          }
+          let record = await this.deleteFilesAndUpdateDataLocationEntries(data.record, data.oid);
+          const brand:BrandingModel = BrandingService.getBrand('default');
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox oid: ${data.oid} user: ${JSON.stringify(data.user)}`);
+          let result = await RecordsService.updateMeta(brand, data.oid, record, data.user, false, false);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesFromRedbox - result '+JSON.stringify(result));
+        } catch(error) {
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox error: ${JSON.stringify(error)}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](error);
         }
-        let record = this.deleteFilesAndUpdateDataLocationEntries(data.record, data.oid);
-        const brand:BrandingModel = BrandingService.getBrand('default');
-        this.storageService.updateMeta(brand, data.oid, record, data.user);
       }
     }
 
