@@ -1199,7 +1199,7 @@ export module Services {
                   if(!_.isUndefined(sails.config.figshareAPI.mapping.recordAllFilesUploaded) && !_.isEmpty(sails.config.figshareAPI.mapping.recordAllFilesUploaded)){
                     _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
                   }
-                  this.queuePublishAfterUploadFiles(oid,record,articleId,user);
+                  this.queuePublishAfterUploadFiles(oid,articleId,user,record.metaMetadata.brandId);
                 } catch(updateError) {
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - submit publish job error: ${JSON.stringify(updateError)}`);
                   sails.log[this.createUpdateFigshareArticleLogLevel](updateError);
@@ -1676,10 +1676,10 @@ export module Services {
       let data = job.attrs.data;
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - publishAfterUploadFilesJob - data '+JSON.stringify(data));
       if(!_.isUndefined(data) && !_.isNull(data) && !_.isEmpty(data)) {
-        let record = data.record;
         let oid = data.oid;
         let articleId = data.articleId;
         let user = data.user;
+        let brandId = data.brandId;
         //https://docs.figshare.com/#private_article_publish
         let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
         let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
@@ -1689,7 +1689,7 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publishAfterUploadFiles - all file uploads finished starting publishing`);
           responsePublish = await axios(publishConfig);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
-          this.queueDeleteFiles(oid,user);
+          this.queueDeleteFiles(oid,user,brandId);
         } catch(error) {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${JSON.stringify(error)}`);
@@ -1709,11 +1709,13 @@ export module Services {
           } else {
             sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
           }
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record oid ${data.oid}`);
           let record = await RecordsService.getMeta(data.oid);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record before ${JSON.stringify(record)}`);
           record = await this.deleteFilesAndUpdateDataLocationEntries(data.record, data.oid);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record after ${JSON.stringify(record)}`);
-          const brand:BrandingModel = BrandingService.getBrand('default');
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record brandId ${data.brandId}`);
+          const brand:BrandingModel = BrandingService.getBrandById(data.brandId);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox oid: ${data.oid} user: ${JSON.stringify(data.user)}`);
           let result = await RecordsService.updateMeta(brand, data.oid, record, data.user, false, false);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesFromRedbox - result '+JSON.stringify(result));
@@ -1724,14 +1726,14 @@ export module Services {
       }
     }
 
-    public queuePublishAfterUploadFiles(oid, record, articleId, user) {
+    public queuePublishAfterUploadFiles(oid:string, articleId:string, user:any, brandId:string) {
 
       let jobName = 'Figshare-PublishAfterUpload-Service';
       let queueMessage = {
         oid: oid,
-        record: record,
         articleId: articleId,
-        user: user
+        user: user,
+        brandId: brandId
       };
       
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queuePublishAfterUploadFiles - Queueing up trigger using jobName ${jobName}`);
@@ -1739,12 +1741,13 @@ export module Services {
       this.queueService.now(jobName, queueMessage);
     }
 
-    public queueDeleteFiles(oid, user) {
+    public queueDeleteFiles(oid:string, user:any, brandId:string) {
 
       let jobName = 'Figshare-UploadedFilesCleanup-Service';
       let queueMessage = {
         oid: oid,
-        user: user
+        user: user,
+        brandId: brandId
       };
       
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queueFileUpload - Queueing up trigger using jobName ${jobName}`);
