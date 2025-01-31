@@ -1689,7 +1689,7 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publishAfterUploadFiles - all file uploads finished starting publishing`);
           responsePublish = await axios(publishConfig);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
-          this.queueDeleteFiles(oid,record,user);
+          this.queueDeleteFiles(oid,user);
         } catch(error) {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles error: ${JSON.stringify(error)}`);
@@ -1709,7 +1709,10 @@ export module Services {
           } else {
             sails.log.info(`FigService - deleteFilesFromRedbox - log level ${this.createUpdateFigshareArticleLogLevel}`);
           }
-          let record = await this.deleteFilesAndUpdateDataLocationEntries(data.record, data.oid);
+          let record = await RecordsService.getMeta(data.oid);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record before ${JSON.stringify(record)}`);
+          record = await this.deleteFilesAndUpdateDataLocationEntries(data.record, data.oid);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record after ${JSON.stringify(record)}`);
           const brand:BrandingModel = BrandingService.getBrand('default');
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox oid: ${data.oid} user: ${JSON.stringify(data.user)}`);
           let result = await RecordsService.updateMeta(brand, data.oid, record, data.user, false, false);
@@ -1736,18 +1739,17 @@ export module Services {
       this.queueService.now(jobName, queueMessage);
     }
 
-    public queueDeleteFiles(oid, record, user) {
+    public queueDeleteFiles(oid, user) {
 
       let jobName = 'Figshare-UploadedFilesCleanup-Service';
       let queueMessage = {
         oid: oid,
-        record: record,
         user: user
       };
       
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queueFileUpload - Queueing up trigger using jobName ${jobName}`);
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueFileUpload - queueMessage '+JSON.stringify(queueMessage));
-      this.queueService.now(jobName, queueMessage);
+      this.queueService.schedule(jobName, 'in 5 minutes', queueMessage);
     }
     
   }
