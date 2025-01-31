@@ -1643,8 +1643,8 @@ export module Services {
               let locationList = _.get(record,this.dataLocationsPathInRecord);
               let locationListRemoved = _.remove(locationList, ['name', fileName]);
               //add new entry as URL to the same file already uploaded to Figshare
-              locationListRemoved.push(newUrl);
-              _.set(record,locationListRemoved);
+              locationList.push(newUrl);
+              _.set(record,this.dataLocationsPathInRecord,locationList);
             } 
           }
 
