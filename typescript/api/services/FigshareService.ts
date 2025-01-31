@@ -1712,7 +1712,7 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record oid ${data.oid}`);
           let record = await RecordsService.getMeta(data.oid);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record before ${JSON.stringify(record)}`);
-          record = await this.deleteFilesAndUpdateDataLocationEntries(data.record, data.oid);
+          record = await this.deleteFilesAndUpdateDataLocationEntries(record, data.oid);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record after ${JSON.stringify(record)}`);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record brandId ${data.brandId}`);
           const brand:BrandingModel = BrandingService.getBrandById(data.brandId);
@@ -1738,7 +1738,7 @@ export module Services {
       
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queuePublishAfterUploadFiles - Queueing up trigger using jobName ${jobName}`);
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queuePublishAfterUploadFiles - queueMessage '+JSON.stringify(queueMessage));
-      this.queueService.now(jobName, queueMessage);
+      this.queueService.schedule(jobName, 'in 2 minutes', queueMessage);
     }
 
     public queueDeleteFiles(oid:string, user:any, brandId:string) {
