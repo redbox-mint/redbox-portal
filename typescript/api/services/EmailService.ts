@@ -291,7 +291,7 @@ export module Services {
         const buildResult = await optionsEvaluated.templateRendered.toPromise();
 
         if (buildResult['status'] != 200) {
-          sails.log.error(`Failed to build email body ${msgPartial}, result: ${buildResult}`);
+          sails.log.error(`Failed to build email body ${msgPartial}, result: ${JSON.stringify(buildResult)}`);
           throw new Error('Invalid email body.');
         }
         const sendResult = await this.sendMessage(

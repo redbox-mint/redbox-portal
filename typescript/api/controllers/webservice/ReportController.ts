@@ -96,10 +96,10 @@ export module Controllers {
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = _.clone(req.query);
         let response = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery,queryParams,paramMap,brand,start,rows)
-        sails.log.error("NamedQueryService response")
-        sails.log.error(response)
+        sails.log.verbose(`NamedQueryService response: ${JSON.stringify(response)}`);
         return this.apiRespond(req, res, response, 200)
       } catch (error) {
+        sails.log.error(`executeNamedQuery error: ${error}`);
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
       }
     }
