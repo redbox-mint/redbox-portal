@@ -1273,8 +1273,9 @@ export module Services {
                   
                   if(this.figNeedsPublishAfterFileUpload) {
                     //https://docs.figshare.com/#private_article_publish
-                    let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-                    let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
+                    let requestBodyPublishAfterFileUploads = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
+                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending requestBodyPublishAfterFileUploads ${JSON.stringify(requestBodyPublishAfterFileUploads)}`);
+                    let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterFileUploads);
                     sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending ${publishConfig.method} - ${publishConfig.url}`);
                     let responsePublish = {status: '', statusText: ''}
                     
@@ -1528,7 +1529,9 @@ export module Services {
 
               //complete upload step 5
               let requestBodyComplete = { impersonate: 0 };
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - before complete file upload`);
               this.setFieldByNameInRequestBody(record,requestBodyComplete,sails.config.figshareAPI.mapping.upload.attachments,'impersonate',this.figshareAccountAuthorIDs);
+              sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare requestBodyComplete - ${JSON.stringify(requestBodyComplete)}`);
               let configStep5 = this.getAxiosConfig('post', `/account/articles/${articleId}/files/${fileId}`, requestBodyComplete);
               sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - ${configStep5.method} - ${configStep5.url}`);
               let responseStep5 = await axios(configStep5);
@@ -1679,8 +1682,9 @@ export module Services {
         let user = data.user;
         let brandId = data.brandId;
         //https://docs.figshare.com/#private_article_publish
-        let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-        let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
+        let requestBodyPublishAfterFileUploads = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending requestBodyPublishAfterFileUploads ${JSON.stringify(requestBodyPublishAfterFileUploads)}`);
+        let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterFileUploads);
         sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles ${publishConfig.method} - ${publishConfig.url}`);
         let responsePublish = {status: '', statusText: ''}
         try {
