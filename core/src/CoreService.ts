@@ -117,12 +117,13 @@ export module Services.Core {
      * returns a string that is 'true' or 'false' (literal) depending on whether the 'options.triggerCondition' is met!
      *
      * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
-     * @param  oid
-     * @param  record
-     * @param  options
-     * @return
+     * @param  oid {string} The record oid.
+     * @param  record The record data.
+     * @param  options The options for the trigger.
+     * @param  user The user that triggered the hook, optional.
+     * @return {"true"|"false"} "true" if the condition passed, otherwise "false".
      */
-    protected metTriggerCondition(oid, record, options) {
+    protected metTriggerCondition(oid, record, options, user?) {
       const triggerCondition = _.get(options, "triggerCondition", "");
       const forceRun = _.get(options, "forceRun", false);
       const variables = {
@@ -131,6 +132,10 @@ export module Services.Core {
           oid: oid
         }
       };
+      if (user) {
+        console.debug(`Added user in metTriggerCondition: ${JSON.stringify(user)}`);
+        variables.imports['user'] = user;
+      }
       if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
         const compiled = _.template(triggerCondition, variables);
         return compiled();
