@@ -1205,9 +1205,6 @@ export module Services {
               if(!fileUploadsInProgress && articleFileList.length == countFileAttachments) {
                 
                 if(this.figNeedsPublishAfterFileUpload) {
-                  if(!_.isUndefined(sails.config.figshareAPI.mapping.recordAllFilesUploaded) && !_.isEmpty(sails.config.figshareAPI.mapping.recordAllFilesUploaded)){
-                    _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
-                  }
                   this.queuePublishAfterUploadFiles(oid,articleId,user,record.metaMetadata.brandId);
                 }
 
@@ -1683,7 +1680,7 @@ export module Services {
         let brandId = data.brandId;
         //https://docs.figshare.com/#private_article_publish
         let requestBodyPublishAfterFileUploads = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending requestBodyPublishAfterFileUploads ${JSON.stringify(requestBodyPublishAfterFileUploads)}`);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFilesJob requestBodyPublishAfterFileUploads ${JSON.stringify(requestBodyPublishAfterFileUploads)}`);
         let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterFileUploads);
         sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish publishAfterUploadFiles ${publishConfig.method} - ${publishConfig.url}`);
         let responsePublish = {status: '', statusText: ''}
@@ -1719,6 +1716,9 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox record brandId ${data.brandId}`);
           const brand:BrandingModel = BrandingService.getBrandById(data.brandId);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesFromRedbox oid: ${data.oid} user: ${JSON.stringify(data.user)}`);
+          if(!_.isUndefined(sails.config.figshareAPI.mapping.recordAllFilesUploaded) && !_.isEmpty(sails.config.figshareAPI.mapping.recordAllFilesUploaded)){
+            _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
+          }
           let result = await RecordsService.updateMeta(brand, data.oid, record, data.user, false, false);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesFromRedbox - result '+JSON.stringify(result));
         } catch(error) {
