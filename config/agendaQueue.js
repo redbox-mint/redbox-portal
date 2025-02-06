@@ -55,10 +55,19 @@ module.exports.agendaQueue = {
       }
     },
     {
-      name: 'Figshare-Upload-Service',
-      fnName: 'rdmpservice.processQueuedFileUploadToFigshare',
+      name: 'Figshare-PublishAfterUpload-Service',
+      fnName: 'figshareservice.publishAfterUploadFilesJob',
       options: {
-        lockLifetime: 20 * 60 * 1000, //20 mins because there can be big files uploaded that can take long
+        lockLifetime: 120 * 1000, // 120 seconds max runtime
+        lockLimit: 1,
+        concurrency: 1
+      }
+    },
+    {
+      name: 'Figshare-UploadedFilesCleanup-Service',
+      fnName: 'figshareservice.deleteFilesFromRedbox',
+      options: {
+        lockLifetime: 120 * 1000, // 120 seconds max runtime
         lockLimit: 1,
         concurrency: 1
       }

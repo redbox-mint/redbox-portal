@@ -1223,15 +1223,15 @@ export module Services {
                   //validate requestEmbargoBody
                   this.validateEmbargoRequestBody(record, requestEmbargoBody);
                   let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - embargo - ${embargoConfig.method} - ${embargoConfig.url}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - embargo - ${embargoConfig.method} - ${embargoConfig.url}`);
                   let responseEmbargo = await axios(embargoConfig);
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - processFilePartUploadToFigshare - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
                 } else if(requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false) {
               
                   let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare checkUploadFilesPending - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
                   let responseEmbargoDelete = await axios(embargoDeleteConfig);
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare checkUploadFilesPending status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
                 }
               }
 
