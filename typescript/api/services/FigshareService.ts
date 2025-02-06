@@ -1753,7 +1753,11 @@ export module Services {
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queuePublishAfterUploadFiles - queueMessage '+JSON.stringify(queueMessage));
       let scheduleIn = _.get(sails.config.figshareAPI.mapping.schedulePublishAfterUploadJob,'in 2 minutes');
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queuePublishAfterUploadFiles - scheduleIn '+scheduleIn);
-      this.queueService.schedule(jobName, scheduleIn, queueMessage);
+      if(scheduleIn == 'immediate') {
+        this.queueService.now(jobName, queueMessage);
+      } else {
+        this.queueService.schedule(jobName, scheduleIn, queueMessage);
+      }
     }
 
     //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
@@ -1771,7 +1775,11 @@ export module Services {
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueDeleteFiles - queueMessage '+JSON.stringify(queueMessage));
       let scheduleIn = _.get(sails.config.figshareAPI.mapping.scheduleUploadedFilesCleanupJob,'in 5 minutes');
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueDeleteFiles - scheduleIn '+scheduleIn);
-      this.queueService.schedule(jobName, scheduleIn, queueMessage);
+      if(scheduleIn == 'immediate') {
+        this.queueService.now(jobName, queueMessage);
+      } else {
+        this.queueService.schedule(jobName, scheduleIn, queueMessage);
+      }
     }
     
   }
