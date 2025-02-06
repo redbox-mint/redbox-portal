@@ -63,7 +63,6 @@ export module Services {
       'uploadFilesToFigshareArticle',
       'deleteFilesFromRedbox',
       'deleteFilesFromRedboxTrigger',
-      'processFileUploadToFigshare',
       'publishAfterUploadFilesJob',
       'queueDeleteFiles',
       'queuePublishAfterUploadFiles'
@@ -1328,7 +1327,7 @@ export module Services {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    public async processFileUploadToFigshare(oid, attachId, articleId, record, fileName, fileSize, user) {
+    private async processFileUploadToFigshare(oid, attachId, articleId, record, fileName, fileSize, user) {
 
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - enter');
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - oid '+oid);
@@ -1556,38 +1555,6 @@ export module Services {
       return record;
     }
 
-    public createUpdateFigshareArticle(oid, record, options, user) {
-
-      if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
-        this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-        sails.log.info(`FigService - createUpdateFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
-      } else {
-        sails.log.info(`FigService - createUpdateFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
-      }
-
-      if (this.metTriggerCondition(oid, record, options) === 'true') {
-        return this.sendDataPublicationToFigshare(record);
-      } else {
-        return record;
-      }
-    }
-
-    public uploadFilesToFigshareArticle(oid, record, options, user) {
-      
-      if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
-        this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
-        sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
-      } else {
-        sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
-      }
-      
-      if (this.metTriggerCondition(oid, record, options) === 'true') {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - enter');
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - oid '+oid);
-        this.checkUploadFilesPending(record, oid, user);
-      }
-    }
-
     private async deleteFilesAndUpdateDataLocationEntries(record, oid) {
 
       try {
@@ -1654,6 +1621,44 @@ export module Services {
       return record;
     }
 
+    //This method has been designed to be called by a pre trigger that executes after a user has performed an action
+    //In example when a record is moved from one workflow state to another and the trigger conditons are met
+    public createUpdateFigshareArticle(oid, record, options, user) {
+
+      if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
+        this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
+        sails.log.info(`FigService - createUpdateFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+      } else {
+        sails.log.info(`FigService - createUpdateFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
+      }
+
+      if (this.metTriggerCondition(oid, record, options) === 'true') {
+        return this.sendDataPublicationToFigshare(record);
+      } else {
+        return record;
+      }
+    }
+
+    //This method has been designed to be called by a post trigger that executes after a user has performed an action
+    //In example when a record is moved from one workflow state to another and the trigger conditons are met
+    public uploadFilesToFigshareArticle(oid, record, options, user) {
+      
+      if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
+        this.createUpdateFigshareArticleLogLevel = sails.config.record.createUpdateFigshareArticleLogLevel;
+        sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${sails.config.record.createUpdateFigshareArticleLogLevel}`);
+      } else {
+        sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
+      }
+      
+      if (this.metTriggerCondition(oid, record, options) === 'true') {
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - enter');
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - oid '+oid);
+        this.checkUploadFilesPending(record, oid, user);
+      }
+    }
+
+    //This method has been designed to be called by a post trigger that executes after a user has performed an action
+    //In example when a record is moved from one workflow state to another and the trigger conditons are met
     public deleteFilesFromRedboxTrigger(oid, record, options, user) {
 
       if(sails.config.record.createUpdateFigshareArticleLogLevel != null) {
@@ -1670,6 +1675,8 @@ export module Services {
       }
     }
 
+    //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
+    //and will be called by a scheduled agendaQueue job 
     public async publishAfterUploadFilesJob(job: any) {
       let data = job.attrs.data;
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - publishAfterUploadFilesJob - data '+JSON.stringify(data));
@@ -1697,6 +1704,8 @@ export module Services {
       }
     }
 
+    //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
+    //and will be called by a scheduled agendaQueue job 
     public async deleteFilesFromRedbox(job: any) {
       let data = job.attrs.data;
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - deleteFilesFromRedbox - data '+JSON.stringify(data));
@@ -1728,6 +1737,8 @@ export module Services {
       }
     }
 
+    //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
+    //and will be scheduled after all the file uploads have been finished successfully for a particular article
     public queuePublishAfterUploadFiles(oid:string, articleId:string, user:any, brandId:string) {
 
       let jobName = 'Figshare-PublishAfterUpload-Service';
@@ -1740,9 +1751,13 @@ export module Services {
       
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queuePublishAfterUploadFiles - Queueing up trigger using jobName ${jobName}`);
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queuePublishAfterUploadFiles - queueMessage '+JSON.stringify(queueMessage));
-      this.queueService.schedule(jobName, 'in 2 minutes', queueMessage);
+      let scheduleIn = _.get(sails.config.figshareAPI.mapping.schedulePublishAfterUploadJob,'in 2 minutes');
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queuePublishAfterUploadFiles - scheduleIn '+scheduleIn);
+      this.queueService.schedule(jobName, scheduleIn, queueMessage);
     }
 
+    //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
+    //and will be scheduled after the Figshare-PublishAfterUpload-Service job has finished
     public queueDeleteFiles(oid:string, user:any, brandId:string) {
 
       let jobName = 'Figshare-UploadedFilesCleanup-Service';
@@ -1752,9 +1767,11 @@ export module Services {
         brandId: brandId
       };
       
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queueFileUpload - Queueing up trigger using jobName ${jobName}`);
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueFileUpload - queueMessage '+JSON.stringify(queueMessage));
-      this.queueService.schedule(jobName, 'in 5 minutes', queueMessage);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - queueDeleteFiles - Queueing up trigger using jobName ${jobName}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueDeleteFiles - queueMessage '+JSON.stringify(queueMessage));
+      let scheduleIn = _.get(sails.config.figshareAPI.mapping.scheduleUploadedFilesCleanupJob,'in 5 minutes');
+      sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - queueDeleteFiles - scheduleIn '+scheduleIn);
+      this.queueService.schedule(jobName, scheduleIn, queueMessage);
     }
     
   }
