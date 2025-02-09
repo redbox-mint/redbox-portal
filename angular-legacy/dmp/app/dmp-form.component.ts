@@ -309,7 +309,10 @@ export class DmpFormComponent extends LoadableComponent {
   }
 
   delete() {
-    this.setSaving(this.getMessage(this.formDef.messages.saving));
+    this.setSaving(this.getMessage(this.formDef.messages.deleting));
+    // reset the form to prevent any unload event handler
+    this.form.markAsPristine();
+    this.needsSave = false;
     return this.RecordsService.delete(this.oid)
     .flatMap((res:any)=>{
       this.clearSaving();
@@ -317,7 +320,7 @@ export class DmpFormComponent extends LoadableComponent {
       console.log(res);
       let postSaveSyncWarning = _.get(res, 'metadata.postSaveSyncWarning', false);
       if (res.success) {
-        this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
+        this.setSuccess(this.getMessage(this.formDef.messages.deleteSuccess));
         return Observable.of(true);
       } else if(!res.success && postSaveSyncWarning) {
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
