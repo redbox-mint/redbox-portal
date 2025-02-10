@@ -1621,7 +1621,7 @@ export module Services {
       return record;
     }
 
-    //This method has been designed to be called by a pre trigger that executes after a user has performed an action
+    //This method has been designed to be called by a pre save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
     public createUpdateFigshareArticle(oid, record, options, user) {
 
@@ -1639,7 +1639,7 @@ export module Services {
       }
     }
 
-    //This method has been designed to be called by a post trigger that executes after a user has performed an action
+    //This method has been designed to be called by a post save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
     public uploadFilesToFigshareArticle(oid, record, options, user) {
       
@@ -1657,7 +1657,7 @@ export module Services {
       }
     }
 
-    //This method has been designed to be called by a post trigger that executes after a user has performed an action
+    //This method has been designed to be called by a pre save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
     public deleteFilesFromRedboxTrigger(oid, record, options, user) {
 
