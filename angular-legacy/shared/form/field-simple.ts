@@ -369,7 +369,11 @@ export class DateTime extends FieldBase<any> {
   }
 
   parseToDate(value: any) {
-    return moment(value, this.valueFormat).local().toDate();
+    if(moment(value, this.valueFormat).isValid()) {
+      return moment(value, this.valueFormat).local().toDate();
+    } else {
+      return null;
+    }
   }
 
   formatValueForDisplay() {
