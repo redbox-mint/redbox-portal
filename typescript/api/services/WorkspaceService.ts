@@ -27,6 +27,7 @@ export module Services {
       'removeAppFromUserId',
       'mapToRecord',
       'addWorkspaceToRecord',
+      'removeWorkspaceFromRecord',
       'getWorkspaces'
     ];
 
@@ -56,6 +57,21 @@ export module Services {
       workspaceData.id = workspaceOid;
       return await RecordsService.appendToRecord(targetRecordOid, workspaceData, 'metadata.workspaces', 'array', targetRecord);
     }
+
+/**
+     * Remove a workspace to a record.
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  targetRecordOid - the OID of the record to update
+     * @param  workspaceOid - the OID of the workspace, this will override the 'id' field in workspaceData parameter
+     * @param  workspaceData - in addition to the workspace id, any optional data to add, defaults to empty map. Note that the user interface will not be relying on the data on this array to display the association.
+     * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
+     * @return
+     */
+    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData:any = {}, targetRecord: any = undefined) {
+      workspaceData.id = workspaceOid;
+      return await RecordsService.removeFromRecord(targetRecordOid, workspaceData, 'metadata.workspaces', targetRecord);
+    }    
 
     /**
      * Retrieves workspaces from a record.
