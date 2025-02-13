@@ -460,32 +460,35 @@ export module Services {
      * @param options The options for modifying the record.
      */
     public complexAssignPermissions(oid, record, options) {
-      sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
-      sails.log.verbose(JSON.stringify(options));
-      sails.log.verbose(`With record: `);
-      sails.log.verbose(JSON.stringify(record));
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
+        sails.log.verbose(JSON.stringify(options));
+        sails.log.verbose(`With record: `);
+        sails.log.verbose(JSON.stringify(record));
 
-      const emailProperty = _.get(options, "emailProperty", "email");
-      const userProperties = _.get(options, "userProperties", []);
-      const viewPermissionRule = _.get(options, "viewPermissionRule");
-      const editPermissionRule = _.get(options, "editPermissionRule");
-      const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
+        const emailProperty = _.get(options, "emailProperty", "email");
+        const userProperties = _.get(options, "userProperties", []);
+        const viewPermissionRule = _.get(options, "viewPermissionRule");
+        const editPermissionRule = _.get(options, "editPermissionRule");
+        const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
 
-      let editContributorObs = [];
-      let viewContributorObs = [];
-      let editContributorEmails = [];
-      let viewContributorEmails = [];
+        let editContributorObs = [];
+        let viewContributorObs = [];
+        let editContributorEmails = [];
+        let viewContributorEmails = [];
 
-      // get the new editor list...
-      editContributorEmails = this.getContribListByRule(userProperties, record, editPermissionRule, emailProperty, editContributorEmails);
-      // get the new viewer list...
-      viewContributorEmails = this.getContribListByRule(userProperties, record, viewPermissionRule, emailProperty, viewContributorEmails);
+        // get the new editor list...
+        editContributorEmails = this.getContribListByRule(userProperties, record, editPermissionRule, emailProperty, editContributorEmails);
+        // get the new viewer list...
+        viewContributorEmails = this.getContribListByRule(userProperties, record, viewPermissionRule, emailProperty, viewContributorEmails);
 
-      return this.assignContributorRecordPermissions(
-        oid, record, recordCreatorPermissions,
-        editContributorEmails, editContributorObs,
-        viewContributorEmails, viewContributorObs
-      );
+        return this.assignContributorRecordPermissions(
+          oid, record, recordCreatorPermissions,
+          editContributorEmails, editContributorObs,
+          viewContributorEmails, viewContributorObs
+        );
+      }
+      return Observable.of(record);
     }
 
     /**
@@ -495,30 +498,33 @@ export module Services {
      * @param options The options for modifying the record.
      */
     public assignPermissions(oid, record, options) {
-      sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
-      sails.log.verbose(JSON.stringify(options));
-      sails.log.verbose(`With record: `);
-      sails.log.verbose(JSON.stringify(record));
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
+        sails.log.verbose(JSON.stringify(options));
+        sails.log.verbose(`With record: `);
+        sails.log.verbose(JSON.stringify(record));
 
-      const emailProperty = _.get(options, "emailProperty", "email");
-      const editContributorProperties = _.get(options, "editContributorProperties", []);
-      const viewContributorProperties = _.get(options, "viewContributorProperties", []);
-      const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
-      let editContributorObs = [];
-      let viewContributorObs = [];
-      let editContributorEmails = [];
-      let viewContributorEmails = [];
+        const emailProperty = _.get(options, "emailProperty", "email");
+        const editContributorProperties = _.get(options, "editContributorProperties", []);
+        const viewContributorProperties = _.get(options, "viewContributorProperties", []);
+        const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
+        let editContributorObs = [];
+        let viewContributorObs = [];
+        let editContributorEmails = [];
+        let viewContributorEmails = [];
 
-      // get the new editor list...
-      editContributorEmails = this.populateContribList(editContributorProperties, record, emailProperty, editContributorEmails);
-      // get the new viewer list...
-      viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
+        // get the new editor list...
+        editContributorEmails = this.populateContribList(editContributorProperties, record, emailProperty, editContributorEmails);
+        // get the new viewer list...
+        viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
 
-      return this.assignContributorRecordPermissions(
-        oid, record, recordCreatorPermissions,
-        editContributorEmails, editContributorObs,
-        viewContributorEmails, viewContributorObs
-      );
+        return this.assignContributorRecordPermissions(
+          oid, record, recordCreatorPermissions,
+          editContributorEmails, editContributorObs,
+          viewContributorEmails, viewContributorObs
+        );
+      }
+      return Observable.of(record);
     }
 
     /**
