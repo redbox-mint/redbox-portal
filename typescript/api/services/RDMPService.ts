@@ -460,7 +460,8 @@ export module Services {
      * @param options The options for modifying the record.
      */
     public complexAssignPermissions(oid, record, options) {
-      if (this.metTriggerCondition(oid, record, options) === "true") {
+      const triggerCondition = _.get(options, "triggerCondition", "");
+      if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
         sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
         sails.log.verbose(JSON.stringify(options));
         sails.log.verbose(`With record: `);
@@ -498,7 +499,8 @@ export module Services {
      * @param options The options for modifying the record.
      */
     public assignPermissions(oid, record, options) {
-      if (this.metTriggerCondition(oid, record, options) === "true") {
+      const triggerCondition = _.get(options, "triggerCondition", "");
+      if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
         sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
         sails.log.verbose(JSON.stringify(options));
         sails.log.verbose(`With record: `);
