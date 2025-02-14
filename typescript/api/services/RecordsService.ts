@@ -138,6 +138,7 @@ export module Services {
       'checkRedboxRunning',
       'getAttachments',
       'appendToRecord',
+      'removeFromRecord',
       'getRecords',
       'exportAllPlans',
       'storeRecordAudit',
@@ -752,6 +753,37 @@ export module Services {
       }
       _.set(targetRecord, fieldName, linkData);
       sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
+
+      return await this.updateMeta(null, targetRecordOid, targetRecord);
+    }
+
+    /**
+     * Removes a field in the targetRecord. If field is an array, uses the `_.isEqual` to compare the field value.
+     *
+     * @param  targetRecordOid - the record to modify
+     * @param  dataToRemove - the data to remove
+     * @param  fieldName - the field name 
+     * @param  targetRecord - leave blank, otherwise will use this record for updates...
+     * @return - response of the update
+     */
+    public async removeFromRecord(targetRecordOid: string, dataToRemove: any, fieldName: string, targetRecord: any = undefined) {
+      sails.log.verbose(`RecordsService::Removing field from record:${targetRecordOid}`);
+      if (_.isEmpty(targetRecord)) {
+        sails.log.verbose(`RecordsService::Getting record metadata:${targetRecordOid}`);
+        targetRecord = await this.getMeta(targetRecordOid);
+      }
+      const existingData = _.get(targetRecord, fieldName);
+      let removedData = existingData;
+      if (_.isUndefined(existingData)) {
+        // Data doesn't exist, nothing to remove
+      } else if (_.isArray(existingData)) {
+        removedData = _.remove(existingData, (dataElem) => {
+          return _.isEqual(dataElem, dataToRemove);
+        });
+      } else {
+        _.unset(targetRecord, fieldName);
+      }
+      sails.log.verbose(`RecordsService::Updating record, removing ${_.isString(removedData) ? removedData : JSON.stringify(removedData)} from:${targetRecordOid}`);
 
       return await this.updateMeta(null, targetRecordOid, targetRecord);
     }
