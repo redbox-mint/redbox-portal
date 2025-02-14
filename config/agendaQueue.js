@@ -53,6 +53,24 @@ module.exports.agendaQueue = {
         method: 'every',
         intervalOrSchedule: '5 minutes'
       }
+    },
+    {
+      name: 'Figshare-PublishAfterUpload-Service',
+      fnName: 'figshareservice.publishAfterUploadFilesJob',
+      options: {
+        lockLifetime: 120 * 1000, // 120 seconds max runtime
+        lockLimit: 1,
+        concurrency: 1
+      }
+    },
+    {
+      name: 'Figshare-UploadedFilesCleanup-Service',
+      fnName: 'figshareservice.deleteFilesFromRedbox',
+      options: {
+        lockLifetime: 120 * 1000, // 120 seconds max runtime
+        lockLimit: 1,
+        concurrency: 1
+      }
     }
   ]
 };
