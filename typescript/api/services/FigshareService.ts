@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Services as services, DatastreamService, RBValidationError, QueueService, BrandingModel, FigshareArticleImpersonate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
+import { Services as services, DatastreamService, RBValidationError, QueueService, BrandingModel, FigshareArticleCreate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 const moment = require('moment');
 const axios = require('axios');
@@ -569,7 +569,7 @@ export module Services {
 
     private getArticleCreateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs: any, figLicenceIDs:any) {
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
-      let requestBodyCreate = _.cloneDeep(new FigshareArticleImpersonate());
+      let requestBodyCreate = _.cloneDeep(new FigshareArticleCreate());
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.create);

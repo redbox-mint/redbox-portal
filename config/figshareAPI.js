@@ -40,15 +40,26 @@ module.exports.figshareAPI = {
     figshareEmbargoType: 'embargo_type',
     figshareCurationStatus: 'curation_status',
     figshareNeedsPublishAfterFileUpload: false,
+    //Optional to add a file upload finished indicator value saved in a field in the record
+    // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',
     recordFigArticleId: 'metadata.figshare_article_id',
     recordFigArticleURL: 'metadata.figshare_article_location',
     recordDataLocations: 'metadata.dataLocations',
     recordAuthorExternalName: 'text_full_name',
     recordAuthorUniqueBy: 'email',
+    //Can be used if figshareNeedsPublishAfterFileUpload is set to true
+    // schedulePublishAfterUploadJob: 'in 1 minutes',
+    // scheduleUploadedFilesCleanupJob: 'immediate',
     response: {
       entityId: 'entity_id',
       location: 'location',
-      article: []
+      article: [
+        //Can be used to retrieve the handle or other fields after create/update
+        // {
+        //   figName: 'handle', 
+        //   rbName: 'metadata.handle'
+        // }
+      ]
     },
     artifacts: {
       authorResearchInstitute:  [

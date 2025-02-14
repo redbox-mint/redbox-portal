@@ -1,5 +1,5 @@
 export {CreateUserAPIResponse} from "./CreateUserAPIResponse";
 export {UserAPITokenAPIResponse} from "./UserAPITokenAPIResponse";
 export { FigshareArticleEmbargo } from "./FigshareArticleEmbargo";
-export { FigshareArticleImpersonate } from "./FigshareArticleImpersonate";
+export { FigshareArticleCreate } from "./FigshareArticleCreate";
 export { FigshareArticleUpdate } from "./FigshareArticleUpdate";

@@ -1,4 +1,4 @@
-export class FigshareArticleImpersonate {
+export class FigshareArticleCreate {
     impersonate: number;
     title: string;
     description: string;
