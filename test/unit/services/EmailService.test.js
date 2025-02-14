@@ -266,5 +266,42 @@ describe('The EmailService', function () {
             expect(record.notification.log.testing).to.have.length(1);
             expect(record.notification.log.testing[0].date).to.contain('T');
         });
+
+        it('should not send email when trigger condition does not match user', async function () {
+            const oid = "test-oid";
+            const record = {
+                metadata: {
+                    testing: true,
+                    title: "Testing title",
+                    email_address: "abc@example.com",
+                }
+            };
+            const options = {
+                triggerCondition: "<%= record.metadata.testing == true && user.username == 'testing-user-name' %>",
+                to: "<%= record.metadata.email_address %>",
+                subject: "Testing email sending",
+                template: "publicationReview",
+                otherSendOptions: {
+                    'replyTo': 'replyto@example.com',
+                },
+                onNotifySuccess: [
+                    {
+                        function: "sails.services.recordsservice.updateNotificationLog",
+                        options: {
+                            name: `Add notification log`,
+                            logName: "notification.log.testing",
+                            saveRecord: true,
+                            forceRun: true,
+                        },
+                    },
+                ],
+            };
+            const user = {username: 'testing-user-does-not-match'};
+            const response = {content: "response content"};
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
+            expect(result).to.equal(response);
+            expect(options.returnType).to.equal("response");
+            expect(record.notification).to.eql(undefined);
+        });
     });
 });

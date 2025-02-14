@@ -267,7 +267,7 @@ export module Services {
       if (isSailsEmailConfigDisabled) {
         sails.log.verbose(`Not sending record notification ${msgPartial}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
         return record;
-      } else if ((triggerConditionResult = this.metTriggerCondition(oid, record, options)) == "true") {
+      } else if ((triggerConditionResult = this.metTriggerCondition(oid, record, options, user)) == "true") {
         const variables = {
           imports: {
             record: record,
