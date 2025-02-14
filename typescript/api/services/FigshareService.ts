@@ -237,22 +237,6 @@ export module Services {
             field: standardField,
             artifacts: sails.config.figshareAPI.mapping.artifacts
           }
-          //TODO FIXME remove hard coded loggin 
-          if(standardField.figName == 'funding_list') {
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField -----------------------------------`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.foaf:fundedBy_foaf:Agent'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.foaf:fundedBy_foaf:Agent'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.foaf:fundedBy_vivo:Grant'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.foaf:fundedBy_vivo:Grant'))}`);
-          } else if(standardField.figName == 'related_materials') {
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField -----------------------------------`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.dataLocations'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.dataLocations'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.relatedPublications'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.relatedPublications'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(record,'metadata.relatedWebsites'))}`);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(_.get(context.record,'metadata.relatedWebsites'))}`);
-          }
           value = _.template(template)(context);
           if(_.isObject(value)) {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- standardField ---- ${standardField.figName} ----  template ---- ${JSON.stringify(value)}`);
@@ -569,7 +553,6 @@ export module Services {
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'categories',figCategoryIDs);
       this.setFieldByNameInRequestBody(record,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'impersonate',figshareAccountAuthorIDs);
 
-      //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(record,requestBodyUpdate,standardField);
       }
@@ -596,7 +579,6 @@ export module Services {
       this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',figLicenceIDs);
       this.setFieldByNameInRequestBody(record,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'impersonate',figshareAccountAuthorIDs);
       
-      //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
       for(let customFieldKey of customFieldsKeys) {
         this.setCustomFieldInRequestBody(record, customFields, customFieldKey, sails.config.figshareAPI.mapping.customFields.create);
       }
@@ -615,7 +597,6 @@ export module Services {
 
       this.setFieldByNameInRequestBody(record,requestEmbargoBody,sails.config.figshareAPI.mapping.standardFields.embargo,'impersonate',figshareAccountAuthorIDs);
       
-      //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.embargo) {
         this.setStandardFieldInRequestBody(record,requestEmbargoBody,standardField);
       }
@@ -814,6 +795,7 @@ export module Services {
 
               let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
               let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
+              
               let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - isEmbargoed '+isEmbargoed);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - targetState '+JSON.stringify(sails.config.figshareAPI.mapping.targetState));
@@ -833,7 +815,7 @@ export module Services {
                 if(!_.isEmpty(sails.config.figshareAPI.mapping.response.article)) {
                   articleDetails = await this.getArticleDetails(articleId);
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - after publish articleDetails ${JSON.stringify(articleDetails)}`);
-                  //TODO FIXME me build artifacts and template context only once to keep memory usage efficient
+                  
                   for(let field of sails.config.figshareAPI.mapping.response.article) {
                     this.setFieldInRecord(record,articleDetails,field);
                   }
@@ -844,6 +826,7 @@ export module Services {
 
           let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
           let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
+          
           let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
           if(isEmbargoed) {
             //validate requestEmbargoBody
@@ -1279,9 +1262,9 @@ export module Services {
                     responsePublish = await axios(publishConfig);
                     sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                   }
-
+                  
                   //File embargo can be set only if there are file attachments and these have been successfully uploaded 
-                  //therefore if the attachments are sigle URL link only then only embargo type article can be set     
+                  //therefore if the attachments are sigle URL link then only embargo type article can be set     
                   let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
 
                   if((requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) ) {
