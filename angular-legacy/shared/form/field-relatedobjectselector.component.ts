@@ -45,6 +45,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   filteredPlans: Plan[];
   recordType:string;
   columnTitle:string;
+  workflowState:string;
 
   relatedObjectSelected:EventEmitter<string> = new EventEmitter<string>();
   resetSelectorEvent: EventEmitter<any> = new EventEmitter<any>();
@@ -60,15 +61,16 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
     this.recordType = options['recordType'];
     this.filterMode = _.get(options, 'filterMode', 'default');
     this.filterFields = _.get(options, 'filterFields', []);
+    this.workflowState = options['workflowState'] || '';
     
     this.dashboardService = this.getFromInjector(DashboardService);
     var that = this;
     if(this.filterMode == 'default') {
-      this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
+      this.dashboardService.getAllRecordsCanEdit(this.recordType,this.workflowState).then((draftPlans: PlanTable) => {
         this.plans = draftPlans;
       });
     } else {
-      this.dashboardService.getRecordsByFilter(this.recordType,'',this.filterFields.join(','),'').then((draftPlans: PlanTable) => {
+      this.dashboardService.getRecordsByFilter(this.recordType,this.workflowState,this.filterFields.join(','),'').then((draftPlans: PlanTable) => {
         this.plans = draftPlans;
       });
     }
@@ -133,7 +135,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
       return _.toLower(title).includes(_.toLower(this.searchFilterName));
     });
     } else {
-     this.dashboardService.getRecordsByFilter(this.recordType,'',this.filterFields.join(','),this.searchFilterName).then((records: PlanTable) => {
+     this.dashboardService.getRecordsByFilter(this.recordType,this.workflowState,this.filterFields.join(','),this.searchFilterName).then((records: PlanTable) => {
         this.filteredPlans = records.items;
       });
     }
