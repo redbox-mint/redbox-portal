@@ -330,6 +330,7 @@ export class DateTime extends FieldBase<any> {
   valueFormat: string;
   displayFormat: string;
   adjustStartRange: boolean;
+  disableInputByKeyboard: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -339,6 +340,7 @@ export class DateTime extends FieldBase<any> {
     this.hasClearButton = options['hasClearButton'] || false;
     this.valueFormat = options['valueFormat'] || 'YYYY-MM-DD';
     this.displayFormat = options['displayFormat'] || 'YYYY-MM-DD';
+    this.disableInputByKeyboard = options['disableInputByKeyboard'] || false;
     this.controlType = 'datetime';
     this.value = this.value ? this.parseToDate(this.value) : this.value;
     this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
