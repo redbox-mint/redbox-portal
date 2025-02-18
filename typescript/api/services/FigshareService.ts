@@ -1615,7 +1615,7 @@ export module Services {
         sails.log.info(`FigService - createUpdateFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
 
-      if (this.metTriggerCondition(oid, record, options) === 'true') {
+      if (this.metTriggerCondition(oid, record, options,user) === 'true') {
         return this.sendDataPublicationToFigshare(record);
       } else {
         return record;
@@ -1633,7 +1633,7 @@ export module Services {
         sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
       
-      if (this.metTriggerCondition(oid, record, options) === 'true') {
+      if (this.metTriggerCondition(oid, record, options,user) === 'true') {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - enter');
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uploadFilesToFigshareArticle - oid '+oid);
         this.checkUploadFilesPending(record, oid, user);
@@ -1651,7 +1651,7 @@ export module Services {
         sails.log.info(`FigService - deleteFilesFromRedboxTrigger - log level ${this.createUpdateFigshareArticleLogLevel}`);
       }
     
-      if (this.metTriggerCondition(oid, record, options) === 'true') {
+      if (this.metTriggerCondition(oid, record, options,user) === 'true') {
         return this.deleteFilesAndUpdateDataLocationEntries(record, oid);
       } else {
         return record;
