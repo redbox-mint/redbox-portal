@@ -66,7 +66,8 @@ export module Services {
       'queuedTriggerSubscriptionHandler',
       'queueTriggerCall',
       'processQueuedFileUploadToFigshare',
-      'checkTotalSizeOfFilesInRecord'
+      'checkTotalSizeOfFilesInRecord',
+      'removeWorkspaceFromRecord'
     ];
 
     constructor() {
@@ -701,9 +702,28 @@ export module Services {
     }
 
     public async addWorkspaceToRecord(oid, workspaceData, options, user, response) {
-      const rdmpOid = workspaceData.metadata.rdmpOid;
+      const rdmpOidField = _.get(options, 'rdmpOidField', 'rdmpOid');
+      const rdmpOid = _.get(workspaceData.metadata, rdmpOidField, null);
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
+      if (_.isEmpty(rdmpOid)) {
+        sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
+        return workspaceData;
+      }
       const workspaceResponse = await WorkspaceService.addWorkspaceToRecord(workspaceData.metadata.rdmpOid, oid);
+      _.set(response, 'workspaceOid', oid);
+      _.set(response, 'workspaceData', workspaceData);
+      return workspaceData;
+    }
+
+    public async removeWorkspaceFromRecord(oid, workspaceData, options, user, response) {
+      const rdmpOidField = _.get(options, 'rdmpOidField', 'rdmpOid');
+      const rdmpOid = _.get(workspaceData.metadata, rdmpOidField, null);
+      sails.log.verbose(`Generic removing workspace ${oid} from record: ${rdmpOid}`);
+      if (_.isEmpty(rdmpOid)) {
+        sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
+        return workspaceData;
+      }
+      const workspaceResponse = await WorkspaceService.removeWorkspaceFromRecord(rdmpOid, oid);
       _.set(response, 'workspaceOid', oid);
       _.set(response, 'workspaceData', workspaceData);
       return workspaceData;

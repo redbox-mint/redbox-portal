@@ -129,12 +129,13 @@ export module Services.Core {
       const variables = {
         imports: {
           record: record,
-          oid: oid
+          oid: oid,
+          user: user || null,
         }
       };
-      if (user) {
-        console.debug(`Added user in metTriggerCondition: ${JSON.stringify(user)}`);
-        variables.imports['user'] = user;
+
+      if (!user) {
+        console.trace("No user in metTriggerCondition");
       }
       if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
         const compiled = _.template(triggerCondition, variables);

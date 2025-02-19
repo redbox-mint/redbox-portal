@@ -452,7 +452,9 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
-      const user = req.user;
+      // If the sync completed before the async is done, maybe the user is cleared?
+      // So clone the user for the async triggers.
+      const user = _.cloneDeep(req.user);
       const metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
