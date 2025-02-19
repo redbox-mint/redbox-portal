@@ -227,63 +227,66 @@ export module Services {
 
     public checkTotalSizeOfFilesInRecord(oid, record, options, user) {
       let functionLogLevel = 'verbose';
-      if (sails.config.record.checkTotalSizeOfFilesInRecordLogLevel != null) {
-        functionLogLevel = sails.config.record.checkTotalSizeOfFilesInRecordLogLevel;
-        sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${sails.config.record.checkTotalSizeOfFilesInRecordLogLevel}`);
-      } else {
-        sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
-      }
-      let dataLocations = record['metadata']['dataLocations'];
-      sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
-      sails.log[functionLogLevel](dataLocations);
-      if (!_.isUndefined(dataLocations)) {
-        let foundAttachment = false;
-
-        for (let attachmentFile of dataLocations) {
-          if (!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && _.toInteger(attachmentFile.size) > 0) {
-            foundAttachment = true;
-            break;
-          }
+      const triggerCondition = _.get(options, "triggerCondition", "");
+      if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options, user) === "true") {
+        if (sails.config.record.checkTotalSizeOfFilesInRecordLogLevel != null) {
+          functionLogLevel = sails.config.record.checkTotalSizeOfFilesInRecordLogLevel;
+          sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${sails.config.record.checkTotalSizeOfFilesInRecordLogLevel}`);
+        } else {
+          sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
         }
+        let dataLocations = record['metadata']['dataLocations'];
+        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
+        sails.log[functionLogLevel](dataLocations);
+        if (!_.isUndefined(dataLocations)) {
+          let foundAttachment = false;
 
-        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
-        if (foundAttachment) {
-          let totalSizeOfFilesInRecord = 0;
           for (let attachmentFile of dataLocations) {
-            sails.log[functionLogLevel](attachmentFile);
-            if (!_.isUndefined(attachmentFile.size)) {
-              totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
+            if (!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && _.toInteger(attachmentFile.size) > 0) {
+              foundAttachment = true;
+              break;
             }
           }
 
-          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
-          if (totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
-
-            let maxUploadSizeMessage = TranslationService.t('max-total-files-upload-size-validation-error');
-            let alternativeMessageCode = options['maxUploadSizeMessageCode'];
-
-            if (!_.isUndefined(alternativeMessageCode)) {
-              let replaceOrAppend = options['replaceOrAppend'];
-              if (_.isUndefined(replaceOrAppend)) {
-                replaceOrAppend = 'append';
-              }
-              if (replaceOrAppend == 'replace') {
-                maxUploadSizeMessage = TranslationService.t(alternativeMessageCode);
-              } else if (replaceOrAppend == 'append') {
-                let tmpMaxUploadSizeMessage = maxUploadSizeMessage + ' ' + TranslationService.t(alternativeMessageCode);
-                maxUploadSizeMessage = tmpMaxUploadSizeMessage;
+          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
+          if (foundAttachment) {
+            let totalSizeOfFilesInRecord = 0;
+            for (let attachmentFile of dataLocations) {
+              sails.log[functionLogLevel](attachmentFile);
+              if (!_.isUndefined(attachmentFile.size)) {
+                totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
               }
             }
-            let maxSizeFormatted = this.formatBytes(sails.config.record.maxUploadSize);
-            let interMessage = TranslationService.tInter(maxUploadSizeMessage, { maxUploadSize: maxSizeFormatted });
-            maxUploadSizeMessage = interMessage;
-            let customError: RBValidationError = new RBValidationError(maxUploadSizeMessage);
-            throw customError;
+
+            sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
+            if (totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
+
+              let maxUploadSizeMessage = TranslationService.t('max-total-files-upload-size-validation-error');
+              let alternativeMessageCode = options['maxUploadSizeMessageCode'];
+
+              if (!_.isUndefined(alternativeMessageCode)) {
+                let replaceOrAppend = options['replaceOrAppend'];
+                if (_.isUndefined(replaceOrAppend)) {
+                  replaceOrAppend = 'append';
+                }
+                if (replaceOrAppend == 'replace') {
+                  maxUploadSizeMessage = TranslationService.t(alternativeMessageCode);
+                } else if (replaceOrAppend == 'append') {
+                  let tmpMaxUploadSizeMessage = maxUploadSizeMessage + ' ' + TranslationService.t(alternativeMessageCode);
+                  maxUploadSizeMessage = tmpMaxUploadSizeMessage;
+                }
+              }
+              let maxSizeFormatted = this.formatBytes(sails.config.record.maxUploadSize);
+              let interMessage = TranslationService.tInter(maxUploadSizeMessage, { maxUploadSize: maxSizeFormatted });
+              maxUploadSizeMessage = interMessage;
+              let customError: RBValidationError = new RBValidationError(maxUploadSizeMessage);
+              throw customError;
+            }
           }
         }
-      }
 
-      sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
+        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
+      }
       return record;
     }
 

@@ -1,10 +1,7 @@
 module.exports.figshareAPI = {
-  frontEndURL: 'https://cqu.figsh.com', //stage
-  baseURL: 'https://api.figsh.com/v2', //stage
+  frontEndURL: '', //stage
+  baseURL: '', //stage
   APIToken: '', //Stage
-  //frontEndURL: 'https://cqu.figshare.com', //prod
-  //baseURL: 'https://api.figshare.com/v2', //prod
-  //APIToken: '', //Prod
   attachmentsTempDir: '/attachments',
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer

@@ -91,33 +91,43 @@ export module Services {
         }
       });
       sails.on('lifted', function() {
-        sails.log.verbose('FigService - constructor start');
-        that.getFigPrivateLicenses()
-          .then(function (response) {
-            sails.log.verbose('FigService - SUCCESSFULY LOADED LICENSES');
-            that.figLicenceIDs = response;
-          })
-          .catch(function (error) {
-            sails.log.error('FigService - ERROR LOADING LICENSES');
-            sails.log.error(error);
-          });
-
-        that.forCodesMapping = sails.config.figshareReDBoxFORMapping.FORMapping;
-        that.figshareItemGroupId = sails.config.figshareAPI.mapping.figshareItemGroupId;
-        that.figshareItemType = sails.config.figshareAPI.mapping.figshareItemType;
-        that.figArticleIdPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleId;
-        that.figArticleURLPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleURL;
-        that.dataLocationsPathInRecord = sails.config.figshareAPI.mapping.recordDataLocations;
-        that.entityIdFAR = sails.config.figshareAPI.mapping.response.entityId;
-        that.locationFAR = sails.config.figshareAPI.mapping.response.location;
-        that.isEmbargoedFA = sails.config.figshareAPI.mapping.figshareIsEmbargoed;
-        that.embargoTypeFA = sails.config.figshareAPI.mapping.figshareEmbargoType;
-        that.curationStatusFA = sails.config.figshareAPI.mapping.figshareCurationStatus;
-        that.figNeedsPublishAfterFileUpload = sails.config.figshareAPI.mapping.figshareNeedsPublishAfterFileUpload;
-        that.recordAuthorExternalName = sails.config.figshareAPI.mapping.recordAuthorExternalName;
-        that.recordAuthorUniqueBy = sails.config.figshareAPI.mapping.recordAuthorUniqueBy;
-        sails.log.error('FigService - constructor end');
+        if(that.isFigshareAPIEnabled()) {
+          sails.log.verbose('FigService - constructor start');
+          that.getFigPrivateLicenses()
+            .then(function (response) {
+              sails.log.verbose('FigService - SUCCESSFULY LOADED LICENSES');
+              that.figLicenceIDs = response;
+            })
+            .catch(function (error) {
+              sails.log.error('FigService - ERROR LOADING LICENSES');
+              sails.log.error(error);
+            });
+  
+          that.forCodesMapping = sails.config.figshareReDBoxFORMapping.FORMapping;
+          that.figshareItemGroupId = sails.config.figshareAPI.mapping.figshareItemGroupId;
+          that.figshareItemType = sails.config.figshareAPI.mapping.figshareItemType;
+          that.figArticleIdPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleId;
+          that.figArticleURLPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleURL;
+          that.dataLocationsPathInRecord = sails.config.figshareAPI.mapping.recordDataLocations;
+          that.entityIdFAR = sails.config.figshareAPI.mapping.response.entityId;
+          that.locationFAR = sails.config.figshareAPI.mapping.response.location;
+          that.isEmbargoedFA = sails.config.figshareAPI.mapping.figshareIsEmbargoed;
+          that.embargoTypeFA = sails.config.figshareAPI.mapping.figshareEmbargoType;
+          that.curationStatusFA = sails.config.figshareAPI.mapping.figshareCurationStatus;
+          that.figNeedsPublishAfterFileUpload = sails.config.figshareAPI.mapping.figshareNeedsPublishAfterFileUpload;
+          that.recordAuthorExternalName = sails.config.figshareAPI.mapping.recordAuthorExternalName;
+          that.recordAuthorUniqueBy = sails.config.figshareAPI.mapping.recordAuthorUniqueBy;
+          sails.log.verbose('FigService - constructor end');
+        }
       });
+    }
+
+    private isFigshareAPIEnabled() {
+      let enabled = false; 
+      if(!_.isEmpty(sails.config.figshareAPI.APIToken) && !_.isEmpty(sails.config.figshareAPI.baseURL) && !_.isEmpty(sails.config.figshareAPI.frontEndURL)) {
+        enabled = true;
+      }
+      return enabled;
     }
 
     private getAxiosConfig(method, urlSectionPattern, requestBody) {
