@@ -133,6 +133,7 @@ export module Services.Core {
           user: user || null,
         }
       };
+
       if (!user) {
         console.trace("No user in metTriggerCondition");
       }

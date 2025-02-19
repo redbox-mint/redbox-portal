@@ -65,7 +65,7 @@ export class SimpleComponent {
   /**
    * Field model
    */
-  @Input() public field: FieldBase < any > ;
+  @Input() public field: FieldBase<any>;
   /**
    * The form group
    */
@@ -162,7 +162,7 @@ export class SimpleComponent {
    * @return {string}
    */
   public getGroupClass(fldName: string = null): string {
-    return `${ this.field.groupClasses } form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
+    return `${this.field.groupClasses} form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
   }
   /**
    * If this field has a 'required' error.
@@ -213,7 +213,7 @@ export class SelectionComponent extends SimpleComponent {
     }
   }
 
-  isOptionAvailable(val: any, opt:any): boolean {
+  isOptionAvailable(val: any, opt: any): boolean {
 
     let historicalOnly = _.get(opt, 'historicalOnly');
 
@@ -221,23 +221,23 @@ export class SelectionComponent extends SimpleComponent {
     if (_.isEmpty(val) && historicalOnly) {
       return false;
 
-    } else if(!_.isEmpty(val) && historicalOnly) {
+    } else if (!_.isEmpty(val) && historicalOnly) {
 
       //If the field has a historical only value selected then that particualr
       //historical only option becomes available
       let currValMatchHistOnlyValue = false;
-      for(let currentOption of this.field.selectOptions) {
+      for (let currentOption of this.field.selectOptions) {
         let histOnly = _.get(currentOption, 'historicalOnly');
         //handle dropdown and radio
-        if(!_.isArray(val)) {
-          if(histOnly && currentOption.value == val) {
+        if (!_.isArray(val)) {
+          if (histOnly && currentOption.value == val) {
             currValMatchHistOnlyValue = true;
             break;
           }
         } else {
           //handle checkbox
-          for(let v of val) {
-            if(histOnly && v == currentOption.value) {
+          for (let v of val) {
+            if (histOnly && v == currentOption.value) {
               currValMatchHistOnlyValue = true;
               break;
             }
@@ -245,7 +245,7 @@ export class SelectionComponent extends SimpleComponent {
         }
       }
 
-      if(currValMatchHistOnlyValue) {
+      if (currValMatchHistOnlyValue) {
         return true;
       } else {
         return false;
@@ -261,9 +261,9 @@ export class SelectionComponent extends SimpleComponent {
 
     let availableOptions: any[] = [];
 
-    for(let option of this.field.selectOptions) {
+    for (let option of this.field.selectOptions) {
 
-      if(this.isOptionAvailable(val, option)) {
+      if (this.isOptionAvailable(val, option)) {
         availableOptions.push(option);
       }
     }
@@ -424,39 +424,39 @@ export class SelectionFieldComponent extends SelectionComponent {
     defered = defered || !_.isUndefined(defered);
     let formcontrol: any = this.field.formModel;
     if (event.target.checked) {
-      if(_.isObject(formcontrol.push)) {
+      if (_.isObject(formcontrol.push)) {
         // Only need to manually manage the binding for checkbox
-        if(this.field.controlType == 'checkbox') {
+        if (this.field.controlType == 'checkbox') {
           formcontrol.push(new FormControl(opt.value));
         }
-      } else if(this.isRadio()) {
+      } else if (this.isRadio()) {
         // modifies defers the changes on radio
-        if(opt['modifies'] && !defered) {
+        if (opt['modifies'] && !defered) {
           this.modifies(opt, event, defered);
         } else {
           defered = true;
         }
       }
     } else {
-      if(opt['modifies'] && !defered) {
+      if (opt['modifies'] && !defered) {
         this.modifies(opt, event, defered);
-      // Only need to manually manage the binding for checkbox
-      } else if(_.isObject(formcontrol.controls) && this.field.controlType == 'checkbox' && !defered) {
-        let idx = _.findIndex(formcontrol.controls, (ctrl: any) => { return ctrl.value == opt.value; }); 
-        if(idx >= 0) {
+        // Only need to manually manage the binding for checkbox
+      } else if (_.isObject(formcontrol.controls) && this.field.controlType == 'checkbox' && !defered) {
+        let idx = _.findIndex(formcontrol.controls, (ctrl: any) => { return ctrl.value == opt.value; });
+        if (idx >= 0) {
           formcontrol.removeAt(idx);
         }
       }
     }
-    if(this.field.publish && this.confirmChanges) {
+    if (this.field.publish && this.confirmChanges) {
       // fixed radio/checkboxes firing events twice: added condition to check to proceed only when 'publishTag' is defined
       if (!_.isUndefined(opt['publishTag'])) {
         // this is to handle the publishTag for checkboxes, mainly for UTS' requirement
-        if(this.field.publish.onItemSelect) {
-          this.field.onItemSelect.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+        if (this.field.publish.onItemSelect) {
+          this.field.onItemSelect.emit({ value: opt['publishTag'], checked: event.target.checked, defered: defered });
         }
-        if(this.field.publish.onValueUpdate) {
-          this.field.onValueUpdate.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+        if (this.field.publish.onValueUpdate) {
+          this.field.onValueUpdate.emit({ value: opt['publishTag'], checked: event.target.checked, defered: defered });
         }
       }
     }
@@ -470,7 +470,7 @@ export class SelectionFieldComponent extends SelectionComponent {
     _.each(opt['modifies'], e => {
       const contval = this.fieldMap[e].control.value;
       //this.fieldMap[e].control.getRawValue();
-      if(!_.isEmpty(contval) || contval === true) {
+      if (!_.isEmpty(contval) || contval === true) {
         this.defer['opt'] = opt;
         this.defer['event'] = event;
         this.defer['fields'].push(this.field.getFieldDisplay(this.fieldMap[e]));
@@ -478,10 +478,10 @@ export class SelectionFieldComponent extends SelectionComponent {
       }
     });
     if (_.size(this.defer['fields']) > 0) {
-      jQuery(`#modal_${fieldName}`).modal({backdrop: 'static', keyboard: false, show: true});
+      jQuery(`#modal_${fieldName}`).modal({ backdrop: 'static', keyboard: false, show: true });
       jQuery(`#modal_${fieldName}`).modal('show');
     }
-    if(this.confirmChanges) {
+    if (this.confirmChanges) {
       this.defer = {};
       this.onChange(opt, event, true);
     }
@@ -492,13 +492,13 @@ export class SelectionFieldComponent extends SelectionComponent {
     jQuery(`#modal_${fieldName}`).modal('hide');
     this.confirmChanges = doConfirm;
     const defer = this.defer;
-    if(this.isRadio()) {
+    if (this.isRadio()) {
       // modifies is not available for radio
       defer.event.target.checked = doConfirm;
-      if(!doConfirm) {
+      if (!doConfirm) {
         const revert = this.defer['opt']['revert']
         this.field.setValue(revert);
-        defer.opt = _.find(this.field.options.options, {value: revert});
+        defer.opt = _.find(this.field.options.options, { value: revert });
       }
     } else {
       defer.event.target.checked = !doConfirm;
@@ -514,7 +514,7 @@ export class SelectionFieldComponent extends SelectionComponent {
     }
     return id;
   }
-  
+
 }
 
 
@@ -760,9 +760,9 @@ export class SaveButtonComponent extends SimpleComponent {
             let oid = this.field.fieldMap._rootComp.oid;
             location = this.field.redirectLocation.replace("@oid", oid)
           }
-          setTimeout(function() {
-          window.location.href = location;
-        }, this.field.redirectDelaySeconds * 1000);
+          setTimeout(function () {
+            window.location.href = location;
+          }, this.field.redirectDelaySeconds * 1000);
         }
       }
       if (this.field.confirmationMessage) {
@@ -971,7 +971,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </span><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>
+    <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton" (keydown)="disableTyping($event)"></datetime>
     <div *ngIf="field.required" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
       <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
       <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
@@ -1005,6 +1005,17 @@ export class DateTimeComponent extends SimpleComponent {
     return this.field.formatValue(this.getFormControl().value);
   }
 
+  disableTyping(event: KeyboardEvent) {
+    if (this.field.disableInputByKeyboard) {
+      const allowedKeys = ['Backspace', 'Delete'];
+
+      if (!allowedKeys.includes(event.key)) {
+        event.preventDefault();
+      } else {
+        this.field.setValue(null);
+      }
+    }
+  }
 }
 
 @Component({
@@ -1068,18 +1079,18 @@ export class ToggleComponent extends SimpleComponent {
   defer: any = {};
   confirmChanges: boolean = true;
 
-  onChange(opt:any, event:any, defered) {
+  onChange(opt: any, event: any, defered) {
     defered = defered || !_.isUndefined(defered);
     console.log(`ToggleComponent, onChanged Checked: ${event.target.checked}`);
-    if(opt['modifies'] && !defered) {
+    if (opt['modifies'] && !defered) {
       const fieldName = this.field['name'];
       let fields = this.fieldMap;
       this.defer['fields'] = new Array();
       opt['modifies'].some(e => {
         const contval = this.fieldMap[e].control.value;
         //this.fieldMap[e].control.getRawValue();
-        if(!_.isEmpty(contval) || contval === true) {
-          jQuery(`#modal_${fieldName}`).modal({backdrop: 'static', keyboard: false, show: true});
+        if (!_.isEmpty(contval) || contval === true) {
+          jQuery(`#modal_${fieldName}`).modal({ backdrop: 'static', keyboard: false, show: true });
           this.defer['opt'] = opt;
           this.defer['event'] = event;
           this.defer['fields'].push(this.field.getFieldDisplay(this.fieldMap[e]));
@@ -1087,9 +1098,9 @@ export class ToggleComponent extends SimpleComponent {
         }
       });
     }
-    if(this.field.publish && this.confirmChanges) {
+    if (this.field.publish && this.confirmChanges) {
       setTimeout(() => {
-        this.field.onItemSelect.emit({value: opt['publishTag'], checked: event.target.checked});
+        this.field.onItemSelect.emit({ value: opt['publishTag'], checked: event.target.checked });
       });
     }
   }
