@@ -71,6 +71,8 @@ export class DmpFieldComponent {
 
   disabledExpression: string;
 
+  templateMap = {};
+
   @ViewChild('field') fieldElement;
 
   public disabled:boolean = false;
@@ -110,9 +112,17 @@ export class DmpFieldComponent {
         variables.imports[key] = val;
       });
       variables.imports['moment'] = moment;
-      var compiled = _.template(disabledExpression, variables);
+      let compiled = this.templateMap[disabledExpression];
+      if(compiled == null) {
+         compiled = _.template(disabledExpression);
+         this.templateMap[disabledExpression] = compiled;
+      }
+
+    
       var parentElement = jQuery(this.fieldElement.nativeElement.parentElement);
-      if(compiled() == "true") {
+      const component = this.fieldMap[this.field.name] != null ? this.fieldMap[this.field.name].instance : null;
+      if(compiled(variables.imports) == "true") {
+        
         if (!this.disabled) {
           //take note of which elements where already disabled as we dont want to enable them if whole component becomes enabled again
           this.disabledElements = parentElement.find('*:disabled');
@@ -120,18 +130,30 @@ export class DmpFieldComponent {
         } 
         // elements don't exist in the dom when they are not visible due to ngIf 
         // so we need to set the disabled property each time
-        this.disableInputFields(parentElement);
+        if(component != null && _.isFunction(component['disableInputFields'])) {
+          component['disableInputFields']();
+        } else {
+          this.disableInputFields(parentElement);
+        }
         return 'disabled';
       } else {
         if(this.disabled) {
           //previously disabled so lets re-enable
-          this.enableInputFields(parentElement);
+          if(component != null && _.isFunction(component['enableInputFields'])) {
+            component['enableInputFields']();
+          } else {
+            this.enableInputFields(parentElement);
+          }
           this.disabledElements = [];
           this.disabled = false;
         } else {
           // elements don't exist in the dom when they are not visible due to ngIf 
           // so we need to set the disabled property each time
-          this.enableInputFields(parentElement);
+          if(component != null && _.isFunction(component['enableInputFields'])) {
+             component['enableInputFields']();
+          } else {
+            this.enableInputFields(parentElement);
+          }
         }
         return null;
       }
@@ -150,6 +172,7 @@ export class DmpFieldComponent {
             }
           });
   }
+  
   disableInputFields(parentElement: any) {
     parentElement.find('input').prop( "disabled", true );
     parentElement.find('button').filter((index, buttonElem) => {

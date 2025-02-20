@@ -385,6 +385,7 @@ export class EmbeddableComponent extends SimpleComponent {
 
 export class RepeatableComponent extends SimpleComponent {
   field: RepeatableContainer;
+  disabled: boolean = false;
 
   addElem(event: any) {
     this.field.addElem();
@@ -404,6 +405,8 @@ export class RepeatableComponent extends SimpleComponent {
     });
     return hasError;
   }
+
+ 
 }
 
 export class RepeatableVocab extends RepeatableContainer {
@@ -421,6 +424,8 @@ export class RepeatableVocab extends RepeatableContainer {
     selected['originalObject'] = value;
     this.fields[index].component.onSelect(selected, false, true);
   }
+
+  
 }
 
 @Component({
@@ -437,7 +442,7 @@ export class RepeatableVocab extends RepeatableContainer {
     </div>
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
       <span class="col-xs-12 no-horizontal-padding">
-        <rb-vocab [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.allowZeroRows? true: field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></rb-vocab>
+        <rb-vocab [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [disableInput]="disabled" [canRemove]="!disabled && field.allowZeroRows? true: field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></rb-vocab>
       </span>
     </div>
     <div class="row">
@@ -445,8 +450,8 @@ export class RepeatableVocab extends RepeatableContainer {
       </span>
       <span class="col-xs-1">
        <ng-container *ngIf="field.addButtonShow">
-         <button *ngIf="field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-          <button *ngIf="!field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
+         <button *ngIf="field.addButtonText" type='button' [disabled]="disabled || field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
+          <button *ngIf="!field.addButtonText" type='button' [disabled]="disabled || field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
         </ng-container>
       </span>
     </div>
@@ -466,7 +471,14 @@ export class RepeatableVocab extends RepeatableContainer {
 export class RepeatableVocabComponent extends RepeatableComponent {
   field: RepeatableVocab;
   static clName = 'RepeatableVocabComponent';
+  
+  public enableInputFields() {
+    this.disabled = false;
+  }
 
+  public disableInputFields() {
+    this.disabled = true;
+  }
 }
 
 export class RepeatableContributor extends RepeatableContainer {

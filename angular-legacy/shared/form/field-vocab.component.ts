@@ -852,7 +852,7 @@ export class VocabFieldComponent extends SimpleComponent {
   @Input() index: number;
   @Input() disableEditAfterSelect: boolean = true;
   @Output() onRemoveBtnClick: EventEmitter<any> = new EventEmitter<any>();
-  disableInput: boolean;
+  @Input() disableInput: boolean = false;
   @ViewChild('ngCompleter') public ngCompleter: ElementRef;
 
   constructor() {

@@ -326,8 +326,8 @@ export class DropdownFieldComponent extends SelectionComponent {
         <div *ngFor="let opt of findAvailableOptions(field.value)" [ngClass]="field.controlGroupCssClasses">
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
           <!-- the ID and associated label->for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested -->
-          <input *ngIf="isRadio()" type="radio" [id]="getInputId(opt)" [formControlName]="field.name" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null " [ngClass]="field.controlInputCssClasses">
-          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="getInputId(opt)" [value]="opt.value" (change)="onChange(opt, $event)" [ngClass]="field.controlInputCssClasses" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
+          <input *ngIf="isRadio()" type="radio" [id]="getInputId(opt)" [formControlName]="field.name" [value]="opt.value" [attr.disabled]="field.readOnly || disabled ? '' : null " [ngClass]="field.controlInputCssClasses">
+          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="getInputId(opt)" [value]="opt.value" (change)="onChange(opt, $event)" [ngClass]="field.controlInputCssClasses" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly || disabled ? '' : null ">
           <label [attr.for]="getInputId(opt)" class="radio-label" [ngClass]="field.controlLabelCssClasses" [innerHtml]="opt.label"></label>
           
         </div>
@@ -378,6 +378,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   defer: any = {};
   defered: boolean = false;
   confirmChanges: boolean = true;
+  disabled:boolean = false;
   /**
    * Allows radio buttons and checkboxes to use a custom form group. Useful when radio buttons are nested within repeatables.
    *
@@ -513,6 +514,14 @@ export class SelectionFieldComponent extends SelectionComponent {
       id = `${this.field.name}_${opt.value}`;
     }
     return id;
+  }
+
+  public enableInputFields() {
+    this.disabled = false;
+  }
+
+  public disableInputFields() {
+    this.disabled = true;
   }
 
 }
@@ -703,7 +712,7 @@ export class TextBlockComponent extends SimpleComponent {
   selector: 'save-button',
   template: `
     <ng-container *ngIf="field.visible">
-      <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton">{{field.label}}</button>
+      <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="disabled || ((!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton)">{{field.label}}</button>
       <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >
         <div class="modal-dialog" role="document">
           <div class="modal-content">
@@ -713,7 +722,7 @@ export class TextBlockComponent extends SimpleComponent {
             </div>
             <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
             <div class="modal-footer">
-              <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
+              <button (click)="hideConfirmDlg()" type="button" [disabled]="disabled" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
               <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
             </div>
           </div>
@@ -724,6 +733,7 @@ export class TextBlockComponent extends SimpleComponent {
 })
 export class SaveButtonComponent extends SimpleComponent {
   public field: SaveButton;
+  disabled: boolean = false;
 
   public onClick(event: any) {
     if (this.field.confirmationMessage) {
@@ -742,6 +752,7 @@ export class SaveButtonComponent extends SimpleComponent {
   }
 
   public doAction() {
+    this.disabled = true;
     var successObs = null;
     if (this.field.isDelete) {
       successObs = this.fieldMap._rootComp.delete();
@@ -752,6 +763,7 @@ export class SaveButtonComponent extends SimpleComponent {
         this.fieldMap._rootComp.onSubmit(this.field.targetStep, this.field.disableValidation, this.field.additionalData) :
         this.fieldMap._rootComp.onSubmit(null, this.field.disableValidation, this.field.additionalData);
     }
+    
     successObs.subscribe(status => {
       if (status) {
         if (this.field.closeOnSave == true) {
@@ -768,6 +780,9 @@ export class SaveButtonComponent extends SimpleComponent {
       if (this.field.confirmationMessage) {
         this.hideConfirmDlg();
       }
+      this.disabled = false;
+    }, catchError => {
+      this.disabled = false;
     });
 
   }
@@ -1067,7 +1082,7 @@ export class SpacerComponent extends SimpleComponent {
   selector: 'toggle',
   template: `
     <div *ngIf="field.type == 'checkbox'" [formGroup]='form'>
-      <input type="checkbox" name="{{field.name}}" [id]="field.name" [formControl]="getFormControl()" [attr.disabled]="field.editMode ? null : ''" >
+      <input type="checkbox" name="{{field.name}}" [id]="field.name" [formControl]="getFormControl()" [attr.disabled]="disabled ? null : ''" >
       <label for="{{ field.name }}" class="radio-label">{{ field.label }} <button *ngIf="field.editMode && field.help" type="button" class="btn btn-default" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button></label>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     </div>
@@ -1078,6 +1093,7 @@ export class ToggleComponent extends SimpleComponent {
   /* BEGIN UTS IMPORT */
   defer: any = {};
   confirmChanges: boolean = true;
+  disabled:boolean = false;
 
   onChange(opt: any, event: any, defered) {
     defered = defered || !_.isUndefined(defered);
@@ -1115,4 +1131,16 @@ export class ToggleComponent extends SimpleComponent {
     this.onChange(defer.opt, defer.event, true);
   }
   /* END UTS IMPORT */
+
+  public enableInputFields() {
+    if(this.field.editMode) {
+      this.disabled = true;
+    } else {
+      this.disabled = false;
+    }
+  }
+
+  public disableInputFields() {
+    this.disabled = true;
+  }
 }

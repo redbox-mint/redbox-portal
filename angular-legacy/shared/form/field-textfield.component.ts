@@ -141,10 +141,10 @@ export class TextArea extends FieldBase<string> {
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </label>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-      <input [formGroup]='form' [formControl]="getFormControl()"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-label]="''" [attr.maxlength]="field.maxLength" >
+      <input [formGroup]='form' [attr.disabled]="disableInput ? 'disabled': null"  [formControl]="getFormControl()"  [id]="field.name" [type]="field.type" [readonly]="disableInput || field.readOnly" [ngClass]="field.cssClasses" [attr.aria-label]="''" [attr.maxlength]="field.maxLength" >
     </div>
     <div *ngIf="isEmbedded" class="input-group padding-bottom-15">
-      <input [formControl]="getFormControl(name, index)"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-labelledby]="name" [attr.maxlength]="field.maxLength">
+      <input [formControl]="getFormControl(name, index)"  [id]="field.name" [type]="field.type" [readonly]="disableInput || field.readOnly" [ngClass]="field.cssClasses" [attr.aria-labelledby]="name" [attr.disabled]="disableInput ? 'disabled': null" [attr.maxlength]="field.maxLength">
       <span class="input-group-btn">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>
@@ -162,7 +162,7 @@ export class TextArea extends FieldBase<string> {
   `,
 })
 export class TextFieldComponent extends EmbeddableComponent {
-
+  @Input() disableInput:boolean = false;
 }
 
 @Component({
@@ -181,7 +181,7 @@ export class TextFieldComponent extends EmbeddableComponent {
     </div>
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
       <span class="col-xs-12">
-        <textfield [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > field.minimumEntries" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></textfield>
+        <textfield [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [disableInput]="disabled" [canRemove]="!disabled && field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></textfield>
       </span>
     </div>
     <div class="row">
@@ -192,8 +192,8 @@ export class TextFieldComponent extends EmbeddableComponent {
     </div>
     <div class="row">
       <span *ngIf="field.addButtonShow" class="col-xs-12">
-        <button *ngIf="field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-        <button *ngIf="!field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
+        <button *ngIf="field.addButtonText" type='button' [disabled]="disabled || field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
+        <button *ngIf="!field.addButtonText" type='button' [disabled]="disabled || field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
       </span>
     </div>
   </div>
@@ -201,7 +201,7 @@ export class TextFieldComponent extends EmbeddableComponent {
     <span *ngIf="field.label" class="key">{{field.label}}</span>
     <span class="value">
       <ul class="key-value-list">
-        <textfield *ngFor="let fieldElem of field.fields; let i = index;"  [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></textfield>
+        <textfield *ngFor="let fieldElem of field.fields; let i = index;"  [field]="fieldElem" [form]="form"  [fieldMap]="fieldMap"></textfield>
       </ul>
     </span>
   </li>
@@ -221,6 +221,14 @@ export class RepeatableTextfieldComponent extends RepeatableComponent {
 
   removeElem(event: any, i: number) {
     this.field.removeElem(i);
+  }
+
+  public enableInputFields() {
+    this.disabled = false;
+  }
+
+  public disableInputFields() {
+    this.disabled = true;
   }
 }
 
