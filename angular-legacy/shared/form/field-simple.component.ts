@@ -780,7 +780,9 @@ export class SaveButtonComponent extends SimpleComponent {
       if (this.field.confirmationMessage) {
         this.hideConfirmDlg();
       }
-      this.disabled = false;
+      if (this.field.closeOnSave != true) {
+        this.disabled = false;
+      }
     }, catchError => {
       this.disabled = false;
     });
