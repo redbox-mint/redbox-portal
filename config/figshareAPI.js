@@ -35,7 +35,9 @@ module.exports.figshareAPI = {
     figshareAuthorUserId: 'user_id', //user_id = author id
     figshareIsEmbargoed: 'is_embargoed',
     figshareEmbargoType: 'embargo_type',
-    figshareCurationStatus: 'curation_status',
+    figshareCurationStatus: 'status',
+    figshareCurationStatusTargetValue: 'public',
+    figshareDisableUpdateByCurationStatus: false,
     figshareNeedsPublishAfterFileUpload: false,
     //Optional to add a file upload finished indicator value saved in a field in the record
     // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',

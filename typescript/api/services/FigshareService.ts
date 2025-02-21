@@ -51,6 +51,8 @@ export module Services {
     private isEmbargoedFA = '';
     private embargoTypeFA = '';
     private curationStatusFA = '';
+    private curationStatusTargetValueFA = 'public';
+    private disableUpdateByCurationStatusFA = false;
     private figNeedsPublishAfterFileUpload = false;
 
     private figshareItemGroupId;
@@ -114,6 +116,8 @@ export module Services {
           that.isEmbargoedFA = sails.config.figshareAPI.mapping.figshareIsEmbargoed;
           that.embargoTypeFA = sails.config.figshareAPI.mapping.figshareEmbargoType;
           that.curationStatusFA = sails.config.figshareAPI.mapping.figshareCurationStatus;
+          that.curationStatusTargetValueFA = sails.config.figshareAPI.mapping.figshareCurationStatusTargetValue;
+          that.disableUpdateByCurationStatusFA = sails.config.figshareAPI.mapping.figshareDisableUpdateByCurationStatus;
           that.figNeedsPublishAfterFileUpload = sails.config.figshareAPI.mapping.figshareNeedsPublishAfterFileUpload;
           that.recordAuthorExternalName = sails.config.figshareAPI.mapping.recordAuthorExternalName;
           that.recordAuthorUniqueBy = sails.config.figshareAPI.mapping.recordAuthorUniqueBy;
@@ -222,12 +226,15 @@ export module Services {
           }
         } else {
           let orignalValue = _.get(record,field.rbName)
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldInRecord ---- ${field.rbName} ----  orignalValue ---- ${orignalValue}`);
           value = _.get(article,field.figName,orignalValue);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldInRecord ---- ${field.figName} ----  value ---- ${value}`);
         }
         if(unsetBeforeSet) {
           _.unset(record, field.rbName);
         }
-        _.set(record, field.rbName, value);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService ---- setFieldInRecord ---- ${field.rbName} ----  value ---- ${value}`);
+        _.set(record,field.rbName, value);
       }
     }
 
@@ -494,7 +501,7 @@ export module Services {
         articleDetails = await this.getArticleDetails(articleId);
       }
 
-      if(_.has(articleDetails, this.curationStatusFA) && articleDetails[this.curationStatusFA] == 'approved') {
+      if(_.has(articleDetails, this.curationStatusFA) && articleDetails[this.curationStatusFA] == this.curationStatusTargetValueFA) {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - isArticleApprovedAndPublished - true');
         return true;
       } else {
@@ -767,8 +774,11 @@ export module Services {
           let articleApprovedPublished = await this.isArticleApprovedAndPublished(articleId, articleDetails);
           let articleFileList = await this.getArticleFileList(articleId);
           let fileUploadInProgress = await this.isFileUploadInProgress(articleId, articleFileList);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - articleApprovedPublished ${articleApprovedPublished}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - fileUploadInProgress ${fileUploadInProgress}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - articleDetails ${JSON.stringify(articleDetails)}`);
 
-          if(articleApprovedPublished) {
+          if(articleApprovedPublished && this.disableUpdateByCurationStatusFA) {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare cannot be modified any further after it has been Approved & Published`);
           } else if(fileUploadInProgress) {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare file uploads still in progress`);
@@ -812,8 +822,8 @@ export module Services {
               
               if(_.isUndefined(sails.config.figshareAPI.mapping.targetState.draft) && !isEmbargoed) {
                 let requestBodyPublishAfterUpdate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish response location '+responseUpdate.data.location);
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+_.get(record,this.figArticleURLPathInRecord));
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before publish response location '+responseUpdate.data.location);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before publish figshare_article_location '+_.get(record,this.figArticleURLPathInRecord));
                 sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyPublishAfterUpdate);
 
                 //https://docs.figshare.com/#private_article_publish
@@ -825,7 +835,7 @@ export module Services {
                 if(!_.isEmpty(sails.config.figshareAPI.mapping.response.article)) {
                   articleDetails = await this.getArticleDetails(articleId);
                   sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - after publish articleDetails ${JSON.stringify(articleDetails)}`);
-                  
+                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - after publish mapping.response.article ${JSON.stringify(sails.config.figshareAPI.mapping.response.article)}`);
                   for(let field of sails.config.figshareAPI.mapping.response.article) {
                     this.setFieldInRecord(record,articleDetails,field);
                   }
@@ -839,6 +849,11 @@ export module Services {
           
           let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
           if(isEmbargoed) {
+
+            if(articleApprovedPublished) {
+              let customError: RBValidationError = new RBValidationError('Cannot add embargo to public item '+articleId);
+              throw customError;
+            }
             //validate requestEmbargoBody
             this.validateEmbargoRequestBody(record, requestEmbargoBody);
             //Update full article embargo info because Figshare rules allow for full article embargo to be set regardless if there are files uploaded
@@ -1112,8 +1127,8 @@ export module Services {
           let responseArticleDetails = await axios(checkStatusConfig);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseArticleDetails.status} statusText: ${responseArticleDetails.statusText}`);
           let articleDetails = responseArticleDetails.data;
-
-          if(_.has(articleDetails, this.curationStatusFA) && articleDetails[this.curationStatusFA] == 'approved') {
+          let articleApprovedPublished = await this.isArticleApprovedAndPublished(articleId, articleDetails);
+          if(articleApprovedPublished && this.disableUpdateByCurationStatusFA) {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - cannot be modified any further after it has been Approved & Published`);
           } else {
 
