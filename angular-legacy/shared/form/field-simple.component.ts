@@ -712,7 +712,8 @@ export class TextBlockComponent extends SimpleComponent {
   selector: 'save-button',
   template: `
     <ng-container *ngIf="field.visible">
-      <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="disabled || ((!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton)">{{field.label}}</button>
+    
+      <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [attr.disabled]="disabled || actionInProgress || doesntNeedSaveOrIsSaving()?'disabled':null">{{field.label}}</button>
       <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >
         <div class="modal-dialog" role="document">
           <div class="modal-content">
@@ -722,8 +723,8 @@ export class TextBlockComponent extends SimpleComponent {
             </div>
             <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
             <div class="modal-footer">
-              <button (click)="hideConfirmDlg()" type="button" [disabled]="disabled" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
-              <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
+              <button (click)="hideConfirmDlg()" type="button" [attr.disabled]="disabled || actionInProgress ? 'disabled' : null" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>           
+              <button (click)="doAction()" type="button" [attr.disabled]="disabled || actionInProgress ? 'disabled' : null" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
             </div>
           </div>
         </div>
@@ -733,6 +734,7 @@ export class TextBlockComponent extends SimpleComponent {
 })
 export class SaveButtonComponent extends SimpleComponent {
   public field: SaveButton;
+  actionInProgress: boolean = false;
   disabled: boolean = false;
 
   public onClick(event: any) {
@@ -743,6 +745,19 @@ export class SaveButtonComponent extends SimpleComponent {
     this.doAction();
   }
 
+  
+  doesntNeedSaveOrIsSaving(){
+    const doesntNeedSave = !this.fieldMap._rootComp.needsSave;
+    const isSaving = this.fieldMap._rootComp.isSaving() 
+    const isNotSubmission = !this.field.isSubmissionButton
+    if(doesntNeedSave || isSaving){
+      if(isNotSubmission){
+      return true;
+    }
+    return false;
+  }
+}
+
   showConfirmDlg() {
     jQuery(`#${this.field.name}_confirmation`).modal('show');
   }
@@ -752,7 +767,7 @@ export class SaveButtonComponent extends SimpleComponent {
   }
 
   public doAction() {
-    this.disabled = true;
+    this.actionInProgress = true;
     var successObs = null;
     if (this.field.isDelete) {
       successObs = this.fieldMap._rootComp.delete();
@@ -781,12 +796,19 @@ export class SaveButtonComponent extends SimpleComponent {
         this.hideConfirmDlg();
       }
       if (this.field.closeOnSave != true) {
-        this.disabled = false;
+        this.actionInProgress = false;
       }
     }, catchError => {
-      this.disabled = false;
+      this.actionInProgress = false;
     });
+  }
 
+  public enableInputFields() {
+      this.disabled = false;
+  }
+
+  public disableInputFields() {
+    this.disabled = true;
   }
 }
 
