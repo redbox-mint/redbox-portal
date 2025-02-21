@@ -880,14 +880,11 @@ export module Services {
       for(let embargoField of sails.config.figshareAPI.mapping.standardFields.embargo) {
         valid = this.validateFieldInRequestBody(requestBody,embargoField,'',record);
         if(valid != '') {
-          return valid;
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateEmbargoRequestBody - requestBody  ${JSON.stringify(requestBody)}`);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateEmbargoRequestBody ${embargoField} - validMessage ${valid}`);
+          let customError: RBValidationError = new RBValidationError(valid);
+          throw customError;
         }
-      }
-
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - validateEmbargoRequestBody - validMessage ${valid}`);
-      if(valid != '') {
-        let customError: RBValidationError = new RBValidationError(valid);
-        throw customError;
       }
     }
 
