@@ -104,16 +104,20 @@ Generic component for grouping components together. The resulting JSON will have
         </div>
       </ng-container>
       <ng-container *ngIf="!isEmbedded">
+      <span dmp-disable-state="enabled" #dmpFieldContainer>
         <div [formGroup]='form' [ngClass]="field.cssClasses">
           <dmp-field *ngFor="let childField of field.fields" [field]="childField" [form]="form" [fieldMap]="fieldMap" [name] = "childField.name" ></dmp-field>
         </div>
+        </span>
       </ng-container>
     </span>
     </ng-container>
     <ng-container *ngIf="!field.editMode">
+    <span dmp-disable-state="enabled" #dmpFieldContainer>
       <div [formGroup]='form' [ngClass]="field.cssClasses">
         <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
       </div>
+      </span>
     </ng-container>
   </ng-container>
   `,
