@@ -774,6 +774,7 @@ export class SaveButtonComponent extends SimpleComponent {
     } else {
       this.field.setValue(this.field.clickedValue);
       // passing the field's disableValidation setting from the form definition
+      
       successObs = this.field.targetStep ?
         this.fieldMap._rootComp.onSubmit(this.field.targetStep, this.field.disableValidation, this.field.additionalData) :
         this.fieldMap._rootComp.onSubmit(null, this.field.disableValidation, this.field.additionalData);
@@ -795,7 +796,9 @@ export class SaveButtonComponent extends SimpleComponent {
       if (this.field.confirmationMessage) {
         this.hideConfirmDlg();
       }
-      if (this.field.closeOnSave != true) {
+    
+      // If there was some server side error or validation fired, we need to re-enable the button even if the field is "closeOnSave" to allow a retry
+      if (!_.isEmpty(this.fieldMap._rootComp.status.error) || this.field.closeOnSave != true) {
         this.actionInProgress = false;
       }
     }, catchError => {
