@@ -38,7 +38,7 @@ export module Services {
     private queueService: QueueService;
 
     private figArticleIdPathInRecord = '';
-    private figArticleURLPathInRecord = '';
+    private figArticleURLPathInRecordList = '';
     private dataLocationsPathInRecord = '';
     private recordAuthorExternalName = '';
     private recordAuthorUniqueBy = '';
@@ -109,7 +109,7 @@ export module Services {
           that.figshareItemGroupId = sails.config.figshareAPI.mapping.figshareItemGroupId;
           that.figshareItemType = sails.config.figshareAPI.mapping.figshareItemType;
           that.figArticleIdPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleId;
-          that.figArticleURLPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleURL;
+          that.figArticleURLPathInRecordList = sails.config.figshareAPI.mapping.recordFigArticleURL;
           that.dataLocationsPathInRecord = sails.config.figshareAPI.mapping.recordDataLocations;
           that.entityIdFAR = sails.config.figshareAPI.mapping.response.entityId;
           that.locationFAR = sails.config.figshareAPI.mapping.response.location;
@@ -739,7 +739,12 @@ export module Services {
                 
                 let articleLocationURL = responseCreate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare articleLocationURL '+articleLocationURL);
-                _.set(record,this.figArticleURLPathInRecord,articleLocationURL);
+                
+                if(_.isArray(this.figArticleURLPathInRecordList) && !_.isEmpty(this.figArticleURLPathInRecordList)) {
+                  for(let figArticleURLPathInRecord of this.figArticleURLPathInRecordList) {
+                    _.set(record,figArticleURLPathInRecord,articleLocationURL);
+                  }
+                }
                 
                 let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
                 let isEmbargoed = requestEmbargoBody[this.isEmbargoedFA];
@@ -811,7 +816,12 @@ export module Services {
 
               let articleLocationURL = responseUpdate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - articleLocationURL '+articleLocationURL);
-              _.set(record,this.figArticleURLPathInRecord,articleLocationURL);
+              
+              if(_.isArray(this.figArticleURLPathInRecordList) && !_.isEmpty(this.figArticleURLPathInRecordList)) {
+                for(let figArticleURLPathInRecord of this.figArticleURLPathInRecordList) {
+                  _.set(record,figArticleURLPathInRecord,articleLocationURL);
+                }
+              }
 
               let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
               let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
@@ -823,8 +833,7 @@ export module Services {
               if(_.isUndefined(sails.config.figshareAPI.mapping.targetState.draft) && !isEmbargoed) {
                 let requestBodyPublishAfterUpdate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before publish response location '+responseUpdate.data.location);
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before publish figshare_article_location '+_.get(record,this.figArticleURLPathInRecord));
-                sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyPublishAfterUpdate);
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare before publish requestBodyPublishAfterUpdate '+JSON.stringify(requestBodyPublishAfterUpdate));
 
                 //https://docs.figshare.com/#private_article_publish
                 let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterUpdate);
@@ -861,7 +870,7 @@ export module Services {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare - ${embargoConfig.method} - ${embargoConfig.url}`);
             
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before embargo -------------------------------------------');
-            sails.log[this.createUpdateFigshareArticleLogLevel](requestEmbargoBody);
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before embargo '+JSON.stringify(requestEmbargoBody));
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - before embargo -------------------------------------------');
             
             let responseEmbargo = await axios(embargoConfig);

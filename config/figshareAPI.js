@@ -42,7 +42,7 @@ module.exports.figshareAPI = {
     //Optional to add a file upload finished indicator value saved in a field in the record
     // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',
     recordFigArticleId: 'metadata.figshare_article_id',
-    recordFigArticleURL: 'metadata.figshare_article_location',
+    recordFigArticleURL: ['metadata.figshare_article_location'],
     recordDataLocations: 'metadata.dataLocations',
     recordAuthorExternalName: 'text_full_name',
     recordAuthorUniqueBy: 'email',
