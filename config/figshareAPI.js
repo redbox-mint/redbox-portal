@@ -6,9 +6,22 @@ module.exports.figshareAPI = {
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
   testMode: false,
+  verboseLogging: false,
   testUsers: [],
   testLicenses: [],
   testCategories: [],
+  testResponse: {},
+  // testResponse: {
+  //   status: 'success',
+  //   statusText: 'success',
+  //   data: {
+  //     entity_id: 11117777,
+  //     location: 'https://api.figsh.com/v2/account/articles/articleLocation',
+  //     warnings: [
+  //       'string'
+  //     ]
+  //   }
+  // },
   // testLicenses: [
   //   {
   //     "value": 1,
@@ -33,8 +46,6 @@ module.exports.figshareAPI = {
     //figshareItemGroupId: 30527, //Dataset prod
     figshareItemType: 'dataset',
     figshareAuthorUserId: 'user_id', //user_id = author id
-    figshareIsEmbargoed: 'is_embargoed',
-    figshareEmbargoType: 'embargo_type',
     figshareCurationStatus: 'status',
     figshareCurationStatusTargetValue: 'public',
     figshareDisableUpdateByCurationStatus: false,
@@ -131,6 +142,24 @@ module.exports.figshareAPI = {
                     }
                     return catIDs;
                     %>`
+      },
+      // Business rules configuration specific template to check if an embargo object will be set in a figshare item
+      isRecordEmbargoed: {
+        template: `<% if((request['embargo_type'] == 'article' && request['is_embargoed'] == true) || (filesOrURLsAttached && request['embargo_type'] == 'file')) {
+                      return true;
+                    } else {
+                      return false; 
+                    }
+                   %>`
+      },
+      // Business rules configuration specific template to check if an embargo object was previously set and needs to be cleared
+      isRecordEmbargoCleared: {
+        template: `<% if(request['embargo_type'] == 'article' && request['is_embargoed'] == false) {
+                      return true;
+                    } else {
+                      return false; 
+                    }
+                   %>`
       }
     },
     templates: {
@@ -170,28 +199,26 @@ module.exports.figshareAPI = {
       path: 'custom_fields',
       create: [
           { 
-              figName: 'Open Access',
-              rbName: 'metadata.access-rights',
-              template: `<% let val = [field.defaultValue];
-                           if(_.get(record,field.rbName,'') == 'Open Access') {
-                             val = ['Yes'];
+            figName: 'Open Access',
+            rbName: 'metadata.access-rights',
+            template: `<% let val = ['No'];
+                         if(_.get(record,field.rbName,'') == 'Open Access') {
+                           val = ['Yes'];
+                         }
+                         return val;
+                        %>`
+        },
+        {
+            figName: 'Full Text URL', 
+            rbName: 'metadata.dataLocations',
+            template: `<% let dataLocations = _.get(record,field.rbName,['']);
+                         for(let attachmentFile of dataLocations) {
+                           if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
+                             return [attachmentFile.location];
                            }
-                           return val;
-                          %>`,
-              defaultValue: 'No'
-          },
-          {
-              figName: 'Full Text URL', 
-              rbName: 'metadata.dataLocations',
-              template: `<% let dataLocations = _.get(record,field.rbName,field.defaultValue);
-                           for(let attachmentFile of dataLocations) {
-                             if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
-                               return [attachmentFile.location];
-                             }
-                           }
-                           return field.defaultValue;
-                         %>`,
-              defaultValue: [''],
+                         }
+                         return [''];
+                       %>`,
               validations: [
                 {
                   template: `<% let path = 'custom_fields'; 
@@ -224,7 +251,11 @@ module.exports.figshareAPI = {
             figName: 'Cultural Warning',
             rbName: 'metadata.-atsi-content',
             template: '<%= _.get(record,field.rbName,"") == "yes" ? field.defaultValue : "" %>',
-            defaultValue: 'This research output may contain the names and images of Aboriginal and Torres Strait Islander people now deceased. We apologize for any distress that may occur.' 
+            defaultValue: 'This research output may contain the names and images of Aboriginal and Torres Strait Islander people now deceased. We apologize for any distress that may occur.'
+            //As a rule of thumb don't use defaultValue in complex multiline templates even though field is passed 
+            //in the context to the lodash template and it can be useful in some cases when it comes to multiline 
+            //templates makes the code harder to read and it's safer to init variables with a hard coded default 
+            //value that cannot mutate although in one line templates or where there is no template is ok
         },
         {
             figName: 'Medium', 
@@ -240,26 +271,24 @@ module.exports.figshareAPI = {
         {
             figName: 'Open Access',
             rbName: 'metadata.access-rights',
-            template: `<% let val = [field.defaultValue];
+            template: `<% let val = ['No'];
                          if(_.get(record,field.rbName,'') == 'Open Access') {
                            val = ['Yes'];
                          }
                          return val;
-                        %>`,
-            defaultValue: 'No' 
+                        %>`
         },
         {
             figName: 'Full Text URL',
             rbName: 'metadata.dataLocations',
-            template: `<% let dataLocations = _.get(record,field.rbName,field.defaultValue);
+            template: `<% let dataLocations = _.get(record,field.rbName,['']);
                          for(let attachmentFile of dataLocations) {
                            if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
                              return [attachmentFile.location];
                            }
                          }
-                         return field.defaultValue;
+                         return [''];
                        %>`,
-            defaultValue: [''],
             validations: [
               {
                 template: `<% let path = 'custom_fields'; 
@@ -278,7 +307,7 @@ module.exports.figshareAPI = {
         {
             figName: 'Supervisor',
             rbName: 'metadata.contributor_supervisor',
-            template: `<% let supervisorsStringList = field.defaultValue;
+            template: `<% let supervisorsStringList = '';
                          let supervisors = _.get(record,field.rbName);
                          if(!_.isUndefined(supervisors)) {
                            for(let supervisor of supervisors) {
@@ -293,7 +322,6 @@ module.exports.figshareAPI = {
                          }
                          return supervisorsStringList;
                        %>`,
-            defaultValue: '',
             validations: [
               {
                 template: `<% let path = 'custom_fields'; 
@@ -317,31 +345,29 @@ module.exports.figshareAPI = {
         {
             figName: 'Start Date',
             rbName: 'metadata.startDate',
-            template: `<% let val = field.defaultValue;
+            template: `<% let val = '';
                          let startDate = _.get(record,field.rbName,'');
                          if(startDate != '' && startDate != 'Invalid date') {
                            val = startDate;
                          }
                          return val;
-                       %>`,
-            defaultValue: ''
+                       %>`
         },
         {
             figName: 'Finish Date',
             rbName: 'metadata.endDate',
-            template: `<% let val = field.defaultValue;
+            template: `<% let val = '';
                          let endDate = _.get(record,field.rbName,'');
                          if(endDate != '' && endDate != 'Invalid date') {
                            val = endDate;
                          }
                          return val;
-                       %>`,
-            defaultValue: ''
+                       %>`
         },
         {
             figName: 'Language',
             rbName: 'metadata.languages',
-            template: `<% let val = field.defaultValue;
+            template: `<% let val = '';
                          let languages = _.get(record,field.rbName,[]);
                          for(let language of languages) {
                            if(!_.isEmpty(language)){
@@ -354,7 +380,6 @@ module.exports.figshareAPI = {
                          }
                          return val;
                        %>`,
-            defaultValue: '',
             validations: [
               {
                 maxLength: 250,
@@ -365,7 +390,7 @@ module.exports.figshareAPI = {
         {
             figName: 'Geolocation',
             rbName: 'metadata.geolocations',
-            template: `<% let val = field.defaultValue;
+            template: `<% let val = '';
                          let locationNames = _.get(record,field.rbName,[]);
                          for(let location of locationNames) {
                            let loc = _.get(location,'basic_name','');
@@ -379,7 +404,6 @@ module.exports.figshareAPI = {
                          }
                          return val;
                        %>`,
-            defaultValue: '',
             validations: [
               {
                 maxLength: 250,
@@ -390,7 +414,7 @@ module.exports.figshareAPI = {
         { 
             figName: 'Additional Rights',
             rbName: 'metadata.third-party-licences',
-            template: `<% let val = field.defaultValue;
+            template: `<% let val = '';
                          let thirdPartyLicences = _.get(record,field.rbName,[]);
                          for(let thirdParty of thirdPartyLicences) {
                            if(!_.isEmpty(thirdParty)) {
@@ -400,7 +424,6 @@ module.exports.figshareAPI = {
                          }
                          return val;
                        %>`,
-            defaultValue: '',
             validations: [
               {
                 maxLength: 1000,
@@ -411,7 +434,7 @@ module.exports.figshareAPI = {
         {
           figName: 'Author Research Institute',
           rbName: 'metadata.research-center',
-          template: `<% let val = field.defaultValue;
+          template: `<% let val = [];
                        let researchInstitutes = _.get(record,field.rbName,[]);
                        let authorResearchInstitutes = artifacts.authorResearchInstitute;
                        let figshareAuthorRIs = [];
@@ -429,8 +452,7 @@ module.exports.figshareAPI = {
                           }
                        }
                        return val;
-                     %>`,
-          defaultValue: []
+                     %>`
         }
       ]
     },
@@ -503,10 +525,9 @@ module.exports.figshareAPI = {
                        accountId = authorPI['id'];
                        return accountId;
                      } else {
-                       return field.defaultValue;
+                       return '';
                      } %>`,
-          runByNameOnly: true,
-          defaultValue: '',
+          runByNameOnly: true, //Only the fields that are "run by name only" can use runtime artifacts
           validations: [
             {
               template: `<% let val = _.get(request,field.figName,undefined);
@@ -539,19 +560,18 @@ module.exports.figshareAPI = {
         {
             figName: 'categories',
             rbName: '',
-            template: `<% let categories = field.defaultValue;
+            template: `<% let categories = [];
                         if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
                           categories = runtimeArtifacts;
                         }
                         return categories;
                        %>`,
-            runByNameOnly: true, //Only the fields that are "run by name only" can use runtime artifacts 
-            defaultValue: [] //29888
+            runByNameOnly: true //Only the fields that are "run by name only" can use runtime artifacts
         },
         {
             figName: 'license', 
             rbName: 'metadata.license-identifier',
-            template: `<% let licenseValue = field.defaultValue;
+            template: `<% let licenseValue = 0;
                           if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)) {
                             let figArtLicense = _.get(record,'metadata.license_identifier','');
                             let tmpLic = figArtLicense.replace('https://', '');
@@ -565,7 +585,6 @@ module.exports.figshareAPI = {
                           }
                           return licenseValue;
                         %>`,
-            defaultValue: 0,
             runByNameOnly: true,
             validations: [
               {
@@ -595,14 +614,13 @@ module.exports.figshareAPI = {
         {
             figName: 'authors',
             rbName: '',
-            template: `<% let authors = field.defaultValue;
+            template: `<% let authors = [];
                         if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
                           authors = runtimeArtifacts;
                         }
                         return authors;
                        %>`,
-            runByNameOnly: true,
-            defaultValue: []
+            runByNameOnly: true //Only the fields that are "run by name only" can use runtime artifacts
         },
         {
             figName: 'title', 
@@ -624,14 +642,13 @@ module.exports.figshareAPI = {
         { 
             figName: 'categories',
             rbName: '',
-            template: `<% let categories = field.defaultValue;
+            template: `<% let categories = [];
                         if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
                           categories = runtimeArtifacts;
                         }
                         return categories;
                        %>`,
-            runByNameOnly: true, //Only the fields that are "run by name only" can use runtime artifacts 
-            defaultValue: [] //29888
+            runByNameOnly: true //Only the fields that are "run by name only" can use runtime artifacts
         },
         {
             figName: 'funding',
@@ -645,16 +662,15 @@ module.exports.figshareAPI = {
                       if(!_.isEmpty(relatedPublication) && _.isArray(relatedPublication)) {
                         for(let relPub of relatedPublication) {
                           let path = 'related_title';
-                          let doiUrl = _.get(relPub,path,field.defaultValue);
+                          let doiUrl = _.get(relPub,path,'');
                           if(!_.isEmpty(doiUrl)) {
                             return doiUrl;
                           }
                         }
-                        return field.defaultValue;
+                        return '';
                       } else {
-                        return field.defaultValue;
-                      } %>`,
-          defaultValue: ''
+                        return '';
+                      } %>`
         },
         {
           figName: 'resource_doi',
@@ -663,16 +679,15 @@ module.exports.figshareAPI = {
                       if(!_.isEmpty(relatedPublication) && _.isArray(relatedPublication)) {
                         for(let relPub of relatedPublication) {
                           let path = 'related_url';
-                          let doiUrl = _.get(relPub,path,field.defaultValue);
+                          let doiUrl = _.get(relPub,path,'');
                           if(!_.isEmpty(doiUrl)) {
                             return doiUrl;
                           }
                         }
-                        return field.defaultValue;
+                        return '';
                       } else {
-                        return field.defaultValue;
+                        return '';
                       } %>`,
-          defaultValue: '',
           validations: [
             // Figshare format requires to remove domain in example
             // https://dx.doi.org/10.25946/5f48373c5ac76
@@ -701,7 +716,7 @@ module.exports.figshareAPI = {
         { 
             figName: 'license', 
             rbName: 'metadata.license-identifier',
-            template: `<% let licenseValue = field.defaultValue;
+            template: `<% let licenseValue = 0;
                           if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)) {
                             let figArtLicense = _.get(record,'metadata.license_identifier','');
                             let tmpLic = figArtLicense.replace('https://', '');
@@ -715,7 +730,6 @@ module.exports.figshareAPI = {
                           }
                           return licenseValue;
                         %>`,
-            defaultValue: 0,
             runByNameOnly: true,
             validations: [
               {
@@ -746,10 +760,9 @@ module.exports.figshareAPI = {
                           (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
                             return true;
                         } else {
-                          return field.defaultValue;
+                          return false;
                         }
-                      %>`,
-            defaultValue: false
+                      %>`
         },
         {
             figName: 'embargo_date', //set permanent embargo with '0' when 'mediated' option is selected
@@ -767,10 +780,9 @@ module.exports.figshareAPI = {
                               return figArtFileEmbargoDate;
                             }
                         } else {
-                          return field.defaultValue;
+                          return '';
                         }
                       %>`,
-            defaultValue: '',
             validations: [
               {
                 template: `<% let dateFormat = 'YYYY-MM-DD';
@@ -799,10 +811,9 @@ module.exports.figshareAPI = {
                           (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
                           return 'file';
                         } else {
-                          return field.defaultValue;
+                          return 'article';
                         }
-                      %>`,
-            defaultValue: 'article'
+                      %>`
         },
         {
             figName: 'embargo_title',
@@ -814,10 +825,9 @@ module.exports.figshareAPI = {
                           (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
                           return 'files only embargo';
                         } else {
-                          return field.defaultValue;
+                          return '';
                         }
-                      %>`,
-            defaultValue: ''
+                      %>`
         },
         {
             figName: 'embargo_reason',
@@ -831,20 +841,18 @@ module.exports.figshareAPI = {
                           let figArtFileEmbargoReason = record['metadata']['embargoNote'];
                           return figArtFileEmbargoReason;
                         } else {
-                          return field.defaultValue;
+                          return '';
                         }
-                      %>`,
-            defaultValue: ''
+                      %>`
         },
         //[{id: 1780}], //adminstrator stage
         //[{id: 105}], //adminstrator prod
         {
           figName: 'embargo_options',
           rbName: '',
-          template: `<% let embargoOptions = field.defaultValue;
+          template: `<% let embargoOptions = {id: 1780};
                         return [embargoOptions]; 
-                      %>`,
-          defaultValue: {id: 1780}
+                      %>`
         }
       ]
     }
