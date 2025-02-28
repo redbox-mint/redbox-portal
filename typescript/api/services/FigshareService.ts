@@ -841,8 +841,6 @@ export module Services {
                 
                 let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
 
-                //TODO FIXME make sure this logic doesn't need to be different to the rest of places
-                // let isEmbargoed = requestEmbargoBody[this.isEmbargoedFA];
                 let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody,false);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - first post create check isEmbargoed '+isEmbargoed);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - targetState '+JSON.stringify(sails.config.figshareAPI.mapping.targetState));
@@ -922,8 +920,6 @@ export module Services {
               let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
               let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
               
-              //TODO FIXME this line seems specific to CQU implementation and may need some configurability
-              //In example for UON the only type of embargo used will be file embargo 
               // let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
               let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, filesOrURLsAttached);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - post update check isEmbargoed '+isEmbargoed);
@@ -954,9 +950,6 @@ export module Services {
 
           let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
           let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
-          
-          //TODO FIXME this line seems specific to CQU implementation and may need some configurability
-          //In example for UON the only type of embargo used will be file embargo 
 
           // let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
           let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, filesOrURLsAttached);
@@ -1338,7 +1331,6 @@ export module Services {
 
               if(!fileUploadsInProgress && articleFileList.length == countFileAttachments) {
                 
-                //TODO FIXME check if this functionality need to be mutually exclusive with embargo options???
                 if(this.figNeedsPublishAfterFileUpload) {
                   this.queuePublishAfterUploadFiles(oid,articleId,user,record.metaMetadata.brandId);
                 }
@@ -1350,9 +1342,6 @@ export module Services {
 
                 let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
                 let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, {});
-                
-                //TODO FIXME this line seems specific to CQU implementation and may need some configurability
-                //In example for UON the only type of embargo used will be file embargo 
                 
                 // (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file')
                 let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, filesOrURLsAttached);
@@ -1414,7 +1403,6 @@ export module Services {
                   sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - response link only '+response.data.location);
                   sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
                   
-                  //TODO FIXME check if this functionality need to be mutually exclusive with embargo options???
                   if(this.figNeedsPublishAfterFileUpload) {
                     //https://docs.figshare.com/#private_article_publish
                     let requestBodyPublishAfterFileUploads = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
@@ -1428,8 +1416,6 @@ export module Services {
                     sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
                   }
                   
-                  //TODO FIXME this line seems specific to CQU implementation and may need some configurability
-                  //In example for UON the only type of embargo used will be file embargo 
                   //File embargo can be set only if there are file attachments and these have been successfully uploaded 
                   //therefore if the attachments are sigle URL link then only embargo type article can be set     
                   let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
