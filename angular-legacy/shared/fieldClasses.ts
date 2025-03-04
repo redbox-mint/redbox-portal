@@ -42,6 +42,7 @@ import { AsynchField, AsynchComponent } from './form/field-asynch.component';
 import { PublishDataLocationRefreshField, PublishDataLocationRefreshComponent } from './form/field-publish-data-location-refresh.component';
 import { EventHandler, EventHandlerComponent } from './form/html-event.component';
 import { PageTitle, PageTitleComponent } from './form/field-pagetitle.component';
+import { TreeSelectorField, TreeSelectorComponent } from './form/field-tree-selector.component'
 export const fieldClasses=  {
   'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
   'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
@@ -77,6 +78,7 @@ export const fieldClasses=  {
   'TabNavButton': {'meta': TabNavButton, 'comp': TabNavButtonComponent},
   'Spacer': {'meta': Spacer, 'comp': SpacerComponent},
   'ANDSVocab':{ 'meta': ANDSVocabField, 'comp': ANDSVocabComponent},
+  'TreeSelector':{ 'meta': TreeSelectorField, 'comp': TreeSelectorComponent},
   'PDFList': { 'meta': PDFListField, 'comp': PDFListComponent},
   'AsynchField': {'meta': AsynchField, 'comp': AsynchComponent },
   'Toggle': {'meta': Toggle, 'comp': ToggleComponent},
