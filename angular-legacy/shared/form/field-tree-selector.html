@@ -24,7 +24,7 @@
       <ng-template #treeNodeWrapperTemplate let-node let-index="index">
         <div class="node-wrapper" [style.padding-left]="node.getNodePadding()">
           <tree-node-expander [node]="node"></tree-node-expander>
-          <rb-tree-node-checkbox *ngIf="node.options.useCheckbox" [node]="node" [ariaLabel]="node.data.name"></rb-tree-node-checkbox>
+          <rb-tree-node-checkbox *ngIf="node.options.useCheckbox" [node]="node" [ariaLabel]="node.data.name" [cssClassName]="node.options.nodeClass()"></rb-tree-node-checkbox>
           <div class="node-content-wrapper"
             [class.node-content-wrapper-active]="node.isActive"
             [class.node-content-wrapper-focused]="node.isFocused"

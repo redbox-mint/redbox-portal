@@ -50,6 +50,7 @@ export class TreeSelectorField extends FieldBase<any> {
   public skipLeafNodeExpandCollapseProcessing: number;
   public component:any;
   public treeNodes:any;
+  public ccsClassName:string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -62,6 +63,7 @@ export class TreeSelectorField extends FieldBase<any> {
     this.disableExpandCollapseToggleByName = options['disableExpandCollapseToggleByName'] || false;
     this.skipLeafNodeExpandCollapseProcessing = options['skipLeafNodeExpandCollapseProcessing'] || 4;
     this.treeNodes = options['treeNodes'] || [];
+    this.ccsClassName = options['cssClassName'] || 'tree-node-checkbox';
     this.andsService = this.getFromInjector(ANDSService);
   }
 
@@ -185,11 +187,16 @@ export class TreeSelectorComponent extends SimpleComponent {
     this.elementRef = elementRef;
     this.treeData = [];
 
+    //https://angular2-tree.readme.io/docs/options
+    //nodeClass is a function useful for styling the nodes individually
     this.options = {
       useCheckbox: true,
       useTriState: false,
       getChildren: this.getChildren.bind(this),
-      scrollContainer: document.body.parentElement
+      scrollContainer: document.body.parentElement,
+      nodeClass: () => {
+        return this.field.ccsClassName;
+      }
     };
     this.nodeEventSubject = new Subject<any>();
     this.loadState = this.STATUS_INIT;
@@ -199,12 +206,6 @@ export class TreeSelectorComponent extends SimpleComponent {
   public ngOnInit() {
     if (this.field.editMode) {
       this.field.component = this;
-      // jQuery(this.elementRef.nativeElement)['vocab_widget']({
-      //   repository: this.field.vocabId,
-      //   endpoint: 'https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/',
-      //   fields:["label", "notation", "about"],
-      //   cache: false
-      // });
       this.field.componentReactors.push(this);
     }
   }
@@ -218,24 +219,11 @@ export class TreeSelectorComponent extends SimpleComponent {
       const that = this;
       if (this.loadState == this.STATUS_INIT) {
         this.loadState = this.STATUS_LOADING;
-        // jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
-          if (_.isEmpty(that.treeData)) {
-            that.treeData = that.field.treeNodes;
-            that.loadState = that.STATUS_LOADED;
-          }
-        // });
-        // jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
-
-        // this.nodeEventSubject.bufferTime(1000)
-        // .filter(eventArr => {
-        //   return eventArr.length > 0
-        // })
-        // .subscribe(eventArr => {
-        //   this.handleNodeEvent(eventArr);
-        // });
-
+        if (_.isEmpty(that.treeData)) {
+          that.treeData =  that.mapItemsToChildren(that.field.treeNodes);
+          that.loadState = that.STATUS_LOADED;
+        }
         this.startTreeInit();
-        
       }
     }
   }
@@ -396,14 +384,6 @@ export class TreeSelectorComponent extends SimpleComponent {
     
     //TODO FIXME the items should come from a property I think???
     let items: any[] = [];
-
-
-    // const promise = new Promise((resolve, reject)=> {
-    //   jQuery(this.elementRef.nativeElement).on('narrow.vocab.ands', function(event, data) {
-    //     return resolve(that.mapItemsToChildren(data.items));
-    //   });
-    // });
-    // jQuery(this.elementRef.nativeElement)['vocab_widget']('narrow', {uri: node.data.about});
     return this.mapItemsToChildren(items);
   }
 

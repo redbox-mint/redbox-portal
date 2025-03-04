@@ -49,6 +49,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableExpandCollapseToggleByName: boolean;
   public skipLeafNodeExpandCollapseProcessing: number;
   public component:any;
+  public ccsClassName:string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -60,6 +61,7 @@ export class ANDSVocabField extends FieldBase<any> {
     this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
     this.disableExpandCollapseToggleByName = options['disableExpandCollapseToggleByName'] || false;
     this.skipLeafNodeExpandCollapseProcessing = options['skipLeafNodeExpandCollapseProcessing'] || 4;
+    this.ccsClassName = options['cssClassName'] || 'tree-node-checkbox';
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -187,11 +189,16 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.elementRef = elementRef;
     this.treeData = [];
 
+    //https://angular2-tree.readme.io/docs/options
+    //nodeClass is a function useful for styling the nodes individually
     this.options = {
       useCheckbox: true,
       useTriState: false,
       getChildren: this.getChildren.bind(this),
-      scrollContainer: document.body.parentElement
+      scrollContainer: document.body.parentElement,
+      nodeClass: () => {
+        return this.field.ccsClassName;
+      }
     };
     this.nodeEventSubject = new Subject<any>();
     this.loadState = this.STATUS_INIT;
