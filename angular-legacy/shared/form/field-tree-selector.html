@@ -12,9 +12,9 @@
   </span>
   <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
   <tree-root *ngIf="field.editMode"
-      #andsTree
+      #treeSelector
       class="reverse"
-      id="andsTree"
+      id="treeSelector"
       [nodes]="treeData"
       [options]="options"
       (nodeActivate)="onNodeActivate($event)"

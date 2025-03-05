@@ -20,15 +20,12 @@ import { Input, Component, OnInit, Inject, Injector, ElementRef, ViewChild, Afte
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import { ANDSService } from '../ands-service';
 import { TreeComponent, TreeNode, ITreeOptions, ITreeState } from 'angular-tree-component';
 import * as _ from "lodash";
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/bufferTime';
 import 'rxjs/add/operator/filter';
-
-// declare var jQuery: any;
 
 
 /**
@@ -40,8 +37,6 @@ import 'rxjs/add/operator/filter';
  */
 export class TreeSelectorField extends FieldBase<any> {
 
-  public andsService:ANDSService;
-  // public vocabId:string;
   public disableCheckboxRegexEnabled:boolean;
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
@@ -51,11 +46,11 @@ export class TreeSelectorField extends FieldBase<any> {
   public component:any;
   public treeNodes:any;
   public ccsClassName:string;
+  public expandChildrenWhenParentSeclected:boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.value = options['value'] || this.setEmptyValue();
-    // this.vocabId  = options['vocabId'] || 'anzsrc-for';
     this.disableCheckboxRegexEnabled = options['disableCheckboxRegexEnabled'] || false;
     this.disableCheckboxRegexPattern = options['disableCheckboxRegexPattern'] || "";
     this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
@@ -64,7 +59,7 @@ export class TreeSelectorField extends FieldBase<any> {
     this.skipLeafNodeExpandCollapseProcessing = options['skipLeafNodeExpandCollapseProcessing'] || 4;
     this.treeNodes = options['treeNodes'] || [];
     this.ccsClassName = options['cssClassName'] || 'tree-node-checkbox';
-    this.andsService = this.getFromInjector(ANDSService);
+    this.expandChildrenWhenParentSeclected = options['expandChildrenWhenParentSeclected'] || false;
   }
 
   setValue(value: any, emitEvent: boolean = true) {
@@ -84,7 +79,7 @@ export class TreeSelectorField extends FieldBase<any> {
       curVal.push(item);
     } else {
       _.remove(curVal, (entry:any) => {
-        return entry.notation == item.notation;
+        return entry.name == item.name;
       });
     }
     this.setValue(curVal);
@@ -169,7 +164,7 @@ export class TreeSelectorComponent extends SimpleComponent {
   field: TreeSelectorField;
   elementRef: ElementRef;
   treeData: any = [];
-  @ViewChild('andsTree') public andsTree : TreeComponent;
+  @ViewChild('treeSelector') public treeSelector : TreeComponent;
   options: any;
   nodeEventSubject: Subject<any>;
   treeInitListener: any;
@@ -192,7 +187,7 @@ export class TreeSelectorComponent extends SimpleComponent {
     this.options = {
       useCheckbox: true,
       useTriState: false,
-      getChildren: this.getChildren.bind(this),
+      // getChildren: this.getChildren.bind(this),
       scrollContainer: document.body.parentElement,
       nodeClass: () => {
         return this.field.ccsClassName;
@@ -200,7 +195,6 @@ export class TreeSelectorComponent extends SimpleComponent {
     };
     this.nodeEventSubject = new Subject<any>();
     this.loadState = this.STATUS_INIT;
-    
   }
 
   public ngOnInit() {
@@ -211,7 +205,9 @@ export class TreeSelectorComponent extends SimpleComponent {
   }
 
   public ngAfterViewInit() {
-    this.initialiseControl();
+    setTimeout(() => {
+      this.initialiseControl();
+    });
   }
   
   initialiseControl() {
@@ -223,6 +219,13 @@ export class TreeSelectorComponent extends SimpleComponent {
           that.treeData =  that.mapItemsToChildren(that.field.treeNodes);
           that.loadState = that.STATUS_LOADED;
         }
+        this.nodeEventSubject.bufferTime(1000)
+        .filter(eventArr => {
+          return eventArr.length > 0
+        })
+        .subscribe(eventArr => {
+          this.handleNodeEvent(eventArr);
+        });
         this.startTreeInit();
       }
     }
@@ -230,23 +233,22 @@ export class TreeSelectorComponent extends SimpleComponent {
 
   //This method is called when the record edit view is first loaded and sets state and expand nodes that have checkboxes selected
   protected startTreeInit() {
-    this.treeInitListener = Observable.interval(1000).subscribe(()=> {
-      
+    this.treeInitListener = Observable.interval(1000).subscribe(()=> { 
       try {
-      if (!_.isEmpty(this.expandNodeIds)) {
-        this.expandNodes();
-      } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == this.STATUS_LOADED) {
-        this.loadState = this.STATUS_EXPANDING;
-        this.updateTreeView(this);
-        this.expandNodes();
-      } else if (this.loadState == this.STATUS_EXPANDING) {
-        this.treeInitListener.unsubscribe();
-        this.loadState = this.STATUS_EXPANDED;
+        if (!_.isEmpty(this.expandNodeIds)) {
+          this.expandNodes();
+        } else if (!_.isEmpty(this.treeSelector.treeModel.getVisibleRoots()) && this.loadState == this.STATUS_LOADED) {
+          this.loadState = this.STATUS_EXPANDING;
+          this.updateTreeView(this);
+          this.expandNodes();
+        } else if (this.loadState == this.STATUS_EXPANDING) {
+          this.treeInitListener.unsubscribe();
+          this.loadState = this.STATUS_EXPANDED;
+        }
+        this.initialised = true;
+      } catch (err) {
+        //TODO: Visibility is set asynchronously so there's no guarantee that everything required is in the DOM when this code is run onInit (when using onFormLoaded setVisibility)
       }
-      this.initialised = true;
-    } catch (err) {
-      //TODO: Visibility is set asynchronously so there's no guarantee that everything required is in the DOM when this code is run onInit (when using onFormLoaded setVisibility)
-    }
     });
   }
 
@@ -257,9 +259,19 @@ export class TreeSelectorComponent extends SimpleComponent {
           break;
         }
         this.field.setSelected(this.getValueFromChildData(event.node), true);
+        if(this.field.expandChildrenWhenParentSeclected) {
+          if(!_.isEmpty(event.node.children)) {
+            event.node.expand();
+          }
+        }
         break;
       case "deselect":
         this.field.setSelected(this.getValueFromChildData(event.node), false);
+        if(this.field.expandChildrenWhenParentSeclected) {
+          if(!_.isEmpty(event.node.children)) {
+            event.node.collapse()
+          }
+        }
         break;
     }
   }
@@ -296,10 +308,10 @@ export class TreeSelectorComponent extends SimpleComponent {
 
   protected updateSingleNodeSelectedState(node, state) {
     const nodeId = node.id;
-    const curState = this.andsTree.treeModel.getState();
+    const curState = this.treeSelector.treeModel.getState();
     this.setNodeSelected(curState, nodeId, state);
-    this.andsTree.treeModel.setState(curState);
-    this.andsTree.treeModel.update();
+    this.treeSelector.treeModel.setState(curState);
+    this.treeSelector.treeModel.update();
     this.field.setSelected(this.getValueFromChildData(node), state);
   }
 
@@ -313,18 +325,18 @@ export class TreeSelectorComponent extends SimpleComponent {
 
   //This method is called when the record edit view is first loaded populates expandNodeIds list
   public updateTreeView(that) {
-    const state = that.andsTree.treeModel.getState();
+    const state = that.treeSelector.treeModel.getState();
     that.expandNodeIds = [];
     _.each(that.field.value, (val) => {
-      this.setNodeSelected(state, val.notation, true);
-      _.each(val.geneaology, (parentId) => {
-        if (!_.includes(that.expandNodeIds, parentId)) {
-          that.expandNodeIds.push(parentId);
+      this.setNodeSelected(state, val.id, true);
+      _.each(val.parent, (parent) => {
+        if (!_.includes(that.expandNodeIds, parent.id)) {
+          that.expandNodeIds.push(parent.id);
         }
       });
     });
-    that.andsTree.treeModel.setState(state);
-    that.andsTree.treeModel.update();
+    that.treeSelector.treeModel.setState(state);
+    that.treeSelector.treeModel.update();
     that.expandNodeIds = _.sortBy(that.expandNodeIds, (o) => { return _.isString(o) ? o.length : 0 });
   }
 
@@ -332,7 +344,7 @@ export class TreeSelectorComponent extends SimpleComponent {
   protected expandNodes() {
     if (!_.isEmpty(this.expandNodeIds)) {
       const parentId = this.expandNodeIds[0];
-      const node = this.andsTree.treeModel.getNodeById(parentId);
+      const node = this.treeSelector.treeModel.getNodeById(parentId);
       if (node) {
         node.expand();
         _.remove(this.expandNodeIds, (id) => { return id == parentId });
@@ -342,13 +354,13 @@ export class TreeSelectorComponent extends SimpleComponent {
 
   protected expandCollapseNode(nodeEvent: any) {
     const nodeId = _.get(nodeEvent,'id','');
-
+    console.log('expandCollapseNode '+nodeId);
     //Ignore expand collapse processing if id string value has length that exceeds default
     if(nodeId == '' || nodeId.length > this.field.skipLeafNodeExpandCollapseProcessing) {
       return;
     }
 
-    const node = this.andsTree.treeModel.getNodeById(nodeId);
+    const node = this.treeSelector.treeModel.getNodeById(nodeId);
     if (node) {
       if(_.get(node, 'isCollapsed', false)) {
         node.expand();
@@ -359,7 +371,7 @@ export class TreeSelectorComponent extends SimpleComponent {
   }
 
   protected collapseNodes() {
-    this.andsTree.treeModel.collapseAll();
+    this.treeSelector.treeModel.collapseAll();
   }
 
   protected setNodeSelected(state, nodeId, flag) {
@@ -371,37 +383,23 @@ export class TreeSelectorComponent extends SimpleComponent {
   }
 
   protected getNodeSelected(nodeId) {
-    return this.andsTree.treeModel.getState().selectedLeafNodeIds[nodeId];
+    return this.treeSelector.treeModel.getState().selectedLeafNodeIds[nodeId];
   }
 
   protected clearSelectedNodes() {
-    const state = this.andsTree.treeModel.getState();
+    const state = this.treeSelector.treeModel.getState();
     state.selectedLeafNodeIds = {};
-    this.andsTree.treeModel.setState(state);
-  }
-
-  public getChildren(node: any) {
-    
-    //TODO FIXME the items should come from a property I think???
-    let items: any[] = [];
-    return this.mapItemsToChildren(items);
+    this.treeSelector.treeModel.setState(state);
   }
 
   public mapItemsToChildren(items: any[]) {
-
-    if(_.isEmpty(items)) {
-
-      //TODO FIXME populate static items from property 
-    }
-
-    return _.map(items, (item:any) => {
-      return { id: item.notation, name: `${item.notation} - ${item.label}`, hasChildren:item.narrower && item.narrower.length > 0,  ...item }
-    });
+    //TODO FIXME import translation service to convert lanaguage file labels
+    return items;
   }
 
   public getValueFromChildData(childNode: any) {
     const data = childNode.data;
-    const val = { name: `${data.notation} - ${data.label}`,  label: data.label, notation: data.notation };
+    const val = { id: data.id, name: `${data.name}`, type: `${data.type}`};
     this.setParentTree(val, childNode);
     return val;
   }
@@ -429,17 +427,15 @@ export class TreeSelectorComponent extends SimpleComponent {
   }
 
   public setParentTree(val:any, childNode: any) {
-    const parentNotation = _.get(childNode, 'parent.data.notation');
-    if (!_.isUndefined(parentNotation)) {
-      if (_.isUndefined(val['geneaology'])) {
-        val['geneaology'] = [];
+    const parent = _.get(childNode, 'parent.data');
+    if (!_.isUndefined(parent) && !parent.virtual) {
+      if (_.isUndefined(val['parent'])) {
+        val['parent'] = [];
       }
-      val['geneaology'].push(parentNotation);
-      if (childNode.parent.parent) {
-        this.setParentTree(val, childNode.parent);
-      }
-    } else if (!_.isUndefined(val['geneaology'])) {
-      val['geneaology'] = _.sortBy(val['geneaology']);
+      val['parent'].push({ id: parent.id, name: `${parent.name}`, type: `${parent.type}` });
+      
+    } else if (!_.isUndefined(val['parent'])) {
+      val['parent'] = _.sortBy(val['parent']);
     }
   }
 
