@@ -17,13 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Component, Input, ViewChild} from '@angular/core';
+import { Component, Input, ViewChild } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
-import {FormControl, FormGroup, Validators} from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { VocabField } from './field-vocab.component';
-import { Observable} from 'rxjs/Rx';
+import { Observable } from 'rxjs/Rx';
 import { CustomValidationHandlerField } from './custom-validation-handler';
 
 /**
@@ -98,7 +98,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
 
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
-    
+
 
     this.activeValidators = options['activeValidators'];
 
@@ -106,17 +106,19 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     const textFullNameFieldName = _.find(this.fieldNames, fieldNameObject => {
       return fieldNameObject['text_full_name'] != undefined;
     });
-    if(textFullNameFieldName != null) {
-    this.fullNameResponseField = textFullNameFieldName['text_full_name'];
+    if (textFullNameFieldName != null) {
+      this.fullNameResponseField = textFullNameFieldName['text_full_name'];
     }
-    this.validationMessages = options['validationMessages'] || {required: {
+    this.validationMessages = options['validationMessages'] || {
+      required: {
         email: this.getTranslated(options['validation_required_email'], 'Email required'),
         text_full_name: this.getTranslated(options['validation_required_name'], 'Name is required'),
-        role: this.getTranslated(options['validation_required_role'],'Select a role'),
+        role: this.getTranslated(options['validation_required_role'], 'Select a role'),
         family_name: this.getTranslated(options['validation_required_family_name'], 'Family name is required'),
         given_name: this.getTranslated(options['validation_required_given_name'], 'Given name is required'),
       },
-      invalid: { email: this.getTranslated(options['validation_invalid_email'], 'Email format is incorrect')}};
+      invalid: { email: this.getTranslated(options['validation_invalid_email'], 'Email format is incorrect') }
+    };
     this.groupFieldNames = ['text_full_name', 'email'];
     this.freeText = options['freeText'] || false;
     this.forceLookupOnly = options['forceLookupOnly'] || false;
@@ -130,10 +132,14 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     this.username = options['username'] || '';
     this.previousEmail = this.value ? this.value.email : '';
 
-    this.validators = {
-      text_full_name: [Validators.required],
-      email: [Validators.required, Validators.email]
-    };
+    if (this.required) {
+      this.validators = {
+        text_full_name: [Validators.required],
+        email: [Validators.required, Validators.email]
+      };
+    } else {
+      this.validators = {};
+    }
     if (!this.freeText) {
       this.vocabField = new VocabField(this.options, this.injector);
       this.hasLookup = true;
@@ -141,10 +147,12 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     if (this.splitNames) {
       this.groupFieldNames.push('family_name');
       this.groupFieldNames.push('given_name');
-      this.validators['family_name'] = [Validators.required];
-      this.validators['given_name'] = [Validators.required];
+      if (this.required) {
+        this.validators['family_name'] = [Validators.required];
+        this.validators['given_name'] = [Validators.required];
+      }
     }
-    
+
     // Resolves: #605
     // now that we've set the default validators... we read the config to override
     if (!_.isEmpty(this.activeValidators)) {
@@ -160,13 +168,13 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
         }
       });
     }
-    
+
     this.findRelationshipFor = options['findRelationshipFor'] || '';
     this.findRelationship = options['findRelationship'] || null;
     this.relationshipFor = options['relationshipFor'] || '';
   }
 
-  setLookupServices(completerService:any, lookupService:any) {
+  setLookupServices(completerService: any, lookupService: any) {
     if (!this.freeText) {
       this.vocabField.setLookupServices(completerService, lookupService);
     }
@@ -191,23 +199,24 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
         this.setValue(this.value);
       }
     } else {
-      this.formModel = new FormGroup({text_full_name: new FormControl(this.value.text_full_name || null),
-                                   email: new FormControl(this.value.email || null),
-                                   role: new FormControl(this.value.role || null),
-                                   username: new FormControl(this.value.username || ''),
-                                   orcid: new FormControl(this.value.orcid || ''),
-                                   honorific: new FormControl(this.value.honorific || '')
-                                 });
+      this.formModel = new FormGroup({
+        text_full_name: new FormControl(this.value.text_full_name || null),
+        email: new FormControl(this.value.email || null),
+        role: new FormControl(this.value.role || null),
+        username: new FormControl(this.value.username || ''),
+        orcid: new FormControl(this.value.orcid || ''),
+        honorific: new FormControl(this.value.honorific || '')
+      });
       if (this.splitNames) {
         this.formModel.addControl('family_name', new FormControl(this.value.family_name));
         this.formModel.addControl('given_name', new FormControl(this.value.given_name));
       }
 
-      if(!_.isUndefined(this.fieldNames) && _.isArray(this.fieldNames)){
-        for(let fldKeyName of this.fieldNames) {
-          _.forOwn(fldKeyName, (value, key) => { 
+      if (!_.isUndefined(this.fieldNames) && _.isArray(this.fieldNames)) {
+        for (let fldKeyName of this.fieldNames) {
+          _.forOwn(fldKeyName, (value, key) => {
             let formControl = this.formModel.controls[key];
-            if(_.isUndefined(formControl)){
+            if (_.isUndefined(formControl)) {
               this.formModel.addControl(key, new FormControl(this.value[key]));
             }
           });
@@ -221,7 +230,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       if (this.splitNames) {
         const reqFields = ['family_name', 'given_name'];
         const handler = this.getToggleConditionalValidationHandler(reqFields, true);
-        _.each(reqFields, (reqField:any) => {
+        _.each(reqFields, (reqField: any) => {
           this.formModel.controls[reqField].valueChanges.subscribe(handler);
         });
         // install the validators if needed
@@ -235,11 +244,11 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     return this.formModel;
   }
 
-  getToggleConditionalValidationHandler(requiredFields:any[], useFormControl:boolean) {
-    return ((value:any) => {
+  getToggleConditionalValidationHandler(requiredFields: any[], useFormControl: boolean) {
+    return ((value: any) => {
       let hasValue = true;
       if (useFormControl) {
-        _.each(requiredFields, (reqField:any) => {
+        _.each(requiredFields, (reqField: any) => {
           hasValue = hasValue || !_.isEmpty(this.formModel.controls[reqField].value);
         });
       } else {
@@ -249,24 +258,24 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     });
   }
 
-  setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
+  setValue(value: any, emitEvent: boolean = true, updateTitle: boolean = false) {
     this.setMissingFields(value);
     if (!this.hasInit) {
       this.hasInit = true;
       value.username = _.isUndefined(value.username) ? '' : value.username;
     } else {
-      if ( _.isUndefined(value.username) ||  (value.email && value.email != this.previousEmail )) {
+      if (_.isUndefined(value.username) || (value.email && value.email != this.previousEmail)) {
         value.username = '';
         this.previousEmail = value.email;
       }
     }
-    this.formModel.patchValue(value, {emitEvent: emitEvent});
+    this.formModel.patchValue(value, { emitEvent: emitEvent });
     this.formModel.markAsTouched();
     this.formModel.markAsDirty();
     if (updateTitle && !this.freeText) {
       try {
         this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
-      } catch(e) {
+      } catch (e) {
         //Catch the error and do nothing by design. The reason is explained in trello card below 
         //TODO: Review if there is a better solution while working in trello card below that is in progress
         //https://trello.com/c/yR3yb87F/108-contributor-component-cannot-handle-subscribe-to-a-field-to-setvisibility-and-also-subscribe-to-rdmpgetter-object-metadata-retri
@@ -299,9 +308,9 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     }
   }
 
-  toggleValidator(c:any) {
-    return (value:any) => {
-      if (value || _.find(this.formModel.controls, (c:any) => { return c.value })) {
+  toggleValidator(c: any) {
+    return (value: any) => {
+      if (value || _.find(this.formModel.controls, (c: any) => { return c.value })) {
         this.enableValidators();
       } else {
         this.disableValidators();
@@ -314,7 +323,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       return;
     }
     this.enabledValidators = true;
-    _.forEach(this.groupFieldNames, (f:any) => {
+    _.forEach(this.groupFieldNames, (f: any) => {
       // Resolves #605: check if there is a validator, because we can disable/remove validators now
       if (!_.isUndefined(this.validators[f])) {
         this.formModel.controls[f].setValidators(this.validators[f]);
@@ -327,13 +336,13 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       return;
     }
     this.enabledValidators = false;
-    _.forEach(this.formModel.controls, (c:any) => {
+    _.forEach(this.formModel.controls, (c: any) => {
       c.setValidators(null);
       c.setErrors(null);
     });
   }
 
-  postInit(value:any) {
+  postInit(value: any) {
     if (value) {
       this.value = value;
       if (!this.freeText) {
@@ -345,10 +354,10 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       // If there is a findRelationship Object in configuration init the value,
       // and not already inited, lookup and complete with a corresponding
       // relationship in Mint
-      if(this.findRelationship && _.isEmpty(this.vocabField.initialValue.title)) {
-        if(this.findRelationshipFor && this.relationshipFor) {
+      if (this.findRelationship && _.isEmpty(this.vocabField.initialValue.title)) {
+        if (this.findRelationshipFor && this.relationshipFor) {
           const doInit = _.find(this.findRelationshipFor, r => r === this.relationshipFor);
-          if(doInit) {
+          if (doInit) {
             this.initWithRelationship();
           }
         }
@@ -375,65 +384,65 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     const familyNameCompleter = this.findRelationship['familyName'] || '';
 
     this.vocabField.relationshipLookup(relatedWith, searchFieldLower, searchField)
-    .flatMap(res => {
-      let rel = null;
-      if(res && res['status'] === 200){
-        const data = res.json();
-        if(!_.isEmpty(data) && !data['error']) {
-          const obj = _.first(data);
-          if(_.isArray(obj[relationship])) {
-            rel = _.first(obj[relationship]);
+      .flatMap(res => {
+        let rel = null;
+        if (res && res['status'] === 200) {
+          const data = res.json();
+          if (!_.isEmpty(data) && !data['error']) {
+            const obj = _.first(data);
+            if (_.isArray(obj[relationship])) {
+              rel = _.first(obj[relationship]);
+            }
           }
         }
-      }
-      if(rel) {
-        return this.vocabField.relationshipLookup(rel, searchRelationLower, searchRelation);
-      } else {
-        return Observable.of(null);
-      }
-    })
-    .subscribe(res => {
-      if(res && res['status'] === 200) {
-        const data = res.json();
-        if (!_.isEmpty(data) && !data['error']) {
-          const obj = _.first(data);
-          if (obj) {
-            const emailCompleterValue = this.getFirstOrDefault(obj[emailCompleter], '');
-            const titleCompleterValue = this.getFirstOrDefault(obj[titleCompleter], '');
-            const fullNameHonorificValue = this.getFirstOrDefault(obj[fullNameHonorificCompleter], '');
-            const honorificValue = this.getFirstOrDefault(obj[honorificCompleter], '');
-            const givenNameValue = this.getFirstOrDefault(obj[givenNameCompleter], '');
-            const familyNameValue = this.getFirstOrDefault(obj[familyNameCompleter], '');
+        if (rel) {
+          return this.vocabField.relationshipLookup(rel, searchRelationLower, searchRelation);
+        } else {
+          return Observable.of(null);
+        }
+      })
+      .subscribe(res => {
+        if (res && res['status'] === 200) {
+          const data = res.json();
+          if (!_.isEmpty(data) && !data['error']) {
+            const obj = _.first(data);
+            if (obj) {
+              const emailCompleterValue = this.getFirstOrDefault(obj[emailCompleter], '');
+              const titleCompleterValue = this.getFirstOrDefault(obj[titleCompleter], '');
+              const fullNameHonorificValue = this.getFirstOrDefault(obj[fullNameHonorificCompleter], '');
+              const honorificValue = this.getFirstOrDefault(obj[honorificCompleter], '');
+              const givenNameValue = this.getFirstOrDefault(obj[givenNameCompleter], '');
+              const familyNameValue = this.getFirstOrDefault(obj[familyNameCompleter], '');
 
-            this.vocabField.initialValue = {
-              text_full_name: titleCompleterValue,
-              text_full_name_honorific: fullNameHonorificValue,
-              email: emailCompleterValue,
-              givenName: givenNameValue,
-              familyName: familyNameValue,
-              honorific: honorificValue,
-              full_name_family_name_first: `${familyNameValue}, ${givenNameValue}`,
-              role: role
-            };
-            this.vocabField.initialValue.title = titleCompleterValue;
+              this.vocabField.initialValue = {
+                text_full_name: titleCompleterValue,
+                text_full_name_honorific: fullNameHonorificValue,
+                email: emailCompleterValue,
+                givenName: givenNameValue,
+                familyName: familyNameValue,
+                honorific: honorificValue,
+                full_name_family_name_first: `${familyNameValue}, ${givenNameValue}`,
+                role: role
+              };
+              this.vocabField.initialValue.title = titleCompleterValue;
+            }
           }
         }
-      }
-    }, error => {
-      console.error('initWithRelationship error');
-      console.error(error.message);
-    });
+      }, error => {
+        console.error('initWithRelationship error');
+        console.error(error.message);
+      });
   }
 
-  getFirstOrDefault(obj, defaultValue){
+  getFirstOrDefault(obj, defaultValue) {
     return _.defaultTo(_.isArray(obj) ? _.first(obj) : obj, defaultValue);
   }
 
-  setEmptyValue(emitEvent:boolean = true) {
-    this.value = {text_full_name: null, email: null, role: null, username: ''};
+  setEmptyValue(emitEvent: boolean = true) {
+    this.value = { text_full_name: null, email: null, role: null, username: '' };
     if (this.formModel) {
-      _.forOwn(this.formModel.controls, (c, cName)=> {
-        c.setValue(null, {emitEvent: emitEvent});
+      _.forOwn(this.formModel.controls, (c, cName) => {
+        c.setValue(null, { emitEvent: emitEvent });
       });
     }
     return this.value;
@@ -441,14 +450,14 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
 
   get isValid() {
     let validity = false;
-    _.forEach(this.groupFieldNames, (f:any) => {
+    _.forEach(this.groupFieldNames, (f: any) => {
       validity = validity && this.formModel.controls[f].valid;
     });
     return validity;
   }
 
   public triggerValidation(): void {
-    _.forEach(this.groupFieldNames, (f:any) => {
+    _.forEach(this.groupFieldNames, (f: any) => {
       this.formModel.controls[f].updateValueAndValidity({ onlySelf: true, emitEvent: false });
       this.formModel.controls[f].markAsTouched();
     });
@@ -457,7 +466,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     if (this.isValid) {
       this.formModel.setErrors(null);
     } else {
-      this.formModel.setErrors({invalid: true});
+      this.formModel.setErrors({ invalid: true });
     }
     this.formModel.updateValueAndValidity();
     this.formModel.markAsTouched();
@@ -466,7 +475,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
   public getValidationError(): any {
     let errObj = null;
     if (this.formModel) {
-      _.forEach(this.groupFieldNames, (f:any) => {
+      _.forEach(this.groupFieldNames, (f: any) => {
         if (!_.isEmpty(this.formModel.controls[f].errors)) {
           errObj = this.formModel.controls[f].errors;
         }
@@ -504,7 +513,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     }
   }
 
-  public setVisibility(data, eventConf:any = {}) {
+  public setVisibility(data, eventConf: any = {}) {
     let newVisible = this.visible;
     if (_.isArray(this.visibilityCriteria)) {
       // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
@@ -521,39 +530,39 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
 
       }
     } else
-    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
-      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
-    } else {
-      newVisible = _.isEqual(data, this.visibilityCriteria);
-    }
+      if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+        newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+      } else {
+        newVisible = _.isEqual(data, this.visibilityCriteria);
+      }
     const that = this;
     setTimeout(() => {
       if (!newVisible) {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+            if (that['disableValidators'] != null && typeof (that['disableValidators']) == 'function') {
               that['disableValidators']();
             } else {
               that.formModel.clearValidators();
             }
             that.formModel.updateValueAndValidity();
-            
+
           }
         }
       } else {
         if (!that.visible) {
           // restore validators
-          if (that.formModel) {       
+          if (that.formModel) {
             if (that.required) {
-              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+              if (that['enableValidators'] != null && typeof (that['enableValidators']) == 'function') {
                 that['enableValidators']();
               } else {
                 that.formModel.setValidators(that.validators);
               }
             }
             setTimeout(() => {
-              that.setValue(that.formModel.value,false,true)
+              that.setValue(that.formModel.value, false, true)
             });
             that.formModel.updateValueAndValidity();
           }
@@ -561,10 +570,10 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       }
       that.visible = newVisible;
     });
-    if(eventConf.returnData == true) {
+    if (eventConf.returnData == true) {
       return data;
     }
-    
+
   }
 
 }
@@ -605,7 +614,7 @@ export class ContributorComponent extends SimpleComponent {
         }
       });
 
-      if(this.field.showRole) {
+      if (this.field.showRole) {
         console.log(this.field)
         // if(_.isEmpty(this.field.value)) {
         //   this.field.value = {role: this.field.roles[0].value}
@@ -614,7 +623,7 @@ export class ContributorComponent extends SimpleComponent {
     }
   }
 
-  public getGroupClass(fldName:any, wideMode:boolean = false): string {
+  public getGroupClass(fldName: any, wideMode: boolean = false): string {
     let hasError = false;
     hasError = hasError || (this.field.formModel.controls[fldName].hasError('required'));
     if (!hasError && fldName == 'email') {
@@ -625,16 +634,16 @@ export class ContributorComponent extends SimpleComponent {
   }
 
 
-  onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
+  onSelect(selected: any, emitEvent: boolean = true, updateTitle: boolean = false) {
 
     if (selected) {
-      if(this.field.splitNames) {
+      if (this.field.splitNames) {
         let selectedFamilyName = _.get(selected, 'family_name');
         let selectedGivenName = _.get(selected, 'given_name');
-        if ( (_.isEmpty(selectedFamilyName) || _.isUndefined(selectedFamilyName)) && (_.isEmpty(selectedGivenName) || _.isUndefined(selectedGivenName))) {
+        if ((_.isEmpty(selectedFamilyName) || _.isUndefined(selectedFamilyName)) && (_.isEmpty(selectedGivenName) || _.isUndefined(selectedGivenName))) {
           console.log(`Same or empty selection for split names, returning...`);
-            this.lastSelected = null;
-            return;
+          this.lastSelected = null;
+          return;
         } else {
           let selectedFamilyName = _.get(selected, 'family_name');
           let selectedGivenName = _.get(selected, 'given_name');
@@ -644,15 +653,15 @@ export class ContributorComponent extends SimpleComponent {
           let selectedOrcid = _.get(selected, 'orcid');
           let fmEmail = _.get(this.field.formModel.value, 'email');
           let fmOrcid = _.get(this.field.formModel.value, 'orcid');
-          if (selectedFamilyName && selectedFamilyName == fmFamilyName  && selectedGivenName && selectedGivenName == fmGivenName 
-              && selectedEmail && selectedEmail == fmEmail && selectedOrcid == fmOrcid) {
+          if (selectedFamilyName && selectedFamilyName == fmFamilyName && selectedGivenName && selectedGivenName == fmGivenName
+            && selectedEmail && selectedEmail == fmEmail && selectedOrcid == fmOrcid) {
             console.log(`Same or empty selection for split names, returning...`);
             return;
           }
         }
 
       } else {
-        if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) && (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
+        if ((_.isEmpty(selected.title) || _.isUndefined(selected.title)) && (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
           console.log(`Same or empty selection, returning...`);
           this.lastSelected = null;
           return;
@@ -665,18 +674,18 @@ export class ContributorComponent extends SimpleComponent {
       }
 
       this.lastSelected = selected;
-      let val:any;
+      let val: any;
       if (!this.field.freeText) {
         if (_.isEmpty(selected.text_full_name)) {
           if (this.field.vocabField.restrictToSelection || selected.originalObject) {
             val = this.field.vocabField.getValue(selected);
           } else {
-            val = {text_full_name: selected.title};
+            val = { text_full_name: selected.title };
           }
-        } else if(selected[this.field.fullNameResponseField]) {
+        } else if (selected[this.field.fullNameResponseField]) {
           val = this.field.vocabField.getValue(selected);
         } else {
-          val = {text_full_name: selected.title};
+          val = { text_full_name: selected.title };
         }
         if (!_.isEmpty(selected.orcid) && !_.isUndefined(selected.orcid)) {
           val['orcid'] = selected.orcid;
@@ -706,7 +715,7 @@ export class ContributorComponent extends SimpleComponent {
     }
   }
 
-  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+  public reactEvent(eventName: string, eventData: any, origData: any, elem: any) {
     console.log(`Contributor component reacting:`);
     console.log(eventData);
     this.onSelect(eventData, false, true);
@@ -720,7 +729,7 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeydown(event) {
-    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB || event.keyCode === KEY_LEFT || event.keyCode === KEY_RIGHT )) {
+    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB || event.keyCode === KEY_LEFT || event.keyCode === KEY_RIGHT)) {
       if (this.lastSelected && this.emptied) {
         const that = this;
         setTimeout(() => {
@@ -736,7 +745,7 @@ export class ContributorComponent extends SimpleComponent {
         }
       }
     } else {
-      const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
+      const val = this.field.vocabField.getValue({ text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }
 
@@ -749,7 +758,7 @@ export class ContributorComponent extends SimpleComponent {
 
     if (event && (event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB && event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
 
-      const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
+      const val = this.field.vocabField.getValue({ text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }
   }
@@ -760,7 +769,7 @@ export class ContributorComponent extends SimpleComponent {
     }
   }
 
-  public onOpen(isOpen:boolean) {
+  public onOpen(isOpen: boolean) {
     if (isOpen) {
       this.field.toggleConditionalValidation(false);
     }
