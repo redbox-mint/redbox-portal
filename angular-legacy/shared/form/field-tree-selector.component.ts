@@ -216,7 +216,7 @@ export class TreeSelectorComponent extends SimpleComponent {
       if (this.loadState == this.STATUS_INIT) {
         this.loadState = this.STATUS_LOADING;
         if (_.isEmpty(that.treeData)) {
-          that.treeData =  that.mapItemsToChildren(that.field.treeNodes);
+          that.treeData =  that.translateNodesAndChildren(that.field.treeNodes);
           that.loadState = that.STATUS_LOADED;
         }
         this.nodeEventSubject.bufferTime(1000)
@@ -269,7 +269,7 @@ export class TreeSelectorComponent extends SimpleComponent {
         this.field.setSelected(this.getValueFromChildData(event.node), false);
         if(this.field.expandChildrenWhenParentSeclected) {
           if(!_.isEmpty(event.node.children)) {
-            event.node.collapse()
+            event.node.collapse();
           }
         }
         break;
@@ -392,9 +392,31 @@ export class TreeSelectorComponent extends SimpleComponent {
     this.treeSelector.treeModel.setState(state);
   }
 
-  public mapItemsToChildren(items: any[]) {
-    //TODO FIXME import translation service to convert lanaguage file labels
-    return items;
+  public translateNodesAndChildren(nodes: any[]) {
+    let tNodes = [];
+    for(let node of nodes) {
+      let tChildren = [];
+      let children = _.get(node,'children',[]);
+      if(!_.isEmpty(children)) {
+        for(let child of children) {
+          let c = _.clone(child);
+          let childName = _.get(child,'name','');
+          let tName = this.field.getTranslated(childName,childName);
+          _.set(c,'name',tName);
+          tChildren.push(c);
+        }
+      }
+      let i = _.clone(node);
+      let nodeName = _.get(node,'name','');
+      let tName = this.field.getTranslated(nodeName,nodeName);
+      if(!_.isEmpty(tChildren)) {
+        _.unset(i,'childen');
+        _.set(i,'children',tChildren);
+      }
+      _.set(i,'name',tName);
+      tNodes.push(i);
+    }
+    return tNodes;
   }
 
   public getValueFromChildData(childNode: any) {
