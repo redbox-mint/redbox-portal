@@ -6,7 +6,7 @@ module.exports.figshareAPI = {
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
   testMode: false,
-  verboseLogging: false,
+  extraVerboseLogging: false,
   testUsers: [],
   testLicenses: [],
   testCategories: [],
@@ -50,6 +50,7 @@ module.exports.figshareAPI = {
     figshareCurationStatusTargetValue: 'public',
     figshareDisableUpdateByCurationStatus: false,
     figshareNeedsPublishAfterFileUpload: false,
+    figshareForceEmbargoUpdateAlways: false,
     //Optional to add a file upload finished indicator value saved in a field in the record
     // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',
     recordFigArticleId: 'metadata.figshare_article_id',
@@ -753,6 +754,7 @@ module.exports.figshareAPI = {
             // Date Format in Figshare documentation is + '2022-02-27T00:00:00' but 'YYYY-MM-DD' works
             figName: 'is_embargoed',
             rbName: '',//the template will choose from either 'full-embargo-until' or 'file-embargo-until'
+            checkChangedBeforeUpdate: true,
             template: `<% let dataPubAccessRights = record['metadata']['access-rights']; 
                         if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
                           return true;
@@ -767,6 +769,7 @@ module.exports.figshareAPI = {
         {
             figName: 'embargo_date', //set permanent embargo with '0' when 'mediated' option is selected
             rbName: '',
+            checkChangedBeforeUpdate: true,
             template: `<% let dataPubAccessRights = record['metadata']['access-rights'];
                         if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
                           let figArtFullEmbargoDate = record['metadata']['full-embargo-until'];
@@ -804,6 +807,7 @@ module.exports.figshareAPI = {
         {
             figName: 'embargo_type',
             rbName: '',
+            checkDetailsChanged: true,
             template: `<% let dataPubAccessRights = record['metadata']['access-rights'];
                         if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
                           return 'article';
