@@ -963,8 +963,6 @@ export module Services {
 
               let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
               let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
-              
-              // let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
               let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, filesOrURLsAttached);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - post update check isEmbargoed '+isEmbargoed);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - targetState '+JSON.stringify(sails.config.figshareAPI.mapping.targetState));
@@ -994,10 +992,7 @@ export module Services {
 
           let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
           let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, articleFileList);
-
-          // let isEmbargoed = (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file');
           let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, filesOrURLsAttached);
-          //requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false
           let isEmbargoCleared = await this.isClearEmbargoNeeded(requestEmbargoBody, articleId, articleDetails);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - post update check 2 isEmbargoed '+isEmbargoed);
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare - post update check 2 isEmbargoCleared '+isEmbargoCleared);
@@ -1006,11 +1001,6 @@ export module Services {
 
             let embargoDetailsChanged = await this.checkEmbargoDetailsChanged(requestEmbargoBody, articleId, articleDetails);
             if(embargoDetailsChanged) {
-
-              if(articleApprovedPublished) {
-                let customError: RBValidationError = new RBValidationError('Cannot add embargo to public item '+articleId);
-                throw customError;
-              }
   
               //validate requestEmbargoBody
               this.validateEmbargoRequestBody(record, requestEmbargoBody);
@@ -1393,14 +1383,9 @@ export module Services {
                 //Figshare rules allow for full article embargo to be set regardless if there are files uploaded however a file 
                 //embargo can be set only after at least one file has been successfully uploaded however it's best to allow the
                 //file upload process to run it's course and set file embargo after processing of file uploads
-
                 let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
                 let filesOrURLsAttached = await this.checkArticleHasURLsOrFilesAttached(articleId, {});
-                
-                // (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true) || (filesOrURLsAttached && requestEmbargoBody[this.embargoTypeFA] == 'file')
                 let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, filesOrURLsAttached);
-                
-                //requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false
                 let isEmbargoCleared = await this.isClearEmbargoNeeded(requestEmbargoBody, articleId, articleDetails);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - final check isEmbargoed '+isEmbargoed);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - final check isEmbargoCleared '+isEmbargoCleared);
@@ -1469,11 +1454,7 @@ export module Services {
                   //File embargo can be set only if there are file attachments and these have been successfully uploaded 
                   //therefore if the attachments are sigle URL link then only embargo type article can be set     
                   let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
-                  
-                  // (requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == true
                   let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, false);
-                  
-                  // requestEmbargoBody[this.embargoTypeFA] == 'article' && requestEmbargoBody[this.isEmbargoedFA] == false
                   let isEmbargoCleared = await this.isClearEmbargoNeeded(requestEmbargoBody, articleId, articleDetails);
                   sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - in progress check isEmbargoed '+isEmbargoed);
                   sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - in progress check isEmbargoCleared '+isEmbargoCleared);
