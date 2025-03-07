@@ -1042,6 +1042,10 @@ export module Services {
         
       } catch (error) {
           sails.log.error(error);
+          if(!_.isEmpty(_.get(error,'response.data.message',''))) {
+            let customError: RBValidationError = new RBValidationError(_.get(error,'response.data.message'));
+            throw customError;
+          }
           throw error;
       }
 
@@ -1181,15 +1185,20 @@ export module Services {
           } else if(regexValidation != ''){
             let val = _.get(requestBody,field.figName,'');
             let caseSensitive = _.get(validation,'caseSensitive',true);
-            if(caseSensitive) {
-              let re = new RegExp(regexValidation);
-              if(!re.test(val)) {
-                valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
-              }
+            let skipIfEmpty = _.get(validation,'skipIfEmpty',false);
+            if(skipIfEmpty && _.trim(val) == '') {
+              //do nothing
             } else {
-              let re = new RegExp(regexValidation,'i');
-              if(!re.test(val)) {
-                valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
+              if(caseSensitive) {
+                let re = new RegExp(regexValidation);
+                if(!re.test(val)) {
+                  valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
+                }
+              } else {
+                let re = new RegExp(regexValidation,'i');
+                if(!re.test(val)) {
+                  valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
+                }
               }
             }
           }
