@@ -1834,6 +1834,9 @@ export module Services {
               let fileName = fileUrl['name'];
               let fileNameNotes = 'File name: '+ fileName;
               let newUrl = {type: 'url', location: fileUrl['download_url'], notes: fileNameNotes};
+              if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
+                _.set(newUrl,'selected',true);
+              }
               sails.log[this.createUpdateFigshareArticleLogLevel](newUrl);
               //remove existing entry to the file attachment
               let locationList = _.get(record,this.dataLocationsPathInRecord);
