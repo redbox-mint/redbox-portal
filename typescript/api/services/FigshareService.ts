@@ -1329,7 +1329,7 @@ export module Services {
             let articleFileList = responseArticleList.data;
             let filePath = sails.config.figshareAPI.attachmentsFigshareTempDir;
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - attachmentsFigshareTempDir '+filePath);
-            
+
             if (!fs.existsSync(filePath)){
               fs.mkdirSync(filePath);
             }
@@ -1436,7 +1436,7 @@ export module Services {
 
             } else {
               for(let attachmentFile of dataLocations) {
-                if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
+                if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url' && !_.get(attachmentFile,'ignore',false)) {
 
                   let linkOnlyFileFound = false;
                   let linkOnlyId;
@@ -1833,7 +1833,7 @@ export module Services {
               sails.log[this.createUpdateFigshareArticleLogLevel](fileUrl);
               let fileName = fileUrl['name'];
               let fileNameNotes = 'File name: '+ fileName;
-              let newUrl = {type: 'url', location: fileUrl['download_url'], notes: fileNameNotes};
+              let newUrl = {type: 'url', location: fileUrl['download_url'], notes: fileNameNotes, ignore: true };
               if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
                 _.set(newUrl,'selected',true);
               }
