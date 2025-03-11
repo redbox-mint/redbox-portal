@@ -1435,8 +1435,9 @@ export module Services {
               }
 
             } else {
+              let onlyUploadURLIfSelected = sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedLocationURLs;
               for(let attachmentFile of dataLocations) {
-                if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url' && !_.get(attachmentFile,'ignore',false)) {
+                if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url' && ((onlyUploadURLIfSelected && _.get(attachmentFile,'selected',false)) || !onlyUploadURLIfSelected) && !_.get(attachmentFile,'ignore',false)) {
 
                   let linkOnlyFileFound = false;
                   let linkOnlyId;

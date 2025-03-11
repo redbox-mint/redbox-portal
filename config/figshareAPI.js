@@ -52,6 +52,7 @@ module.exports.figshareAPI = {
     figshareNeedsPublishAfterFileUpload: false,
     figshareForceEmbargoUpdateAlways: false,
     figshareOnlyPublishSelectedAttachmentFiles: true,
+    figshareOnlyPublishSelectedLocationURLs: true,
     //Optional to add a file upload finished indicator value saved in a field in the record
     // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',
     recordFigArticleId: 'metadata.figshare_article_id',
