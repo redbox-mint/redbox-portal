@@ -1253,10 +1253,19 @@ export module Services {
 
     private isFileAttachmentInDataLocations(dataLocations) {
       let foundAttachment = false;
-      for(let attachmentFile of dataLocations) {
-        if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment') {
-          foundAttachment = true;
-          break;
+      if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
+        for(let attachmentFile of dataLocations) {
+          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && attachmentFile.selected == true) {
+            foundAttachment = true;
+            break;
+          }
+        }
+      } else {
+        for(let attachmentFile of dataLocations) {
+          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment') {
+            foundAttachment = true;
+            break;
+          }
         }
       }
       return foundAttachment;
@@ -1264,9 +1273,17 @@ export module Services {
 
     private countFileAttachmentsInDataLocations(dataLocations) {
       let count = 0;
-      for(let attachmentFile of dataLocations) {
-        if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment') {
-          count++;
+      if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
+        for(let attachmentFile of dataLocations) {
+          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && attachmentFile.selected == true) {
+            count++;
+          }
+        }
+      } else {
+        for(let attachmentFile of dataLocations) {
+          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment') {
+            count++;
+          }
         }
       }
       return count;
@@ -1334,6 +1351,8 @@ export module Services {
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - file uploads still in progress');
               }
 
+              let onlyUploadIfSelected = sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles;
+
               for(let attachmentFile of dataLocations) {
                 if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment') {
                   sails.log[this.createUpdateFigshareArticleLogLevel](attachmentFile);
@@ -1347,7 +1366,7 @@ export module Services {
                   let filePendingToBeUploaded = _.find(articleFileList, ['name', fileName]);
                   let fileFullPath = filePath + '/' +fileName;
                   let thresholdAppliedFileSize = fileSize + sails.config.figshareAPI.diskSpaceThreshold;
-                  if(_.isUndefined(filePendingToBeUploaded) && !fileUploadsInProgress) {
+                  if(_.isUndefined(filePendingToBeUploaded) && !fileUploadsInProgress && ((onlyUploadIfSelected && _.get(attachmentFile,'selected',false)) || !onlyUploadIfSelected)) {
                     //if file name not found on the articleFileList means it's not yet uploaded and an agenda queue job needs to be queued 
                     sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - attachmentsTempDir '+sails.config.figshareAPI.attachmentsTempDir);
                     let diskSpace = await checkDiskSpace(sails.config.figshareAPI.attachmentsTempDir);
