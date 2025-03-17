@@ -59,6 +59,8 @@
     "passport-http-bearer": "^1.0.1",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "pino": "^9.6.0",
+    "pino-logfmt": "^0.1.1",
     "postcss": "^8.5.3",
     "rc": "1.2.8",
     "redux": "5.0.1",
@@ -121,6 +123,7 @@
     "istanbul": "^0.4.5",
     "mocha": "^11.1.0",
     "mocha-junit-reporter": "^2.2.1",
+    "pino-test": "^1.1.0",
     "supertest": "^7.0.0",
     "uglify-es": "^3.3.10"
   },
