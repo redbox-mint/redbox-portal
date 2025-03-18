@@ -27,18 +27,6 @@ function createPinoLogger(level, destination) {
 
     // At the moment, all logs are sent only to stdout, in logfmt format.
 
-    // Set the pino log level. This must be kept in sync with the sails log level.
-    // Set the log level by:
-    // 1. using the provided log level, or
-    // 2. getting the sails log level if it is set, otherwise
-    // 3. default to 'verbose'.
-    // if (typeof sails !== undefined) {
-    //     level = sails?.config?.log?.level ?? null;
-    // }
-    if (!level) {
-        level = 'verbose';
-    }
-
     // Set up a default configuration for pino.
     // This is used in configuring the logger and for testing.
     const options = {
@@ -76,53 +64,30 @@ function createPinoLogger(level, destination) {
             // fatal: 60, // pino
 
             // sails.js 'blank' is pino 'silent'
-            blank: _.noop,
+            // TODO: _.noop cannot be cloned by pino-logfmt
+            // blank: _.noop,
 
             // pino 'silent' is also a no-op
         },
-        level: level,
+        // Set the pino log level. This must be kept in sync with the sails log level.
+        // Initially set to 'verbose', then set to the sails.log.level in bootstrap.js.
+        level: level ?? 'verbose',
     };
 
     if (destination) {
         return pino(options, destination);
     } else {
         // Use the logfmt format instead of the default JSON format.
-        // options.transport = {
-        //     target: "pino-logfmt",
-        //     options: {
-        //         formatTime: true,
-        //         flattenNestedObjects: true,
-        //         convertToSnakeCase: true,
-        //     }
-        // };
+        options.transport = {
+            target: "pino-logfmt",
+            options: {
+                formatTime: true,
+                flattenNestedObjects: true,
+                convertToSnakeCase: true,
+            }
+        };
         return pino(options);
     }
-}
-
-/**
- * Create a custom sails.js logger using pino.
- * @param customLogger The custom logger to use as the sails.js logger.
- */
-function createCustomSailsLogger(customLogger) {
-    return {
-        // Wrap the pino logger so it passes the sails.js 'valid custom logger' check.
-        // Include the additional pino levels so that any log calls within pino work.
-        custom: {
-            silly: () => customLogger.silly(...arguments),
-            verbose: () => customLogger.verbose(...arguments),
-            // trace: () => customLogger.trace(...arguments),
-            debug: () => customLogger.debug(...arguments),
-            log: () => customLogger.log(...arguments),
-            info: () => customLogger.info(...arguments),
-            warn: () => customLogger.warn(...arguments),
-            error: () => customLogger.error(...arguments),
-            // crit: () => customLogger.crit(...arguments),
-            // fatal: () => customLogger.fatal(...arguments),
-            silent: () => customLogger.silent(...arguments),
-            // blank: () => customLogger.blank(...arguments),
-        },
-        inspect: false,
-    };
 }
 
 /**
@@ -148,9 +113,12 @@ function createNamespaceLogger(name, parentLogger, prefix, level) {
 
 
     let calcLevel = level ?? null;
-    // if (typeof sails !== undefined) {
-    //     calcLevel = sails.config.lognamespace[name] ?? null;
-    // }
+    // console.log(`CalcLevel initial ${calcLevel}`);
+    if (!calcLevel && typeof sails !== undefined) {
+        // console.log(`sails is available`);
+        calcLevel = sails.config.lognamespace[name] ?? calcLevel;
+        // console.log(`CalcLevel after sails lognamespace ${calcLevel}`);
+    }
 
     const bindings = {name: name};
     const options = {};
@@ -163,6 +131,7 @@ function createNamespaceLogger(name, parentLogger, prefix, level) {
         options['msgPrefix'] = prefix;
     }
 
+    // console.log(`newLogger bindings ${JSON.stringify(bindings)} options ${JSON.stringify(options)}`);
     const newLogger = parentLogger.child(bindings, options);
 
     // // for debugging:
@@ -186,11 +155,33 @@ function createNamespaceLogger(name, parentLogger, prefix, level) {
     return newLogger;
 }
 
-module.exports.log = {
-    ...createCustomSailsLogger(createPinoLogger()),
-};
+const customLogger = createPinoLogger();
 
-module.exports.logHelpers = {
+module.exports.log = {
+    // Wrap the pino logger so it passes the sails.js 'valid custom logger' check.
+    // Include the additional pino levels so that any log calls within pino work.
+    custom: {
+        silly: function silly() { customLogger.silly(...arguments)},
+        verbose: function verbose() { customLogger.verbose(...arguments)},
+        trace: function trace() { customLogger.trace(...arguments)},
+        debug: function debug() { customLogger.debug(...arguments)},
+        log: function log() { customLogger.log(...arguments)},
+        info: function info() { customLogger.info(...arguments)},
+        warn: function warn() { customLogger.warn(...arguments)},
+        error: function error() { customLogger.error(...arguments)},
+        crit: function crit() { customLogger.crit(...arguments)},
+        fatal: function fatal() { customLogger.fatal(...arguments)},
+        silent: function silent() { customLogger.silent(...arguments)},
+        blank: function blank() { customLogger.silent(...arguments)},
+    },
+    // Turn off the sails captains-log inspection.
+    inspect: false,
+    // Set a sails default log level.
+    level: 'verbose',
+    // Store the custom logger so it can be accessed.
+    customLogger: customLogger,
+    // Provide custom function to create a namespaced ('child') pino logger.
     createNamespaceLogger: createNamespaceLogger,
+    // Provide custom function to create a top-level pino logger.
     createPinoLogger: createPinoLogger,
 };
