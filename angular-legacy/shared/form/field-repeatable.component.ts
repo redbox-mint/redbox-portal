@@ -627,14 +627,14 @@ export class RepeatableContributor extends RepeatableContainer {
         <div class="col-xs-3 label-font">{{field.fields[0].nameColHdr}}</div>
         <div [attr.class]="field.fields[0].showRole? 'label-font col-xs-3':'label-font col-xs-4'" class="">{{field.fields[0].emailColHdr}}</div>
         <div class="label-font" [attr.class]="field.fields[0].showRole? 'label-font col-xs-3':'hidden'" >{{field.fields[0].roleColHdr}}</div>
-        <div *ngIf="field.fields[0].showOrcid" class="col-xs-2 label-font">{{field.fields[0].orcidColHdr}}</div>
+        <div *ngIf="field.fields[0].showOrcid" [attr.class]="field.showRole? (field.showTitle ? 'col-xs-2' : 'col-xs-3') :'col-xs-4'"><span  class='label-font'>{{field.fields[0].orcidColHdr}}</span></div>
       </div>
       <div class="row view-contributor" *ngFor="let fieldElem of field.fields; let i = index;">
         <div *ngIf="fieldElem.showTitle" class="col-xs-1">{{fieldElem.value.honorific}}</div>
         <div class="col-xs-3">{{fieldElem.value.text_full_name}}</div>
         <div [attr.class]="field.fields[0].showRole? 'col-xs-3':'col-xs-4'">{{fieldElem.value.email}}</div>
         <div [attr.class]="field.fields[0].showRole? 'col-xs-3':'hidden'">{{fieldElem.value.role}}</div>
-        <div *ngIf="field.fields[0].showOrcid" class="col-xs-2">{{fieldElem.value.orcid}}</div>
+        <div *ngIf="field.fields[0].showOrcid" [attr.class]="field.showRole? (field.showTitle ? 'col-xs-2' : 'col-xs-3') :'col-xs-4'">{{fieldElem.value.orcid}}</div>
       </div>
     </div>
   </ng-container>
