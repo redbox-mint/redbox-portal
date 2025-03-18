@@ -187,7 +187,6 @@ export class TreeSelectorComponent extends SimpleComponent {
     this.options = {
       useCheckbox: true,
       useTriState: false,
-      // getChildren: this.getChildren.bind(this),
       scrollContainer: document.body.parentElement,
       nodeClass: () => {
         return this.field.ccsClassName;
