@@ -1335,6 +1335,7 @@ export module Services {
             }
 
             let dataLocations = _.get(record,this.dataLocationsPathInRecord);
+            let dataLocationsAlreadyUploaded = _.filter(dataLocations,{ 'ignore': true });
             let foundFileAttachment = this.isFileAttachmentInDataLocations(dataLocations);
             let countFileAttachments = this.countFileAttachmentsInDataLocations(dataLocations);
             
@@ -1396,7 +1397,7 @@ export module Services {
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - recordAllFilesUploaded '+sails.config.figshareAPI.mapping.recordAllFilesUploaded);
               sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - articleFileList: ${JSON.stringify(articleFileList)}`);
 
-              if(!fileUploadsInProgress && articleFileList.length == countFileAttachments) {
+              if(!fileUploadsInProgress && ((articleFileList.length == countFileAttachments && !onlyUploadIfSelected) || ((articleFileList.length - dataLocationsAlreadyUploaded.length) == countFileAttachments && articleFileList.length >= dataLocationsAlreadyUploaded.length && onlyUploadIfSelected))) {
                 
                 //Update file embargo info if required
                 //Figshare rules allow for full article embargo to be set regardless if there are files uploaded however a file 
@@ -1597,8 +1598,8 @@ export module Services {
         }
 
         let fileStats =  fs.statSync(fileFullPath);
-        let apoxFileSize = this.formatBytes(fileStats.size);
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - fileFullPath '+fileFullPath + ' apoxFileSize '+ apoxFileSize);
+        let aproxFileSize = this.formatBytes(fileStats.size);
+        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - processFileUploadToFigshare - fileFullPath '+fileFullPath + ' aproxFileSize '+ aproxFileSize);
 
         if(fs.existsSync(fileFullPath) && fileStats.size > 0) {
           
@@ -1834,7 +1835,7 @@ export module Services {
               sails.log[this.createUpdateFigshareArticleLogLevel](fileUrl);
               let fileName = fileUrl['name'];
               let fileNameNotes = 'File name: '+ fileName;
-              let newUrl = {type: 'url', location: fileUrl['download_url'], notes: fileNameNotes, ignore: true };
+              let newUrl = {type: 'url', location: fileUrl['download_url'], notes: fileNameNotes, originalFileName: fileName, ignore: true };
               if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
                 _.set(newUrl,'selected',true);
               }
