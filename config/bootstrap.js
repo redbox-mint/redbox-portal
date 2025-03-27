@@ -113,7 +113,6 @@
 
  }
  
- 
  module.exports.bootstrap = function (cb) {
    if (sails.config.security.csrf === "false") {
      sails.config.security.csrf = false;
@@ -125,8 +124,10 @@
      sails.config.ng2.use_bundled = true;
      console.log("Using NG2 Bundled files.......");
    }
- 
-   
+
+   // Update the pino log level to the sails.log.level.
+   sails.config.log.customLogger.level = sails.config.log.level;
+
    // actual bootstrap...
    sails.log.debug("Starting boostrap process with boostrapAlways set to: " + sails.config.appmode.bootstrapAlways);
    actualBootstrap().then(response => {
