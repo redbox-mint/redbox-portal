@@ -5,8 +5,9 @@ import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefi
 import { LoDashTemplateUtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service';
 
 @Component({
-  selector: 'dashboard',
-  templateUrl: './dashboard.component.html'
+    selector: 'dashboard',
+    templateUrl: './dashboard.component.html',
+    standalone: false
 })
 export class DashboardComponent extends BaseComponent {
   config: any = {};

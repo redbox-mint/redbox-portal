@@ -8,10 +8,11 @@ import { FormBaseComponent } from '@researchdatabox/portal-ng-common';
  *
  */
 @Component({
-  selector: 'redbox-form-field',
-  template: `
+    selector: 'redbox-form-field',
+    template: `
     <ng-template formFieldComp></ng-template>
   `,
+    standalone: false
 })
 export class FormFieldWrapperComponent implements OnInit {
   @Input() compInfo: any = null as any;

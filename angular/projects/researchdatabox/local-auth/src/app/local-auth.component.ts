@@ -28,8 +28,9 @@ import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerServ
  *
  */
 @Component({
-  selector: 'local-auth',
-  templateUrl: './local-auth.component.html'
+    selector: 'local-auth',
+    templateUrl: './local-auth.component.html',
+    standalone: false
 })
 export class LocalAuthComponent extends BaseComponent {
   form: FormGroup = null as any;

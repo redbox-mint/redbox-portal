@@ -1,9 +1,10 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
-  selector: 'sort',
-  templateUrl: './sort.component.html',
-  styleUrls: ['./sort.component.scss']
+    selector: 'sort',
+    templateUrl: './sort.component.html',
+    styleUrls: ['./sort.component.scss'],
+    standalone: false
 })
 export class SortComponent {
 

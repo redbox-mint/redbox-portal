@@ -1,4 +1,4 @@
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService } from '@researchdatabox/portal-ng-common';
@@ -90,12 +90,10 @@ describe('ReportComponent', () => {
           provide: ReportService,
           useValue: reportService
         },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
+        provideAppInitializer(() => {
+        const initializerFn = (appInit)(inject(I18NEXT_SERVICE));
+        return initializerFn();
+      }),
         {
           provide: LOCALE_ID,
           deps: [I18NEXT_SERVICE],

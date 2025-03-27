@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { FormsModule } from "@angular/forms";
 import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
@@ -83,12 +83,10 @@ describe('AppComponent', () => {
           provide: UserService,
           useValue: userService
         },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
+        provideAppInitializer(() => {
+        const initializerFn = (appInit)(inject(I18NEXT_SERVICE));
+        return initializerFn();
+      }),
         {
           provide: LOCALE_ID,
           deps: [I18NEXT_SERVICE],

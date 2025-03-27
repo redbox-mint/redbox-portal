@@ -29,9 +29,10 @@ import { ModalDirective } from "ngx-bootstrap/modal";
  * Restore deleted records Component
  */
 @Component({
-  selector: 'deleted-records',
-  templateUrl: './deleted-records.component.html',
-  styleUrls: ['./deleted-records.component.scss']
+    selector: 'deleted-records',
+    templateUrl: './deleted-records.component.html',
+    styleUrls: ['./deleted-records.component.scss'],
+    standalone: false
 })
 export class DeletedRecordsComponent extends BaseComponent implements RecordSource {
   appName: string = 'deleted-records';
