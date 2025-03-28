@@ -109,6 +109,8 @@ export module Controllers {
       let postLoginUrl = null;
       if (req.session.redirUrl) {
         postLoginUrl = req.session.redirUrl;
+      } else if (req.query.redirUrl) {
+        postLoginUrl = req.query.redirUrl;
       } else {
         postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${ConfigService.getBrand(branding, 'auth').local.postLoginRedir}`;
       }
