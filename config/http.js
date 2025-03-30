@@ -89,6 +89,7 @@ module.exports.http = {
 
     order: [
       'cacheControl',
+      'redirectNoCacheHeaders',
       'startRequestTimer',
       'cookieParser',
       'redboxSession',
@@ -166,6 +167,22 @@ module.exports.http = {
 
     poweredBy:  function (req, res, next) {
       res.set('X-Powered-By', "QCIF");      
+      return next();
+    },
+
+    redirectNoCacheHeaders: function (req, res, next) {
+      const originalRedirect = res.redirect;
+
+      // Patch the redirect function so that it sets the no-cache headers
+      res.redirect = function(location) {
+
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
+        return originalRedirect.call(this, location);
+      };
+
       return next();
     },
 
