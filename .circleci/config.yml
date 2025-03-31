@@ -12,6 +12,13 @@ jobs:
             npm install
             node_modules/.bin/tsc
       - run:
+          name: Build generated api library for raido
+          command: |
+            cd support/raido
+            npm install
+            npm run pregenerate
+            npm run generate
+      - run:
           name: Install npm packages and compile for project
           command: |
             npm install --production
