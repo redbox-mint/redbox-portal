@@ -37,6 +37,9 @@
     background-color: $panel-branding-background-color !important;
     color: $panel-branding-color !important;
   }
+
+  .view-accordion .panel-group .main-expand-collapse {
+    display: none !important;
   }
 
   .panel-title > a{
