@@ -874,12 +874,16 @@ export module Services {
 
               if(_.has(responseCreate.data, this.locationFAR) && !_.isEmpty(responseCreate.data.location)) {
                 
-                let articleLocationURL = responseCreate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
-                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare articleLocationURL '+articleLocationURL);
+                let articleLocationURL = responseCreate.data.location;
+                sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - sendDataPublicationToFigshare articleLocationURL response '+articleLocationURL);
                 
                 if(_.isArray(this.figArticleURLPathInRecordList) && !_.isEmpty(this.figArticleURLPathInRecordList)) {
+
+                  let figArticleURLPathInRecordResponse = this.figArticleURLPathInRecordList[0] + '_response';
+                  _.set(record,figArticleURLPathInRecordResponse,articleLocationURL);
+
                   for(let figArticleURLPathInRecord of this.figArticleURLPathInRecordList) {
-                    _.set(record,figArticleURLPathInRecord,articleLocationURL);
+                    _.set(record,figArticleURLPathInRecord,`${sails.config.figshareAPI.frontEndURL}/${articleId}`);
                   }
                 }
                 
@@ -952,12 +956,16 @@ export module Services {
             
             if(_.has(responseUpdate.data, this.locationFAR) && !_.isEmpty(responseUpdate.data.location)) {
 
-              let articleLocationURL = responseUpdate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - articleLocationURL '+articleLocationURL);
+              let articleLocationURL = responseUpdate.data.location;
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - articleLocationURL response '+articleLocationURL);
               
               if(_.isArray(this.figArticleURLPathInRecordList) && !_.isEmpty(this.figArticleURLPathInRecordList)) {
+                
+                let figArticleURLPathInRecordResponse = this.figArticleURLPathInRecordList[0] + '_response';
+                _.set(record,figArticleURLPathInRecordResponse,articleLocationURL);
+
                 for(let figArticleURLPathInRecord of this.figArticleURLPathInRecordList) {
-                  _.set(record,figArticleURLPathInRecord,articleLocationURL);
+                  _.set(record,figArticleURLPathInRecord,`${sails.config.figshareAPI.frontEndURL}/${articleId}`);
                 }
               }
 
