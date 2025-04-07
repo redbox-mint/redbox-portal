@@ -9,12 +9,9 @@ import {
   ConfigService,
   getStubConfigService,
   getStubTranslationService,
-  appInit,
-  localeId,
   getStubRecordService,
   RecordService
 } from '@researchdatabox/portal-ng-common';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { PaginationModule } from 'ngx-bootstrap/pagination';
@@ -76,7 +73,6 @@ describe('DeletedRecordsComponent', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot(),
         BsDatepickerModule.forRoot(),
         PaginationModule.forRoot(),
         ModalModule.forRoot(),
@@ -100,19 +96,9 @@ describe('DeletedRecordsComponent', () => {
         {
           provide: RecordService,
           useValue: recordService
-        },
-        provideAppInitializer(() => {
-        const initializerFn = (appInit)(inject(I18NEXT_SERVICE));
-        return initializerFn();
-      }),
-        {
-          provide: LOCALE_ID,
-          deps: [I18NEXT_SERVICE],
-          useValue: localeId
         }
       ]
     });
-    TestBed.inject(I18NEXT_SERVICE);
     await testModule.compileComponents();
   });
 
