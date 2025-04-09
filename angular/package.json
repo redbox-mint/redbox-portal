@@ -36,7 +36,7 @@
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.2.7",
     "@angular/compiler-cli": "^19.2.6",
-    "@schematics/angular": "^18.2.10",
+    "@schematics/angular": "^19.2.7",
     "@types/jasmine": "~5.1.7",
     "@types/lodash": "^4.17.13",
     "@types/lodash-es": "^4.17.10",
