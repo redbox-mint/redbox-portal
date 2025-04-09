@@ -24,7 +24,7 @@
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "angular-i18next": "^19.1.0",
     "i18next-browser-languagedetector": "^8.0.0",
-    "i18next-http-backend": "^2.6.2",
+    "i18next-http-backend": "^3.0.2",
     "lodash-es": "^4.17.21",
     "luxon": "^3.5.0",
     "ngx-bootstrap": "^19.0.2",
