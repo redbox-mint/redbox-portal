@@ -121,7 +121,7 @@
     "istanbul": "^0.4.5",
     "mocha": "^11.1.0",
     "mocha-junit-reporter": "^2.2.1",
-    "supertest": "^7.0.0",
+    "supertest": "^7.1.0",
     "uglify-es": "^3.3.10"
   },
   "nyc": {
