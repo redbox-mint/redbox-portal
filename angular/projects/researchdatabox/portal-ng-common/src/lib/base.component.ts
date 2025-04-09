@@ -30,7 +30,8 @@ import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
 @Component({
-  template: '<p>Base Component</p>'
+    template: '<p>Base Component</p>',
+    standalone: false
 })
 export abstract class BaseComponent implements Initable {
 

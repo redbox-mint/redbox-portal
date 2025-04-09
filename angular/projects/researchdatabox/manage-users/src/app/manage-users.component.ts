@@ -7,8 +7,9 @@ import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStre
 import * as _ from 'lodash';
 
 @Component({
-  selector: 'manage-users',
-  templateUrl: './manage-users.component.html'
+    selector: 'manage-users',
+    templateUrl: './manage-users.component.html',
+    standalone: false
 })
 export class ManageUsersComponent extends BaseComponent {
 
