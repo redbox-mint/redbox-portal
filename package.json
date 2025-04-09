@@ -45,7 +45,7 @@
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "lucene-escape-query": "^1.0.1",
-    "luxon": "^3.5.0",
+    "luxon": "^3.6.1",
     "mini-css-extract-plugin": "^2.9.2",
     "moment": "^2.30.1",
     "mongodb": "^6.15.0",
