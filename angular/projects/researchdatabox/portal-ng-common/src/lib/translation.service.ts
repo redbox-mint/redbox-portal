@@ -125,7 +125,7 @@ export class TranslationService implements Service {
     }
   }
 
-  t(key: string) {
+  t(key: string):any {
     return this.i18NextService.t(key);
   }
 
