@@ -4,6 +4,8 @@ import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormsModule } from "@angular/forms";
 import { isEmpty as _isEmpty } from 'lodash-es';
+
+import { I18NextModule } from 'angular-i18next';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 
 import { ConfigService } from './config.service';
@@ -55,6 +57,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     BrowserModule,
     HttpClientModule,
     FormsModule,
+    I18NextModule.forRoot(),
     PaginationModule.forRoot()
   ],
   exports: [
