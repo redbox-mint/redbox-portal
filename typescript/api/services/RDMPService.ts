@@ -382,7 +382,8 @@ export module Services {
     }
 
     public queueTriggerCall(oid, record, options, user) {
-      if (this.metTriggerCondition(oid, record, options) === "true") {
+      const triggerCondition = _.get(options, "triggerCondition", "");
+      if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
         let jobName = _.get(options, "jobName", null);
         let triggerConfiguration = _.get(options, "triggerConfiguration", null);
         let queueMessage = {
