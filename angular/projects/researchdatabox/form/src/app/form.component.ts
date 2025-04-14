@@ -29,6 +29,10 @@ import { FormService } from './form.service';
  * Goals:
   - unopinionated layout
   - dynamic component loading at runtime
+  - defined form event lifecycle and ability to listen 
+  - validation and error handling
+  
+  Pending Goals:
   - support concurrent modifications
   
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>

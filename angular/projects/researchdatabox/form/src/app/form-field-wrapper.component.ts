@@ -1,8 +1,10 @@
-import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, ComponentRef, Type, Input, OnInit, ViewChild } from '@angular/core';
 import { FormFieldWrapperDirective } from './form-field-wrapper.directive';
-import { FormBaseComponent } from '@researchdatabox/portal-ng-common';
+import { FieldModel, FieldComponent, FieldConfig,  ComponentConfig } from '@researchdatabox/portal-ng-common';
 /**
- * Form Field Wrapper component
+ * Form Field Wrapper component. 
+ * 
+ * Allows for loose-coupling between fields and components, responsible for injection of fields/components.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
@@ -15,8 +17,9 @@ import { FormBaseComponent } from '@researchdatabox/portal-ng-common';
     standalone: false
 })
 export class FormFieldWrapperComponent implements OnInit {
-  @Input() compInfo: any = null as any;
-  @Input() data: any;
+  @Input() field?: FieldModel | null = null;
+  @Input() compClass?: typeof FieldComponent;
+  @Input() compConfig?: ComponentConfig<any>;
   
   @ViewChild(FormFieldWrapperDirective, {static: true}) formFieldDirective!: FormFieldWrapperDirective;
 
@@ -28,7 +31,7 @@ export class FormFieldWrapperComponent implements OnInit {
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
 
-    const componentRef = viewContainerRef.createComponent<FormBaseComponent>(this.compInfo);
+    const componentRef: ComponentRef<FieldComponent> = viewContainerRef.createComponent<FieldComponent>(this.compClass as Type<FieldComponent>);
     // componentRef.instance.data = this.data;
   }
 

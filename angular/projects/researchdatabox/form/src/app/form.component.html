@@ -1,3 +1,4 @@
 <ng-container *ngFor="let field of fields">
-  <redbox-form-field [compInfo]="field.componentInfo" [data]="field.data"></redbox-form-field>
+  <!--TODO: select which wrapper -->
+  <redbox-form-field [field]="field" [compClass]="field.compClass" ></redbox-form-field>
 </ng-container>  

@@ -1,22 +1,27 @@
-import { Component } from '@angular/core';
-import { FormBaseComponent, ModelBase } from "@researchdatabox/portal-ng-common";
+import { Component, Input } from '@angular/core';
+import { FieldComponent, FieldModel, ComponentConfig } from "@researchdatabox/portal-ng-common";
 
-export class TextField extends ModelBase<string> {
-  type: string = 'text'
-  constructor(initJson: any) {
-    super(initJson);
-    
-  }
+export class TextFieldModel extends FieldModel<string> {  
+  
 }
 
 @Component({
     selector: 'textfield',
     template: `
-  <span>Text Label</span>
-  <input type='text' value='hello!' />
+  <span>{{ field.config.label }}</span>
+  <input type='text' [formControl]="field.formModel" />
   `,
     standalone: false
 })
-export class TextFieldComponent extends FormBaseComponent {
+export class TextFieldComponent extends FieldComponent {
+  /**
+     * The field model associated with this component.
+     * 
+     * @type {FieldModel<any>}
+     * @memberof FieldComponent
+     */
+  @Input() public field?: TextFieldModel;
 
+  public override config?: ComponentConfig<string>;
+  
 }
