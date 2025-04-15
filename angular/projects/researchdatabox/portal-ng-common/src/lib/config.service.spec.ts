@@ -43,8 +43,8 @@ describe('ConfigService testing', () => {
   let httpTestingController: HttpTestingController;
   let httpClient: HttpClient;
 
-  beforeEach(function () {
-    TestBed.configureTestingModule({
+  beforeEach(async function () {
+    const testModule = TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
         {
@@ -57,6 +57,7 @@ describe('ConfigService testing', () => {
     httpClient = TestBed.inject(HttpClient);
     httpTestingController = TestBed.inject(HttpTestingController);
     configService = TestBed.inject(ConfigService);
+    await testModule.compileComponents();
   });
 
   it('should have a valid config object', function (done:any) {

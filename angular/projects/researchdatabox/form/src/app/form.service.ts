@@ -18,9 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Injectable, Inject } from '@angular/core';
-import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge } from 'lodash-es';
+import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
 import { ComponentClassMap, FieldClassMap, StaticComponentClassMap, StaticFieldClassMap, FieldCompMapEntry } from './static-comp-field.dictionary';
-import { FieldModel, FieldComponent, LoggerService, FieldConfig } from '@researchdatabox/portal-ng-common';
+import { FieldModel, FieldComponent, LoggerService, FieldComponentConfig } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 /**
  *
@@ -63,7 +63,7 @@ export class FormService {
     const formJson = {
       fields: [
         {
-          class: 'TextField',
+          class: 'TextFieldModel',
           compClass: 'TextFieldComponent',
           component: {
             name: 'project_name',
@@ -129,11 +129,11 @@ export class FormService {
         }
       } else {
         // should be resolved already
-        fieldClass = typeof this.fieldClassMap[field.class];
+        fieldClass = this.fieldClassMap[field.class];
         // if the compClass isn't explicitly defined, use the field class name, make sure a 'default' component is defined for each field 
-        componentClass = typeof this.compClassMap[field.compClass || field.class];
+        componentClass = this.compClassMap[field.compClass || field.class];
       }
-      if (!_isEmpty(fieldClass)) {
+      if (!_isUndefined(fieldClass)) {
         // TODO: handle missing field types
         if (!_isEmpty(componentClass)) {
           fieldArr.push({
@@ -158,7 +158,7 @@ export class FormService {
   protected createFieldInstances(fields:FieldCompMapEntry[]): FieldCompMapEntry[] {
     for (let fieldEntry of fields) {
       if (fieldEntry.fieldClass) {
-        const field = new fieldEntry.fieldClass(fieldEntry.json as FieldConfig);
+        const field = new (fieldEntry.fieldClass as any) (fieldEntry.json as FieldComponentConfig) as FieldModel;
         fieldEntry.field = field;
       } else {
         console.error(`Field class with name: ${fieldEntry.fieldClass} not found field class list. Check spelling and whether it is declared in the following list.`);

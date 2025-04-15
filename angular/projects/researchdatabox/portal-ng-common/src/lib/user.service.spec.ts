@@ -51,7 +51,7 @@ describe('UserService testing', () => {
         UtilityService,
         UserService        
       ]
-    })
+    }).compileComponents();
     httpClient = TestBed.inject(HttpClient);
     httpTestingController = TestBed.inject(HttpTestingController);
     configService = TestBed.inject(ConfigService);

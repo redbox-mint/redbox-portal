@@ -1,6 +1,6 @@
 import { Component, ComponentRef, Type, Input, OnInit, ViewChild } from '@angular/core';
 import { FormFieldWrapperDirective } from './form-field-wrapper.directive';
-import { FieldModel, FieldComponent, FieldConfig,  ComponentConfig } from '@researchdatabox/portal-ng-common';
+import { FieldModel, FieldComponent,  ComponentConfig } from '@researchdatabox/portal-ng-common';
 /**
  * Form Field Wrapper component. 
  * 
@@ -19,7 +19,7 @@ import { FieldModel, FieldComponent, FieldConfig,  ComponentConfig } from '@rese
 export class FormFieldWrapperComponent implements OnInit {
   @Input() field?: FieldModel | null = null;
   @Input() compClass?: typeof FieldComponent;
-  @Input() compConfig?: ComponentConfig<any>;
+  @Input() compConfig?: ComponentConfig;
   
   @ViewChild(FormFieldWrapperDirective, {static: true}) formFieldDirective!: FormFieldWrapperDirective;
 

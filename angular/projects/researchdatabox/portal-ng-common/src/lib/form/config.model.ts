@@ -1,24 +1,32 @@
 /**
- * Model for the field configuration.
+ * These classes are used to define the configuration for the form components. 
+ * 
+ * These can be used to generate JSON schema for validation, etc.
  */
-export class FieldConfig<ValueType = string> {
+
+/**
+ * Base configuration class for all components.
+ */
+export class ComponentConfig {
   // class name 
   public class: string = '';
-  // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
-  public disabled: boolean = false;
   // field name 
   public name: string = '';
-  // whether required
-  public required: boolean = false;
+}
+
+/**
+ * Config for the field component configuration, 
+ */
+export class FieldComponentConfig<ValueType = string | undefined> extends ComponentConfig {
+  // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
+  public disabled: boolean = false;
   // the default value
   public defaultValue: ValueType | undefined = undefined;
 }
-
-
 /** 
- * Model for the component configuration.
+ * Config for the layout component configuration.
  */
-export class ComponentConfig<ValueType = string> extends FieldConfig<ValueType> {
+export class ComponentLayoutConfig extends ComponentConfig {
   // the top-level container id value, note this is not the same as the field name
   public id: string = '';
   // the component/control type
@@ -31,5 +39,11 @@ export class ComponentConfig<ValueType = string> extends FieldConfig<ValueType> 
   public visible: boolean = true;
   // the editMode
   public editMode: boolean = true;
+
+}
+/**
+ * The data model that is storing the value (e.g. string, object, number, array)
+ */
+export class DataModelConfig {
 
 }
