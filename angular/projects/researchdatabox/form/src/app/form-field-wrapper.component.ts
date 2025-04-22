@@ -17,11 +17,13 @@ import { FieldModel, FieldComponent,  ComponentConfig } from '@researchdatabox/p
     standalone: false
 })
 export class FormFieldWrapperComponent implements OnInit {
-  @Input() field?: FieldModel | null = null;
+  @Input() field?: FieldModel | null | undefined = null;
   @Input() compClass?: typeof FieldComponent;
   @Input() compConfig?: ComponentConfig;
   
   @ViewChild(FormFieldWrapperDirective, {static: true}) formFieldDirective!: FormFieldWrapperDirective;
+
+  public componentRef?: ComponentRef<FieldComponent>; // Store the ref if needed later
 
   ngOnInit() {
     this.loadComponent();
@@ -31,10 +33,17 @@ export class FormFieldWrapperComponent implements OnInit {
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
 
-    const componentRef: ComponentRef<FieldComponent> = viewContainerRef.createComponent<FieldComponent>(this.compClass as Type<FieldComponent>);
+    this.componentRef = viewContainerRef.createComponent<FieldComponent>(this.compClass as Type<FieldComponent>);
+    this.componentRef.instance.field = this.field;
+    // componentRef.instance.config = this.compConfig;
     // componentRef.instance.data = this.data;
   }
 
   
-
+  ngOnDestroy() {
+    // Clean up the dynamically created component when the wrapper is destroyed
+    if (this.componentRef) {
+      this.componentRef.destroy();
+    }
+  }
 }

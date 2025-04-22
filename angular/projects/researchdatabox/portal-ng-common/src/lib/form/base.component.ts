@@ -8,9 +8,9 @@ import { FieldComponentConfig } from './config.model';
  *  - No 'field' property to enforce type safety, i.e. avoid `any`
  * 
  */
-export abstract class FieldComponent<ValueType = string> {
-  public field?: FieldModel<ValueType>;
-  public config?: FieldComponentConfig<ValueType>;
+export abstract class FieldComponent<ValueType = string | undefined> {
+  public field?: FieldModel<ValueType> | null;
+  public config?: FieldComponentConfig<ValueType> | null;
   
   get formControl(): FormControl<ValueType> {
     if (!this.field) {

@@ -20,6 +20,39 @@ else
   else
     echo "Cloning custom form component placeholder..."
     git clone "https://github.com/redbox-mint/portal-ng-form-custom.git" "${PORTAL_NG_FORM_CUSTOM_DIR}"
+    # Logic to implement support branching for core and custom form components if the custom form directory doesn't exist (CI build or first time running it in dev).
+    # The logic handles where the git command fails (uses the default branch for both).
+    # 1. Check if the core branch is specified, if not use the default branch
+    # 2. Check if the custom form branch is specified, if not use the core branch if it is not empty
+    PORTAL_NG_FORM_CUSTOM_BRANCH="$2"
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ $? -ne 0 ]; then
+      if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then 
+        echo "Custom form branch specified, using ${PORTAL_NG_FORM_CUSTOM_BRANCH}"
+        CURRENT_BRANCH="$PORTAL_NG_FORM_CUSTOM_BRANCH"
+      else
+        echo "No core branch specified, using default branch for core and custom form repositories"
+        CURRENT_BRANCH=""
+      fi 
+    else 
+      if [ -z "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
+        echo "No custom branch repo specified, checking current core branch '${CURRENT_BRANCH}'"
+        if [ "$CURRENT_BRANCH" != "master" ]; then
+        echo "Current core branch is not 'master', using it for custom form branch."
+        PORTAL_NG_FORM_CUSTOM_BRANCH="$CURRENT_BRANCH"
+        else
+        echo "Current core branch is 'master', not setting custom form branch automatically."
+        fi
+      else
+        echo "Custom form branch repo specified, using ${PORTAL_NG_FORM_CUSTOM_BRANCH} which is different from the current core branch ${CURRENT_BRANCH}"
+      fi
+    fi
+    if [[ -n "$CURRENT_BRANCH" && -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]]; then
+      echo "Checking out branch ${CURRENT_BRANCH} for custom form component placeholder..."
+      cd "${PORTAL_NG_FORM_CUSTOM_DIR}"
+      git checkout "${PORTAL_NG_FORM_CUSTOM_BRANCH}"
+      cd -
+    fi
   fi 
   echo "Building core..."
   buildAngularApp "portal-ng-common"

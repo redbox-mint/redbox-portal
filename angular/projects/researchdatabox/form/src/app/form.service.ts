@@ -73,16 +73,7 @@ export class FormService {
           }
         },
         // {
-        //   class: 'TextField',
-        //   definition: {
-        //     name: 'project_name',
-        //     label: 'Project Name',
-        //     type: 'text',
-        //     value: 'hello world!'
-        //   }
-        // },
-        // {
-        //   class: 'WorkspaceField',
+        //   class: 'FormCustomFieldModel',
         //   component: 'FormCustomComponent',
         //   module: 'custom',
         //   definition: {
@@ -98,7 +89,7 @@ export class FormService {
     const fields = await this.resolveFormFieldTypes(formJson);
     // Instantiate the field classes
     this.createFieldInstances(fields);
-    // Wire the vents
+    // Wire the events
 
     return fields;
   }
@@ -120,9 +111,19 @@ export class FormService {
         // 2. deal with genuine lazy-loading enabled components
         if (field.module == 'custom') {
           try {
-            componentClass = await this.customModuleFormCmpResolverService.getComponentClass(field.component);
-            console.log(componentClass);
-            this.compClassMap[field.component] = typeof componentClass;
+            // try the static version first
+            fieldClass = this.fieldClassMap[field.class];
+            if (_isUndefined(fieldClass)) {
+              // resolve the field class
+              fieldClass = await this.customModuleFormCmpResolverService.getFieldClass(field.class);
+            }
+            // try the static version first
+            componentClass = this.compClassMap[field.compClass || field.class];
+            if (_isUndefined(componentClass)) {
+              // resolve the component class
+              componentClass = await this.customModuleFormCmpResolverService.getComponentClass(field.component);
+              this.compClassMap[field.component] = typeof componentClass;
+            }
           } catch (e) {
             this.loggerService.error(`Failed to resolve component: ${field.component}`);
           }

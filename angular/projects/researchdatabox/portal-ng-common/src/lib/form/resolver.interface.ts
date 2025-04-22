@@ -6,5 +6,5 @@ export interface FormComponentResolver {
 }
 
 export interface FormFieldResolver {
-  getFieldClass(fieldName: string): Promise<FieldModel>;
+  getFieldClass(fieldName: string): Promise<typeof FieldModel>;
 }
