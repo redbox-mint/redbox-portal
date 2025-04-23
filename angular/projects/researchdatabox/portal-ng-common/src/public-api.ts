@@ -21,4 +21,6 @@ export * from './lib/form/base.model';
 export * from './lib/form/base.component';
 export * from './lib/form/config.model';
 export * from './lib/form/resolver.interface';
+export * from './lib/form/base-wrapper.component';
+export * from './lib/form/base-wrapper.directive';
 export * from './lib/portal-ng-common.module';

@@ -20,7 +20,7 @@ export abstract class FieldComponent<ValueType = string | undefined> {
     if (!control) {
       console.error("FieldComponent formControl returned null for field:", this.field);
       // Return a dummy control or throw, depending on desired behavior
-      throw new Error("FieldComponent: field. formModel is null.");
+      throw new Error("FieldComponent: field.formModel is null.");
     }
     return control as FormControl<ValueType>;
   }

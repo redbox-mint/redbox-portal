@@ -11,7 +11,7 @@ export class ComponentConfig {
   // class name 
   public class: string = '';
   // field name 
-  public name: string = '';
+  public name: string | null = null;
 }
 
 /**

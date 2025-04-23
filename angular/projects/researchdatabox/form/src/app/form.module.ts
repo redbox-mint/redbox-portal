@@ -23,14 +23,10 @@ import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/p
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
-import { FormFieldWrapperDirective } from './form-field-wrapper.directive';
 import { FormService } from './form.service';
-import { FormFieldWrapperComponent } from './form-field-wrapper.component';
 @NgModule({
   declarations: [
     FormComponent,
-    FormFieldWrapperComponent,
-    FormFieldWrapperDirective,
     TextFieldComponent
   ],
   imports: [

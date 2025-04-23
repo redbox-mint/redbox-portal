@@ -7,9 +7,9 @@ import { Directive, ViewContainerRef } from '@angular/core';
  *
  */
 @Directive({
-    selector: '[formFieldComp]',
+    selector: '[redboxBaseWrapper]',
     standalone: false
 })
-export class FormFieldWrapperDirective {
+export class BaseWrapperDirective {
   constructor(public viewContainerRef: ViewContainerRef) { }
 }

@@ -1,27 +1,29 @@
 import { Component, ComponentRef, Type, Input, OnInit, ViewChild } from '@angular/core';
-import { FormFieldWrapperDirective } from './form-field-wrapper.directive';
-import { FieldModel, FieldComponent,  ComponentConfig } from '@researchdatabox/portal-ng-common';
+import { BaseWrapperDirective } from './base-wrapper.directive';
+import { FieldModel } from './base.model';
+import { FieldComponent } from './base.component';
+import { ComponentConfig } from './config.model';
 /**
- * Form Field Wrapper component. 
+ * Form Component Wrapper. 
  * 
- * Allows for loose-coupling between fields and components, responsible for injection of fields/components.
+* This component is used to dynamically load a form component based on the provided configuration.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Component({
-    selector: 'redbox-form-field',
+    selector: 'redbox-base-wrapper',
     template: `
-    <ng-template formFieldComp></ng-template>
+    <ng-template redboxBaseWrapper></ng-template>
   `,
     standalone: false
 })
-export class FormFieldWrapperComponent implements OnInit {
+export class BaseWrapperComponent implements OnInit {
   @Input() field?: FieldModel | null | undefined = null;
   @Input() compClass?: typeof FieldComponent;
   @Input() compConfig?: ComponentConfig;
   
-  @ViewChild(FormFieldWrapperDirective, {static: true}) formFieldDirective!: FormFieldWrapperDirective;
+  @ViewChild(BaseWrapperDirective, {static: true}) formFieldDirective!: BaseWrapperDirective;
 
   public componentRef?: ComponentRef<FieldComponent>; // Store the ref if needed later
 
