@@ -1,4 +1,4 @@
-import { FieldComponentConfig } from './config.model';
+import { FormFieldComponentConfig } from './config.model';
 import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template, toLower as _toLowe, clone as _clone, cloneDeep as _cloneDeep } from 'lodash-es';
 
 import { FormControl } from '@angular/forms';
@@ -6,7 +6,7 @@ import { FormControl } from '@angular/forms';
  * Core model for form elements.
  * 
  */
-export abstract class Model<ValueType, ConfigType> {
+export abstract class FormModel<ConfigType> {
   // The configuration when the field is created
   public initConfig: ConfigType;
   // The "live" config
@@ -28,7 +28,7 @@ export abstract class Model<ValueType, ConfigType> {
  * Model for the form field configuration.
  * 
  */
-export class FieldModel<ValueType = string> extends Model<ValueType, FieldComponentConfig<ValueType> > {
+export class FormFieldModel<ValueType = string> extends FormModel< FormFieldComponentConfig<ValueType> > {
 
   // The value when the field is created
   public initValue?: ValueType | null;
@@ -38,7 +38,7 @@ export class FieldModel<ValueType = string> extends Model<ValueType, FieldCompon
   // TODO: strongly type 
   public validators?: any[] = [];
 
-  constructor(initConfig: FieldComponentConfig<ValueType>) {
+  constructor(initConfig: FormFieldComponentConfig<ValueType>) {
     super(initConfig);
   }
 

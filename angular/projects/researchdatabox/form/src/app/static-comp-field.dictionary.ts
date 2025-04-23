@@ -1,29 +1,29 @@
-import { FieldModel, FieldComponent } from "@researchdatabox/portal-ng-common";
+import { FormFieldModel, FormFieldComponent } from "@researchdatabox/portal-ng-common";
 import { TextFieldModel, TextFieldComponent } from "./component/textfield.component";
 
-export interface FieldCompMapEntry {
-  fieldClass?: FieldModel;
-  componentClass?: FieldComponent;
+export interface FormFieldCompMapEntry {
+  fieldClass?: FormFieldModel;
+  componentClass?: FormFieldComponent;
   json: any,
-  field?: FieldModel;
-  component?: FieldComponent;
+  field?: FormFieldModel;
+  component?: FormFieldComponent;
   wrapperClass?: string;
 }
 
 /** Field related */
-export interface FieldClassMap {
+export interface FormFieldClassMap {
   [index: string]: any;
 }
 
-export const StaticFieldClassMap: FieldClassMap = {
+export const StaticFieldClassMap: FormFieldClassMap = {
   'TextFieldModel': TextFieldModel
 };
 
 /** Component related */
-export interface ComponentClassMap {
+export interface FormComponentClassMap {
   [index: string]: any;
 }
-export const StaticComponentClassMap: ComponentClassMap = {
+export const StaticComponentClassMap: FormComponentClassMap = {
   
   'TextField': TextFieldComponent, // the default, to make the 
   'TextFieldComponent': TextFieldComponent

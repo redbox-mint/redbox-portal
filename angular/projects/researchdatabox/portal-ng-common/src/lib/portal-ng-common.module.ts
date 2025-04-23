@@ -19,8 +19,8 @@ import { TranslationService  } from './translation.service';
 import { RecordTableComponent } from './record-table.component';
 import { ReportService } from './report.service';
 import { HeaderSortComponent } from "./header-sort.component";
-import { BaseWrapperDirective } from './form/base-wrapper.directive';
-import { BaseWrapperComponent } from './form/base-wrapper.component';
+import { FormBaseWrapperDirective } from './form/base-wrapper.directive';
+import { FormBaseWrapperComponent } from './form/base-wrapper.component';
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
@@ -31,8 +31,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
 
 @NgModule({
   declarations: [
-    BaseWrapperComponent,
-    BaseWrapperDirective,
+    FormBaseWrapperComponent,
+    FormBaseWrapperDirective,
     RecordTableComponent,
     HeaderSortComponent
   ],
@@ -66,8 +66,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   exports: [
     I18NextModule,
     PaginationModule,
-    BaseWrapperComponent,
-    BaseWrapperDirective,
+    FormBaseWrapperComponent,
+    FormBaseWrapperDirective,
     RecordTableComponent,
     HeaderSortComponent,
   ]

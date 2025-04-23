@@ -1,6 +1,6 @@
-import { FieldModel } from './base.model';
+import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
-import { FieldComponentConfig } from './config.model';
+import { FormFieldComponentConfig } from './config.model';
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -8,9 +8,9 @@ import { FieldComponentConfig } from './config.model';
  *  - No 'field' property to enforce type safety, i.e. avoid `any`
  * 
  */
-export abstract class FieldComponent<ValueType = string | undefined> {
-  public field?: FieldModel<ValueType> | null;
-  public config?: FieldComponentConfig<ValueType> | null;
+export abstract class FormFieldComponent<ValueType = string | undefined> {
+  public field?: FormFieldModel<ValueType> | null;
+  public config?: FormFieldComponentConfig<ValueType> | null;
   
   get formControl(): FormControl<ValueType> {
     if (!this.field) {

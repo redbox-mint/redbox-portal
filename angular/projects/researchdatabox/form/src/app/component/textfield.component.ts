@@ -1,8 +1,8 @@
 import { Component, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { FieldComponent, FieldModel, FieldComponentConfig } from "@researchdatabox/portal-ng-common";
+import { FormFieldComponent, FormFieldModel, FormFieldComponentConfig } from "@researchdatabox/portal-ng-common";
 
-export class TextFieldModel extends FieldModel<string> {  
+export class TextFieldModel extends FormFieldModel<string> {  
  public override formModel: FormControl<string | null> = new FormControl<string | null>(''); 
  
 }
@@ -15,7 +15,7 @@ export class TextFieldModel extends FieldModel<string> {
   `,
     standalone: false
 })
-export class TextFieldComponent extends FieldComponent<string> {
+export class TextFieldComponent extends FormFieldComponent<string> {
   /**
      * The field model associated with this component.
      * 
@@ -23,6 +23,6 @@ export class TextFieldComponent extends FieldComponent<string> {
      * @memberof FieldComponent
      */
   @Input() public override field?: TextFieldModel;
-  public override config?: FieldComponentConfig<string>;
+  public override config?: FormFieldComponentConfig<string>;
   
 }

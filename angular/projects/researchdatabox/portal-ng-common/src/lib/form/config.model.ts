@@ -7,7 +7,7 @@
 /**
  * Base configuration class for all components.
  */
-export class ComponentConfig {
+export class FormComponentConfig {
   // class name 
   public class: string = '';
   // field name 
@@ -17,7 +17,7 @@ export class ComponentConfig {
 /**
  * Config for the field component configuration, 
  */
-export class FieldComponentConfig<ValueType = string | undefined> extends ComponentConfig {
+export class FormFieldComponentConfig<ValueType = string | undefined> extends FormComponentConfig {
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
   public disabled: boolean = false;
   // the default value
@@ -26,7 +26,7 @@ export class FieldComponentConfig<ValueType = string | undefined> extends Compon
 /** 
  * Config for the layout component configuration.
  */
-export class ComponentLayoutConfig extends ComponentConfig {
+export class FormComponentLayoutConfig extends FormComponentConfig {
   // the top-level container id value, note this is not the same as the field name
   public id: string = '';
   // the component/control type
@@ -44,6 +44,6 @@ export class ComponentLayoutConfig extends ComponentConfig {
 /**
  * The data model that is storing the value (e.g. string, object, number, array)
  */
-export class DataModelConfig {
+export class FormDataModelConfig {
 
 }

@@ -1,8 +1,8 @@
 import { Component, ComponentRef, Type, Input, OnInit, ViewChild } from '@angular/core';
-import { BaseWrapperDirective } from './base-wrapper.directive';
-import { FieldModel } from './base.model';
-import { FieldComponent } from './base.component';
-import { ComponentConfig } from './config.model';
+import { FormBaseWrapperDirective } from './base-wrapper.directive';
+import { FormFieldModel } from './base.model';
+import { FormFieldComponent } from './base.component';
+import { FormComponentConfig } from './config.model';
 /**
  * Form Component Wrapper. 
  * 
@@ -12,20 +12,20 @@ import { ComponentConfig } from './config.model';
  *
  */
 @Component({
-    selector: 'redbox-base-wrapper',
+    selector: 'redbox-form-base-wrapper',
     template: `
-    <ng-template redboxBaseWrapper></ng-template>
+    <ng-template redboxFormBaseWrapper></ng-template>
   `,
     standalone: false
 })
-export class BaseWrapperComponent implements OnInit {
-  @Input() field?: FieldModel | null | undefined = null;
-  @Input() compClass?: typeof FieldComponent;
-  @Input() compConfig?: ComponentConfig;
+export class FormBaseWrapperComponent implements OnInit {
+  @Input() field?: FormFieldModel | null | undefined = null;
+  @Input() compClass?: typeof FormFieldComponent;
+  @Input() compConfig?: FormComponentConfig;
   
-  @ViewChild(BaseWrapperDirective, {static: true}) formFieldDirective!: BaseWrapperDirective;
+  @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  public componentRef?: ComponentRef<FieldComponent>; // Store the ref if needed later
+  public componentRef?: ComponentRef<FormFieldComponent>; // Store the ref if needed later
 
   ngOnInit() {
     this.loadComponent();
@@ -35,7 +35,7 @@ export class BaseWrapperComponent implements OnInit {
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
 
-    this.componentRef = viewContainerRef.createComponent<FieldComponent>(this.compClass as Type<FieldComponent>);
+    this.componentRef = viewContainerRef.createComponent<FormFieldComponent>(this.compClass as Type<FormFieldComponent>);
     this.componentRef.instance.field = this.field;
     // componentRef.instance.config = this.compConfig;
     // componentRef.instance.data = this.data;
