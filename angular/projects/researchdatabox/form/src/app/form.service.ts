@@ -20,7 +20,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
 import { FormComponentClassMap, FormFieldClassMap, StaticComponentClassMap, StaticFieldClassMap, FormFieldCompMapEntry } from './static-comp-field.dictionary';
-import { FormFieldModel, FormFieldComponent, LoggerService, FormFieldComponentConfig } from '@researchdatabox/portal-ng-common';
+import { FormConfig, FormFieldModel, LoggerService, FormFieldModelConfig, FormComponentConfig } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 /**
  *
@@ -60,16 +60,16 @@ export class FormService {
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
   public async get(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<any> {
-    const formJson = {
+    const formJson: FormConfig = {
       fields: [
         {
-          class: 'TextFieldModel',
-          compClass: 'TextFieldComponent',
-          component: {
-            name: 'project_name',
-            label: 'Project Name',
-            type: 'text',
+          model: {
+            class: 'TextFieldModel',
             value: 'hello world!'
+          },
+          component: {
+            class: 'TextFieldComponent',
+            name: 'project_name'
           }
         },
         // {
@@ -83,12 +83,13 @@ export class FormService {
         //     value: 'hello world!'
         //   }
         // }
-      ]
-    };
+      ] 
+    } as FormConfig;
+    // const formConfig = (formJson as FormConfig);
     // Resove the field and component pairs
-    const fields = await this.resolveFormFieldTypes(formJson);
+    const fields = await this.resolveFormFieldClasses(formJson);
     // Instantiate the field classes
-    this.createFieldInstances(fields);
+    this.createFormFieldModelInstances(fields);
     // Wire the events
 
     return fields;
@@ -98,41 +99,48 @@ export class FormService {
     _merge(this.compClassMap, additionalTypes);
   }
 
-  protected async resolveFormFieldTypes(formJson: any): Promise<FormFieldCompMapEntry[]> {
+  protected async resolveFormFieldClasses(formConfig: FormConfig): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
     console.log('Resolving form field types...');
-    console.log(formJson);
-    for (let field of formJson.fields) {
+    console.log(formConfig);
+    const formFields = formConfig.fields || [];
+    for (let componentConfig of formFields) {
       let fieldClass: any;
       let componentClass: any;
-      if (!_isEmpty(field.module)) {
+      const fieldClassName:string = componentConfig.model?.class || '';
+      let componentClassName:string = componentConfig.component?.class || '';
+      if (_isEmpty(fieldClassName)) {
+        this.loggerService.error(`Field class name is empty for component: ${JSON.stringify(componentConfig)}`);
+        continue;
+      }
+      if (!_isEmpty(componentConfig.module)) {
         // TODO:
         // 1. for statically imported (e.g. modules) class doesn't have to be resolved here
         // 2. deal with genuine lazy-loading enabled components
-        if (field.module == 'custom') {
+        if (componentConfig.module == 'custom') {
           try {
             // try the static version first
-            fieldClass = this.fieldClassMap[field.class];
-            if (_isUndefined(fieldClass)) {
+            fieldClass = this.fieldClassMap[fieldClassName];
+            if (_isUndefined(fieldClass) && !_isEmpty(componentClassName)) {
               // resolve the field class
-              fieldClass = await this.customModuleFormCmpResolverService.getFieldClass(field.class);
+              fieldClass = await this.customModuleFormCmpResolverService.getFieldClass(componentClassName);
             }
             // try the static version first
-            componentClass = this.compClassMap[field.compClass || field.class];
+            componentClass = this.compClassMap[componentClassName || fieldClassName];
             if (_isUndefined(componentClass)) {
-              // resolve the component class
-              componentClass = await this.customModuleFormCmpResolverService.getComponentClass(field.component);
-              this.compClassMap[field.component] = typeof componentClass;
+              // resolve the component class using the component class name and if unspecified, use the field class name
+              componentClass = await this.customModuleFormCmpResolverService.getComponentClass(componentClassName || fieldClassName);
+              this.compClassMap[componentClassName || fieldClassName] = typeof componentClass;
             }
           } catch (e) {
-            this.loggerService.error(`Failed to resolve component: ${field.component}`);
+            this.loggerService.error(`Failed to resolve component: ${componentConfig.component}`);
           }
         }
       } else {
         // should be resolved already
-        fieldClass = this.fieldClassMap[field.class];
+        fieldClass = this.fieldClassMap[fieldClassName];
         // if the compClass isn't explicitly defined, use the field class name, make sure a 'default' component is defined for each field 
-        componentClass = this.compClassMap[field.compClass || field.class];
+        componentClass = this.compClassMap[componentClassName || fieldClassName];
       }
       if (!_isUndefined(fieldClass)) {
         // TODO: handle missing field types
@@ -140,14 +148,14 @@ export class FormService {
           fieldArr.push({
             fieldClass: fieldClass,
             compClass: componentClass,
-            json: field,
+            json: componentConfig,
           } as FormFieldCompMapEntry);
         } else {
-          console.error(`Component class with name: ${field.compClass} not found field class list. Check spelling and whether it is declared in the following list.`);
+          console.error(`Component class with name: ${componentClassName} not found field class list. Check spelling and whether it is declared in the following list.`);
           console.error(this.compClassMap);
         }
       } else {
-        console.error(`Field class with name: ${field.class} not found field class list. Check spelling and whether it is declared in the following list.`);
+        console.error(`Field class with name: ${fieldClassName} not found field class list. Check spelling and whether it is declared in the following list.`);
         console.error(this.fieldClassMap);
       }
     }
@@ -156,10 +164,10 @@ export class FormService {
     return fieldArr;
   }
   
-  protected createFieldInstances(fields:FormFieldCompMapEntry[]): FormFieldCompMapEntry[] {
+  protected createFormFieldModelInstances(fields:FormFieldCompMapEntry[]): FormFieldCompMapEntry[] {
     for (let fieldEntry of fields) {
       if (fieldEntry.fieldClass) {
-        const field = new (fieldEntry.fieldClass as any) (fieldEntry.json as FormFieldComponentConfig) as FormFieldModel;
+        const field = new (fieldEntry.fieldClass as any) (fieldEntry.json as FormFieldModelConfig) as FormFieldModel;
         fieldEntry.field = field;
       } else {
         console.error(`Field class with name: ${fieldEntry.fieldClass} not found field class list. Check spelling and whether it is declared in the following list.`);
@@ -169,3 +177,4 @@ export class FormService {
     return fields;
   }
 }
+

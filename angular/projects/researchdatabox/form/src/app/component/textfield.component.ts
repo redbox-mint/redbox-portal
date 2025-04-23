@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { FormFieldComponent, FormFieldModel, FormFieldComponentConfig } from "@researchdatabox/portal-ng-common";
+import { FormFieldComponent, FormFieldModel, FormComponentConfig } from "@researchdatabox/portal-ng-common";
 
 export class TextFieldModel extends FormFieldModel<string> {  
  public override formModel: FormControl<string | null> = new FormControl<string | null>(''); 
@@ -10,7 +10,7 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'textfield',
     template: `
-      <span>Texfield 1</span>
+      <span>Texfield New</span>
       <input type='text' [formControl]="formControl" />
   `,
     standalone: false
@@ -23,6 +23,6 @@ export class TextFieldComponent extends FormFieldComponent<string> {
      * @memberof FieldComponent
      */
   @Input() public override field?: TextFieldModel;
-  public override config?: FormFieldComponentConfig<string>;
+  public override config?: FormComponentConfig;
   
 }

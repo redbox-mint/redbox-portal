@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-
+import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent } from '@researchdatabox/portal-ng-common';
 
@@ -54,6 +54,12 @@ export class FormComponent extends BaseComponent {
   @Input() recordType: string;
   @Input() editMode: boolean;
   @Input() formName: string;
+  /** 
+   * The FormGroup instance
+   */
+  // form: FormGroup;
+  /** Convenience map that holds the  */
+
   // TODO: remove any
   fields: any[] = [];
   modulePaths:string[] = [];

@@ -2,7 +2,7 @@ import { Component, ComponentRef, Type, Input, OnInit, ViewChild } from '@angula
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
 import { FormFieldComponent } from './base.component';
-import { FormComponentConfig } from './config.model';
+import { FormComponentBaseConfig } from './config.model';
 /**
  * Form Component Wrapper. 
  * 
@@ -21,7 +21,7 @@ import { FormComponentConfig } from './config.model';
 export class FormBaseWrapperComponent implements OnInit {
   @Input() field?: FormFieldModel | null | undefined = null;
   @Input() compClass?: typeof FormFieldComponent;
-  @Input() compConfig?: FormComponentConfig;
+  @Input() compConfig?: FormComponentBaseConfig;
   
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 

@@ -1,6 +1,6 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
-import { FormFieldComponentConfig } from './config.model';
+import { FormComponentConfig } from './config.model';
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -10,7 +10,7 @@ import { FormFieldComponentConfig } from './config.model';
  */
 export abstract class FormFieldComponent<ValueType = string | undefined> {
   public field?: FormFieldModel<ValueType> | null;
-  public config?: FormFieldComponentConfig<ValueType> | null;
+  public config?: FormComponentConfig | null;
   
   get formControl(): FormControl<ValueType> {
     if (!this.field) {
