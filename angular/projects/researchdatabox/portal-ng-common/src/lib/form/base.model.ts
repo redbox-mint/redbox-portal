@@ -33,8 +33,7 @@ export class FormFieldModel<ValueType = string> extends FormModel< FormFieldMode
   // The value when the field is created
   public initValue?: ValueType | null;
 
-  // the actual bound value, intentionally renamed as 'model' to avoid confusion with overriding classes that might use an extension of this type
-  public formModel: FormControl<ValueType | null> = new FormControl<ValueType | null>(null);
+  public formControl: FormControl<ValueType | null> | null | undefined;
   // TODO: strongly type 
   public validators?: any[] = [];
 
@@ -44,24 +43,38 @@ export class FormFieldModel<ValueType = string> extends FormModel< FormFieldMode
 
   public override postCreate(): void {
     const defaultValue = _get(this.config, 'defaultValue', null);
-    this.initValue = _get(this.config, 'initValue', defaultValue);
+    this.initValue = _get(this.config, 'value', defaultValue);
     // TODO: create or configure the validators
-    
+
     // create the form model
-    this.formModel = new FormControl<ValueType | null>(this.initValue) as FormControl<ValueType | null>;
+    console.log("FormFieldModel: creating form model with value:", this.initValue);
+    this.formControl = new FormControl<ValueType | null>(this.initValue) as FormControl<ValueType | null>;
+    console.log("FormFieldModel: created form model:", this.formControl);
   }
   /**
    * Get the value of the field
    */
-  public getValue(): ValueType | null {
-    return this.formModel.value;
+  public getValue(): ValueType | null | undefined {
+    return this.formControl?.value;
   }
   /**
    * Set the value of the field
    * @param value the value to set
    */
   public setValue(value: ValueType | null): void {
-    this.formModel.setValue(value);
+    this.formControl?.setValue(value);
+  }
+
+  /**
+   * Primitive implementation returns the form control. Complex implementations should override this method to create complex form controls.
+   * @returns the form control
+   */
+  public getFormGroupEntry(): FormControl {
+    if (this.formControl) {
+      return this.formControl;
+    } else {
+      throw new Error('Form control is not defined');
+    }
   }
 }
 

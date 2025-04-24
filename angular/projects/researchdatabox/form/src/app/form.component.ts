@@ -20,7 +20,8 @@ import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDete
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent } from '@researchdatabox/portal-ng-common';
+import { FormFieldCompMapEntry } from './static-comp-field.dictionary';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig } from '@researchdatabox/portal-ng-common';
 
 import { FormService } from './form.service';
 /**
@@ -57,11 +58,12 @@ export class FormComponent extends BaseComponent {
   /** 
    * The FormGroup instance
    */
-  // form: FormGroup;
-  /** Convenience map that holds the  */
-
-  // TODO: remove any
-  fields: any[] = [];
+  form?: FormGroup;
+  /**
+   * The form components
+   */
+  components: FormFieldCompMapEntry[] = [];
+  formConfig?: FormConfig;
   modulePaths:string[] = [];
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -82,7 +84,24 @@ export class FormComponent extends BaseComponent {
 
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
-    this.fields = await this.formService.get(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+    try {
+      const formDef = await this.formService.getFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+      const components = formDef.components;
+      this.formConfig = formDef.formConfig;
+      // set up the form group
+      const formGroupMap = this.formService.groupComponentsByName(components);
+      this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
+      // TODO: set up the event handlers
+
+      // create the form group
+      this.form = new FormGroup(formGroupMap.withFormControl);
+
+      // setting this will trigger the form to be rendered
+      this.components = components;
+    } catch (error) {
+      this.loggerService.error(`Error loading form: ${error}`);
+      throw error;
+    }
     
   }
 

@@ -1,4 +1,4 @@
-import { Component, ComponentRef, Type, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
 import { FormFieldComponent } from './base.component';
@@ -18,27 +18,30 @@ import { FormComponentBaseConfig } from './config.model';
   `,
     standalone: false
 })
-export class FormBaseWrapperComponent implements OnInit {
-  @Input() field?: FormFieldModel | null | undefined = null;
-  @Input() compClass?: typeof FormFieldComponent;
-  @Input() compConfig?: FormComponentBaseConfig;
+export class FormBaseWrapperComponent implements OnInit, OnChanges {
+  @Input() model?: FormFieldModel | null | undefined = null;
+  @Input() componentClass?: typeof FormFieldComponent | null | undefined = null;
+  @Input() componentConfig?: FormComponentBaseConfig;
   
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
   public componentRef?: ComponentRef<FormFieldComponent>; // Store the ref if needed later
 
+  // See https://angular.dev/guide/components/lifecycle#ngoninit
   ngOnInit() {
     this.loadComponent();
+  }
+  
+  ngOnChanges() {
+    
   }
 
   loadComponent() {
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
 
-    this.componentRef = viewContainerRef.createComponent<FormFieldComponent>(this.compClass as Type<FormFieldComponent>);
-    this.componentRef.instance.field = this.field;
-    // componentRef.instance.config = this.compConfig;
-    // componentRef.instance.data = this.data;
+    this.componentRef = viewContainerRef.createComponent<FormFieldComponent>(this.componentClass as Type<FormFieldComponent>);
+    this.componentRef.instance.model = this.model;
   }
 
   

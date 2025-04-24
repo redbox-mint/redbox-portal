@@ -9,16 +9,16 @@ import { FormComponentConfig } from './config.model';
  * 
  */
 export abstract class FormFieldComponent<ValueType = string | undefined> {
-  public field?: FormFieldModel<ValueType> | null;
+  public model?: FormFieldModel<ValueType> | null;
   public config?: FormComponentConfig | null;
   
   get formControl(): FormControl<ValueType> {
-    if (!this.field) {
+    if (!this.model) {
       throw new Error("FieldComponent: field input is null.");
     }
-    const control = this.field.formModel;
+    const control = this.model.formControl;
     if (!control) {
-      console.error("FieldComponent formControl returned null for field:", this.field);
+      console.error("FieldComponent formControl returned null for field:", this.model);
       // Return a dummy control or throw, depending on desired behavior
       throw new Error("FieldComponent: field.formModel is null.");
     }

@@ -1,7 +1,7 @@
 /**
  * These classes are used to define the configuration for the form and form components. 
  * 
- * These can be used to generate JSON schema for validation, etc.
+ * These can be used to generate JSON schema for validation, etc. both on the client and server side.
  */
 
 /** The form definition */
@@ -29,15 +29,26 @@ export class FormConfig {
   // the default layout component
   defaultLayoutComponent?: string | null | undefined = null;
   // the components of this form
-  fields?: FormComponentConfig[] | null | undefined = null;
+  components?: FormComponentConfig[] | null | undefined = null;
+
+  // debug: show the form JSON
+  debugValue?: boolean = false;
 }
 
+export abstract class FormComponentIdentiy {
+  name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
+  class?: string | null | undefined; // makes the 'layout' optional
+}
 /**
  * The form component configuration, the basic building block config of the form.
  * 
  */
-export class FormComponentConfig {
-  layout?: FormComponentLayoutConfig | null;
+export class FormComponentConfig extends FormComponentIdentiy {
+  
+  // Either 'class' or 'layout' should be defined, but not both.
+  // Note: This exclusivity is not enforced at compile time by this class definition alone.
+  // the inheried `class` property makes the 'layout' optional
+  layout?: FormComponentLayoutConfig | null | undefined;
   model?: FormFieldModelConfig | null | undefined = null;
   component?: FormFieldComponentConfig | null | undefined = null; 
   module?: string | null | undefined = null;
@@ -46,25 +57,25 @@ export class FormComponentConfig {
 /**
  * Base configuration class for all components.
  */
-export class FormComponentBaseConfig {
+export class FormComponentBaseConfig extends FormComponentIdentiy {
   // class name 
-  public class: string = '';
-  // field name 
-  public name: string | null = null;
+  public override class: string = ''; // make the class mandatory
   // the view read-only state
   public readonly: boolean = false;
   // the visibility state
   public visible: boolean = true;
   // the editMode
   public editMode: boolean = true;
+  // the component/control type
+  public type: string = '';
+  // the label
+  public label: string = '';
 }
 
 /**
  * Config for the field model configuration, the data binding
  */
-export class FormFieldModelConfig<ValueType = string | undefined>  {
-  // class name 
-  public class: string = '';
+export class FormFieldModelConfig<ValueType = string | undefined> extends FormComponentIdentiy {
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
   public disabled: boolean = false;
   public value: ValueType | undefined = undefined;
@@ -78,12 +89,7 @@ export class FormFieldModelConfig<ValueType = string | undefined>  {
  * Config for the layout component configuration.
  */
 export class FormComponentLayoutConfig extends FormComponentBaseConfig {
-  // the top-level container id value, note this is not the same as the field name
-  public id: string = '';
-  // the component/control type
-  public type: string = '';
-  // the label
-  public label: string = '';
+
 }
 
 /**

@@ -1,3 +1,7 @@
-<ng-container *ngFor="let field of fields">
-  <redbox-form-base-wrapper [field]="field.field" [compClass]="field.compClass" ></redbox-form-base-wrapper>
-</ng-container>  
+<ng-container *ngFor="let component of components">
+  <redbox-form-base-wrapper [model]="component.model" [componentClass]="component.componentClass" ></redbox-form-base-wrapper>
+</ng-container>
+<ng-container *ngIf="components.length > 0 && formConfig?.debugValue">
+  <h3>Live Form Value</h3>
+  <pre [innerHtml]="form?.value | json"></pre>
+</ng-container>

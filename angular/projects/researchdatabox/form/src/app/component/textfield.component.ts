@@ -1,28 +1,26 @@
 import { Component, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponent, FormFieldModel, FormComponentConfig } from "@researchdatabox/portal-ng-common";
+import { get as _get } from 'lodash-es';
 
 export class TextFieldModel extends FormFieldModel<string> {  
- public override formModel: FormControl<string | null> = new FormControl<string | null>(''); 
- 
 }
 
 @Component({
-    selector: 'textfield',
+    selector: 'redbox-textfield',
     template: `
-      <span>Texfield New</span>
       <input type='text' [formControl]="formControl" />
   `,
     standalone: false
 })
 export class TextFieldComponent extends FormFieldComponent<string> {
   /**
-     * The field model associated with this component.
+     * The model associated with this component.
      * 
      * @type {FieldModel<any>}
      * @memberof FieldComponent
      */
-  @Input() public override field?: TextFieldModel;
+  @Input() public override model?: TextFieldModel;
   public override config?: FormComponentConfig;
   
 }
