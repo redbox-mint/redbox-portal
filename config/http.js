@@ -195,7 +195,7 @@ module.exports.http = {
           return _.endsWith(req.path, path);
         }));
         if (!_.isEmpty(isMatch)) {
-          cacheControlHeaderVal = 'no cache, no store';
+          cacheControlHeaderVal = 'no-cache, no-store';
           expiresHeaderVal = new Date(0).toUTCString();
         } else {
           cacheControlHeaderVal = 'max-age=' + sessionTimeoutSeconds + ', private';
