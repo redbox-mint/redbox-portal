@@ -40,7 +40,7 @@
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
     "language-data-commons-vocabs": "^1.0.1",
-    "less": "^4.2.2",
+    "less": "^4.3.0",
     "less-loader": "^12.2.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
