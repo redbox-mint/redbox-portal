@@ -76,6 +76,9 @@ else
     cp angular-custom.json angular.json
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
     mv angular-orig.json angular.json
+  else 
+    echo "Building form-custom placeholder..."
+    buildAngularApp "portal-ng-form-custom" "ignore-ouput"
   fi
   ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"

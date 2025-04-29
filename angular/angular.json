@@ -37,6 +37,29 @@
         }
       }
     },
+    "@researchdatabox/portal-ng-form-custom": {
+      "projectType": "library",
+      "root": "projects/researchdatabox/portal-ng-form-custom",
+      "sourceRoot": "projects/researchdatabox/portal-ng-form-custom/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/researchdatabox/portal-ng-form-custom/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
     "@researchdatabox/local-auth": {
       "projectType": "application",
       "schematics": {
