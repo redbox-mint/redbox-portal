@@ -19,8 +19,8 @@
 
 import { Injectable, Inject } from '@angular/core';
 import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge, isUndefined as _isUndefined, filter as _filter, forOwn as _forOwn } from 'lodash-es';
-import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap, FormFieldCompMapEntry } from './static-comp-field.dictionary';
-import { FormConfig, FormFieldModel, LoggerService, FormFieldModelConfig, FormFieldComponent } from '@researchdatabox/portal-ng-common';
+import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
+import { FormConfig, FormFieldModel, LoggerService, FormFieldModelConfig, FormFieldComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 /**
  *
@@ -64,6 +64,7 @@ export class FormService {
   public async getFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<any> {
     const formJson: FormConfig = {
       debugValue: true,
+      defaultComponentCssClasses: 'row',
       components: [
         {
           name: 'text_1',
@@ -72,8 +73,22 @@ export class FormService {
             value: 'hello world!'
           },
           component: {
-            class: 'TextFieldComponent',
-            label: 'TextField with wrapper:'
+            class: 'TextFieldComponent'
+          }
+        },
+        {
+          name: 'text_2',
+          layout: {
+            class: 'DefaultLayoutComponent',
+            label: 'TextField with default wrapper defined',
+            helpText: 'This is a help text'
+          },
+          model: { 
+            class: 'TextFieldModel',
+            value: 'hello world 2!'
+          },
+          component: {
+            class: 'TextFieldComponent'
           }
         },
         // {
@@ -108,8 +123,10 @@ export class FormService {
     for (let componentConfig of components) {
       let modelClass: typeof FormFieldModel | undefined = undefined;
       let componentClass: typeof FormFieldComponent | undefined = undefined;
+      let layoutClass: typeof FormFieldComponent | undefined = undefined;
       const modelClassName:string = componentConfig.model?.class || '';
       let componentClassName:string = componentConfig.component?.class || '';
+      let layoutClassName:string = componentConfig.layout?.class || '';
       if (_isEmpty(modelClassName)) {
         this.loggerService.error(`Model class name is empty for component: ${JSON.stringify(componentConfig)}`);
         continue;
@@ -130,8 +147,11 @@ export class FormService {
             componentClass = this.compClassMap[componentClassName || modelClassName];
             if (_isUndefined(componentClass)) {
               // resolve the component class using the component class name and if unspecified, use the field class name
-              componentClass = await this.customModuleFormCmpResolverService.getComponentClass(componentClassName || modelClassName);
+              componentClass = await this.getComponentClass(componentClassName || modelClassName, componentConfig.module);
               this.compClassMap[componentClassName || modelClassName] = componentClass;
+            }
+            if (!_isEmpty(layoutClassName)) {
+              layoutClass = await this.getComponentClass(layoutClassName, componentConfig.module);
             }
           } catch (e) {
             this.loggerService.error(`Failed to resolve component: ${componentConfig.component}`);
@@ -142,6 +162,10 @@ export class FormService {
         modelClass = this.modelClassMap[modelClassName];
         // if the compClass isn't explicitly defined, use the field class name, make sure a 'default' component is defined for each field 
         componentClass = this.compClassMap[componentClassName || modelClassName];
+
+        if (!_isEmpty(layoutClassName)) {
+          layoutClass = this.compClassMap[layoutClassName];
+        }
       }
       if (modelClass) {
         if (componentClass) {
@@ -149,18 +173,36 @@ export class FormService {
             modelClass: modelClass,
             componentClass: componentClass,
             compConfigJson: componentConfig,
+            layoutClass: layoutClass,
           } as FormFieldCompMapEntry);
         } else {
-          console.error(`Component class with name: ${componentClassName} not found in class list. Check spelling and whether it is declared in the following list.`);
-          console.error(this.compClassMap);
+          this.loggerService.error(`Component class with name: ${componentClassName} not found in class list. Check spelling and whether it is declared in the following list.`);
+          this.loggerService.error(this.compClassMap);
         }
       } else {
-        console.error(`Model class with name: ${modelClassName} not found class list. Check spelling and whether it is declared in the following list.`);
-        console.error(this.modelClassMap);
+        this.loggerService.error(`Model class with name: ${modelClassName} not found class list. Check spelling and whether it is declared in the following list.`);
+        this.loggerService.error(this.modelClassMap);
       }
     }
     this.loggerService.debug('Resolved form component types:', fieldArr);
     return fieldArr;
+  }
+
+  public async getComponentClass(componentClassName: string, module?:string | null): Promise<typeof FormFieldComponent | undefined> {
+    if (_isEmpty(componentClassName)) {
+      this.loggerService.error('Component class name is empty');
+      throw new Error('Component class name is empty');
+    }
+    let componentClass = this.compClassMap[componentClassName];
+    if (_isUndefined(componentClass) && !_isEmpty(module)) {
+       await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
+    }
+    if (_isUndefined(componentClass)) {
+      this.loggerService.error(`Component class with name: ${componentClassName} not found in class list. Check spelling and whether it is declared in the following list.`);
+      this.loggerService.error(this.compClassMap);
+      throw new Error(`Component class with name: ${componentClassName} not found in class list. Check`);
+    }
+    return componentClass
   }
   
   protected createFormFieldModelInstances(components:FormFieldCompMapEntry[]): FormFieldCompMapEntry[] {
@@ -169,8 +211,8 @@ export class FormService {
         const model = new (compEntry.modelClass as any) (compEntry.compConfigJson.model as FormFieldModelConfig) as FormFieldModel;
         compEntry.model = model;
       } else {
-        console.warn(`Model class with name: ${compEntry.modelClass} not found field class list. Check spelling and whether it is declared in the following list.`);
-        console.error(this.modelClassMap);
+        this.loggerService.warn(`Model class with name: ${compEntry.modelClass} not found field class list. Check spelling and whether it is declared in the following list.`);
+        this.loggerService.error(this.modelClassMap);
       }
     }
     return components;

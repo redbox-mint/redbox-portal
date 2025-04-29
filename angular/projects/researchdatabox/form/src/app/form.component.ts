@@ -20,8 +20,7 @@ import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDete
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { FormFieldCompMapEntry } from './static-comp-field.dictionary';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 
 import { FormService } from './form.service';
 /**

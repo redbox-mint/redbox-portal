@@ -21,6 +21,5 @@ export class TextFieldComponent extends FormFieldComponent<string> {
      * @memberof FieldComponent
      */
   @Input() public override model?: TextFieldModel;
-  public override config?: FormComponentConfig;
   
 }

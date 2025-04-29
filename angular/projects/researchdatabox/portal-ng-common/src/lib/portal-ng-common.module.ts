@@ -21,6 +21,7 @@ import { ReportService } from './report.service';
 import { HeaderSortComponent } from "./header-sort.component";
 import { FormBaseWrapperDirective } from './form/base-wrapper.directive';
 import { FormBaseWrapperComponent } from './form/base-wrapper.component';
+import { DefaultLayoutComponent } from './form/default-layout.component';
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
@@ -33,6 +34,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   declarations: [
     FormBaseWrapperComponent,
     FormBaseWrapperDirective,
+    DefaultLayoutComponent,
     RecordTableComponent,
     HeaderSortComponent
   ],
@@ -68,6 +70,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     PaginationModule,
     FormBaseWrapperComponent,
     FormBaseWrapperDirective,
+    DefaultLayoutComponent,
     RecordTableComponent,
     HeaderSortComponent,
   ]

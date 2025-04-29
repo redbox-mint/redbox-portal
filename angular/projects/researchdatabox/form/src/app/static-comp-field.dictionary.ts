@@ -1,15 +1,6 @@
-import { FormFieldModel, FormFieldComponent } from "@researchdatabox/portal-ng-common";
 import { TextFieldModel, TextFieldComponent } from "./component/textfield.component";
+import { DefaultLayoutComponent } from "@researchdatabox/portal-ng-common";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
-
-export interface FormFieldCompMapEntry {
-  modelClass?: typeof FormFieldModel | null;
-  componentClass?: typeof FormFieldComponent | null;
-  compConfigJson: any,
-  model?: FormFieldModel | null;
-  component?: FormFieldComponent | null;
-  wrapperClass?: string;
-}
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -26,6 +17,9 @@ export const StaticModelCompClassMap = {
     model: TextFieldModel, 
     component: TextFieldComponent 
   },
+  'DefaultLayoutComponent': {
+    component: DefaultLayoutComponent
+  }
 };
 
 
