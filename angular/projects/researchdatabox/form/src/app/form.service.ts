@@ -102,14 +102,18 @@ export class FormService {
           }
         },
         // {
-        //   class: 'FormCustomFieldModel',
-        //   component: 'FormCustomComponent',
         //   module: 'custom',
-        //   definition: {
-        //     name: 'project_name',
-        //     label: 'Project Name',
-        //     type: 'text',
-        //     value: 'hello world!'
+        //   component: {
+        //     class: 'FormCustomComponent',
+        //   },
+        //   model: {
+        //     class: 'FormCustomFieldModel',
+        //     config: {
+        //       name: 'project_name',
+        //       label: 'Project Name',
+        //       type: 'text',
+        //       value: 'hello world!'
+        //     }
         //   }
         // }
       ] 
@@ -151,7 +155,7 @@ export class FormService {
             modelClass = this.modelClassMap[modelClassName];
             if (_isUndefined(modelClass) && !_isEmpty(componentClassName)) {
               // resolve the field class
-              modelClass = await this.customModuleFormCmpResolverService.getFieldClass(componentClassName);
+              modelClass = await this.customModuleFormCmpResolverService.getFieldClass(modelClassName);
             }
             // try the static version first
             componentClass = this.compClassMap[componentClassName || modelClassName];

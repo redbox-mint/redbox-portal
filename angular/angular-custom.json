@@ -806,6 +806,29 @@
         }
       }
     },
+    "@researchdatabox/portal-ng-form-custom": {
+      "projectType": "library",
+      "root": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom",
+      "sourceRoot": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
     "@researchdatabox/deleted-records": {
       "projectType": "application",
       "schematics": {
