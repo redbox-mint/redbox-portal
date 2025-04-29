@@ -10,14 +10,14 @@ import {
   getStubConfigService,
   getStubTranslationService,
   getStubRecordService,
-  RecordService
+  RecordService,
+  RecordResponseTable
 } from '@researchdatabox/portal-ng-common';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { DeletedRecordsComponent } from './deleted-records.component';
 import { ModalModule } from "ngx-bootstrap/modal";
-import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 
 describe('DeletedRecordsComponent', () => {
   let configService: any;
