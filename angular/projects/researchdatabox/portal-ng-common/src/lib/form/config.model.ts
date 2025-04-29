@@ -19,8 +19,9 @@ export class FormConfig {
   // the optional css clases to be applied to the form dom node
   viewCssClasses?: { [key: string]: string } | string | null | undefined = null;
   editCssClasses?: { [key: string]: string } | string | null | undefined = null;
-  // the optional css clases to be applied to each of the form component's host dom node
-  defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
+  // optional configuration to set in each compoment
+  defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
+
   
   
   // validation related config
@@ -38,15 +39,23 @@ export class FormConfig {
   debugValue?: boolean = false;
 }
 
-export abstract class FormComponentIdentity {
+export interface HasFormComponentIdentity {
   name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
+}
+
+export interface HasFormComponentClass {
   class?: string | null | undefined; // makes the 'layout' optional
 }
+
+export interface HasFormComponentConfigBlock {
+  config?: any;
+}
 /**
- * The form component configuration, the basic building block config of the form.
+ * The form component configuration definition.
  * 
  */
-export class FormComponentConfig extends FormComponentIdentity {
+export class FormComponentConfig implements HasFormComponentIdentity {
+  name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   // Either 'class' or 'layout' should be defined, but not both.
   // Note: This exclusivity is not enforced at compile time by this class definition alone.
   // the inheried `class` property makes the 'layout' optional
@@ -57,53 +66,72 @@ export class FormComponentConfig extends FormComponentIdentity {
 }
 
 /**
- * Base configuration class for all components.
+ * Minimum configuration block for all configuration components.
  */
-export class FormComponentBaseConfig extends FormComponentIdentity {
-  // class name 
-  public override class: string = ''; // make the class mandatory
+export class FormComponentBaseConfigBlock  {
   // the view read-only state
-  public readonly: boolean = false;
+  public readonly?: boolean = false;
   // the visibility state
-  public visible: boolean = true;
+  public visible?: boolean = true;
   // the editMode
-  public editMode: boolean = true;
+  public editMode?: boolean = true;
   // the component/control type
-  public type: string = '';
+  public type?: string = '';
   // the label
-  public label: string = '';
+  public label?: string = '';
   // the form-supplied css classes
-  public defaultComponentCssClasses: { [key: string]: string } | string | null | undefined = null;
-  
+  public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
 }
 
+export class FormFieldModelConfigBlock<ValueType> {
+  // TODO: rename to `bindingDisabled` or `disabledBinding`
+  public disableFormBinding?: boolean = false;
+  public value?: ValueType | undefined = undefined;
+  // the default value
+  public defaultValue?: ValueType | undefined = undefined;
+  // the data model describing this field's value
+  public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
+  // the validators
+}
 /**
  * Config for the field model configuration, aka the data binding
  */
-export class FormFieldModelConfig<ValueType = string | undefined> extends FormComponentIdentity {
+export class FormFieldModelConfig<ValueType = string | undefined> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+  public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
+  public class: string = ''; // make the class mandatory
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
-  public disabled: boolean = false;
-  public value: ValueType | undefined = undefined;
-  // the default value
-  public defaultValue: ValueType | undefined = undefined;
-  // the data model describing this field's value
-  public dataSchema: FormFieldModelDataConfig | string | null | undefined = null;
+  
+  public config?: FormFieldModelConfigBlock<ValueType> | null | undefined = null;
 
 }
-/** 
- * Config for the layout component configuration.
- */
-export class FormComponentLayoutConfig extends FormComponentBaseConfig {
+/** Layout specific config block */
+export class FormComponentLayoutConfigBlock extends FormComponentBaseConfigBlock {
   public labelRequiredStr: string = '';
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
 }
+/** 
+ * Config for the layout component configuration.
+ */
+export class FormComponentLayoutConfig implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+  public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
+  public class?: string | null | undefined; // makes the 'layout' optional
 
+  public config?: FormComponentLayoutConfigBlock | null | undefined = null; 
+}
+
+/**
+ * the UI-specific config block
+ */
+export class FormFieldComponentConfigBlock extends FormComponentBaseConfigBlock {
+  
+}
 /**
  * Config for the main component configuration.
  */
-export class FormFieldComponentConfig extends FormComponentBaseConfig {
-  
+export class FormFieldComponentConfig implements HasFormComponentClass, HasFormComponentConfigBlock {
+  public class?: string | null | undefined; // makes the 'layout' optional
+  public config?: FormFieldComponentConfigBlock | null | undefined = null;
 }
 
 /**

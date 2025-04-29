@@ -10,11 +10,11 @@ export abstract class FormModel<ConfigType> {
   // The configuration when the field is created
   public initConfig: ConfigType;
   // The "live" config
-  public config: ConfigType;
+  public fieldConfig: ConfigType;
 
   constructor(initConfig: ConfigType) {
     this.initConfig = initConfig;
-    this.config = _cloneDeep(initConfig);
+    this.fieldConfig = _cloneDeep(initConfig);
     this.postCreate();
   }
   /**
@@ -29,11 +29,10 @@ export abstract class FormModel<ConfigType> {
  * 
  */
 export class FormFieldModel<ValueType = string> extends FormModel< FormFieldModelConfig<ValueType> > {
-
   // The value when the field is created
-  public initValue?: ValueType | null;
+  public initValue?: ValueType | null | undefined;
 
-  public formControl: FormControl<ValueType | null> | null | undefined;
+  public formControl: FormControl<ValueType | null | undefined> | null | undefined;
   // TODO: strongly type 
   public validators?: any[] = [];
 
@@ -42,13 +41,13 @@ export class FormFieldModel<ValueType = string> extends FormModel< FormFieldMode
   }
 
   public override postCreate(): void {
-    const defaultValue = _get(this.config, 'defaultValue', null);
-    this.initValue = _get(this.config, 'value', defaultValue);
+    this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
+
     // TODO: create or configure the validators
 
     // create the form model
     console.log("FormFieldModel: creating form model with value:", this.initValue);
-    this.formControl = new FormControl<ValueType | null>(this.initValue) as FormControl<ValueType | null>;
+    this.formControl = new FormControl<ValueType | null | undefined>(this.initValue) as FormControl<ValueType | null | undefined>;
     console.log("FormFieldModel: created form model:", this.formControl);
   }
   /**

@@ -1,6 +1,6 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
-import { FormComponentBaseConfig, FormComponentConfig, FormComponentLayoutConfig } from './config.model';
+import { FormComponentBaseConfigBlock, FormFieldComponentConfig, FormComponentLayoutConfig } from './config.model';
 import { Directive, HostBinding } from '@angular/core'; // Import HostBinding
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -12,7 +12,7 @@ import { Directive, HostBinding } from '@angular/core'; // Import HostBinding
 @Directive()
 export abstract class FormFieldComponent<ValueType = string | undefined> {
   public model?: FormFieldModel<ValueType> | null | undefined = null;
-  public config?: FormComponentBaseConfig | FormComponentLayoutConfig;
+  public componentConfig?: FormFieldComponentConfig | FormComponentLayoutConfig;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   
@@ -24,14 +24,14 @@ export abstract class FormFieldComponent<ValueType = string | undefined> {
     this.formFieldCompMapEntry = formFieldCompMapEntry;
     // this.config = componentConfig;
     this.model = this.formFieldCompMapEntry.model as FormFieldModel<ValueType> | null;
-    this.config = this.formFieldCompMapEntry.compConfigJson.component as FormComponentBaseConfig | FormComponentLayoutConfig;
+    this.componentConfig = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentConfig | FormComponentLayoutConfig;
     this.initHostBindingCssClasses();
   }
 
   protected initHostBindingCssClasses() {
-    if (this.config?.defaultComponentCssClasses) {
-      if (typeof this.config.defaultComponentCssClasses === 'string') {
-      this.hostBindingCssClasses = { [this.config.defaultComponentCssClasses]: true };
+    if (this.componentConfig?.config?.defaultComponentCssClasses) {
+      if (typeof this.componentConfig.config?.defaultComponentCssClasses === 'string') {
+      this.hostBindingCssClasses = { [this.componentConfig.config?.defaultComponentCssClasses]: true };
       } else {
       // Assuming it's already in the desired { [key: string]: boolean } format
       // this.hostBindingCssClasses = this.config.defaultComponentCssClasses;
@@ -53,6 +53,8 @@ export abstract class FormFieldComponent<ValueType = string | undefined> {
     }
     return control as FormControl<ValueType>;
   }
+
+
 
   // Use @HostBinding to bind to the host element's class attribute
   // This getter returns an object similar to what you'd pass to [ngClass]

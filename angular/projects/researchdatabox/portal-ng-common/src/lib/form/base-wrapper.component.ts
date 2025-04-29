@@ -2,8 +2,8 @@ import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild } fr
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
 import { FormFieldComponent, FormFieldCompMapEntry } from './base.component';
-import { FormComponentBaseConfig, FormComponentLayoutConfig } from './config.model';
-import { set as _set } from 'lodash-es';
+import { FormComponentBaseConfigBlock, FormComponentLayoutConfig } from './config.model';
+import { set as _set, get as _get } from 'lodash-es';
 /**
  * Form Component Wrapper. 
  * 
@@ -23,8 +23,8 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   @Input() model?: FormFieldModel<ValueType> | null | undefined = null;
   @Input() componentClass?: typeof FormFieldComponent | null | undefined = null;
   @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
-  @Input() componentConfig?: FormComponentBaseConfig | FormComponentLayoutConfig;
-  @Input() defaultComponentCssClasses?: { [key: string]: string } | string | null = null;
+  @Input() componentConfig?: FormComponentBaseConfigBlock | FormComponentLayoutConfig;
+  @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
   
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
@@ -44,9 +44,8 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     viewContainerRef.clear();
 
     this.componentRef = viewContainerRef.createComponent<FormFieldComponent>(this.componentClass as Type<FormFieldComponent>);
-    if (this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
-      const defaultComponentCssClasses = this.defaultComponentCssClasses || '';
-      _set(this.formFieldCompMapEntry, 'compConfigJson.component.defaultComponentCssClasses', defaultComponentCssClasses);
+    if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
+      _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }
     await this.componentRef.instance.initComponent(this.formFieldCompMapEntry);
   }

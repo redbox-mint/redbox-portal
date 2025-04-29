@@ -64,13 +64,19 @@ export class FormService {
   public async getFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<any> {
     const formJson: FormConfig = {
       debugValue: true,
-      defaultComponentCssClasses: 'row',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
       components: [
         {
-          name: 'text_1',
+          name: 'text_1_event',
           model: { 
+            name: 'text_1_for_the_form',
             class: 'TextFieldModel',
-            value: 'hello world!'
+            config: {
+              value: 'hello world!',
+              defaultValue: 'hello world!',
+            }
           },
           component: {
             class: 'TextFieldComponent'
@@ -80,12 +86,16 @@ export class FormService {
           name: 'text_2',
           layout: {
             class: 'DefaultLayoutComponent',
-            label: 'TextField with default wrapper defined',
-            helpText: 'This is a help text'
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            }
           },
           model: { 
             class: 'TextFieldModel',
-            value: 'hello world 2!'
+            config: {
+              value: 'hello world 2!',
+            }
           },
           component: {
             class: 'TextFieldComponent'
