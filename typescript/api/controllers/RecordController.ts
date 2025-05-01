@@ -931,7 +931,8 @@ export module Controllers {
             return {};
           },
           generateUrl: (req, params) => {
-            return `${BrandingService.getFullPath(req.headers.node.req)}/record/${req.headers.node.req.param('oid')}/attach/${params.id}`;
+            const fullUrl = `${BrandingService.getFullPath(req.headers.node.req)}/record/${req.headers.node.req.param('oid')}/attach/${params.id}`
+            return fullUrl.replace(/^https?:/, '');
           }
           // async onUploadComplete(req, upload) {
           //   sails.log.verbose('::: File uploaded to staging:');
