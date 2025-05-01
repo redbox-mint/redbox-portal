@@ -31,7 +31,7 @@ import {
   BrandingModel
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
-import * as tus from 'tus-node-server';
+
 import * as fs from 'fs';
 import * as url from 'url';
 import { default as checkDiskSpace } from 'check-disk-space';
@@ -40,6 +40,8 @@ declare var _;
 
 declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService;
 declare var DashboardTypesService;
+
+
 /**
  * Package that contains all Controllers.
  */
@@ -56,7 +58,8 @@ export module Controllers {
     recordsService: RecordsService = RecordsService;
     searchService: SearchService;
     datastreamService: DatastreamService = RecordsService;
-
+    tusModule: any;
+    fileStoreModule: any;
     constructor() {
       super();
       let that = this;
@@ -70,7 +73,12 @@ export module Controllers {
       });
     }
 
+    protected async processDynamicImports() {
+      this.tusModule = await import('@tus/server');
+      this.fileStoreModule = await import('@tus/file-store');
 
+
+    }
 
     /**
      * Exported methods, accessible from internet.
@@ -895,41 +903,68 @@ export module Controllers {
       });
     }
 
-    protected tusServer: any;
+    protected tusServer;
 
     protected initTusServer() {
       if (!this.tusServer) {
-        let tusServerOptions = {
-          path: sails.config.record.attachments.path
-        }
-        this.tusServer = new tus.Server(tusServerOptions);
+              
+      const TusServer = this.tusModule.Server;
+      const FileStore = this.fileStoreModule.FileStore;
 
+        const uploadPath = sails.config.record.attachments.path;
         const targetDir = sails.config.record.attachments.stageDir;
+    
         if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir);
+          fs.mkdirSync(targetDir, { recursive: true });
         }
-        // path below is appended to the 'Location' header, so it must match the routes for this controller if you want to keep your sanity
-        this.tusServer.datastore = new tus.FileStore({
-          directory: targetDir
+    
+        const fileStore = new FileStore({
+          directory: targetDir,
         });
-        this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event) => {
-          sails.log.verbose(`::: File uploaded to staging:`);
-          sails.log.verbose(JSON.stringify(event));
-        });
-        this.tusServer.on(tus.EVENTS.EVENT_FILE_CREATED, (event) => {
-          sails.log.verbose(`::: File created:`);
-          sails.log.verbose(JSON.stringify(event));
+    
+        this.tusServer = new TusServer({
+          path: uploadPath,
+          datastore: fileStore,
+          async onUploadCreate(req, upload) {
+            sails.log.verbose('::: File created:');
+            sails.log.verbose(JSON.stringify(upload));
+            return {};
+          },
+          generateUrl: (req, params) => {
+            return `${req.url}/attach/${params.id}`;
+          }
+          // async onUploadComplete(req, upload) {
+          //   sails.log.verbose('::: File uploaded to staging:');
+          //   sails.log.verbose(JSON.stringify(upload));
+          //   return {};
+          // }
         });
       }
     }
 
-    protected getTusMetadata(req, field: string): string {
-      const entries = {};
-      _.each(req.headers['upload-metadata'].split(','), (entry) => {
-        const elems = entry.split(' ');
-        entries[elems[0]] = elems[1];
-      });
-      return Buffer.from(entries[field], 'base64').toString('ascii');
+    protected getTusMetadata(req, field: string): string | null {
+      const metadataHeader = req.headers['upload-metadata'];
+      if (!metadataHeader) return null;
+    
+      const entries: Object = {};
+      const parts = metadataHeader.split(',');
+    
+      for (const entry of parts) {
+        const [key, base64Value] = entry.trim().split(' ');
+        if (key && base64Value) {
+          entries[key] = base64Value;
+        }
+      }
+    
+      const encoded = entries[field];
+      if (!encoded) return null;
+    
+      try {
+        return Buffer.from(encoded, 'base64').toString('utf8');
+      } catch (e) {
+        sails.log.warn(`Failed to decode upload-metadata field "${field}":`, e);
+        return null;
+      }
     }
 
     public async doAttachment(req, res) {
@@ -941,11 +976,12 @@ export module Controllers {
       const method = _.toLower(req.method);
       if (method == 'post') {
         req.baseUrl = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`
+        req.url = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`;
       } else {
         req.baseUrl = '';
       }
       if (oid == "pending-oid") {
-        this.tusServer.handle(req, res);
+        await this.tusServer.handle(req, res);
         return;
       }
       const that = this;
@@ -1030,9 +1066,29 @@ export module Controllers {
           }
         }
         // process the upload...
-        this.tusServer.handle(req, res);
-        return Observable.of(oid);
+        await this.tusServer.handle(req, this.wrapNodeResponse(res));
+        // return Observable.of(oid);
       }
+    }
+
+    private wrapNodeResponse(res: any): any {
+      return {
+        writeHead(statusCode: number, statusMessage: string, headerEntries: [string]) {
+          let headersObject = {}
+          for(let i = 0; i< headerEntries.length; i = i+2){
+            headersObject[headerEntries[i]]=headerEntries[i+1];
+        }
+         
+          res.writeHead(statusCode, statusMessage, headersObject);
+        },
+        write: (...args: any[]) => res.write(...args),
+        end: (...args: any[]) => res.end(...args),
+        setHeader: (key: string, value: string) => res.setHeader(key, value),
+        getHeader: (key: string) => res.getHeader(key),
+        removeHeader: (key: string) => res.removeHeader(key),
+        on: (event: string, callback: (...args: any[]) => void) => res.on(event, callback),
+        off: (event: string, callback: (...args: any[]) => void) => res.off(event, callback)
+      };
     }
 
     public getWorkflowSteps(req, res) {
