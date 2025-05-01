@@ -931,7 +931,7 @@ export module Controllers {
             return {};
           },
           generateUrl: (req, params) => {
-            return `${req.url}/attach/${params.id}`;
+            return `${BrandingService.getFullPath(req.headers.node.req)}/record/${req.headers.node.req.param('oid')}/attach/${params.id}`;
           }
           // async onUploadComplete(req, upload) {
           //   sails.log.verbose('::: File uploaded to staging:');
