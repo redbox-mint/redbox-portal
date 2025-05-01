@@ -1071,6 +1071,12 @@ export module Controllers {
       }
     }
 
+    /**
+     * TODO: this is a temporary fix to wrap the node response object to fix an issue with how the headers are written based on
+     * there appears to be a bug in how tus server generates the values that it passes to the srvx library.
+     * @param res 
+     * @returns 
+     */
     private wrapNodeResponse(res: any): any {
       return {
         writeHead(statusCode: number, statusMessage: string, headerEntries: [string]) {
