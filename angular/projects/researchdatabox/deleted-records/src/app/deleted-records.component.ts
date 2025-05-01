@@ -18,11 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { ReportFilterDto } from "@researchdatabox/sails-ng-common/dist/report.model";
-import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 import { ModalDirective } from "ngx-bootstrap/modal";
 
 /**

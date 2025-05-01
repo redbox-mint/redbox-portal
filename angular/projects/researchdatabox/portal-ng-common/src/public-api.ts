@@ -24,4 +24,5 @@ export * from './lib/form/resolver.interface';
 export * from './lib/form/base-wrapper.component';
 export * from './lib/form/base-wrapper.directive';
 export * from './lib/form/default-layout.component'
+export * from './lib/lodash-template-utility.service';
 export * from './lib/portal-ng-common.module';
