@@ -702,6 +702,11 @@ export module Services {
       } else {
         req.session.logoutUrl = sails.config.auth.postLogoutRedir
       }
+      if(req.session.redirUrl != null) {
+        //the session url changes after login so we lose this value if we don't put it on the queru string
+        req.query.redirUrl = req.session.redirUrl;
+      }
+      
       sails.log.verbose(`OIDC login success, tokenset: `);
       sails.log.verbose(JSON.stringify(tokenSet));
       sails.log.verbose(`Claims:`);

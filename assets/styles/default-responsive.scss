@@ -18,11 +18,15 @@
     display:none;
   }
 
+  #system-message-area {
+    display: none !important;
+  }
+
   .print-display {
     display:inherit;
   }
   .site-branding-area {
-      background-color: #b1101a !important;
+    background-color: $site-branding-area-background !important;
   }
 
   div.panel {
@@ -30,7 +34,12 @@
   }
 
   .panel-heading {
-    background-color: #b1101a !important;
+    background-color: $panel-branding-background-color !important;
+    color: $panel-branding-color !important;
+  }
+
+  .view-accordion .panel-group .main-expand-collapse {
+    display: none !important;
   }
 
   .panel-title > a{

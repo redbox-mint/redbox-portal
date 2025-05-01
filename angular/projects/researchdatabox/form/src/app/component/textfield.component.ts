@@ -10,11 +10,12 @@ export class TextField extends ModelBase<string> {
 }
 
 @Component({
-  selector: 'textfield',
-  template: `
+    selector: 'textfield',
+    template: `
   <span>Text Label</span>
   <input type='text' value='hello!' />
   `,
+    standalone: false
 })
 export class TextFieldComponent extends FormBaseComponent {
 

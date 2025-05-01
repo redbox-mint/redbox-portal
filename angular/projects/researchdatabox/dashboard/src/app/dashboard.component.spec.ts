@@ -260,7 +260,6 @@ describe('DashboardComponent workspace', () => {
         }
       ]
     });
-    // TestBed.inject(I18NEXT_SERVICE);
     TestBed.inject(RecordService);
     await testModule.compileComponents();
   });

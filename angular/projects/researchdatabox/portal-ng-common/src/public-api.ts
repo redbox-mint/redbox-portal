@@ -20,4 +20,5 @@ export * from './lib/record-table.component';
 export * from './lib/form/form-base.model';
 export * from './lib/form/form-base.component';
 export * from './lib/form/form-component-resolver.interface';
+export * from './lib/lodash-template-utility.service';
 export * from './lib/portal-ng-common.module';

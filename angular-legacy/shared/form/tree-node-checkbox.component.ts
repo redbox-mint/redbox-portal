@@ -8,7 +8,7 @@ import { TreeNode } from 'angular-tree-component';
   template: `
     <ng-container *mobxAutorun="{dontDetach: true}">
       <input
-        class="tree-node-checkbox"
+        [class]="cssClassName"
         type="checkbox"
         [attr.aria-label]="ariaLabel" 
         (click)="node.mouseAction('checkboxClick', $event)"
@@ -20,4 +20,5 @@ import { TreeNode } from 'angular-tree-component';
 export class TreeNodeCheckboxComponent {
   @Input() node: TreeNode;
   @Input() ariaLabel: string;
+  @Input() cssClassName: string;
 }

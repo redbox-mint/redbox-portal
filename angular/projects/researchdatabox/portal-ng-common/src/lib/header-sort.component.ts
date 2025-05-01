@@ -3,8 +3,9 @@ import {BaseComponent} from "./base.component";
 import {LoggerService} from "./logger.service";
 
 @Component({
-  selector: 'header-sort',
-  templateUrl: './header-sort.component.html',
+    selector: 'header-sort',
+    templateUrl: './header-sort.component.html',
+    standalone: false
 })
 export class HeaderSortComponent extends BaseComponent {
   @Input() sort: string = '';

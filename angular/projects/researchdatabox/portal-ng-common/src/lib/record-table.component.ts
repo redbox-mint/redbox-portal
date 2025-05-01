@@ -42,8 +42,9 @@ import {HeaderSortComponent} from "./header-sort.component";
  * * Author: <a href='https://github.com/shilob' target='_blank'>Shilo B</a>
  */
 @Component({
-  selector: 'record-table',
-  templateUrl: './record-table.component.html'
+    selector: 'record-table',
+    templateUrl: './record-table.component.html',
+    standalone: false
 })
 export class RecordTableComponent extends BaseComponent {
   // row/column config

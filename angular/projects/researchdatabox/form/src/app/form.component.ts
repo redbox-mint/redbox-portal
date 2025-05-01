@@ -38,10 +38,11 @@ import { FormService } from './form.service';
 
  */
 @Component({
-  selector: 'redbox-form',
-  templateUrl: './form.component.html',
-  styleUrls: ['./form.component.scss'],
-  providers: [Location, {provide: LocationStrategy, useClass: PathLocationStrategy}]
+    selector: 'redbox-form',
+    templateUrl: './form.component.html',
+    styleUrls: ['./form.component.scss'],
+    providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
+    standalone: false
 })
 export class FormComponent extends BaseComponent {
   appName: string;

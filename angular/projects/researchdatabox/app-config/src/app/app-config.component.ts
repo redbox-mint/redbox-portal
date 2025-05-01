@@ -31,8 +31,9 @@ import { clone as _clone } from 'lodash'
  *
  */
 @Component({
-  selector: 'app-config',
-  templateUrl: './app-config.component.html'
+    selector: 'app-config',
+    templateUrl: './app-config.component.html',
+    standalone: false
 })
 export class AppConfigComponent extends BaseComponent {
 
