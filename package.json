@@ -51,7 +51,7 @@
     "mongodb": "^6.15.0",
     "node-cache": "^5.1.2",
     "node-schedule": "^2.1.1",
-    "nodemailer": "^6.10.0",
+    "nodemailer": "^7.0.2",
     "numeral": "^2.0.6",
     "nyc": "^17.1.0",
     "openid-client": "^5.7.0",
