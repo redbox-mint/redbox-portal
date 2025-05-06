@@ -67,6 +67,7 @@ export class FormService {
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
+      editCssClasses: "redbox-form form",
       components: [
         {
           name: 'text_1_event',

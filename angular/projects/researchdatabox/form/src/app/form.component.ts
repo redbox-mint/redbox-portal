@@ -16,10 +16,10 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
+import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef, HostBinding } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
-import { isEmpty as _isEmpty } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 
 import { FormService } from './form.service';
@@ -64,6 +64,7 @@ export class FormComponent extends BaseComponent {
   components: FormFieldCompMapEntry[] = [];
   formConfig?: FormConfig;
   modulePaths:string[] = [];
+  
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(ConfigService) private configService: ConfigService,
@@ -104,5 +105,30 @@ export class FormComponent extends BaseComponent {
     
   }
 
+  @HostBinding('class.edit-mode') get isEditMode() {
+    return this.editMode;
+  }
 
+  @HostBinding('class') get hostClasses(): string {
+    if (!this.formConfig) {
+      return '';
+    }
+    
+    const cssClasses = this.editMode ? this.formConfig.editCssClasses : this.formConfig.viewCssClasses;
+    
+    if (!cssClasses) {
+      return '';
+    }
+    
+    if (_isString(cssClasses)) {
+      return cssClasses as string;
+    }
+    
+    // If cssClasses is an object with key-value pairs, transform it to space-delimited string
+    // where keys with truthy values become class names
+    return Object.entries(cssClasses as { [key: string]: string })
+      .filter(([_, value]) => value)
+      .map(([className, _]) => className)
+      .join(' ');
+  }
 }
