@@ -56,6 +56,27 @@ describe('FormComponent', () => {
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
+  
+  // it('should render TextField component correctly in the DOM', async () => {
+  //   const fixture = TestBed.createComponent(FormComponent);
+  //   const component = fixture.componentInstance;
+    
+  //   // Wait for component to initialize and load form components
+  //   await fixture.whenStable();
+  //   fixture.detectChanges();
+    
+  //   // Query for the input element that should be created by the TextFieldComponent
+  //   const compiled = fixture.nativeElement as HTMLElement;
+  //   const inputElement = compiled.querySelector('input[type="text"]');
+    
+  //   // Verify the input element exists
+  //   expect(inputElement).toBeTruthy();
+    
+  //   // If you want to check specific properties of the TextField based on your config:
+  //   // For example, checking if it has the correct value from the model
+  //   // This assumes your FormComponent properly binds the TextFieldComponent and its model
+  //   // expect(inputElement?.value).toBe('hello world!');
+  // });
 
   // it(`should have as title '@researchdatabox/form'`, () => {
   //   const fixture = TestBed.createComponent(FormComponent);
