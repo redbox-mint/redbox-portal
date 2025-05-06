@@ -1,6 +1,6 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
-import { FormComponentBaseConfigBlock, FormFieldComponentConfig, FormComponentLayoutConfig } from './config.model';
+import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
 import { Directive, HostBinding } from '@angular/core'; // Import HostBinding
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -10,9 +10,9 @@ import { Directive, HostBinding } from '@angular/core'; // Import HostBinding
  * 
  */
 @Directive()
-export abstract class FormFieldComponent<ValueType = string | undefined> {
+export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   public model?: FormFieldModel<ValueType> | null | undefined = null;
-  public componentConfig?: FormFieldComponentConfig | FormComponentLayoutConfig;
+  public componentConfig?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   
@@ -24,7 +24,7 @@ export abstract class FormFieldComponent<ValueType = string | undefined> {
     this.formFieldCompMapEntry = formFieldCompMapEntry;
     // this.config = componentConfig;
     this.model = this.formFieldCompMapEntry.model as FormFieldModel<ValueType> | null;
-    this.componentConfig = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentConfig | FormComponentLayoutConfig;
+    this.componentConfig = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
     this.initHostBindingCssClasses();
   }
 
@@ -65,9 +65,9 @@ export abstract class FormFieldComponent<ValueType = string | undefined> {
 
 export interface FormFieldCompMapEntry {
   modelClass?: typeof FormFieldModel | null;
-  layoutClass?: typeof FormFieldComponent | null;
-  componentClass?: typeof FormFieldComponent | null;
+  layoutClass?: typeof FormFieldBaseComponent | null;
+  componentClass?: typeof FormFieldBaseComponent | null;
   compConfigJson: any,
   model?: FormFieldModel | null;
-  component?: FormFieldComponent | null;
+  component?: FormFieldBaseComponent | null;
 }

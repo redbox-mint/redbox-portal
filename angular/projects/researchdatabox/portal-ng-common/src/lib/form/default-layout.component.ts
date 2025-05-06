@@ -1,5 +1,5 @@
-import { FormFieldComponent, FormFieldCompMapEntry } from './base.component';
-import { FormComponentLayoutConfig } from './config.model';
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
+import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { Component } from '@angular/core';
 /**
@@ -43,15 +43,15 @@ import { Component } from '@angular/core';
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
-export class DefaultLayoutComponent<ValueType> extends FormFieldComponent<ValueType> {
+export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   helpTextVisible: boolean = false;
-  componentClass?: typeof FormFieldComponent | null;
-  public override componentConfig?: FormComponentLayoutConfig;
+  componentClass?: typeof FormFieldBaseComponent | null;
+  public override componentConfig?: FormComponentLayoutDefinition;
 
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
     await super.initComponent(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
-    this.componentConfig = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutConfig;
+    this.componentConfig = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
     
   }
 

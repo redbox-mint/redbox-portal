@@ -1,8 +1,8 @@
 import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
-import { FormFieldComponent, FormFieldCompMapEntry } from './base.component';
-import { FormComponentBaseConfigBlock, FormComponentLayoutConfig } from './config.model';
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
+import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
 import { set as _set, get as _get } from 'lodash-es';
 /**
  * Form Component Wrapper. 
@@ -21,14 +21,14 @@ import { set as _set, get as _get } from 'lodash-es';
 })
 export class FormBaseWrapperComponent<ValueType = string | undefined> implements OnInit, OnChanges {
   @Input() model?: FormFieldModel<ValueType> | null | undefined = null;
-  @Input() componentClass?: typeof FormFieldComponent | null | undefined = null;
+  @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
   @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
-  @Input() componentConfig?: FormComponentBaseConfigBlock | FormComponentLayoutConfig;
+  @Input() componentConfig?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
   
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  public componentRef?: ComponentRef<FormFieldComponent>; // Store the ref if needed later
+  public componentRef?: ComponentRef<FormFieldBaseComponent>; // Store the ref if needed later
 
   // See https://angular.dev/guide/components/lifecycle#ngoninit
   ngOnInit() {
@@ -43,7 +43,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
 
-    this.componentRef = viewContainerRef.createComponent<FormFieldComponent>(this.componentClass as Type<FormFieldComponent>);
+    this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent>(this.componentClass as Type<FormFieldBaseComponent>);
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
       _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }

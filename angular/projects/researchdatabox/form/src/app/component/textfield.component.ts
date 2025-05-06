@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { FormFieldComponent, FormFieldModel, FormComponentConfig } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldModel, FormComponentDefinition } from "@researchdatabox/portal-ng-common";
 import { get as _get } from 'lodash-es';
 
 export class TextFieldModel extends FormFieldModel<string> {  
@@ -13,7 +13,7 @@ export class TextFieldModel extends FormFieldModel<string> {
   `,
     standalone: false
 })
-export class TextFieldComponent extends FormFieldComponent<string> {
+export class TextFieldComponent extends FormFieldBaseComponent<string> {
   /**
      * The model associated with this component.
      * 
