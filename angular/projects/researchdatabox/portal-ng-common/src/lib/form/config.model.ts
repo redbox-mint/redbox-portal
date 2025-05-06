@@ -33,7 +33,7 @@ export class FormConfig {
   // the default layout component
   defaultLayoutComponent?: string | null | undefined = null;
   // the components of this form
-  components?: FormComponentDefinition[] | null | undefined = null;
+  componentDefinitions?: FormComponentDefinition[] | null | undefined = null;
 
   // debug: show the form JSON
   debugValue?: boolean = false;

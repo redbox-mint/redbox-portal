@@ -26,16 +26,16 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  <ng-container *ngIf="model && componentConfig"> 
-    <ng-container *ngIf="componentConfig?.config?.label">
+  <ng-container *ngIf="model && componentDefinition"> 
+    <ng-container *ngIf="componentDefinition?.config?.label">
     <label>
-      <span [innerHtml]="componentConfig?.config?.label"></span>
-      <span class="form-field-required-indicator" [innerHTML]="componentConfig?.config?.labelRequiredStr"></span>
-      <button type="button" class="btn btn-default" *ngIf="componentConfig?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+      <span [innerHtml]="componentDefinition?.config?.label"></span>
+      <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+      <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
       <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
       </button>
     </label>
-    <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentConfig?.config?.helpText"></span>
+    <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
     </ng-container>
     <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
   </ng-container>
@@ -46,12 +46,12 @@ import { Component } from '@angular/core';
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
-  public override componentConfig?: FormComponentLayoutDefinition;
+  public override componentDefinition?: FormComponentLayoutDefinition;
 
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
     await super.initComponent(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
-    this.componentConfig = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
+    this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
     
   }
 

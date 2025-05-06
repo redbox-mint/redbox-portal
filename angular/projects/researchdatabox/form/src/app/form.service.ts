@@ -67,7 +67,7 @@ export class FormService {
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
-      components: [
+      componentDefinitions: [
         {
           name: 'text_1_event',
           model: { 
@@ -133,7 +133,7 @@ export class FormService {
   protected async resolveFormComponentClasses(formConfig: FormConfig): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
     this.loggerService.debug('Resolving form component types...', formConfig);
-    const components = formConfig.components || [];
+    const components = formConfig.componentDefinitions || [];
     for (let componentConfig of components) {
       let modelClass: typeof FormFieldModel | undefined = undefined;
       let componentClass: typeof FormFieldBaseComponent | undefined = undefined;

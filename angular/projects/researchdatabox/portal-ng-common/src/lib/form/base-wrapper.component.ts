@@ -23,7 +23,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   @Input() model?: FormFieldModel<ValueType> | null | undefined = null;
   @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
   @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
-  @Input() componentConfig?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
+  @Input() componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
   
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;

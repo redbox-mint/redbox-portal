@@ -12,7 +12,7 @@ import { Directive, HostBinding } from '@angular/core'; // Import HostBinding
 @Directive()
 export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   public model?: FormFieldModel<ValueType> | null | undefined = null;
-  public componentConfig?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
+  public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   
@@ -24,14 +24,14 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     this.formFieldCompMapEntry = formFieldCompMapEntry;
     // this.config = componentConfig;
     this.model = this.formFieldCompMapEntry.model as FormFieldModel<ValueType> | null;
-    this.componentConfig = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
     this.initHostBindingCssClasses();
   }
 
   protected initHostBindingCssClasses() {
-    if (this.componentConfig?.config?.defaultComponentCssClasses) {
-      if (typeof this.componentConfig.config?.defaultComponentCssClasses === 'string') {
-      this.hostBindingCssClasses = { [this.componentConfig.config?.defaultComponentCssClasses]: true };
+    if (this.componentDefinition?.config?.defaultComponentCssClasses) {
+      if (typeof this.componentDefinition.config?.defaultComponentCssClasses === 'string') {
+      this.hostBindingCssClasses = { [this.componentDefinition.config?.defaultComponentCssClasses]: true };
       } else {
       // Assuming it's already in the desired { [key: string]: boolean } format
       // this.hostBindingCssClasses = this.config.defaultComponentCssClasses;
