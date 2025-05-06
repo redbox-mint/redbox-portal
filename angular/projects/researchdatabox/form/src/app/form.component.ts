@@ -22,7 +22,7 @@ import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 
-import { FormService } from './form.service';
+import { FormComponentsMap, FormService } from './form.service';
 /**
  * The ReDBox Form
  * 
@@ -85,19 +85,20 @@ export class FormComponent extends BaseComponent {
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
-      const formDef = await this.formService.getFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+      const formDef:FormComponentsMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
       const components = formDef.components;
       this.formConfig = formDef.formConfig;
       // set up the form group
-      const formGroupMap = this.formService.groupComponentsByName(components);
+      const formGroupMap = this.formService.groupComponentsByName(formDef);
       this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
       // TODO: set up the event handlers
 
       // create the form group
-      this.form = new FormGroup(formGroupMap.withFormControl);
-
-      // setting this will trigger the form to be rendered
-      this.components = components;
+      if (!_isEmpty(formGroupMap.withFormControl)) {
+        this.form = new FormGroup(formGroupMap.withFormControl);
+        // setting this will trigger the form to be rendered
+        this.components = components;
+      }
     } catch (error) {
       this.loggerService.error(`Error loading form: ${error}`);
       throw error;
