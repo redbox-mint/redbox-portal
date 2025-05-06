@@ -20,7 +20,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge, isUndefined as _isUndefined, filter as _filter, forOwn as _forOwn } from 'lodash-es';
 import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
-import { FormConfig, FormFieldModel, LoggerService, FormFieldModelConfig, FormFieldComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormConfig, FormFieldModel, LoggerService, FormFieldModelConfig, FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 /**
  *
@@ -67,7 +67,7 @@ export class FormService {
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
-      components: [
+      componentDefinitions: [
         {
           name: 'text_1_event',
           model: { 
@@ -75,7 +75,7 @@ export class FormService {
             class: 'TextFieldModel',
             config: {
               value: 'hello world!',
-              defaultValue: 'hello world!',
+              defaultValue: 'hello world!'
             }
           },
           component: {
@@ -133,11 +133,11 @@ export class FormService {
   protected async resolveFormComponentClasses(formConfig: FormConfig): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
     this.loggerService.debug('Resolving form component types...', formConfig);
-    const components = formConfig.components || [];
+    const components = formConfig.componentDefinitions || [];
     for (let componentConfig of components) {
       let modelClass: typeof FormFieldModel | undefined = undefined;
-      let componentClass: typeof FormFieldComponent | undefined = undefined;
-      let layoutClass: typeof FormFieldComponent | undefined = undefined;
+      let componentClass: typeof FormFieldBaseComponent | undefined = undefined;
+      let layoutClass: typeof FormFieldBaseComponent | undefined = undefined;
       const modelClassName:string = componentConfig.model?.class || '';
       let componentClassName:string = componentConfig.component?.class || '';
       let layoutClassName:string = componentConfig.layout?.class || '';
@@ -202,7 +202,7 @@ export class FormService {
     return fieldArr;
   }
 
-  public async getComponentClass(componentClassName: string, module?:string | null): Promise<typeof FormFieldComponent | undefined> {
+  public async getComponentClass(componentClassName: string, module?:string | null): Promise<typeof FormFieldBaseComponent | undefined> {
     if (_isEmpty(componentClassName)) {
       this.loggerService.error('Component class name is empty');
       throw new Error('Component class name is empty');

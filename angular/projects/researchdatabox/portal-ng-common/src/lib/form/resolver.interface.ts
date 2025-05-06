@@ -1,8 +1,8 @@
-import { FormFieldComponent } from "./base.component";
+import { FormFieldBaseComponent } from "./form-field-base.component";
 import { FormFieldModel } from "./base.model";
 
 export interface FormComponentResolver {
-  getComponentClass(componentName: string): Promise<typeof FormFieldComponent>;
+  getComponentClass(componentName: string): Promise<typeof FormFieldBaseComponent>;
 }
 
 export interface FormFieldResolver {
