@@ -1,5 +1,5 @@
-import { FormFieldComponent, FormFieldCompMapEntry } from './base.component';
-import { FormComponentLayoutConfig } from './config.model';
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
+import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { Component } from '@angular/core';
 /**
@@ -26,16 +26,16 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  <ng-container *ngIf="model && componentConfig"> 
-    <ng-container *ngIf="componentConfig?.config?.label">
+  <ng-container *ngIf="model && componentDefinition"> 
+    <ng-container *ngIf="componentDefinition?.config?.label">
     <label>
-      <span [innerHtml]="componentConfig?.config?.label"></span>
-      <span class="form-field-required-indicator" [innerHTML]="componentConfig?.config?.labelRequiredStr"></span>
-      <button type="button" class="btn btn-default" *ngIf="componentConfig?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+      <span [innerHtml]="componentDefinition?.config?.label"></span>
+      <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+      <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
       <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
       </button>
     </label>
-    <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentConfig?.config?.helpText"></span>
+    <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
     </ng-container>
     <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
   </ng-container>
@@ -43,15 +43,15 @@ import { Component } from '@angular/core';
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
-export class DefaultLayoutComponent<ValueType> extends FormFieldComponent<ValueType> {
+export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   helpTextVisible: boolean = false;
-  componentClass?: typeof FormFieldComponent | null;
-  public override componentConfig?: FormComponentLayoutConfig;
+  componentClass?: typeof FormFieldBaseComponent | null;
+  public override componentDefinition?: FormComponentLayoutDefinition;
 
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
     await super.initComponent(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
-    this.componentConfig = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutConfig;
+    this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
     
   }
 

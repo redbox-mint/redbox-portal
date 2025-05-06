@@ -18,7 +18,7 @@ export * from './lib/record.model';
 export * from './lib/header-sort.component';
 export * from './lib/record-table.component';
 export * from './lib/form/base.model';
-export * from './lib/form/base.component';
+export * from './lib/form/form-field-base.component';
 export * from './lib/form/config.model';
 export * from './lib/form/resolver.interface';
 export * from './lib/form/base-wrapper.component';

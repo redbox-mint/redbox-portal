@@ -33,7 +33,7 @@ export class FormConfig {
   // the default layout component
   defaultLayoutComponent?: string | null | undefined = null;
   // the components of this form
-  components?: FormComponentConfig[] | null | undefined = null;
+  componentDefinitions?: FormComponentDefinition[] | null | undefined = null;
 
   // debug: show the form JSON
   debugValue?: boolean = false;
@@ -54,21 +54,21 @@ export interface HasFormComponentConfigBlock {
  * The form component configuration definition.
  * 
  */
-export class FormComponentConfig implements HasFormComponentIdentity {
+export class FormComponentDefinition implements HasFormComponentIdentity {
   name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   // Either 'class' or 'layout' should be defined, but not both.
   // Note: This exclusivity is not enforced at compile time by this class definition alone.
   // the inheried `class` property makes the 'layout' optional
-  layout?: FormComponentLayoutConfig | null | undefined;
+  layout?: FormComponentLayoutDefinition | null | undefined;
   model?: FormFieldModelConfig | null | undefined = null;
-  component?: FormFieldComponentConfig | null | undefined = null; 
+  component?: FormFieldComponentDefinition | null | undefined = null; 
   module?: string | null | undefined = null;
 }
 
 /**
  * Minimum configuration block for all configuration components.
  */
-export class FormComponentBaseConfigBlock  {
+export class FormComponentBaseConfig  {
   // the view read-only state
   public readonly?: boolean = false;
   // the visibility state
@@ -105,7 +105,7 @@ export class FormFieldModelConfig<ValueType = string | undefined> implements Has
 
 }
 /** Layout specific config block */
-export class FormComponentLayoutConfigBlock extends FormComponentBaseConfigBlock {
+export class FormLayoutConfig extends FormComponentBaseConfig {
   public labelRequiredStr: string = '';
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
@@ -113,25 +113,25 @@ export class FormComponentLayoutConfigBlock extends FormComponentBaseConfigBlock
 /** 
  * Config for the layout component configuration.
  */
-export class FormComponentLayoutConfig implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
-  public config?: FormComponentLayoutConfigBlock | null | undefined = null; 
+  public config?: FormLayoutConfig | null | undefined = null; 
 }
 
 /**
  * the UI-specific config block
  */
-export class FormFieldComponentConfigBlock extends FormComponentBaseConfigBlock {
+export class FormFieldConfig extends FormComponentBaseConfig {
   
 }
 /**
  * Config for the main component configuration.
  */
-export class FormFieldComponentConfig implements HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfigBlock {
   public class?: string | null | undefined; // makes the 'layout' optional
-  public config?: FormFieldComponentConfigBlock | null | undefined = null;
+  public config?: FormFieldConfig | null | undefined = null;
 }
 
 /**
