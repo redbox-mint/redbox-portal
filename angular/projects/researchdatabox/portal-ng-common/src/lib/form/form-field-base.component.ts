@@ -15,7 +15,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
-  public isDisabled: boolean = false;
+  public isDisabled: string | null | undefined = null;
+  public isReadonly: string | null | undefined = null;
 
   async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
     if (!formFieldCompMapEntry) {
@@ -25,7 +26,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     // this.config = componentConfig;
     this.model = this.formFieldCompMapEntry.model as FormFieldModel<ValueType> | null;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
-    this.isDisabled = this.componentDefinition?.config?.disabled || false;
+    this.isDisabled = this.componentDefinition?.config?.disabled || null;
+    this.isReadonly = this.componentDefinition?.config?.readonly || null;
     this.initHostBindingCssClasses();
   }
 
@@ -51,6 +53,9 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
       console.error("FieldComponent formControl returned null for field:", this.model);
       // Return a dummy control or throw, depending on desired behavior
       throw new Error("FieldComponent: field.formModel is null.");
+    }
+    if(this.isDisabled == 'true') {
+      control.disable();
     }
     return control as FormControl<ValueType>;
   }

@@ -81,7 +81,9 @@ export class FormService {
           component: {
             class: 'TextFieldComponent',
             config: {
-              disabled: true
+              disabled: 'true'
+              // ,
+              // readonly: 'true',
             }
           }
         },

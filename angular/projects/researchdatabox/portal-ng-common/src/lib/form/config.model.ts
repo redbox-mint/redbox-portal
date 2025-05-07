@@ -70,7 +70,7 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
  */
 export class FormComponentBaseConfig  {
   // the view read-only state
-  public readonly?: boolean = false;
+  public readonly?: string | null | undefined = null;
   // the visibility state
   public visible?: boolean = true;
   // the editMode
@@ -82,7 +82,7 @@ export class FormComponentBaseConfig  {
   // the form-supplied css classes
   public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
   //
-  public disabled?: boolean = false;
+  public disabled?: string | null | undefined = null;
 }
 
 export class FormFieldModelConfigBlock<ValueType> {
