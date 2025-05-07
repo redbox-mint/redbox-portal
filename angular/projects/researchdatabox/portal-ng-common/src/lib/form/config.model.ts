@@ -81,6 +81,8 @@ export class FormComponentBaseConfig  {
   public label?: string = '';
   // the form-supplied css classes
   public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
+  //
+  public disabled?: boolean = false;
 }
 
 export class FormFieldModelConfigBlock<ValueType> {

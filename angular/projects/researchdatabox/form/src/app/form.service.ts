@@ -79,7 +79,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextFieldComponent',
+            config: {
+              disabled: true
+            }
           }
         },
         {

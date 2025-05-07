@@ -15,7 +15,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
-  
+  public isDisabled: boolean = false;
 
   async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
     if (!formFieldCompMapEntry) {
@@ -25,6 +25,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     // this.config = componentConfig;
     this.model = this.formFieldCompMapEntry.model as FormFieldModel<ValueType> | null;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+    this.isDisabled = this.componentDefinition?.config?.disabled || false;
     this.initHostBindingCssClasses();
   }
 

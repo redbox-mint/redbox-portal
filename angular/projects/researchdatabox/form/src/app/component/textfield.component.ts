@@ -9,7 +9,7 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-      <input type='text' [formControl]="formControl" />
+      <input type='text' [formControl]="formControl" [disabled]="isDisabled" />
   `,
     standalone: false
 })
