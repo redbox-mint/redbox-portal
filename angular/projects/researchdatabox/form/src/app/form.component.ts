@@ -62,7 +62,7 @@ export class FormComponent extends BaseComponent {
    * The form components
    */
   components: FormFieldCompMapEntry[] = [];
-  formConfig?: FormConfig;
+  formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
   
   constructor(
@@ -85,19 +85,22 @@ export class FormComponent extends BaseComponent {
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
-      const formDef:FormComponentsMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
-      const components = formDef.components;
-      this.formConfig = formDef.formConfig;
+      this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+      const components = this.formDefMap.components;
       // set up the form group
-      const formGroupMap = this.formService.groupComponentsByName(formDef);
+      const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
       this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
       // TODO: set up the event handlers
 
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
+        
         // setting this will trigger the form to be rendered
         this.components = components;
+      } else {
+        this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
+        throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
       }
     } catch (error) {
       this.loggerService.error(`Error loading form: ${error}`);
@@ -111,11 +114,11 @@ export class FormComponent extends BaseComponent {
   }
 
   @HostBinding('class') get hostClasses(): string {
-    if (!this.formConfig) {
+    if (!this.formDefMap?.formConfig) {
       return '';
     }
     
-    const cssClasses = this.editMode ? this.formConfig.editCssClasses : this.formConfig.viewCssClasses;
+    const cssClasses = this.editMode ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
     
     if (!cssClasses) {
       return '';

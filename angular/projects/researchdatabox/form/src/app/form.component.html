@@ -1,7 +1,7 @@
 <ng-container *ngFor="let component of components">
-  <redbox-form-base-wrapper [model]="component.model" [componentClass]="component.layoutClass || component.componentClass" [formFieldCompMapEntry]="component" [defaultComponentConfig]="formConfig?.defaultComponentConfig" ></redbox-form-base-wrapper>
+  <redbox-form-base-wrapper [model]="component.model" [componentClass]="component.layoutClass || component.componentClass" [formFieldCompMapEntry]="component" [defaultComponentConfig]="formDefMap?.formConfig?.defaultComponentConfig" ></redbox-form-base-wrapper>
 </ng-container>
-<ng-container *ngIf="components.length > 0 && formConfig?.debugValue">
+<ng-container *ngIf="components.length > 0 && formDefMap?.formConfig?.debugValue">
   <h3>Live Form Value</h3>
   <pre [innerHtml]="form?.value | json"></pre>
 </ng-container>

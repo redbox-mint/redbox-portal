@@ -170,7 +170,7 @@ export class FormService {
               layoutClass = await this.getComponentClass(layoutClassName, componentConfig.module);
             }
           } catch (e) {
-            this.loggerService.error(`Failed to resolve component: ${componentConfig.component}`);
+            this.loggerService.error(`FormService failed to resolve component: ${componentClassName || modelClassName}`);
           }
         }
       } else {
@@ -211,7 +211,7 @@ export class FormService {
     }
     let componentClass = this.compClassMap[componentClassName];
     if (_isUndefined(componentClass) && !_isEmpty(module)) {
-       await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
+      componentClass = await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
     }
     if (_isUndefined(componentClass)) {
       this.loggerService.error(`Component class with name: ${componentClassName} not found in class list. Check spelling and whether it is declared in the following list.`);
