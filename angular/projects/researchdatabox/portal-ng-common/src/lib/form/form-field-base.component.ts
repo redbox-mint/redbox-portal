@@ -1,7 +1,9 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
-import { Directive, HostBinding, signal, computed } from '@angular/core'; // Import HostBinding
+import { Directive, HostBinding, signal, inject } from '@angular/core'; // Import HostBinding
+import { LoggerService } from '../logger.service';
+import { FormFieldComponentStatus } from './status.model';
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -15,8 +17,10 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
-  
-  
+  // The status of the component
+  public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
+
+  private loggerService: LoggerService = inject(LoggerService);
   /**
    * This method is called to initialize the component with the provided configuration.
    * 
@@ -33,24 +37,25 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     if (!formFieldCompMapEntry) {
       throw new Error("FieldComponent: formFieldCompMapEntry is null.");
     }
-    this.formFieldCompMapEntry = formFieldCompMapEntry;
-    await this.initData();
-    await this.initModel();
-    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
-    await this.initLayout();
-    await this.initEventHandlers();
+    try {
+      this.formFieldCompMapEntry = formFieldCompMapEntry;
+      this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
+      this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
+      this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+      await this.initData();
+      await this.initLayout();
+      await this.initEventHandlers();
+      this.status.set(FormFieldComponentStatus.READY);
+    } catch (error) {
+      this.loggerService.error("FieldComponent: initComponent failed", error);
+      this.status.set(FormFieldComponentStatus.ERROR);
+    }
   }
   /**
    * Retrieve or compute any data needed for the component.
    */
   protected async initData() { 
-
-  }
-  /**
-   * Create the model for this component. This is called by the framework.
-   */
-  protected async initModel() {
-    this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
+    
   }
   /**
    * Prepare any layout-specific information, including CSS classes.
@@ -59,7 +64,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     this.initHostBindingCssClasses();
   } 
   /**
-   * Preapre the event handlers for this component.
+   * Prepare the event handlers for this component.
    */
   protected async initEventHandlers() {
 
@@ -84,10 +89,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
    * The FormControl instance for this field.
    */
   get formControl(): FormControl<ValueType> {
-    if (!this.model) {
-      throw new Error("FieldComponent: field input is null.");
-    }
-    const control = this.model.formControl;
+    const control = this.model?.formControl;
     if (!control) {
       console.error("FieldComponent formControl returned null for field:", this.model);
       // Return a dummy control or throw, depending on desired behavior

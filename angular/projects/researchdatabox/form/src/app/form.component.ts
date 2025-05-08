@@ -16,11 +16,11 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef, HostBinding } from '@angular/core';
+import { Component,  Inject, Input, ElementRef, signal, effect, computed, HostBinding } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus } from '@researchdatabox/portal-ng-common';
 
 import { FormComponentsMap, FormService } from './form.service';
 /**
@@ -65,6 +65,9 @@ export class FormComponent extends BaseComponent {
   formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
   
+  status = signal<FormStatus>(FormStatus.INIT);
+  componentsLoaded = signal<boolean>(false);
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(ConfigService) private configService: ConfigService,
@@ -80,33 +83,55 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
     this.loggerService.debug(`'${this.appName}' waiting for deps to init...`); 
+    effect(() => {
+      if (this.componentsLoaded()) {
+        this.status.set(FormStatus.READY);
+      }
+    });
   }
 
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
       this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+      this.createFormGroup();
+      // TODO: set up the event handlers
+    } catch (error) {
+      this.loggerService.error(`Error loading form: ${error}`);
+      this.status.set(FormStatus.LOAD_ERROR);
+      throw error;
+    }
+  }
+  /**
+   * Notification hook for when a component is ready.
+   * 
+   * @param componentEntry - The component entry that is ready.
+   */
+  protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
+    if (this.formDefMap && this.formDefMap.components && this.componentsLoaded() == false) {
+      // Set the overall loaded flag to true if all components are loaded
+      this.componentsLoaded.set(this.formDefMap.components.every(componentDef => componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY));
+    }
+  }
+  /**
+   * Create the form group based on the form definition map.
+   */
+  private createFormGroup(): void {
+    if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
-      // set up the form group
+      // set up the form group  
       const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
       this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
-      // TODO: set up the event handlers
-
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
-        
         // setting this will trigger the form to be rendered
         this.components = components;
       } else {
         this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
         throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
       }
-    } catch (error) {
-      this.loggerService.error(`Error loading form: ${error}`);
-      throw error;
     }
-    
   }
 
   @HostBinding('class.edit-mode') get isEditMode() {
