@@ -1,4 +1,4 @@
-import { FormFieldModelConfig } from './config.model';
+import { FormFieldModelConfig, FormValidatorInstance } from './config.model';
 import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template, toLower as _toLowe, clone as _clone, cloneDeep as _cloneDeep } from 'lodash-es';
 
 import { FormControl } from '@angular/forms';
@@ -33,17 +33,19 @@ export class FormFieldModel<ValueType = string> extends FormModel< FormFieldMode
   public initValue?: ValueType | null | undefined;
 
   public formControl: FormControl<ValueType | null | undefined> | null | undefined;
-  // TODO: strongly type 
-  public validators?: any[] = [];
 
-  constructor(initConfig: FormFieldModelConfig<ValueType>) {
+  public validators?: FormValidatorInstance[] | null | undefined;
+
+  constructor(
+    initConfig: FormFieldModelConfig<ValueType>,
+    validators?: FormValidatorInstance[] | null | undefined) {
     super(initConfig);
+    this.validators = validators;
+    this.setValidators();
   }
 
   public override postCreate(): void {
     this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
-
-    // TODO: create or configure the validators
 
     // create the form model
     console.log("FormFieldModel: creating form model with value:", this.initValue);
@@ -73,6 +75,20 @@ export class FormFieldModel<ValueType = string> extends FormModel< FormFieldMode
       return this.formControl;
     } else {
       throw new Error('Form control is not defined');
+    }
+  }
+
+  private setValidators() {
+    // set validators to the form control
+    const validators = this.validators?.filter(v => v?.validator !== undefined) ?? [];
+    const validatorFns = validators.map(v => v.validator);
+    console.log("FormFieldModel: setting validators to formControl", {
+      validators: this.validators,
+      formControl: this.formControl
+    });
+    if (validatorFns.length > 0) {
+      this.formControl?.setValidators(validatorFns);
+      this.formControl?.updateValueAndValidity();
     }
   }
 }

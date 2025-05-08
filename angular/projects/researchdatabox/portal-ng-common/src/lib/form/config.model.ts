@@ -28,6 +28,8 @@ export class FormConfig {
   // whether to trigger validation on save
   skipValidationOnSave?: boolean = false;
   // form-wide validators
+  validatorDefinitions?: FormValidatorDefinition[] | null | undefined = null;
+  validators?: FormValidatorConfig[] | null | undefined = null;
 
   // Component related config
   // the default layout component
@@ -92,6 +94,7 @@ export class FormFieldModelConfigBlock<ValueType> {
   // the data model describing this field's value
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
+  validators?: FormValidatorConfig[] | null | undefined = null;
 }
 /**
  * Config for the field model configuration, aka the data binding
@@ -139,4 +142,96 @@ export class FormFieldComponentDefinition implements HasFormComponentClass, HasF
  */
 export class FormFieldModelDataConfig {
 
+}
+
+
+/**
+ * The map of validation errors.
+ */
+export type FormValidatorErrors = {
+  [key: string]: {[key:string]: any} | true;
+};
+
+/**
+ * The map of validator options.
+ * The options are different for each validator.
+ */
+export type FormValidatorOptions = {
+  [key: string]: any;
+};
+
+/**
+ * The validator function.
+ *
+ * Accepts an AbstractControl and returns either a map of validation errors or null.
+ */
+export type FormValidatorFn = (control: {value: any}) => FormValidatorErrors | null;
+
+/**
+ * The validation function creator.
+ *
+ * Takes one options argument, which contains config for the specific validator.
+ *
+ * Returns a form validator function.
+ * The returned function takes an Angular AbstractControl object and
+ * returns either null if the control value is valid or a validation error object.
+ *
+ * The validation error object typically has a property whose name is the validation key, e.g. 'min', and
+ * value is an arbitrary dictionary of values that can be used to render an error message template.
+ */
+export type FormValidatorCreateFn = (options: FormValidatorOptions | null | undefined) => FormValidatorFn;
+
+/**
+ * The definition of a validator for a form or a form control.
+ */
+export interface FormValidatorDefinition {
+  /**
+   * The unique name of the form validator.
+   */
+  name: string;
+  /**
+   * The message id to display when the validator fails.
+   */
+  message: string;
+  /**
+   * The validation function creator.
+   */
+  create: FormValidatorCreateFn;
+}
+/**
+ * The configuration of a validator for a form or a form control.
+ */
+export interface FormValidatorConfig {
+  /**
+   * The name used in a validator definition.
+   * The optional message and options will be applied to the validator definition with this name.
+   */
+  name: string;
+  /**
+   * The optional message id to display when the validator fails.
+   * This is only needed if the message to show is different to the validator definition.
+   */
+  message?: string | null| undefined;
+  /**
+   * The validator options. Can be left out if the validator takes no options.
+   */
+  options?: FormValidatorOptions | null| undefined;
+}
+
+/**
+ * An instance of a form validator function.
+ */
+export interface FormValidatorInstance {
+  /**
+   * The validator name.
+   */
+  name: string;
+  /**
+   * The message id to display when the validator fails.
+   */
+  message: string;
+  /**
+   * The validator function.
+   */
+  validator: FormValidatorFn;
 }

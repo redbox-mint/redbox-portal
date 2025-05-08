@@ -4,4 +4,6 @@
 <ng-container *ngIf="components.length > 0 && formConfig?.debugValue">
   <h3>Live Form Value</h3>
   <pre [innerHtml]="form?.value | json"></pre>
+  <h3>Live Form Validation</h3>
+  <pre [innerHtml]="getValidationErrors() | json"></pre>
 </ng-container>
