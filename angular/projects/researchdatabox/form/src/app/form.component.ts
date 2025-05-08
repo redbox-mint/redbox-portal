@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { FormGroup } from '@angular/forms';
+import { AbstractControl, FormGroup, ValidationErrors } from '@angular/forms';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 
@@ -102,6 +102,24 @@ export class FormComponent extends BaseComponent {
       throw error;
     }
     
+  }
+
+  public getValidationErrors(
+    control: AbstractControl<any> | null | undefined = this?.form,
+    errors: { name: string | null, value: any, errors: ValidationErrors }[] = []
+  ): { name: string | null, value: any, errors: ValidationErrors }[] {
+    // control
+    errors.push({name: null, value: control?.value, errors: control?.errors ?? []});
+    // child controls
+    if ("controls" in (control ?? {})) {
+      for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
+        errors.push({name: name, value: childControl?.value, errors: childControl?.errors ?? []});
+        if ("controls" in (childControl ?? {})) {
+          this.getValidationErrors(childControl, errors);
+        }
+      }
+    }
+    return errors;
   }
 
 
