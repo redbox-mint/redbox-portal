@@ -83,11 +83,6 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
     this.loggerService.debug(`'${this.appName}' waiting for deps to init...`); 
-    effect(() => {
-      if (this.componentsLoaded()) {
-        this.status.set(FormStatus.READY);
-      }
-    });
   }
 
   protected async initComponent(): Promise<void> {
@@ -111,6 +106,10 @@ export class FormComponent extends BaseComponent {
     if (this.formDefMap && this.formDefMap.components && this.componentsLoaded() == false) {
       // Set the overall loaded flag to true if all components are loaded
       this.componentsLoaded.set(this.formDefMap.components.every(componentDef => componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY));
+      if (this.componentsLoaded()) {
+        this.status.set(FormStatus.READY);
+        this.loggerService.debug(`FormComponent: All components are ready. Form is ready to be used.`);
+      }
     }
   }
   /**
