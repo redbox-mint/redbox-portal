@@ -65,6 +65,7 @@ export class FormService {
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
     const formConfig: FormConfig = {
       debugValue: true,
+      domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
