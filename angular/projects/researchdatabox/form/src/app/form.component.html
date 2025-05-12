@@ -1,5 +1,5 @@
 <ng-container [ngSwitch]="formDefMap?.formConfig?.domElementType">
-  <form *ngSwitchCase="'form'">
+  <form *ngSwitchCase="'form'" [id]="formDefMap?.formConfig?.domId" >
     <ng-container [ngTemplateOutlet]="compsTemplate"></ng-container>
   </form>  
   <ng-container *ngSwitchDefault>
