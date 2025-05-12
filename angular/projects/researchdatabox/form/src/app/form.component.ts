@@ -20,7 +20,7 @@ import { Component,  Inject, Input, ElementRef, signal, effect, computed, HostBi
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
 
 import { FormComponentsMap, FormService } from './form.service';
 /**
@@ -54,6 +54,7 @@ export class FormComponent extends BaseComponent {
   @Input() recordType: string;
   @Input() editMode: boolean;
   @Input() formName: string;
+  @Input() downloadAndCreateOnInit: boolean = true;
   /** 
    * The FormGroup instance
    */
@@ -88,14 +89,26 @@ export class FormComponent extends BaseComponent {
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
-      this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
-      this.createFormGroup();
-      // TODO: set up the event handlers
+      if (this.downloadAndCreateOnInit) {
+        await this.downloadAndCreateFormComponents();
+      } else {
+        this.loggerService.warn(`FormComponent: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
+      }
     } catch (error) {
       this.loggerService.error(`Error loading form: ${error}`);
       this.status.set(FormStatus.LOAD_ERROR);
       throw error;
     }
+  }
+
+  public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
+    if (!formConfig) {
+      this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+    } else {
+      this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
+    }
+    this.createFormGroup();
+    // TODO: set up the event handlers
   }
   /**
    * Notification hook for when a component is ready.

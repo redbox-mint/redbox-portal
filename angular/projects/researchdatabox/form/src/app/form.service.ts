@@ -63,7 +63,7 @@ export class FormService {
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
-    const formJson: FormConfig = {
+    const formConfig: FormConfig = {
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -120,12 +120,15 @@ export class FormService {
         // }
       ] 
     } as FormConfig;
-    // const formConfig = (formJson as FormConfig);
     // Resove the field and component pairs
-    const components = await this.resolveFormComponentClasses(formJson);
+    return this.createFormComponentsMap(formConfig);
+  }
+
+  public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
+    const components = await this.resolveFormComponentClasses(formConfig);
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components);
-    return new FormComponentsMap(components, formJson);
+    return new FormComponentsMap(components, formConfig);
   }
 
   public appendFormFieldType(additionalTypes: FormComponentClassMap) {
