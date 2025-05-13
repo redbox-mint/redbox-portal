@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Injectable, Inject } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge, isUndefined as _isUndefined, filter as _filter, forOwn as _forOwn } from 'lodash-es';
 import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
 import { FormConfig, FormFieldModel, LoggerService, FormFieldModelConfig, FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
@@ -61,12 +62,14 @@ export class FormService {
    * Returns:
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
-  public async getFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<any> {
-    const formJson: FormConfig = {
+  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
+    const formConfig: FormConfig = {
       debugValue: true,
+      domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
+      editCssClasses: "redbox-form form",
       componentDefinitions: [
         {
           name: 'text_1_event',
@@ -118,12 +121,15 @@ export class FormService {
         // }
       ] 
     } as FormConfig;
-    // const formConfig = (formJson as FormConfig);
     // Resove the field and component pairs
-    const components = await this.resolveFormComponentClasses(formJson);
+    return this.createFormComponentsMap(formConfig);
+  }
+
+  public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
+    const components = await this.resolveFormComponentClasses(formConfig);
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components);
-    return { components: components, formConfig: formJson };
+    return new FormComponentsMap(components, formConfig);
   }
 
   public appendFormFieldType(additionalTypes: FormComponentClassMap) {
@@ -168,7 +174,7 @@ export class FormService {
               layoutClass = await this.getComponentClass(layoutClassName, componentConfig.module);
             }
           } catch (e) {
-            this.loggerService.error(`Failed to resolve component: ${componentConfig.component}`);
+            this.loggerService.error(`FormService failed to resolve component: ${componentClassName || modelClassName}`);
           }
         }
       } else {
@@ -209,7 +215,7 @@ export class FormService {
     }
     let componentClass = this.compClassMap[componentClassName];
     if (_isUndefined(componentClass) && !_isEmpty(module)) {
-       await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
+      componentClass = await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
     }
     if (_isUndefined(componentClass)) {
       this.loggerService.error(`Component class with name: ${componentClassName} not found in class list. Check spelling and whether it is declared in the following list.`);
@@ -232,10 +238,10 @@ export class FormService {
     return components;
   }
 
-  public groupComponentsByName(components:FormFieldCompMapEntry[]): any {
+  public groupComponentsByName(compMap: FormComponentsMap): FormComponentsMap {
     const groupMap: any = {};
     const groupWithFormControl: any = {};
-    for (let compEntry of components) {
+    for (let compEntry of compMap.components) {
       const fieldName:string = compEntry.compConfigJson.name;
       if (_isEmpty(fieldName)) {
         this.loggerService.info(`Field name is empty for component: ${JSON.stringify(compEntry)}. If you need this component to be part of the form or participate in events, please provide a name.`);
@@ -250,7 +256,25 @@ export class FormService {
         }
       }
     }
-    return { completeGroupMap: groupMap, withFormControl: groupWithFormControl };
+    compMap.completeGroupMap = groupMap;
+    compMap.withFormControl = groupWithFormControl;
+    return compMap;
   }
 }
 
+/**
+ *  This client-side, Angular specific data model of the downloaded form configuration. This includes Angular's FormControl instances for binding UI components to the form.
+ */
+export class FormComponentsMap {
+  components: FormFieldCompMapEntry[];
+  formConfig: FormConfig;
+  completeGroupMap: { [key: string]: FormFieldCompMapEntry } | undefined;
+  withFormControl: { [key: string]: FormControl } | undefined;
+
+  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfig) {
+    this.components = components;
+    this.formConfig = formConfig;
+    this.completeGroupMap = undefined;
+    this.withFormControl = undefined;
+  }
+}

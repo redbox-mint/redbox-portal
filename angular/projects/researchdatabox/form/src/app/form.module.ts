@@ -20,7 +20,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
-import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
+import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
@@ -30,6 +30,7 @@ import { FormService } from './form.service';
     TextFieldComponent
   ],
   imports: [
+    CommonModule,
     BrowserModule,
     ReactiveFormsModule,
     RedboxPortalCoreModule

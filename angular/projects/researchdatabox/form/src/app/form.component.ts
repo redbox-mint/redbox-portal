@@ -16,13 +16,13 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component,  Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
+import { Component,  Inject, Input, ElementRef, signal, HostBinding } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
-import { isEmpty as _isEmpty } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormConfig, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
 
-import { FormService } from './form.service';
+import { FormComponentsMap, FormService } from './form.service';
 /**
  * The ReDBox Form
  * 
@@ -54,6 +54,7 @@ export class FormComponent extends BaseComponent {
   @Input() recordType: string;
   @Input() editMode: boolean;
   @Input() formName: string;
+  @Input() downloadAndCreateOnInit: boolean = true;
   /** 
    * The FormGroup instance
    */
@@ -62,8 +63,12 @@ export class FormComponent extends BaseComponent {
    * The form components
    */
   components: FormFieldCompMapEntry[] = [];
-  formConfig?: FormConfig;
+  formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
+  
+  status = signal<FormStatus>(FormStatus.INIT);
+  componentsLoaded = signal<boolean>(false);
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(ConfigService) private configService: ConfigService,
@@ -84,25 +89,87 @@ export class FormComponent extends BaseComponent {
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
-      const formDef = await this.formService.getFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
-      const components = formDef.components;
-      this.formConfig = formDef.formConfig;
-      // set up the form group
-      const formGroupMap = this.formService.groupComponentsByName(components);
-      this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
-      // TODO: set up the event handlers
-
-      // create the form group
-      this.form = new FormGroup(formGroupMap.withFormControl);
-
-      // setting this will trigger the form to be rendered
-      this.components = components;
+      if (this.downloadAndCreateOnInit) {
+        await this.downloadAndCreateFormComponents();
+      } else {
+        this.loggerService.warn(`FormComponent: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
+      }
     } catch (error) {
       this.loggerService.error(`Error loading form: ${error}`);
+      this.status.set(FormStatus.LOAD_ERROR);
       throw error;
     }
-    
   }
 
+  public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
+    if (!formConfig) {
+      this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+    } else {
+      this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
+    }
+    this.createFormGroup();
+    // TODO: set up the event handlers
+  }
+  /**
+   * Notification hook for when a component is ready.
+   * 
+   * @param componentEntry - The component entry that is ready.
+   */
+  protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
+    if (this.formDefMap && this.formDefMap.components && this.componentsLoaded() == false) {
+      // Set the overall loaded flag to true if all components are loaded
+      this.componentsLoaded.set(this.formDefMap.components.every(componentDef => componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY));
+      if (this.componentsLoaded()) {
+        this.status.set(FormStatus.READY);
+        this.loggerService.debug(`FormComponent: All components are ready. Form is ready to be used.`);
+      }
+    }
+  }
+  /**
+   * Create the form group based on the form definition map.
+   */
+  private createFormGroup(): void {
+    if (this.formDefMap && this.formDefMap.formConfig) {
+      const components = this.formDefMap.components;
+      // set up the form group  
+      const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
+      this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
+      // create the form group
+      if (!_isEmpty(formGroupMap.withFormControl)) {
+        this.form = new FormGroup(formGroupMap.withFormControl);
+        // setting this will trigger the form to be rendered
+        this.components = components;
+      } else {
+        this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
+        throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
+      }
+    }
+  }
 
+  @HostBinding('class.edit-mode') get isEditMode() {
+    return this.editMode;
+  }
+
+  @HostBinding('class') get hostClasses(): string {
+    if (!this.formDefMap?.formConfig) {
+      return '';
+    }
+    
+    const cssClasses = this.editMode ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
+    
+    if (!cssClasses) {
+      return '';
+    }
+    
+    if (_isString(cssClasses)) {
+      return cssClasses as string;
+    }
+    
+    // If cssClasses is an object with key-value pairs, transform it to space-delimited string
+    // where keys with truthy values become class names
+    return Object.entries(cssClasses as { [key: string]: string })
+      .filter(([_, value]) => value)
+      .map(([className, _]) => className)
+      .join(' ');
+  }
 }

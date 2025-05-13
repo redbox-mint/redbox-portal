@@ -16,11 +16,10 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { provideAppInitializer } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { TestBed } from '@angular/core/testing';
 import { FormComponent } from './form.component';
-import { UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, getStubConfigService, getStubTranslationService, FormConfig } from '@researchdatabox/portal-ng-common';
 
 describe('FormComponent', () => {
   let configService:any;
@@ -29,6 +28,9 @@ describe('FormComponent', () => {
     configService = getStubConfigService();
     translationService = getStubTranslationService();
     await TestBed.configureTestingModule({
+      imports: [
+        RedboxPortalCoreModule
+      ],
       declarations: [
         FormComponent
       ],
@@ -56,17 +58,62 @@ describe('FormComponent', () => {
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
+  
+  it('should render TextField component correctly in the DOM', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.downloadAndCreateOnInit = false; 
+    
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-  // it(`should have as title '@researchdatabox/form'`, () => {
-  //   const fixture = TestBed.createComponent(FormComponent);
-  //   const app = fixture.componentInstance;
-  //   expect(app.title).toEqual('@researchdatabox/form');
-  // });
+    const formConfig: FormConfig = {
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: { 
+            name: 'text_1_for_the_form',
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world!',
+              defaultValue: 'hello world!'
+            }
+          },
+          component: {
+            class: 'TextFieldComponent'
+          }
+        }
+      ]
+    };
+    formComponent.downloadAndCreateFormComponents(formConfig);
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-  // it('should render title', () => {
-  //   const fixture = TestBed.createComponent(FormComponent);
-  //   fixture.detectChanges();
-  //   const compiled = fixture.nativeElement as HTMLElement;
-  //   expect(compiled.querySelector('.content span')?.textContent).toContain('@researchdatabox/form app is running!');
-  // });
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject('Timeout waiting for componentsLoaded'), 3000);
+      const check = () => {
+        fixture.detectChanges();
+        if (formComponent.componentsLoaded()) {
+          clearTimeout(timeout);
+          resolve();
+        } else {
+          setTimeout(check, 50);
+        }
+      };
+      check();
+    });
+
+    fixture.detectChanges(); // Ensure DOM is updated
+    console.log('Components Loaded:', formComponent.componentsLoaded());
+    // Now run your expectations
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement = compiled.querySelector('input[type="text"]');
+    expect(inputElement).toBeTruthy();
+  });
+
 });

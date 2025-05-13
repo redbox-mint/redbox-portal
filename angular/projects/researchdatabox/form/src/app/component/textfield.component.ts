@@ -1,5 +1,4 @@
 import { Component, Input } from '@angular/core';
-import { FormControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormComponentDefinition } from "@researchdatabox/portal-ng-common";
 import { get as _get } from 'lodash-es';
 
