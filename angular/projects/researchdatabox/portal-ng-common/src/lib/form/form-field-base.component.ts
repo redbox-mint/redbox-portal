@@ -1,6 +1,6 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
-import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
+import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
 import { AfterViewInit, Directive, HostBinding, signal, inject } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
@@ -20,12 +20,10 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public isVisible: boolean = true;
   public isDisabled: boolean = false;
   public isReadonly: boolean = false;
-  public isEditOnly: boolean = false;
-  public isViewtOnly: boolean = false;
   public needsAutofocus: boolean = false;
   public label: string = '';
   public helpText: string = '';
-  public tooltip: string = '';
+  public tooltips: TooltipsModel | null | undefined = null;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
@@ -60,7 +58,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
-  
+
   ngAfterViewInit() {
     this.initConfig();
   }
@@ -69,11 +67,9 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.isVisible = this.componentDefinition?.config?.visible ?? true;
     this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
     this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
-    this.isEditOnly = this.componentDefinition?.config?.editMode ?? false;
-    this.isViewtOnly = this.componentDefinition?.config?.viewOnly ?? false;
     this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
-    this.label = this.componentDefinition?.config?.tooltip ?? '';
-    this.tooltip = this.componentDefinition?.config?.tooltip ?? '';
+    this.label = this.componentDefinition?.config?.label ?? '';
+    this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
   }
 
   public setDisabled(state: boolean) {
@@ -87,14 +83,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public setReadonly(state: boolean) {
    this.isReadonly = state;
   }
-  
-  public setEditOnly(state: boolean) {
-    this.isEditOnly = state;
-  }
-
-  public setViewOnly(state: boolean) {
-    this.isViewtOnly = state;
-  }
 
   public setAutofocus(state: boolean) {
     this.needsAutofocus = state;
@@ -104,8 +92,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.label = label;
   }
 
-  public setTooltip(tooltip: string) {
-    this.tooltip = tooltip;
+  public setTooltips(tooltips: TooltipsModel | null | undefined) {
+    this.tooltips = tooltips;
   }
 
   /**

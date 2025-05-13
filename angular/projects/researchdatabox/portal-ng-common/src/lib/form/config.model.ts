@@ -84,13 +84,12 @@ export class FormComponentBaseConfig  {
   //
   public autofocus?: boolean = false;
   //
-  public required?: boolean = false;
-  // the editMode
-  public editMode?: boolean = true;
-  //
-  public viewOnly?: boolean = false;
-  //
-  public tooltip?: string = '';
+  public tooltips?: TooltipsModel | null | undefined = null;
+}
+
+export class TooltipsModel {
+  public fieldTT: string = '';
+  public labelTT: string = '';
 }
 
 export class FormFieldModelConfigBlock<ValueType> {

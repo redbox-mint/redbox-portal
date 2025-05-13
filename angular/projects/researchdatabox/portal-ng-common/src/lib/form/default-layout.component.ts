@@ -29,7 +29,7 @@ import { Component } from '@angular/core';
   <ng-container *ngIf="model && componentDefinition">     
     <div [hidden]="!isVisible">
       <ng-container *ngIf="componentDefinition?.config?.label">
-      <label>
+      <label [attr.title]="tooltips ? tooltips['labelTT'] : ''">
         <span [innerHtml]="componentDefinition?.config?.label"></span>
         <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
         <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
@@ -38,7 +38,7 @@ import { Component } from '@angular/core';
       </label>
       <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
       </ng-container>
-      <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
+      <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" [attr.title]="tooltips ? tooltips['fieldTT'] : ''" ></redbox-form-base-wrapper>
     </div>
   </ng-container>
   `,
@@ -64,6 +64,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.isVisible = this.componentDefinition?.config?.visible ?? true;
     this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
     this.helpTextVisibleOnInit = this.componentDefinition?.config?.helpTextVisibleOnInit ?? false;
+    this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }

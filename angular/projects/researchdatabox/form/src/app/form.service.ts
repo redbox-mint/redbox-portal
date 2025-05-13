@@ -96,7 +96,8 @@ export class FormService {
               label: 'TextField with default layout defined',
               helpText: 'This is a help text for field 2',
               helpTextVisibleOnInit: false,
-              visible: true
+              visible: true,
+              tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
             }
           },
           model: { 
