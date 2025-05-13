@@ -1,9 +1,11 @@
-import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild } from '@angular/core';
+import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild, output, inject } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
 import { set as _set, get as _get } from 'lodash-es';
+import { LoggerService } from '../logger.service';
+
 /**
  * Form Component Wrapper. 
  * 
@@ -25,10 +27,14 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
   @Input() componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
-  
+
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
+  componentReady = output<void>();
+
   public componentRef?: ComponentRef<FormFieldBaseComponent>; // Store the ref if needed later
+
+  private loggerService: LoggerService = inject(LoggerService);
 
   // See https://angular.dev/guide/components/lifecycle#ngoninit
   ngOnInit() {
@@ -48,6 +54,11 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
       _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }
     await this.componentRef.instance.initComponent(this.formFieldCompMapEntry);
+    if (this.componentRef && !this.componentRef.hostView.destroyed) {
+      this.componentReady.emit();
+    } else {
+      this.loggerService.warn("FormBaseWrapperComponent: componentRef has been destroyed, component is no longer 'ready', but form may not be informed. Ignore if this is displayed during test runs.");
+    }
   }
 
   
