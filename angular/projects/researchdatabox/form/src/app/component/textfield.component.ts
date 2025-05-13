@@ -8,15 +8,7 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-      <input type='text' [formControl]="formControl" [attr.disabled]="isDisabled" [attr.readonly]="isReadonly" />
-      <div>{{ isDisabled }}
-      <button (click)="isDisabled = 'true'">Disable field</button>
-      <button (click)="isDisabled = null">Enable field</button>
-      </div>
-      <div>{{ isReadonly }}
-      <button (click)="isReadonly = 'true'">Make readonly</button>
-      <button (click)="isReadonly = null">Make not readonly</button>
-      </div>
+      <input type='text' [formControl]="formControl" [hidden]="!isVisible" [attr.disabled]="isDisabled ? 'true' : null" [readonly]="isReadonly" />
       `,
     standalone: false
 })

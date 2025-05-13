@@ -1,7 +1,7 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
-import { Directive, HostBinding, signal, inject } from '@angular/core'; // Import HostBinding
+import { AfterViewInit, Directive, HostBinding, signal, inject } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 /**
@@ -12,13 +12,20 @@ import { FormFieldComponentStatus } from './status.model';
  * 
  */
 @Directive()
-export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
+export abstract class FormFieldBaseComponent<ValueType = string | undefined> implements AfterViewInit {
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
-  public isDisabled: string | null | undefined = null;
-  public isReadonly: string | null | undefined = null;
+  public isVisible: boolean = true;
+  public isDisabled: boolean = false;
+  public isReadonly: boolean = false;
+  public isEditOnly: boolean = false;
+  public isViewtOnly: boolean = false;
+  public needsAutofocus: boolean = false;
+  public label: string = '';
+  public helpText: string = '';
+  public tooltip: string = '';
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
@@ -53,6 +60,54 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
+  
+  ngAfterViewInit() {
+    this.initConfig();
+  }
+
+  private initConfig() {
+    this.isVisible = this.componentDefinition?.config?.visible ?? true;
+    this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
+    this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
+    this.isEditOnly = this.componentDefinition?.config?.editMode ?? false;
+    this.isViewtOnly = this.componentDefinition?.config?.viewOnly ?? false;
+    this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
+    this.label = this.componentDefinition?.config?.tooltip ?? '';
+    this.tooltip = this.componentDefinition?.config?.tooltip ?? '';
+  }
+
+  public setDisabled(state: boolean) {
+   this.isDisabled = state;
+  }
+  
+  public setVisibility(state: boolean) {
+   this.isVisible = state;
+  }
+
+  public setReadonly(state: boolean) {
+   this.isReadonly = state;
+  }
+  
+  public setEditOnly(state: boolean) {
+    this.isEditOnly = state;
+  }
+
+  public setViewOnly(state: boolean) {
+    this.isViewtOnly = state;
+  }
+
+  public setAutofocus(state: boolean) {
+    this.needsAutofocus = state;
+  }
+
+  public setLabel(label: string) {
+    this.label = label;
+  }
+
+  public setTooltip(tooltip: string) {
+    this.tooltip = tooltip;
+  }
+
   /**
    * Retrieve or compute any data needed for the component.
    */
@@ -96,9 +151,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
       console.error("FieldComponent formControl returned null for field:", this.model);
       // Return a dummy control or throw, depending on desired behavior
       throw new Error("FieldComponent: field.formModel is null.");
-    }
-    if(this.isDisabled == 'true') {
-      control.disable();
     }
     return control as FormControl<ValueType>;
   }

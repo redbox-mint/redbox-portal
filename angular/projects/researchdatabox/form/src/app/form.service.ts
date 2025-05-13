@@ -84,9 +84,7 @@ export class FormService {
           component: {
             class: 'TextFieldComponent',
             config: {
-              disabled: 'true'
-              // ,
-              // readonly: 'true',
+              disabled: false
             }
           }
         },
@@ -95,8 +93,10 @@ export class FormService {
           layout: {
             class: 'DefaultLayoutComponent',
             config: {
-              label: 'TextField with default wrapper defined',
-              helpText: 'This is a help text',
+              label: 'TextField with default layout defined',
+              helpText: 'This is a help text for field 2',
+              helpTextVisibleOnInit: false,
+              visible: true
             }
           },
           model: { 
@@ -106,7 +106,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextFieldComponent',
+            config: {
+              readonly: false
+            }
           }
         },
         // {

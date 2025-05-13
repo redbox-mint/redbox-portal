@@ -70,11 +70,9 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
  */
 export class FormComponentBaseConfig  {
   // the view read-only state
-  public readonly?: string | null | undefined = null;
+  public readonly?: boolean = false;
   // the visibility state
   public visible?: boolean = true;
-  // the editMode
-  public editMode?: boolean = true;
   // the component/control type
   public type?: string = '';
   // the label
@@ -82,7 +80,17 @@ export class FormComponentBaseConfig  {
   // the form-supplied css classes
   public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
   //
-  public disabled?: string | null | undefined = null;
+  public disabled?: boolean = false;
+  //
+  public autofocus?: boolean = false;
+  //
+  public required?: boolean = false;
+  // the editMode
+  public editMode?: boolean = true;
+  //
+  public viewOnly?: boolean = false;
+  //
+  public tooltip?: string = '';
 }
 
 export class FormFieldModelConfigBlock<ValueType> {
@@ -111,6 +119,7 @@ export class FormLayoutConfig extends FormComponentBaseConfig {
   public labelRequiredStr: string = '';
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
+  public helpTextVisibleOnInit: boolean = false;
 }
 /** 
  * Config for the layout component configuration.

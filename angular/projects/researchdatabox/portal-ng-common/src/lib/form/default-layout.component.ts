@@ -26,33 +26,51 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  <ng-container *ngIf="model && componentDefinition"> 
-    <ng-container *ngIf="componentDefinition?.config?.label">
-    <label>
-      <span [innerHtml]="componentDefinition?.config?.label"></span>
-      <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
-      <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-      <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-      </button>
-    </label>
-    <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
-    </ng-container>
-    <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
+  <ng-container *ngIf="model && componentDefinition">     
+    <div [hidden]="!isVisible">
+      <ng-container *ngIf="componentDefinition?.config?.label">
+      <label>
+        <span [innerHtml]="componentDefinition?.config?.label"></span>
+        <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+        <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+        </button>
+      </label>
+      <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
+      </ng-container>
+      <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
+    </div>
   </ng-container>
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
-  helpTextVisible: boolean = false;
+  helpTextVisible: boolean = false;  
+  labelRequiredStr: string = '';
+  helpTextVisibleOnInit: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
 
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
     await super.initComponent(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
-    this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
-    
+    this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;    
+    this.initLayoutConfig();
+  }
+
+  //Layout specific config values that need to be applied after generic/base component config has been applied 
+  private initLayoutConfig() {
+    this.isVisible = this.componentDefinition?.config?.visible ?? true;
+    this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
+    this.helpTextVisibleOnInit = this.componentDefinition?.config?.helpTextVisibleOnInit ?? false;
+    if(this.helpTextVisibleOnInit) {
+      this.setHelpTextVisibleOnInit();
+    }
+  }
+
+  private setHelpTextVisibleOnInit() {
+    this.helpTextVisible = true;
   }
 
   toggleHelpTextVisibility() {
