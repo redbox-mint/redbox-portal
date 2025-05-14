@@ -4,33 +4,33 @@ import { isEmpty as _isEmpty } from 'lodash-es';
 import { Component } from '@angular/core';
 /**
  * Default Form Component Layout
- * 
- * This component provides additional layout-specific functionality for form components. 
- * 
+ *
+ * This component provides additional layout-specific functionality for form components.
+ *
  * The default layout is the following, which based by the legacy form field layout:
- * 
+ *
  * <div>
  *   <label>
  *    Label
  *    <span>Required indicator</span>
  *    <button>Help Button</button>
  *  </label>
- *  <span>Help Text</span> 
+ *  <span>Help Text</span>
  *  <ng-container>The component</ng-container>
  * </div>
  *
- * Other layouts can be defined, 
+ * Other layouts can be defined,
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  <ng-container *ngIf="model && componentDefinition"> 
+  <ng-container *ngIf="model && componentDefinition">
     <ng-container *ngIf="componentDefinition?.config?.label">
-    <label>
+    <label class="form-label">
       <span [innerHtml]="componentDefinition?.config?.label"></span>
-      <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+      <span *ngIf="isRequired" class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
       <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
       <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
       </button>
@@ -38,6 +38,10 @@ import { Component } from '@angular/core';
     <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
     </ng-container>
     <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
+    <ng-template #blah>
+    <div class="invalid-feedback">Invalid feedback: {{model?.formControl?.errors | json}}</div>
+    <div class="valid-feedback">Valid feedback</div>
+    </ng-template>
   </ng-container>
   `,
   standalone: false,
@@ -52,10 +56,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     await super.initComponent(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
-    
+
   }
 
   toggleHelpTextVisibility() {
    this.helpTextVisible = !this.helpTextVisible;
   }
-}
+    }

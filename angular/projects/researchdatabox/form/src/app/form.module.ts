@@ -24,10 +24,12 @@ import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
+import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 @NgModule({
   declarations: [
     FormComponent,
-    TextFieldComponent
+    TextFieldComponent,
+    ValidationSummaryFieldComponent,
   ],
   imports: [
     CommonModule,
@@ -46,7 +48,7 @@ import { FormService } from './form.service';
   ],
   bootstrap: [FormComponent],
   exports: [
-    
+
   ]
 })
 export class FormModule { }

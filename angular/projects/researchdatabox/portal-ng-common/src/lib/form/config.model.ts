@@ -1,6 +1,6 @@
 /**
- * These classes are used to define the configuration for the form and form components. 
- * 
+ * These classes are used to define the configuration for the form and form components.
+ *
  * These can be used to generate JSON schema for validation, etc. both on the client and server side.
  */
 
@@ -14,7 +14,7 @@ export class FormConfig {
   // DOM related config
   // the dom element type to inject, e.g. div, span, etc. leave empty to use 'ng-container'
   domElementType?: string | null | undefined = null;
-  // optional form dom id property. When set, value will be injected into the overall dom node 
+  // optional form dom id property. When set, value will be injected into the overall dom node
   domId?: string | null | undefined = null;
   // the optional css clases to be applied to the form dom node
   viewCssClasses?: { [key: string]: string } | string | null | undefined = null;
@@ -22,14 +22,14 @@ export class FormConfig {
   // optional configuration to set in each compoment
   defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
 
-  
-  
+
+
   // validation related config
   // whether to trigger validation on save
   skipValidationOnSave?: boolean = false;
   // form-wide validators
   validatorDefinitions?: FormValidatorDefinition[] | null | undefined = null;
-  validators?: FormValidatorConfig[] | null | undefined = null;
+  validators?: FormValidatorBlock[] | null | undefined = null;
 
   // Component related config
   // the default layout component
@@ -54,7 +54,7 @@ export interface HasFormComponentConfigBlock {
 }
 /**
  * The form component configuration definition.
- * 
+ *
  */
 export class FormComponentDefinition implements HasFormComponentIdentity {
   name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
@@ -63,7 +63,7 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
   // the inheried `class` property makes the 'layout' optional
   layout?: FormComponentLayoutDefinition | null | undefined;
   model?: FormFieldModelConfig | null | undefined = null;
-  component?: FormFieldComponentDefinition | null | undefined = null; 
+  component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
 }
 
@@ -94,7 +94,7 @@ export class FormFieldModelConfigBlock<ValueType> {
   // the data model describing this field's value
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
-  validators?: FormValidatorConfig[] | null | undefined = null;
+  validators?: FormValidatorBlock[] | null | undefined = null;
 }
 /**
  * Config for the field model configuration, aka the data binding
@@ -103,31 +103,31 @@ export class FormFieldModelConfig<ValueType = string | undefined> implements Has
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class: string = ''; // make the class mandatory
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
-  
+
   public config?: FormFieldModelConfigBlock<ValueType> | null | undefined = null;
 
 }
 /** Layout specific config block */
 export class FormLayoutConfig extends FormComponentBaseConfig {
-  public labelRequiredStr: string = '';
+  public labelRequiredStr: string = '*';
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
 }
-/** 
+/**
  * Config for the layout component configuration.
  */
 export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
-  public config?: FormLayoutConfig | null | undefined = null; 
+  public config?: FormLayoutConfig | null | undefined = null;
 }
 
 /**
  * the UI-specific config block
  */
 export class FormFieldConfig extends FormComponentBaseConfig {
-  
+
 }
 /**
  * Config for the main component configuration.
@@ -149,28 +149,38 @@ export class FormFieldModelDataConfig {
  * The map of validation errors.
  */
 export type FormValidatorErrors = {
-  [key: string]: {[key:string]: any} | true;
+  [key: string]: {[key:string]: any};
 };
 
 /**
- * The map of validator options.
- * The options are different for each validator.
+ * The map of validator config.
+ * The config is different for each validator.
  */
-export type FormValidatorOptions = {
+export type FormValidatorConfig = {
   [key: string]: any;
 };
+
+/**
+ * The interface that a form control must implement to be validated by a validator function.
+ * Some form controls are a collection of controls, these must provide a way to access the control they contain.
+ */
+export type FormValidatorControl = {
+  value: any;
+  // TODO: how to access controls in a collection of controls?
+  get<P extends string>(path: P): FormValidatorControl | null;
+}
 
 /**
  * The validator function.
  *
  * Accepts an AbstractControl and returns either a map of validation errors or null.
  */
-export type FormValidatorFn = (control: {value: any}) => FormValidatorErrors | null;
+export type FormValidatorFn = (control: FormValidatorControl) => FormValidatorErrors | null;
 
 /**
  * The validation function creator.
  *
- * Takes one options argument, which contains config for the specific validator.
+ * Takes one config argument, which contains config for the specific validator.
  *
  * Returns a form validator function.
  * The returned function takes an Angular AbstractControl object and
@@ -179,7 +189,7 @@ export type FormValidatorFn = (control: {value: any}) => FormValidatorErrors | n
  * The validation error object typically has a property whose name is the validation key, e.g. 'min', and
  * value is an arbitrary dictionary of values that can be used to render an error message template.
  */
-export type FormValidatorCreateFn = (options: FormValidatorOptions | null | undefined) => FormValidatorFn;
+export type FormValidatorCreateFn = (config: FormValidatorConfig | null | undefined) => FormValidatorFn;
 
 /**
  * The definition of a validator for a form or a form control.
@@ -199,12 +209,12 @@ export interface FormValidatorDefinition {
   create: FormValidatorCreateFn;
 }
 /**
- * The configuration of a validator for a form or a form control.
+ * The configuration block for a validator for a form or a form control.
  */
-export interface FormValidatorConfig {
+export interface FormValidatorBlock {
   /**
    * The name used in a validator definition.
-   * The optional message and options will be applied to the validator definition with this name.
+   * The optional message and config will be applied to the validator definition with this name.
    */
   name: string;
   /**
@@ -213,25 +223,25 @@ export interface FormValidatorConfig {
    */
   message?: string | null| undefined;
   /**
-   * The validator options. Can be left out if the validator takes no options.
+   * The validator config. Can be left out if the validator takes no config.
    */
-  options?: FormValidatorOptions | null| undefined;
+  config?: FormValidatorConfig | null| undefined;
 }
 
 /**
- * An instance of a form validator function.
+ * Form control errors from a validator.
  */
-export interface FormValidatorInstance {
+export interface FormValidatorControlErrors {
   /**
-   * The validator name.
+   * The name of the form control.
    */
-  name: string;
+  name: string | null;
   /**
-   * The message id to display when the validator fails.
+   * The value of the form control.
    */
-  message: string;
+  value: any;
   /**
-   * The validator function.
+   * The validation errors for the form control.
    */
-  validator: FormValidatorFn;
+  errors: FormValidatorErrors;
 }

@@ -18,11 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Component,  Inject, Input, ElementRef, signal, HostBinding } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { AbstractControl, FormGroup, ValidationErrors } from '@angular/forms';
+import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
+import { FormComponentsMap, FormService} from './form.service';
 
-import { FormComponentsMap, FormService } from './form.service';
 /**
  * The ReDBox Form
  *
@@ -86,6 +86,10 @@ export class FormComponent extends BaseComponent {
     this.loggerService.debug(`'${this.appName}' waiting for deps to init...`);
   }
 
+  protected get getFormService(){
+    return this.formService;
+  }
+
   protected async initComponent(): Promise<void> {
     this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
@@ -137,6 +141,13 @@ export class FormComponent extends BaseComponent {
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
+        const validators = this.formService.createFormValidatorInstances(
+          this.formDefMap.formConfig.validatorDefinitions,
+          this.formDefMap.formConfig.validators)
+          ?.filter(v => !!v) ?? [];
+        this.loggerService.debug("FormComponent: setting validators to formGroup", validators);
+        this.form.setValidators(validators);
+        this.form.updateValueAndValidity();
         // setting this will trigger the form to be rendered
         this.components = components;
       } else {
@@ -172,24 +183,4 @@ export class FormComponent extends BaseComponent {
       .map(([className, _]) => className)
       .join(' ');
   }
-
-  public getValidationErrors(
-    control: AbstractControl<any> | null | undefined = this?.form,
-    errors: { name: string | null, value: any, errors: ValidationErrors }[] = []
-  ): { name: string | null, value: any, errors: ValidationErrors }[] {
-    // control
-    errors.push({name: null, value: control?.value, errors: control?.errors ?? []});
-    // child controls
-    if ("controls" in (control ?? {})) {
-      for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
-        errors.push({name: name, value: childControl?.value, errors: childControl?.errors ?? []});
-        if ("controls" in (childControl ?? {})) {
-          this.getValidationErrors(childControl, errors);
-        }
-      }
-    }
-    return errors;
-  }
-
-
 }

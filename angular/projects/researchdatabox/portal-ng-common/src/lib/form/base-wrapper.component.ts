@@ -7,8 +7,8 @@ import { set as _set, get as _get } from 'lodash-es';
 import { LoggerService } from '../logger.service';
 
 /**
- * Form Component Wrapper. 
- * 
+ * Form Component Wrapper.
+ *
 * This component is used to dynamically load a form component based on the provided configuration.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
@@ -40,9 +40,9 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   ngOnInit() {
     this.loadComponent();
   }
-  
+
   ngOnChanges() {
-    
+
   }
 
   async loadComponent() {
@@ -61,7 +61,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     }
   }
 
-  
+
   ngOnDestroy() {
     // Clean up the dynamically created component when the wrapper is destroyed
     if (this.componentRef) {
