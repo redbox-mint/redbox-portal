@@ -1,7 +1,8 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component } from '@angular/core';
+import { Component, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
+import { FormBaseWrapperComponent } from './base-wrapper.component';
 /**
  * Default Form Component Layout
  * 
@@ -26,19 +27,31 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  <ng-container *ngIf="model && componentDefinition"> 
-    <ng-container *ngIf="componentDefinition?.config?.label">
-    <label>
-      <span [innerHtml]="componentDefinition?.config?.label"></span>
-      <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
-      <button type="button" class="btn btn-default" *ngIf="componentDefinition?.config?.helpText" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-      <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-      </button>
-    </label>
-    <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
-    </ng-container>
-    <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" ></redbox-form-base-wrapper>
-  </ng-container>
+  @if (model && componentDefinition) {
+    @if (componentDefinition.config?.label) {
+      <label>
+        <span [innerHtml]="componentDefinition?.config?.label"></span>
+        <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+        @if (componentDefinition.config?.helpText) {
+          <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+          <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+          </button>
+        }
+      </label>
+      @if (helpTextVisible) {
+        <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
+      }
+    }
+    <ng-container #componentContainer>
+    </ng-container> 
+    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+    <ng-template #beforeComponentTemplate>
+      Before, is help showing:  {{ helpTextVisible }}
+    </ng-template>
+    <ng-template #afterComponentTemplate>
+      After, is help showing:  {{ helpTextVisible }}
+    </ng-template>
+  }
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
@@ -48,10 +61,34 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
 
+  @ViewChild('componentContainer', { read: ViewContainerRef, static: false })
+  componentContainer!: ViewContainerRef;
+
+  @ViewChild('beforeComponentTemplate', { read: TemplateRef, static: false })
+  beforeComponentTemplate!: TemplateRef<any>;
+  @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
+  afterComponentTemplate!: TemplateRef<any>;
+
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
+    // TODO: remove the "READY" state setting in the initComponent method 
     await super.initComponent(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
+
+    const childRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
+    childRef.instance.componentClass = this.componentClass;
+    childRef.instance.model = this.model;
+    if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
+      this.formFieldCompMapEntry.componentTemplateRefMap = {
+        before: this.beforeComponentTemplate,
+        after: this.afterComponentTemplate
+      };
+    }
+    childRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
+    childRef.changeDetectorRef.detectChanges();
+  }
+
+  ngAfterViewInit() {
     
   }
 

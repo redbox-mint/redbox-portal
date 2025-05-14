@@ -8,7 +8,9 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-      <input type='text' [formControl]="formControl" />
+    <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+    <input type='text' [formControl]="formControl" />
+    <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
     standalone: false
 })

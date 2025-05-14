@@ -1,9 +1,10 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
-import { Directive, HostBinding, signal, inject } from '@angular/core'; // Import HostBinding
+import { Directive, HostBinding, signal, inject, TemplateRef } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
+import { get as _get, isEmpty as _isEmpty } from 'lodash-es';
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -103,6 +104,22 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   @HostBinding('class') get hostClasses() {
     return this.hostBindingCssClasses;
   }
+
+  /**
+   * Get the template reference for the specified template name.
+   * 
+   * @param templateName - The name of the template to retrieve.
+   * @returns The TemplateRef instance or null if not found.
+   */
+  getTemplateRef(templateName: string): TemplateRef<any> | null {
+    return _get(this.formFieldCompMapEntry, `componentTemplateRefMap.${templateName}`, null);
+  }
+  /**
+   * Convenience method to check if a template reference exists for the specified template name.
+   */
+  hasTemplateRef(templateName: string): boolean {
+    return !_isEmpty(this.getTemplateRef(templateName));
+  }
 }
 
 /**
@@ -118,4 +135,5 @@ export interface FormFieldCompMapEntry {
   compConfigJson: any,
   model?: FormFieldModel | null;
   component?: FormFieldBaseComponent | null;
+  componentTemplateRefMap? : { [key: string]: TemplateRef<any> } | null | undefined;
 }
