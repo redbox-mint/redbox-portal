@@ -1,7 +1,7 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
+import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 /**
  * Default Form Component Layout
@@ -69,27 +69,36 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
   afterComponentTemplate!: TemplateRef<any>;
 
-  override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
-    // TODO: remove the "READY" state setting in the initComponent method 
-    await super.initComponent(formFieldCompMapEntry);
+  wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<unknown>>;
+
+  /**
+   * Override to set additional properties required by the wrapper component.
+   * 
+   * @param formFieldCompMapEntry 
+   */
+  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
+    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
-
-    const childRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
-    childRef.instance.componentClass = this.componentClass;
-    childRef.instance.model = this.model;
+  }
+  /**
+   * Override what it takes to get the component to be 'ready'
+   */
+  protected override async setComponentReady(): Promise<void> {
+    // Set all the bound properties to the component
+    this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
+    this.wrapperComponentRef.instance.componentClass = this.componentClass;
+    this.wrapperComponentRef.instance.model = this.model;
+    this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
         after: this.afterComponentTemplate
       };
     }
-    childRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
-    childRef.changeDetectorRef.detectChanges();
-  }
-
-  ngAfterViewInit() {
-    
+    this.wrapperComponentRef.changeDetectorRef.detectChanges();
+    // finally set the status to 'READY'
+    await super.setComponentReady();
   }
 
   toggleHelpTextVisibility() {

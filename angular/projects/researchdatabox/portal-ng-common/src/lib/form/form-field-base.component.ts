@@ -32,6 +32,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
    * - Any static or dynamic styling or layout information, including CSS classes
    * - Any event handlers
    * 
+   * For more advanced use cases, override method to define the component init behavior. Just don't forget to call 'super.setComponentReady()' or change the status manually, when the component is ready.
+   * 
    * @param formFieldCompMapEntry 
    */
   async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
@@ -39,18 +41,24 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
       throw new Error("FieldComponent: formFieldCompMapEntry is null.");
     }
     try {
-      this.formFieldCompMapEntry = formFieldCompMapEntry;
-      this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
-      this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
-      this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+      // Create a method that children can override to set their own properties
+      this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
       await this.initData();
       await this.initLayout();
       await this.initEventHandlers();
-      this.status.set(FormFieldComponentStatus.READY);
+      // Create a method that children to prepare their state.
+      await this.setComponentReady();
     } catch (error) {
       this.loggerService.error("FieldComponent: initComponent failed", error);
       this.status.set(FormFieldComponentStatus.ERROR);
     }
+  }
+
+  protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
+    this.formFieldCompMapEntry = formFieldCompMapEntry;
+    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
+    this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
+    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
   }
   /**
    * Retrieve or compute any data needed for the component.
@@ -119,6 +127,13 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
    */
   hasTemplateRef(templateName: string): boolean {
     return !_isEmpty(this.getTemplateRef(templateName));
+  }
+
+  /**
+   * Set the component status to READY.
+   */
+  protected async setComponentReady() {
+    this.status.set(FormFieldComponentStatus.READY);
   }
 }
 
