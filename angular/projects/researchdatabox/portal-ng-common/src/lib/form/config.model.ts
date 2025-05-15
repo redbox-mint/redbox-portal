@@ -22,7 +22,7 @@ export class FormConfig {
   // optional configuration to set in each compoment
   defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
 
-  
+
   
   // validation related config
   // whether to trigger validation on save
@@ -63,6 +63,8 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
   model?: FormFieldModelConfig | null | undefined = null;
   component?: FormFieldComponentDefinition | null | undefined = null; 
   module?: string | null | undefined = null;
+  //expressions
+  expressions?: { [key: string]: any } | null | undefined = null;
 }
 
 /**
@@ -127,7 +129,7 @@ export class FormComponentLayoutDefinition implements HasFormComponentIdentity, 
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
-  public config?: FormLayoutConfig | null | undefined = null; 
+  public config?: FormLayoutConfig | null | undefined = null;
 }
 
 /**

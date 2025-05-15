@@ -1,9 +1,12 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { AfterViewInit, Directive, HostBinding, signal, inject } from '@angular/core'; // Import HostBinding
+import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
+import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
+import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, keys as _keys } from 'lodash-es';
+
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -12,9 +15,10 @@ import { FormFieldComponentStatus } from './status.model';
  * 
  */
 @Directive()
-export abstract class FormFieldBaseComponent<ValueType = string | undefined> implements AfterViewInit {
+export abstract class FormFieldBaseComponent<ValueType = string | undefined> implements AfterViewInit, DoCheck  {
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
+  public componentDefinitionCache: any = {};
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   public isVisible: boolean = true;
@@ -27,7 +31,15 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
-  private loggerService: LoggerService = inject(LoggerService);
+  public expressions: { [key: string]: any } | null | undefined = null;
+  public expressionStateChanged: boolean = false;
+  private lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
+
+  constructor() {
+
+  }
+
+  loggerService: LoggerService = inject(LoggerService);
   /**
    * This method is called to initialize the component with the provided configuration.
    * 
@@ -49,6 +61,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
       this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
       this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+      this.expressions = this.formFieldCompMapEntry.compConfigJson.expressions;
       await this.initData();
       await this.initLayout();
       await this.initEventHandlers();
@@ -59,17 +72,66 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     }
   }
 
+  ngDoCheck() {
+    this.loggerService.info('ngDoCheck');
+    if(!_isUndefined(this.expressions)){
+      this.checkUpdateExpressions(this.expressions);
+    }
+  }
+
+  private checkUpdateExpressions(expressions: { [key: string]: any } | null | undefined) {
+    if(!_isEmpty(expressions)) {
+      for(let exp of _keys(expressions)) {
+        let value:any = null;
+        //TODO get the data from this component or from another component that emits an event
+        let expObj = _get(expressions,exp,{});
+        let dataPath = _get(expObj,'data','');
+        let data = _get(this,dataPath,{});
+        if (_get(expObj,'template','').indexOf('<%') != -1) {
+          let config = { template: _get(expObj,'template') };
+          value = this.lodashTemplateUtilityService.runTemplate(data,config);
+        } else {
+          value = _get(this.componentDefinition,_get(expObj,'value',null));
+        }
+        _set(this.componentDefinition as object,exp,value);
+      }
+      this.expressionStateChanged = this.hasExpressionsConfigChanged();
+    }
+  }
+  
   ngAfterViewInit() {
     this.initConfig();
   }
 
-  private initConfig() {
+  initConfig() {
     this.isVisible = this.componentDefinition?.config?.visible ?? true;
     this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
     this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
     this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
     this.label = this.componentDefinition?.config?.label ?? '';
     this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
+    
+    this.componentDefinitionCache = {
+      visible: this.componentDefinition?.config?.visible,
+      disabled: this.componentDefinition?.config?.disabled,
+      readonly: this.componentDefinition?.config?.readonly,
+      autofocus: this.componentDefinition?.config?.autofocus,
+      label: this.componentDefinition?.config?.label,
+      tooltips: this.componentDefinition?.config?.tooltips
+    };
+
+    this.expressionStateChanged = false;
+  }
+
+  hasExpressionsConfigChanged(): boolean {
+    const currentConfig = this.componentDefinition?.config ?? {};
+
+    return Object.entries(this.componentDefinitionCache).some(([key, oldValue]) => {
+      const newValue = _get(currentConfig,key);
+      let configPropertyChanged = oldValue != newValue;
+      this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} result ${configPropertyChanged}`);
+      return configPropertyChanged;
+    });
   }
 
   public setDisabled(state: boolean) {

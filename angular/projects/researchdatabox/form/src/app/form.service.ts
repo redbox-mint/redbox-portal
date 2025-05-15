@@ -109,7 +109,17 @@ export class FormService {
           component: {
             class: 'TextFieldComponent',
             config: {
-              readonly: false
+            }
+          },
+          expressions: {
+            'config.visible': {
+              template: `<% if(_.isEmpty(data)) {
+                            return 'false';
+                          } else {
+                            return 'true';
+                          } %>`,
+              data: 'model.formControl.value',
+              source: 'text_1_event' //The same field
             }
           }
         },
