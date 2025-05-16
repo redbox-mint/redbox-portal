@@ -89,12 +89,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.loggerService.info(changes);
     if(this.expressionStateChanged) {
       let that = this;
-      setTimeout(() => {
-        that.zoneC.run(() => {
-          that.cdrC.detectChanges();
-          that.expressionStateChanged = false;
-        });
-      }, 0);
+      that.zoneC.run(() => {
+        that.cdrC.detectChanges();
+        that.expressionStateChanged = false;
+      });
     }
   }
 }

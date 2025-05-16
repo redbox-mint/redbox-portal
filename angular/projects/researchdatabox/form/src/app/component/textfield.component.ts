@@ -1,6 +1,5 @@
 import { ChangeDetectorRef, Component, Input, NgZone, OnChanges, SimpleChanges } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import _ from 'lodash';
 import { get as _get, set as _set, cloneDeep as _cloneDeep} from 'lodash-es';
 
 export class TextFieldModel extends FormFieldModel<string> {  
@@ -9,7 +8,11 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-      <input type='text' [formControl]="formControl" [hidden]="!isVisible" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" (input)="onInput($event)" />
+      <input type='text' [formControl]="formControl" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" (input)="onInput($event)" />
+      <label>isVisible {{ isVisible }}</label>
+      @if (isVisible) {
+        <redbox-label [message]="formControl.value"></redbox-label>
+      }
       `,
     standalone: false
 })
@@ -33,19 +36,32 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> implement
     this.loggerService.info(changes);
     if(this.expressionStateChanged) {
       let that = this;
-      setTimeout(() => {
-        that.zoneC.run(() => {
-          that.cdrC.detectChanges();
-          that.expressionStateChanged = false;
-        });
-      }, 0);
+      that.zoneC.run(() => {
+        that.cdrC.detectChanges();
+        that.expressionStateChanged = false;
+      });
     }
   }
 
   onInput(event: Event): void {
     const inputValue = (event.target as HTMLInputElement).value;
+    this.loggerService.info('TextFieldComponent onInput');
     this.loggerService.info(inputValue);
-    this.loggerService.info('TextFieldComponent onInput isVisible '+this.isVisible);
   }
-  
+}
+
+
+@Component({
+  selector: 'redbox-label',
+  template: `
+    <label>{{ message }}</label>
+    `,
+  standalone: false
+})
+export class LabelComponent implements OnChanges {
+  @Input() message!: string;
+
+  ngOnChanges(changes: SimpleChanges) {
+    console.log('LabelComponent ngOnChanges:', changes);
+  }
 }

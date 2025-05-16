@@ -79,22 +79,20 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   ngDoCheck() {
     this.loggerService.info('ngDoCheck');
-    if(!_isUndefined(this.expressions)){
+    if(!_isUndefined(this.expressions)) {
       this.checkUpdateExpressions(this.expressions);
-        this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`);
+      this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`);
       if(this.componentViewReady && this.expressionStateChanged) {
-        this.initConfig();
         let that = this;
-        setTimeout(() => {
-          if(!_isUndefined(that.zone)) {
-            that.zone.run(() => {
-              if(!_isUndefined(that.cdr)) {
+        if(!_isUndefined(that.zone)) {
+          that.zone.run(() => {
+            if(!_isUndefined(that.cdr)) {
+                this.initConfig();
                 that.cdr.detectChanges();
                 that.expressionStateChanged = false;
               }
-            });
-          }
-        }, 0);
+          });
+        }
       }
     }
   }
@@ -103,10 +101,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     if(!_isEmpty(expressions)) {
       for(let exp of _keys(expressions)) {
         let value:any = null;
-        //TODO get the data from this component or from another component that emits an event
         let expObj = _get(expressions,exp,{});
-        let dataPath = _get(expObj,'data','');
-        let data = _get(this,dataPath,{});
+        let data = this.model?.formControl?.value; //TODO get the data from this component or from another component that emits an event
         if (_get(expObj,'template','').indexOf('<%') != -1) {
           let config = { template: _get(expObj,'template') };
           value = this.lodashTemplateUtilityService.runTemplate(data,config);
