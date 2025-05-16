@@ -32,7 +32,8 @@ import {
   FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorConfig,
-  FormValidatorControlErrors,
+  FormValidatorSummaryErrors,
+  TranslationService,
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 
@@ -58,6 +59,7 @@ export class FormService {
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
     @Inject(LoggerService) private loggerService: LoggerService,
+    @Inject(TranslationService) private translationService: TranslationService,
     ) {
     // start with the static version, will dynamically merge any custom components later
     _merge(this.modelClassMap, StaticModelClassMap);
@@ -84,23 +86,26 @@ export class FormService {
         defaultComponentCssClasses: 'row',
       },
       editCssClasses: "redbox-form form",
+
       // validatorDefinitions is the combination of redbox core validator definitions and
       // the validator definitions from the client hook form config.
       validatorDefinitions: sharedValidatorDefinitions,
 
+      // a way to crate groups of validators
+      // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
       validatorProfiles: {
-        all:{allow:[], deny:[]},
-        minimum: {},
+        // All validators (exclude none).
+        all:{exclude:[]},
+        // The minimum set of validators that must pass to be able to save (create or update).
+        minimumSave: {include:['project_title']},
       },
+
+      // Validators that operate on multiple fields.
       validators: [
         {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
       ],
+
       componentDefinitions: [
-        {
-          name: 'validation_summary_1',
-          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
-          component: {class: "ValidationSummaryFieldComponent"}
-        },
         {
           name: 'text_1_event',
           model: {
@@ -133,7 +138,7 @@ export class FormService {
               value: 'hello world 2!',
               validators: [
                 { name: 'pattern', config: {pattern: /prefix.*/} },
-                { name: 'minLength', message:"@validation-error-custom-text_2", config: {minLength: 3}},
+                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
               ]
             }
           },
@@ -156,6 +161,11 @@ export class FormService {
         //     }
         //   }
         // }
+        {
+          name: 'validation_summary_1',
+          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
+          component: {class: "ValidationSummaryFieldComponent"}
+        },
       ]
     } as FormConfig;
     // Resove the field and component pairs
@@ -336,26 +346,58 @@ export class FormService {
 
   /**
    * Get the validation errors for the given control and all child controls.
-   * @param name The name of the control.
+   * @param name The optional name of the control.
    * @param control The Angular control instance.
-   * @param errors The accumulated error information.
-   * @return An array of validation errors with each entry including
-   *  the control name, control value, and the error details.
+   * @param parents The names of the parent controls.
+   * @param results The accumulated results.
+   * @return An array of validation errors.
    */
-  public getFormValidatorControlErrors(
+  public getFormValidatorSummaryErrors(
     name: string | null | undefined,
     control: AbstractControl | null | undefined,
-    errors: FormValidatorControlErrors[] = []
-  ): FormValidatorControlErrors[] {
+    parents: string[] | null = null,
+    results: FormValidatorSummaryErrors[] | null = null,
+  ): FormValidatorSummaryErrors[] {
+    // Build a flattened array of control errors.
+    // Include the names of the parent controls for each control.
+    if (!parents) {
+      parents = [];
+    }
+    if (!results) {
+      results = [];
+    }
+
     // control
-    errors.push({name: name ?? null, value: control?.value, errors: control?.errors ?? {}});
+    name = name || null;
+    // TODO: how to get message?
+    const message = null;
+    const errors = Object.entries(control?.errors ?? {})
+        .map(([key, item]) => {
+          return {
+            message: item.message ?? null,
+            name: key,
+            params: {
+              validatorName: key,
+              ...Object.fromEntries(Object.keys(item).filter(k => k !== 'message').map(k => [k, item[k]]))
+            }
+          }
+        })
+      ?? [];
+    if (errors.length > 0) {
+      results.push({name: name, message: message, errors: errors, parents: parents});
+    }
+
     // child controls
     if ("controls" in (control ?? {})) {
       for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
-        this.getFormValidatorControlErrors(name, childControl, errors);
+        // Create a new array for the parents, so that the existing array of parent names is not modified.
+        const newParents = !!name ? [...parents, name] : [...parents];
+        this.getFormValidatorSummaryErrors(name, childControl, newParents, results);
       }
     }
-    return errors;
+
+    // output
+    return results;
   }
 
   public getTopAncestorControl(control: AbstractControl | null | undefined) {
@@ -364,6 +406,30 @@ export class FormService {
       topLevel = topLevel?.parent;
     }
     return topLevel;
+  }
+
+  /**
+   * Get the component id and translatable label message.
+   *
+   * @param component
+   */
+  public componentIdLabel(component: FormFieldCompMapEntry): {id: string | null, labelMessage: string | null} {
+    // id is built from the first of these that exists
+    // - componentDefinition.model.name
+    // - componentDefinition.name
+
+    // the label message comes from componentDefinition.layout.config.label
+
+    const idParts = ["form", "item", "id"];
+
+    let name = component.component.componentDefinition.config.
+
+    const name = component.model?.fieldConfig?.name || null;
+    if (name) {
+      parts.push(name);
+      return parts.join('-');
+    }
+    return null;
   }
 }
 

@@ -165,9 +165,21 @@ export type FormValidatorConfig = {
  * Some form controls are a collection of controls, these must provide a way to access the control they contain.
  */
 export type FormValidatorControl = {
+  /**
+   * The value of the control.
+   */
   value: any;
-  // TODO: how to access controls in a collection of controls?
+  /**
+   * Get the descendant control that matches the path.
+   * @param path
+   */
   get<P extends string>(path: P): FormValidatorControl | null;
+  /**
+   * Set the validation errors map manually.
+   * This method updates the entire errors map, so include all the existing errors.
+   * @param errors The complete map of validation errors.
+   */
+  setErrors(errors: FormValidatorErrors | null): void;
 }
 
 /**
@@ -229,19 +241,41 @@ export interface FormValidatorBlock {
 }
 
 /**
- * Form control errors from a validator.
+ * Form or form control errors from a validator.
+ *
+ * Controls can be nested, so validation errors can be nested.
+ * The nesting is how the client-side is able to reveal a form field when
+ * a link in the validation summary is clicked.
+ *
+ * If all errors arrays are empty, then the validation summary is treated as 'form is valid'.
  */
-export interface FormValidatorControlErrors {
+export interface FormValidatorSummaryErrors {
   /**
    * The name of the form control.
+   *
+   * This is used on the client-side for linking to the form control to reveal it.
+   * If this is not available, the validation error is rendered without the form field name and with no link.
    */
   name: string | null;
   /**
-   * The value of the form control.
+   * The message id for the form control label.
+   *
+   * This is passed to the translation service to get the label text.
+   * If this is not available, the name is used.
    */
-  value: any;
+  message: string | null;
   /**
    * The validation errors for the form control.
+   *
+   * These are rendered using the translation service - the message id can use the params to calculate the text to show.
+   * If there are no errors, then the form field is not shown in the error summary.
    */
-  errors: FormValidatorErrors;
+  errors: { message: string | null, name: string | null, params?: { [key: string]: any } }[];
+  /**
+   * Parent form or form control names that contain this form or form control.
+   *
+   * This enables revealing the parents, to be able to navigate to the form control.
+   * The parent names are in order from top-most to direct parent of this form control.
+   */
+  parents: string[] | null;
 }
