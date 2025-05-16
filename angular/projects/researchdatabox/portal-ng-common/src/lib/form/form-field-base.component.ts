@@ -1,7 +1,7 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck } from '@angular/core'; // Import HostBinding
+import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck, ChangeDetectorRef, NgZone } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
@@ -34,12 +34,17 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public expressions: { [key: string]: any } | null | undefined = null;
   public expressionStateChanged: boolean = false;
   private lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
+  private componentViewReady:boolean = false; 
 
-  constructor() {
+  loggerService: LoggerService = inject(LoggerService);
+
+  constructor();
+  constructor(cdr: ChangeDetectorRef, zone: NgZone);
+
+  constructor(private cdr?: ChangeDetectorRef, private zone?: NgZone) {
 
   }
 
-  loggerService: LoggerService = inject(LoggerService);
   /**
    * This method is called to initialize the component with the provided configuration.
    * 
@@ -76,6 +81,21 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.loggerService.info('ngDoCheck');
     if(!_isUndefined(this.expressions)){
       this.checkUpdateExpressions(this.expressions);
+        this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`);
+      if(this.componentViewReady && this.expressionStateChanged) {
+        this.initConfig();
+        let that = this;
+        setTimeout(() => {
+          if(!_isUndefined(that.zone)) {
+            that.zone.run(() => {
+              if(!_isUndefined(that.cdr)) {
+                that.cdr.detectChanges();
+                that.expressionStateChanged = false;
+              }
+            });
+          }
+        }, 0);
+      }
     }
   }
 
@@ -101,6 +121,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   
   ngAfterViewInit() {
     this.initConfig();
+    this.componentViewReady = true;
   }
 
   initConfig() {
@@ -118,20 +139,22 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       autofocus: this.componentDefinition?.config?.autofocus,
       label: this.componentDefinition?.config?.label,
       tooltips: this.componentDefinition?.config?.tooltips
-    };
-
-    this.expressionStateChanged = false;
+    }
   }
 
   hasExpressionsConfigChanged(): boolean {
-    const currentConfig = this.componentDefinition?.config ?? {};
-
-    return Object.entries(this.componentDefinitionCache).some(([key, oldValue]) => {
-      const newValue = _get(currentConfig,key);
+    let propertyChanged = false;
+    for(let key of _keys(this.componentDefinitionCache)) {
+      let newValue = _get(this.componentDefinition?.config,key);
+      let oldValue = _get(this.componentDefinitionCache,key);
       let configPropertyChanged = oldValue != newValue;
-      this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} result ${configPropertyChanged}`);
-      return configPropertyChanged;
-    });
+      if(configPropertyChanged) {
+        propertyChanged = true;
+        this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`);
+        break;
+      }
+    }
+    return propertyChanged;
   }
 
   public setDisabled(state: boolean) {

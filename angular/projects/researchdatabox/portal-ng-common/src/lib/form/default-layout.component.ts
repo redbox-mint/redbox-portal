@@ -1,7 +1,7 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, NgZone, OnChanges, SimpleChanges } from '@angular/core';
 /**
  * Default Form Component Layout
  * 
@@ -38,19 +38,24 @@ import { Component } from '@angular/core';
       </label>
       <span class="help-block" *ngIf="helpTextVisible" [innerHtml]="componentDefinition?.config?.helpText"></span>
       </ng-container>
-      <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" [attr.title]="tooltips ? tooltips['fieldTT'] : ''" ></redbox-form-base-wrapper>
+      <redbox-form-base-wrapper *ngIf="componentClass" [model]="model" [componentClass]="componentClass" [formFieldCompMapEntry]="formFieldCompMapEntry" [attr.title]="tooltips ? tooltips['fieldTT'] : ''" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" ></redbox-form-base-wrapper>
     </div>
   </ng-container>
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
-export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
+export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnChanges {
   helpTextVisible: boolean = false;  
   labelRequiredStr: string = '';
   helpTextVisibleOnInit: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
+  @Input() public override isVisible: boolean = true;
+
+  constructor(private cdrC: ChangeDetectorRef, private zoneC: NgZone) {
+    super(cdrC, zoneC);
+  }
 
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
     await super.initComponent(formFieldCompMapEntry);
@@ -75,6 +80,21 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   toggleHelpTextVisibility() {
-   this.helpTextVisible = !this.helpTextVisible;
+    this.helpTextVisible = !this.helpTextVisible;
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    this.loggerService.info('DefaultLayoutComponent ngOnChanges');
+    this.loggerService.info('DefaultLayoutComponent changes');
+    this.loggerService.info(changes);
+    if(this.expressionStateChanged) {
+      let that = this;
+      setTimeout(() => {
+        that.zoneC.run(() => {
+          that.cdrC.detectChanges();
+          that.expressionStateChanged = false;
+        });
+      }, 0);
+    }
   }
 }

@@ -42,7 +42,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   }
   
   ngOnChanges() {
-    
+    this.loggerService.info('FormBaseWrapperComponent ngOnChanges');
   }
 
   async loadComponent() {

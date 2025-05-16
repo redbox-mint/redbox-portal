@@ -109,6 +109,9 @@ export class FormService {
           component: {
             class: 'TextFieldComponent',
             config: {
+              visible: true,
+              disabled: false,
+              readonly: false
             }
           },
           expressions: {
