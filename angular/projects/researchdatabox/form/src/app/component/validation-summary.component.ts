@@ -69,7 +69,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
     const formComponent = this.getFormComponent;
-    const componentDefs = formComponent.formDefMap?.formConfig.componentDefinitions;
+    const componentDefs = formComponent?.formDefMap?.formConfig.componentDefinitions;
     return this.formService.getFormValidatorSummaryErrors(componentDefs, null, formComponent?.form);
   }
 
