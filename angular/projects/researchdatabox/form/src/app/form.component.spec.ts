@@ -17,9 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { APP_BASE_HREF } from '@angular/common'; 
+import { ReactiveFormsModule } from '@angular/forms';
 import { TestBed } from '@angular/core/testing';
 import { FormComponent } from './form.component';
 import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, getStubConfigService, getStubTranslationService, FormConfig } from '@researchdatabox/portal-ng-common';
+import { TextFieldComponent } from './component/textfield.component';
 
 describe('FormComponent', () => {
   let configService:any;
@@ -29,10 +31,12 @@ describe('FormComponent', () => {
     translationService = getStubTranslationService();
     await TestBed.configureTestingModule({
       imports: [
+        ReactiveFormsModule,
         RedboxPortalCoreModule
       ],
       declarations: [
-        FormComponent
+        FormComponent,
+        TextFieldComponent
       ],
       providers: [
         {
