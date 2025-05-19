@@ -34,8 +34,10 @@ import {
   FormValidatorConfig,
   FormValidatorSummaryErrors,
   TranslationService,
+  FormComponentDefinition,
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
+
 
 
 /**
@@ -91,12 +93,13 @@ export class FormService {
       // the validator definitions from the client hook form config.
       validatorDefinitions: sharedValidatorDefinitions,
 
-      // a way to crate groups of validators
+      // TODO: a way to crate groups of validators
+      // This is not implemented yet.
       // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
       validatorProfiles: {
-        // All validators (exclude none).
+        // all: All validators (exclude none).
         all:{exclude:[]},
-        // The minimum set of validators that must pass to be able to save (create or update).
+        // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
         minimumSave: {include:['project_title']},
       },
 
@@ -137,7 +140,7 @@ export class FormService {
             config: {
               value: 'hello world 2!',
               validators: [
-                { name: 'pattern', config: {pattern: /prefix.*/} },
+                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
                 { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
               ]
             }
@@ -346,6 +349,7 @@ export class FormService {
 
   /**
    * Get the validation errors for the given control and all child controls.
+   * @param componentDefs Gather the validation errors using these component definitions.
    * @param name The optional name of the control.
    * @param control The Angular control instance.
    * @param parents The names of the parent controls.
@@ -353,8 +357,9 @@ export class FormService {
    * @return An array of validation errors.
    */
   public getFormValidatorSummaryErrors(
-    name: string | null | undefined,
-    control: AbstractControl | null | undefined,
+    componentDefs: FormComponentDefinition[] | null | undefined,
+    name: string | null | undefined = null,
+    control: AbstractControl | null | undefined = null,
     parents: string[] | null = null,
     results: FormValidatorSummaryErrors[] | null = null,
   ): FormValidatorSummaryErrors[] {
@@ -369,22 +374,22 @@ export class FormService {
 
     // control
     name = name || null;
-    // TODO: how to get message?
-    const message = null;
+    const componentDef = componentDefs
+      ?.find(i => !!name && i?.name === name) ?? null;
+    const {id, labelMessage} = this.componentIdLabel(componentDef);
     const errors = Object.entries(control?.errors ?? {})
         .map(([key, item]) => {
           return {
-            message: item.message ?? null,
             name: key,
-            params: {
-              validatorName: key,
-              ...Object.fromEntries(Object.keys(item).filter(k => k !== 'message').map(k => [k, item[k]]))
-            }
+            message: item.message ?? null,
+            params: {validatorName: key, ...item.params},
           }
         })
       ?? [];
+
+    // Only add the result if there are errors.
     if (errors.length > 0) {
-      results.push({name: name, message: message, errors: errors, parents: parents});
+      results.push({id: id, message: labelMessage, errors: errors, parents: parents});
     }
 
     // child controls
@@ -392,7 +397,7 @@ export class FormService {
       for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
         // Create a new array for the parents, so that the existing array of parent names is not modified.
         const newParents = !!name ? [...parents, name] : [...parents];
-        this.getFormValidatorSummaryErrors(name, childControl, newParents, results);
+        this.getFormValidatorSummaryErrors(componentDefs, name, childControl, newParents, results);
       }
     }
 
@@ -411,25 +416,29 @@ export class FormService {
   /**
    * Get the component id and translatable label message.
    *
-   * @param component
+   * @param componentDef The component definition from the form config.
    */
-  public componentIdLabel(component: FormFieldCompMapEntry): {id: string | null, labelMessage: string | null} {
-    // id is built from the first of these that exists
-    // - componentDefinition.model.name
-    // - componentDefinition.name
-
-    // the label message comes from componentDefinition.layout.config.label
-
+  public componentIdLabel(componentDef: FormComponentDefinition | null): {
+    id: string | null,
+    labelMessage: string | null
+  } {
     const idParts = ["form", "item", "id"];
 
-    let name = component.component.componentDefinition.config.
+    // id is built from the first of these that exists:
+    // - componentDefinition.model.name
+    // - componentDefinition.name
+    const modelName = componentDef?.model?.name;
+    const itemName = componentDef?.name;
 
-    const name = component.model?.fieldConfig?.name || null;
-    if (name) {
-      parts.push(name);
-      return parts.join('-');
-    }
-    return null;
+    // construct the id so it is different to the model name
+    const name = modelName || itemName || null;
+    const id = name ? [...idParts, name.replaceAll('_', '-')].join('-') : null;
+
+    // the label message comes from componentDefinition.layout.config.label
+    const labelMessage = componentDef?.layout?.config?.label || null;
+
+    // build the result
+    return {id: id, labelMessage: labelMessage};
   }
 }
 
@@ -473,10 +482,12 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'requiredThreshold': optionMinValue,
-              'actual': control.value
-            }
-          }
+              params: {
+                'requiredThreshold': optionMinValue,
+                'actual': control.value,
+              },
+            },
+          };
         }
         return null;
       };
@@ -503,10 +514,12 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'requiredThreshold': optionMaxValue,
-              'actual': control.value
-            }
-          }
+              params: {
+                'requiredThreshold': optionMaxValue,
+                'actual': control.value,
+              },
+            },
+          };
         }
         return null;
       };
@@ -534,9 +547,11 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           ? {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'requiredLength': optionMinLengthValue,
-              'actualLength': length,
-            }
+              params: {
+                'requiredLength': optionMinLengthValue,
+                'actualLength': length,
+              },
+            },
           }
           : null;
       };
@@ -558,9 +573,11 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'requiredLength': optionMaxLengthValue,
-              'actualLength': length
-            }
+              params: {
+                'requiredLength': optionMaxLengthValue,
+                'actualLength': length,
+              },
+            },
           };
         }
         return null;
@@ -582,9 +599,11 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'required': optionRequiredValue,
-              'actual': control.value,
-            }
+              params: {
+                'required': optionRequiredValue,
+                'actual': control.value,
+              },
+            },
           };
         }
         return null;
@@ -606,9 +625,11 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'required': optionRequiredValue,
-              'actual': control.value,
-            }
+              params: {
+                'required': optionRequiredValue,
+                'actual': control.value,
+              },
+            },
           };
         }
         return null;
@@ -634,10 +655,12 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'requiredPattern': optionPatternValue,
-              'actual': control.value,
-            }
-          }
+              params: {
+                'requiredPattern': optionPatternValue,
+                'actual': control.value,
+              },
+            },
+          };
         }
         return null;
       };
@@ -648,11 +671,13 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-pattern",
     create: (config) => {
       const optionNameKey = 'name';
-      const optionNameValue = getValidatorDefinitionItem(config, optionNameKey, 'email');
+      const optionNameValue = getValidatorDefinitionItem(config, optionNameKey, 'pattern');
       const optionMessageKey = 'message';
-      const optionMessageValue = getValidatorDefinitionItem(config, optionMessageKey, "@validator-error-email");
+      const optionMessageValue = getValidatorDefinitionItem(config, optionMessageKey, "@validator-error-pattern");
+      const optionDescriptionKey = 'description';
+      const optionDescriptionValue = getValidatorDefinitionItem(config, optionDescriptionKey);
       const optionPatternKey = 'pattern';
-      const pattern = getValidatorDefinitionItem(config, optionPatternKey)
+      const pattern = getValidatorDefinitionItem(config, optionPatternKey);
       if (!pattern) {
         throw new Error(`Pattern validator requires a valid regex '${pattern}'.`);
       }
@@ -682,9 +707,12 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           : {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'requiredPattern': regexStr,
-              'actual': value
-            }
+              params: {
+                'requiredPattern': regexStr,
+                'description': optionDescriptionValue,
+                'actual': value,
+              },
+            },
           };
       };
     }
@@ -707,12 +735,14 @@ const sharedValidatorDefinitions: FormValidatorDefinition[] = [
           : {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
-              'controlNames': optionControlNamesValue,
-              'controlCount': optionControlNamesValue?.length,
-              'valueCount': values.size,
-              'values': Array.from(values),
-            }
-          }
+              params: {
+                'controlNames': optionControlNamesValue,
+                'controlCount': optionControlNamesValue?.length,
+                'valueCount': values.size,
+                'values': Array.from(values),
+              },
+            },
+          };
       }
     }
   },
