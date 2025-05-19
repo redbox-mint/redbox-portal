@@ -1,4 +1,4 @@
-import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild, output, inject } from '@angular/core';
+import { Component, ComponentRef, Type, Input, OnInit, OnChanges, ViewChild, output, inject, ApplicationRef } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
@@ -27,8 +27,12 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
   @Input() componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
+  @Input() public expressionStateChanged:boolean = false;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
+
+  // constructor(private applicationRef: ApplicationRef) {
+  // }
 
   componentReady = output<void>();
 
@@ -55,6 +59,8 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     }
     await this.componentRef.instance.initComponent(this.formFieldCompMapEntry);
     if (this.componentRef && !this.componentRef.hostView.destroyed) {
+      this.componentRef.instance.formFieldComponentRef = this.componentRef;
+      // this.applicationRef.attachView(this.componentRef.hostView);
       this.componentReady.emit();
     } else {
       this.loggerService.warn("FormBaseWrapperComponent: componentRef has been destroyed, component is no longer 'ready', but form may not be informed. Ignore if this is displayed during test runs.");

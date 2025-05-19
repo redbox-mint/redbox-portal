@@ -1,7 +1,7 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck, ChangeDetectorRef, NgZone } from '@angular/core'; // Import HostBinding
+import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck, ChangeDetectorRef, NgZone, ComponentRef } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
@@ -30,6 +30,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public tooltips: TooltipsModel | null | undefined = null;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
+  public formFieldComponentRef?: ComponentRef<FormFieldBaseComponent>;
 
   public expressions: { [key: string]: any } | null | undefined = null;
   public expressionStateChanged: boolean = false;
@@ -38,12 +39,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   loggerService: LoggerService = inject(LoggerService);
 
-  constructor();
-  constructor(cdr: ChangeDetectorRef, zone: NgZone);
-
-  constructor(private cdr?: ChangeDetectorRef, private zone?: NgZone) {
-
-  }
+  constructor(public zone: NgZone) {}
 
   /**
    * This method is called to initialize the component with the provided configuration.
@@ -82,18 +78,19 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     if(!_isUndefined(this.expressions)) {
       this.checkUpdateExpressions(this.expressions);
       this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`);
-      if(this.componentViewReady && this.expressionStateChanged) {
-        let that = this;
-        if(!_isUndefined(that.zone)) {
-          that.zone.run(() => {
-            if(!_isUndefined(that.cdr)) {
-                this.initConfig();
-                that.cdr.detectChanges();
-                that.expressionStateChanged = false;
-              }
-          });
-        }
-      }
+      // if(this.componentViewReady && this.expressionStateChanged) {
+      //   let that = this;
+      //   if(!_isUndefined(that.zone)) {
+      //     that.zone.run(() => {
+      //       if(!_isUndefined(that.formFieldComponentRef)) {
+      //         this.initConfig();
+      //         that.expressionStateChanged = true;
+      //         that.formFieldComponentRef.changeDetectorRef.detectChanges();
+      //         that.expressionStateChanged = false;
+      //       }
+      //     });
+      //   }
+      // }
     }
   }
 
@@ -121,21 +118,23 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   }
 
   initConfig() {
-    this.isVisible = this.componentDefinition?.config?.visible ?? true;
-    this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
-    this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
-    this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
-    this.label = this.componentDefinition?.config?.label ?? '';
-    this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
-    
-    this.componentDefinitionCache = {
-      visible: this.componentDefinition?.config?.visible,
-      disabled: this.componentDefinition?.config?.disabled,
-      readonly: this.componentDefinition?.config?.readonly,
-      autofocus: this.componentDefinition?.config?.autofocus,
-      label: this.componentDefinition?.config?.label,
-      tooltips: this.componentDefinition?.config?.tooltips
-    }
+    setTimeout(() => {
+      this.isVisible = this.componentDefinition?.config?.visible ?? true;
+      this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
+      this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
+      this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
+      this.label = this.componentDefinition?.config?.label ?? '';
+      this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
+      
+      this.componentDefinitionCache = {
+        visible: this.componentDefinition?.config?.visible,
+        disabled: this.componentDefinition?.config?.disabled,
+        readonly: this.componentDefinition?.config?.readonly,
+        autofocus: this.componentDefinition?.config?.autofocus,
+        label: this.componentDefinition?.config?.label,
+        tooltips: this.componentDefinition?.config?.tooltips
+      }
+    });
   }
 
   hasExpressionsConfigChanged(): boolean {
@@ -244,4 +243,5 @@ export interface FormFieldCompMapEntry {
   compConfigJson: any,
   model?: FormFieldModel | null;
   component?: FormFieldBaseComponent | null;
+  expressionStateChanged: boolean;
 }

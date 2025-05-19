@@ -1,6 +1,6 @@
-import { ChangeDetectorRef, Component, Input, NgZone, OnChanges, SimpleChanges } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { get as _get, set as _set, cloneDeep as _cloneDeep} from 'lodash-es';
+import { ChangeDetectorRef, Component, inject, Input, NgZone, OnChanges, SimpleChanges } from '@angular/core';
+import { FormFieldBaseComponent, FormFieldModel, LoggerService } from "@researchdatabox/portal-ng-common";
+import { get as _get, set as _set, isUndefined as _isUndefined, cloneDeep as _cloneDeep} from 'lodash-es';
 
 export class TextFieldModel extends FormFieldModel<string> {  
 }
@@ -8,11 +8,11 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-      <input type='text' [formControl]="formControl" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" (input)="onInput($event)" />
-      <label>isVisible {{ isVisible }}</label>
       @if (isVisible) {
-        <redbox-label [message]="formControl.value"></redbox-label>
+        <input type='text' [formControl]="formControl" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" />
+        <label>isVisible {{ isVisible }} expressionStateChanged {{ expressionStateChanged }}</label>
       }
+      <redbox-label [message]="formControl.value" [expressionStateChanged]="expressionStateChanged"></redbox-label>
       `,
     standalone: false
 })
@@ -25,28 +25,27 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> implement
      */
   @Input() public override model?: TextFieldModel;
   @Input() public override isVisible: boolean = true;
+  @Input() public override expressionStateChanged:boolean = false;
 
-  constructor(private cdrC: ChangeDetectorRef, private zoneC: NgZone) {
-    super(cdrC, zoneC);
-  }
+  // constructor(private cdrC: ChangeDetectorRef, private zoneC: NgZone) {
+  //   super(cdrC, zoneC);
+  // }
 
   ngOnChanges(changes: SimpleChanges): void {
     this.loggerService.info('TextFieldComponent ngOnChanges');
     this.loggerService.info('TextFieldComponent changes');
     this.loggerService.info(changes);
     if(this.expressionStateChanged) {
+      this.loggerService.info('TextFieldComponent expressionStateChanged '+this.expressionStateChanged);
       let that = this;
-      that.zoneC.run(() => {
-        that.cdrC.detectChanges();
-        that.expressionStateChanged = false;
+      that.zone.run(() => {
+        if(!_isUndefined(that.formFieldComponentRef)) {
+          that.initConfig();
+          that.formFieldComponentRef.changeDetectorRef.detectChanges();
+          that.expressionStateChanged = false;
+        }
       });
     }
-  }
-
-  onInput(event: Event): void {
-    const inputValue = (event.target as HTMLInputElement).value;
-    this.loggerService.info('TextFieldComponent onInput');
-    this.loggerService.info(inputValue);
   }
 }
 
@@ -54,14 +53,32 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> implement
 @Component({
   selector: 'redbox-label',
   template: `
-    <label>{{ message }}</label>
+    @if (isLabelVisible) {
+      <label>{{ message }} - I am still in the dom </label>
+    }
     `,
   standalone: false
 })
 export class LabelComponent implements OnChanges {
   @Input() message!: string;
+  @Input() expressionStateChanged!:boolean;
+  public isLabelVisible = true;
+
+  loggerService: LoggerService = inject(LoggerService);
+  constructor(private cdrC: ChangeDetectorRef, private zoneC: NgZone) {
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     console.log('LabelComponent ngOnChanges:', changes);
+    this.loggerService.info(changes);
+    if(this.expressionStateChanged) {
+      this.loggerService.info('LabelComponent expressionStateChanged '+this.expressionStateChanged);
+      let that = this;
+      that.zoneC.run(() => {
+          that.isLabelVisible = !that.isLabelVisible;
+          that.cdrC.detectChanges();
+          that.expressionStateChanged = false;
+      });
+    }
   }
 }
