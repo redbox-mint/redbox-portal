@@ -1,5 +1,9 @@
-import {Component, Inject, Injector, Input } from '@angular/core';
-import {FormFieldBaseComponent, FormFieldModel, FormValidatorSummaryErrors} from "@researchdatabox/portal-ng-common";
+import {Component, Inject, Injector, Input} from '@angular/core';
+import {
+  FormFieldBaseComponent,
+  FormFieldModel,
+  FormValidatorSummaryErrors,
+} from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
 
@@ -10,21 +14,19 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = allValidationErrorsDisplay;
-    <div class="alert alert-danger mt-1" role="alert" *ngIf="validationList.length > 0">
+    <div class="alert alert-danger mt-3" role="alert" *ngIf="validationList.length > 0">
       <ul>
-        @for (item of validationList; track item.name) {
+        @for (item of validationList; track item.id) {
           @if (item.errors.length > 0) {
             <li>
-              name: {{ item.name }};
-              message: {{ item.message }};
-              parents: {{ item.parents }};
-              errors:
+              @if (item.id) {
+                <a href="#{{ item.id }}">{{ item.message ?? "(no label)" | i18next }}</a>
+              } @else {
+                {{ item.message ?? "(no label)" | i18next }}
+              }
               <ul>
                 @for (error of item.errors; track error.name) {
-                  <li>
-                    message: {{ error.message }};
-                    name: {{ error.name }};
-                    params: {{ error.params | json }};
+                  <li>{{ error.message ?? "(no message)" | i18next: error.params }}
                   </li>
                 }
               </ul>
@@ -36,6 +38,10 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
     <div class="alert alert-info" role="alert" *ngIf="validationList.length === 0">
       The form is valid.
     </div>
+    <ng-container *ngIf="isDebug">
+      <h3>Live Validation Value</h3>
+      <pre [innerHtml]="validationList | json"></pre>
+    </ng-container>
   `,
   standalone: false
 })
@@ -56,9 +62,18 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     super();
   }
 
-  get allValidationErrorsDisplay() : FormValidatorSummaryErrors[] {
-    const formComponent = this._injector.get(FormComponent);
-    formComponent.formDefMap?.formConfig.
-    return this.formService.getFormValidatorSummaryErrors(null, formComponent?.form);
+  get isDebug(): boolean {
+    const formComponent = this.getFormComponent;
+    return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
+  }
+
+  get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
+    const formComponent = this.getFormComponent;
+    const componentDefs = formComponent.formDefMap?.formConfig.componentDefinitions;
+    return this.formService.getFormValidatorSummaryErrors(componentDefs, null, formComponent?.form);
+  }
+
+  private get getFormComponent(): FormComponent {
+    return this._injector.get(FormComponent);
   }
 }

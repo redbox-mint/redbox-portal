@@ -241,6 +241,24 @@ export interface FormValidatorBlock {
 }
 
 /**
+ * One validator error.
+ */
+export interface FormValidatorComponentErrors {
+  /**
+   * The message id.
+   */
+  message: string | null;
+  /**
+   * The name of the validator.
+   */
+  name: string | null;
+  /**
+   * The params for rendering the translated message.
+   */
+  params?: { [key: string]: any };
+}
+
+/**
  * Form or form control errors from a validator.
  *
  * Controls can be nested, so validation errors can be nested.
@@ -251,12 +269,12 @@ export interface FormValidatorBlock {
  */
 export interface FormValidatorSummaryErrors {
   /**
-   * The name of the form control.
+   * The id of the form control.
    *
    * This is used on the client-side for linking to the form control to reveal it.
    * If this is not available, the validation error is rendered without the form field name and with no link.
    */
-  name: string | null;
+  id: string | null;
   /**
    * The message id for the form control label.
    *
@@ -270,7 +288,7 @@ export interface FormValidatorSummaryErrors {
    * These are rendered using the translation service - the message id can use the params to calculate the text to show.
    * If there are no errors, then the form field is not shown in the error summary.
    */
-  errors: { message: string | null, name: string | null, params?: { [key: string]: any } }[];
+  errors: FormValidatorComponentErrors[];
   /**
    * Parent form or form control names that contain this form or form control.
    *

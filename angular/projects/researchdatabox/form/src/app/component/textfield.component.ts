@@ -8,8 +8,11 @@ export class TextFieldModel extends FormFieldModel<string> {
     selector: 'redbox-textfield',
     template: `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <input type='text' [formControl]="formControl" class="form-control"
-           [class.is-valid]="isValid" [class.is-invalid]="!isValid"  [attr.required]="isRequired === true ? true : null" />
+    <input type='text' [formControl]="formControl"
+           class="form-control"
+           [class.is-valid]="isValid"
+           [class.is-invalid]="!isValid"
+           [attr.required]="isRequired === true ? true : null" />
 
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
@@ -17,9 +20,7 @@ export class TextFieldModel extends FormFieldModel<string> {
 })
 export class TextFieldComponent extends FormFieldBaseComponent<string> {
   /**
-     * The model associated with this component.
-     *
-     * @memberof FormFieldBaseComponent
-     */
+   * The model associated with this component.
+   */
   @Input() public override model?: TextFieldModel;
 }

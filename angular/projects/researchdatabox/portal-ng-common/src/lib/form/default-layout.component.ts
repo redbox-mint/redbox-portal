@@ -1,5 +1,5 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import { FormComponentLayoutDefinition } from './config.model';
+import {FormComponentLayoutDefinition, FormValidatorComponentErrors } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
@@ -29,9 +29,13 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
   template: `
   @if (model && componentDefinition) {
     @if (componentDefinition.config?.label) {
-    <label class="form-label">
+      <label class="form-label">
         <span [innerHtml]="componentDefinition?.config?.label"></span>
-        <span *ngIf="isRequired" class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>@if (componentDefinition.config?.helpText) {
+        <span
+          *ngIf="isRequired"
+          class="form-field-required-indicator"
+          [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+        @if (componentDefinition.config?.helpText) {
           <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
           <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
           </button>
@@ -41,18 +45,23 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
         <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
       }
     }
-    <ng-container #componentContainer>
-    <ng-template #blah>
-    <div class="invalid-feedback">Invalid feedback: {{model?.formControl?.errors | json}}</div>
-    <div class="valid-feedback">Valid feedback</div>
-    </ng-template>
-    </ng-container>
-    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
-    <ng-template #beforeComponentTemplate>
-      Before, is help showing:  {{ helpTextVisible }}
-    </ng-template>
+    <ng-container #componentContainer></ng-container>
+    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer,
+    we supply named templates so the component can render these as it sees fit -->
+    <ng-template #beforeComponentTemplate></ng-template>
     <ng-template #afterComponentTemplate>
-      After, is help showing:  {{ helpTextVisible }}
+      @let componentValidationList = getFormValidatorComponentErrors;
+      @if (componentValidationList.length > 0) {
+        <div class="invalid-feedback">
+          Field validation errors:
+          <ul>
+            @for (error of componentValidationList; track error.name) {
+              <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+            }
+          </ul>
+        </div>
+      }
+      <div class="valid-feedback">The field is valid.</div>
     </ng-template>
   }
   `,
@@ -107,4 +116,14 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   toggleHelpTextVisibility() {
    this.helpTextVisible = !this.helpTextVisible;
   }
-    }
+
+  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{
+    return Object.entries(this.model?.formControl?.errors ?? {}).map(([key, item]) => {
+      return {
+        name: key,
+        message: item.message ?? null,
+        params: {validatorName: key, ...item.params},
+      };
+    })
+  }
+}
