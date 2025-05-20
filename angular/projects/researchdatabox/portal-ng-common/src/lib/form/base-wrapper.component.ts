@@ -31,9 +31,6 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  // constructor(private applicationRef: ApplicationRef) {
-  // }
-
   componentReady = output<void>();
 
   public componentRef?: ComponentRef<FormFieldBaseComponent>; // Store the ref if needed later
@@ -59,8 +56,6 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     }
     await this.componentRef.instance.initComponent(this.formFieldCompMapEntry);
     if (this.componentRef && !this.componentRef.hostView.destroyed) {
-      this.componentRef.instance.formFieldComponentRef = this.componentRef;
-      // this.applicationRef.attachView(this.componentRef.hostView);
       this.componentReady.emit();
     } else {
       this.loggerService.warn("FormBaseWrapperComponent: componentRef has been destroyed, component is no longer 'ready', but form may not be informed. Ignore if this is displayed during test runs.");

@@ -1,7 +1,7 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck, ChangeDetectorRef, NgZone, ComponentRef } from '@angular/core'; // Import HostBinding
+import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck, NgZone, ComponentRef } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
@@ -78,19 +78,9 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     if(!_isUndefined(this.expressions)) {
       this.checkUpdateExpressions(this.expressions);
       this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`);
-      // if(this.componentViewReady && this.expressionStateChanged) {
-      //   let that = this;
-      //   if(!_isUndefined(that.zone)) {
-      //     that.zone.run(() => {
-      //       if(!_isUndefined(that.formFieldComponentRef)) {
-      //         this.initConfig();
-      //         that.expressionStateChanged = true;
-      //         that.formFieldComponentRef.changeDetectorRef.detectChanges();
-      //         that.expressionStateChanged = false;
-      //       }
-      //     });
-      //   }
-      // }
+      if(this.componentViewReady && this.expressionStateChanged) {
+        this.initChildConfig();
+      }
     }
   }
 
@@ -99,12 +89,14 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       for(let exp of _keys(expressions)) {
         let value:any = null;
         let expObj = _get(expressions,exp,{});
-        let data = this.model?.formControl?.value; //TODO get the data from this component or from another component that emits an event
+        let data = this.model?.formControl?.value;
         if (_get(expObj,'template','').indexOf('<%') != -1) {
           let config = { template: _get(expObj,'template') };
-          value = this.lodashTemplateUtilityService.runTemplate(data,config);
+          let v = this.lodashTemplateUtilityService.runTemplate(data,config);
+          value = v === 'false' ? false : v;
         } else {
-          value = _get(this.componentDefinition,_get(expObj,'value',null));
+          let v = _get(this.componentDefinition,_get(expObj,'value',null));
+          value = v === 'false' ? false : v;
         }
         _set(this.componentDefinition as object,exp,value);
       }
@@ -116,6 +108,9 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.initConfig();
     this.componentViewReady = true;
   }
+
+  protected abstract initChildConfig():void;
+  
 
   initConfig() {
     setTimeout(() => {
@@ -142,7 +137,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     for(let key of _keys(this.componentDefinitionCache)) {
       let newValue = _get(this.componentDefinition?.config,key);
       let oldValue = _get(this.componentDefinitionCache,key);
-      let configPropertyChanged = oldValue != newValue;
+      let configPropertyChanged = oldValue !== newValue;
       if(configPropertyChanged) {
         propertyChanged = true;
         this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`);

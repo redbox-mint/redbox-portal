@@ -1,7 +1,7 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
-import { AfterViewInit, ChangeDetectorRef, Component, Input, NgZone, OnChanges, SimpleChanges } from '@angular/core';
+import { Component } from '@angular/core';
 /**
  * Default Form Component Layout
  * 
@@ -27,7 +27,6 @@ import { AfterViewInit, ChangeDetectorRef, Component, Input, NgZone, OnChanges, 
   selector: 'redbox-form-default-component-layout',
   template: `
   <ng-container *ngIf="model && componentDefinition">
-    <label>layout isVisible {{ isVisible }} expressionStateChanged {{ expressionStateChanged }}</label>
     <ng-container *ngIf="componentDefinition?.config?.label && isVisible" >
       <label [attr.title]="tooltips ? tooltips['labelTT'] : ''">
         <span [innerHtml]="componentDefinition?.config?.label"></span>
@@ -44,18 +43,12 @@ import { AfterViewInit, ChangeDetectorRef, Component, Input, NgZone, OnChanges, 
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
-export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnChanges, AfterViewInit {
+export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   helpTextVisible: boolean = false;  
   labelRequiredStr: string = '';
   helpTextVisibleOnInit: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
-  @Input() public override isVisible: boolean = true;
-  @Input() public override expressionStateChanged:boolean = false;
-
-  // constructor(private cdrC: ChangeDetectorRef, private zoneC: NgZone) {
-  //   super(cdrC, zoneC);
-  // }
 
   override async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null) {
     await super.initComponent(formFieldCompMapEntry);
@@ -63,14 +56,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
   }
 
-  override ngAfterViewInit() {
-    // super.initConfig();
-    // this.initLayoutConfig();
-  }
-
   //Layout specific config values that need to be applied after generic/base component config has been applied 
-  private initLayoutConfig() {
-    this.isVisible = this.componentDefinition?.config?.visible ?? true;
+  protected override initChildConfig(): void {
+    this.initConfig();
     this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
     this.helpTextVisibleOnInit = this.componentDefinition?.config?.helpTextVisibleOnInit ?? false;
     this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
@@ -87,20 +75,4 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.helpTextVisible = !this.helpTextVisible;
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    this.loggerService.info('DefaultLayoutComponent ngOnChanges');
-    this.loggerService.info('DefaultLayoutComponent changes');
-    this.loggerService.info(changes);
-    if(this.expressionStateChanged) {
-      this.loggerService.info('DefaultLayoutComponent expressionStateChanged '+this.expressionStateChanged);
-      let that = this;
-      that.zone.run(() => {
-        if(!_isUndefined(that.formFieldComponentRef)) {
-          that.initConfig();
-          that.formFieldComponentRef.changeDetectorRef.detectChanges();
-          that.expressionStateChanged = false;
-        }
-      });
-    }
-  }
 }

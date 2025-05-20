@@ -22,13 +22,12 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
-import { TextFieldComponent, LabelComponent } from './component/textfield.component';
+import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
 @NgModule({
   declarations: [
     FormComponent,
-    TextFieldComponent,
-    LabelComponent
+    TextFieldComponent
   ],
   imports: [
     CommonModule,
