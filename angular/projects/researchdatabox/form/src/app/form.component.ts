@@ -21,7 +21,6 @@ import { Location, LocationStrategy, PathLocationStrategy } from '@angular/commo
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
-
 import { FormComponentsMap, FormService } from './form.service';
 /**
  * The ReDBox Form
@@ -55,6 +54,7 @@ export class FormComponent extends BaseComponent {
   @Input() editMode: boolean;
   @Input() formName: string;
   @Input() downloadAndCreateOnInit: boolean = true;
+
   /** 
    * The FormGroup instance
    */

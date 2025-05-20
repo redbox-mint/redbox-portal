@@ -120,5 +120,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
+    this.expressionStateChanged = false;
   }
 }

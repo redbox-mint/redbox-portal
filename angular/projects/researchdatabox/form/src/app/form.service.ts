@@ -86,6 +86,20 @@ export class FormService {
             config: {
               disabled: false
             }
+          },
+          expressions: {
+            'config.visible': {
+              template: `<% if(_.isEmpty(data)) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`,
+              data: 'model.formControl.value',
+              target: {
+                 name: 'text_2',
+                 class: 'TextFieldComponent'
+              }
+            }
           }
         },
         {
@@ -112,17 +126,6 @@ export class FormService {
               visible: true,
               disabled: false,
               readonly: false
-            }
-          },
-          expressions: {
-            'config.visible': {
-              template: `<% if(_.isEmpty(data)) {
-                            return 'false';
-                          } else {
-                            return 'true';
-                          } %>`,
-              data: 'model.formControl.value',
-              source: 'text_1_event' //The same field
             }
           }
         },

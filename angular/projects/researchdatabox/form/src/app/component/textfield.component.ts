@@ -26,6 +26,7 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
   protected override initChildConfig(): void {
     this.initConfig();
     this.loggerService.info('TextFieldComponent isVisible '+this.isVisible);
+    this.expressionStateChanged = false;
   }
 
 }
