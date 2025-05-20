@@ -1,12 +1,11 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { AfterViewInit, Directive, HostBinding, signal, inject, DoCheck, NgZone, ComponentRef } from '@angular/core'; // Import HostBinding
+import { Directive, HostBinding, signal, inject, TemplateRef, AfterViewInit, DoCheck, ComponentRef, NgZone } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, keys as _keys } from 'lodash-es';
-
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -51,6 +50,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
    * - Any static or dynamic styling or layout information, including CSS classes
    * - Any event handlers
    * 
+   * For more advanced use cases, override method to define the component init behavior. Just don't forget to call 'super.setComponentReady()' or change the status manually, when the component is ready.
+   * 
    * @param formFieldCompMapEntry 
    */
   async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
@@ -58,15 +59,13 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       throw new Error("FieldComponent: formFieldCompMapEntry is null.");
     }
     try {
-      this.formFieldCompMapEntry = formFieldCompMapEntry;
-      this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
-      this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
-      this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
-      this.expressions = this.formFieldCompMapEntry.compConfigJson.expressions;
+      // Create a method that children can override to set their own properties
+      this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
       await this.initData();
       await this.initLayout();
       await this.initEventHandlers();
-      this.status.set(FormFieldComponentStatus.READY);
+      // Create a method that children to prepare their state.
+      await this.setComponentReady();
     } catch (error) {
       this.loggerService.error("FieldComponent: initComponent failed", error);
       this.status.set(FormFieldComponentStatus.ERROR);
@@ -171,6 +170,13 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.tooltips = tooltips;
   }
 
+  protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
+    this.formFieldCompMapEntry = formFieldCompMapEntry;
+    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
+    this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
+    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+    this.expressions = this.formFieldCompMapEntry.compConfigJson.expressions;
+  }
   /**
    * Retrieve or compute any data needed for the component.
    */
@@ -223,6 +229,29 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   @HostBinding('class') get hostClasses() {
     return this.hostBindingCssClasses;
   }
+
+  /**
+   * Get the template reference for the specified template name.
+   * 
+   * @param templateName - The name of the template to retrieve.
+   * @returns The TemplateRef instance or null if not found.
+   */
+  getTemplateRef(templateName: string): TemplateRef<any> | null {
+    return _get(this.formFieldCompMapEntry, `componentTemplateRefMap.${templateName}`, null);
+  }
+  /**
+   * Convenience method to check if a template reference exists for the specified template name.
+   */
+  hasTemplateRef(templateName: string): boolean {
+    return !_isEmpty(this.getTemplateRef(templateName));
+  }
+
+  /**
+   * Set the component status to READY.
+   */
+  protected async setComponentReady() {
+    this.status.set(FormFieldComponentStatus.READY);
+  }
 }
 
 /**
@@ -239,4 +268,5 @@ export interface FormFieldCompMapEntry {
   model?: FormFieldModel | null;
   component?: FormFieldBaseComponent | null;
   expressionStateChanged: boolean;
+  componentTemplateRefMap? : { [key: string]: TemplateRef<any> } | null | undefined;
 }

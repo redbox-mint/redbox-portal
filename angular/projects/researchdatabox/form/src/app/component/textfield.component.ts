@@ -8,9 +8,9 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-      @if (isVisible) {
-        <input type='text' [formControl]="formControl" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" />
-      }
+        <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+        <input type='text' [formControl]="formControl" [hidden]="!isVisible" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" />
+        <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
       `,
     standalone: false
 })

@@ -9,7 +9,7 @@ import { LoggerService } from '../logger.service';
 /**
  * Form Component Wrapper. 
  * 
-* This component is used to dynamically load a form component based on the provided configuration.
+* This component is used to instantiate a form field based on the provided configuration. It is meant to be a a thin wrapper around the individual form component, offering the FormComponent and layout components an abstraction, rather than individual components.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
@@ -60,6 +60,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     } else {
       this.loggerService.warn("FormBaseWrapperComponent: componentRef has been destroyed, component is no longer 'ready', but form may not be informed. Ignore if this is displayed during test runs.");
     }
+    this.componentRef.changeDetectorRef.detectChanges();
   }
 
   
