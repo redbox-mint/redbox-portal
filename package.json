@@ -146,19 +146,5 @@
       "text",
       "text-summary"
     ]
-  },
-  "mocha": {
-    "require": "chai",
-    "recursive": true,
-    "slow": 2000,
-    "timeout": "60s",
-    "ui": "bdd",
-    "reporter": "mocha-junit-reporter",
-    "reporter-option": [
-      "mochaFile=./.tmp/junit/backend-mocha/backend-mocha.xml"
-    ],
-    "global": [
-      "sails"
-    ]
   }
 }
