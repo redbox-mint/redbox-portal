@@ -141,7 +141,7 @@ export class FormComponent extends BaseComponent {
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
-        const validators = this.formService.createFormValidatorInstances(
+        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(
           this.formDefMap.formConfig.validatorDefinitions,
           this.formDefMap.formConfig.validators)
           ?.filter(v => !!v) ?? [];
