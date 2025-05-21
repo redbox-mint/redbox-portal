@@ -33,14 +33,6 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormValidatorErrors,
-  FormValidatorConfig,
-  FormValidatorControl,
-  FormValidatorFn,
-  FormValidatorCreateFn,
-  FormValidatorDefinition,
-  FormValidatorBlock,
-  FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';

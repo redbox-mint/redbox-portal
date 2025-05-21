@@ -2,10 +2,10 @@ import {Component, Inject, Injector, Input} from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldModel,
-  FormValidatorSummaryErrors,
 } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
+import { FormValidatorSummaryErrors } from "@researchdatabox/sails-ng-common";
 
 export class ValidationSummaryFieldModel extends FormFieldModel<string> {
 }

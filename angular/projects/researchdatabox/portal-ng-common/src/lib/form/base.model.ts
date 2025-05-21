@@ -1,7 +1,8 @@
-import {FormFieldModelConfig, FormValidatorFn} from './config.model';
+import {FormFieldModelConfig} from './config.model';
 import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
 
 import {FormControl} from '@angular/forms';
+import {FormValidatorFn} from "@researchdatabox/sails-ng-common";
 
 /**
  * Core model for form elements.

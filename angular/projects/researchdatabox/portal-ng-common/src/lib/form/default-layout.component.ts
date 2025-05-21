@@ -1,8 +1,9 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import {FormComponentLayoutDefinition, FormValidatorComponentErrors } from './config.model';
-import { isEmpty as _isEmpty } from 'lodash-es';
+import {FormComponentLayoutDefinition } from './config.model';
 import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
+import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
+
 /**
  * Default Form Component Layout
  *
