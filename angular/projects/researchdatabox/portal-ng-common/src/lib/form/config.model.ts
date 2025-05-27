@@ -2,9 +2,18 @@
  * These classes are used to define the configuration for the form and form components. 
  * 
  * These can be used to generate JSON schema for validation, etc. both on the client and server side.
+ * 
+ * Classes ending `Definition` are used to define the expected JSON configuration for the form and its components. 
+ * 
+ * Classes ending `Config` are used to define the field names of the form and its components. These may or may not share the same field name(s) as the `Definition` classes. This could also be used to define the expected JSON schema, where it is indicated.
  */
 
-/** The form definition */
+/** 
+ * The form definition.
+ * 
+ * Also, used to define the JSON schema.
+ * 
+ * */
 export class FormConfig {
   // optional form name, will be used to identify the form in the config
   name?: string | null | undefined = null;
@@ -47,7 +56,7 @@ export interface HasFormComponentClass {
   class?: string | null | undefined; // makes the 'layout' optional
 }
 
-export interface HasFormComponentConfigBlock {
+export interface HasFormComponentConfig {
   config?: any;
 }
 /**
@@ -66,7 +75,7 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
 }
 
 /**
- * Minimum configuration block for all configuration components.
+ * Minimum configuration for all configuration components.
  */
 export class FormComponentBaseConfig  {
   // the view read-only state
@@ -83,7 +92,7 @@ export class FormComponentBaseConfig  {
   public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
 }
 
-export class FormFieldModelConfigBlock<ValueType> {
+export class FormFieldModelDefinition<ValueType> {
   // TODO: rename to `bindingDisabled` or `disabledBinding`
   public disableFormBinding?: boolean = false;
   public value?: ValueType | undefined = undefined;
@@ -94,17 +103,16 @@ export class FormFieldModelConfigBlock<ValueType> {
   // the validators
 }
 /**
- * Config for the field model configuration, aka the data binding
+ * Config field model, aka the data binding
  */
-export class FormFieldModelConfig<ValueType = string | undefined> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldModelConfig<ValueType = string | undefined> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfig {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class: string = ''; // make the class mandatory
-  // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
   
-  public config?: FormFieldModelConfigBlock<ValueType> | null | undefined = null;
+  public config?: FormFieldModelDefinition<ValueType> | null | undefined = null;
 
 }
-/** Layout specific config block */
+/** Layout specific config */
 export class FormLayoutConfig extends FormComponentBaseConfig {
   public labelRequiredStr: string = '';
   public helpText: string = '';
@@ -113,7 +121,7 @@ export class FormLayoutConfig extends FormComponentBaseConfig {
 /** 
  * Config for the layout component configuration.
  */
-export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfig {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
@@ -129,7 +137,7 @@ export class FormFieldConfig extends FormComponentBaseConfig {
 /**
  * Config for the main component configuration.
  */
-export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfig {
   public class?: string | null | undefined; // makes the 'layout' optional
   public config?: FormFieldConfig | null | undefined = null;
 }
