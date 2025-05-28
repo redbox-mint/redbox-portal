@@ -64,7 +64,7 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
   component?: FormFieldComponentDefinition | null | undefined = null; 
   module?: string | null | undefined = null;
   //expressions
-  expressions?: { [key: string]: any } | null | undefined = null;
+  expressions?: any[] = [];
 }
 
 /**

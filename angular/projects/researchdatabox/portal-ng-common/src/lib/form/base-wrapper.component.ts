@@ -51,6 +51,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     viewContainerRef.clear();
 
     this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent>(this.componentClass as Type<FormFieldBaseComponent>);
+    
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
       _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }

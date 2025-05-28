@@ -23,7 +23,7 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
      */
   @Input() public override model?: TextFieldModel;
   
-  protected override initChildConfig(): void {
+  public override initChildConfig(): void {
     this.initConfig();
     this.loggerService.info('TextFieldComponent isVisible '+this.isVisible);
     this.expressionStateChanged = false;

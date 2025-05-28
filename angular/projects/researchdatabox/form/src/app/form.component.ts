@@ -16,10 +16,10 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component,  Inject, Input, ElementRef, signal, HostBinding } from '@angular/core';
+import { Component,  Inject, Input, ElementRef, signal, HostBinding, DoCheck } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get} from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
 import { FormComponentsMap, FormService } from './form.service';
 /**
@@ -47,7 +47,7 @@ import { FormComponentsMap, FormService } from './form.service';
     providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
     standalone: false
 })
-export class FormComponent extends BaseComponent {
+export class FormComponent extends BaseComponent implements DoCheck {
   appName: string;
   @Input() oid:string;
   @Input() recordType: string;
@@ -142,6 +142,24 @@ export class FormComponent extends BaseComponent {
       } else {
         this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
         throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
+      }
+    }
+  }
+
+  ngDoCheck(): void {
+    this.loggerService.debug(`FormComponent: ngDoCheck:`, '');
+    if(this.componentsLoaded()) {
+      this.loggerService.debug(`FormComponent: ngDoCheck:`, this.components);
+      for(let comp of this.components) {
+        let compName = _get(comp,'compConfigJson.name','');
+        this.loggerService.debug(`FormComponent: ngDoCheck: `, compName);
+        if(!_isNull(comp.component) && !_isUndefined(comp.component)) {
+          let component = comp.component;
+          component.expressionStateChanged = component.hasExpressionsConfigChanged();
+          if(component.expressionStateChanged) {
+            component.initChildConfig();
+          }
+        }
       }
     }
   }

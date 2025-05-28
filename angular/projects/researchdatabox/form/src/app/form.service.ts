@@ -87,20 +87,26 @@ export class FormService {
               disabled: false
             }
           },
-          expressions: {
-            'config.visible': {
-              template: `<% if(_.isEmpty(data)) {
-                            return false;
-                          } else {
-                            return true;
-                          } %>`,
-              data: 'model.formControl.value',
-              target: {
-                 name: 'text_2',
-                 class: 'TextFieldComponent'
-              }
+          expressions: [
+            {
+              //For the moment the only way to distingsh between model and dom changes
+              // expressionType: 'model',
+              //Target component that will be affected
+              targetComponent: 'text_2',
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'config.visible',
+              //Expression that will will be evaluated and will yield a result that may or may not trigger a state change
+              //For the moment the expression is evaluated as a lodash template but there may other types of expressions
+              //implemented in the future??? 
+              expression: { 
+                             template: `<% if(_.isEmpty(data)) {
+                                         return false;
+                                       } else {
+                                         return true;
+                                       } %>`
+                          }
             }
-          }
+          ]
         },
         {
           name: 'text_2',
@@ -109,7 +115,7 @@ export class FormService {
             config: {
               label: 'TextField with default layout defined',
               helpText: 'This is a help text for field 2',
-              helpTextVisibleOnInit: false,
+              helpTextVisibleOnInit: true,
               visible: true,
               tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
             }
@@ -118,6 +124,54 @@ export class FormService {
             class: 'TextFieldModel',
             config: {
               value: 'hello world 2!',
+            }
+          },
+          component: {
+            class: 'TextFieldComponent',
+            config: {
+              visible: true,
+              disabled: false,
+              readonly: false
+            }
+          },
+          expressions: [
+            {
+              //For the moment the only way to distingsh between model and dom changes
+              expressionType: 'dom',
+              //Target component that will be affected
+              targetComponent: 'text_3',
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'config.visible',
+              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
+              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
+              //there may other types of expressions implemented in the future??? 
+              expression: { 
+                             template: `<% if(field.isVisible) {
+                                         return false;
+                                       } else {
+                                         return true;
+                                       } %>`
+                          }
+            }
+          ]
+        },
+        {
+          name: 'text_3',
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              name: 'text_3_layout',
+              label: 'TextField with default layout defined',
+              helpText: 'This is a help text for field 2',
+              helpTextVisibleOnInit: true,
+              visible: true,
+              tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
+            }
+          },
+          model: { 
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world 3!',
             }
           },
           component: {

@@ -1,6 +1,6 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
-import { isEmpty as _isEmpty } from 'lodash-es';
+import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 /**
@@ -112,7 +112,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   //Layout specific config values that need to be applied after generic/base component config has been applied 
-  protected override initChildConfig(): void {
+  public override initChildConfig(): void {
     this.initConfig();
     this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
     this.helpTextVisibleOnInit = this.componentDefinition?.config?.helpTextVisibleOnInit ?? false;
@@ -120,6 +120,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
+    
+    _set(this.componentDefinitionCache,'helpTextVisible',this.helpTextVisible);
+    
     this.expressionStateChanged = false;
+
   }
 }

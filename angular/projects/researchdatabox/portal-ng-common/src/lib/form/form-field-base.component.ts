@@ -5,7 +5,7 @@ import { Directive, HostBinding, signal, inject, TemplateRef, AfterViewInit, DoC
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
-import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, keys as _keys } from 'lodash-es';
+import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, keys as _keys, startsWith as _startsWith, has as _has } from 'lodash-es';
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -31,15 +31,14 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
   public formFieldComponentRef?: ComponentRef<FormFieldBaseComponent>;
 
-  public expressions: { [key: string]: any } | null | undefined = null;
+  public expressions: any[] = [];
   public expressionStateChanged: boolean = false;
   private componentViewReady:boolean = false; 
   public form?: FormGroup;
 
   private lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
+  private appRef: ApplicationRef = inject(ApplicationRef);
   loggerService: LoggerService = inject(LoggerService);
-
-  constructor(private appRef: ApplicationRef) {}
 
   /**
    * This method is called to initialize the component with the provided configuration.
@@ -75,10 +74,10 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   ngDoCheck() {
     if(this.componentViewReady) {
-      this.loggerService.info('ngDoCheck');
+      this.loggerService.info('ngDoCheck '+_get(this.componentDefinition,'class',''),'');
       if(!_isUndefined(this.expressions)) {
-        this.checkUpdateExpressions(this.expressions);
-        this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`);
+        this.checkUpdateExpressions(this.expressions, 'dom');
+        this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`,'');
         if(this.expressionStateChanged) {
           this.initChildConfig();
         }
@@ -86,51 +85,62 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     }
   }
 
-  public checkUpdateExpressions(expressions: { [key: string]: any } | null | undefined) {
+  public checkUpdateExpressions(expressions: any[], expressionType: string = '') {
     
     if(!_isEmpty(expressions)) {
-      for(let exp of _keys(expressions)) {
-        let value:any = null;
-        let expObj = _get(expressions,exp,{});
-        let data = this.model?.formControl?.value;
-        if (_get(expObj,'template','').indexOf('<%') != -1) {
-          let config = { template: _get(expObj,'template') };
-          let v = this.lodashTemplateUtilityService.runTemplate(data,config);
-          value = v === 'false' ? false : v;
-        } else {
-          let v = _get(this.componentDefinition,_get(expObj,'value',null));
-          value = v === 'false' ? false : v;
-        }
+      for(let expObj of expressions) {
+        if(expressionType == _get(expObj,'expressionType','') || _get(expObj,'expressionType','') == 'model') {
+          let value:any = null;
+          let data = this.model?.formControl?.value;
+          let targetPropertyPath = _get(expObj,'targetProperty','');
+          if (_get(expObj,'expression.template','').indexOf('<%') != -1) {
+            let config = { template: _get(expObj,'expression.template') };
+            let v = this.lodashTemplateUtilityService.runTemplate(data,config,{},this);
+            value = v === 'false' ? false : v;
+          } else {
+            let v = _get(this.componentDefinition,_get(expObj,'value',null));
+            value = v === 'false' ? false : v;
+          }
 
-        let target = _get(expObj,'target',{})
+          let targetComponentName = _get(expObj,'targetComponent','')
 
-        if(!_isEmpty(target)) {
+          if(targetComponentName != '') {
 
-        try {
-          let targetName = _get(target,'name','');
-          let formComponent = this.appRef.components[0];
+            try {
+              let formComponent = this.getFormComponent();
 
-          if(!_isUndefined(formComponent)) {
-            let components = formComponent.instance.components;
+              if(!_isUndefined(formComponent)) {
+                let components = formComponent.instance.components;
 
-            for(let comp of components) {
-              let compName = _get(comp,'compConfigJson.name','');
-              if(compName == targetName) {
-                _set(comp.component.componentDefinition as object,exp,value);
-                comp.component.expressionStateChanged = comp.component.hasExpressionsConfigChanged();
-                if(comp.component.expressionStateChanged) {
-                  comp.component.initChildConfig();
+                for(let comp of components) {
+                  let compName = _get(comp,'compConfigJson.name','');
+                  if(compName == targetComponentName) {
+                    if(_startsWith(targetPropertyPath, 'config.')) {
+                      if(_has(comp.component.componentDefinition,targetPropertyPath)) {
+                        _set(comp.component.componentDefinition as object,targetPropertyPath,value);
+                      } else {
+                        this.loggerService.warn(`Property '${targetPropertyPath}' does not exist on target componentDefinition `,comp.component.componentDefinition);
+                      }
+                    } else if (_has(comp.component,targetPropertyPath)) {
+                      comp.component[targetPropertyPath] = value;
+                    } else {
+                      this.loggerService.warn(`Property '${targetPropertyPath}' does not exist on target component `,compName);
+                    }
+                    comp.component.expressionStateChanged = comp.component.hasExpressionsConfigChanged();
+                    if(comp.component.expressionStateChanged) {
+                      comp.component.initChildConfig();
+                    }
+                  }
                 }
               }
+            } catch (err) {
+              this.loggerService.error('checkUpdateExpressions failed', err);
             }
-          }
-        } catch (err) {
-          this.loggerService.error('checkUpdateExpressions failed', err);
-        }
 
-        } else {
-          _set(this.componentDefinition as object,exp,value);
-          this.expressionStateChanged = this.hasExpressionsConfigChanged();
+          } else {
+            _set(this.componentDefinition as object,targetPropertyPath,value);
+            this.expressionStateChanged = this.hasExpressionsConfigChanged();
+          }
         }
       }
     }
@@ -138,17 +148,27 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   
   ngAfterViewInit() {
     this.initConfig();
-    let formComponent = this.appRef.components[0];
-    if(!_isUndefined(formComponent)) {
-      this.form = formComponent.instance.form;
-    }
+    this.form = this.getFormGroup();
     this.componentViewReady = true;
+    this.getFormGroup()?.valueChanges.subscribe((value) => {
+      console.log('Form value changed:', value);
+      
+      this.loggerService.info('changed '+_get(this.componentDefinition,'class',''),'');
+      if(!_isUndefined(this.expressions)) {
+        this.checkUpdateExpressions(this.expressions);
+        this.loggerService.info(`changed expressionStateChanged ${this.expressionStateChanged}`,'');
+        if(this.expressionStateChanged) {
+          this.initChildConfig();
+        }
+      }
+
+    });
   }
 
-  protected abstract initChildConfig():void;
+  public abstract initChildConfig():void;
   
 
-  initConfig() {
+  protected initConfig() {
     setTimeout(() => {
       this.isVisible = this.componentDefinition?.config?.visible ?? true;
       this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
@@ -176,11 +196,24 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       let configPropertyChanged = oldValue !== newValue;
       if(configPropertyChanged) {
         propertyChanged = true;
-        this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`);
+        this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`,'');
         break;
       }
     }
     return propertyChanged;
+  }
+
+  protected getFormComponent(): any {
+    let formComponent:any = this.appRef.components[0];
+    return formComponent;
+  }
+
+  protected getFormGroup(): FormGroup | undefined {
+     let formComponent:any = this.getFormComponent();
+    if(!_isUndefined(formComponent) && _isUndefined(this.form)) {
+      this.form = formComponent.instance.form;
+    }
+    return this.form;
   }
 
   public setDisabled(state: boolean) {
