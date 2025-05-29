@@ -89,8 +89,6 @@ export class FormService {
           },
           expressions: [
             {
-              //For the moment the only way to distingsh between model and dom changes
-              // expressionType: 'model',
               //Target component that will be affected
               targetComponent: 'text_2',
               //Target property in the component that will be assigned a value after evaluating the expression
@@ -113,6 +111,7 @@ export class FormService {
           layout: {
             class: 'DefaultLayoutComponent',
             config: {
+              name: 'text2_layout',
               label: 'TextField with default layout defined',
               helpText: 'This is a help text for field 2',
               helpTextVisibleOnInit: true,
@@ -136,21 +135,19 @@ export class FormService {
           },
           expressions: [
             {
-              //For the moment the only way to distingsh between model and dom changes
-              expressionType: 'dom',
               //Target component that will be affected
               targetComponent: 'text_3',
               //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'config.visible',
+              targetProperty: 'helpTextVisible',
               //Expression that will be evaluated and will yield a result that will be assigned to the target property and
               //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
               //there may other types of expressions implemented in the future??? 
               expression: { 
-                             template: `<% if(field.isVisible) {
-                                         return false;
-                                       } else {
-                                         return true;
-                                       } %>`
+                             template: `<% let target = field.getLayoutByName('text_3');
+                                           if(!_.isUndefined(target)) {
+                                             target.toggleHelpTextVisibility();
+                                           }
+                                         %>`
                           }
             }
           ]
@@ -160,9 +157,8 @@ export class FormService {
           layout: {
             class: 'DefaultLayoutComponent',
             config: {
-              name: 'text_3_layout',
               label: 'TextField with default layout defined',
-              helpText: 'This is a help text for field 2',
+              helpText: 'This is a help text for field 3',
               helpTextVisibleOnInit: true,
               visible: true,
               tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }

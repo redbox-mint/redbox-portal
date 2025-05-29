@@ -47,7 +47,7 @@ import { FormComponentsMap, FormService } from './form.service';
     providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
     standalone: false
 })
-export class FormComponent extends BaseComponent implements DoCheck {
+export class FormComponent extends BaseComponent {
   appName: string;
   @Input() oid:string;
   @Input() recordType: string;
@@ -146,23 +146,23 @@ export class FormComponent extends BaseComponent implements DoCheck {
     }
   }
 
-  ngDoCheck(): void {
-    this.loggerService.debug(`FormComponent: ngDoCheck:`, '');
-    if(this.componentsLoaded()) {
-      this.loggerService.debug(`FormComponent: ngDoCheck:`, this.components);
-      for(let comp of this.components) {
-        let compName = _get(comp,'compConfigJson.name','');
-        this.loggerService.debug(`FormComponent: ngDoCheck: `, compName);
-        if(!_isNull(comp.component) && !_isUndefined(comp.component)) {
-          let component = comp.component;
-          component.expressionStateChanged = component.hasExpressionsConfigChanged();
-          if(component.expressionStateChanged) {
-            component.initChildConfig();
-          }
-        }
-      }
-    }
-  }
+  // ngDoCheck(): void {
+  //   this.loggerService.debug(`FormComponent: ngDoCheck:`, '');
+  //   if(this.componentsLoaded()) {
+  //     this.loggerService.debug(`FormComponent: ngDoCheck:`, this.components);
+  //     for(let comp of this.components) {
+  //       let compName = _get(comp,'compConfigJson.name','');
+  //       this.loggerService.debug(`FormComponent: ngDoCheck: `, compName);
+  //       if(!_isNull(comp.component) && !_isUndefined(comp.component)) {
+  //         let component = comp.component;
+  //         component.expressionStateChanged = component.hasExpressionsConfigChanged();
+  //         if(component.expressionStateChanged) {
+  //           component.initChildConfig();
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   @HostBinding('class.edit-mode') get isEditMode() {
     return this.editMode;

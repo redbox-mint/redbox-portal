@@ -61,6 +61,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   labelRequiredStr: string = '';
   helpTextVisibleOnInit: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
+  
   public override componentDefinition?: FormComponentLayoutDefinition;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false })
@@ -73,6 +74,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<unknown>>;
 
+  
+
   /**
    * Override to set additional properties required by the wrapper component.
    * 
@@ -82,6 +85,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
+    if(this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
+      this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent;
+    }
   }
   /**
    * Override what it takes to get the component to be 'ready'
@@ -92,6 +98,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.model = this.model;
     this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
+    
+    
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
@@ -103,7 +111,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     await super.setComponentReady();
   }
 
-  toggleHelpTextVisibility() {
+  public toggleHelpTextVisibility() {
     this.helpTextVisible = !this.helpTextVisible;
   }
 
@@ -121,6 +129,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
       this.setHelpTextVisibleOnInit();
     }
     
+    //Add required layout specific variables to the local state cache
     _set(this.componentDefinitionCache,'helpTextVisible',this.helpTextVisible);
     
     this.expressionStateChanged = false;
