@@ -92,7 +92,7 @@ export class FormService {
               //Target component that will be affected
               targetComponent: 'text_2',
               //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'config.visible',
+              targetProperty: 'visible',
               //Expression that will will be evaluated and will yield a result that may or may not trigger a state change
               //For the moment the expression is evaluated as a lodash template but there may other types of expressions
               //implemented in the future??? 
@@ -142,12 +142,12 @@ export class FormService {
               //Expression that will be evaluated and will yield a result that will be assigned to the target property and
               //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
               //there may other types of expressions implemented in the future??? 
-              expression: { 
-                             template: `<% let target = field.getLayoutByName('text_3');
-                                           if(!_.isUndefined(target)) {
-                                             target.toggleHelpTextVisibility();
-                                           }
-                                         %>`
+              expression: {
+                             template: `<% if(_.get(field.getLayoutByName('text_2'),'helpTextVisible',true)) {
+                                         return true;
+                                       } else {
+                                         return false;
+                                       } %>`
                           }
             }
           ]
@@ -178,6 +178,64 @@ export class FormService {
               readonly: false
             }
           }
+        },
+        {
+          name: 'text_4',
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              label: 'TextField with default layout defined',
+              helpText: 'This is a help text for field 4',
+              helpTextVisibleOnInit: true,
+              visible: true,
+              tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
+            }
+          },
+          model: { 
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world 4!',
+            }
+          },
+          component: {
+            class: 'TextFieldComponent',
+            config: {
+              visible: true,
+              disabled: false,
+              readonly: false
+            }
+          },
+          expressions: [
+            {
+              //No target then result of expression is applied to self
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'helpTextVisible',
+              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
+              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
+              //there may other types of expressions implemented in the future??? 
+              expression: {
+                             template: `<% if(_.get(field.getLayoutByName('text_2'),'helpTextVisible',true)) {
+                                         return true;
+                                       } else {
+                                         return false;
+                                       } %>`
+                          }
+            },
+            {
+              //No target then result of expression is applied to self
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'label',
+              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
+              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
+              //there may other types of expressions implemented in the future??? 
+              expression: {
+                             template: `<% let label = field.getComponentByName('text_3').model.getValue();
+                                           return label;
+                                          %>`
+                          }
+            }
+
+          ]
         },
         // {
         //   module: 'custom',

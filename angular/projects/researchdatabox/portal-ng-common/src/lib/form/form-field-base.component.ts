@@ -41,7 +41,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   private lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
   private appRef: ApplicationRef = inject(ApplicationRef);
-  private containerRef: ViewContainerRef = inject(ViewContainerRef);
   loggerService: LoggerService = inject(LoggerService);
 
   /**
@@ -68,7 +67,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       await this.initData();
       await this.initLayout();
       await this.initEventHandlers();
-      // Create a method that children to prepare their state.
+      // Create a method that children can override to prepare their state.
       await this.setComponentReady();
     } catch (error) {
       this.loggerService.error("FieldComponent: initComponent failed", error);
@@ -79,19 +78,18 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   ngDoCheck() {
     if(this.componentViewReady) {
       //Checking expressions undefined ensures it runs only for components that have expressions defined in their component definition
-      if(!_isUndefined(this.expressions)) {
-        this.checkUpdateExpressions(this.expressions, 'dom');
-      }
+      this.checkUpdateExpressions('dom');
     }
   }
 
-  public checkUpdateExpressions(expressions: any[], expressionType: string = '') {
+  public checkUpdateExpressions(expressionType: string = '') {
     
-    if(!_isEmpty(expressions)) {
-      this.loggerService.info('ngDoCheck ',_get(this.componentDefinition,'class',''));
-      this.loggerService.info('ngDoCheck name ',this.name);
-      this.loggerService.info('ngDoCheck expressionType ',expressionType);
-      for(let expObj of expressions) {
+    if(!_isUndefined(this.expressions) && !_isEmpty(this.expressions)) {
+      this.loggerService.info('checkUpdateExpressions ',_get(this.componentDefinition,'class',''));
+      this.loggerService.info('checkUpdateExpressions name ',this.name);
+      this.loggerService.info('checkUpdateExpressions expressionType ',expressionType);
+      for(let expObj of this.expressions) {
+        let skip = false;
         let value:any = null;
         let data = this.model?.formControl?.value;
         let targetPropertyPath = _get(expObj,'targetProperty','');
@@ -105,6 +103,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
         }
 
         let targetComponentName = _get(expObj,'targetComponent','');
+        let checkForExceptionsAndSkip = _get(expObj,'expression.checkForExceptionsAndSkip',false);
 
         if(targetComponentName != '') {
 
@@ -118,48 +117,59 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
                 for(let compEntry of components) {
                   let compName = _get(compEntry,'name','');
                   if(compName == targetComponentName) {
-                    if(_startsWith(targetPropertyPath, 'config.')) {
-                      if(_has(compEntry.component.componentDefinition,targetPropertyPath)) {
-                        _set(compEntry.component.componentDefinition as object,targetPropertyPath,value);
-                      } else if(_has(compEntry.layout.componentDefinition,targetPropertyPath)) {
-                        _set(compEntry.layout.componentDefinition as object,targetPropertyPath,value);
-                      } else {
-                        this.loggerService.warn(`Property '${targetPropertyPath}' does not exist on target componentDefinition component `,compEntry.component.componentDefinition);
-                        this.loggerService.warn(`Property '${targetPropertyPath}' does not exist on target componentDefinition layout `,compEntry.layout.componentDefinition);
-                      }
+                    if (_has(compEntry.component.componentDefinition.config,targetPropertyPath)) {
+                      compEntry.component.componentDefinition.config[targetPropertyPath] = value;
+                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in component.componentDefinition.config `,compName);
+                    } else if (_has(compEntry.layout.componentDefinition.config,targetPropertyPath)) {
+                      compEntry.layout.componentDefinition.config[targetPropertyPath] = value;
+                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout.componentDefinition.config `,compName);
                     } else if (_has(compEntry.component,targetPropertyPath)) {
-                      compEntry.component[targetPropertyPath] = value;
+                      // compEntry.component[targetPropertyPath] = value;
+                      compEntry.component.componentDefinition.config[targetPropertyPath] = value;
+                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in component `,compName);
                     } else if (_has(compEntry.layout,targetPropertyPath)) {
-                      compEntry.layout[targetPropertyPath] = value;
+                      // compEntry.layout[targetPropertyPath] = value;
+                      compEntry.layout.componentDefinition.config[targetPropertyPath] = value;
+                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout `,compName);
                     } else {
-                      this.loggerService.warn(`Property '${targetPropertyPath}' does not exist on target component `,compName);
+                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' does not exist on target component or layout `,compName);
                     }
                     
                     compEntry.component.expressionStateChanged = compEntry.component.hasExpressionsConfigChanged();
                     compEntry.layout.expressionStateChanged = compEntry.layout.hasExpressionsConfigChanged();
                     if(compEntry.component.expressionStateChanged) {
-                      this.loggerService.info(`ngDoCheck compEntry.component.expressionStateChanged ${this.expressionStateChanged}`,'');
+                      this.loggerService.info(`checkUpdateExpressions compEntry.component.expressionStateChanged ${this.expressionStateChanged}`,'');
                       compEntry.component.initChildConfig();
                     } else if(compEntry.layout.expressionStateChanged) {
-                      this.loggerService.info(`ngDoCheck compEntry.layout.expressionStateChanged ${this.expressionStateChanged}`,'');
-                      compEntry.layout.initChildConfig();
+                      this.loggerService.info(`checkUpdateExpressions compEntry.layout.expressionStateChanged ${this.expressionStateChanged}`,'');
+                      compEntry.component.initChildConfig();
                     }
                   }
                 }
               }
-            
+
           } catch (err) {
             this.loggerService.error('checkUpdateExpressions failed', err);
           }
 
         } else {
 
-          //TODO FIXME if there is no targetComponent the expressions are evaluated for the same component where the expression is defined
-          _set(this.componentDefinition as object,targetPropertyPath,value);
-          this.expressionStateChanged = this.hasExpressionsConfigChanged();
-          this.loggerService.info(`ngDoCheck expressionStateChanged ${this.expressionStateChanged}`,'');
-          if(this.expressionStateChanged) {
-            this.initChildConfig();
+          if(!_isUndefined(this.componentDefinition)) {
+            if (_has(this.componentDefinition.config,targetPropertyPath)) {
+              _set(this.componentDefinition,'config.'+targetPropertyPath,value);
+              this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in componentDefinition.config `,this.name);
+            } else if (_has(this,targetPropertyPath)) {
+              // _set(this,targetPropertyPath,value);
+              _set(this.componentDefinition,'config.'+targetPropertyPath,value);
+              this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in component or layout `,this.name);
+            }
+
+            this.expressionStateChanged = this.hasExpressionsConfigChanged();
+            this.loggerService.info(`checkUpdateExpressions expressionStateChanged ${this.expressionStateChanged}`,'');
+            if(this.expressionStateChanged) {
+              this.initChildConfig();
+            }
+
           }
         }
         
@@ -171,19 +181,19 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.initConfig();
     this.form = this.getFormGroup();
     this.componentViewReady = true;
-    this.getFormGroup()?.valueChanges.subscribe((value) => {
-      console.log('Form value changed:', value);
-      
-      this.loggerService.info('changed '+_get(this.componentDefinition,'class',''),'');
-      if(!_isUndefined(this.expressions)) {
-        this.checkUpdateExpressions(this.expressions,'model');
-        this.loggerService.info(`changed expressionStateChanged ${this.expressionStateChanged}`,'');
-        if(this.expressionStateChanged) {
-          this.initChildConfig();
-        }
-      }
+    this.loggerService.debug(`FieldComponent ngAfterViewInit: componentViewReady:`, this.componentViewReady);
+    //Sunscribe to model changes
+    // this.getFormGroup()?.valueChanges.subscribe((value) => {
+    //   this.loggerService.info('valueChanges ',_get(this.componentDefinition,'class',''));
+    //   if(!_isUndefined(this.expressions)) {
+    //     this.checkUpdateExpressions(this.expressions,'model');
+    //     this.loggerService.info(`valueChanges expressionStateChanged ${this.expressionStateChanged}`,'');
+    //     if(this.expressionStateChanged) {
+    //       this.initChildConfig();
+    //     }
+    //   }
 
-    });
+    // });
   }
 
   public abstract initChildConfig():void;
@@ -249,7 +259,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
         let components = formComponent.instance.components;
 
         for(let compEntry of components) {
-          let compName = _get(compEntry,'compConfigJson.name','');
+          let compName = _get(compEntry,'name','');
           if(compName == targetComponentName) {
             compRef = compEntry.component;
             return compRef;
@@ -271,7 +281,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
         let components = formComponent.instance.components;
 
         for(let compEntry of components) {
-          let layoutName = _get(compEntry,'compConfigJson.name','');
+          let layoutName = _get(compEntry,'name','');
           if(layoutName == targetComponentName) {
             layoutRef = compEntry.layout;
             return layoutRef;
@@ -282,30 +292,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.loggerService.error('checkUpdateExpressions failed', err);
     }
     return layoutRef;
-  }
-
-  public setDisabled(state: boolean) {
-   this.isDisabled = state;
-  }
-  
-  public setVisibility(state: boolean) {
-   this.isVisible = state;
-  }
-
-  public setReadonly(state: boolean) {
-   this.isReadonly = state;
-  }
-
-  public setAutofocus(state: boolean) {
-    this.needsAutofocus = state;
-  }
-
-  public setLabel(label: string) {
-    this.label = label;
-  }
-
-  public setTooltips(tooltips: TooltipsModel | null | undefined) {
-    this.tooltips = tooltips;
   }
 
   protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {

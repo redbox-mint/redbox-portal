@@ -121,7 +121,21 @@ export class FormComponent extends BaseComponent {
       this.componentsLoaded.set(this.formDefMap.components.every(componentDef => componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY));
       if (this.componentsLoaded()) {
         this.status.set(FormStatus.READY);
-        this.loggerService.debug(`FormComponent: All components are ready. Form is ready to be used.`);
+        this.loggerService.info(`FormComponent: All components are ready. Form is ready to be used.`);
+        if(!_isUndefined(this.form)) {
+          this.form.valueChanges.subscribe((value) => {
+          for(let compEntry of this.components) {
+            let compName = _get(compEntry,'name','');
+            this.loggerService.info(`FormComponent: valueChanges: `, compName);
+            if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
+              this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
+              let component = compEntry.component;
+              component.checkUpdateExpressions('model');
+            }
+          }
+        });
+
+        }
       }
     }
   }
@@ -147,18 +161,15 @@ export class FormComponent extends BaseComponent {
   }
 
   // ngDoCheck(): void {
-  //   this.loggerService.debug(`FormComponent: ngDoCheck:`, '');
+  //   this.loggerService.info(`FormComponent: ngDoCheck:`, '');
   //   if(this.componentsLoaded()) {
-  //     this.loggerService.debug(`FormComponent: ngDoCheck:`, this.components);
-  //     for(let comp of this.components) {
-  //       let compName = _get(comp,'compConfigJson.name','');
-  //       this.loggerService.debug(`FormComponent: ngDoCheck: `, compName);
-  //       if(!_isNull(comp.component) && !_isUndefined(comp.component)) {
-  //         let component = comp.component;
-  //         component.expressionStateChanged = component.hasExpressionsConfigChanged();
-  //         if(component.expressionStateChanged) {
-  //           component.initChildConfig();
-  //         }
+  //     this.loggerService.info(`FormComponent: ngDoCheck:`, this.components);
+  //     for(let compEntry of this.components) {
+  //       let compName = _get(compEntry,'name','');
+  //       this.loggerService.info(`FormComponent: ngDoCheck: `, compName);
+  //       if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
+  //         let component = compEntry.component;
+  //         component.checkUpdateExpressions('dom');
   //       }
   //     }
   //   }

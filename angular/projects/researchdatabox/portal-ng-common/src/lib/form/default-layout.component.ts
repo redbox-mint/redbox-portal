@@ -1,7 +1,7 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
-import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
-import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
+import { isEmpty as _isEmpty, set as _set, get as _get, keys as _keys } from 'lodash-es';
+import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef, AfterViewInit } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 /**
  * Default Form Component Layout
@@ -56,7 +56,7 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
-export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
+export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements AfterViewInit {
   helpTextVisible: boolean = false;  
   labelRequiredStr: string = '';
   helpTextVisibleOnInit: boolean = false;
@@ -110,6 +110,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     // finally set the status to 'READY'
     await super.setComponentReady();
   }
+  
+  override ngAfterViewInit() {
+    this.initChildConfig();
+  }
 
   public toggleHelpTextVisibility() {
     this.helpTextVisible = !this.helpTextVisible;
@@ -122,17 +126,38 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   //Layout specific config values that need to be applied after generic/base component config has been applied 
   public override initChildConfig(): void {
     this.initConfig();
+    _set(this.componentDefinition as object,'config.helpTextVisible',this.helpTextVisible);
+
     this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
     this.helpTextVisibleOnInit = this.componentDefinition?.config?.helpTextVisibleOnInit ?? false;
     this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
+    this.helpTextVisible = _get(this.componentDefinition?.config,'helpTextVisible',false);
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
     
     //Add required layout specific variables to the local state cache
+    _set(this.componentDefinitionCache,'labelRequiredStr',this.componentDefinition?.config?.labelRequiredStr);
+    _set(this.componentDefinitionCache,'helpTextVisibleOnInit',this.componentDefinition?.config?.helpTextVisibleOnInit);
+    _set(this.componentDefinitionCache,'tooltips',this.componentDefinition?.config?.tooltips);
     _set(this.componentDefinitionCache,'helpTextVisible',this.helpTextVisible);
     
     this.expressionStateChanged = false;
-
   }
+
+  override hasExpressionsConfigChanged(): boolean {
+      let propertyChanged = false;
+      for(let key of _keys(this.componentDefinitionCache)) {
+        let newValue = _get(this.componentDefinition?.config,key);
+        let oldValue = _get(this.componentDefinitionCache,key);
+        let configPropertyChanged = oldValue !== newValue;
+        if(configPropertyChanged) {
+          propertyChanged = true;
+          this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`,'');
+          break;
+        }
+      }
+      return propertyChanged;
+    }
+
 }
