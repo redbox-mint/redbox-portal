@@ -95,7 +95,7 @@ export class FormComponent extends BaseComponent {
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
-    this.loggerService.debug(`'${this.appName}' waiting for deps to init...`);
+    this.loggerService.debug(`'${this.logName}' waiting for deps to init...`);
 
     effect(() => {
       this.loggerService.info(`${this.logName}: status value is:`, this.status());
@@ -143,9 +143,10 @@ export class FormComponent extends BaseComponent {
    * @param componentEntry - The component entry that is ready.
    */
   protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    const name = this.utilityService.getName(componentEntry);
-    this.loggerService.debug(`${this.logName}: component '${name}' registered as ready.`);
-    this.formService.triggerComponentReady(this.appName, this.formDefMap, this.componentsLoaded, this.status);
+    const thisName = this.appName;
+    const componentName = this.utilityService.getName(componentEntry);
+    this.loggerService.debug(`${this.logName}: component '${componentName}' registered as ready.`);
+    this.formService.triggerComponentReady(thisName, this.formDefMap, this.componentsLoaded, this.status);
   }
 
   @HostBinding('class.edit-mode') get isEditMode() {

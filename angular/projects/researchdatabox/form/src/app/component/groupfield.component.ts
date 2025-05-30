@@ -40,16 +40,14 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
       </ng-container>
     </ng-template>
     <ng-container *ngIf="components.length > 0 && formDefMap?.formConfig?.debugValue">
-      <h3>Live Group Value</h3>
-      <pre [innerHtml]="form?.value | json"></pre>
-    </ng-container>
-    <ng-container *ngIf="components.length > 0 && formDefMap?.formConfig?.debugValue">
-      <h3>Group Statuses</h3>
+      <div class="alert alert-info" role="alert">
+      <h4>Group Component Debug</h4>
       <ul>
-        <li>component status: {{ status() }}</li>
-        <li>form status: {{ groupStatus() }}</li>
-        <li>components loaded: {{ componentsLoaded() }}</li>
+        <li>status: {{ status() }}</li>
+        <li>groupStatus: {{ groupStatus() }}</li>
+        <li>componentsLoaded: {{ componentsLoaded() }}</li>
       </ul>
+      </div>
     </ng-container>
   `,
   standalone: false
@@ -84,9 +82,15 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     effect(() => {
       this.loggerService.info(`${this.logName}: groupStatus value is:` , this.groupStatus());
+      untracked(() => {
+        this.checkReadyAndSetIfReady();
+      })
     });
     effect(() => {
       this.loggerService.info(`${this.logName}: componentsLoaded value is:`, this.componentsLoaded());
+      untracked(() => {
+        this.checkReadyAndSetIfReady();
+      })
     });
   }
 
@@ -94,20 +98,31 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     return this.injector.get(FormComponent);
   }
 
+  protected checkReadyAndSetIfReady(){
+    const status = this.status();
+    const componentsLoaded = this.componentsLoaded();
+    const groupStatus = this.groupStatus();
+    this.loggerService.info(`${this.logName}: status check:`, {
+      componentsLoaded: componentsLoaded, groupStatus: groupStatus, status: status
+    });
+    if (groupStatus === FormStatus.READY && componentsLoaded) {
+      this.status.set(FormFieldComponentStatus.READY);
+    }
+  }
+
   /**
    * Notification hook for when a component is ready.
    */
   protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    const name = this.utilityService.getName(componentEntry);
-    this.loggerService.debug(`${this.logName}: component '${name}' registered as ready.`);
-    this.formService.triggerComponentReady(this.logName, this.formDefMap, this.componentsLoaded, this.groupStatus);
-    if (this.groupStatus() === FormStatus.READY) {
-      // TODO: The approach of setting the component ready here doesn't work, as the base wrapper only emits the event after initComponent.
-      //       By the time the call to registerComponentReady occurs after the children have initialised,
-      //       the GroupFieldComponent has already emitted the componentReady event and doesn't emit it again.
-      //       To fix this, I added `componentReady.emit()` in the base wrapper constructor when the component status changes.
-      this.status.set(FormFieldComponentStatus.READY);
-    }
+    const thisName = this.utilityService.getName(this.model);
+    const componentName = this.utilityService.getName(componentEntry);
+    this.loggerService.debug(`${this.logName}: '${thisName}' component '${componentName}' registered as ready.`);
+    this.formService.triggerComponentReady(thisName, this.formDefMap, this.componentsLoaded, this.groupStatus);
+    // TODO: The approach of setting the component ready here doesn't work, as the base wrapper only emits the event after initComponent.
+    //       By the time the call to registerComponentReady occurs after the children have initialised,
+    //       the GroupFieldComponent has already emitted the componentReady event and doesn't emit it again.
+    //       To fix this, I added `componentReady.emit()` in the base wrapper constructor when the component status changes.
+    //       And used signal effects to emit the event when all statuses are ready.
   }
 
   protected override async setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
@@ -149,7 +164,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       }
     }
 
-    // don't set form ready yet, that is done in registerComponentReady
+    // don't set form ready yet, that is done in registerComponentReady and the signal effects
     // return super.setComponentReady();
     return Promise.resolve();
   }

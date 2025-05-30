@@ -63,7 +63,7 @@ export class UtilityService {
 
   /**
    * check that all the values to match have values for a given object
-   * 
+   *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} valueObject
    * @param  {any} fieldsToMatch
@@ -82,7 +82,7 @@ export class UtilityService {
 
   /**
    * check a given object is not already present in the container list
-   * 
+   *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} valueObject
    * @param  {any} fieldsToMatch
@@ -93,7 +93,7 @@ export class UtilityService {
     let concatReq = true;
     for (let fieldValue of fieldValues) {
       for (let fieldToMatch of fieldsToMatch) {
-        let fieldValueToMatch = _get(fieldValue, fieldToMatch); 
+        let fieldValueToMatch = _get(fieldValue, fieldToMatch);
         let emittedValueToMatch = _get(valueObject, fieldToMatch);
         if(_isEqual(fieldValueToMatch,emittedValueToMatch)) {
           concatReq = false;
@@ -159,24 +159,24 @@ export class UtilityService {
     if(!_isArray(data)) {
       wrappedData = [data];
     }
-    
+
     for (let emittedDataValue of wrappedData) {
-      //There are cases where the emitter may send null values just after the field  
-      //gets cleared therefore need to checkDataOk if any of the fields to match are  
-      //undefined not enter the if block and the same value will be sent back to the 
-      //subscriber field 
+      //There are cases where the emitter may send null values just after the field
+      //gets cleared therefore need to checkDataOk if any of the fields to match are
+      //undefined not enter the if block and the same value will be sent back to the
+      //subscriber field
       let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch);
       if(checkDataOk){
         let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
         if(concatReq) {
           let value = _clone(templateObject);
           for (let fieldToSet of fieldsToSet) {
-              let val = _get(emittedDataValue, fieldToSet); 
+              let val = _get(emittedDataValue, fieldToSet);
               _set(value, fieldToSet, val);
           }
-          //If there is only one item in fieldValues array it may be empty and must be re-used 
-          //if there is more than one item in the array it's too cumbersome to manage all  
-          //scenarios and edge cases therefore it's better to add a new item to the array 
+          //If there is only one item in fieldValues array it may be empty and must be re-used
+          //if there is more than one item in the array it's too cumbersome to manage all
+          //scenarios and edge cases therefore it's better to add a new item to the array
           if(fieldValues.length == 1) {
             let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch);
             if(checkFieldValuesDataOk) {
@@ -383,5 +383,32 @@ export class UtilityService {
     for (let dep of deps) {
       await dep.waitForInit();
     }
+  }
+
+  public getName(data?: any): string {
+    if (data?.name) {
+      return data?.name;
+    }
+    if (data?.compConfigJson?.name) {
+      return data?.compConfigJson?.name;
+    }
+    if (data?.model?.name) {
+      return data?.model?.name;
+    }
+    if (data?.fieldConfig?.name) {
+      return data?.fieldConfig?.name;
+    }
+    if (data?.model?.fieldConfig?.name) {
+      return data?.model?.fieldConfig?.name;
+    }
+    if (data?.fieldConfig?.class) {
+      return data?.fieldConfig?.class;
+    }
+    console.error('Cannot find a name in data', data);
+    return "(unknown)";
+  }
+
+  public getNames(data?: any[] | null | undefined): string[] {
+    return data?.map(this.getName) ?? [];
   }
 }

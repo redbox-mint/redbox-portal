@@ -122,6 +122,7 @@ export class FormService {
           }
         },
         {
+          // first group component
           name: 'group_1_component',
           layout: {
             class: 'DefaultLayoutComponent',
@@ -173,6 +174,50 @@ export class FormService {
                     class: 'TextFieldComponent'
                   }
                 },
+                {
+                  // second group component, nested in first group component
+                  name: 'group_2_component',
+                  layout: {
+                    class: 'DefaultLayoutComponent',
+                    config: {
+                      label: 'GroupField 2 label',
+                      helpText: 'GroupField 2 help',
+                    }
+                  },
+                  model: {
+                    name: 'group_2_model',
+                    class: 'GroupFieldModel',
+                    config: {
+                      defaultValue: {},
+                    }
+                  },
+                  component: {
+                    class: 'GroupFieldComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'text_5',
+                          layout: {
+                            class: 'DefaultLayoutComponent',
+                            config: {
+                              label: 'TextField with default wrapper defined',
+                              helpText: 'This is a help text',
+                            }
+                          },
+                          model: {
+                            class: 'TextFieldModel',
+                            config: {
+                              value: 'hello world 5!',
+                            }
+                          },
+                          component: {
+                            class: 'TextFieldComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
               ]
             }
           }
@@ -404,13 +449,13 @@ export class FormService {
       );
       componentsLoaded.set(componentsReady.length === componentsCount);
 
+      const readyMsg = `Waiting for ${componentsNotReady.length} components to be ready ${this.utilityService.getNames(componentsNotReady)}. ` +
+          `${componentsReady.length} components are ready ${this.utilityService.getNames(componentsReady)}`
       if (componentsLoaded()) {
         status.set(FormStatus.READY);
-        this.loggerService.debug(`${this.logName}: All components for ${name} are ready. Form is ready to be used.`);
+        this.loggerService.debug(`${this.logName}: All components for ${name} are ready. Form is ready to be used. ${readyMsg}`);
       } else{
-        this.loggerService.debug(
-          `${this.logName}: Waiting for components for ${name} to be ready. Waiting for ${componentsNotReady.length} components to be ready ${this.utilityService.getNames(componentsNotReady)}. ` +
-          `${componentsReady.length} components are ready ${this.utilityService.getNames(componentsReady)}`);
+        this.loggerService.debug(`${this.logName}: Waiting for components for ${name} to be ready. ${readyMsg}`);
       }
     }
   }
