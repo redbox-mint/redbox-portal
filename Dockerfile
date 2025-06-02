@@ -1,4 +1,4 @@
-FROM node:20.18-bullseye
+FROM node:24.1-bullseye
 ENV node_env production
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin
