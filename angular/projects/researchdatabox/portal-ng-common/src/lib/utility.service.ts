@@ -385,30 +385,25 @@ export class UtilityService {
     }
   }
 
-  public getName(data?: any): string {
+  public getNameClass(data?: any): string {
+    // The name from the form config.
+    let name = null;
     if (data?.name) {
-      return data?.name;
+      name = data.name;
     }
-    if (data?.compConfigJson?.name) {
-      return data?.compConfigJson?.name;
+    if (!name && data?.compConfigJson?.name) {
+      name = data.compConfigJson.name;
     }
-    if (data?.model?.name) {
-      return data?.model?.name;
+
+    if (!name) {
+      console.error('Cannot find a name in data', data);
     }
-    if (data?.fieldConfig?.name) {
-      return data?.fieldConfig?.name;
-    }
-    if (data?.model?.fieldConfig?.name) {
-      return data?.model?.fieldConfig?.name;
-    }
-    if (data?.fieldConfig?.class) {
-      return data?.fieldConfig?.class;
-    }
-    console.error('Cannot find a name in data', data);
-    return "(unknown)";
+
+    const unknown = '(unknown)';
+    return `${name ?? unknown}`;
   }
 
-  public getNames(data?: any[] | null | undefined): string[] {
-    return data?.map(this.getName) ?? [];
+  public getNamesClasses(data?: any[] | null | undefined): string {
+    return ((data ?? [])?.map(this.getNameClass) ?? []).join(', ');
   }
 }

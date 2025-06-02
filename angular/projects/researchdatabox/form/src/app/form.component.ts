@@ -86,7 +86,7 @@ export class FormComponent extends BaseComponent {
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(ElementRef) elementRef: ElementRef,
     @Inject(FormService) private formService: FormService,
-    @Inject(UtilityService) private utilityService: UtilityService
+    @Inject(UtilityService) protected utilityService: UtilityService
   ) {
     super();
     this.initDependencies = [this.translationService];
@@ -94,15 +94,8 @@ export class FormComponent extends BaseComponent {
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
-    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
-    this.loggerService.debug(`'${this.logName}' waiting for deps to init...`);
-
-    effect(() => {
-      this.loggerService.info(`${this.logName}: status value is:`, this.status());
-    });
-    effect(() => {
-      this.loggerService.info(`${this.logName}: componentsLoaded value is:`, this.componentsLoaded());
-    });
+    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
+    this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
   }
 
   protected async initComponent(): Promise<void> {
@@ -144,7 +137,7 @@ export class FormComponent extends BaseComponent {
    */
   protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
     const thisName = this.appName;
-    const componentName = this.utilityService.getName(componentEntry);
+    const componentName = this.utilityService.getNameClass(componentEntry);
     this.loggerService.debug(`${this.logName}: component '${componentName}' registered as ready.`);
     this.formService.triggerComponentReady(thisName, this.formDefMap, this.componentsLoaded, this.status);
   }

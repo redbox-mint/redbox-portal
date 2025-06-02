@@ -14,7 +14,7 @@ import {UtilityService} from "../utility.service";
  *
  */
 @Directive()
-export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
+export abstract class FormFieldBaseComponent<ValueType> {
   protected logName: string | null = "FormFieldBaseComponent";
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
@@ -26,11 +26,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   protected loggerService = inject(LoggerService);
   protected utilityService = inject(UtilityService);
 
-  constructor() {
-    effect(() => {
-      this.loggerService.info(`${this.logName}: status value is:`, this.status());
-    });
-  }
   /**
    * This method is called to initialize the component with the provided configuration.
    *
@@ -49,8 +44,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
-    const name = this.utilityService.getName(formFieldCompMapEntry);
-    this.loggerService.debug(`${this.logName}: starting initialise component for '${name}' with component class '${formFieldCompMapEntry?.component?.componentDefinition?.class}'.`);
+    const name = this.utilityService.getNameClass(formFieldCompMapEntry);
+    this.loggerService.debug(`${this.logName}: starting initialise component for '${name}'.`);
     try {
       // Create a method that children can override to set their own properties
       this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -70,7 +65,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
       throw new Error(`${this.logName}: cannot set component properties because formFieldCompMapEntry was invalid.`);
     }
     this.formFieldCompMapEntry = formFieldCompMapEntry;
-    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
+    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent<ValueType>;
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
   }
@@ -113,7 +108,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     const control = this.model?.formControl;
     if (!control) {
       // Return a dummy control or throw, depending on desired behavior
-      const name = this.utilityService.getName(this.model);
+      const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
       throw new Error(`${this.logName}: could not get form control from model for '${name}'.`);
     }
     return control as FormControl<ValueType>;
@@ -145,8 +140,8 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
    * Set the component status to READY.
    */
   protected async setComponentReady() {
-    const name = this.utilityService.getName(this.model);
-    this.loggerService.debug(`${this.logName}: component '${name}' with component class '${this.componentDefinition?.class}' is ready.`);
+    const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
+    this.loggerService.debug(`${this.logName}: in setComponentReady component '${name}' is ready.`);
     this.status.set(FormFieldComponentStatus.READY);
   }
 }
@@ -162,7 +157,7 @@ export interface FormFieldCompMapEntry {
   layoutClass?: typeof FormFieldBaseComponent | null;
   componentClass?: typeof FormFieldBaseComponent | null;
   compConfigJson: any,
-  model?: FormFieldModel | null;
-  component?: FormFieldBaseComponent | null;
-  componentTemplateRefMap? : { [key: string]: TemplateRef<any> } | null | undefined;
+  model?: FormFieldModel<unknown> | null;
+  component?: FormFieldBaseComponent<unknown> | null;
+  componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> } | null | undefined;
 }

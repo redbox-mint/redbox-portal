@@ -19,14 +19,16 @@
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, get as _get} from 'lodash-es';
+import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge} from 'lodash-es';
 import {
   FormComponentDefinition,
   FormConfig,
   FormFieldBaseComponent,
-  FormFieldCompMapEntry, FormFieldComponentStatus,
+  FormFieldCompMapEntry,
+  FormFieldComponentStatus,
   FormFieldModel,
-  FormFieldModelConfig, FormStatus,
+  FormFieldModelConfig,
+  FormStatus,
   LoggerService,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
@@ -264,9 +266,9 @@ export class FormService {
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
+  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition<unknown>[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
-    this.loggerService.debug(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${this.utilityService.getNames(componentDefinitions)}`);
+    this.loggerService.debug(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${this.utilityService.getNamesClasses(componentDefinitions)}`);
     const components = componentDefinitions || [];
     for (let componentConfig of components) {
       let modelClass: typeof FormFieldModel | undefined = undefined;
@@ -357,11 +359,12 @@ export class FormService {
   }
 
   public createFormFieldModelInstances(components:FormFieldCompMapEntry[]): FormFieldCompMapEntry[] {
-    this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${this.utilityService.getNames(components)}.`);
+    this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${this.utilityService.getNamesClasses(components)}.`);
     for (let compEntry of components) {
       if (compEntry.modelClass) {
-        const model = new (compEntry.modelClass as any) (compEntry.compConfigJson.model as FormFieldModelConfig) as FormFieldModel;
-        compEntry.model = model;
+        const ModelType = compEntry.modelClass as typeof FormFieldModel;
+        const modelConfig = compEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
+        compEntry.model = new ModelType(modelConfig) as FormFieldModel<unknown>;
       } else {
         this.logNotAvailable(compEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
       }
@@ -449,13 +452,13 @@ export class FormService {
       );
       componentsLoaded.set(componentsReady.length === componentsCount);
 
-      const readyMsg = `Waiting for ${componentsNotReady.length} components to be ready ${this.utilityService.getNames(componentsNotReady)}. ` +
-          `${componentsReady.length} components are ready ${this.utilityService.getNames(componentsReady)}`
+      const readyMsg = `${componentsReady.length} child components are ready '${this.utilityService.getNamesClasses(componentsReady)}'.`
       if (componentsLoaded()) {
         status.set(FormStatus.READY);
         this.loggerService.debug(`${this.logName}: All components for ${name} are ready. Form is ready to be used. ${readyMsg}`);
       } else{
-        this.loggerService.debug(`${this.logName}: Waiting for components for ${name} to be ready. ${readyMsg}`);
+        const waitingMsg = `Component '${name}' is waiting for ${componentsNotReady.length} child components ${this.utilityService.getNamesClasses(componentsNotReady)}.to be ready.`;
+        this.loggerService.debug(`${this.logName}: ${waitingMsg} ${readyMsg}`);
       }
     }
   }

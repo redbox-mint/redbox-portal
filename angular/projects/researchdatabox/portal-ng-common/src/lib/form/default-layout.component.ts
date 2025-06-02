@@ -1,26 +1,26 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
-import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
+import {Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
+
 /**
  * Default Form Component Layout
- * 
- * This component provides additional layout-specific functionality for form components. 
- * 
+ *
+ * This component provides additional layout-specific functionality for form components.
+ *
  * The default layout is the following, which based by the legacy form field layout:
- * 
+ *
  * <div>
  *   <label>
  *    Label
  *    <span>Required indicator</span>
  *    <button>Help Button</button>
  *  </label>
- *  <span>Help Text</span> 
+ *  <span>Help Text</span>
  *  <ng-container>The component</ng-container>
  * </div>
  *
- * Other layouts can be defined, 
+ * Other layouts can be defined,
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
@@ -43,13 +43,13 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
       }
     }
     <ng-container #componentContainer>
-    </ng-container> 
+    </ng-container>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
-      Before, is help showing:  {{ helpTextVisible }}
+      Before {{ componentName }}
     </ng-template>
     <ng-template #afterComponentTemplate>
-      After, is help showing:  {{ helpTextVisible }}
+      After {{ componentName }}
     </ng-template>
   }
   `,
@@ -57,6 +57,7 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
+  protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
@@ -73,8 +74,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   /**
    * Override to set additional properties required by the wrapper component.
-   * 
-   * @param formFieldCompMapEntry 
+   *
+   * @param formFieldCompMapEntry
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -87,9 +88,12 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected override async setComponentReady(): Promise<void> {
     // Set all the bound properties to the component
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
-    this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.model = this.model;
+    this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
+    this.wrapperComponentRef.instance.defaultComponentConfig = {
+      defaultComponentCssClasses: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.defaultComponentCssClasses
+    };
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
@@ -103,5 +107,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   toggleHelpTextVisibility() {
    this.helpTextVisible = !this.helpTextVisible;
+  }
+
+  protected get componentName(){
+    return this.utilityService.getNameClass(this.formFieldCompMapEntry);
   }
 }

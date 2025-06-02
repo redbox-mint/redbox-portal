@@ -8,7 +8,7 @@ import {
   ViewChild,
   output,
   inject,
-  effect, untracked
+  effect, untracked, OnDestroy
 } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 import { FormFieldModel } from './base.model';
@@ -34,7 +34,7 @@ import {FormFieldComponentStatus} from "./status.model";
   `,
     standalone: false
 })
-export class FormBaseWrapperComponent<ValueType = string | undefined> implements OnInit, OnChanges {
+export class FormBaseWrapperComponent<ValueType> implements OnInit, OnChanges, OnDestroy {
   protected logName = "FormBaseWrapperComponent";
   @Input() model?: FormFieldModel<ValueType> | null | undefined = null;
   @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
@@ -46,21 +46,10 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
 
   componentReady = output<void>();
 
-  public componentRef?: ComponentRef<FormFieldBaseComponent>; // Store the ref if needed later
+  public componentRef?: ComponentRef<FormFieldBaseComponent<ValueType>>; // Store the ref if needed later
 
   private loggerService = inject(LoggerService);
   private utilityService = inject(UtilityService);
-
-  constructor() {
-    effect(() => {
-      const name  = untracked(() => this.utilityService.getName(this.formFieldCompMapEntry));
-      const newValue = this.componentRef?.instance.status();
-      this.loggerService.info(`${this.logName}: '${name}' componentRef.instance.status changed to '${newValue}'`);
-      if (newValue === FormFieldComponentStatus.READY) {
-        this.componentReady.emit();
-      }
-    });
-  }
 
   // See https://angular.dev/guide/components/lifecycle#ngoninit
   ngOnInit() {
@@ -68,18 +57,20 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
   }
 
   ngOnChanges() {
-    this.loggerService.info(`${this.logName}: on change triggered`, arguments);
   }
 
   async loadComponent() {
+    const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
+    this.loggerService.info(`${this.logName}: Starting loadComponent for '${name}'.`);
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
 
-    this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent>(this.componentClass as Type<FormFieldBaseComponent>);
+    this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(this.componentClass as Type<FormFieldBaseComponent<ValueType>>);
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
       _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }
     await this.componentRef.instance.initComponent(this.formFieldCompMapEntry);
+    this.loggerService.info(`${this.logName}: initComponent done for '${name}'.`);
     if (this.componentRef && !this.componentRef.hostView.destroyed) {
       this.componentReady.emit();
     } else {

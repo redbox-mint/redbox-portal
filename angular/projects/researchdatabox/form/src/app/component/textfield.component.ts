@@ -1,6 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldModel, FormComponentDefinition } from "@researchdatabox/portal-ng-common";
-import { get as _get } from 'lodash-es';
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 
 export class TextFieldModel extends FormFieldModel<string> {  
 }
@@ -15,6 +14,7 @@ export class TextFieldModel extends FormFieldModel<string> {
     standalone: false
 })
 export class TextFieldComponent extends FormFieldBaseComponent<string> {
+  protected override logName: string = "TextFieldComponent";
   /**
      * The model associated with this component.
      * 
