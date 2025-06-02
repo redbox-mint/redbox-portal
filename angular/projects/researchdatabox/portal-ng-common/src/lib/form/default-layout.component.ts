@@ -33,7 +33,7 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
         <span [innerHtml]="componentDefinition?.config?.label"></span>
         <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
         @if (componentDefinition.config?.helpText) {
-          <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+          <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility(name)" [attr.aria-label]="'help' | i18next ">
           <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
           </button>
         }
@@ -60,6 +60,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   helpTextVisible: boolean = false;  
   labelRequiredStr: string = '';
   helpTextVisibleOnInit: boolean = false;
+  public clickedBy: string = '';
   componentClass?: typeof FormFieldBaseComponent | null;
   
   public override componentDefinition?: FormComponentLayoutDefinition;
@@ -98,8 +99,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.model = this.model;
     this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
-    
-    
+
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
@@ -112,11 +112,20 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
   
   override ngAfterViewInit() {
+    
+    //Layout component overrides Component componentDefinition and hence it's needed to set defaults if not present in the Layout componentDefinition
+    _set(this.componentDefinition as object,'config.visible',this.componentDefinition?.config?.visible ?? true);
+    _set(this.componentDefinition as object,'config.disabled',this.componentDefinition?.config?.disabled ?? false);
+    _set(this.componentDefinition as object,'config.readonly',this.componentDefinition?.config?.readonly ?? false);
+    _set(this.componentDefinition as object,'config.autofocus',this.componentDefinition?.config?.autofocus ?? false);
+    _set(this.componentDefinition as object,'config.helpTextVisible',this.componentDefinition?.config?.helpTextVisible ?? false);
+
     this.initChildConfig();
   }
 
-  public toggleHelpTextVisibility() {
+  public toggleHelpTextVisibility(clickedBy:string = '') {
     this.helpTextVisible = !this.helpTextVisible;
+    this.clickedBy = clickedBy;
   }
 
   private setHelpTextVisibleOnInit() {
@@ -125,39 +134,34 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   //Layout specific config values that need to be applied after generic/base component config has been applied 
   public override initChildConfig(): void {
-    this.initConfig();
-    _set(this.componentDefinition as object,'config.helpTextVisible',this.helpTextVisible);
 
+    this.isVisible = this.componentDefinition?.config?.visible ?? true;
+    this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
+    this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
+    this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
+    this.label = this.componentDefinition?.config?.label ?? '';
     this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
-    this.helpTextVisibleOnInit = this.componentDefinition?.config?.helpTextVisibleOnInit ?? false;
     this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
-    this.helpTextVisible = _get(this.componentDefinition?.config,'helpTextVisible',false);
+    this.helpTextVisible = this.componentDefinition?.config?.helpTextVisible ?? false;
+    
+    //Add required layout specific variables to the local state cache
+    this.componentDefinitionCache = {
+      visible: this.componentDefinition?.config?.visible,
+      disabled: this.componentDefinition?.config?.disabled,
+      readonly: this.componentDefinition?.config?.readonly,
+      autofocus: this.componentDefinition?.config?.autofocus,
+      label: this.componentDefinition?.config?.label,
+      tooltips: this.componentDefinition?.config?.tooltips,
+      labelRequiredStr: this.componentDefinition?.config?.labelRequiredStr,
+      helpTextVisible: this.componentDefinition?.config?.helpTextVisible
+    }
+
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
     
-    //Add required layout specific variables to the local state cache
-    _set(this.componentDefinitionCache,'labelRequiredStr',this.componentDefinition?.config?.labelRequiredStr);
-    _set(this.componentDefinitionCache,'helpTextVisibleOnInit',this.componentDefinition?.config?.helpTextVisibleOnInit);
-    _set(this.componentDefinitionCache,'tooltips',this.componentDefinition?.config?.tooltips);
-    _set(this.componentDefinitionCache,'helpTextVisible',this.helpTextVisible);
-    
     this.expressionStateChanged = false;
+    this.clickedBy = '';
   }
-
-  override hasExpressionsConfigChanged(): boolean {
-      let propertyChanged = false;
-      for(let key of _keys(this.componentDefinitionCache)) {
-        let newValue = _get(this.componentDefinition?.config,key);
-        let oldValue = _get(this.componentDefinitionCache,key);
-        let configPropertyChanged = oldValue !== newValue;
-        if(configPropertyChanged) {
-          propertyChanged = true;
-          this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`,'');
-          break;
-        }
-      }
-      return propertyChanged;
-    }
 
 }

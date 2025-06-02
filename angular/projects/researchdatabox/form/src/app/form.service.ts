@@ -149,6 +149,23 @@ export class FormService {
                                          return false;
                                        } %>`
                           }
+            },
+            {
+              //Target component that will be affected
+              targetComponent: 'text_4',
+              //No target then result of expression is applied to self
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'helpTextVisible',
+              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
+              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
+              //there may other types of expressions implemented in the future??? 
+              expression: {
+                             template: `<% if(_.get(field.getLayoutByName('text_2'),'helpTextVisible',true)) {
+                                         return true;
+                                       } else {
+                                         return false;
+                                       } %>`
+                          }
             }
           ]
         },
@@ -177,7 +194,23 @@ export class FormService {
               disabled: false,
               readonly: false
             }
-          }
+          },
+          expressions: [
+            {
+              //Target component that will be affected
+              targetComponent: 'text_4',
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'label',
+              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
+              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
+              //there may other types of expressions implemented in the future??? 
+              expression: {
+                             template: `<% let label = field.getComponentByName('text_3').model.getValue();
+                                           return label;
+                                          %>`
+                          }
+            }
+          ]
         },
         {
           name: 'text_4',
@@ -204,38 +237,7 @@ export class FormService {
               disabled: false,
               readonly: false
             }
-          },
-          expressions: [
-            {
-              //No target then result of expression is applied to self
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'helpTextVisible',
-              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
-              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
-              //there may other types of expressions implemented in the future??? 
-              expression: {
-                             template: `<% if(_.get(field.getLayoutByName('text_2'),'helpTextVisible',true)) {
-                                         return true;
-                                       } else {
-                                         return false;
-                                       } %>`
-                          }
-            },
-            {
-              //No target then result of expression is applied to self
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'label',
-              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
-              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
-              //there may other types of expressions implemented in the future??? 
-              expression: {
-                             template: `<% let label = field.getComponentByName('text_3').model.getValue();
-                                           return label;
-                                          %>`
-                          }
-            }
-
-          ]
+          }
         },
         // {
         //   module: 'custom',

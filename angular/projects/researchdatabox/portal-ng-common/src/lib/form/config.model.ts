@@ -121,6 +121,7 @@ export class FormLayoutConfig extends FormComponentBaseConfig {
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
   public helpTextVisibleOnInit: boolean = false;
+  public helpTextVisible: boolean = false;
 }
 /** 
  * Config for the layout component configuration.

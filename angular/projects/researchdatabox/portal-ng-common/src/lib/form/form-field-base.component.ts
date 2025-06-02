@@ -89,7 +89,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.loggerService.info('checkUpdateExpressions name ',this.name);
       this.loggerService.info('checkUpdateExpressions expressionType ',expressionType);
       for(let expObj of this.expressions) {
-        let skip = false;
         let value:any = null;
         let data = this.model?.formControl?.value;
         let targetPropertyPath = _get(expObj,'targetProperty','');
@@ -103,7 +102,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
         }
 
         let targetComponentName = _get(expObj,'targetComponent','');
-        let checkForExceptionsAndSkip = _get(expObj,'expression.checkForExceptionsAndSkip',false);
 
         if(targetComponentName != '') {
 
@@ -123,14 +121,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
                     } else if (_has(compEntry.layout.componentDefinition.config,targetPropertyPath)) {
                       compEntry.layout.componentDefinition.config[targetPropertyPath] = value;
                       this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout.componentDefinition.config `,compName);
-                    } else if (_has(compEntry.component,targetPropertyPath)) {
-                      // compEntry.component[targetPropertyPath] = value;
-                      compEntry.component.componentDefinition.config[targetPropertyPath] = value;
-                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in component `,compName);
-                    } else if (_has(compEntry.layout,targetPropertyPath)) {
-                      // compEntry.layout[targetPropertyPath] = value;
-                      compEntry.layout.componentDefinition.config[targetPropertyPath] = value;
-                      this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout `,compName);
                     } else {
                       this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' does not exist on target component or layout `,compName);
                     }
@@ -142,7 +132,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
                       compEntry.component.initChildConfig();
                     } else if(compEntry.layout.expressionStateChanged) {
                       this.loggerService.info(`checkUpdateExpressions compEntry.layout.expressionStateChanged ${this.expressionStateChanged}`,'');
-                      compEntry.component.initChildConfig();
+                      compEntry.layout.initChildConfig();
                     }
                   }
                 }
@@ -182,25 +172,12 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.form = this.getFormGroup();
     this.componentViewReady = true;
     this.loggerService.debug(`FieldComponent ngAfterViewInit: componentViewReady:`, this.componentViewReady);
-    //Sunscribe to model changes
-    // this.getFormGroup()?.valueChanges.subscribe((value) => {
-    //   this.loggerService.info('valueChanges ',_get(this.componentDefinition,'class',''));
-    //   if(!_isUndefined(this.expressions)) {
-    //     this.checkUpdateExpressions(this.expressions,'model');
-    //     this.loggerService.info(`valueChanges expressionStateChanged ${this.expressionStateChanged}`,'');
-    //     if(this.expressionStateChanged) {
-    //       this.initChildConfig();
-    //     }
-    //   }
-
-    // });
   }
 
   public abstract initChildConfig():void;
 
 
   protected initConfig() {
-    setTimeout(() => {
       this.isVisible = this.componentDefinition?.config?.visible ?? true;
       this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
       this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
@@ -216,7 +193,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
         label: this.componentDefinition?.config?.label,
         tooltips: this.componentDefinition?.config?.tooltips
       }
-    });
   }
 
   hasExpressionsConfigChanged(): boolean {
