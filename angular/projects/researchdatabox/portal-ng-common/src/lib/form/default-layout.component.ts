@@ -1,6 +1,6 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import {FormComponentLayoutDefinition } from './config.model';
-import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
+import { FormComponentLayoutDefinition } from './config.model';
+import {Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
 
@@ -49,8 +49,11 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
     <ng-container #componentContainer></ng-container>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer,
     we supply named templates so the component can render these as it sees fit -->
-    <ng-template #beforeComponentTemplate></ng-template>
+    <ng-template #beforeComponentTemplate>
+      Before {{ componentName }}
+    </ng-template>
     <ng-template #afterComponentTemplate>
+      After {{ componentName }}
       @let componentValidationList = getFormValidatorComponentErrors;
       @if (componentValidationList.length > 0) {
         <div class="invalid-feedback">
@@ -70,6 +73,7 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
+  protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
@@ -100,9 +104,12 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected override async setComponentReady(): Promise<void> {
     // Set all the bound properties to the component
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
-    this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.model = this.model;
+    this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
+    this.wrapperComponentRef.instance.defaultComponentConfig = {
+      defaultComponentCssClasses: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.defaultComponentCssClasses
+    };
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
@@ -126,5 +133,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
         params: {validatorName: key, ...item.params},
       };
     })
+  }
+
+  protected get componentName(){
+    return this.utilityService.getNameClass(this.formFieldCompMapEntry);
   }
 }

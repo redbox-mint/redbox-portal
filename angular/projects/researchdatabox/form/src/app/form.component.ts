@@ -16,13 +16,21 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component,  Inject, Input, ElementRef, signal, HostBinding } from '@angular/core';
-import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { FormGroup } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
-import { FormComponentsMap, FormService} from './form.service';
-
+import {Component, Inject, Input, ElementRef, signal, HostBinding, effect} from '@angular/core';
+import {Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
+import {FormGroup} from '@angular/forms';
+import {isEmpty as _isEmpty, isString as _isString} from 'lodash-es';
+import {
+  ConfigService,
+  LoggerService,
+  TranslationService,
+  BaseComponent,
+  FormFieldCompMapEntry,
+  FormStatus,
+  FormConfig,
+  UtilityService,
+} from '@researchdatabox/portal-ng-common';
+import {FormComponentsMap, FormService} from './form.service';
 /**
  * The ReDBox Form
  *
@@ -49,6 +57,7 @@ import { FormComponentsMap, FormService} from './form.service';
     standalone: false
 })
 export class FormComponent extends BaseComponent {
+  private logName = "FormComponent";
   appName: string;
   @Input() oid:string;
   @Input() recordType: string;
@@ -74,7 +83,8 @@ export class FormComponent extends BaseComponent {
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(ElementRef) elementRef: ElementRef,
-    @Inject(FormService) private formService: FormService
+    @Inject(FormService) private formService: FormService,
+    @Inject(UtilityService) protected utilityService: UtilityService
   ) {
     super();
     this.initDependencies = [this.translationService];
@@ -82,8 +92,8 @@ export class FormComponent extends BaseComponent {
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
-    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
-    this.loggerService.debug(`'${this.appName}' waiting for deps to init...`);
+    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
+    this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
   }
 
   protected get getFormService(){
@@ -91,15 +101,15 @@ export class FormComponent extends BaseComponent {
   }
 
   protected async initComponent(): Promise<void> {
-    this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
+    this.loggerService.debug(`${this.logName}: Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
       if (this.downloadAndCreateOnInit) {
         await this.downloadAndCreateFormComponents();
       } else {
-        this.loggerService.warn(`FormComponent: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
+        this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
       }
     } catch (error) {
-      this.loggerService.error(`Error loading form: ${error}`);
+      this.loggerService.error(`${this.logName}: Error loading form`, error);
       this.status.set(FormStatus.LOAD_ERROR);
       throw error;
     }
@@ -107,54 +117,31 @@ export class FormComponent extends BaseComponent {
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
     if (!formConfig) {
+      this.loggerService.log(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
     } else {
+      this.loggerService.log(`${this.logName}: creating form definition from provided config`);
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
     }
-    this.createFormGroup();
+    const formGroupInfo = this.formService.createFormGroup(this.formDefMap);
+    if (formGroupInfo !== undefined) {
+      this.form = formGroupInfo.form;
+      // setting components will trigger the form to be rendered
+      this.components = formGroupInfo.components;
+    }
     // TODO: set up the event handlers
   }
+
   /**
    * Notification hook for when a component is ready.
    *
    * @param componentEntry - The component entry that is ready.
    */
   protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    if (this.formDefMap && this.formDefMap.components && this.componentsLoaded() == false) {
-      // Set the overall loaded flag to true if all components are loaded
-      this.componentsLoaded.set(this.formDefMap.components.every(componentDef => componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY));
-      if (this.componentsLoaded()) {
-        this.status.set(FormStatus.READY);
-        this.loggerService.debug(`FormComponent: All components are ready. Form is ready to be used.`);
-      }
-    }
-  }
-  /**
-   * Create the form group based on the form definition map.
-   */
-  private createFormGroup(): void {
-    if (this.formDefMap && this.formDefMap.formConfig) {
-      const components = this.formDefMap.components;
-      // set up the form group
-      const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
-      this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
-      // create the form group
-      if (!_isEmpty(formGroupMap.withFormControl)) {
-        this.form = new FormGroup(formGroupMap.withFormControl);
-        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(
-          this.formDefMap.formConfig.validatorDefinitions,
-          this.formDefMap.formConfig.validators)
-          ?.filter(v => !!v) ?? [];
-        this.loggerService.debug("FormComponent: setting validators to formGroup", validators);
-        this.form.setValidators(validators);
-        this.form.updateValueAndValidity();
-        // setting this will trigger the form to be rendered
-        this.components = components;
-      } else {
-        this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
-        throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
-      }
-    }
+    const thisName = this.appName;
+    const componentName = this.utilityService.getNameClass(componentEntry);
+    this.loggerService.debug(`${this.logName}: component '${componentName}' registered as ready.`);
+    this.formService.triggerComponentReady(thisName, this.formDefMap, this.componentsLoaded, this.status);
   }
 
   @HostBinding('class.edit-mode') get isEditMode() {

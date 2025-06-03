@@ -26,11 +26,13 @@ import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
+import {GroupFieldComponent} from "./component/groupfield.component";
 @NgModule({
   declarations: [
     FormComponent,
     TextFieldComponent,
     ValidationSummaryFieldComponent,
+    GroupFieldComponent,
   ],
   imports: [
     CommonModule,

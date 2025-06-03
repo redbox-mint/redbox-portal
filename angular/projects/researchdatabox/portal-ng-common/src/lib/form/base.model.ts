@@ -1,9 +1,7 @@
 import {FormFieldModelConfig} from './config.model';
 import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
 
-import {FormControl} from '@angular/forms';
-import {FormValidatorFn} from "@researchdatabox/sails-ng-common";
-
+import {AbstractControl, FormControl} from '@angular/forms';import {FormValidatorFn} from "@researchdatabox/sails-ng-common";
 /**
  * Core model for form elements.
  *
@@ -34,11 +32,11 @@ export type FormFieldModelValueType<ValueType> = ValueType | null | undefined;
  * Model for the form field configuration.
  *
  */
-export class FormFieldModel<ValueType = string> extends FormModel<FormFieldModelConfig<ValueType>> {
+export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<ValueType>> {
   // The value when the field is created
   public initValue?: FormFieldModelValueType<ValueType>;
 
-  public formControl: FormControl<FormFieldModelValueType<ValueType>> | null | undefined;
+  public formControl: AbstractControl<FormFieldModelValueType<ValueType>> | null | undefined;
 
   public validators?: FormValidatorFn[] | null | undefined;
 
@@ -54,9 +52,8 @@ export class FormFieldModel<ValueType = string> extends FormModel<FormFieldModel
     this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
 
     // create the form model
-    console.log("FormFieldModel: creating form model with value:", this.initValue);
-    this.formControl = new FormControl<FormFieldModelValueType<ValueType>>(this.initValue) as FormControl<FormFieldModelValueType<ValueType>>;
-    console.log("FormFieldModel: created form model:", this.formControl);
+    this.formControl = new FormControl<FormFieldModelValueType<ValueType>>(this.initValue) as AbstractControl<FormFieldModelValueType<ValueType>>;
+    console.log(`FormFieldModel: created form control '${this.fieldConfig?.name ?? '(no model name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
   /**
@@ -75,10 +72,11 @@ export class FormFieldModel<ValueType = string> extends FormModel<FormFieldModel
   }
 
   /**
-   * Primitive implementation returns the form control. Complex implementations should override this method to create complex form controls.
+   * Primitive implementation returns the form control.
+   * Complex implementations should override this method to create complex form controls.
    * @returns the form control
    */
-  public getFormGroupEntry(): FormControl {
+  public getFormGroupEntry(): AbstractControl<ValueType | null | undefined> | null | undefined {
     if (this.formControl) {
       return this.formControl;
     } else {

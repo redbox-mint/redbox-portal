@@ -47,7 +47,7 @@ export class FormConfig {
   // the default layout component
   defaultLayoutComponent?: string | null | undefined = null;
   // the components of this form
-  componentDefinitions?: FormComponentDefinition[] | null | undefined = null;
+  componentDefinitions?: FormComponentDefinition<unknown>[] | null | undefined = null;
 
   // debug: show the form JSON
   debugValue?: boolean = false;
@@ -68,13 +68,13 @@ export interface HasFormComponentConfigBlock {
  * The form component configuration definition.
  *
  */
-export class FormComponentDefinition implements HasFormComponentIdentity {
+export class FormComponentDefinition<ValueType> implements HasFormComponentIdentity {
   name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   // Either 'class' or 'layout' should be defined, but not both.
   // Note: This exclusivity is not enforced at compile time by this class definition alone.
   // the inheried `class` property makes the 'layout' optional
   layout?: FormComponentLayoutDefinition | null | undefined;
-  model?: FormFieldModelConfig | null | undefined = null;
+  model?: FormFieldModelConfig<ValueType> | null | undefined = null;
   component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
 }
@@ -111,7 +111,7 @@ export class FormFieldModelConfigBlock<ValueType> {
 /**
  * Config for the field model configuration, aka the data binding
  */
-export class FormFieldModelConfig<ValueType = string | undefined> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class: string = ''; // make the class mandatory
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
@@ -139,7 +139,7 @@ export class FormComponentLayoutDefinition implements HasFormComponentIdentity, 
  * the UI-specific config block
  */
 export class FormFieldConfig extends FormComponentBaseConfig {
-
+  componentDefinitions?: FormComponentDefinition<unknown>[] | null | undefined = null;
 }
 /**
  * Config for the main component configuration.

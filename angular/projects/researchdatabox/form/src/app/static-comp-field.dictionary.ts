@@ -2,6 +2,7 @@ import { TextFieldModel, TextFieldComponent } from "./component/textfield.compon
 import { DefaultLayoutComponent } from "@researchdatabox/portal-ng-common";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
+import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -24,7 +25,11 @@ export const StaticModelCompClassMap = {
   'ValidationSummaryField': {
     model: ValidationSummaryFieldModel,
     component: ValidationSummaryFieldComponent,
-  }
+  },
+  'GroupField': {
+    model: GroupFieldModel,
+    component: GroupFieldComponent
+  },
 };
 
 
