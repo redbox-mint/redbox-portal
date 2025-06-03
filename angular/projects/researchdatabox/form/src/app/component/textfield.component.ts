@@ -9,7 +9,7 @@ export class TextFieldModel extends FormFieldModel<string> {
     selector: 'redbox-textfield',
     template: `
         <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-        <input type='text' [formControl]="formControl" [hidden]="!isVisible" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" />
+        <input type='text' [formControl]="formControl" [hidden]="!isVisible" [attr.disabled]="isDisabled ? 'true' : null" [attr.readonly]="isReadonly ? 'true' : null" [title]="tooltips ? tooltips['fieldTT'] : ''" />
         <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
       `,
     standalone: false

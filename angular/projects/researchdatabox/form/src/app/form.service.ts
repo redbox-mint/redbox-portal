@@ -114,9 +114,8 @@ export class FormService {
               name: 'text2_layout',
               label: 'TextField with default layout defined',
               helpText: 'This is a help text for field 2',
-              helpTextVisibleOnInit: true,
               visible: true,
-              tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
+              tooltips: { 'fieldTT': 'field tooltip 2', 'labelTT': 'label tooltip 2', }
             }
           },
           model: { 
@@ -178,7 +177,7 @@ export class FormService {
               helpText: 'This is a help text for field 3',
               helpTextVisibleOnInit: true,
               visible: true,
-              tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
+              tooltips: { 'fieldTT': 'field tooltip 3', 'labelTT': 'label tooltip 3', }
             }
           },
           model: { 
@@ -197,17 +196,18 @@ export class FormService {
           },
           expressions: [
             {
-              //Target component that will be affected
-              targetComponent: 'text_4',
+              //If no target component is specified the target is itself
               //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'label',
+              targetProperty: 'visible',
               //Expression that will be evaluated and will yield a result that will be assigned to the target property and
               //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
               //there may other types of expressions implemented in the future??? 
               expression: {
-                             template: `<% let label = field.getComponentByName('text_3').model.getValue();
-                                           return label;
-                                          %>`
+                             template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
+                                         return false;
+                                       } else {
+                                         return true;
+                                       } %>`
                           }
             }
           ]
@@ -219,9 +219,8 @@ export class FormService {
             config: {
               label: 'TextField with default layout defined',
               helpText: 'This is a help text for field 4',
-              helpTextVisibleOnInit: true,
               visible: true,
-              tooltips: { 'fieldTT': 'field tooltip', 'labelTT': 'label tooltip', }
+              tooltips: { 'fieldTT': 'field tooltip 4', 'labelTT': 'label tooltip 4', }
             }
           },
           model: { 
@@ -237,7 +236,24 @@ export class FormService {
               disabled: false,
               readonly: false
             }
-          }
+          },
+          expressions: [
+            {
+              //If no target component is specified the target is itself
+              //Because the target is itself a property like label can exist in the component and also in the layout component
+              targetLayout: true,
+              //Target property in the component that will be assigned a value after evaluating the expression
+              targetProperty: 'label',
+              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
+              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
+              //there may other types of expressions implemented in the future???
+              expression: {
+                             template: `<% let label = _.get(model,'text_2','');
+                                           return label;
+                                          %>`
+                          }
+            }
+          ]
         },
         // {
         //   module: 'custom',

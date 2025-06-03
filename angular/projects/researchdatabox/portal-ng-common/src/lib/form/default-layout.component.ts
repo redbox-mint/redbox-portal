@@ -27,7 +27,7 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  @if (model && componentDefinition) {
+  @if (isVisible && model && componentDefinition) {
     @if (componentDefinition.config?.label) {
       <label [attr.title]="tooltips ? tooltips['labelTT'] : ''">
         <span [innerHtml]="componentDefinition?.config?.label"></span>
@@ -113,7 +113,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   
   override ngAfterViewInit() {
     
-    //Layout component overrides Component componentDefinition and hence it's needed to set defaults if not present in the Layout componentDefinition
+    //Layout component overrides Component componentDefinition and hence it's needed to normalise componentDefinition that 
+    //is used to track property changes given these may not be present in the Layout componentDefinition
     _set(this.componentDefinition as object,'config.visible',this.componentDefinition?.config?.visible ?? true);
     _set(this.componentDefinition as object,'config.disabled',this.componentDefinition?.config?.disabled ?? false);
     _set(this.componentDefinition as object,'config.readonly',this.componentDefinition?.config?.readonly ?? false);
