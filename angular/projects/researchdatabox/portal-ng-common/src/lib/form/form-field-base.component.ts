@@ -1,21 +1,22 @@
 import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { Directive, HostBinding, signal, inject, TemplateRef, AfterViewInit, DoCheck, ComponentRef, ApplicationRef, ViewContainerRef } from '@angular/core'; // Import HostBinding
+import { Directive, HostBinding, signal, inject, TemplateRef, AfterViewInit, DoCheck, ComponentRef, ApplicationRef, effect } from '@angular/core'; // Import HostBinding
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, keys as _keys, startsWith as _startsWith, has as _has } from 'lodash-es';
-
+import {UtilityService} from "../utility.service";
 /**
  * Base class for form components. Data binding to a form field is optional.
- * 
+ *
  * Notes:
  *  - No 'field' property to enforce type safety, i.e. avoid `any`
- * 
+ *
  */
 @Directive()
 export abstract class FormFieldBaseComponent<ValueType = string | undefined> implements AfterViewInit, DoCheck  {
+  protected logName: string | null = "FormFieldBaseComponent";
   public name:string = '';
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
@@ -41,26 +42,29 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   private lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
   private appRef: ApplicationRef = inject(ApplicationRef);
+  protected utilityService = inject(UtilityService);
   loggerService: LoggerService = inject(LoggerService);
 
   /**
    * This method is called to initialize the component with the provided configuration.
-   * 
+   *
    * The framework expects the method to prepare the component for rendering, and at minimum, should prepare:
-   * 
+   *
    * - Any external/remote data sources
    * - The model responsible for the data binding
    * - Any static or dynamic styling or layout information, including CSS classes
    * - Any event handlers
-   * 
+   *
    * For more advanced use cases, override method to define the component init behavior. Just don't forget to call 'super.setComponentReady()' or change the status manually, when the component is ready.
-   * 
-   * @param formFieldCompMapEntry 
+   *
+   * @param formFieldCompMapEntry
    */
   async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
     if (!formFieldCompMapEntry) {
-      throw new Error("FieldComponent: formFieldCompMapEntry is null.");
+      throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
+    const name = this.utilityService.getNameClass(formFieldCompMapEntry);
+    this.loggerService.debug(`${this.logName}: starting initialise component for '${name}'.`);
     try {
       // Create a method that children can override to set their own properties
       this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -70,7 +74,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       // Create a method that children can override to prepare their state.
       await this.setComponentReady();
     } catch (error) {
-      this.loggerService.error("FieldComponent: initComponent failed", error);
+      this.loggerService.error(`${this.logName}: initialise component failed`, error);
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
@@ -287,8 +291,11 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   }
 
   protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
+    if (!formFieldCompMapEntry) {
+      throw new Error(`${this.logName}: cannot set component properties because formFieldCompMapEntry was invalid.`);
+    }
     this.formFieldCompMapEntry = formFieldCompMapEntry;
-    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent;
+    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent<ValueType>;
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
     this.expressions = this.formFieldCompMapEntry.compConfigJson.expressions;
@@ -300,23 +307,21 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   /**
    * Retrieve or compute any data needed for the component.
    */
-  protected async initData() { 
-    
+  protected async initData() {
   }
   /**
    * Prepare any layout-specific information, including CSS classes.
    */
   protected async initLayout() {
     this.initHostBindingCssClasses();
-  } 
+  }
   /**
    * Prepare the event handlers for this component.
    */
   protected async initEventHandlers() {
-
   }
-  /** 
-  * Prepare the CSS classes for the host element. 
+  /**
+  * Prepare the CSS classes for the host element.
   */
   protected initHostBindingCssClasses() {
     if (this.componentDefinition?.config?.defaultComponentCssClasses) {
@@ -330,18 +335,26 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.hostBindingCssClasses = {}; // Initialize as empty object if no default classes
     }
   }
-  
+
   /**
    * The FormControl instance for this field.
    */
   get formControl(): FormControl<ValueType> {
     const control = this.model?.formControl;
     if (!control) {
-      console.error("FieldComponent formControl returned null for field:", this.model);
       // Return a dummy control or throw, depending on desired behavior
-      throw new Error("FieldComponent: field.formModel is null.");
+      const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
+      throw new Error(`${this.logName}: could not get form control from model for '${name}'.`);
     }
     return control as FormControl<ValueType>;
+  }
+
+  get isRequired(): boolean {
+    return this.model?.validators?.some(v => v?.name === 'required') ?? false;
+  }
+
+  get isValid(): boolean {
+    return Object.keys(this.formControl?.errors ?? {}).length === 0;
   }
 
   // Use @HostBinding to bind to the host element's class attribute
@@ -352,7 +365,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   /**
    * Get the template reference for the specified template name.
-   * 
+   *
    * @param templateName - The name of the template to retrieve.
    * @returns The TemplateRef instance or null if not found.
    */
@@ -370,13 +383,15 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
    * Set the component status to READY.
    */
   protected async setComponentReady() {
+    const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
+    this.loggerService.debug(`${this.logName}: in setComponentReady component '${name}' is ready.`);
     this.status.set(FormFieldComponentStatus.READY);
   }
 }
 
 /**
  * The complete metadata data structure describing a form field component, including the necessary constructors to create and init the component and model.
- * 
+ *
  * @export
  * @interface FormFieldCompMapEntry
  */
@@ -386,8 +401,8 @@ export interface FormFieldCompMapEntry {
   layoutClass?: typeof FormFieldBaseComponent | null;
   componentClass?: typeof FormFieldBaseComponent | null;
   compConfigJson: any,
-  model?: FormFieldModel | null;
-  component?: FormFieldBaseComponent | null;
+  model?: FormFieldModel<unknown> | null;
+  component?: FormFieldBaseComponent<unknown> | null;
   layout?: FormFieldBaseComponent | null;
-  componentTemplateRefMap? : { [key: string]: TemplateRef<any> } | null | undefined;
+  componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> } | null | undefined;
 }

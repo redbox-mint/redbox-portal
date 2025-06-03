@@ -3,24 +3,26 @@ import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty, set as _set, get as _get, keys as _keys } from 'lodash-es';
 import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef, AfterViewInit } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
+import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
+
 /**
  * Default Form Component Layout
- * 
- * This component provides additional layout-specific functionality for form components. 
- * 
+ *
+ * This component provides additional layout-specific functionality for form components.
+ *
  * The default layout is the following, which based by the legacy form field layout:
- * 
+ *
  * <div>
  *   <label>
  *    Label
  *    <span>Required indicator</span>
  *    <button>Help Button</button>
  *  </label>
- *  <span>Help Text</span> 
+ *  <span>Help Text</span>
  *  <ng-container>The component</ng-container>
  * </div>
  *
- * Other layouts can be defined, 
+ * Other layouts can be defined,
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
@@ -29,9 +31,12 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
   template: `
   @if (isVisible && model && componentDefinition) {
     @if (componentDefinition.config?.label) {
-      <label [attr.title]="tooltips ? tooltips['labelTT'] : ''">
+      <label class="form-label" [attr.title]="tooltips ? tooltips['labelTT'] : ''">
         <span [innerHtml]="componentDefinition?.config?.label"></span>
-        <span class="form-field-required-indicator" [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+        <span
+          *ngIf="isRequired"
+          class="form-field-required-indicator"
+          [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
         @if (componentDefinition.config?.helpText) {
           <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility(name)" [attr.aria-label]="'help' | i18next ">
           <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
@@ -42,14 +47,26 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
         <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
       }
     }
-    <ng-container #componentContainer>
-    </ng-container> 
-    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+    <ng-container #componentContainer></ng-container>
+    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer,
+    we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
-      Before, is help showing:  {{ helpTextVisible }}
+      Before {{ componentName }}
     </ng-template>
     <ng-template #afterComponentTemplate>
-      After, is help showing:  {{ helpTextVisible }}
+      After {{ componentName }}
+      @let componentValidationList = getFormValidatorComponentErrors;
+      @if (componentValidationList.length > 0) {
+        <div class="invalid-feedback">
+          Field validation errors:
+          <ul>
+            @for (error of componentValidationList; track error.name) {
+              <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+            }
+          </ul>
+        </div>
+      }
+      <div class="valid-feedback">The field is valid.</div>
     </ng-template>
   }
   `,
@@ -57,6 +74,7 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements AfterViewInit {
+  protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;  
   labelRequiredStr: string = '';
   helpTextVisibleOnInit: boolean = false;
@@ -79,8 +97,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   /**
    * Override to set additional properties required by the wrapper component.
-   * 
-   * @param formFieldCompMapEntry 
+   *
+   * @param formFieldCompMapEntry
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -96,10 +114,12 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected override async setComponentReady(): Promise<void> {
     // Set all the bound properties to the component
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
-    this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.model = this.model;
+    this.wrapperComponentRef.instance.componentClass = this.componentClass;
     this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
-
+    this.wrapperComponentRef.instance.defaultComponentConfig = {
+      defaultComponentCssClasses: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.defaultComponentCssClasses
+    }
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
@@ -165,4 +185,17 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.clickedBy = '';
   }
 
+  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{
+    return Object.entries(this.model?.formControl?.errors ?? {}).map(([key, item]) => {
+      return {
+        name: key,
+        message: item.message ?? null,
+        params: {validatorName: key, ...item.params},
+      };
+    })
+  }
+
+  protected get componentName(){
+    return this.utilityService.getNameClass(this.formFieldCompMapEntry);
+  }
 }

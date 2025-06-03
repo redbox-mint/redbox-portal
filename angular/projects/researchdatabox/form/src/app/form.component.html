@@ -1,19 +1,36 @@
 <ng-container [ngSwitch]="formDefMap?.formConfig?.domElementType">
-  <form *ngSwitchCase="'form'" [id]="formDefMap?.formConfig?.domId" >
+  <form *ngSwitchCase="'form'" [id]="formDefMap?.formConfig?.domId">
     <ng-container [ngTemplateOutlet]="compsTemplate"></ng-container>
-  </form>  
+  </form>
   <ng-container *ngSwitchDefault>
     <ng-container [ngTemplateOutlet]="compsTemplate"></ng-container>
+  </ng-container>
 </ng-container>
 <ng-template #compsTemplate>
   <ng-container *ngFor="let component of components">
-    <redbox-form-base-wrapper [model]="component.model" [componentClass]="component.layoutClass || component.componentClass" [formFieldCompMapEntry]="component" [defaultComponentConfig]="formDefMap?.formConfig?.defaultComponentConfig" (componentReady)="registerComponentReady(component)" ></redbox-form-base-wrapper>
+    <redbox-form-base-wrapper
+      [id]="getFormService.componentIdLabel(component?.compConfigJson).id" [model]="component.model"
+                              [componentClass]="component.layoutClass || component.componentClass"
+                              [formFieldCompMapEntry]="component"
+                              [defaultComponentConfig]="formDefMap?.formConfig?.defaultComponentConfig"
+                              (componentReady)="registerComponentReady(component)"/>
   </ng-container>
 </ng-template>
 <ng-container *ngIf="components.length > 0 && formDefMap?.formConfig?.debugValue">
-  <h3>Live Form Value</h3>
-  <pre [innerHtml]="form?.value | json"></pre>
-</ng-container>
-<ng-container *ngIf="components.length > 0 && formDefMap?.formConfig?.debugValue">
-  <h3>Form Status: {{ status() }}</h3>
+  <div class="alert alert-info" role="alert">
+    <h4>Form Component Debug</h4>
+    <ul>
+      <li>status: {{ status() }}</li>
+      <li>componentsLoaded: {{ componentsLoaded() }}</li>
+      <li>isReady: {{ isReady }}</li>
+      <li>children:
+      <ul>
+        @for(component of components; track component.component){
+          <li>{{ utilityService.getNameClass(component?.component?.formFieldCompMapEntry) }}: {{component?.component?.status()}}</li>
+        }
+      </ul>
+      </li>
+    </ul>
+    <pre [innerHtml]="form?.value | json"></pre>
+  </div>
 </ng-container>
