@@ -30,6 +30,9 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService  } from './logger.service';
+import {ITranslationOptions} from "angular-i18next/lib/services/translation.service";
+import {Namespace, TFunctionReturn} from "i18next";
+
 /**
  * Translation related functions. Uses i18next library to support translation source for both frontend and backend.
  *
@@ -125,8 +128,16 @@ export class TranslationService implements Service {
     }
   }
 
-  t(key: string):any {
-    return this.i18NextService.t(key);
+  t<Options extends ITranslationOptions>(
+    key: string | string[],
+    defaultValue?: string,
+    options?: Options
+  ): TFunctionReturn<Namespace, string | string[], Options> {
+    if (defaultValue) {
+      return this.i18NextService.t(key, defaultValue, options);
+    } else {
+      return this.i18NextService.t(key, options);
+    }
   }
 
   public getInitSubject(): Subject<any> {
