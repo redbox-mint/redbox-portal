@@ -30,9 +30,7 @@ import {
   FormConfig,
   UtilityService,
 } from '@researchdatabox/portal-ng-common';
-
 import {FormComponentsMap, FormService} from './form.service';
-
 /**
  * The ReDBox Form
  *
@@ -96,6 +94,10 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
+  }
+
+  protected get getFormService(){
+    return this.formService;
   }
 
   protected async initComponent(): Promise<void> {

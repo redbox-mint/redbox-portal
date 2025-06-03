@@ -701,6 +701,7 @@
               "zone.js",
               "zone.js/testing"
             ],
+            "karmaConfig": "projects/researchdatabox/form/karma.conf.js",
             "tsConfig": "projects/researchdatabox/form/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [

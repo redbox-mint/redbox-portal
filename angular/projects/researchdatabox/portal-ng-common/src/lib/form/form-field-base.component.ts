@@ -20,7 +20,7 @@ export abstract class FormFieldBaseComponent<ValueType> {
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
-  // The status of the component
+// The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
   protected loggerService = inject(LoggerService);
@@ -112,6 +112,14 @@ export abstract class FormFieldBaseComponent<ValueType> {
       throw new Error(`${this.logName}: could not get form control from model for '${name}'.`);
     }
     return control as FormControl<ValueType>;
+  }
+
+  get isRequired(): boolean {
+    return this.model?.validators?.some(v => v?.name === 'required') ?? false;
+  }
+
+  get isValid(): boolean {
+    return Object.keys(this.formControl?.errors ?? {}).length === 0;
   }
 
   // Use @HostBinding to bind to the host element's class attribute

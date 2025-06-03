@@ -1,3 +1,15 @@
+import {
+  FormValidatorErrors,
+  FormValidatorConfig,
+  FormValidatorControl,
+  FormValidatorFn,
+  FormValidatorCreateFn,
+  FormValidatorDefinition,
+  FormValidatorBlock,
+  FormValidatorComponentErrors,
+  FormValidatorSummaryErrors,
+} from '@researchdatabox/sails-ng-common';
+
 /**
  * These classes are used to define the configuration for the form and form components.
  *
@@ -28,6 +40,8 @@ export class FormConfig {
   // whether to trigger validation on save
   skipValidationOnSave?: boolean = false;
   // form-wide validators
+  validatorDefinitions?: FormValidatorDefinition[] | null | undefined = null;
+  validators?: FormValidatorBlock[] | null | undefined = null;
 
   // Component related config
   // the default layout component
@@ -92,6 +106,7 @@ export class FormFieldModelConfigBlock<ValueType> {
   // the data model describing this field's value
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
+  validators?: FormValidatorBlock[] | null | undefined = null;
 }
 /**
  * Config for the field model configuration, aka the data binding
@@ -106,7 +121,7 @@ export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity
 }
 /** Layout specific config block */
 export class FormLayoutConfig extends FormComponentBaseConfig {
-  public labelRequiredStr: string = '';
+  public labelRequiredStr: string = '*';
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
 }

@@ -17,28 +17,31 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Inject, Injectable, WritableSignal} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge} from 'lodash-es';
+import { Injectable, Inject, WritableSignal } from '@angular/core';
+import { FormControl , AbstractControl, FormGroup} from '@angular/forms';
+import { isEmpty as _isEmpty, get as _get,  merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
+import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
 import {
-  FormComponentDefinition,
   FormConfig,
+  FormFieldModel,
+  LoggerService,
+  FormFieldModelConfig,
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
+  TranslationService,
+  FormComponentDefinition,
   FormFieldComponentStatus,
-  FormFieldModel,
-  FormFieldModelConfig,
   FormStatus,
-  LoggerService,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
-import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
+import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormComponentClassMap,
-  FormFieldModelClassMap,
-  StaticComponentClassMap,
-  StaticModelClassMap
-} from './static-comp-field.dictionary';
+  FormValidatorSummaryErrors,
+  ValidatorsSupport,
+} from '@researchdatabox/sails-ng-common';
+import {formValidatorsSharedDefinitions} from "./validators";
+
+
 
 /**
  *
@@ -58,10 +61,12 @@ export class FormService {
   protected logName = "FormService";
   protected compClassMap:FormComponentClassMap = {};
   protected modelClassMap:FormFieldModelClassMap = {};
+  protected validatorsSupport: ValidatorsSupport;
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
     @Inject(LoggerService) private loggerService: LoggerService,
+    @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
     ) {
     // start with the static version, will dynamically merge any custom components later
@@ -69,9 +74,15 @@ export class FormService {
     _merge(this.compClassMap, StaticComponentClassMap);
     this.loggerService.debug(`${this.logName}: Static component classes:`, this.compClassMap);
     this.loggerService.debug(`${this.logName}: Static model classes:`, this.modelClassMap);
+
+    this.validatorsSupport = new ValidatorsSupport();
   }
-  /**
-   *
+
+  public get getValidatorsSupport(){
+    return this.validatorsSupport;
+  }
+
+  /** *
    * Download and consequently loads the form config.
    *
    * Fields can use:
@@ -89,6 +100,26 @@ export class FormService {
         defaultComponentCssClasses: 'row',
       },
       editCssClasses: "redbox-form form",
+
+      // validatorDefinitions is the combination of redbox core validator definitions and
+      // the validator definitions from the client hook form config.
+      validatorDefinitions: formValidatorsSharedDefinitions,
+
+      // TODO: a way to crate groups of validators
+      // This is not implemented yet.
+      // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
+      validatorProfiles: {
+        // all: All validators (exclude none).
+        all:{exclude:[]},
+        // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
+        minimumSave: {include:['project_title']},
+      },
+
+      // Validators that operate on multiple fields.
+      validators: [
+        {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+      ],
+
       componentDefinitions: [
         {
           name: 'text_1_event',
@@ -97,7 +128,10 @@ export class FormService {
             class: 'TextFieldModel',
             config: {
               value: 'hello world!',
-              defaultValue: 'hello world!'
+              defaultValue: 'hello world!',
+              validators: [
+                { name: 'required' },
+              ]
             }
           },
           component: {
@@ -117,6 +151,10 @@ export class FormService {
             class: 'TextFieldModel',
             config: {
               value: 'hello world 2!',
+              validators: [
+                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
+                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
+              ]
             }
           },
           component: {
@@ -239,6 +277,11 @@ export class FormService {
         //     }
         //   }
         // }
+        {
+          name: 'validation_summary_1',
+          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
+          component: {class: "ValidationSummaryFieldComponent"}
+        },
       ]
     } as FormConfig;
     // Resove the field and component pairs
@@ -254,7 +297,7 @@ export class FormService {
   public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
     const components = await this.resolveFormComponentClasses(formConfig?.componentDefinitions);
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
-    this.createFormFieldModelInstances(components);
+    this.createFormFieldModelInstances(components, formConfig);
     return new FormComponentsMap(components, formConfig);
   }
 
@@ -358,13 +401,16 @@ export class FormService {
     return componentClass
   }
 
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[]): FormFieldCompMapEntry[] {
+  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): FormFieldCompMapEntry[] {
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${this.utilityService.getNamesClasses(components)}.`);
+    const validatorDefinitions = formConfig.validatorDefinitions;
     for (let compEntry of components) {
       if (compEntry.modelClass) {
         const ModelType = compEntry.modelClass as typeof FormFieldModel;
         const modelConfig = compEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
-        compEntry.model = new ModelType(modelConfig) as FormFieldModel<unknown>;
+        const validatorConfig = modelConfig?.config?.validators ?? [];
+        const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
+        compEntry.model = new ModelType(modelConfig, validators) as FormFieldModel<unknown>;
       } else {
         this.logNotAvailable(compEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
       }
@@ -405,6 +451,93 @@ export class FormService {
     compMap.withFormControl = groupWithFormControl;
     return compMap;
   }
+
+  /**
+   * Get the validation errors for the given control and all child controls.
+   * @param componentDefs Gather the validation errors using these component definitions.
+   * @param name The optional name of the control.
+   * @param control The Angular control instance.
+   * @param parents The names of the parent controls.
+   * @param results The accumulated results.
+   * @return An array of validation errors.
+   */
+  public getFormValidatorSummaryErrors(
+    componentDefs: FormComponentDefinition[] | null | undefined,
+    name: string | null | undefined = null,
+    control: AbstractControl | null | undefined = null,
+    parents: string[] | null = null,
+    results: FormValidatorSummaryErrors[] | null = null,
+  ): FormValidatorSummaryErrors[] {
+    // Build a flattened array of control errors.
+    // Include the names of the parent controls for each control.
+    if (!parents) {
+      parents = [];
+    }
+    if (!results) {
+      results = [];
+    }
+
+    // control
+    name = name || null;
+    const componentDef = componentDefs
+      ?.find(i => !!name && i?.name === name) ?? null;
+    const {id, labelMessage} = this.componentIdLabel(componentDef);
+    const errors = Object.entries(control?.errors ?? {})
+        .map(([key, item]) => {
+          return {
+            name: key,
+            message: item.message ?? null,
+            params: {validatorName: key, ...item.params},
+          }
+        })
+      ?? [];
+
+    // Only add the result if there are errors.
+    if (errors.length > 0) {
+      results.push({id: id, message: labelMessage, errors: errors, parents: parents});
+    }
+
+    // child controls
+    if ("controls" in (control ?? {})) {
+      for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
+        // Create a new array for the parents, so that the existing array of parent names is not modified.
+        const newParents = !!name ? [...parents, name] : [...parents];
+        this.getFormValidatorSummaryErrors(componentDefs, name, childControl, newParents, results);
+      }
+    }
+
+    // output
+    return results;
+  }
+
+  /**
+   * Get the component id and translatable label message.
+   *
+   * @param componentDef The component definition from the form config.
+   */
+  public componentIdLabel(componentDef: FormComponentDefinition | null): {
+    id: string | null,
+    labelMessage: string | null
+  } {
+    const idParts = ["form", "item", "id"];
+
+    // id is built from the first of these that exists:
+    // - componentDefinition.model.name
+    // - componentDefinition.name
+    const modelName = componentDef?.model?.name;
+    const itemName = componentDef?.name;
+
+    // construct the id so it is different to the model name
+    const name = modelName || itemName || null;
+    const id = name ? [...idParts, name.replaceAll('_', '-')].join('-') : null;
+
+    // the label message comes from componentDefinition.layout.config.label
+    const labelMessage = componentDef?.layout?.config?.label || null;
+
+    // build the result
+    return {id: id, labelMessage: labelMessage};
+  }
+}
 
   /**
    * Create the form group based on the form definition map.
