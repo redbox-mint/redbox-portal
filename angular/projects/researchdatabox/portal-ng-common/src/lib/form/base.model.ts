@@ -53,7 +53,7 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
 
     // create the form model
     this.formControl = new FormControl<FormFieldModelValueType<ValueType>>(this.initValue) as AbstractControl<FormFieldModelValueType<ValueType>>;
-    console.log(`FormFieldModel: created form control '${this.fieldConfig?.name ?? '(no name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.log(`FormFieldModel: created form control '${this.fieldConfig?.name ?? '(no model name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
   /**

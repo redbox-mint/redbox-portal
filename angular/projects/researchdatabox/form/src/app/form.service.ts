@@ -261,7 +261,12 @@ export class FormService {
               ]
             }
           }
-        }
+        },
+        {
+          name: 'validation_summary_1',
+          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
+          component: {class: "ValidationSummaryFieldComponent"}
+        },
         // {
         //   module: 'custom',
         //   component: {
@@ -277,11 +282,6 @@ export class FormService {
         //     }
         //   }
         // }
-        {
-          name: 'validation_summary_1',
-          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
-          component: {class: "ValidationSummaryFieldComponent"}
-        },
       ]
     } as FormConfig;
     // Resove the field and component pairs
@@ -462,7 +462,7 @@ export class FormService {
    * @return An array of validation errors.
    */
   public getFormValidatorSummaryErrors(
-    componentDefs: FormComponentDefinition[] | null | undefined,
+    componentDefs: FormComponentDefinition<unknown>[] | null | undefined,
     name: string | null | undefined = null,
     control: AbstractControl | null | undefined = null,
     parents: string[] | null = null,
@@ -515,7 +515,7 @@ export class FormService {
    *
    * @param componentDef The component definition from the form config.
    */
-  public componentIdLabel(componentDef: FormComponentDefinition | null): {
+  public componentIdLabel(componentDef: FormComponentDefinition<unknown> | null): {
     id: string | null,
     labelMessage: string | null
   } {
@@ -537,7 +537,6 @@ export class FormService {
     // build the result
     return {id: id, labelMessage: labelMessage};
   }
-}
 
   /**
    * Create the form group based on the form definition map.

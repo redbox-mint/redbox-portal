@@ -139,7 +139,7 @@ export class FormComponentLayoutDefinition implements HasFormComponentIdentity, 
  * the UI-specific config block
  */
 export class FormFieldConfig extends FormComponentBaseConfig {
-
+  componentDefinitions?: FormComponentDefinition<unknown>[] | null | undefined = null;
 }
 /**
  * Config for the main component configuration.

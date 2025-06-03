@@ -386,6 +386,11 @@ export class UtilityService {
   }
 
   public getNameClass(data?: any): string {
+    const unknown = '(unknown)';
+    if (!data){
+      return unknown;
+    }
+
     // The name from the form config.
     let name = null;
     if (data?.name) {
@@ -399,7 +404,6 @@ export class UtilityService {
       console.error('Cannot find a name in data', data);
     }
 
-    const unknown = '(unknown)';
     return `${name ?? unknown}`;
   }
 
