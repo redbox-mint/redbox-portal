@@ -37,7 +37,7 @@ export class LoggerService {
   }
 
   log(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string') {
+    if (typeof textOrData === 'string' && data !== undefined) {
       console.log(textOrData, data);
     } else {
       console.log(textOrData);
@@ -45,7 +45,7 @@ export class LoggerService {
   }
 
   debug(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string') {
+    if (typeof textOrData === 'string' && data !== undefined) {
       console.debug(textOrData, data);
     } else {
       console.debug(textOrData);
@@ -53,7 +53,7 @@ export class LoggerService {
   }
 
   info(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string') {
+    if (typeof textOrData === 'string' && data !== undefined) {
       console.info(textOrData, data);
     } else {
       console.info(textOrData);
@@ -61,7 +61,7 @@ export class LoggerService {
   }
 
   warn(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string') {
+    if (typeof textOrData === 'string' && data !== undefined) {
       console.warn(textOrData, data);
     } else {
       console.warn(textOrData);
@@ -69,7 +69,7 @@ export class LoggerService {
   }
 
   error(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string') {
+    if (typeof textOrData === 'string' && data !== undefined) {
       console.error(textOrData, data);
     } else {
       console.error(textOrData);
