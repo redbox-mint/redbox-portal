@@ -21,20 +21,20 @@ import { Location, LocationStrategy, PathLocationStrategy } from '@angular/commo
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
+import { FormComponentsMap, FormService} from './form.service';
 
-import { FormComponentsMap, FormService } from './form.service';
 /**
  * The ReDBox Form
- * 
+ *
  * Goals:
   - unopinionated layout
   - dynamic component loading at runtime
-  - defined form event lifecycle and ability to listen 
+  - defined form event lifecycle and ability to listen
   - validation and error handling
-  
+
   Pending Goals:
   - support concurrent modifications
-  
+
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
@@ -55,7 +55,7 @@ export class FormComponent extends BaseComponent {
   @Input() editMode: boolean;
   @Input() formName: string;
   @Input() downloadAndCreateOnInit: boolean = true;
-  /** 
+  /**
    * The FormGroup instance
    */
   form?: FormGroup;
@@ -65,7 +65,7 @@ export class FormComponent extends BaseComponent {
   components: FormFieldCompMapEntry[] = [];
   formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
-  
+
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
 
@@ -83,7 +83,11 @@ export class FormComponent extends BaseComponent {
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
-    this.loggerService.debug(`'${this.appName}' waiting for deps to init...`); 
+    this.loggerService.debug(`'${this.appName}' waiting for deps to init...`);
+  }
+
+  protected get getFormService(){
+    return this.formService;
   }
 
   protected async initComponent(): Promise<void> {
@@ -112,7 +116,7 @@ export class FormComponent extends BaseComponent {
   }
   /**
    * Notification hook for when a component is ready.
-   * 
+   *
    * @param componentEntry - The component entry that is ready.
    */
   protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
@@ -131,12 +135,19 @@ export class FormComponent extends BaseComponent {
   private createFormGroup(): void {
     if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
-      // set up the form group  
+      // set up the form group
       const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
       this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
+        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(
+          this.formDefMap.formConfig.validatorDefinitions,
+          this.formDefMap.formConfig.validators)
+          ?.filter(v => !!v) ?? [];
+        this.loggerService.debug("FormComponent: setting validators to formGroup", validators);
+        this.form.setValidators(validators);
+        this.form.updateValueAndValidity();
         // setting this will trigger the form to be rendered
         this.components = components;
       } else {
@@ -154,17 +165,17 @@ export class FormComponent extends BaseComponent {
     if (!this.formDefMap?.formConfig) {
       return '';
     }
-    
+
     const cssClasses = this.editMode ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
-    
+
     if (!cssClasses) {
       return '';
     }
-    
+
     if (_isString(cssClasses)) {
       return cssClasses as string;
     }
-    
+
     // If cssClasses is an object with key-value pairs, transform it to space-delimited string
     // where keys with truthy values become class names
     return Object.entries(cssClasses as { [key: string]: string })

@@ -7,10 +7,10 @@ import { FormFieldComponentStatus } from './status.model';
 import { get as _get, isEmpty as _isEmpty } from 'lodash-es';
 /**
  * Base class for form components. Data binding to a form field is optional.
- * 
+ *
  * Notes:
  *  - No 'field' property to enforce type safety, i.e. avoid `any`
- * 
+ *
  */
 @Directive()
 export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
@@ -18,23 +18,22 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
-  // The status of the component
+// The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
   private loggerService: LoggerService = inject(LoggerService);
   /**
    * This method is called to initialize the component with the provided configuration.
-   * 
+   *
    * The framework expects the method to prepare the component for rendering, and at minimum, should prepare:
-   * 
+   *
    * - Any external/remote data sources
    * - The model responsible for the data binding
    * - Any static or dynamic styling or layout information, including CSS classes
    * - Any event handlers
-   * 
-   * For more advanced use cases, override method to define the component init behavior. Just don't forget to call 'super.setComponentReady()' or change the status manually, when the component is ready.
-   * 
-   * @param formFieldCompMapEntry 
+   ** For more advanced use cases, override method to define the component init behavior. Just don't forget to call 'super.setComponentReady()' or change the status manually, when the component is ready.
+   *
+   * @param formFieldCompMapEntry
    */
   async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
     if (!formFieldCompMapEntry) {
@@ -63,23 +62,23 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   /**
    * Retrieve or compute any data needed for the component.
    */
-  protected async initData() { 
-    
+  protected async initData() {
+
   }
   /**
    * Prepare any layout-specific information, including CSS classes.
    */
   protected async initLayout() {
     this.initHostBindingCssClasses();
-  } 
+  }
   /**
    * Prepare the event handlers for this component.
    */
   protected async initEventHandlers() {
 
   }
-  /** 
-  * Prepare the CSS classes for the host element. 
+  /**
+  * Prepare the CSS classes for the host element.
   */
   protected initHostBindingCssClasses() {
     if (this.componentDefinition?.config?.defaultComponentCssClasses) {
@@ -93,7 +92,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
       this.hostBindingCssClasses = {}; // Initialize as empty object if no default classes
     }
   }
-  
+
   /**
    * The FormControl instance for this field.
    */
@@ -107,6 +106,14 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     return control as FormControl<ValueType>;
   }
 
+  get isRequired(): boolean {
+    return this.model?.validators?.some(v => v?.name === 'required') ?? false;
+  }
+
+  get isValid(): boolean {
+    return Object.keys(this.formControl?.errors ?? {}).length === 0;
+  }
+
   // Use @HostBinding to bind to the host element's class attribute
   // This getter returns an object similar to what you'd pass to [ngClass]
   @HostBinding('class') get hostClasses() {
@@ -115,7 +122,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
 
   /**
    * Get the template reference for the specified template name.
-   * 
+   *
    * @param templateName - The name of the template to retrieve.
    * @returns The TemplateRef instance or null if not found.
    */
@@ -139,7 +146,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
 
 /**
  * The complete metadata data structure describing a form field component, including the necessary constructors to create and init the component and model.
- * 
+ *
  * @export
  * @interface FormFieldCompMapEntry
  */

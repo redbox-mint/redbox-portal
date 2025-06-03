@@ -32,7 +32,7 @@ module.exports = function (config) {
       ]
     },
     junitReporter: {
-      outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-local-auth')
+      outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-form')
     },
     reporters: ['progress', 'kjhtml', 'junit'],
     port: 9876,

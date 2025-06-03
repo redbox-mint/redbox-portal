@@ -24,16 +24,20 @@ import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
+import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
+import {I18NextPipe, provideI18Next} from "angular-i18next";
 @NgModule({
   declarations: [
     FormComponent,
-    TextFieldComponent
+    TextFieldComponent,
+    ValidationSummaryFieldComponent,
   ],
   imports: [
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    I18NextPipe,
   ],
   providers: [
     {
@@ -42,11 +46,12 @@ import { FormService } from './form.service';
       deps: [PlatformLocation]
     },
     Title,
-    FormService
+    FormService,
+    provideI18Next(),
   ],
   bootstrap: [FormComponent],
   exports: [
-    
+
   ]
 })
 export class FormModule { }

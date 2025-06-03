@@ -1,6 +1,18 @@
+import {
+  FormValidatorErrors,
+  FormValidatorConfig,
+  FormValidatorControl,
+  FormValidatorFn,
+  FormValidatorCreateFn,
+  FormValidatorDefinition,
+  FormValidatorBlock,
+  FormValidatorComponentErrors,
+  FormValidatorSummaryErrors,
+} from '@researchdatabox/sails-ng-common';
+
 /**
- * These classes are used to define the configuration for the form and form components. 
- * 
+ * These classes are used to define the configuration for the form and form components.
+ *
  * These can be used to generate JSON schema for validation, etc. both on the client and server side.
  */
 
@@ -14,7 +26,7 @@ export class FormConfig {
   // DOM related config
   // the dom element type to inject, e.g. div, span, etc. leave empty to use 'ng-container'
   domElementType?: string | null | undefined = null;
-  // optional form dom id property. When set, value will be injected into the overall dom node 
+  // optional form dom id property. When set, value will be injected into the overall dom node
   domId?: string | null | undefined = null;
   // the optional css clases to be applied to the form dom node
   viewCssClasses?: { [key: string]: string } | string | null | undefined = null;
@@ -22,12 +34,14 @@ export class FormConfig {
   // optional configuration to set in each compoment
   defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
 
-  
-  
+
+
   // validation related config
   // whether to trigger validation on save
   skipValidationOnSave?: boolean = false;
   // form-wide validators
+  validatorDefinitions?: FormValidatorDefinition[] | null | undefined = null;
+  validators?: FormValidatorBlock[] | null | undefined = null;
 
   // Component related config
   // the default layout component
@@ -52,7 +66,7 @@ export interface HasFormComponentConfigBlock {
 }
 /**
  * The form component configuration definition.
- * 
+ *
  */
 export class FormComponentDefinition implements HasFormComponentIdentity {
   name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
@@ -61,7 +75,7 @@ export class FormComponentDefinition implements HasFormComponentIdentity {
   // the inheried `class` property makes the 'layout' optional
   layout?: FormComponentLayoutDefinition | null | undefined;
   model?: FormFieldModelConfig | null | undefined = null;
-  component?: FormFieldComponentDefinition | null | undefined = null; 
+  component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
 }
 
@@ -92,6 +106,7 @@ export class FormFieldModelConfigBlock<ValueType> {
   // the data model describing this field's value
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
+  validators?: FormValidatorBlock[] | null | undefined = null;
 }
 /**
  * Config for the field model configuration, aka the data binding
@@ -100,31 +115,31 @@ export class FormFieldModelConfig<ValueType = string | undefined> implements Has
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class: string = ''; // make the class mandatory
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
-  
+
   public config?: FormFieldModelConfigBlock<ValueType> | null | undefined = null;
 
 }
 /** Layout specific config block */
 export class FormLayoutConfig extends FormComponentBaseConfig {
-  public labelRequiredStr: string = '';
+  public labelRequiredStr: string = '*';
   public helpText: string = '';
   public cssClassesMap: { [key: string]: string } = {};
 }
-/** 
+/**
  * Config for the layout component configuration.
  */
 export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
-  public config?: FormLayoutConfig | null | undefined = null; 
+  public config?: FormLayoutConfig | null | undefined = null;
 }
 
 /**
  * the UI-specific config block
  */
 export class FormFieldConfig extends FormComponentBaseConfig {
-  
+
 }
 /**
  * Config for the main component configuration.

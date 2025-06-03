@@ -8,7 +8,7 @@
     "@researchdatabox/raido-openapi-generated-node": "^0.0.3",
     "@researchdatabox/redbox-core-types": "^1.4.8",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.9",
-    "@researchdatabox/sails-ng-common": "^0.1.0",
+    "@researchdatabox/sails-ng-common": "^0.2.1",
     "@scienta/axios-oauth2": "^1.2.1",
     "@tsconfig/node18": "^18.2.4",
     "agenda": "github:redbox-mint-contrib/agenda#dist",
@@ -88,9 +88,9 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "test:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal",
+    "test:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal",
     "test:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down",
-    "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --abort-on-container-exit --exit-code-from bruno",
+    "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml down",
     "test:angular": "./support/unit-testing/angular/testDevAngular.sh",
     "doc-ng2": "npm -g install @compodoc/compodoc &&  npm -g install ejs-cli aglio &&  compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs &&  ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\",\"baseUrl\":\"https://demo.redboxresearchdata.com.au\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
@@ -98,7 +98,7 @@
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
-    "dev:run": "docker compose -f ./support/development/docker-compose.yml up",
+    "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js",
@@ -145,20 +145,6 @@
       "lcov",
       "text",
       "text-summary"
-    ]
-  },
-  "mocha": {
-    "require": "chai",
-    "recursive": true,
-    "slow": 2000,
-    "timeout": "60s",
-    "ui": "bdd",
-    "reporter": "mocha-junit-reporter",
-    "reporter-option": [
-      "mochaFile=./.tmp/junit/backend-mocha/backend-mocha.xml"
-    ],
-    "global": [
-      "sails"
     ]
   }
 }
