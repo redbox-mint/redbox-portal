@@ -113,9 +113,9 @@ export class LoDashTemplateUtilityService {
     }
   }
 
-  public runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
+  public runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined, model: any = undefined) {
     // TO-DO: deprecate numberFormat as it can be accessed via util
-    let imports = _extend({ data: data, config: config, DateTime: DateTime, numberFormat: this.numberFormat, field: field, util: this, _: this.lodashWrapper }, this);
+    let imports = _extend({ data: data, config: config, DateTime: DateTime, numberFormat: this.numberFormat, field: field, model: model, util: this, _: this.lodashWrapper }, this);
     imports = _merge(imports, additionalImports);
     const templateData = { imports: imports };
     const template = _template(config.template, templateData);

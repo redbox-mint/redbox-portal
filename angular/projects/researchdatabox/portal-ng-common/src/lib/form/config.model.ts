@@ -36,6 +36,7 @@ export class FormConfig {
 
 
 
+
   // validation related config
   // whether to trigger validation on save
   skipValidationOnSave?: boolean = false;
@@ -77,6 +78,8 @@ export class FormComponentDefinition<ValueType> implements HasFormComponentIdent
   model?: FormFieldModelConfig<ValueType> | null | undefined = null;
   component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
+  //expressions
+  expressions?: any[] = [];
 }
 
 /**
@@ -87,14 +90,23 @@ export class FormComponentBaseConfig  {
   public readonly?: boolean = false;
   // the visibility state
   public visible?: boolean = true;
-  // the editMode
-  public editMode?: boolean = true;
   // the component/control type
   public type?: string = '';
   // the label
   public label?: string = '';
   // the form-supplied css classes
   public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
+  //
+  public disabled?: boolean = false;
+  //
+  public autofocus?: boolean = false;
+  //
+  public tooltips?: TooltipsModel | null | undefined = null;
+}
+
+export class TooltipsModel {
+  public fieldTT: string = '';
+  public labelTT: string = '';
 }
 
 export class FormFieldModelConfigBlock<ValueType> {
@@ -121,9 +133,11 @@ export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity
 }
 /** Layout specific config block */
 export class FormLayoutConfig extends FormComponentBaseConfig {
-  public labelRequiredStr: string = '*';
+  public labelRequiredStr?: string = '*';
   public helpText: string = '';
-  public cssClassesMap: { [key: string]: string } = {};
+  public cssClassesMap?: { [key: string]: string } = {};
+  public helpTextVisibleOnInit?: boolean = false;
+  public helpTextVisible?: boolean = false;
 }
 /**
  * Config for the layout component configuration.

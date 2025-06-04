@@ -1,3 +1,4 @@
+
 import {
   Component,
   ComponentRef,
@@ -41,6 +42,7 @@ export class FormBaseWrapperComponent<ValueType> implements OnInit, OnChanges, O
   @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
   @Input() componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
+  @Input() public expressionStateChanged:boolean = false;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
@@ -57,7 +59,7 @@ export class FormBaseWrapperComponent<ValueType> implements OnInit, OnChanges, O
   }
 
   ngOnChanges() {
-
+    this.loggerService.info('FormBaseWrapperComponent ngOnChanges');
   }
 
   async loadComponent() {
