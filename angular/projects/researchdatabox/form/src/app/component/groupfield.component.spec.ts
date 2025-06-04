@@ -96,13 +96,10 @@ describe('FormComponent', () => {
           // first group component
           name: 'group_1_component',
           layout: {
-            // TODO: create a new layout
-            class: 'InlineLayoutComponent',
+            class: 'DefaultLayoutComponent',
             config: {
               label: 'GroupField label',
               helpText: 'GroupField help',
-              labelRequiredStr: '*',
-              cssClassesMap: {},
             }
           },
           model: {
@@ -123,8 +120,6 @@ describe('FormComponent', () => {
                     config: {
                       label: 'TextField with default wrapper defined',
                       helpText: 'This is a help text',
-                      labelRequiredStr: '*',
-                      cssClassesMap: {},
                     }
                   },
                   model: {
@@ -158,8 +153,6 @@ describe('FormComponent', () => {
                     config: {
                       label: 'GroupField 2 label',
                       helpText: 'GroupField 2 help',
-                      labelRequiredStr: '*',
-                      cssClassesMap: {},
                     }
                   },
                   model: {
@@ -180,8 +173,6 @@ describe('FormComponent', () => {
                             config: {
                               label: 'TextField with default wrapper defined',
                               helpText: 'This is a help text',
-                              labelRequiredStr: '*',
-                              cssClassesMap: {},
                             }
                           },
                           model: {

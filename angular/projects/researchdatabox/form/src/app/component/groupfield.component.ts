@@ -1,8 +1,7 @@
 import {
   Component,
   ComponentRef,
-  inject,
-  Injector,
+  inject, Injector,
   Input,
   OnDestroy,
   signal,
@@ -19,8 +18,8 @@ import {
   FormStatus
 } from "@researchdatabox/portal-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
-import {FormComponent} from "../form.component";
 import {get as _get} from "lodash-es";
+import {FormComponent} from "../form.component";
 
 
 export type GroupFieldModelValueType = { [key: string]: unknown };
@@ -40,10 +39,6 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 
   public get components(): FormFieldCompMapEntry[] {
     return this.formDefMap?.components ?? [];
-  }
-
-  public get debugValue() {
-    return this.formDefMap?.formConfig?.debugValue ?? false;
   }
 
   public get defaultComponentConfig() {
@@ -94,7 +89,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     <ng-container #componentContainer/>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
 
-    <ng-container *ngIf="(model?.components?.length ?? 0) > 0 && model?.debugValue">
+    <ng-container *ngIf="(model?.components?.length ?? 0) > 0 && isDebug">
       <div class="alert alert-info" role="alert">
         <h4>Group Component Debug</h4>
         <ul>
@@ -180,11 +175,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     // Store the child component definitions.
     formConfig.componentDefinitions = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [];
 
-    // Get the debugValue from the FormComponent.
-    formConfig.debugValue = this.getFormComponent().formDefMap?.formConfig?.debugValue;
-
     // Get the default config
-    formConfig.defaultComponentConfig = this.getFormComponent().formDefMap?.formConfig?.defaultComponentConfig;
+    const formComponent = this.getFormComponent();
+    formConfig.defaultComponentConfig = formComponent.formDefMap?.formConfig?.defaultComponentConfig;
 
     // Construct the components.
     const formDefMap = await this.formService.createFormComponentsMap(formConfig);
