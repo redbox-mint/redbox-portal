@@ -35,7 +35,7 @@ export class FormConfig {
   defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
 
 
-  
+
 
   // validation related config
   // whether to trigger validation on save
@@ -133,11 +133,11 @@ export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity
 }
 /** Layout specific config block */
 export class FormLayoutConfig extends FormComponentBaseConfig {
-  public labelRequiredStr: string = '*';
+  public labelRequiredStr?: string = '*';
   public helpText: string = '';
-  public cssClassesMap: { [key: string]: string } = {};
-  public helpTextVisibleOnInit: boolean = false;
-  public helpTextVisible: boolean = false;
+  public cssClassesMap?: { [key: string]: string } = {};
+  public helpTextVisibleOnInit?: boolean = false;
+  public helpTextVisible?: boolean = false;
 }
 /**
  * Config for the layout component configuration.
