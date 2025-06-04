@@ -1,12 +1,30 @@
-import { FormFieldModel } from './base.model';
-import { FormControl, FormGroup } from '@angular/forms';
-import { FormFieldComponentDefinition, FormComponentLayoutDefinition, TooltipsModel } from './config.model';
-import { Directive, HostBinding, signal, inject, TemplateRef, AfterViewInit, DoCheck, ComponentRef, ApplicationRef, effect } from '@angular/core'; // Import HostBinding
-import { LoggerService } from '../logger.service';
-import { FormFieldComponentStatus } from './status.model';
-import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
-import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, keys as _keys, startsWith as _startsWith, has as _has } from 'lodash-es';
+import {FormFieldModel} from './base.model';
+import {FormControl, FormGroup} from '@angular/forms';
+import {FormComponentLayoutDefinition, FormFieldComponentDefinition, TooltipsModel} from './config.model';
+import {
+  AfterViewInit,
+  ApplicationRef,
+  ComponentRef,
+  Directive,
+  DoCheck,
+  HostBinding,
+  inject,
+  signal,
+  TemplateRef
+} from '@angular/core'; // Import HostBinding
+import {LoggerService} from '../logger.service';
+import {FormFieldComponentStatus} from './status.model';
+import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
+import {
+  get as _get,
+  has as _has,
+  isEmpty as _isEmpty,
+  isUndefined as _isUndefined,
+  keys as _keys,
+  set as _set
+} from 'lodash-es';
 import {UtilityService} from "../utility.service";
+
 /**
  * Base class for form components. Data binding to a form field is optional.
  *
@@ -16,7 +34,7 @@ import {UtilityService} from "../utility.service";
  */
 @Directive()
 export abstract class FormFieldBaseComponent<ValueType = string | undefined> implements AfterViewInit, DoCheck  {
-  protected logName: string | null = "FormFieldBaseComponent";
+  protected logName = "FormFieldBaseComponent";
   public name:string = '';
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
@@ -36,14 +54,27 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   public expressions: any[] = [];
   public expressionStateChanged: boolean = false;
-  private componentViewReady:boolean = false; 
-  private formComponent:any;
-  public form?: FormGroup;
 
-  private lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
-  private appRef: ApplicationRef = inject(ApplicationRef);
+  protected lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
   protected utilityService = inject(UtilityService);
-  loggerService: LoggerService = inject(LoggerService);
+  protected loggerService = inject(LoggerService);
+
+  /**
+   * For obtaining a reference to the FormComponent instance.
+   * @private
+   */
+  private appRef: ApplicationRef = inject(ApplicationRef);
+  private componentViewReady:boolean = false;
+  /**
+   * Cache the reference to the FormComponent instance.
+   * @private
+   */
+  private formComponent?:any;
+  /**
+   * Cache the reference to the FormGroup instance.
+   * @private
+   */
+  private form?: FormGroup;
 
   /**
    * This method is called to initialize the component with the provided configuration.
@@ -88,7 +119,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   }
 
   public checkUpdateExpressions(expressionType: string = '') {
-    
+
     if(!_isUndefined(this.expressions) && !_isEmpty(this.expressions)) {
       this.loggerService.info('checkUpdateExpressions ',_get(this.componentDefinition,'class',''));
       this.loggerService.info('checkUpdateExpressions name ',this.name);
@@ -131,7 +162,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
                   } else {
                     this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' does not exist on target component or layout `,compName);
                   }
-                  
+
                   compEntry.component.expressionStateChanged = compEntry.component.hasExpressionsConfigChanged();
                   compEntry.layout.expressionStateChanged = compEntry.layout.hasExpressionsConfigChanged();
                   if(compEntry.component.expressionStateChanged) {
@@ -173,11 +204,11 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
           }
         }
-        
+
       }
     }
   }
-  
+
   ngAfterViewInit() {
 
     //normalise componentDefinition that is used to track property changes given these may not be present
@@ -189,7 +220,6 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     _set(this.componentDefinition as object,'config.tooltips',this.componentDefinition?.config?.tooltips ?? null);
 
     this.initConfig();
-    this.form = this.getFormGroup();
     this.componentViewReady = true;
     this.loggerService.debug(`FieldComponent ngAfterViewInit: componentViewReady:`, this.componentViewReady);
   }
@@ -204,7 +234,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
       this.label = this.componentDefinition?.config?.label ?? '';
       this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
-      
+
       this.componentDefinitionCache = {
         visible: this.componentDefinition?.config?.visible,
         disabled: this.componentDefinition?.config?.disabled,
@@ -230,18 +260,21 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     return propertyChanged;
   }
 
+  get isDebug(): boolean {
+    const formComponent = this.getFormComponent();
+    return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
+  }
+
   protected getFormComponent(): any {
-    if(_isUndefined(this.formComponent)) {
-      let formComponent:any = this.appRef.components[0];
-      this.formComponent = formComponent;
+    if(this.formComponent === undefined) {
+      this.formComponent = this.appRef.components[0];
     }
     return this.formComponent;
   }
 
   protected getFormGroup(): FormGroup | undefined {
-     let formComponent:any = this.getFormComponent();
-    if(!_isUndefined(formComponent) && _isUndefined(this.form)) {
-      this.form = formComponent.instance.form;
+    if(this.form == undefined) {
+      this.form = this.getFormComponent()?.instance?.form;
     }
     return this.form;
   }
