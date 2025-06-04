@@ -297,3 +297,114 @@ export class RepeatableGroupComponent extends RepeatableComponent {
     });
   }
 }
+
+
+@Component({
+  selector: 'copy-group-field',
+  template: `
+  <ng-container *ngIf="field.visible">
+    <ng-container *ngIf="field.editMode">
+      <div *ngIf="field.label">
+        <label>
+         <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
+          <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+        </label>
+        <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
+      </div>
+      <span dmp-disable-state="enabled" #dmpFieldContainer>
+      <ng-container *ngIf="isEmbedded">
+        <div [formGroup]='form' [ngClass]="field.cssClasses">
+          <div class='row'>
+            <div class="col-xs-10">
+              <dmp-field *ngFor="let childField of field.fields" [name]="childField.name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap" ></dmp-field>
+            </div>
+            <div class="col-xs-2">
+              <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="disabled ? 'disabled': null"  [ngClass]="btn-primary" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="!isEmbedded">
+      <span dmp-disable-state="enabled" #dmpFieldContainer>
+        <div [formGroup]='form' [ngClass]="field.cssClasses">
+          <dmp-field *ngFor="let childField of field.fields" [field]="childField" [form]="form" [fieldMap]="fieldMap" [name] = "childField.name" ></dmp-field>
+          <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="disabled ? 'disabled': null" [ngClass]="btn-primary" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
+        </div>
+        </span>
+      </ng-container>
+    </span>
+    </ng-container>
+    <ng-container *ngIf="!field.editMode">
+    <span dmp-disable-state="enabled" #dmpFieldContainer>
+      <div [formGroup]='form' [ngClass]="field.cssClasses">
+        <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+      </div>
+      </span>
+    </ng-container>
+  </ng-container>
+  `,
+})
+export class CopyGroupComponent extends EmbeddableComponent {
+  static clName = 'CopyGroupComponent';
+  private originallyDisabledElements: Set<HTMLElement> = new Set();
+  @ViewChild('dmpFieldContainer', { read: ElementRef }) dmpFieldContainer!: ElementRef;
+
+  constructor(private vcr: ViewContainerRef, private renderer: Renderer) {
+    super();
+  }
+
+  public copyTextToClipboard() {
+    try {
+      const inputElement = this.dmpFieldContainer.nativeElement;
+      const firstInput: HTMLInputElement | null = inputElement.querySelector('input');
+      if(firstInput) {
+        firstInput.select();
+        const successful = document.execCommand('copy');
+        if (successful) {
+          alert('Text copied to clipboard!');
+        } else {
+          alert('Failed to copy text.');
+        }
+      }
+    } catch (err) {
+      alert('Copy command failed: ' + err);
+    }
+  }
+
+  public enableInputFields() {
+    const parentElement = this.dmpFieldContainer.nativeElement;
+    if (parentElement.getAttribute("dmp-disable-state") === "disabled") {
+      parentElement.setAttribute("dmp-disable-state", "enabled");
+      ['input', 'button', 'textarea', 'select'].forEach(selector => {
+        const elements = parentElement.querySelectorAll(selector);
+        elements.forEach((el: HTMLElement) => {
+          if (!this.originallyDisabledElements.has(el)) {
+            // Only re-enable elements that were originally enabled
+            this.renderer.setElementAttribute(el, 'disabled', null);
+          }
+        });
+      });
+      this.originallyDisabledElements.clear();
+    }
+  }
+
+  public disableInputFields() {
+    const parentElement = this.dmpFieldContainer.nativeElement;
+    if (parentElement.getAttribute("dmp-disable-state") === "enabled") {
+      parentElement.setAttribute("dmp-disable-state", "disabled");
+      ['input', 'button', 'textarea', 'select'].forEach(selector => {
+        const elements = parentElement.querySelectorAll(selector);
+        elements.forEach((el: HTMLElement) => {
+          if (el.hasAttribute('disabled')) {
+            // Store only elements that were originally disabled
+            this.originallyDisabledElements.add(el);
+          } else {
+            // Disable elements that were initially enabled
+            this.renderer.setElementAttribute(el, 'disabled', 'true');
+          }
+        });
+      });
+    }
+  }
+
+}
