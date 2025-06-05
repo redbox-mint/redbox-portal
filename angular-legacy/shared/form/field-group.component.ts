@@ -304,42 +304,47 @@ export class RepeatableGroupComponent extends RepeatableComponent {
   template: `
   <ng-container *ngIf="field.visible">
     <ng-container *ngIf="field.editMode">
-      <div *ngIf="field.label">
-        <label>
-         <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
-          <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-        </label>
-        <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
-      </div>
-      <span dmp-disable-state="enabled" #dmpFieldContainer>
-      <ng-container *ngIf="isEmbedded">
-        <div [formGroup]='form' [ngClass]="field.cssClasses">
-          <div class='row'>
-            <div class="col-xs-10">
-              <dmp-field *ngFor="let childField of field.fields" [name]="childField.name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap" ></dmp-field>
+      <ng-container *ngFor="let childField of field.fields; let isFirst = first">
+        <ng-container *ngIf="isFirst">
+          <span dmp-disable-state="enabled" #dmpFieldContainer>
+            <ng-container *ngIf="field.label">
+              <div class='row'>
+                <div class="col-xs-12">
+                  <label>
+                    <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
+                    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+                  </label>
+                  <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
+                </div>
+              </div>
+            </ng-container>
+            <div [formGroup]='form' [ngClass]="'row '+field.cssClasses" >
+              <div class="col-xs-10 padding-remove-right">
+                <dmp-field [name]="childField.name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap" ></dmp-field>
+              </div>
+              <div class="col-xs-2 padding-remove">
+                <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="childField.disabled ? 'disabled': null"  [ngClass]="'btn btn-primary'" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
+              </div>
             </div>
-            <div class="col-xs-2">
-              <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="disabled ? 'disabled': null"  [ngClass]="btn-primary" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
-            </div>
-          </div>
-        </div>
+          </span>
+        </ng-container>
       </ng-container>
-      <ng-container *ngIf="!isEmbedded">
-      <span dmp-disable-state="enabled" #dmpFieldContainer>
-        <div [formGroup]='form' [ngClass]="field.cssClasses">
-          <dmp-field *ngFor="let childField of field.fields" [field]="childField" [form]="form" [fieldMap]="fieldMap" [name] = "childField.name" ></dmp-field>
-          <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="disabled ? 'disabled': null" [ngClass]="btn-primary" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
-        </div>
-        </span>
-      </ng-container>
-    </span>
     </ng-container>
     <ng-container *ngIf="!field.editMode">
-    <span dmp-disable-state="enabled" #dmpFieldContainer>
-      <div [formGroup]='form' [ngClass]="field.cssClasses">
-        <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
-      </div>
-      </span>
+      <ng-container *ngFor="let childField of field.fields; let isFirst = first">
+        <ng-container *ngIf="isFirst">
+          <span dmp-disable-state="enabled" #dmpFieldContainer>
+            <div [formGroup]='form' [ngClass]="'row '+field.cssClasses">
+              <div class="col-xs-10">
+                <dmp-field [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+              </div>
+              <div class="col-xs-2">
+                <button type='button' (click)="copyTextToClipboard()" [ngClass]="'btn btn-primary'" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
+              </div>
+            </div>
+          </span>
+        </ng-container>
+      </ng-container>
     </ng-container>
   </ng-container>
   `,
@@ -356,19 +361,41 @@ export class CopyGroupComponent extends EmbeddableComponent {
   public copyTextToClipboard() {
     try {
       const inputElement = this.dmpFieldContainer.nativeElement;
-      const firstInput: HTMLInputElement | null = inputElement.querySelector('input');
-      if(firstInput) {
-        firstInput.select();
-        const successful = document.execCommand('copy');
-        if (successful) {
-          alert('Text copied to clipboard!');
-        } else {
-          alert('Failed to copy text.');
+      if(this.field.editMode) {
+        const firstInput: HTMLInputElement | null = inputElement.querySelector('input');
+        this.selectAndCopy(firstInput);
+      } else {
+        const firstInput: HTMLInputElement | null = inputElement.querySelector('.value');
+        if (firstInput) {
+          const text = firstInput.textContent || '';
+          //Use a temporary textarea to copy the text
+          const tempInput = document.createElement('textarea');
+          tempInput.value = text;
+          document.body.appendChild(tempInput);
+          this.selectAndCopy(tempInput);
+          document.body.removeChild(tempInput);
         }
       }
     } catch (err) {
       alert('Copy command failed: ' + err);
     }
+  }
+
+  private selectAndCopy(firstInput: any) {
+    let copyMessage = 'Text copied to clipboard!';
+    if (firstInput) {
+      firstInput.select();
+      const successful = document.execCommand('copy');
+      if (successful) {
+        alert(copyMessage);
+      } else {
+        copyMessage = 'Failed to copy text.';
+        alert(copyMessage);
+      }
+    }
+    setTimeout(() => {
+      copyMessage = '';
+    }, 2000);
   }
 
   public enableInputFields() {
