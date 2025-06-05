@@ -24,10 +24,12 @@ import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
+import { RepeatableComponent } from './component/repeatable.component';
 @NgModule({
   declarations: [
     FormComponent,
-    TextFieldComponent
+    TextFieldComponent,
+    RepeatableComponent
   ],
   imports: [
     CommonModule,
@@ -44,7 +46,9 @@ import { FormService } from './form.service';
     Title,
     FormService
   ],
-  bootstrap: [FormComponent],
+  bootstrap: [
+    FormComponent
+  ],
   exports: [
     
   ]

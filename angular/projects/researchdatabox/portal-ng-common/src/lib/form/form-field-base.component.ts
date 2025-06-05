@@ -1,10 +1,11 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
-import { Directive, HostBinding, signal, inject, TemplateRef } from '@angular/core'; // Import HostBinding
+import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { get as _get, isEmpty as _isEmpty } from 'lodash-es';
+import { FormBaseWrapperComponent } from './base-wrapper.component';
 /**
  * Base class for form components. Data binding to a form field is optional.
  * 
@@ -21,7 +22,15 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
-  private loggerService: LoggerService = inject(LoggerService);
+  protected loggerService: LoggerService = inject(LoggerService);
+  protected viewInitialised = signal<boolean>(false);
+
+  @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
+  @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
+
+  ngAfterViewInit() {
+    this.viewInitialised.set(true);  
+  }
   /**
    * This method is called to initialize the component with the provided configuration.
    * 
@@ -36,7 +45,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
    * 
    * @param formFieldCompMapEntry 
    */
-  async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
+  async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined): Promise<void> {
     if (!formFieldCompMapEntry) {
       throw new Error("FieldComponent: formFieldCompMapEntry is null.");
     }
@@ -135,6 +144,23 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   protected async setComponentReady() {
     this.status.set(FormFieldComponentStatus.READY);
   }
+
+  isStatusReady(): boolean {
+    return this.status() === FormFieldComponentStatus.READY;
+  }
+
+  untilViewIsInitiased(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const checkStatus = () => {
+        if (this.viewInitialised()) {
+          resolve();
+        } else {
+          setTimeout(checkStatus, 10);
+        }
+      };
+      checkStatus();
+    });
+  }
 }
 
 /**
@@ -150,5 +176,7 @@ export interface FormFieldCompMapEntry {
   compConfigJson: any,
   model?: FormFieldModel | null;
   component?: FormFieldBaseComponent | null;
+  componentRef?: ComponentRef<FormFieldBaseComponent> | null | undefined;
+  layoutRef?: ComponentRef<FormFieldBaseComponent> | null | undefined;
   componentTemplateRefMap? : { [key: string]: TemplateRef<any> } | null | undefined;
 }

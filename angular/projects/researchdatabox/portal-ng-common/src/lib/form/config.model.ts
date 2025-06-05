@@ -129,9 +129,9 @@ export class FormComponentLayoutDefinition implements HasFormComponentIdentity, 
 }
 
 /**
- * the UI-specific config block
+ * 
  */
-export class FormFieldConfig extends FormComponentBaseConfig {
+export class FormFieldDefininition extends FormComponentBaseConfig {
   
 }
 /**
@@ -139,7 +139,7 @@ export class FormFieldConfig extends FormComponentBaseConfig {
  */
 export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfig {
   public class?: string | null | undefined; // makes the 'layout' optional
-  public config?: FormFieldConfig | null | undefined = null;
+  public config?: FormFieldDefininition | null | undefined = null;
 }
 
 /**

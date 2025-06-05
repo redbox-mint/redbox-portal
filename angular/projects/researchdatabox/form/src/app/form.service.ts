@@ -104,6 +104,54 @@ export class FormService {
             class: 'TextFieldComponent'
           }
         },
+        {
+          name: 'repeatable_1',
+          model: { 
+            class: 'RepeatableComponentModel',
+            config: {
+              value: ['hello world from repeatable!'],
+              defaultValue: ['hello world from repeatable, default!']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                model: { 
+                  class: 'TextFieldModel',
+                  config: {
+                    editCssClasses: 'redbox-form row',
+                    defaultValue: 'hello world from elementTemplate!',
+                  }
+                },
+                component: {
+                  class: 'TextFieldComponent'
+                }
+              },
+            },
+          },
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              label: 'Repeatable TextField with default wrapper defined',
+              helpText: 'Repeatable component help text',
+            }
+          },       
+        },
+        {
+          name: 'text_3_event',
+          model: { 
+            name: 'text_3_for_the_form',
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world!',
+              defaultValue: 'hello world!'
+            }
+          },
+          component: {
+            class: 'TextFieldComponent'
+          }
+        },
         // {
         //   module: 'custom',
         //   component: {

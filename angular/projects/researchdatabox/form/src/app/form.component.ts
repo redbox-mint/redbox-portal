@@ -16,11 +16,11 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component,  Inject, Input, ElementRef, signal, HostBinding } from '@angular/core';
+import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig, FormBaseWrapperComponent } from '@researchdatabox/portal-ng-common';
 
 import { FormComponentsMap, FormService } from './form.service';
 /**
@@ -62,12 +62,14 @@ export class FormComponent extends BaseComponent {
   /**
    * The form components
    */
-  components: FormFieldCompMapEntry[] = [];
+  componentDefArr: FormFieldCompMapEntry[] = [];
   formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
   
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
+
+  @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -108,23 +110,26 @@ export class FormComponent extends BaseComponent {
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
     }
     this.createFormGroup();
-    // TODO: set up the event handlers
-  }
-  /**
-   * Notification hook for when a component is ready.
-   * 
-   * @param componentEntry - The component entry that is ready.
-   */
-  protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    if (this.formDefMap && this.formDefMap.components && this.componentsLoaded() == false) {
-      // Set the overall loaded flag to true if all components are loaded
-      this.componentsLoaded.set(this.formDefMap.components.every(componentDef => componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY));
-      if (this.componentsLoaded()) {
-        this.status.set(FormStatus.READY);
-        this.loggerService.debug(`FormComponent: All components are ready. Form is ready to be used.`);
-      }
+    const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
+    // const compContainerRef:ViewContainerRef | undefined = this.componentsContainer();
+    if (!compContainerRef) {
+      this.loggerService.error(`FormComponent: No component container found. Cannot load components.`);
+      throw new Error(`FormComponent: No component container found. Cannot load components.`);
     }
+    for (const componentDefEntry of this.componentDefArr){
+      const componentRef: ComponentRef<FormBaseWrapperComponent> = compContainerRef.createComponent<FormBaseWrapperComponent>(FormBaseWrapperComponent);
+      componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
+      componentRef.changeDetectorRef.detectChanges();
+
+      componentDefEntry.component = await componentRef.instance.initWrapperComponent(componentDefEntry);
+    }
+    // TODO: set up the event handlers
+
+    // Set the status to READY if all components are loaded
+    this.status.set(FormStatus.READY);
+    this.componentsLoaded.set(true);
   }
+
   /**
    * Create the form group based on the form definition map.
    */
@@ -138,7 +143,7 @@ export class FormComponent extends BaseComponent {
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
         // setting this will trigger the form to be rendered
-        this.components = components;
+        this.componentDefArr = components;
       } else {
         this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
         throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);

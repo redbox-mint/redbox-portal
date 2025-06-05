@@ -11,6 +11,9 @@ export class TextFieldModel extends FormFieldModel<string> {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <input type='text' [formControl]="formControl" />
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+    <ng-container>
+      <pre>Text Status: {{ status() }}</pre>
+    </ng-container>
   `,
     standalone: false
 })
@@ -22,5 +25,6 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
      * @memberof FieldComponent
      */
   @Input() public override model?: TextFieldModel;
+  
   
 }

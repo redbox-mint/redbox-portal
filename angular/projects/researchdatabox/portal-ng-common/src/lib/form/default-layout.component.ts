@@ -1,8 +1,9 @@
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
 import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef } from '@angular/core';
+import { Component, viewChild, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
+import { FormBaseWrapperDirective } from './base-wrapper.directive';
 /**
  * Default Form Component Layout
  * 
@@ -42,8 +43,7 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
         <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
       }
     }
-    <ng-container #componentContainer>
-    </ng-container> 
+    <ng-container #componentContainer></ng-container>  
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
       Before, is help showing:  {{ helpTextVisible }}
@@ -51,6 +51,9 @@ import { FormBaseWrapperComponent } from './base-wrapper.component';
     <ng-template #afterComponentTemplate>
       After, is help showing:  {{ helpTextVisible }}
     </ng-template>
+    <ng-container>
+      <pre>Layout Status: {{ status() }}</pre>
+    </ng-container>
   }
   `,
   standalone: false,
@@ -61,16 +64,16 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   componentClass?: typeof FormFieldBaseComponent | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
 
-  @ViewChild('componentContainer', { read: ViewContainerRef, static: false })
-  componentContainer!: ViewContainerRef;
+  @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
+  // @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
   @ViewChild('beforeComponentTemplate', { read: TemplateRef, static: false })
   beforeComponentTemplate!: TemplateRef<any>;
   @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
   afterComponentTemplate!: TemplateRef<any>;
 
+  // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<unknown>>;
-
   /**
    * Override to set additional properties required by the wrapper component.
    * 
@@ -85,18 +88,23 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
    * Override what it takes to get the component to be 'ready'
    */
   protected override async setComponentReady(): Promise<void> {
-    // Set all the bound properties to the component
-    this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
-    this.wrapperComponentRef.instance.componentClass = this.componentClass;
-    this.wrapperComponentRef.instance.model = this.model;
-    this.wrapperComponentRef.instance.formFieldCompMapEntry = this.formFieldCompMapEntry;
+    await this.untilViewIsInitiased();
+    if (!this.componentContainer) {
+      throw new Error("DefaultLayoutComponent: componentContainer is not defined. Cannot create the wrapper component.");
+    }
+    if (!this.formFieldCompMapEntry) {
+      throw new Error("DefaultLayoutComponent: formFieldCompMapEntry is not defined. Cannot create the wrapper component.");
+    }
     if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
         after: this.afterComponentTemplate
       };
     }
-    this.wrapperComponentRef.changeDetectorRef.detectChanges();
+    // Using the wrapper will also set the component instance in the definition map properly
+    this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
+    await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
+
     // finally set the status to 'READY'
     await super.setComponentReady();
   }
