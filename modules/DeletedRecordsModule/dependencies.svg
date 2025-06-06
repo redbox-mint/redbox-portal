@@ -24,13 +24,13 @@
 <title>cluster_DeletedRecordsModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="53,-70 53,-268 443,-268 443,-70 53,-70"/>
 </g>
-<g id="clust2" class="cluster">
-<title>cluster_DeletedRecordsModule_declarations</title>
-<polygon fill="none" stroke="black" points="249,-78 249,-130 435,-130 435,-78 249,-78"/>
-</g>
 <g id="clust4" class="cluster">
 <title>cluster_DeletedRecordsModule_imports</title>
-<polygon fill="none" stroke="black" points="61,-78 61,-130 241,-130 241,-78 61,-78"/>
+<polygon fill="none" stroke="black" points="255,-78 255,-130 435,-130 435,-78 255,-78"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_DeletedRecordsModule_declarations</title>
+<polygon fill="none" stroke="black" points="61,-78 61,-130 247,-130 247,-78 61,-78"/>
 </g>
 <g id="clust6" class="cluster">
 <title>cluster_DeletedRecordsModule_bootstrap</title>
@@ -39,8 +39,8 @@
 <!-- DeletedRecordsComponent -->
 <g id="node1" class="node">
 <title>DeletedRecordsComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="427.24,-122 256.76,-122 256.76,-86 427.24,-86 427.24,-122"/>
-<text text-anchor="middle" x="342" y="-99.8" font-family="Times,serif" font-size="14.00">DeletedRecordsComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="239.24,-122 68.76,-122 68.76,-86 239.24,-86 239.24,-122"/>
+<text text-anchor="middle" x="154" y="-99.8" font-family="Times,serif" font-size="14.00">DeletedRecordsComponent</text>
 </g>
 <!-- DeletedRecordsModule -->
 <g id="node2" class="node">
@@ -51,8 +51,8 @@
 <!-- DeletedRecordsComponent&#45;&gt;DeletedRecordsModule -->
 <g id="edge1" class="edge">
 <title>DeletedRecordsComponent&#45;&gt;DeletedRecordsModule</title>
-<path fill="none" stroke="black" d="M289.55,-122.11C289.55,-122.11 289.55,-140.99 289.55,-140.99"/>
-<polygon fill="black" stroke="black" points="286.05,-140.99 289.55,-150.99 293.05,-140.99 286.05,-140.99"/>
+<path fill="none" stroke="black" d="M206.45,-122.11C206.45,-122.11 206.45,-140.99 206.45,-140.99"/>
+<polygon fill="black" stroke="black" points="202.95,-140.99 206.45,-150.99 209.95,-140.99 202.95,-140.99"/>
 </g>
 <!-- DeletedRecordsComponent  -->
 <g id="node4" class="node">
@@ -69,14 +69,14 @@
 <!-- RedboxPortalCoreModule -->
 <g id="node3" class="node">
 <title>RedboxPortalCoreModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="232.75,-122 229.75,-126 208.75,-126 205.75,-122 69.25,-122 69.25,-86 232.75,-86 232.75,-122"/>
-<text text-anchor="middle" x="151" y="-99.8" font-family="Times,serif" font-size="14.00">RedboxPortalCoreModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="426.75,-122 423.75,-126 402.75,-126 399.75,-122 263.25,-122 263.25,-86 426.75,-86 426.75,-122"/>
+<text text-anchor="middle" x="345" y="-99.8" font-family="Times,serif" font-size="14.00">RedboxPortalCoreModule</text>
 </g>
 <!-- RedboxPortalCoreModule&#45;&gt;DeletedRecordsModule -->
 <g id="edge2" class="edge">
 <title>RedboxPortalCoreModule&#45;&gt;DeletedRecordsModule</title>
-<path fill="none" stroke="black" d="M203.2,-122.11C203.2,-122.11 203.2,-140.99 203.2,-140.99"/>
-<polygon fill="black" stroke="black" points="199.7,-140.99 203.2,-150.99 206.7,-140.99 199.7,-140.99"/>
+<path fill="none" stroke="black" d="M292.8,-122.11C292.8,-122.11 292.8,-140.99 292.8,-140.99"/>
+<polygon fill="black" stroke="black" points="289.3,-140.99 292.8,-150.99 296.3,-140.99 289.3,-140.99"/>
 </g>
 </g>
 </svg>
