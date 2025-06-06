@@ -323,7 +323,7 @@ export class RepeatableGroupComponent extends RepeatableComponent {
                 <dmp-field [name]="childField.name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap" ></dmp-field>
               </div>
               <div class="col-xs-2 padding-remove">
-                <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="childField.disabled ? 'disabled': null"  [ngClass]="'btn btn-primary'" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
+                <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="childField.disabled ? 'disabled': null"  [ngClass]="'btn btn-primary'" [attr.aria-label]="childField.extraLabel | translate">{{ childField.extraLabel | translate }}</button>
               </div>
             </div>
           </span>
@@ -339,7 +339,7 @@ export class RepeatableGroupComponent extends RepeatableComponent {
                 <dmp-field [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
               </div>
               <div class="col-xs-2">
-                <button type='button' (click)="copyTextToClipboard()" [ngClass]="'btn btn-primary'" [attr.aria-label]="'Copy to clipboard'">Copy to clipboard</button>
+                <button type='button' (click)="copyTextToClipboard()" [ngClass]="'btn btn-primary'" [attr.aria-label]="childField.extraLabel | translate">{{ childField.extraLabel | translate }}</button>
               </div>
             </div>
           </span>
@@ -359,7 +359,6 @@ export class CopyGroupComponent extends EmbeddableComponent {
   }
 
   public copyTextToClipboard() {
-    try {
       const inputElement = this.dmpFieldContainer.nativeElement;
       if(this.field.editMode) {
         const firstInput: HTMLInputElement | null = inputElement.querySelector('input');
@@ -376,26 +375,33 @@ export class CopyGroupComponent extends EmbeddableComponent {
           document.body.removeChild(tempInput);
         }
       }
-    } catch (err) {
-      alert('Copy command failed: ' + err);
-    }
+    
   }
 
   private selectAndCopy(firstInput: any) {
-    let copyMessage = 'Text copied to clipboard!';
-    if (firstInput) {
-      firstInput.select();
-      const successful = document.execCommand('copy');
-      if (successful) {
-        alert(copyMessage);
-      } else {
-        copyMessage = 'Failed to copy text.';
-        alert(copyMessage);
+    try {
+      let copyMessage = 'Text copied to clipboard!';
+      if (firstInput) {
+        firstInput.select();
+        firstInput.setSelectionRange(0, 99999); // For compatibilty with mobile devices
+        const successful = document.execCommand('copy');
+        if (successful) {
+          alert(copyMessage);
+        } else {
+          copyMessage = 'Failed to copy text.';
+          alert(copyMessage);
+          console.log('Failed to copy text: ' + navigator.userAgent);
+          console.log('Failed to copy text: ' + navigator.platform);
+        }
       }
+      setTimeout(() => {
+        copyMessage = '';
+      }, 2000);
+    } catch (err) {
+      console.log('Copy command failed: ' + navigator.userAgent);
+      console.log('Copy command failed: ' + navigator.platform);
+      console.log('Copy command failed: ' + err);
     }
-    setTimeout(() => {
-      copyMessage = '';
-    }, 2000);
   }
 
   public enableInputFields() {
