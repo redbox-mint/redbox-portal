@@ -1,8 +1,19 @@
 <ng-container #componentsContainer></ng-container>
 <ng-container *ngIf="componentDefArr.length > 0 && formDefMap?.formConfig?.debugValue">
-  <h3>Live Form Value</h3>
-  <pre [innerHtml]="form?.value | json"></pre>
-</ng-container>
-<ng-container *ngIf="componentDefArr.length > 0 && formDefMap?.formConfig?.debugValue">
-  <h3>Form Status: {{ status() }}</h3>
+  <div class="alert alert-info" role="alert">
+    <h4>Form Component Debug</h4>
+    <ul>
+      <li>status: {{ status() }}</li>
+      <li>componentsLoaded: {{ componentsLoaded() }}</li>
+      <li>isReady: {{ isReady }}</li>
+      <li>children:
+      <ul>
+        @for(component of componentDefArr; track component.component){
+          <li>{{ utilityService.getNameClass(component?.component?.formFieldCompMapEntry) }}: {{component?.component?.status()}}</li>
+        }
+      </ul>
+      </li>
+    </ul>
+    <pre [innerHtml]="form?.value | json"></pre>
+  </div>
 </ng-container>

@@ -2,21 +2,23 @@ import { TextFieldModel, TextFieldComponent } from "./component/textfield.compon
 import { RepeatableComponent, RepeatableComponentModel } from "./component/repeatable.component";
 import { DefaultLayoutComponent } from "@researchdatabox/portal-ng-common";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
+import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
+import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
   [index: string]: any;
 }
 
-/** 
- * For built-in components, add the mapping here 
- * 
+/**
+ * For built-in components, add the mapping here
+ *
  * Note that each model and component are optional
 */
 export const StaticModelCompClassMap = {
-  'TextField': { 
-    model: TextFieldModel, 
-    component: TextFieldComponent 
+  'TextField': {
+    model: TextFieldModel,
+    component: TextFieldComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent
@@ -24,7 +26,15 @@ export const StaticModelCompClassMap = {
   'RepeatableComponent': {
     model: RepeatableComponentModel,
     component: RepeatableComponent
-  }
+  },
+  'ValidationSummaryField': {
+    model: ValidationSummaryFieldModel,
+    component: ValidationSummaryFieldComponent,
+  },
+  'GroupField': {
+    model: GroupFieldModel,
+    component: GroupFieldComponent
+  },
 };
 
 
@@ -38,7 +48,7 @@ _each(StaticModelCompClassMap, (value:any, key:any) => {
     // add an entry for the model name to make it easier to find the corresponding component's model
     if (value.component) {
       const componentKeyName = _endsWith(key, 'Component') ? key : key + 'Component';
-      StaticModelClassMap[componentKeyName] = value.model; 
+      StaticModelClassMap[componentKeyName] = value.model;
     }
   }
 });
@@ -58,7 +68,7 @@ _each(StaticModelCompClassMap, (value:any, key:any) => {
     // add an entry for the component name to make it easier to find the corresponding model's component
     if (value.model) {
       const modelKeyName = _endsWith(key, 'Model') ? key : key + 'Model';
-      StaticComponentClassMap[modelKeyName] = value.component; 
+      StaticComponentClassMap[modelKeyName] = value.component;
     }
   }
 });

@@ -25,17 +25,23 @@ import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
 import { RepeatableComponent } from './component/repeatable.component';
+import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
+import {I18NextPipe, provideI18Next} from "angular-i18next";
+import {GroupFieldComponent} from "./component/groupfield.component";
 @NgModule({
   declarations: [
     FormComponent,
     TextFieldComponent,
-    RepeatableComponent
+    RepeatableComponent,
+    ValidationSummaryFieldComponent,
+    GroupFieldComponent,
   ],
   imports: [
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    I18NextPipe,
   ],
   providers: [
     {
@@ -44,13 +50,14 @@ import { RepeatableComponent } from './component/repeatable.component';
       deps: [PlatformLocation]
     },
     Title,
-    FormService
+    FormService,
+    provideI18Next(),
   ],
   bootstrap: [
     FormComponent
   ],
   exports: [
-    
+
   ]
 })
 export class FormModule { }

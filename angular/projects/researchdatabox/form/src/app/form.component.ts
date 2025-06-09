@@ -20,21 +20,22 @@ import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, v
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig, FormBaseWrapperComponent } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig, FormBaseWrapperComponent, UtilityService } from '@researchdatabox/portal-ng-common';
 
 import { FormComponentsMap, FormService } from './form.service';
+
 /**
  * The ReDBox Form
- * 
+ *
  * Goals:
   - unopinionated layout
   - dynamic component loading at runtime
-  - defined form event lifecycle and ability to listen 
+  - defined form event lifecycle and ability to listen
   - validation and error handling
-  
+
   Pending Goals:
   - support concurrent modifications
-  
+
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
@@ -49,13 +50,14 @@ import { FormComponentsMap, FormService } from './form.service';
     standalone: false
 })
 export class FormComponent extends BaseComponent {
+  private logName = "FormComponent";
   appName: string;
   @Input() oid:string;
   @Input() recordType: string;
   @Input() editMode: boolean;
   @Input() formName: string;
   @Input() downloadAndCreateOnInit: boolean = true;
-  /** 
+  /**
    * The FormGroup instance
    */
   form?: FormGroup;
@@ -65,7 +67,7 @@ export class FormComponent extends BaseComponent {
   componentDefArr: FormFieldCompMapEntry[] = [];
   formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
-  
+
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
 
@@ -76,7 +78,8 @@ export class FormComponent extends BaseComponent {
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(ElementRef) elementRef: ElementRef,
-    @Inject(FormService) private formService: FormService
+    @Inject(FormService) private formService: FormService,
+    @Inject(UtilityService) protected utilityService: UtilityService
   ) {
     super();
     this.initDependencies = [this.translationService];
@@ -84,20 +87,24 @@ export class FormComponent extends BaseComponent {
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
-    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`;
-    this.loggerService.debug(`'${this.appName}' waiting for deps to init...`); 
+    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
+    this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
+  }
+
+  protected get getFormService(){
+    return this.formService;
   }
 
   protected async initComponent(): Promise<void> {
-    this.loggerService.debug(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
+    this.loggerService.debug(`${this.logName}: Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
     try {
       if (this.downloadAndCreateOnInit) {
         await this.downloadAndCreateFormComponents();
       } else {
-        this.loggerService.warn(`FormComponent: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
+        this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
       }
     } catch (error) {
-      this.loggerService.error(`Error loading form: ${error}`);
+      this.loggerService.error(`${this.logName}: Error loading form`, error);
       this.status.set(FormStatus.LOAD_ERROR);
       throw error;
     }
@@ -105,8 +112,10 @@ export class FormComponent extends BaseComponent {
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
     if (!formConfig) {
+      this.loggerService.log(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
     } else {
+      this.loggerService.log(`${this.logName}: creating form definition from provided config`);
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
     }
     this.createFormGroup();
@@ -159,17 +168,17 @@ export class FormComponent extends BaseComponent {
     if (!this.formDefMap?.formConfig) {
       return '';
     }
-    
+
     const cssClasses = this.editMode ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
-    
+
     if (!cssClasses) {
       return '';
     }
-    
+
     if (_isString(cssClasses)) {
       return cssClasses as string;
     }
-    
+
     // If cssClasses is an object with key-value pairs, transform it to space-delimited string
     // where keys with truthy values become class names
     return Object.entries(cssClasses as { [key: string]: string })
