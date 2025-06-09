@@ -1,6 +1,6 @@
 import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, output, Type, TemplateRef, EmbeddedViewRef } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentStatus, FormFieldDefininition, FormFieldCompMapEntry, FormConfig, FormBaseWrapperComponent } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldModel, FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentStatus, FormFieldDefininition, FormFieldCompMapEntry, FormConfig, FormBaseWrapperComponent, DefaultLayoutComponent } from '@researchdatabox/portal-ng-common';
 
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get } from 'lodash-es';
 import { FormComponentsMap, FormService } from '../form.service';
@@ -24,10 +24,6 @@ import { FormComponentsMap, FormService } from '../form.service';
     <ng-container>
       <pre>Repeatable Status: {{ status() }}</pre>
     </ng-container>
-    <ng-template #removeButtonTemplate>
-       @let label = "Remove";
-      <button type="button" class="btn btn-danger" (click)="removeElement($event)" [innerHtml]="label"></button>
-    </ng-template>
   `,
   standalone: false
 })
@@ -68,6 +64,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
+    this.elemInitFieldEntry.layoutClass = RepeatableLayoutComponent;
+    
     // Loop through the elements of the model and insert into the container 
     const elemVals = this.model.initValue;
     if (!Array.isArray(elemVals)) {
@@ -90,16 +88,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       throw new Error("RepeatableComponent: elemInitFieldEntry is not defined. Cannot append new element.");
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value);
-    // elemEntry.model = new (elemEntry.modelClass as any) (elemEntry.compConfigJson.model as FormFieldModelConfig) as FormFieldModel;
-    const componentRef = await this.createElement(this.elemInitFieldEntry, value, elemEntry);
-    // elemEntry.component = componentRef.instance;
-    this.compDefMapEntries.push(elemEntry);
-    this.compRefs.push(componentRef);
+    await this.createElement(this.elemInitFieldEntry, value, elemEntry);
   }
 
-  public removeElementByIndex(index: number) {
-    return 
-  }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): FormFieldCompMapEntry {
 
@@ -123,18 +114,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     elemFieldEntry.model = model;
     // Create a new component for the repeatable element
     const componentRef: ComponentRef<FormBaseWrapperComponent> = this.repeatableContainer.createComponent<FormBaseWrapperComponent>(FormBaseWrapperComponent);
-    // elemEntry.componentTemplateRefMap = {
-    //   after: 
-    // };
-    const elemFieldRemoveButtonTemplate = this.removeButtonTemplate.createEmbeddedView({context: {label: 'Remove Me'}});
-    elemFieldEntry.componentTemplateRefMap = {
-      after: elemFieldRemoveButtonTemplate
-    }
-
+    
     const compInstance = await componentRef.instance.initWrapperComponent(elemFieldEntry);
-    // const componentRef = this.repeatableContainer.createComponent<FormFieldBaseComponent>((elemFieldEntry.componentClass as any) as Type<FormFieldBaseComponent>);
-    // // Initialize the component with the template entry
-    // await componentRef.instance.initComponent(elemFieldEntry);
+    ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>).removeFn = this.removeElementFn(this.compRefs.length, elemFieldEntry);
 
     elemEntry.component = compInstance;
     if (this.model?.formControl && compInstance?.model) {
@@ -142,29 +124,22 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     } else {
       this.loggerService.warn("RepeatableComponent: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.");
     }
+
+    this.compDefMapEntries.push(elemEntry);
+    this.compRefs.push(componentRef);
     
     return componentRef;
   }
 
-  public removeElement(event: MouseEvent, ): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.loggerService.debug("RepeatableComponent: removeElement called", event);
-    this.loggerService.debug(event);
-    // const target = event.target as HTMLElement;
-    // const compRef = this.compRefs.find(ref => ref.location.nativeElement === target);
-    // if (compRef) {
-    //   const index = this.compRefs.indexOf(compRef);
-    //   if (index > -1) {
-    //     this.compRefs.splice(index, 1);
-    //     this.compDefMapEntries.splice(index, 1);
-    //     this.repeatableContainer.remove(index);
-    //     // Remove the form control from the model
-    //     if (this.model?.formControl) {
-    //       this.model.formControl.removeAt(index);
-    //     }
-    //   }
-    // }
+  public removeElementFn(idx: number, elemEntry: FormFieldCompMapEntry) {
+    const that = this;
+    return function() {
+      that.loggerService.debug("RepeatableComponent: removeElement called: ", idx);
+      that.model?.removeElement(idx);
+      that.compDefMapEntries.splice(idx, 1);
+      that.compRefs[idx].destroy();
+      that.compRefs.splice(idx, 1);
+    }
   }
 }
 
@@ -183,15 +158,21 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     if (!this.fieldConfig.config?.defaultValue) {
       _set(this.fieldConfig, 'config.defaultValue', []);
     }
-    // Uthe default value if the initial value is not set
+    // The default value if the initial value is not set
     this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
-    // console.log("RepeatableComponentModel: prepared form control for lazy-init at the component level, but init JSON value should be:", this.initValue);
-
     // not setting value yet, this will be done in the component for lazy init
     const modelElems: AbstractControl[] = [];
     
     this.formControl = new FormArray(modelElems);
     // console.log("RepeatableComponentModel: created form model:", this.formControl);
+  }
+
+  public removeElement(idx: number): void {
+    if (this.formControl && this.formControl instanceof FormArray) {
+      this.formControl.removeAt(idx);
+    } else {
+      throw new Error("RepeatableComponentModel: formControl is not a FormArray. Cannot remove element.");
+    }
   }
 }
 
@@ -218,14 +199,19 @@ export class RepeatableComponentConfigDefinition extends FormFieldDefininition {
 }
 
 @Component({
-  selector: 'redbox-form-repeatable-button',
-  template: `<button type="button" [class]="" (click)="onClick()">{{label}}</button>`
+  selector: 'redbox-form-repeatable-component-layout',
+  template: `
+  <ng-container #componentContainer></ng-container>  
+  <ng-template #afterComponentTemplate>
+    <button type="button" class="btn btn-danger" (click)="clickedRemove()" [attr.aria-label]="'Remove'">Remove</button>
+  </ng-template>
+  `
 })
-export class RepeatableButtonComponent {
-  @Input() label = 'Click me';
-  clicked = output<void>();
+export class RepeatableLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
+  
+  public removeFn?: () => void;
 
-  onClick() {
-    this.clicked.emit();
+  protected clickedRemove() {
+    this.removeFn?.call(this);
   }
 }

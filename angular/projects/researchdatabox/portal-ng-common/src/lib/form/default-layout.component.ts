@@ -95,7 +95,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if (!this.formFieldCompMapEntry) {
       throw new Error("DefaultLayoutComponent: formFieldCompMapEntry is not defined. Cannot create the wrapper component.");
     }
-    if (this.formFieldCompMapEntry && this.beforeComponentTemplate && this.afterComponentTemplate) {
+    if (this.formFieldCompMapEntry && (this.beforeComponentTemplate || this.afterComponentTemplate)) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {
         before: this.beforeComponentTemplate,
         after: this.afterComponentTemplate

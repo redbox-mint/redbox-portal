@@ -10,7 +10,7 @@ export class TextFieldModel extends FormFieldModel<string> {
     template: `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <input type='text' [formControl]="formControl" />
-    <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+    <ng-container *ngTemplateOutlet="getTemplateRef('after')" /> 
     <ng-container>
       <pre>Text Status: {{ status() }}</pre>
     </ng-container>
