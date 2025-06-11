@@ -266,15 +266,15 @@ module.exports.namedQuery = {
     queryParams: {
       'lastSaveDateToCheck': {
         type: 'date', //When using "date" data type the path is expected to be a date in mongo db
-        path: 'lastSaveDate', 
+        path: 'lastSaveDate',
         queryType: '<=', //<= is equivalent to $lte and >= is equivalent to $gte
         format: 'days', //When using "date" data type format is required and can be "days" or "ISODate" 
-                        //if format is "days"  
-                        //0 = 0 days difference = now
-                        //-365 = 365 days difference in the past
-                        //20 = 20 days difference in the future
-                        //if format is "ISODate" 
-                        //a full ISO date like 2021-06-01T07:09:51.498Z is expected
+        //if format is "days"  
+        //0 = 0 days difference = now
+        //-365 = 365 days difference in the past
+        //20 = 20 days difference in the future
+        //if format is "ISODate" 
+        //a full ISO date like 2021-06-01T07:09:51.498Z is expected
         whenUndefined: 'defaultValue',
         defaultValue: '-365'
       }
@@ -325,5 +325,74 @@ module.exports.namedQuery = {
         whenUndefined: 'ignore'
       }
     }
-  } 
+  },
+  listPartiesPeople: {
+    collectionName: "record",
+    brandIdFieldPath: "metaMetadata.brandId",
+    resultObjectMapping: {
+      honorific: "<%= _.get(record,'metadata.honorific','') %>",
+      text_full_name: `<%= (_.get(record, "metadata.fullName", "")%>`,
+      email: "<%= _.get(record,'metadata.email','') %>",
+      orcid: "<%= _.get(record,'metadata.orcid','') %>",
+      ID: "<%= _.get(record,'metadata.ID','') %>",
+    },
+    mongoQuery: {
+      "metaMetadata.type": "party",
+      "metadata.fullName": null,
+    },
+    resultObjectMapping: {},
+    queryParams: {
+      search: {
+        type: "string",
+        path: "metadata.fullName",
+        queryType: "contains",
+        whenUndefined: "defaultValue",
+        defaultValue: "",
+        template: "<%= _.toLower(value) %>",
+      },
+    },
+  },
+  listResearchActivities: {
+    collectionName: "record",
+    brandIdFieldPath: "metaMetadata.brandId",
+    mongoQuery: {
+      "metaMetadata.type": "activity",
+      "metadata.l_display_title": null,
+      "authorization.view": null,
+    },
+    resultObjectMapping: {
+    },
+    queryParams: {
+      search: {
+        type: "string",
+        path: "metadata.l_display_title",
+        queryType: "contains",
+        whenUndefined: "defaultValue",
+        defaultValue: "",
+        template: "<%= _.toLower(value) %>",
+      }
+    },
+  },
+  listFundingBodies: {
+    collectionName: "record",
+    brandIdFieldPath: "metaMetadata.brandId",
+    resultObjectMapping: {
+      "provider-name": "<%= _.get(record,'metadata.provider-name','') %>",
+      "provider-id": "<%= _.get(record,'metadata.provider-id','') %>",
+    },
+    mongoQuery: {
+      "metaMetadata.type": "funding",
+      "metadata.l_provider_name": null,
+    },
+    queryParams: {
+      search: {
+        type: "string",
+        path: "metadata.l_provider_name",
+        queryType: "contains",
+        whenUndefined: "defaultValue",
+        defaultValue: "",
+        template: "<%= _.toLower(value) %>",
+      },
+    },
+  }
 };

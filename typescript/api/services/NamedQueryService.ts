@@ -106,16 +106,16 @@ export module Services {
       }
       sails.log.debug("Mongo query to be executed");
       sails.log.debug(mongoQuery);
-      
+      const caseInsensitive = true;
+      const findMetaOptions = {
+        enableExperimentalDeepTargets: true,
+        makeLikeModifierCaseInsensitive: caseInsensitive
+      };
       let totalItems = 0;
       if(collectionName == 'user') {
-        totalItems = await User.count(mongoQuery).meta({
-          enableExperimentalDeepTargets: true
-        });
+        totalItems = await User.count(mongoQuery).meta(findMetaOptions);
       } else {
-        totalItems = await Record.count(mongoQuery).meta({
-          enableExperimentalDeepTargets: true
-        });
+        totalItems = await Record.count(mongoQuery).meta(findMetaOptions);
       }
 
       let results = [];
@@ -125,17 +125,13 @@ export module Services {
             where: mongoQuery,
             skip: start,
             limit: rows
-          }).meta({
-            enableExperimentalDeepTargets: true
-          });
+          }).meta(findMetaOptions);
         } else {
           results = await Record.find({
             where: mongoQuery,
             skip: start,
             limit: rows
-          }).meta({
-            enableExperimentalDeepTargets: true
-          });
+          }).meta(findMetaOptions);
         }
       }
       

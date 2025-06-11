@@ -1,0 +1,4202 @@
+[
+  {
+    "ID": "9000",
+    "title": "Investigating Quantum Properties of Novel Materials #1",
+    "description": "This project explores the properties and behaviors of quantum materials to advance next-generation computing and electronics.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND1",
+        "name": "Australian Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "123",
+      "honorific": "Prof",
+      "givenName": "Jane",
+      "familyName": "Franklin",
+      "email": "j.franklin@example.edu.au",
+      "orcid": "0000-0082-5779-3150"
+    },
+    "contributor_supervisor": {
+      "ID": "124",
+      "honorific": "Prof",
+      "givenName": "Rosalind",
+      "familyName": "Tesla",
+      "email": "r.tesla@example.edu.au",
+      "orcid": "0000-0059-3882-4470"
+    },
+    "contributors": [
+      {
+        "ID": "125",
+        "honorific": "Dr",
+        "givenName": "Marie",
+        "familyName": "Lovelace",
+        "email": "m.lovelace@example.edu.au",
+        "orcid": "0000-0028-9679-3661"
+      },
+      {
+        "ID": "126",
+        "honorific": "Dr",
+        "givenName": "Florence",
+        "familyName": "Frank",
+        "email": "f.frank@example.edu.au",
+        "orcid": "0000-0098-3764-6933"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "127",
+        "honorific": "Dr",
+        "givenName": "James",
+        "familyName": "Bohr",
+        "email": "j.bohr@example.edu.au",
+        "orcid": "0000-0019-3552-6608"
+      },
+      {
+        "ID": "128",
+        "honorific": "Dr",
+        "givenName": "Lise",
+        "familyName": "Planck",
+        "email": "l.planck@example.edu.au",
+        "orcid": "0000-0084-7945-5475"
+      }
+    ]
+  },
+  {
+    "ID": "9001",
+    "title": "AI-Driven Diagnostics in Rural Health Systems #1",
+    "description": "Using artificial intelligence to enhance diagnostic tools in rural healthcare, improving access and accuracy for underserved communities.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND2",
+        "name": "National Health and Medical Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "129",
+      "honorific": "Prof",
+      "givenName": "Florence",
+      "familyName": "Frank",
+      "email": "f.frank@example.edu.au",
+      "orcid": "0000-0040-5660-3743"
+    },
+    "contributor_supervisor": {
+      "ID": "130",
+      "honorific": "Dr",
+      "givenName": "Charles",
+      "familyName": "Mayer",
+      "email": "c.mayer@example.edu.au",
+      "orcid": "0000-0076-2089-8617"
+    },
+    "contributors": [
+      {
+        "ID": "131",
+        "honorific": "Dr",
+        "givenName": "Rosalind",
+        "familyName": "Pascal",
+        "email": "r.pascal@example.edu.au",
+        "orcid": "0000-0027-9684-2778"
+      },
+      {
+        "ID": "132",
+        "honorific": "Dr",
+        "givenName": "Isaac",
+        "familyName": "Faraday",
+        "email": "i.faraday@example.edu.au",
+        "orcid": "0000-0050-4342-7951"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "133",
+        "honorific": "Prof",
+        "givenName": "Max",
+        "familyName": "Tesla",
+        "email": "m.tesla@example.edu.au",
+        "orcid": "0000-0015-6398-1604"
+      },
+      {
+        "ID": "134",
+        "honorific": "Prof",
+        "givenName": "Michael",
+        "familyName": "Bohr",
+        "email": "m.bohr@example.edu.au",
+        "orcid": "0000-0045-7143-3291"
+      }
+    ]
+  },
+  {
+    "ID": "9002",
+    "title": "Renewable Energy Storage Solutions in Urban Grids #1",
+    "description": "Developing advanced storage solutions for integrating renewable energy into urban power grids to promote sustainability and resilience.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND3",
+        "name": "CSIRO"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "135",
+      "honorific": "Dr",
+      "givenName": "Rosalind",
+      "familyName": "Franklin",
+      "email": "r.franklin@example.edu.au",
+      "orcid": "0000-0061-5912-6911"
+    },
+    "contributor_supervisor": {
+      "ID": "136",
+      "honorific": "Dr",
+      "givenName": "Max",
+      "familyName": "Bohr",
+      "email": "m.bohr@example.edu.au",
+      "orcid": "0000-0089-5463-9856"
+    },
+    "contributors": [
+      {
+        "ID": "137",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Einstein",
+        "email": "b.einstein@example.edu.au",
+        "orcid": "0000-0085-9322-6909"
+      },
+      {
+        "ID": "138",
+        "honorific": "Prof",
+        "givenName": "Alan",
+        "familyName": "Tesla",
+        "email": "a.tesla@example.edu.au",
+        "orcid": "0000-0068-4949-5320"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "139",
+        "honorific": "Prof",
+        "givenName": "Jane",
+        "familyName": "Einstein",
+        "email": "j.einstein@example.edu.au",
+        "orcid": "0000-0092-3995-4465"
+      },
+      {
+        "ID": "140",
+        "honorific": "Prof",
+        "givenName": "Enrico",
+        "familyName": "Curie",
+        "email": "e.curie@example.edu.au",
+        "orcid": "0000-0058-3909-3232"
+      }
+    ]
+  },
+  {
+    "ID": "9003",
+    "title": "Genetic Adaptation in Marine Microorganisms #1",
+    "description": "Investigating the genetic mechanisms that enable marine microorganisms to adapt to environmental changes, supporting marine biodiversity.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND4",
+        "name": "Department of Industry, Science and Resources"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "141",
+      "honorific": "Prof",
+      "givenName": "Richard",
+      "familyName": "Watson",
+      "email": "r.watson@example.edu.au",
+      "orcid": "0000-0058-8166-1910"
+    },
+    "contributor_supervisor": {
+      "ID": "142",
+      "honorific": "Dr",
+      "givenName": "Lise",
+      "familyName": "Tesla",
+      "email": "l.tesla@example.edu.au",
+      "orcid": "0000-0044-6421-8500"
+    },
+    "contributors": [
+      {
+        "ID": "143",
+        "honorific": "Dr",
+        "givenName": "Carl",
+        "familyName": "Dirac",
+        "email": "c.dirac@example.edu.au",
+        "orcid": "0000-0097-4353-5494"
+      },
+      {
+        "ID": "144",
+        "honorific": "Dr",
+        "givenName": "Marie",
+        "familyName": "Newton",
+        "email": "m.newton@example.edu.au",
+        "orcid": "0000-0078-9232-2047"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "145",
+        "honorific": "Prof",
+        "givenName": "Johannes",
+        "familyName": "Hooke",
+        "email": "j.hooke@example.edu.au",
+        "orcid": "0000-0066-9042-9836"
+      },
+      {
+        "ID": "146",
+        "honorific": "Dr",
+        "givenName": "Michael",
+        "familyName": "Tesla",
+        "email": "m.tesla@example.edu.au",
+        "orcid": "0000-0063-4621-7912"
+      }
+    ]
+  },
+  {
+    "ID": "9004",
+    "title": "Next-gen Robotics for Sustainable Agriculture #1",
+    "description": "Designing robotic systems tailored for use in sustainable agriculture, with a focus on automation and resource efficiency.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND5",
+        "name": "Medical Research Future Fund"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "147",
+      "honorific": "Prof",
+      "givenName": "Isaac",
+      "familyName": "Frank",
+      "email": "i.frank@example.edu.au",
+      "orcid": "0000-0018-8814-8437"
+    },
+    "contributor_supervisor": {
+      "ID": "148",
+      "honorific": "Dr",
+      "givenName": "Katherine",
+      "familyName": "Mayer",
+      "email": "k.mayer@example.edu.au",
+      "orcid": "0000-0011-2348-4556"
+    },
+    "contributors": [
+      {
+        "ID": "149",
+        "honorific": "Prof",
+        "givenName": "Rachel",
+        "familyName": "Hooke",
+        "email": "r.hooke@example.edu.au",
+        "orcid": "0000-0093-2300-3176"
+      },
+      {
+        "ID": "150",
+        "honorific": "Dr",
+        "givenName": "Dmitri",
+        "familyName": "Turing",
+        "email": "d.turing@example.edu.au",
+        "orcid": "0000-0086-5395-5613"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "151",
+        "honorific": "Dr",
+        "givenName": "Alan",
+        "familyName": "Faraday",
+        "email": "a.faraday@example.edu.au",
+        "orcid": "0000-0092-4005-7381"
+      },
+      {
+        "ID": "152",
+        "honorific": "Dr",
+        "givenName": "Ada",
+        "familyName": "Turing",
+        "email": "a.turing@example.edu.au",
+        "orcid": "0000-0065-3126-3014"
+      }
+    ]
+  },
+  {
+    "ID": "9005",
+    "title": "Cybersecurity Protocols for Smart Devices #1",
+    "description": "Creating secure communication protocols and defenses for smart devices to mitigate the growing risk of cyberattacks.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND6",
+        "name": "Cooperative Research Centres Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "153",
+      "honorific": "Dr",
+      "givenName": "Neil",
+      "familyName": "Watson",
+      "email": "n.watson@example.edu.au",
+      "orcid": "0000-0068-1472-1361"
+    },
+    "contributor_supervisor": {
+      "ID": "154",
+      "honorific": "Dr",
+      "givenName": "Marie",
+      "familyName": "Dirac",
+      "email": "m.dirac@example.edu.au",
+      "orcid": "0000-0012-5662-2344"
+    },
+    "contributors": [
+      {
+        "ID": "155",
+        "honorific": "Dr",
+        "givenName": "Galileo",
+        "familyName": "Planck",
+        "email": "g.planck@example.edu.au",
+        "orcid": "0000-0073-9127-8977"
+      },
+      {
+        "ID": "156",
+        "honorific": "Prof",
+        "givenName": "Florence",
+        "familyName": "Turing",
+        "email": "f.turing@example.edu.au",
+        "orcid": "0000-0081-1180-3932"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "157",
+        "honorific": "Dr",
+        "givenName": "Katherine",
+        "familyName": "Einstein",
+        "email": "k.einstein@example.edu.au",
+        "orcid": "0000-0016-2685-3274"
+      },
+      {
+        "ID": "158",
+        "honorific": "Prof",
+        "givenName": "Emmy",
+        "familyName": "Watson",
+        "email": "e.watson@example.edu.au",
+        "orcid": "0000-0057-6975-3314"
+      }
+    ]
+  },
+  {
+    "ID": "9006",
+    "title": "Climate Impact Assessment in Coastal Cities #1",
+    "description": "Assessing the impacts of climate change on coastal cities to guide future planning and adaptive infrastructure strategies.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND7",
+        "name": "Australian Renewable Energy Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "159",
+      "honorific": "Dr",
+      "givenName": "Marie",
+      "familyName": "Frank",
+      "email": "m.frank@example.edu.au",
+      "orcid": "0000-0072-5203-9011"
+    },
+    "contributor_supervisor": {
+      "ID": "160",
+      "honorific": "Prof",
+      "givenName": "Richard",
+      "familyName": "Franklin",
+      "email": "r.franklin@example.edu.au",
+      "orcid": "0000-0067-2675-2752"
+    },
+    "contributors": [
+      {
+        "ID": "161",
+        "honorific": "Prof",
+        "givenName": "Alan",
+        "familyName": "Watson",
+        "email": "a.watson@example.edu.au",
+        "orcid": "0000-0079-3699-7219"
+      },
+      {
+        "ID": "162",
+        "honorific": "Prof",
+        "givenName": "Albert",
+        "familyName": "Tesla",
+        "email": "a.tesla@example.edu.au",
+        "orcid": "0000-0042-6300-5208"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "163",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Rutherford",
+        "email": "b.rutherford@example.edu.au",
+        "orcid": "0000-0047-1973-2983"
+      },
+      {
+        "ID": "164",
+        "honorific": "Dr",
+        "givenName": "Alan",
+        "familyName": "Planck",
+        "email": "a.planck@example.edu.au",
+        "orcid": "0000-0059-9587-2043"
+      }
+    ]
+  },
+  {
+    "ID": "9007",
+    "title": "Indigenous Knowledge Integration in Ecosystem Management #1",
+    "description": "Integrating Indigenous ecological knowledge with modern ecosystem management to enhance environmental stewardship.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND8",
+        "name": "National Environmental Science Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "165",
+      "honorific": "Prof",
+      "givenName": "Michael",
+      "familyName": "Rutherford",
+      "email": "m.rutherford@example.edu.au",
+      "orcid": "0000-0095-3964-6193"
+    },
+    "contributor_supervisor": {
+      "ID": "166",
+      "honorific": "Dr",
+      "givenName": "Florence",
+      "familyName": "Heisenberg",
+      "email": "f.heisenberg@example.edu.au",
+      "orcid": "0000-0082-4085-4404"
+    },
+    "contributors": [
+      {
+        "ID": "167",
+        "honorific": "Prof",
+        "givenName": "Rachel",
+        "familyName": "Fermi",
+        "email": "r.fermi@example.edu.au",
+        "orcid": "0000-0061-8737-5603"
+      },
+      {
+        "ID": "168",
+        "honorific": "Dr",
+        "givenName": "Florence",
+        "familyName": "Frank",
+        "email": "f.frank@example.edu.au",
+        "orcid": "0000-0063-7471-1481"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "169",
+        "honorific": "Prof",
+        "givenName": "Barbara",
+        "familyName": "Einstein",
+        "email": "b.einstein@example.edu.au",
+        "orcid": "0000-0051-2124-2122"
+      },
+      {
+        "ID": "170",
+        "honorific": "Prof",
+        "givenName": "Paul",
+        "familyName": "Heisenberg",
+        "email": "p.heisenberg@example.edu.au",
+        "orcid": "0000-0010-7134-7285"
+      }
+    ]
+  },
+  {
+    "ID": "9008",
+    "title": "Virtual Reality in Cognitive Therapy for PTSD #1",
+    "description": "Applying virtual reality technologies in therapeutic settings to support treatment of PTSD and other cognitive conditions.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND9",
+        "name": "Australian Space Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "171",
+      "honorific": "Prof",
+      "givenName": "Rachel",
+      "familyName": "Curie",
+      "email": "r.curie@example.edu.au",
+      "orcid": "0000-0085-1716-1475"
+    },
+    "contributor_supervisor": {
+      "ID": "172",
+      "honorific": "Dr",
+      "givenName": "Rachel",
+      "familyName": "Fermi",
+      "email": "r.fermi@example.edu.au",
+      "orcid": "0000-0040-4537-1355"
+    },
+    "contributors": [
+      {
+        "ID": "173",
+        "honorific": "Prof",
+        "givenName": "Dorothy",
+        "familyName": "Turing",
+        "email": "d.turing@example.edu.au",
+        "orcid": "0000-0085-9920-1400"
+      },
+      {
+        "ID": "174",
+        "honorific": "Dr",
+        "givenName": "Stephen",
+        "familyName": "Turing",
+        "email": "s.turing@example.edu.au",
+        "orcid": "0000-0061-8934-8732"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "175",
+        "honorific": "Dr",
+        "givenName": "Werner",
+        "familyName": "Galilei",
+        "email": "w.galilei@example.edu.au",
+        "orcid": "0000-0050-3404-7610"
+      },
+      {
+        "ID": "176",
+        "honorific": "Prof",
+        "givenName": "Alan",
+        "familyName": "Watson",
+        "email": "a.watson@example.edu.au",
+        "orcid": "0000-0014-2347-7005"
+      }
+    ]
+  },
+  {
+    "ID": "9009",
+    "title": "Mathematical Modelling of Disease Outbreaks #1",
+    "description": "Utilizing mathematical modeling to understand and predict the dynamics of infectious disease outbreaks for better response planning.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND10",
+        "name": "Defence Science and Technology Group"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "177",
+      "honorific": "Prof",
+      "givenName": "Barbara",
+      "familyName": "Newton",
+      "email": "b.newton@example.edu.au",
+      "orcid": "0000-0068-3416-4894"
+    },
+    "contributor_supervisor": {
+      "ID": "178",
+      "honorific": "Dr",
+      "givenName": "Rachel",
+      "familyName": "Einstein",
+      "email": "r.einstein@example.edu.au",
+      "orcid": "0000-0091-1847-2707"
+    },
+    "contributors": [
+      {
+        "ID": "179",
+        "honorific": "Prof",
+        "givenName": "Werner",
+        "familyName": "Planck",
+        "email": "w.planck@example.edu.au",
+        "orcid": "0000-0082-5759-3568"
+      },
+      {
+        "ID": "180",
+        "honorific": "Prof",
+        "givenName": "Werner",
+        "familyName": "Frank",
+        "email": "w.frank@example.edu.au",
+        "orcid": "0000-0018-9026-4180"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "181",
+        "honorific": "Dr",
+        "givenName": "Stephen",
+        "familyName": "Lovelace",
+        "email": "s.lovelace@example.edu.au",
+        "orcid": "0000-0049-7230-3397"
+      },
+      {
+        "ID": "182",
+        "honorific": "Prof",
+        "givenName": "Alan",
+        "familyName": "Lovelace",
+        "email": "a.lovelace@example.edu.au",
+        "orcid": "0000-0016-4928-2321"
+      }
+    ]
+  },
+  {
+    "ID": "9010",
+    "title": "Investigating Quantum Properties of Novel Materials #2",
+    "description": "This project explores the properties and behaviors of quantum materials to advance next-generation computing and electronics.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND11",
+        "name": "Australian Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "183",
+      "honorific": "Dr",
+      "givenName": "Emmy",
+      "familyName": "Watson",
+      "email": "e.watson@example.edu.au",
+      "orcid": "0000-0072-1127-6759"
+    },
+    "contributor_supervisor": {
+      "ID": "184",
+      "honorific": "Prof",
+      "givenName": "Marie",
+      "familyName": "Fermi",
+      "email": "m.fermi@example.edu.au",
+      "orcid": "0000-0091-9320-1911"
+    },
+    "contributors": [
+      {
+        "ID": "185",
+        "honorific": "Dr",
+        "givenName": "Lise",
+        "familyName": "Dirac",
+        "email": "l.dirac@example.edu.au",
+        "orcid": "0000-0056-4921-5540"
+      },
+      {
+        "ID": "186",
+        "honorific": "Prof",
+        "givenName": "Enrico",
+        "familyName": "Newton",
+        "email": "e.newton@example.edu.au",
+        "orcid": "0000-0033-9625-7598"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "187",
+        "honorific": "Prof",
+        "givenName": "Marie",
+        "familyName": "Lovelace",
+        "email": "m.lovelace@example.edu.au",
+        "orcid": "0000-0086-9470-1593"
+      },
+      {
+        "ID": "188",
+        "honorific": "Dr",
+        "givenName": "Max",
+        "familyName": "Curie",
+        "email": "m.curie@example.edu.au",
+        "orcid": "0000-0099-1077-5853"
+      }
+    ]
+  },
+  {
+    "ID": "9011",
+    "title": "AI-Driven Diagnostics in Rural Health Systems #2",
+    "description": "Using artificial intelligence to enhance diagnostic tools in rural healthcare, improving access and accuracy for underserved communities.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND12",
+        "name": "National Health and Medical Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "189",
+      "honorific": "Prof",
+      "givenName": "Dmitri",
+      "familyName": "Bohr",
+      "email": "d.bohr@example.edu.au",
+      "orcid": "0000-0092-8145-7482"
+    },
+    "contributor_supervisor": {
+      "ID": "190",
+      "honorific": "Prof",
+      "givenName": "Lise",
+      "familyName": "Hooke",
+      "email": "l.hooke@example.edu.au",
+      "orcid": "0000-0047-3213-9616"
+    },
+    "contributors": [
+      {
+        "ID": "191",
+        "honorific": "Dr",
+        "givenName": "Johannes",
+        "familyName": "Turing",
+        "email": "j.turing@example.edu.au",
+        "orcid": "0000-0075-7751-2987"
+      },
+      {
+        "ID": "192",
+        "honorific": "Dr",
+        "givenName": "Blaise",
+        "familyName": "Rutherford",
+        "email": "b.rutherford@example.edu.au",
+        "orcid": "0000-0076-9500-9547"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "193",
+        "honorific": "Dr",
+        "givenName": "Johannes",
+        "familyName": "Lovelace",
+        "email": "j.lovelace@example.edu.au",
+        "orcid": "0000-0012-8929-7099"
+      },
+      {
+        "ID": "194",
+        "honorific": "Dr",
+        "givenName": "Florence",
+        "familyName": "Curie",
+        "email": "f.curie@example.edu.au",
+        "orcid": "0000-0044-6258-1085"
+      }
+    ]
+  },
+  {
+    "ID": "9012",
+    "title": "Renewable Energy Storage Solutions in Urban Grids #2",
+    "description": "Developing advanced storage solutions for integrating renewable energy into urban power grids to promote sustainability and resilience.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND13",
+        "name": "CSIRO"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "195",
+      "honorific": "Prof",
+      "givenName": "Grace",
+      "familyName": "Lovelace",
+      "email": "g.lovelace@example.edu.au",
+      "orcid": "0000-0054-7886-8267"
+    },
+    "contributor_supervisor": {
+      "ID": "196",
+      "honorific": "Prof",
+      "givenName": "Barbara",
+      "familyName": "Curie",
+      "email": "b.curie@example.edu.au",
+      "orcid": "0000-0072-5481-4908"
+    },
+    "contributors": [
+      {
+        "ID": "197",
+        "honorific": "Prof",
+        "givenName": "Charles",
+        "familyName": "Newton",
+        "email": "c.newton@example.edu.au",
+        "orcid": "0000-0035-5153-9356"
+      },
+      {
+        "ID": "198",
+        "honorific": "Prof",
+        "givenName": "Rosalind",
+        "familyName": "Hooke",
+        "email": "r.hooke@example.edu.au",
+        "orcid": "0000-0042-8580-9146"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "199",
+        "honorific": "Prof",
+        "givenName": "Isaac",
+        "familyName": "Tesla",
+        "email": "i.tesla@example.edu.au",
+        "orcid": "0000-0072-2024-3478"
+      },
+      {
+        "ID": "200",
+        "honorific": "Dr",
+        "givenName": "Albert",
+        "familyName": "Watson",
+        "email": "a.watson@example.edu.au",
+        "orcid": "0000-0047-9993-9140"
+      }
+    ]
+  },
+  {
+    "ID": "9013",
+    "title": "Genetic Adaptation in Marine Microorganisms #2",
+    "description": "Investigating the genetic mechanisms that enable marine microorganisms to adapt to environmental changes, supporting marine biodiversity.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND14",
+        "name": "Department of Industry, Science and Resources"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "201",
+      "honorific": "Prof",
+      "givenName": "Jane",
+      "familyName": "Newton",
+      "email": "j.newton@example.edu.au",
+      "orcid": "0000-0032-7498-9941"
+    },
+    "contributor_supervisor": {
+      "ID": "202",
+      "honorific": "Prof",
+      "givenName": "Emmy",
+      "familyName": "Galilei",
+      "email": "e.galilei@example.edu.au",
+      "orcid": "0000-0086-5723-2883"
+    },
+    "contributors": [
+      {
+        "ID": "203",
+        "honorific": "Prof",
+        "givenName": "Albert",
+        "familyName": "Fermi",
+        "email": "a.fermi@example.edu.au",
+        "orcid": "0000-0020-8172-4752"
+      },
+      {
+        "ID": "204",
+        "honorific": "Dr",
+        "givenName": "Rachel",
+        "familyName": "Franklin",
+        "email": "r.franklin@example.edu.au",
+        "orcid": "0000-0049-8199-8211"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "205",
+        "honorific": "Prof",
+        "givenName": "Ada",
+        "familyName": "Frank",
+        "email": "a.frank@example.edu.au",
+        "orcid": "0000-0054-5454-2502"
+      },
+      {
+        "ID": "206",
+        "honorific": "Prof",
+        "givenName": "Enrico",
+        "familyName": "Mayer",
+        "email": "e.mayer@example.edu.au",
+        "orcid": "0000-0018-8963-7818"
+      }
+    ]
+  },
+  {
+    "ID": "9014",
+    "title": "Next-gen Robotics for Sustainable Agriculture #2",
+    "description": "Designing robotic systems tailored for use in sustainable agriculture, with a focus on automation and resource efficiency.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND15",
+        "name": "Medical Research Future Fund"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "207",
+      "honorific": "Dr",
+      "givenName": "Werner",
+      "familyName": "Planck",
+      "email": "w.planck@example.edu.au",
+      "orcid": "0000-0027-7300-5884"
+    },
+    "contributor_supervisor": {
+      "ID": "208",
+      "honorific": "Prof",
+      "givenName": "Katherine",
+      "familyName": "Planck",
+      "email": "k.planck@example.edu.au",
+      "orcid": "0000-0033-4764-5895"
+    },
+    "contributors": [
+      {
+        "ID": "209",
+        "honorific": "Prof",
+        "givenName": "Dorothy",
+        "familyName": "Tesla",
+        "email": "d.tesla@example.edu.au",
+        "orcid": "0000-0013-3767-1088"
+      },
+      {
+        "ID": "210",
+        "honorific": "Prof",
+        "givenName": "Max",
+        "familyName": "Hooke",
+        "email": "m.hooke@example.edu.au",
+        "orcid": "0000-0050-1056-2713"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "211",
+        "honorific": "Prof",
+        "givenName": "Florence",
+        "familyName": "Watson",
+        "email": "f.watson@example.edu.au",
+        "orcid": "0000-0060-8181-2301"
+      },
+      {
+        "ID": "212",
+        "honorific": "Prof",
+        "givenName": "Katherine",
+        "familyName": "Newton",
+        "email": "k.newton@example.edu.au",
+        "orcid": "0000-0083-2180-7007"
+      }
+    ]
+  },
+  {
+    "ID": "9015",
+    "title": "Cybersecurity Protocols for Smart Devices #2",
+    "description": "Creating secure communication protocols and defenses for smart devices to mitigate the growing risk of cyberattacks.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND16",
+        "name": "Cooperative Research Centres Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "213",
+      "honorific": "Dr",
+      "givenName": "Florence",
+      "familyName": "Einstein",
+      "email": "f.einstein@example.edu.au",
+      "orcid": "0000-0097-9820-1445"
+    },
+    "contributor_supervisor": {
+      "ID": "214",
+      "honorific": "Prof",
+      "givenName": "Rachel",
+      "familyName": "Planck",
+      "email": "r.planck@example.edu.au",
+      "orcid": "0000-0053-8091-6769"
+    },
+    "contributors": [
+      {
+        "ID": "215",
+        "honorific": "Dr",
+        "givenName": "Charles",
+        "familyName": "Faraday",
+        "email": "c.faraday@example.edu.au",
+        "orcid": "0000-0097-4613-7427"
+      },
+      {
+        "ID": "216",
+        "honorific": "Dr",
+        "givenName": "Florence",
+        "familyName": "Frank",
+        "email": "f.frank@example.edu.au",
+        "orcid": "0000-0076-2363-4408"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "217",
+        "honorific": "Prof",
+        "givenName": "Richard",
+        "familyName": "Tesla",
+        "email": "r.tesla@example.edu.au",
+        "orcid": "0000-0031-2215-1234"
+      },
+      {
+        "ID": "218",
+        "honorific": "Dr",
+        "givenName": "Grace",
+        "familyName": "Dirac",
+        "email": "g.dirac@example.edu.au",
+        "orcid": "0000-0087-5928-2270"
+      }
+    ]
+  },
+  {
+    "ID": "9016",
+    "title": "Climate Impact Assessment in Coastal Cities #2",
+    "description": "Assessing the impacts of climate change on coastal cities to guide future planning and adaptive infrastructure strategies.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND17",
+        "name": "Australian Renewable Energy Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "219",
+      "honorific": "Dr",
+      "givenName": "Barbara",
+      "familyName": "Turing",
+      "email": "b.turing@example.edu.au",
+      "orcid": "0000-0019-7299-1332"
+    },
+    "contributor_supervisor": {
+      "ID": "220",
+      "honorific": "Dr",
+      "givenName": "Richard",
+      "familyName": "Fermi",
+      "email": "r.fermi@example.edu.au",
+      "orcid": "0000-0070-4560-3700"
+    },
+    "contributors": [
+      {
+        "ID": "221",
+        "honorific": "Prof",
+        "givenName": "Paul",
+        "familyName": "Frank",
+        "email": "p.frank@example.edu.au",
+        "orcid": "0000-0090-1096-8672"
+      },
+      {
+        "ID": "222",
+        "honorific": "Prof",
+        "givenName": "Lise",
+        "familyName": "Frank",
+        "email": "l.frank@example.edu.au",
+        "orcid": "0000-0046-8094-6298"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "223",
+        "honorific": "Prof",
+        "givenName": "Enrico",
+        "familyName": "Planck",
+        "email": "e.planck@example.edu.au",
+        "orcid": "0000-0097-9060-3245"
+      },
+      {
+        "ID": "224",
+        "honorific": "Prof",
+        "givenName": "Ada",
+        "familyName": "Fermi",
+        "email": "a.fermi@example.edu.au",
+        "orcid": "0000-0082-5570-1545"
+      }
+    ]
+  },
+  {
+    "ID": "9017",
+    "title": "Indigenous Knowledge Integration in Ecosystem Management #2",
+    "description": "Integrating Indigenous ecological knowledge with modern ecosystem management to enhance environmental stewardship.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND18",
+        "name": "National Environmental Science Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "225",
+      "honorific": "Prof",
+      "givenName": "Werner",
+      "familyName": "Dirac",
+      "email": "w.dirac@example.edu.au",
+      "orcid": "0000-0076-5178-5034"
+    },
+    "contributor_supervisor": {
+      "ID": "226",
+      "honorific": "Prof",
+      "givenName": "Gregor",
+      "familyName": "Heisenberg",
+      "email": "g.heisenberg@example.edu.au",
+      "orcid": "0000-0016-8500-7174"
+    },
+    "contributors": [
+      {
+        "ID": "227",
+        "honorific": "Prof",
+        "givenName": "James",
+        "familyName": "Fermi",
+        "email": "j.fermi@example.edu.au",
+        "orcid": "0000-0023-8034-6568"
+      },
+      {
+        "ID": "228",
+        "honorific": "Dr",
+        "givenName": "Jane",
+        "familyName": "Heisenberg",
+        "email": "j.heisenberg@example.edu.au",
+        "orcid": "0000-0042-7575-3347"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "229",
+        "honorific": "Dr",
+        "givenName": "Paul",
+        "familyName": "Tesla",
+        "email": "p.tesla@example.edu.au",
+        "orcid": "0000-0095-3977-6778"
+      },
+      {
+        "ID": "230",
+        "honorific": "Prof",
+        "givenName": "Ada",
+        "familyName": "Watson",
+        "email": "a.watson@example.edu.au",
+        "orcid": "0000-0097-1987-7121"
+      }
+    ]
+  },
+  {
+    "ID": "9018",
+    "title": "Virtual Reality in Cognitive Therapy for PTSD #2",
+    "description": "Applying virtual reality technologies in therapeutic settings to support treatment of PTSD and other cognitive conditions.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND19",
+        "name": "Australian Space Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "231",
+      "honorific": "Dr",
+      "givenName": "Stephen",
+      "familyName": "Galilei",
+      "email": "s.galilei@example.edu.au",
+      "orcid": "0000-0022-6777-2294"
+    },
+    "contributor_supervisor": {
+      "ID": "232",
+      "honorific": "Prof",
+      "givenName": "Paul",
+      "familyName": "Newton",
+      "email": "p.newton@example.edu.au",
+      "orcid": "0000-0040-6327-5250"
+    },
+    "contributors": [
+      {
+        "ID": "233",
+        "honorific": "Dr",
+        "givenName": "James",
+        "familyName": "Planck",
+        "email": "j.planck@example.edu.au",
+        "orcid": "0000-0030-5189-2354"
+      },
+      {
+        "ID": "234",
+        "honorific": "Dr",
+        "givenName": "Albert",
+        "familyName": "Heisenberg",
+        "email": "a.heisenberg@example.edu.au",
+        "orcid": "0000-0036-1134-9676"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "235",
+        "honorific": "Prof",
+        "givenName": "Rachel",
+        "familyName": "Hooke",
+        "email": "r.hooke@example.edu.au",
+        "orcid": "0000-0040-2691-3588"
+      },
+      {
+        "ID": "236",
+        "honorific": "Dr",
+        "givenName": "Isaac",
+        "familyName": "Bohr",
+        "email": "i.bohr@example.edu.au",
+        "orcid": "0000-0040-5565-6061"
+      }
+    ]
+  },
+  {
+    "ID": "9019",
+    "title": "Mathematical Modelling of Disease Outbreaks #2",
+    "description": "Utilizing mathematical modeling to understand and predict the dynamics of infectious disease outbreaks for better response planning.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND20",
+        "name": "Defence Science and Technology Group"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "237",
+      "honorific": "Dr",
+      "givenName": "Galileo",
+      "familyName": "Faraday",
+      "email": "g.faraday@example.edu.au",
+      "orcid": "0000-0015-3003-4883"
+    },
+    "contributor_supervisor": {
+      "ID": "238",
+      "honorific": "Prof",
+      "givenName": "Jane",
+      "familyName": "Rutherford",
+      "email": "j.rutherford@example.edu.au",
+      "orcid": "0000-0040-9163-4870"
+    },
+    "contributors": [
+      {
+        "ID": "239",
+        "honorific": "Dr",
+        "givenName": "Grace",
+        "familyName": "Heisenberg",
+        "email": "g.heisenberg@example.edu.au",
+        "orcid": "0000-0069-1004-4985"
+      },
+      {
+        "ID": "240",
+        "honorific": "Prof",
+        "givenName": "Katherine",
+        "familyName": "Lovelace",
+        "email": "k.lovelace@example.edu.au",
+        "orcid": "0000-0050-1842-5252"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "241",
+        "honorific": "Prof",
+        "givenName": "Jane",
+        "familyName": "Watson",
+        "email": "j.watson@example.edu.au",
+        "orcid": "0000-0077-1801-2325"
+      },
+      {
+        "ID": "242",
+        "honorific": "Prof",
+        "givenName": "Marie",
+        "familyName": "Fermi",
+        "email": "m.fermi@example.edu.au",
+        "orcid": "0000-0031-3061-9111"
+      }
+    ]
+  },
+  {
+    "ID": "9020",
+    "title": "Investigating Quantum Properties of Novel Materials #3",
+    "description": "This project explores the properties and behaviors of quantum materials to advance next-generation computing and electronics.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND21",
+        "name": "Australian Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "243",
+      "honorific": "Dr",
+      "givenName": "Johannes",
+      "familyName": "Heisenberg",
+      "email": "j.heisenberg@example.edu.au",
+      "orcid": "0000-0065-3776-6491"
+    },
+    "contributor_supervisor": {
+      "ID": "244",
+      "honorific": "Prof",
+      "givenName": "James",
+      "familyName": "Turing",
+      "email": "j.turing@example.edu.au",
+      "orcid": "0000-0043-2952-9687"
+    },
+    "contributors": [
+      {
+        "ID": "245",
+        "honorific": "Dr",
+        "givenName": "Rosalind",
+        "familyName": "Newton",
+        "email": "r.newton@example.edu.au",
+        "orcid": "0000-0014-7379-2488"
+      },
+      {
+        "ID": "246",
+        "honorific": "Dr",
+        "givenName": "Emmy",
+        "familyName": "Frank",
+        "email": "e.frank@example.edu.au",
+        "orcid": "0000-0080-5424-8492"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "247",
+        "honorific": "Prof",
+        "givenName": "Michael",
+        "familyName": "Curie",
+        "email": "m.curie@example.edu.au",
+        "orcid": "0000-0012-8302-5558"
+      },
+      {
+        "ID": "248",
+        "honorific": "Prof",
+        "givenName": "Dorothy",
+        "familyName": "Mayer",
+        "email": "d.mayer@example.edu.au",
+        "orcid": "0000-0033-5707-9421"
+      }
+    ]
+  },
+  {
+    "ID": "9021",
+    "title": "AI-Driven Diagnostics in Rural Health Systems #3",
+    "description": "Using artificial intelligence to enhance diagnostic tools in rural healthcare, improving access and accuracy for underserved communities.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND22",
+        "name": "National Health and Medical Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "249",
+      "honorific": "Dr",
+      "givenName": "James",
+      "familyName": "Rutherford",
+      "email": "j.rutherford@example.edu.au",
+      "orcid": "0000-0049-4851-4730"
+    },
+    "contributor_supervisor": {
+      "ID": "250",
+      "honorific": "Dr",
+      "givenName": "Richard",
+      "familyName": "Curie",
+      "email": "r.curie@example.edu.au",
+      "orcid": "0000-0058-9292-1949"
+    },
+    "contributors": [
+      {
+        "ID": "251",
+        "honorific": "Prof",
+        "givenName": "Dmitri",
+        "familyName": "Newton",
+        "email": "d.newton@example.edu.au",
+        "orcid": "0000-0089-1950-1644"
+      },
+      {
+        "ID": "252",
+        "honorific": "Prof",
+        "givenName": "Ada",
+        "familyName": "Heisenberg",
+        "email": "a.heisenberg@example.edu.au",
+        "orcid": "0000-0021-4724-4402"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "253",
+        "honorific": "Prof",
+        "givenName": "Dorothy",
+        "familyName": "Rutherford",
+        "email": "d.rutherford@example.edu.au",
+        "orcid": "0000-0061-4279-1169"
+      },
+      {
+        "ID": "254",
+        "honorific": "Prof",
+        "givenName": "Dorothy",
+        "familyName": "Watson",
+        "email": "d.watson@example.edu.au",
+        "orcid": "0000-0010-1940-4347"
+      }
+    ]
+  },
+  {
+    "ID": "9022",
+    "title": "Renewable Energy Storage Solutions in Urban Grids #3",
+    "description": "Developing advanced storage solutions for integrating renewable energy into urban power grids to promote sustainability and resilience.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND23",
+        "name": "CSIRO"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "255",
+      "honorific": "Dr",
+      "givenName": "Gregor",
+      "familyName": "Pascal",
+      "email": "g.pascal@example.edu.au",
+      "orcid": "0000-0043-6579-3172"
+    },
+    "contributor_supervisor": {
+      "ID": "256",
+      "honorific": "Dr",
+      "givenName": "Richard",
+      "familyName": "Franklin",
+      "email": "r.franklin@example.edu.au",
+      "orcid": "0000-0036-4932-5898"
+    },
+    "contributors": [
+      {
+        "ID": "257",
+        "honorific": "Prof",
+        "givenName": "Grace",
+        "familyName": "Einstein",
+        "email": "g.einstein@example.edu.au",
+        "orcid": "0000-0056-7214-8642"
+      },
+      {
+        "ID": "258",
+        "honorific": "Dr",
+        "givenName": "Dmitri",
+        "familyName": "Franklin",
+        "email": "d.franklin@example.edu.au",
+        "orcid": "0000-0026-7359-9936"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "259",
+        "honorific": "Prof",
+        "givenName": "Rosalind",
+        "familyName": "Newton",
+        "email": "r.newton@example.edu.au",
+        "orcid": "0000-0092-3759-2709"
+      },
+      {
+        "ID": "260",
+        "honorific": "Prof",
+        "givenName": "Albert",
+        "familyName": "Heisenberg",
+        "email": "a.heisenberg@example.edu.au",
+        "orcid": "0000-0084-2639-5146"
+      }
+    ]
+  },
+  {
+    "ID": "9023",
+    "title": "Genetic Adaptation in Marine Microorganisms #3",
+    "description": "Investigating the genetic mechanisms that enable marine microorganisms to adapt to environmental changes, supporting marine biodiversity.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND24",
+        "name": "Department of Industry, Science and Resources"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "261",
+      "honorific": "Prof",
+      "givenName": "James",
+      "familyName": "Franklin",
+      "email": "j.franklin@example.edu.au",
+      "orcid": "0000-0055-2004-3370"
+    },
+    "contributor_supervisor": {
+      "ID": "262",
+      "honorific": "Prof",
+      "givenName": "Isaac",
+      "familyName": "Pascal",
+      "email": "i.pascal@example.edu.au",
+      "orcid": "0000-0049-1825-4775"
+    },
+    "contributors": [
+      {
+        "ID": "263",
+        "honorific": "Dr",
+        "givenName": "Dmitri",
+        "familyName": "Pascal",
+        "email": "d.pascal@example.edu.au",
+        "orcid": "0000-0026-7834-3328"
+      },
+      {
+        "ID": "264",
+        "honorific": "Dr",
+        "givenName": "Max",
+        "familyName": "Mayer",
+        "email": "m.mayer@example.edu.au",
+        "orcid": "0000-0072-2911-6273"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "265",
+        "honorific": "Dr",
+        "givenName": "Rosalind",
+        "familyName": "Tesla",
+        "email": "r.tesla@example.edu.au",
+        "orcid": "0000-0085-8251-3018"
+      },
+      {
+        "ID": "266",
+        "honorific": "Prof",
+        "givenName": "Emmy",
+        "familyName": "Tesla",
+        "email": "e.tesla@example.edu.au",
+        "orcid": "0000-0062-7246-8588"
+      }
+    ]
+  },
+  {
+    "ID": "9024",
+    "title": "Next-gen Robotics for Sustainable Agriculture #3",
+    "description": "Designing robotic systems tailored for use in sustainable agriculture, with a focus on automation and resource efficiency.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND25",
+        "name": "Medical Research Future Fund"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "267",
+      "honorific": "Dr",
+      "givenName": "Barbara",
+      "familyName": "Dirac",
+      "email": "b.dirac@example.edu.au",
+      "orcid": "0000-0050-6771-4409"
+    },
+    "contributor_supervisor": {
+      "ID": "268",
+      "honorific": "Prof",
+      "givenName": "Barbara",
+      "familyName": "Einstein",
+      "email": "b.einstein@example.edu.au",
+      "orcid": "0000-0042-4623-6348"
+    },
+    "contributors": [
+      {
+        "ID": "269",
+        "honorific": "Prof",
+        "givenName": "Stephen",
+        "familyName": "Franklin",
+        "email": "s.franklin@example.edu.au",
+        "orcid": "0000-0020-4090-4242"
+      },
+      {
+        "ID": "270",
+        "honorific": "Dr",
+        "givenName": "Katherine",
+        "familyName": "Tesla",
+        "email": "k.tesla@example.edu.au",
+        "orcid": "0000-0027-6491-5589"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "271",
+        "honorific": "Prof",
+        "givenName": "Rosalind",
+        "familyName": "Heisenberg",
+        "email": "r.heisenberg@example.edu.au",
+        "orcid": "0000-0089-7973-3719"
+      },
+      {
+        "ID": "272",
+        "honorific": "Dr",
+        "givenName": "Albert",
+        "familyName": "Bohr",
+        "email": "a.bohr@example.edu.au",
+        "orcid": "0000-0048-4650-3698"
+      }
+    ]
+  },
+  {
+    "ID": "9025",
+    "title": "Cybersecurity Protocols for Smart Devices #3",
+    "description": "Creating secure communication protocols and defenses for smart devices to mitigate the growing risk of cyberattacks.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND26",
+        "name": "Cooperative Research Centres Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "273",
+      "honorific": "Dr",
+      "givenName": "Blaise",
+      "familyName": "Planck",
+      "email": "b.planck@example.edu.au",
+      "orcid": "0000-0029-8472-6364"
+    },
+    "contributor_supervisor": {
+      "ID": "274",
+      "honorific": "Dr",
+      "givenName": "Rachel",
+      "familyName": "Franklin",
+      "email": "r.franklin@example.edu.au",
+      "orcid": "0000-0079-9331-2088"
+    },
+    "contributors": [
+      {
+        "ID": "275",
+        "honorific": "Prof",
+        "givenName": "Galileo",
+        "familyName": "Lovelace",
+        "email": "g.lovelace@example.edu.au",
+        "orcid": "0000-0083-1366-4511"
+      },
+      {
+        "ID": "276",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Heisenberg",
+        "email": "b.heisenberg@example.edu.au",
+        "orcid": "0000-0035-9348-1474"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "277",
+        "honorific": "Prof",
+        "givenName": "Gregor",
+        "familyName": "Frank",
+        "email": "g.frank@example.edu.au",
+        "orcid": "0000-0035-5817-9279"
+      },
+      {
+        "ID": "278",
+        "honorific": "Prof",
+        "givenName": "Lise",
+        "familyName": "Bohr",
+        "email": "l.bohr@example.edu.au",
+        "orcid": "0000-0050-3609-1274"
+      }
+    ]
+  },
+  {
+    "ID": "9026",
+    "title": "Climate Impact Assessment in Coastal Cities #3",
+    "description": "Assessing the impacts of climate change on coastal cities to guide future planning and adaptive infrastructure strategies.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND27",
+        "name": "Australian Renewable Energy Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "279",
+      "honorific": "Dr",
+      "givenName": "Rosalind",
+      "familyName": "Mayer",
+      "email": "r.mayer@example.edu.au",
+      "orcid": "0000-0041-9552-1196"
+    },
+    "contributor_supervisor": {
+      "ID": "280",
+      "honorific": "Prof",
+      "givenName": "Richard",
+      "familyName": "Einstein",
+      "email": "r.einstein@example.edu.au",
+      "orcid": "0000-0040-2600-4151"
+    },
+    "contributors": [
+      {
+        "ID": "281",
+        "honorific": "Prof",
+        "givenName": "Frank",
+        "familyName": "Curie",
+        "email": "f.curie@example.edu.au",
+        "orcid": "0000-0017-1662-5551"
+      },
+      {
+        "ID": "282",
+        "honorific": "Prof",
+        "givenName": "Marie",
+        "familyName": "Tesla",
+        "email": "m.tesla@example.edu.au",
+        "orcid": "0000-0059-8998-2971"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "283",
+        "honorific": "Dr",
+        "givenName": "Galileo",
+        "familyName": "Faraday",
+        "email": "g.faraday@example.edu.au",
+        "orcid": "0000-0052-1864-6012"
+      },
+      {
+        "ID": "284",
+        "honorific": "Prof",
+        "givenName": "Carl",
+        "familyName": "Rutherford",
+        "email": "c.rutherford@example.edu.au",
+        "orcid": "0000-0089-2144-2289"
+      }
+    ]
+  },
+  {
+    "ID": "9027",
+    "title": "Indigenous Knowledge Integration in Ecosystem Management #3",
+    "description": "Integrating Indigenous ecological knowledge with modern ecosystem management to enhance environmental stewardship.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND28",
+        "name": "National Environmental Science Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "285",
+      "honorific": "Dr",
+      "givenName": "Dorothy",
+      "familyName": "Frank",
+      "email": "d.frank@example.edu.au",
+      "orcid": "0000-0017-2675-2367"
+    },
+    "contributor_supervisor": {
+      "ID": "286",
+      "honorific": "Prof",
+      "givenName": "Carl",
+      "familyName": "Newton",
+      "email": "c.newton@example.edu.au",
+      "orcid": "0000-0022-1607-2047"
+    },
+    "contributors": [
+      {
+        "ID": "287",
+        "honorific": "Dr",
+        "givenName": "Isaac",
+        "familyName": "Newton",
+        "email": "i.newton@example.edu.au",
+        "orcid": "0000-0018-2597-8152"
+      },
+      {
+        "ID": "288",
+        "honorific": "Prof",
+        "givenName": "Michael",
+        "familyName": "Frank",
+        "email": "m.frank@example.edu.au",
+        "orcid": "0000-0042-9488-4077"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "289",
+        "honorific": "Dr",
+        "givenName": "Neil",
+        "familyName": "Mayer",
+        "email": "n.mayer@example.edu.au",
+        "orcid": "0000-0082-2412-6383"
+      },
+      {
+        "ID": "290",
+        "honorific": "Dr",
+        "givenName": "Lise",
+        "familyName": "Frank",
+        "email": "l.frank@example.edu.au",
+        "orcid": "0000-0097-8388-6432"
+      }
+    ]
+  },
+  {
+    "ID": "9028",
+    "title": "Virtual Reality in Cognitive Therapy for PTSD #3",
+    "description": "Applying virtual reality technologies in therapeutic settings to support treatment of PTSD and other cognitive conditions.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND29",
+        "name": "Australian Space Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "291",
+      "honorific": "Dr",
+      "givenName": "Barbara",
+      "familyName": "Curie",
+      "email": "b.curie@example.edu.au",
+      "orcid": "0000-0084-7579-2811"
+    },
+    "contributor_supervisor": {
+      "ID": "292",
+      "honorific": "Dr",
+      "givenName": "Charles",
+      "familyName": "Hooke",
+      "email": "c.hooke@example.edu.au",
+      "orcid": "0000-0069-6574-1708"
+    },
+    "contributors": [
+      {
+        "ID": "293",
+        "honorific": "Dr",
+        "givenName": "Charles",
+        "familyName": "Franklin",
+        "email": "c.franklin@example.edu.au",
+        "orcid": "0000-0042-3106-4395"
+      },
+      {
+        "ID": "294",
+        "honorific": "Prof",
+        "givenName": "Charles",
+        "familyName": "Einstein",
+        "email": "c.einstein@example.edu.au",
+        "orcid": "0000-0034-6068-5718"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "295",
+        "honorific": "Dr",
+        "givenName": "Isaac",
+        "familyName": "Bohr",
+        "email": "i.bohr@example.edu.au",
+        "orcid": "0000-0076-6571-1365"
+      },
+      {
+        "ID": "296",
+        "honorific": "Prof",
+        "givenName": "Emmy",
+        "familyName": "Turing",
+        "email": "e.turing@example.edu.au",
+        "orcid": "0000-0049-5884-7845"
+      }
+    ]
+  },
+  {
+    "ID": "9029",
+    "title": "Mathematical Modelling of Disease Outbreaks #3",
+    "description": "Utilizing mathematical modeling to understand and predict the dynamics of infectious disease outbreaks for better response planning.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND30",
+        "name": "Defence Science and Technology Group"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "297",
+      "honorific": "Prof",
+      "givenName": "Blaise",
+      "familyName": "Frank",
+      "email": "b.frank@example.edu.au",
+      "orcid": "0000-0041-2746-6826"
+    },
+    "contributor_supervisor": {
+      "ID": "298",
+      "honorific": "Dr",
+      "givenName": "Enrico",
+      "familyName": "Faraday",
+      "email": "e.faraday@example.edu.au",
+      "orcid": "0000-0057-7797-3118"
+    },
+    "contributors": [
+      {
+        "ID": "299",
+        "honorific": "Prof",
+        "givenName": "Carl",
+        "familyName": "Watson",
+        "email": "c.watson@example.edu.au",
+        "orcid": "0000-0074-8866-3586"
+      },
+      {
+        "ID": "300",
+        "honorific": "Prof",
+        "givenName": "Florence",
+        "familyName": "Rutherford",
+        "email": "f.rutherford@example.edu.au",
+        "orcid": "0000-0014-2699-1008"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "301",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Watson",
+        "email": "b.watson@example.edu.au",
+        "orcid": "0000-0025-7818-7088"
+      },
+      {
+        "ID": "302",
+        "honorific": "Dr",
+        "givenName": "Marie",
+        "familyName": "Franklin",
+        "email": "m.franklin@example.edu.au",
+        "orcid": "0000-0012-6697-8411"
+      }
+    ]
+  },
+  {
+    "ID": "9030",
+    "title": "Investigating Quantum Properties of Novel Materials #4",
+    "description": "This project explores the properties and behaviors of quantum materials to advance next-generation computing and electronics.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND31",
+        "name": "Australian Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "303",
+      "honorific": "Prof",
+      "givenName": "Johannes",
+      "familyName": "Watson",
+      "email": "j.watson@example.edu.au",
+      "orcid": "0000-0050-6243-3648"
+    },
+    "contributor_supervisor": {
+      "ID": "304",
+      "honorific": "Prof",
+      "givenName": "Isaac",
+      "familyName": "Faraday",
+      "email": "i.faraday@example.edu.au",
+      "orcid": "0000-0060-8480-3896"
+    },
+    "contributors": [
+      {
+        "ID": "305",
+        "honorific": "Dr",
+        "givenName": "Grace",
+        "familyName": "Lovelace",
+        "email": "g.lovelace@example.edu.au",
+        "orcid": "0000-0053-9469-9290"
+      },
+      {
+        "ID": "306",
+        "honorific": "Prof",
+        "givenName": "Rosalind",
+        "familyName": "Bohr",
+        "email": "r.bohr@example.edu.au",
+        "orcid": "0000-0090-7907-7390"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "307",
+        "honorific": "Prof",
+        "givenName": "Emmy",
+        "familyName": "Watson",
+        "email": "e.watson@example.edu.au",
+        "orcid": "0000-0029-5307-3810"
+      },
+      {
+        "ID": "308",
+        "honorific": "Prof",
+        "givenName": "Lise",
+        "familyName": "Mayer",
+        "email": "l.mayer@example.edu.au",
+        "orcid": "0000-0070-9124-4937"
+      }
+    ]
+  },
+  {
+    "ID": "9031",
+    "title": "AI-Driven Diagnostics in Rural Health Systems #4",
+    "description": "Using artificial intelligence to enhance diagnostic tools in rural healthcare, improving access and accuracy for underserved communities.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND32",
+        "name": "National Health and Medical Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "309",
+      "honorific": "Prof",
+      "givenName": "Michael",
+      "familyName": "Hooke",
+      "email": "m.hooke@example.edu.au",
+      "orcid": "0000-0046-8461-9360"
+    },
+    "contributor_supervisor": {
+      "ID": "310",
+      "honorific": "Dr",
+      "givenName": "Barbara",
+      "familyName": "Pascal",
+      "email": "b.pascal@example.edu.au",
+      "orcid": "0000-0029-9915-3837"
+    },
+    "contributors": [
+      {
+        "ID": "311",
+        "honorific": "Dr",
+        "givenName": "Stephen",
+        "familyName": "Galilei",
+        "email": "s.galilei@example.edu.au",
+        "orcid": "0000-0068-1162-1546"
+      },
+      {
+        "ID": "312",
+        "honorific": "Prof",
+        "givenName": "Rosalind",
+        "familyName": "Dirac",
+        "email": "r.dirac@example.edu.au",
+        "orcid": "0000-0079-8896-9731"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "313",
+        "honorific": "Dr",
+        "givenName": "Rosalind",
+        "familyName": "Franklin",
+        "email": "r.franklin@example.edu.au",
+        "orcid": "0000-0064-2793-9455"
+      },
+      {
+        "ID": "314",
+        "honorific": "Dr",
+        "givenName": "James",
+        "familyName": "Heisenberg",
+        "email": "j.heisenberg@example.edu.au",
+        "orcid": "0000-0011-3097-5683"
+      }
+    ]
+  },
+  {
+    "ID": "9032",
+    "title": "Renewable Energy Storage Solutions in Urban Grids #4",
+    "description": "Developing advanced storage solutions for integrating renewable energy into urban power grids to promote sustainability and resilience.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND33",
+        "name": "CSIRO"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "315",
+      "honorific": "Prof",
+      "givenName": "Marie",
+      "familyName": "Curie",
+      "email": "m.curie@example.edu.au",
+      "orcid": "0000-0056-3475-9595"
+    },
+    "contributor_supervisor": {
+      "ID": "316",
+      "honorific": "Dr",
+      "givenName": "Michael",
+      "familyName": "Tesla",
+      "email": "m.tesla@example.edu.au",
+      "orcid": "0000-0012-9664-3575"
+    },
+    "contributors": [
+      {
+        "ID": "317",
+        "honorific": "Prof",
+        "givenName": "Jane",
+        "familyName": "Bohr",
+        "email": "j.bohr@example.edu.au",
+        "orcid": "0000-0085-5690-9203"
+      },
+      {
+        "ID": "318",
+        "honorific": "Dr",
+        "givenName": "Marie",
+        "familyName": "Bohr",
+        "email": "m.bohr@example.edu.au",
+        "orcid": "0000-0035-3429-9185"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "319",
+        "honorific": "Prof",
+        "givenName": "Galileo",
+        "familyName": "Turing",
+        "email": "g.turing@example.edu.au",
+        "orcid": "0000-0094-6752-5132"
+      },
+      {
+        "ID": "320",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Franklin",
+        "email": "b.franklin@example.edu.au",
+        "orcid": "0000-0068-9921-7061"
+      }
+    ]
+  },
+  {
+    "ID": "9033",
+    "title": "Genetic Adaptation in Marine Microorganisms #4",
+    "description": "Investigating the genetic mechanisms that enable marine microorganisms to adapt to environmental changes, supporting marine biodiversity.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND34",
+        "name": "Department of Industry, Science and Resources"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "321",
+      "honorific": "Prof",
+      "givenName": "Dmitri",
+      "familyName": "Franklin",
+      "email": "d.franklin@example.edu.au",
+      "orcid": "0000-0043-5192-7073"
+    },
+    "contributor_supervisor": {
+      "ID": "322",
+      "honorific": "Dr",
+      "givenName": "Galileo",
+      "familyName": "Hooke",
+      "email": "g.hooke@example.edu.au",
+      "orcid": "0000-0069-8928-7146"
+    },
+    "contributors": [
+      {
+        "ID": "323",
+        "honorific": "Dr",
+        "givenName": "Jane",
+        "familyName": "Planck",
+        "email": "j.planck@example.edu.au",
+        "orcid": "0000-0094-1586-5214"
+      },
+      {
+        "ID": "324",
+        "honorific": "Dr",
+        "givenName": "Lise",
+        "familyName": "Lovelace",
+        "email": "l.lovelace@example.edu.au",
+        "orcid": "0000-0062-4371-2693"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "325",
+        "honorific": "Prof",
+        "givenName": "Paul",
+        "familyName": "Einstein",
+        "email": "p.einstein@example.edu.au",
+        "orcid": "0000-0046-8514-6537"
+      },
+      {
+        "ID": "326",
+        "honorific": "Dr",
+        "givenName": "Richard",
+        "familyName": "Fermi",
+        "email": "r.fermi@example.edu.au",
+        "orcid": "0000-0091-7540-8456"
+      }
+    ]
+  },
+  {
+    "ID": "9034",
+    "title": "Next-gen Robotics for Sustainable Agriculture #4",
+    "description": "Designing robotic systems tailored for use in sustainable agriculture, with a focus on automation and resource efficiency.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND35",
+        "name": "Medical Research Future Fund"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "327",
+      "honorific": "Prof",
+      "givenName": "Neil",
+      "familyName": "Faraday",
+      "email": "n.faraday@example.edu.au",
+      "orcid": "0000-0051-1780-7644"
+    },
+    "contributor_supervisor": {
+      "ID": "328",
+      "honorific": "Dr",
+      "givenName": "Neil",
+      "familyName": "Planck",
+      "email": "n.planck@example.edu.au",
+      "orcid": "0000-0079-7382-4595"
+    },
+    "contributors": [
+      {
+        "ID": "329",
+        "honorific": "Prof",
+        "givenName": "Florence",
+        "familyName": "Lovelace",
+        "email": "f.lovelace@example.edu.au",
+        "orcid": "0000-0021-9071-1982"
+      },
+      {
+        "ID": "330",
+        "honorific": "Dr",
+        "givenName": "Charles",
+        "familyName": "Frank",
+        "email": "c.frank@example.edu.au",
+        "orcid": "0000-0061-1343-3373"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "331",
+        "honorific": "Prof",
+        "givenName": "Grace",
+        "familyName": "Fermi",
+        "email": "g.fermi@example.edu.au",
+        "orcid": "0000-0065-6794-9954"
+      },
+      {
+        "ID": "332",
+        "honorific": "Prof",
+        "givenName": "Grace",
+        "familyName": "Bohr",
+        "email": "g.bohr@example.edu.au",
+        "orcid": "0000-0055-1466-2704"
+      }
+    ]
+  },
+  {
+    "ID": "9035",
+    "title": "Cybersecurity Protocols for Smart Devices #4",
+    "description": "Creating secure communication protocols and defenses for smart devices to mitigate the growing risk of cyberattacks.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND36",
+        "name": "Cooperative Research Centres Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "333",
+      "honorific": "Dr",
+      "givenName": "Ada",
+      "familyName": "Franklin",
+      "email": "a.franklin@example.edu.au",
+      "orcid": "0000-0046-5586-6065"
+    },
+    "contributor_supervisor": {
+      "ID": "334",
+      "honorific": "Dr",
+      "givenName": "Lise",
+      "familyName": "Planck",
+      "email": "l.planck@example.edu.au",
+      "orcid": "0000-0053-2114-7782"
+    },
+    "contributors": [
+      {
+        "ID": "335",
+        "honorific": "Prof",
+        "givenName": "Emmy",
+        "familyName": "Planck",
+        "email": "e.planck@example.edu.au",
+        "orcid": "0000-0084-8078-3340"
+      },
+      {
+        "ID": "336",
+        "honorific": "Prof",
+        "givenName": "Grace",
+        "familyName": "Heisenberg",
+        "email": "g.heisenberg@example.edu.au",
+        "orcid": "0000-0077-6098-2834"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "337",
+        "honorific": "Dr",
+        "givenName": "Florence",
+        "familyName": "Franklin",
+        "email": "f.franklin@example.edu.au",
+        "orcid": "0000-0065-4564-8843"
+      },
+      {
+        "ID": "338",
+        "honorific": "Prof",
+        "givenName": "Richard",
+        "familyName": "Bohr",
+        "email": "r.bohr@example.edu.au",
+        "orcid": "0000-0035-3905-9483"
+      }
+    ]
+  },
+  {
+    "ID": "9036",
+    "title": "Climate Impact Assessment in Coastal Cities #4",
+    "description": "Assessing the impacts of climate change on coastal cities to guide future planning and adaptive infrastructure strategies.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND37",
+        "name": "Australian Renewable Energy Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "339",
+      "honorific": "Dr",
+      "givenName": "Lise",
+      "familyName": "Curie",
+      "email": "l.curie@example.edu.au",
+      "orcid": "0000-0065-9676-5214"
+    },
+    "contributor_supervisor": {
+      "ID": "340",
+      "honorific": "Prof",
+      "givenName": "Grace",
+      "familyName": "Frank",
+      "email": "g.frank@example.edu.au",
+      "orcid": "0000-0071-6400-5810"
+    },
+    "contributors": [
+      {
+        "ID": "341",
+        "honorific": "Dr",
+        "givenName": "Carl",
+        "familyName": "Curie",
+        "email": "c.curie@example.edu.au",
+        "orcid": "0000-0095-1163-5395"
+      },
+      {
+        "ID": "342",
+        "honorific": "Prof",
+        "givenName": "Barbara",
+        "familyName": "Newton",
+        "email": "b.newton@example.edu.au",
+        "orcid": "0000-0054-6872-3729"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "343",
+        "honorific": "Prof",
+        "givenName": "Alan",
+        "familyName": "Tesla",
+        "email": "a.tesla@example.edu.au",
+        "orcid": "0000-0039-3971-9441"
+      },
+      {
+        "ID": "344",
+        "honorific": "Prof",
+        "givenName": "Neil",
+        "familyName": "Faraday",
+        "email": "n.faraday@example.edu.au",
+        "orcid": "0000-0086-5965-7281"
+      }
+    ]
+  },
+  {
+    "ID": "9037",
+    "title": "Indigenous Knowledge Integration in Ecosystem Management #4",
+    "description": "Integrating Indigenous ecological knowledge with modern ecosystem management to enhance environmental stewardship.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND38",
+        "name": "National Environmental Science Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "345",
+      "honorific": "Dr",
+      "givenName": "Albert",
+      "familyName": "Turing",
+      "email": "a.turing@example.edu.au",
+      "orcid": "0000-0039-3148-5844"
+    },
+    "contributor_supervisor": {
+      "ID": "346",
+      "honorific": "Prof",
+      "givenName": "Michael",
+      "familyName": "Pascal",
+      "email": "m.pascal@example.edu.au",
+      "orcid": "0000-0057-6916-5118"
+    },
+    "contributors": [
+      {
+        "ID": "347",
+        "honorific": "Dr",
+        "givenName": "Werner",
+        "familyName": "Rutherford",
+        "email": "w.rutherford@example.edu.au",
+        "orcid": "0000-0015-1591-2350"
+      },
+      {
+        "ID": "348",
+        "honorific": "Prof",
+        "givenName": "Johannes",
+        "familyName": "Pascal",
+        "email": "j.pascal@example.edu.au",
+        "orcid": "0000-0035-9072-8557"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "349",
+        "honorific": "Dr",
+        "givenName": "Dorothy",
+        "familyName": "Heisenberg",
+        "email": "d.heisenberg@example.edu.au",
+        "orcid": "0000-0095-2717-2999"
+      },
+      {
+        "ID": "350",
+        "honorific": "Prof",
+        "givenName": "Katherine",
+        "familyName": "Watson",
+        "email": "k.watson@example.edu.au",
+        "orcid": "0000-0012-9122-2369"
+      }
+    ]
+  },
+  {
+    "ID": "9038",
+    "title": "Virtual Reality in Cognitive Therapy for PTSD #4",
+    "description": "Applying virtual reality technologies in therapeutic settings to support treatment of PTSD and other cognitive conditions.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND39",
+        "name": "Australian Space Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "351",
+      "honorific": "Dr",
+      "givenName": "Rosalind",
+      "familyName": "Fermi",
+      "email": "r.fermi@example.edu.au",
+      "orcid": "0000-0035-7234-6797"
+    },
+    "contributor_supervisor": {
+      "ID": "352",
+      "honorific": "Prof",
+      "givenName": "Michael",
+      "familyName": "Tesla",
+      "email": "m.tesla@example.edu.au",
+      "orcid": "0000-0066-3184-6929"
+    },
+    "contributors": [
+      {
+        "ID": "353",
+        "honorific": "Dr",
+        "givenName": "Katherine",
+        "familyName": "Frank",
+        "email": "k.frank@example.edu.au",
+        "orcid": "0000-0042-7155-5913"
+      },
+      {
+        "ID": "354",
+        "honorific": "Dr",
+        "givenName": "Gregor",
+        "familyName": "Planck",
+        "email": "g.planck@example.edu.au",
+        "orcid": "0000-0071-8549-1520"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "355",
+        "honorific": "Prof",
+        "givenName": "Dmitri",
+        "familyName": "Heisenberg",
+        "email": "d.heisenberg@example.edu.au",
+        "orcid": "0000-0031-6473-2010"
+      },
+      {
+        "ID": "356",
+        "honorific": "Prof",
+        "givenName": "Jane",
+        "familyName": "Turing",
+        "email": "j.turing@example.edu.au",
+        "orcid": "0000-0076-3935-7356"
+      }
+    ]
+  },
+  {
+    "ID": "9039",
+    "title": "Mathematical Modelling of Disease Outbreaks #4",
+    "description": "Utilizing mathematical modeling to understand and predict the dynamics of infectious disease outbreaks for better response planning.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND40",
+        "name": "Defence Science and Technology Group"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "357",
+      "honorific": "Prof",
+      "givenName": "Jane",
+      "familyName": "Hooke",
+      "email": "j.hooke@example.edu.au",
+      "orcid": "0000-0076-5371-5189"
+    },
+    "contributor_supervisor": {
+      "ID": "358",
+      "honorific": "Dr",
+      "givenName": "Rosalind",
+      "familyName": "Lovelace",
+      "email": "r.lovelace@example.edu.au",
+      "orcid": "0000-0096-6828-4080"
+    },
+    "contributors": [
+      {
+        "ID": "359",
+        "honorific": "Prof",
+        "givenName": "Emmy",
+        "familyName": "Newton",
+        "email": "e.newton@example.edu.au",
+        "orcid": "0000-0062-7594-3088"
+      },
+      {
+        "ID": "360",
+        "honorific": "Prof",
+        "givenName": "Jane",
+        "familyName": "Pascal",
+        "email": "j.pascal@example.edu.au",
+        "orcid": "0000-0042-4426-3382"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "361",
+        "honorific": "Prof",
+        "givenName": "Dorothy",
+        "familyName": "Faraday",
+        "email": "d.faraday@example.edu.au",
+        "orcid": "0000-0049-7291-2747"
+      },
+      {
+        "ID": "362",
+        "honorific": "Prof",
+        "givenName": "Johannes",
+        "familyName": "Bohr",
+        "email": "j.bohr@example.edu.au",
+        "orcid": "0000-0018-2500-7728"
+      }
+    ]
+  },
+  {
+    "ID": "9040",
+    "title": "Investigating Quantum Properties of Novel Materials #5",
+    "description": "This project explores the properties and behaviors of quantum materials to advance next-generation computing and electronics.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND41",
+        "name": "Australian Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "363",
+      "honorific": "Dr",
+      "givenName": "Werner",
+      "familyName": "Fermi",
+      "email": "w.fermi@example.edu.au",
+      "orcid": "0000-0010-8891-3453"
+    },
+    "contributor_supervisor": {
+      "ID": "364",
+      "honorific": "Dr",
+      "givenName": "Marie",
+      "familyName": "Heisenberg",
+      "email": "m.heisenberg@example.edu.au",
+      "orcid": "0000-0098-5068-2862"
+    },
+    "contributors": [
+      {
+        "ID": "365",
+        "honorific": "Prof",
+        "givenName": "Lise",
+        "familyName": "Frank",
+        "email": "l.frank@example.edu.au",
+        "orcid": "0000-0055-4133-3423"
+      },
+      {
+        "ID": "366",
+        "honorific": "Prof",
+        "givenName": "Jane",
+        "familyName": "Curie",
+        "email": "j.curie@example.edu.au",
+        "orcid": "0000-0075-6998-1392"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "367",
+        "honorific": "Dr",
+        "givenName": "Ada",
+        "familyName": "Franklin",
+        "email": "a.franklin@example.edu.au",
+        "orcid": "0000-0074-2425-2710"
+      },
+      {
+        "ID": "368",
+        "honorific": "Dr",
+        "givenName": "Enrico",
+        "familyName": "Galilei",
+        "email": "e.galilei@example.edu.au",
+        "orcid": "0000-0061-3828-2366"
+      }
+    ]
+  },
+  {
+    "ID": "9041",
+    "title": "AI-Driven Diagnostics in Rural Health Systems #5",
+    "description": "Using artificial intelligence to enhance diagnostic tools in rural healthcare, improving access and accuracy for underserved communities.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND42",
+        "name": "National Health and Medical Research Council"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "369",
+      "honorific": "Prof",
+      "givenName": "Michael",
+      "familyName": "Franklin",
+      "email": "m.franklin@example.edu.au",
+      "orcid": "0000-0018-2242-9992"
+    },
+    "contributor_supervisor": {
+      "ID": "370",
+      "honorific": "Dr",
+      "givenName": "Barbara",
+      "familyName": "Lovelace",
+      "email": "b.lovelace@example.edu.au",
+      "orcid": "0000-0021-3590-3607"
+    },
+    "contributors": [
+      {
+        "ID": "371",
+        "honorific": "Dr",
+        "givenName": "Emmy",
+        "familyName": "Galilei",
+        "email": "e.galilei@example.edu.au",
+        "orcid": "0000-0044-5616-3524"
+      },
+      {
+        "ID": "372",
+        "honorific": "Dr",
+        "givenName": "Dorothy",
+        "familyName": "Rutherford",
+        "email": "d.rutherford@example.edu.au",
+        "orcid": "0000-0060-9955-7205"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "373",
+        "honorific": "Dr",
+        "givenName": "Grace",
+        "familyName": "Bohr",
+        "email": "g.bohr@example.edu.au",
+        "orcid": "0000-0051-6395-7302"
+      },
+      {
+        "ID": "374",
+        "honorific": "Prof",
+        "givenName": "Isaac",
+        "familyName": "Heisenberg",
+        "email": "i.heisenberg@example.edu.au",
+        "orcid": "0000-0094-2996-9862"
+      }
+    ]
+  },
+  {
+    "ID": "9042",
+    "title": "Renewable Energy Storage Solutions in Urban Grids #5",
+    "description": "Developing advanced storage solutions for integrating renewable energy into urban power grids to promote sustainability and resilience.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND43",
+        "name": "CSIRO"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "375",
+      "honorific": "Dr",
+      "givenName": "Paul",
+      "familyName": "Mayer",
+      "email": "p.mayer@example.edu.au",
+      "orcid": "0000-0030-2611-6844"
+    },
+    "contributor_supervisor": {
+      "ID": "376",
+      "honorific": "Dr",
+      "givenName": "Grace",
+      "familyName": "Einstein",
+      "email": "g.einstein@example.edu.au",
+      "orcid": "0000-0057-8441-9202"
+    },
+    "contributors": [
+      {
+        "ID": "377",
+        "honorific": "Prof",
+        "givenName": "Florence",
+        "familyName": "Heisenberg",
+        "email": "f.heisenberg@example.edu.au",
+        "orcid": "0000-0050-7420-5417"
+      },
+      {
+        "ID": "378",
+        "honorific": "Prof",
+        "givenName": "Enrico",
+        "familyName": "Newton",
+        "email": "e.newton@example.edu.au",
+        "orcid": "0000-0065-1951-8358"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "379",
+        "honorific": "Prof",
+        "givenName": "Albert",
+        "familyName": "Fermi",
+        "email": "a.fermi@example.edu.au",
+        "orcid": "0000-0017-5587-6724"
+      },
+      {
+        "ID": "380",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Franklin",
+        "email": "b.franklin@example.edu.au",
+        "orcid": "0000-0047-5469-4803"
+      }
+    ]
+  },
+  {
+    "ID": "9043",
+    "title": "Genetic Adaptation in Marine Microorganisms #5",
+    "description": "Investigating the genetic mechanisms that enable marine microorganisms to adapt to environmental changes, supporting marine biodiversity.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND44",
+        "name": "Department of Industry, Science and Resources"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "381",
+      "honorific": "Dr",
+      "givenName": "Paul",
+      "familyName": "Einstein",
+      "email": "p.einstein@example.edu.au",
+      "orcid": "0000-0062-2775-6602"
+    },
+    "contributor_supervisor": {
+      "ID": "382",
+      "honorific": "Prof",
+      "givenName": "James",
+      "familyName": "Franklin",
+      "email": "j.franklin@example.edu.au",
+      "orcid": "0000-0088-5836-8397"
+    },
+    "contributors": [
+      {
+        "ID": "383",
+        "honorific": "Prof",
+        "givenName": "Marie",
+        "familyName": "Einstein",
+        "email": "m.einstein@example.edu.au",
+        "orcid": "0000-0013-1253-2518"
+      },
+      {
+        "ID": "384",
+        "honorific": "Dr",
+        "givenName": "Ada",
+        "familyName": "Newton",
+        "email": "a.newton@example.edu.au",
+        "orcid": "0000-0071-5628-8892"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "385",
+        "honorific": "Dr",
+        "givenName": "Jane",
+        "familyName": "Frank",
+        "email": "j.frank@example.edu.au",
+        "orcid": "0000-0013-6280-3872"
+      },
+      {
+        "ID": "386",
+        "honorific": "Dr",
+        "givenName": "Enrico",
+        "familyName": "Planck",
+        "email": "e.planck@example.edu.au",
+        "orcid": "0000-0090-9148-3304"
+      }
+    ]
+  },
+  {
+    "ID": "9044",
+    "title": "Next-gen Robotics for Sustainable Agriculture #5",
+    "description": "Designing robotic systems tailored for use in sustainable agriculture, with a focus on automation and resource efficiency.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND45",
+        "name": "Medical Research Future Fund"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "387",
+      "honorific": "Dr",
+      "givenName": "Florence",
+      "familyName": "Einstein",
+      "email": "f.einstein@example.edu.au",
+      "orcid": "0000-0085-6300-4550"
+    },
+    "contributor_supervisor": {
+      "ID": "388",
+      "honorific": "Prof",
+      "givenName": "Paul",
+      "familyName": "Hooke",
+      "email": "p.hooke@example.edu.au",
+      "orcid": "0000-0097-9390-9765"
+    },
+    "contributors": [
+      {
+        "ID": "389",
+        "honorific": "Prof",
+        "givenName": "Werner",
+        "familyName": "Turing",
+        "email": "w.turing@example.edu.au",
+        "orcid": "0000-0010-2084-6857"
+      },
+      {
+        "ID": "390",
+        "honorific": "Dr",
+        "givenName": "Ada",
+        "familyName": "Hooke",
+        "email": "a.hooke@example.edu.au",
+        "orcid": "0000-0062-8824-1063"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "391",
+        "honorific": "Prof",
+        "givenName": "Albert",
+        "familyName": "Frank",
+        "email": "a.frank@example.edu.au",
+        "orcid": "0000-0027-5248-3549"
+      },
+      {
+        "ID": "392",
+        "honorific": "Prof",
+        "givenName": "Isaac",
+        "familyName": "Heisenberg",
+        "email": "i.heisenberg@example.edu.au",
+        "orcid": "0000-0016-3531-3377"
+      }
+    ]
+  },
+  {
+    "ID": "9045",
+    "title": "Cybersecurity Protocols for Smart Devices #5",
+    "description": "Creating secure communication protocols and defenses for smart devices to mitigate the growing risk of cyberattacks.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND46",
+        "name": "Cooperative Research Centres Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "393",
+      "honorific": "Prof",
+      "givenName": "Carl",
+      "familyName": "Rutherford",
+      "email": "c.rutherford@example.edu.au",
+      "orcid": "0000-0050-6814-5381"
+    },
+    "contributor_supervisor": {
+      "ID": "394",
+      "honorific": "Dr",
+      "givenName": "Dorothy",
+      "familyName": "Newton",
+      "email": "d.newton@example.edu.au",
+      "orcid": "0000-0093-3769-7142"
+    },
+    "contributors": [
+      {
+        "ID": "395",
+        "honorific": "Dr",
+        "givenName": "Richard",
+        "familyName": "Hooke",
+        "email": "r.hooke@example.edu.au",
+        "orcid": "0000-0036-7863-5054"
+      },
+      {
+        "ID": "396",
+        "honorific": "Prof",
+        "givenName": "Alan",
+        "familyName": "Franklin",
+        "email": "a.franklin@example.edu.au",
+        "orcid": "0000-0089-1828-9753"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "397",
+        "honorific": "Dr",
+        "givenName": "Carl",
+        "familyName": "Watson",
+        "email": "c.watson@example.edu.au",
+        "orcid": "0000-0012-3646-5384"
+      },
+      {
+        "ID": "398",
+        "honorific": "Prof",
+        "givenName": "Grace",
+        "familyName": "Galilei",
+        "email": "g.galilei@example.edu.au",
+        "orcid": "0000-0071-2932-1316"
+      }
+    ]
+  },
+  {
+    "ID": "9046",
+    "title": "Climate Impact Assessment in Coastal Cities #5",
+    "description": "Assessing the impacts of climate change on coastal cities to guide future planning and adaptive infrastructure strategies.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND47",
+        "name": "Australian Renewable Energy Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "399",
+      "honorific": "Prof",
+      "givenName": "Neil",
+      "familyName": "Fermi",
+      "email": "n.fermi@example.edu.au",
+      "orcid": "0000-0056-3984-9275"
+    },
+    "contributor_supervisor": {
+      "ID": "400",
+      "honorific": "Prof",
+      "givenName": "Lise",
+      "familyName": "Faraday",
+      "email": "l.faraday@example.edu.au",
+      "orcid": "0000-0043-7035-9204"
+    },
+    "contributors": [
+      {
+        "ID": "401",
+        "honorific": "Prof",
+        "givenName": "Ada",
+        "familyName": "Hooke",
+        "email": "a.hooke@example.edu.au",
+        "orcid": "0000-0025-5309-9151"
+      },
+      {
+        "ID": "402",
+        "honorific": "Dr",
+        "givenName": "Marie",
+        "familyName": "Heisenberg",
+        "email": "m.heisenberg@example.edu.au",
+        "orcid": "0000-0086-6581-1681"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "403",
+        "honorific": "Dr",
+        "givenName": "Carl",
+        "familyName": "Pascal",
+        "email": "c.pascal@example.edu.au",
+        "orcid": "0000-0011-5190-6240"
+      },
+      {
+        "ID": "404",
+        "honorific": "Prof",
+        "givenName": "Frank",
+        "familyName": "Heisenberg",
+        "email": "f.heisenberg@example.edu.au",
+        "orcid": "0000-0054-5485-6678"
+      }
+    ]
+  },
+  {
+    "ID": "9047",
+    "title": "Indigenous Knowledge Integration in Ecosystem Management #5",
+    "description": "Integrating Indigenous ecological knowledge with modern ecosystem management to enhance environmental stewardship.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND48",
+        "name": "National Environmental Science Program"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "405",
+      "honorific": "Dr",
+      "givenName": "James",
+      "familyName": "Curie",
+      "email": "j.curie@example.edu.au",
+      "orcid": "0000-0098-5816-4029"
+    },
+    "contributor_supervisor": {
+      "ID": "406",
+      "honorific": "Prof",
+      "givenName": "Grace",
+      "familyName": "Bohr",
+      "email": "g.bohr@example.edu.au",
+      "orcid": "0000-0086-4004-8919"
+    },
+    "contributors": [
+      {
+        "ID": "407",
+        "honorific": "Prof",
+        "givenName": "Paul",
+        "familyName": "Mayer",
+        "email": "p.mayer@example.edu.au",
+        "orcid": "0000-0041-5902-3979"
+      },
+      {
+        "ID": "408",
+        "honorific": "Prof",
+        "givenName": "Lise",
+        "familyName": "Dirac",
+        "email": "l.dirac@example.edu.au",
+        "orcid": "0000-0022-5723-6093"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "409",
+        "honorific": "Dr",
+        "givenName": "Ada",
+        "familyName": "Curie",
+        "email": "a.curie@example.edu.au",
+        "orcid": "0000-0075-9145-2819"
+      },
+      {
+        "ID": "410",
+        "honorific": "Dr",
+        "givenName": "Isaac",
+        "familyName": "Dirac",
+        "email": "i.dirac@example.edu.au",
+        "orcid": "0000-0094-9110-9773"
+      }
+    ]
+  },
+  {
+    "ID": "9048",
+    "title": "Virtual Reality in Cognitive Therapy for PTSD #5",
+    "description": "Applying virtual reality technologies in therapeutic settings to support treatment of PTSD and other cognitive conditions.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND49",
+        "name": "Australian Space Agency"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "411",
+      "honorific": "Prof",
+      "givenName": "Albert",
+      "familyName": "Galilei",
+      "email": "a.galilei@example.edu.au",
+      "orcid": "0000-0063-1843-8780"
+    },
+    "contributor_supervisor": {
+      "ID": "412",
+      "honorific": "Dr",
+      "givenName": "Richard",
+      "familyName": "Pascal",
+      "email": "r.pascal@example.edu.au",
+      "orcid": "0000-0098-5482-1919"
+    },
+    "contributors": [
+      {
+        "ID": "413",
+        "honorific": "Prof",
+        "givenName": "Grace",
+        "familyName": "Pascal",
+        "email": "g.pascal@example.edu.au",
+        "orcid": "0000-0015-1414-8055"
+      },
+      {
+        "ID": "414",
+        "honorific": "Prof",
+        "givenName": "Paul",
+        "familyName": "Franklin",
+        "email": "p.franklin@example.edu.au",
+        "orcid": "0000-0079-3059-8572"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "415",
+        "honorific": "Prof",
+        "givenName": "Enrico",
+        "familyName": "Heisenberg",
+        "email": "e.heisenberg@example.edu.au",
+        "orcid": "0000-0029-2933-8298"
+      },
+      {
+        "ID": "416",
+        "honorific": "Dr",
+        "givenName": "Barbara",
+        "familyName": "Watson",
+        "email": "b.watson@example.edu.au",
+        "orcid": "0000-0062-9864-1817"
+      }
+    ]
+  },
+  {
+    "ID": "9049",
+    "title": "Mathematical Modelling of Disease Outbreaks #5",
+    "description": "Utilizing mathematical modeling to understand and predict the dynamics of infectious disease outbreaks for better response planning.",
+    "dc:subject_anzsrc:toa_rdf:resource": "Applied research",
+    "dc:subject_anzsrc:for": [
+      {
+        "notation": "460101",
+        "geneaology": [
+          "46",
+          "4601"
+        ]
+      }
+    ],
+    "dc:subject_anzsrc:seo": [
+      {
+        "notation": "230101",
+        "geneaology": [
+          "23",
+          "2301"
+        ]
+      }
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:start": "2024-01-01T00:00:00Z",
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "2024-12-31T00:00:00Z",
+    "foaf:fundedBy_foaf:Agent": [
+      {
+        "ID": "FUND50",
+        "name": "Defence Science and Technology Group"
+      }
+    ],
+    "contributor_ci": {
+      "ID": "417",
+      "honorific": "Prof",
+      "givenName": "Frank",
+      "familyName": "Newton",
+      "email": "f.newton@example.edu.au",
+      "orcid": "0000-0045-3599-1155"
+    },
+    "contributor_supervisor": {
+      "ID": "418",
+      "honorific": "Dr",
+      "givenName": "Gregor",
+      "familyName": "Einstein",
+      "email": "g.einstein@example.edu.au",
+      "orcid": "0000-0068-3310-8887"
+    },
+    "contributors": [
+      {
+        "ID": "419",
+        "honorific": "Dr",
+        "givenName": "Marie",
+        "familyName": "Bohr",
+        "email": "m.bohr@example.edu.au",
+        "orcid": "0000-0096-2753-9283"
+      },
+      {
+        "ID": "420",
+        "honorific": "Dr",
+        "givenName": "Ada",
+        "familyName": "Lovelace",
+        "email": "a.lovelace@example.edu.au",
+        "orcid": "0000-0090-5670-3670"
+      }
+    ],
+    "contributors_data_manager": [
+      {
+        "ID": "421",
+        "honorific": "Prof",
+        "givenName": "Carl",
+        "familyName": "Fermi",
+        "email": "c.fermi@example.edu.au",
+        "orcid": "0000-0065-4628-5162"
+      },
+      {
+        "ID": "422",
+        "honorific": "Prof",
+        "givenName": "Werner",
+        "familyName": "Franklin",
+        "email": "w.franklin@example.edu.au",
+        "orcid": "0000-0061-9356-3935"
+      }
+    ]
+  }
+]

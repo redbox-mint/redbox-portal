@@ -19,7 +19,7 @@ module.exports.recordtype = {
                 "metadata.contributor_supervisor",
                 "metadata.contributors"
               ],
-              "recordCreatorPermissions" : "view&edit"
+              "recordCreatorPermissions": "view&edit"
             }
           },
           // {
@@ -72,16 +72,16 @@ module.exports.recordtype = {
                 "metadata.contributor_supervisor",
                 "metadata.contributors"
               ],
-              "recordCreatorPermissions" : "view&edit"
+              "recordCreatorPermissions": "view&edit"
             }
           },
           {
             function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
             options: {
-                triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
-                maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
-                replaceOrAppend:'append'
-                }
+              triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
+              maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
+              replaceOrAppend: 'append'
+            }
           },
           // {
           //   function: 'sails.services.raidservice.mintTrigger',
@@ -143,38 +143,38 @@ module.exports.recordtype = {
       }
     },
     searchFilters: [{
-        name: "text_title",
-        title: "search-refine-title",
-        type: "exact",
-        typeLabel: "search-refine-contains"
-      },
-      {
-        name: "text_description",
-        title: "search-refine-description",
-        type: "exact",
-        typeLabel: "search-refine-contains"
-      },
-      {
-        name: "grant_number_name",
-        title: "search-refine-grant_number_name",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      },
-      {
-        name: "finalKeywords",
-        title: "search-refine-keywords",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      },
-      {
-        name: "workflow_stageLabel",
-        title: "search-refine-workflow_stageLabel",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      }
+      name: "text_title",
+      title: "search-refine-title",
+      type: "exact",
+      typeLabel: "search-refine-contains"
+    },
+    {
+      name: "text_description",
+      title: "search-refine-description",
+      type: "exact",
+      typeLabel: "search-refine-contains"
+    },
+    {
+      name: "grant_number_name",
+      title: "search-refine-grant_number_name",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: "finalKeywords",
+      title: "search-refine-keywords",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: "workflow_stageLabel",
+      title: "search-refine-workflow_stageLabel",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    }
     ]
   },
   "dataRecord": {
@@ -184,38 +184,38 @@ module.exports.recordtype = {
       namePlural: "Records"
     },
     searchFilters: [{
-        name: "text_title",
-        title: "search-refine-title",
-        type: "exact",
-        typeLabel: "search-refine-contains"
-      },
-      {
-        name: "text_description",
-        title: "search-refine-description",
-        type: "exact",
-        typeLabel: "search-refine-contains"
-      },
-      {
-        name: "grant_number_name",
-        title: "search-refine-grant_number_name",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      },
-      {
-        name: "finalKeywords",
-        title: "search-refine-keywords",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      },
-      {
-        name: "workflow_stageLabel",
-        title: "search-refine-workflow_stageLabel",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      }
+      name: "text_title",
+      title: "search-refine-title",
+      type: "exact",
+      typeLabel: "search-refine-contains"
+    },
+    {
+      name: "text_description",
+      title: "search-refine-description",
+      type: "exact",
+      typeLabel: "search-refine-contains"
+    },
+    {
+      name: "grant_number_name",
+      title: "search-refine-grant_number_name",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: "finalKeywords",
+      title: "search-refine-keywords",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: "workflow_stageLabel",
+      title: "search-refine-workflow_stageLabel",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    }
     ],
     relatedTo: [{
       "recordType": "rdmp",
@@ -275,7 +275,7 @@ module.exports.recordtype = {
               "metadata.contributor_supervisor",
               "metadata.contributors"
             ],
-            "recordCreatorPermissions" : "view&edit"
+            "recordCreatorPermissions": "view&edit"
           }
         }]
       },
@@ -295,7 +295,7 @@ module.exports.recordtype = {
               "metadata.contributor_supervisor",
               "metadata.contributors"
             ],
-            "recordCreatorPermissions" : "view&edit"
+            "recordCreatorPermissions": "view&edit"
           }
         }]
       }
@@ -308,38 +308,38 @@ module.exports.recordtype = {
       namePlural: "Data Publications"
     },
     searchFilters: [{
-        name: "text_title",
-        title: "search-refine-title",
-        type: "exact",
-        typeLabel: "search-refine-contains"
-      },
-      {
-        name: "text_description",
-        title: "search-refine-description",
-        type: "exact",
-        typeLabel: "search-refine-contains"
-      },
-      {
-        name: "grant_number_name",
-        title: "search-refine-grant_number_name",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      },
-      {
-        name: "finalKeywords",
-        title: "search-refine-keywords",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      },
-      {
-        name: "workflow_stageLabel",
-        title: "search-refine-workflow_stageLabel",
-        type: "facet",
-        typeLabel: null,
-        alwaysActive: true
-      }
+      name: "text_title",
+      title: "search-refine-title",
+      type: "exact",
+      typeLabel: "search-refine-contains"
+    },
+    {
+      name: "text_description",
+      title: "search-refine-description",
+      type: "exact",
+      typeLabel: "search-refine-contains"
+    },
+    {
+      name: "grant_number_name",
+      title: "search-refine-grant_number_name",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: "finalKeywords",
+      title: "search-refine-keywords",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: "workflow_stageLabel",
+      title: "search-refine-workflow_stageLabel",
+      type: "facet",
+      typeLabel: null,
+      alwaysActive: true
+    }
     ],
     hooks: {
       onCreate: {
@@ -375,20 +375,20 @@ module.exports.recordtype = {
               "viewContributorProperties": [
                 "metadata.creators"
               ],
-              "recordCreatorPermissions" : "view&edit"
+              "recordCreatorPermissions": "view&edit"
             }
           },
 
           {
             function: 'sails.services.rdmpservice.stripUserBasedPermissions',
             options: {
-                triggerCondition: "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
+              triggerCondition: "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
             }
           },
           {
             function: 'sails.services.rdmpservice.restoreUserBasedPermissions',
             options: {
-                triggerCondition: "<%= record.workflow.stage=='draft' %>"
+              triggerCondition: "<%= record.workflow.stage=='draft' %>"
             }
           }
         ],
@@ -486,19 +486,19 @@ module.exports.recordtype = {
                 "metadata.creators"
               ]
             },
-            "recordCreatorPermissions" : "view&edit"
+            "recordCreatorPermissions": "view&edit"
           },
 
           {
             function: 'sails.services.rdmpservice.stripUserBasedPermissions',
             options: {
-                triggerCondition: "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
+              triggerCondition: "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
             }
           },
           {
             function: 'sails.services.rdmpservice.restoreUserBasedPermissions',
             options: {
-                triggerCondition: "<%= record.workflow.stage=='draft' %>"
+              triggerCondition: "<%= record.workflow.stage=='draft' %>"
             }
           }
         ],
@@ -511,15 +511,15 @@ module.exports.recordtype = {
               subject: "A publication has been staged for review.",
               template: "publicationStaged",
               onNotifySuccess: [
-          // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
+                // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
                 {
                   function: 'sails.services.emailservice.sendRecordNotification',
-                    options: {
-                      forceRun: true,
-                      to: "librarian@redboxresearchdata.com.au",
-                      subject: "Data publication ready for review",
-                      template: "publicationReview"
-                    }
+                  options: {
+                    forceRun: true,
+                    to: "librarian@redboxresearchdata.com.au",
+                    subject: "Data publication ready for review",
+                    template: "publicationReview"
+                  }
                 },
                 {
                   function: 'sails.services.recordsservice.updateNotificationLog',
@@ -535,8 +535,8 @@ module.exports.recordtype = {
               ]
             }
           },
-          
-          
+
+
 
           // Triggers "Published" Email Notification to FNCI, DM, Collaborators, CC: librarian with RDA link
           {
@@ -603,7 +603,7 @@ module.exports.recordtype = {
     "packageType": "rdmp",
     "packageName": "consolidated",
     "searchFilters": [],
-    hooks: { }
+    hooks: {}
   },
   "party": {
     packageType: "party",
@@ -611,35 +611,81 @@ module.exports.recordtype = {
       onCreate: {
         pre: [
           {
-              function: 'sails.services.rdmpservice.runTemplates',
-              options: {
+            function: "sails.services.rdmpservice.runTemplates",
+            options: {
               parseObject: false,
               templates: [
-                  {
+                {
+                  field: "metadata.fullName",
+                  template: "<%= _.get(record, 'metadata.givenNames', '') + ' ' + _.get(record, 'metadata.surname', '') %>",
+                }
+              ],
+            },
+          },
+        ],
+      },
+      onUpdate: {
+        pre: [
+          {
+            function: "sails.services.rdmpservice.runTemplates",
+            options: {
+              parseObject: false,
+              templates: [
+                {
+                  field: "metadata.fullName",
+                  template: "<%= _.get(record, 'metadata.givenNames', '') + ' ' + _.get(record, 'metadata.surname', '') %>",
+                }
+              ],
+            },
+          },
+        ],
+      },
+    },
+  },
+  "activity": {
+    packageType: "activity",
+    hooks: {
+      onCreate: {
+        pre: [
+          {
+            function: "sails.services.rdmpservice.runTemplates",
+            options: {
+              parseObject: false,
+              templates: [
+                {
                   field: "metadata.title",
-                  template: "<%= _.get(record, 'metadata.JOB_TITLE') %>"
-                  }
-              ]
-              }
-          }
+                  template: "<%= _.get(record, 'metadata.title', _.get(record, 'metadata.Title', '')) %>",
+                },
+                {
+                  field: "metadata.l_title",
+                  template: "<%= _.toLower(_.get(record, 'metadata.title', '')) %>",
+                }
+              ],
+            },
+          },
         ]
       },
       onUpdate: {
         pre: [
           {
-              function: 'sails.services.rdmpservice.runTemplates',
-              options: {
+            function: "sails.services.rdmpservice.runTemplates",
+            options: {
               parseObject: false,
               templates: [
-                  {
+                {
                   field: "metadata.title",
-                  template: "<%= _.get(record, 'metadata.JOB_TITLE') %>"
-                  }
-              ]
-              }
-          }
-        ]
-      }
-    }
+                  template: "<%= _.get(record, 'metadata.title', _.get(record, 'metadata.Title', '')) %>",
+                },
+                {
+                  field: "metadata.l_title",
+                  template: "<%= _.toLower(_.get(record, 'metadata.title', '')) %>",
+                }
+              ],
+            },
+          },
+        ],
+      },
+    },
   }
 };
+  

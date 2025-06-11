@@ -64,9 +64,20 @@ export module Services {
           //   rTypesObs.push(obs);
           // });
 
-          this.recordTypes= recordTypes;
+          let recordTypesToInitialise: string | string[] = _.get(sails.config, 'recordtype.recordTypes', "all");
+          if (typeof recordTypesToInitialise === "string") {
+          
+          
+          if (recordTypesToInitialise === "all") {
+            recordTypesToInitialise = Object.keys(sails.config.recordtype);
+            _.pull(recordTypesToInitialise, "recordTypes");
+          } else {
+              recordTypesToInitialise = recordTypesToInitialise.split(",");
+          } 
+        }
+          this.recordTypes = recordTypes;
           let rTypes = [];
-          for(let recordType in sails.config.recordtype) {
+          for(let recordType of recordTypesToInitialise) {
             let config:RecordTypeModel = sails.config.recordtype[recordType];
             rTypes.push(await this.create(defBrand, recordType, config).toPromise())
           }    

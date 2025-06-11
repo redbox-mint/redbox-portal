@@ -439,29 +439,21 @@ module.exports = {
                     role: "@dmpt-people-tab-ci-role",
                     freeText: false,
                     forceLookupOnly: true,
-                    vocabId: 'Parties AND repository_name:People',
-                    sourceType: 'mint',
+                    vocabQueryId: 'party',
+                    sourceType: 'query',
                     fieldNames: [{
-                        'text_full_name': 'text_full_name'
-                      }, {
-                        'full_name_honorific': 'text_full_name_honorific'
-                      }, {
-                        'email': 'Email[0]'
+                        'text_full_name': 'fullName'
+                      },  {
+                        'email': 'email'
                       },
                       {
-                        'given_name': 'Given_Name[0]'
+                        'honorific': 'honorific'
                       },
                       {
-                        'family_name': 'Family_Name[0]'
-                      },
-                      {
-                        'honorific': 'Honorific[0]'
-                      },
-                      {
-                        'full_name_family_name_first': 'dc_title'
+                        'orcid': 'orcid'
                       }
                     ],
-                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
+                    
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
@@ -487,26 +479,18 @@ module.exports = {
                     help: '@dmpt-people-tab-data-manager-help',
                     role: "@dmpt-people-tab-data-manager-role",
                     freeText: false,
-                    vocabId: 'Parties AND repository_name:People',
-                    sourceType: 'mint',
+                    vocabQueryId: 'party',
+                    sourceType: 'query',
                     fieldNames: [{
-                        'text_full_name': 'text_full_name'
-                      }, {
-                        'full_name_honorific': 'text_full_name_honorific'
-                      }, {
-                        'email': 'Email[0]'
+                        'text_full_name': 'fullName'
+                      },  {
+                        'email': 'email'
                       },
                       {
-                        'given_name': 'Given_Name[0]'
+                        'honorific': 'honorific'
                       },
                       {
-                        'family_name': 'Family_Name[0]'
-                      },
-                      {
-                        'honorific': 'Honorific[0]'
-                      },
-                      {
-                        'full_name_family_name_first': 'dc_title'
+                        'orcid': 'orcid'
                       }
                     ],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
@@ -549,28 +533,20 @@ module.exports = {
                         help: '@dmpt-people-tab-contributors-help',
                         role: "@dmpt-people-tab-contributors-role",
                         freeText: false,
-                        vocabId: 'Parties AND repository_name:People',
-                        sourceType: 'mint',
-                        fieldNames: [{
-                            'text_full_name': 'text_full_name'
-                          }, {
-                            'full_name_honorific': 'text_full_name_honorific'
-                          }, {
-                            'email': 'Email[0]'
-                          },
-                          {
-                            'given_name': 'Given_Name[0]'
-                          },
-                          {
-                            'family_name': 'Family_Name[0]'
-                          },
-                          {
-                            'honorific': 'Honorific[0]'
-                          },
-                          {
-                            'full_name_family_name_first': 'dc_title'
-                          }
-                        ],
+                        vocabQueryId: 'party',
+                    sourceType: 'query',
+                    fieldNames: [{
+                        'text_full_name': 'fullName'
+                      },  {
+                        'email': 'email'
+                      },
+                      {
+                        'honorific': 'honorific'
+                      },
+                      {
+                        'orcid': 'orcid'
+                      }
+                    ],
                         searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
@@ -596,26 +572,18 @@ module.exports = {
                     role: "@dmpt-people-tab-supervisor-role",
                     freeText: false,
                     forceLookupOnly: true,
-                    vocabId: 'Parties AND repository_name:People',
-                    sourceType: 'mint',
+                    vocabQueryId: 'party',
+                    sourceType: 'query',
                     fieldNames: [{
-                        'text_full_name': 'text_full_name'
-                      }, {
-                        'full_name_honorific': 'text_full_name_honorific'
-                      }, {
-                        'email': 'Email[0]'
+                        'text_full_name': 'fullName'
+                      },  {
+                        'email': 'email'
                       },
                       {
-                        'given_name': 'Given_Name[0]'
+                        'honorific': 'honorific'
                       },
                       {
-                        'family_name': 'Family_Name[0]'
-                      },
-                      {
-                        'honorific': 'Honorific[0]'
-                      },
-                      {
-                        'full_name_family_name_first': 'dc_title'
+                        'orcid': 'orcid'
                       }
                     ],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
@@ -630,95 +598,6 @@ module.exports = {
                         modelEventSource: 'valueChanges'
                       }
                     }
-                  }
-                },
-                {
-                  class: 'ContributorField',
-                  showHeader: true,
-                  showRole: false,
-                  definition: {
-                    name: 'contributor_ci_internal',
-                    required: false,
-                    label: 'People lookup in index based of record title for contributor component',
-                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
-                    role: "@dmpt-people-tab-ci-role",
-                    freeText: false,
-                    forceLookupOnly: true,
-                    vocabQueryId: 'party',
-                    sourceType: 'query',
-                    fieldNames: [
-                      {
-                        'text_full_name': 'fullName'
-                      }, {
-                        'email': 'email'
-                      }, {
-                        'orcid': 'orcid'
-                      }
-                    ],
-                    searchFields: 'title',
-                    titleFieldArr: ['fullName'],
-                    titleFieldDelim: '',
-                    nameColHdr: '@dmpt-people-tab-name-hdr',
-                    emailColHdr: '@dmpt-people-tab-email-hdr',
-                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                    validation_required_name: '@dmpt-people-tab-validation-name-required',
-                    validation_required_email: '@dmpt-people-tab-validation-email-required',
-                    validation_invalid_email: '@dmpt-people-tab-validation-email-invalid',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
-                  definition: {
-                    name: 'people-lookup-in-index-based-of-record-title',
-                    label: "People lookup in index based of record title",
-                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
-                    forceClone: ['lookupService', 'completerService'],
-                    fields: [
-                      {
-                      class: 'VocabField',
-                      definition: {
-                        disableEditAfterSelect: false,
-                        vocabQueryId: 'party',
-                        vocabQueryResultMaxRows: '30',
-                        sourceType: 'query',
-                        titleFieldName: 'title',
-                        titleFieldArr: ['fullName','email','orcid'],
-                        fieldNames:['fullName','email','orcid'],
-                        stringLabelToField: 'fullName'
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
-                  definition: {
-                    name: 'people-lookup-in-db-based-of-record-title',
-                    label: "People lookup in database based of record title",
-                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
-                    forceClone: ['lookupService', 'completerService'],
-                    fields: [
-                      {
-                      class: 'VocabField',
-                      definition: {
-                        disableEditAfterSelect: false,
-                        vocabQueryId: 'rdmp',
-                        sourceType: 'query',
-                        titleFieldName: 'title',
-                        titleFieldArr: ['metadata.contributor_ci'],
-                        fieldNames:['metadata.contributor_ci'],
-                        stringLabelToField: 'metadata.contributor_ci',
-                        resultArrayProperty: 'records'
-                        }
-                      }
-                    ]
                   }
                 }
               ]
