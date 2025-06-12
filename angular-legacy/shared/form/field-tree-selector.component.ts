@@ -47,6 +47,8 @@ export class TreeSelectorField extends FieldBase<any> {
   public treeNodes:any;
   public ccsClassName:string;
   public expandChildrenWhenParentSeclected:boolean;
+  public selectParentWhenChildSelected: boolean;
+  public enforceAvoidDuplicates: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -60,6 +62,8 @@ export class TreeSelectorField extends FieldBase<any> {
     this.treeNodes = options['treeNodes'] || [];
     this.ccsClassName = options['cssClassName'] || 'tree-node-checkbox';
     this.expandChildrenWhenParentSeclected = options['expandChildrenWhenParentSeclected'] || false;
+    this.selectParentWhenChildSelected = options['selectParentWhenChildSelected'] || true;
+    this.enforceAvoidDuplicates = options['enforceAvoidDuplicates'] || true;
   }
 
   setValue(value: any, emitEvent: boolean = true) {
@@ -76,7 +80,16 @@ export class TreeSelectorField extends FieldBase<any> {
   setSelected(item:any, flag) {
     const curVal = this.formModel.value;
     if (flag) {
-      curVal.push(item);
+
+      if(!_.isEmpty(curVal) && this.enforceAvoidDuplicates) {
+        let i = _.findIndex(curVal, ['id', item.id]);
+        if(i < 0) {
+          curVal.push(item);
+        }
+      } else {
+        curVal.push(item);
+      }
+
     } else {
       _.remove(curVal, (entry:any) => {
         return entry.name == item.name;
@@ -257,10 +270,18 @@ export class TreeSelectorComponent extends SimpleComponent {
         if(!this.isSelectionValid(event.node)){
           break;
         }
-        this.field.setSelected(this.getValueFromChildData(event.node), true);
+        let simpleNodeData = this.getValueFromChildData(event.node);
+        this.field.setSelected(simpleNodeData, true);
         if(this.field.expandChildrenWhenParentSeclected) {
           if(!_.isEmpty(event.node.children)) {
             event.node.expand();
+          }
+        }
+        if(event.node.parent != undefined && event.node.parent != null) {
+          let simpleParentNodeData = this.getValueFromChildData(event.node.parent);
+          if(!_.isEmpty(simpleParentNodeData) && this.field.selectParentWhenChildSelected) {
+            this.field.setSelected(simpleParentNodeData, true);
+            this.updateSingleNodeSelectedState(event.node.parent, true);
           }
         }
         break;
@@ -311,7 +332,8 @@ export class TreeSelectorComponent extends SimpleComponent {
     this.setNodeSelected(curState, nodeId, state);
     this.treeSelector.treeModel.setState(curState);
     this.treeSelector.treeModel.update();
-    this.field.setSelected(this.getValueFromChildData(node), state);
+    let simpleNodeData = this.getValueFromChildData(node);
+    this.field.setSelected(simpleNodeData, state);
   }
 
   public onNodeActivate(event: any) {
