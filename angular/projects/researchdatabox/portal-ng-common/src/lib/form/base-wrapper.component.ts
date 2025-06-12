@@ -1,31 +1,21 @@
 import {
   Component,
-  ComponentRef,
   Type,
   Input,
-  OnInit,
-  OnChanges,
   ViewChild,
-  viewChild,
-  ViewContainerRef,
-  output,
-  inject,
-  effect, untracked, OnDestroy,
-  signal
+  OnDestroy
 } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
-import { FormFieldModel } from './base.model';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
 import { set as _set, get as _get } from 'lodash-es';
-import { LoggerService } from '../logger.service';
-import {UtilityService} from "../utility.service";
 import { FormFieldComponentStatus } from './status.model';
 
 /**
  * Form Component Wrapper.
  *
 * This component is used to instantiate a form field based on the provided configuration. It is meant to be a a thin wrapper around the individual form component, offering the FormComponent and layout components an abstraction, rather than individual components.
+* 
+* For simplicity, the wrapper component extends the FormFieldBaseComponent, which provides the basic functionality for form components. 
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
@@ -37,56 +27,29 @@ import { FormFieldComponentStatus } from './status.model';
   `,
     standalone: false
 })
-export class FormBaseWrapperComponent<ValueType = string | undefined> implements OnDestroy {
-  protected logName = "FormBaseWrapperComponent";
-  @Input() model?: FormFieldModel<ValueType> | null | undefined = null;
+export class FormBaseWrapperComponent<ValueType = string | undefined> extends FormFieldBaseComponent implements OnDestroy {
   @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
-  @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
-  @Input() componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  componentReady = output<void>();
-
-  public componentRef?: ComponentRef<FormFieldBaseComponent<ValueType>>; // Store the ref if needed later
-
-  private loggerService = inject(LoggerService);
-  private utilityService = inject(UtilityService);
-
-  public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
-
-  public async initWrapperComponent(formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined, omitLayout: boolean = false): Promise<FormFieldBaseComponent<ValueType> | null> {
+  public async initWrapperComponent(formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined, omitLayout: boolean = false): Promise<FormFieldBaseComponent<unknown> | null> {
     const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
     this.loggerService.info(`${this.logName}: Starting loadComponent for '${name}'.`);
-    if (!formFieldCompMapEntry && !this.formFieldCompMapEntry) {
+    if (!formFieldCompMapEntry) {
       throw new Error("FormBaseWrapperComponent: formFieldCompMapEntry is null."); 
-    } else {
-      if (formFieldCompMapEntry) {
-        this.formFieldCompMapEntry = formFieldCompMapEntry;
-        this.componentClass = formFieldCompMapEntry.componentClass;
-      }
-    }
+    } 
+    this.formFieldCompMapEntry = formFieldCompMapEntry;
+    this.componentClass = this.formFieldCompMapEntry.componentClass;
     if (this.status() == FormFieldComponentStatus.READY) {
-      return this.componentRef?.instance || null;
+      return this.getComponentRef()?.instance || null;
     }
     if (!this.componentClass) {
       this.loggerService.error("FormBaseWrapperComponent: componentClass is not defined. Cannot initialize the component.");
       return null;
     }
     // Wait until after the view has been initialized and formFieldDirective is available
-    if (!this.formFieldDirective) {
-      await new Promise<void>((resolve) => {
-        const checkDirective = () => {
-          if (this.formFieldDirective) {
-            resolve();
-          } else {
-            setTimeout(checkDirective, 10);
-          }
-        };
-        checkDirective();
-      });
-    }
+    await this.untilViewIsInitiased();
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
     if (!viewContainerRef) {
@@ -94,30 +57,31 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
     }
     const compClass = omitLayout ? this.componentClass : this.formFieldCompMapEntry?.layoutClass || this.componentClass;
 
-    this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(compClass as Type<FormFieldBaseComponent<ValueType>>);
+    const compRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(compClass as Type<FormFieldBaseComponent<ValueType>>);
   
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
       _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }
     if (compClass == this.formFieldCompMapEntry?.layoutClass) {
-      this.formFieldCompMapEntry.layoutRef = this.componentRef;
-    }
-    await this.componentRef.instance.initComponent(this.formFieldCompMapEntry);
-    this.loggerService.info(`${this.logName}: initComponent done for '${name}'.`);
-    if (this.componentRef && !this.componentRef.hostView.destroyed) {
-      this.componentReady.emit();
+      this.formFieldCompMapEntry.layoutRef = compRef;
     } else {
-      this.loggerService.warn(`${this.logName}: componentRef has been destroyed, component is no longer 'ready', but form may not be informed. Ignore if this is displayed during test runs.`);
+      this.formFieldCompMapEntry.componentRef = compRef;
     }
+    await compRef.instance.initComponent(this.formFieldCompMapEntry);
+    this.loggerService.info(`${this.logName}: initComponent done for '${name}'.`);
     this.status.set(FormFieldComponentStatus.READY);
-    return this.componentRef.instance;
+    return compRef.instance;
   }
 
+  getComponentRef() {
+    return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
+  }
 
   ngOnDestroy() {
+    const compRef = this.getComponentRef();
     // Clean up the dynamically created component when the wrapper is destroyed
-    if (this.componentRef) {
-      this.componentRef.destroy();
+    if (compRef) {
+      compRef.destroy();
     }
   }
 }

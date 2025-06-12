@@ -1,6 +1,6 @@
 import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, output, Type, TemplateRef, EmbeddedViewRef } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentStatus, FormFieldDefininition, FormFieldCompMapEntry, FormConfig, FormBaseWrapperComponent, DefaultLayoutComponent } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldModel, FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentStatus, FormFieldDefinition, FormFieldCompMapEntry, FormConfig, FormBaseWrapperComponent, DefaultLayoutComponent } from '@researchdatabox/portal-ng-common';
 
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get } from 'lodash-es';
 import { FormComponentsMap, FormService } from '../form.service';
@@ -146,7 +146,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 }
 
 
-export class RepeatableFormFieldDefinition extends FormFieldDefininition {
+export class RepeatableFormFieldDefinition extends FormFieldDefinition {
 
 }
 
@@ -200,7 +200,7 @@ export class RepeatableComponentDefinition extends FormFieldComponentDefinition 
   public override config?: RepeatableComponentConfigDefinition | null | undefined;
 }
 
-export class RepeatableComponentConfigDefinition extends FormFieldDefininition {
+export class RepeatableComponentConfigDefinition extends FormFieldDefinition {
   elementTemplate?: FormFieldComponentDefinition;
 }
 
