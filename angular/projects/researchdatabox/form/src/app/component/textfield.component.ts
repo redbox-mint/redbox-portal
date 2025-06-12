@@ -14,9 +14,6 @@ export class TextFieldModel extends FormFieldModel<string> {
            [class.is-invalid]="!isValid"
            [attr.required]="isRequired === true ? true : null" />
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
-    <ng-container>
-      <pre>Text Status: {{ status() }}</pre>
-    </ng-container>
   `,
     standalone: false
 })

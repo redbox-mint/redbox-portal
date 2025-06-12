@@ -34,9 +34,6 @@ import { FormFieldComponentStatus } from './status.model';
     selector: 'redbox-form-base-wrapper',
     template: `
     <ng-template redboxFormBaseWrapper></ng-template>
-    <ng-container>
-      <pre>Wrapper Status: {{ status() }}</pre>
-    </ng-container>
   `,
     standalone: false
 })
@@ -96,7 +93,7 @@ export class FormBaseWrapperComponent<ValueType = string | undefined> implements
       throw new Error("FormBaseWrapperComponent: ViewContainerRef is not provided. Cannot initialize the component.");
     }
     const compClass = omitLayout ? this.componentClass : this.formFieldCompMapEntry?.layoutClass || this.componentClass;
-    
+
     this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(compClass as Type<FormFieldBaseComponent<ValueType>>);
   
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {

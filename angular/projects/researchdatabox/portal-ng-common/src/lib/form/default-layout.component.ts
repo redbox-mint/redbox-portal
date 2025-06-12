@@ -67,9 +67,6 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
       }
       <div class="valid-feedback">The field is valid.</div>
     </ng-template>
-    <ng-container>
-      <pre>Layout Status: {{ status() }}</pre>
-    </ng-container>
   }
   `,
   standalone: false,
