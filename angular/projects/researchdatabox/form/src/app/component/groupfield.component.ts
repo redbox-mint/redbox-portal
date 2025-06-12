@@ -98,8 +98,6 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
         <h4>Group Component Debug</h4>
         <ul>
           <li>status: {{ status() }}</li>
-          <li>groupStatus: {{ groupStatus() }}</li>
-          <li>componentsLoaded: {{ componentsLoaded() }}</li>
           <li>children:
             <ul>
               @for(component of model?.components; track component.component){
@@ -119,12 +117,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
    */
   @Input() public override model?: GroupFieldModel;
   protected override logName: string = "GroupFieldComponent";
-  /**
-   * A group status separate from this component's own status.
-   * @private
-   */
-  protected groupStatus = signal<FormStatus>(FormStatus.INIT);
-  protected componentsLoaded = signal<boolean>(false);
   /**
    * Provide access to the NgContainer to allow creating child components.
    * @private
@@ -158,18 +150,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         compRef.destroy();
       }
     }
-  }
-
-  /**
-   * Notification hook for when a component is ready.
-   *
-   * @param componentEntry - The component entry that is ready.
-   */
-  protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    const thisName = this.utilityService.getNameClass(this.formFieldCompMapEntry);
-    const componentName = this.utilityService.getNameClass(componentEntry);
-    this.loggerService.debug(`${this.logName}: component '${componentName}' registered as ready.`);
-    this.formService.triggerComponentReady(thisName, this.model?.formDefMap, this.componentsLoaded, this.groupStatus);
   }
 
   protected override async initData() {
@@ -209,12 +189,10 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       await wrapperCompRef.instance.initWrapperComponent(component);
       
       this.wrapperComponentRefs.push(wrapperCompRef);
-
-      // call detectChanges to run ngOnInit
-      // wrapperCompRef.changeDetectorRef.detectChanges();
     }
 
     // finally set the status to 'READY'
     await super.setComponentReady();
+    
   }
 }
