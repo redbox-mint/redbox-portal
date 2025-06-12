@@ -30,10 +30,9 @@ import { RecordPermissionsComponent, RecordPermissionsField } from './form/field
 import { DataLocationComponent, DataLocationField } from './form/field-datalocation.component';
 import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './form/field-relatedobjectselector.component';
 import { RelatedFileUploadComponent, RelatedFileUploadField } from './form/field-relatedfileupload.component';
-
 import { PublishDataLocationSelectorComponent, PublishDataLocationSelectorField } from './form/field-publishdatalocationselector.component'
 import { MapField, MapComponent } from './form/field-map.component';
-import { GenericGroupComponent, RepeatableGroupComponent } from './form/field-group.component';
+import { GenericGroupComponent, RepeatableGroupComponent, CopyGroupComponent } from './form/field-group.component';
 import { WorkspaceSelectorField } from './form/workspace-field.component';
 import { WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent } from './form/workspace-selector.component';
 import { ANDSVocabField, ANDSVocabComponent } from './form/field-andsvocab.component'
@@ -48,7 +47,7 @@ export const fieldClasses=  {
   'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
   'MarkdownTextArea': { 'meta': MarkdownTextArea, 'comp': MarkdownTextAreaComponent },
   'DateTime': { 'meta': DateTime, 'comp': DateTimeComponent },
-  'Container': {'meta': Container, 'comp': [ TextBlockComponent, GenericGroupComponent ] },
+  'Container': {'meta': Container, 'comp': [ TextBlockComponent, GenericGroupComponent, CopyGroupComponent ] },
   'TabOrAccordionContainer': {'meta': TabOrAccordionContainer, 'comp': TabOrAccordionContainerComponent },
   'ButtonBarContainer': {'meta': ButtonBarContainer, 'comp': ButtonBarContainerComponent },
   'AnchorOrButton': { 'meta': AnchorOrButton, 'comp': AnchorOrButtonComponent },
