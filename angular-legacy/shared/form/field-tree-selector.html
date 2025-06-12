@@ -2,7 +2,19 @@
 <div *ngIf="!field.editMode" class="key-value-pair">
   <span *ngIf="field.label" class="key">{{field.label}}</span>
   <ul>
-    <li *ngFor="let value of field.value">{{ value.notation }} - {{ value.label }}</li>
+    <ng-container *ngFor="let value of field.value">
+      <ng-container *ngIf="value.type == 'sector'">
+        <li>Sector - {{ value.name }}</li>
+        <ng-container *ngFor="let asset of field.value">
+          <ng-container *ngIf="asset.type == 'asset' && asset.parent[0].name == value.name">
+            {{ '     - Asset' }} - {{ asset.name }}<br>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+      <ng-container *ngIf="value.type == 'sectorNoAssets'">
+        <li>Sector - {{ value.name }}</li>
+      </ng-container>
+    </ng-container>
   </ul>
 </div>
 <div *ngIf="field.editMode" [formGroup]='form' [ngClass]="getGroupClass()">
