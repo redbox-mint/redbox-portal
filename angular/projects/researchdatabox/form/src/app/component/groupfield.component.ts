@@ -20,7 +20,7 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {get as _get} from "lodash-es";
+import {get as _get, set as _set} from "lodash-es";
 
 
 export type GroupFieldModelValueType = { [key: string]: unknown };
@@ -54,10 +54,13 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // Don't call the super method, as this model needs a FormGroup, and needs to populate it differently.
     // super.postCreate();
 
-    // Store the initial value.
-    this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
+    // Init with empty object if no default value.
+    if (!this.fieldConfig.config?.defaultValue) {
+      _set(this.fieldConfig, 'config.defaultValue', {});
+    }
 
-    // TODO: create or configure the validators
+    // Store the initial value.
+    this.initValue = _get(this.fieldConfig, 'config.value', this.fieldConfig.config?.defaultValue);
 
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
@@ -126,6 +129,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     static: false
   })
   private componentContainer!: ViewContainerRef;
+  private elementFormConfig?: FormConfig;
   /**
    * Store references to the created wrapper components.
    * @private
@@ -154,19 +158,20 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
   protected override async initData() {
     // Build a form config to store the info needed to build the components.
-    const formConfig = new FormConfig();
-
-    // Store the child component definitions.
-    formConfig.componentDefinitions = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [];
-
-    // Get the debugValue from the FormComponent.
-    formConfig.debugValue = this.getFormComponent.formDefMap?.formConfig?.debugValue;
-
-    // Get the default config
-    formConfig.defaultComponentConfig = this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig;
+    const formConfig = this.getFormComponent.formDefMap?.formConfig;
+    this.elementFormConfig = {
+      // Store the child component definitions.
+      componentDefinitions: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [],
+      // Get the debugValue from the FormComponent.
+      debugValue: formConfig?.debugValue,
+      // Get the default config.
+      defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // Get the validator definitions so the child components can use them.
+      validatorDefinitions: formConfig?.validatorDefinitions,
+    };
 
     // Construct the components.
-    const formDefMap = await this.formService.createFormComponentsMap(formConfig);
+    const formDefMap = await this.formService.createFormComponentsMap(this.elementFormConfig);
 
     // Create the form group from the form components map.
     const formGroupMap = this.formService.groupComponentsByName(formDefMap);
@@ -177,7 +182,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   }
 
   protected override async setComponentReady(): Promise<void> {
-    await this.untilViewIsInitiased();
+    await this.untilViewIsInitialised();
     const thisName = this.utilityService.getNameClass(this.formFieldCompMapEntry);
     this.loggerService.debug(`${this.logName}: component '${thisName}' is ready, it will now create child components.`);
 
@@ -187,12 +192,12 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       wrapperCompRef.instance.defaultComponentConfig = this.model?.defaultComponentConfig;
 
       await wrapperCompRef.instance.initWrapperComponent(component);
-      
+
       this.wrapperComponentRefs.push(wrapperCompRef);
     }
 
     // finally set the status to 'READY'
     await super.setComponentReady();
-    
+
   }
 }

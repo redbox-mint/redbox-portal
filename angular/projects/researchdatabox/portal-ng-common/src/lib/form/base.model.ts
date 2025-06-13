@@ -22,9 +22,7 @@ export abstract class FormModel<ConfigType> {
   /**
    * Custom initialization logic when constructing the model
    */
-  public postCreate(): void {
-
-  }
+  abstract postCreate(): void;
 }
 
 export type FormFieldModelValueType<ValueType> = ValueType | null | undefined;
@@ -33,7 +31,7 @@ export type FormFieldModelValueType<ValueType> = ValueType | null | undefined;
  * Model for the form field configuration.
  *
  */
-export class FormFieldModel<ValueType = string> extends FormModel<FormFieldModelConfig<ValueType>> {
+export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<ValueType>> {
   // The value when the field is created
   public initValue?: FormFieldModelValueType<ValueType>;
 
@@ -53,7 +51,7 @@ export class FormFieldModel<ValueType = string> extends FormModel<FormFieldModel
     this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
 
     // create the form model
-    this.formControl = new FormControl<FormFieldModelValueType<ValueType>>(this.initValue) as AbstractControl<FormFieldModelValueType<ValueType>>;
+    this.formControl = new FormControl<FormFieldModelValueType<ValueType>>(this.initValue);
     console.log(`FormFieldModel: created form control '${this.fieldConfig?.name ?? '(no model name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
@@ -90,6 +88,7 @@ export class FormFieldModel<ValueType = string> extends FormModel<FormFieldModel
    * @private
    */
   private setValidators() {
+    // TODO: This method is duplicated in FormService.setValidators, see if they can be collapsed to one place.
     // set validators to the form control
     const validatorFns = this.validators?.filter(v => !!v) ?? [];
     console.log("FormFieldModel: setting validators to formControl", {

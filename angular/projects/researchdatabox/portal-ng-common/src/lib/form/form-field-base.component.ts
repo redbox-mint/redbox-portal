@@ -14,7 +14,7 @@ import {UtilityService} from "../utility.service";
  *
  */
 @Directive()
-export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
+export abstract class FormFieldBaseComponent<ValueType> {
   protected logName: string | null = "FormFieldBaseComponent";
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
@@ -30,7 +30,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
 
   ngAfterViewInit() {
-    this.viewInitialised.set(true);  
+    this.viewInitialised.set(true);
   }
   protected utilityService = inject(UtilityService);
 
@@ -165,7 +165,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> {
     return this.status() === FormFieldComponentStatus.READY;
   }
 
-  untilViewIsInitiased(): Promise<void> {
+  protected untilViewIsInitialised(): Promise<void> {
     return new Promise<void>((resolve) => {
       const checkStatus = () => {
         if (this.viewInitialised()) {

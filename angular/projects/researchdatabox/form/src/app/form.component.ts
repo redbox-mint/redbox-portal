@@ -122,11 +122,11 @@ export class FormComponent extends BaseComponent {
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     // const compContainerRef:ViewContainerRef | undefined = this.componentsContainer();
     if (!compContainerRef) {
-      this.loggerService.error(`FormComponent: No component container found. Cannot load components.`);
-      throw new Error(`FormComponent: No component container found. Cannot load components.`);
+      this.loggerService.error(`${this.logName}: No component container found. Cannot load components.`);
+      throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
     for (const componentDefEntry of this.componentDefArr){
-      const componentRef: ComponentRef<FormBaseWrapperComponent> = compContainerRef.createComponent<FormBaseWrapperComponent>(FormBaseWrapperComponent);
+      const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
       componentRef.changeDetectorRef.detectChanges();
 
@@ -145,17 +145,25 @@ export class FormComponent extends BaseComponent {
   private createFormGroup(): void {
     if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
-      // set up the form group  
+      // set up the form group
       const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
-      this.loggerService.debug(`FormComponent: formGroup:`, formGroupMap);
+      this.loggerService.debug(`${this.logName}: formGroup:`, formGroupMap);
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
+
+        // set up validators
+        const validatorDefinitions = this.formDefMap.formConfig.validatorDefinitions;
+        const validatorConfig = this.formDefMap.formConfig.validators;
+        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
+        this.formService.setValidators(this.form, validators);
+
         // setting this will trigger the form to be rendered
         this.componentDefArr = components;
       } else {
-        this.loggerService.warn(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
-        throw new Error(`FormComponent: No form controls found in the form definition. Form will not be rendered.`);
+        const msg = `No form controls found in the form definition. Form cannot be rendered.`;
+        this.loggerService.error(`${this.logName}: ${msg}`);
+        throw new Error(msg);
       }
     }
   }

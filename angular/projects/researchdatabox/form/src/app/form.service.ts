@@ -36,10 +36,12 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
+  FormValidatorDefinition, FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {formValidatorsSharedDefinitions} from "./validators";
+import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/base.model";
 
 
 
@@ -264,7 +266,7 @@ export class FormService {
         },
         {
           name: 'repeatable_1',
-          model: { 
+          model: {
             class: 'RepeatableComponentModel',
             config: {
               value: ['hello world from repeatable!'],
@@ -275,7 +277,7 @@ export class FormService {
             class: 'RepeatableComponent',
             config: {
               elementTemplate: {
-                model: { 
+                model: {
                   class: 'TextFieldModel',
                   config: {
                     editCssClasses: 'redbox-form row',
@@ -294,7 +296,7 @@ export class FormService {
               label: 'Repeatable TextField with default wrapper defined',
               helpText: 'Repeatable component help text',
             }
-          },       
+          },
         },
         {
           name: 'validation_summary_1',
@@ -435,24 +437,30 @@ export class FormService {
     return componentClass
   }
 
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): FormFieldCompMapEntry[] {
+  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): void {
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${this.utilityService.getNamesClasses(components)}.`);
     const validatorDefinitions = formConfig.validatorDefinitions;
     for (let compEntry of components) {
-      if (compEntry.modelClass) {
-        const ModelType = compEntry.modelClass as typeof FormFieldModel;
-        const modelConfig = compEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
-        const validatorConfig = modelConfig?.config?.validators ?? [];
-        const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
-        compEntry.model = new ModelType(modelConfig, validators) as FormFieldModel<unknown>;
-      } else {
-        this.logNotAvailable(compEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
-      }
+      this.createFormFieldModelInstance(compEntry, validatorDefinitions);
     }
-    return components;
   }
 
-
+  public createFormFieldModelInstance(
+    compMapEntry: FormFieldCompMapEntry,
+    validatorDefinitions: FormValidatorDefinition[] | null | undefined
+  ): FormFieldModel<unknown> | null {
+    if (compMapEntry.modelClass) {
+      const ModelType = compMapEntry.modelClass as typeof FormFieldModel;
+      const modelConfig = compMapEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
+      const validatorConfig = modelConfig?.config?.validators ?? [];
+      const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
+      compMapEntry.model = new ModelType(modelConfig, validators) as FormFieldModel<unknown>;
+      return compMapEntry.model;
+    } else {
+      this.logNotAvailable(compMapEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
+    }
+    return null;
+  }
 
   /**
    * Create maps so the component and control can be accessed using the component name.
@@ -573,32 +581,6 @@ export class FormService {
   }
 
   /**
-   * Create the form group based on the form definition map.
-   * @param formDefMap The form components map.
-   */
-  public createFormGroup(formDefMap: FormComponentsMap): {
-    form: FormGroup,
-    components: FormFieldCompMapEntry[]
-  } | undefined {
-    this.loggerService.debug(`${this.logName}: create form group`, formDefMap);
-    if (formDefMap && formDefMap.formConfig) {
-      const components = formDefMap.components;
-      // set up the form group
-      const formGroupMap = this.groupComponentsByName(formDefMap);
-      this.loggerService.debug(`${this.logName}: form group map`, formGroupMap);
-      // create the form group
-      if (!_isEmpty(formGroupMap.withFormControl)) {
-        return {form: new FormGroup(formGroupMap.withFormControl), components: components};
-      } else {
-        const msg = `No form controls found in the form definition. Form will not be rendered.`;
-        this.loggerService.warn(`${this.logName}: ${msg}`);
-        throw new Error(msg);
-      }
-    }
-    return undefined;
-  }
-
-  /**
    * Notification hook for when components are ready.
    */
   public triggerComponentReady(
@@ -632,6 +614,26 @@ export class FormService {
   private logNotAvailable(name: string, itemType: string, availableItems: { [index: string]: any }): void {
     this.loggerService.error(`${this.logName}: ${itemType} with name '${name}' not found in list. ` +
       `Check the spelling and whether it is declared in the following list.`, availableItems);
+  }
+
+  /**
+   * Apply the validators to the form control.
+   */
+  public setValidators(
+    formControl: AbstractControl | null | undefined,
+    validators?: FormValidatorFn[] | null | undefined
+  ): void {
+    // TODO: This method is duplicated in FormFieldModel.setValidators, see if they can be collapsed to one place.
+    // set validators to the form control
+    const validatorFns = validators?.filter(v => !!v) ?? [];
+    this.loggerService.debug(`${this.logName}: setting validators to formControl`, {
+      validators: validators,
+      formControl: formControl
+    });
+    if (formControl && validatorFns.length > 0) {
+      formControl?.setValidators(validatorFns);
+      formControl?.updateValueAndValidity();
+    }
   }
 }
 

@@ -47,7 +47,7 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
         <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
       }
     }
-    <ng-container #componentContainer></ng-container>  
+    <ng-container #componentContainer></ng-container>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
       Before {{ componentName }}
@@ -87,7 +87,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   afterComponentTemplate!: TemplateRef<any>;
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
-  wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<unknown>>;
+  wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -102,7 +102,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
    * Override what it takes to get the component to be 'ready'
    */
   protected override async setComponentReady(): Promise<void> {
-    await this.untilViewIsInitiased();
+    await this.untilViewIsInitialised();
     if (!this.componentContainer) {
       throw new Error("DefaultLayoutComponent: componentContainer is not defined. Cannot create the wrapper component.");
     }
@@ -116,7 +116,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
       };
     }
     // Using the wrapper will also set the component instance in the definition map properly
-    this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent);
+    this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent<ValueType>);
     await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
 
     // finally set the status to 'READY'
@@ -131,7 +131,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     return Object.entries(this.model?.formControl?.errors ?? {}).map(([key, item]) => {
       return {
         name: key,
-        
+
         message: item.message ?? null,
         params: {validatorName: key, ...item.params},
       };
