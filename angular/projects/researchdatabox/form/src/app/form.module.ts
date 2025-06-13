@@ -24,6 +24,7 @@ import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { TextFieldComponent } from './component/textfield.component';
 import { FormService } from './form.service';
+import { RepeatableComponent, RepeatableLayoutComponent } from './component/repeatable.component';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
 import {GroupFieldComponent} from "./component/groupfield.component";
@@ -31,6 +32,8 @@ import {GroupFieldComponent} from "./component/groupfield.component";
   declarations: [
     FormComponent,
     TextFieldComponent,
+    RepeatableComponent,
+    RepeatableLayoutComponent,
     ValidationSummaryFieldComponent,
     GroupFieldComponent,
   ],
@@ -51,7 +54,9 @@ import {GroupFieldComponent} from "./component/groupfield.component";
     FormService,
     provideI18Next(),
   ],
-  bootstrap: [FormComponent],
+  bootstrap: [
+    FormComponent
+  ],
   exports: [
 
   ]

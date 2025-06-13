@@ -14,9 +14,20 @@ import {
  * These classes are used to define the configuration for the form and form components.
  *
  * These can be used to generate JSON schema for validation, etc. both on the client and server side.
+ *
+ * Classes ending `Definition` are used to define the expected JSON configuration for the form and its components.
+ *
+ * Classes ending `Config` are used to define the field names of the form and its components.
+ * These may or may not share the same field name(s) as the `Definition` classes.
+ * This could also be used to define the expected JSON schema, where it is indicated.
  */
 
-/** The form definition */
+/**
+ * The form definition.
+ *
+ * Also, used to define the JSON schema.
+ *
+ * */
 export class FormConfig {
   // optional form name, will be used to identify the form in the config
   name?: string | null | undefined = null;
@@ -29,10 +40,10 @@ export class FormConfig {
   // optional form dom id property. When set, value will be injected into the overall dom node
   domId?: string | null | undefined = null;
   // the optional css clases to be applied to the form dom node
-  viewCssClasses?: { [key: string]: string } | string | null | undefined = null;
-  editCssClasses?: { [key: string]: string } | string | null | undefined = null;
-  // optional configuration to set in each compoment
-  defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
+  viewCssClasses?: KeyValueStringProperty = null;
+  editCssClasses?: KeyValueStringProperty= null;
+  // optional configuration to set in each component
+  defaultComponentConfig?: KeyValueStringNested = null;
 
 
 
@@ -61,9 +72,14 @@ export interface HasFormComponentClass {
   class?: string | null | undefined; // makes the 'layout' optional
 }
 
-export interface HasFormComponentConfigBlock {
+export interface HasFormComponentConfig {
   config?: any;
 }
+
+export type KeyValueStringProperty = Record<string, string> | string | null | undefined;
+export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
+
+
 /**
  * The form component configuration definition.
  *
@@ -80,7 +96,7 @@ export class FormComponentDefinition<ValueType> implements HasFormComponentIdent
 }
 
 /**
- * Minimum configuration block for all configuration components.
+ * Minimum configuration for all configuration components.
  */
 export class FormComponentBaseConfig  {
   // the view read-only state
@@ -94,10 +110,10 @@ export class FormComponentBaseConfig  {
   // the label
   public label?: string = '';
   // the form-supplied css classes
-  public defaultComponentCssClasses?: { [key: string]: string } | string | null | undefined = null;
+  public defaultComponentCssClasses?: KeyValueStringProperty = null;
 }
 
-export class FormFieldModelConfigBlock<ValueType> {
+export class FormFieldModelDefinition<ValueType> {
   // TODO: rename to `bindingDisabled` or `disabledBinding`
   public disableFormBinding?: boolean = false;
   public value?: ValueType | undefined = undefined;
@@ -109,26 +125,25 @@ export class FormFieldModelConfigBlock<ValueType> {
   validators?: FormValidatorBlock[] | null | undefined = null;
 }
 /**
- * Config for the field model configuration, aka the data binding
+ * Config field model, aka the data binding
  */
-export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfig {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class: string = ''; // make the class mandatory
-  // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
 
-  public config?: FormFieldModelConfigBlock<ValueType> | null | undefined = null;
+  public config?: FormFieldModelDefinition<ValueType> | null | undefined = null;
 
 }
-/** Layout specific config block */
+/** Layout specific config */
 export class FormLayoutConfig extends FormComponentBaseConfig {
-  public labelRequiredStr: string = '*';
-  public helpText: string = '';
-  public cssClassesMap: { [key: string]: string } = {};
+  public labelRequiredStr?: string = '*';
+  public helpText?: string = '';
+  public cssClassesMap?: Record<string, string> = {};
 }
 /**
  * Config for the layout component configuration.
  */
-export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfig {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
@@ -136,17 +151,19 @@ export class FormComponentLayoutDefinition implements HasFormComponentIdentity, 
 }
 
 /**
- * the UI-specific config block
+ * Definition for the field associated with a component.
  */
-export class FormFieldConfig extends FormComponentBaseConfig {
+export class FormFieldDefinition extends FormComponentBaseConfig {
   componentDefinitions?: FormComponentDefinition<unknown>[] | null | undefined = null;
+  elementTemplate?: FormComponentDefinition<unknown> | null | undefined = null;
 }
+
 /**
  * Config for the main component configuration.
  */
-export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfig {
   public class?: string | null | undefined; // makes the 'layout' optional
-  public config?: FormFieldConfig | null | undefined = null;
+  public config?: FormFieldDefinition | null | undefined = null;
 }
 
 /**
