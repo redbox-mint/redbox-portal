@@ -1,10 +1,12 @@
 const config = require("../../config/webpack");
+const validators = require("../../config/validators");
 const apiHook = require("../../api/hooks/webpack/index");
 sails = {
   config: {
     webpack: {
       config: config.webpack.config
-    } 
+    } ,
+    validators: validators.validators,
   },
   log: {
     info: function(msg, data = null) {

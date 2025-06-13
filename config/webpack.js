@@ -2,6 +2,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+// const ExtractFunctionsPlugin = require('../support/build/extract-functions-webpack-plugin.js');
 
 const cssFilePath = '../default/default/styles/style.min.css';
 module.exports.webpack = {
@@ -13,9 +14,9 @@ module.exports.webpack = {
       // webpack no longer runs in production mode, assume non-'docker' values to be production mode
       mode: process.env.NODE_ENV === 'docker' ? 'development' : 'production',
       devtool: process.env.NODE_ENV === 'docker' ? 'eval-source-map' : undefined,
-      entry: './assets/styles/style.scss',
+      entry: ['./assets/styles/style.scss', './assets/default/default/js/validator-definitions.js'],
       output: {
-        filename: 'index.bundle.js',
+        filename: '../js/index.bundle.js',
         path: path.resolve(__dirname, '../.tmp/public/styles'),
         publicPath: '/'
       },
@@ -53,6 +54,10 @@ module.exports.webpack = {
             }
           ],
         }),
+        // new ExtractFunctionsPlugin({
+        //   outputFile: 'my-assets.md',
+        //   outputJsFile: '../default/default/js/validator-definitions.js'
+        // }),
       ],
       module: {
         rules: [

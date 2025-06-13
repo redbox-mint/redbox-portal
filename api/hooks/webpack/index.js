@@ -1,5 +1,6 @@
 const webpack = require('webpack');
 const { once } = require('lodash');
+const ExtractFunctionsPlugin = require("../../../support/build/extract-functions-webpack-plugin");
 
 /**
  * webpack hook
@@ -44,8 +45,18 @@ module.exports = function defineWebpackHook(sails) {
         sails.config.webpack.config[0].optimization.minimize = true;
         sails.log.info(`Webpack hook is configured for CSS minimization.`);
       }
-      const compiler = webpack(sails.config.webpack.config);
 
+      // Provide the sails config to the webpack plugin,
+      // so the plugin can extract the functions and add them to the compiled bundle.
+      const extractFunctionsPluginInstance = sails.config.webpack.config[0].plugins.find(i => i instanceof ExtractFunctionsPlugin);
+      if (extractFunctionsPluginInstance) {
+        extractFunctionsPluginInstance.validatorDefinitions = sails.config.validators;
+        // TODO: how to specify the expressions to process?
+        // extractFunctionsPluginInstance.expressionDefinitions = sails.config.form.forms["default-1.0-draft"];
+      }
+
+      // Create the webpack instance.
+      const compiler = webpack(sails.config.webpack.config);
 
       // on first compilation (due to either run or watch) if it fails,
       // it should throw, else it should call `done`

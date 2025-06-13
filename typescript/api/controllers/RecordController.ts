@@ -310,6 +310,7 @@ export module Controllers {
     }
 
     private async createInternal(req, res) {
+      const newRespFormat = req.param('newRespFormat', 'false')?.toString() === 'true';
       try {
         const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const metadata = req.body;
@@ -331,14 +332,23 @@ export module Controllers {
         let createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep);
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
-          this.ajaxOk(req, res, null, createResponse);
+          const okResponse = newRespFormat ? await this.buildResponseSuccessRecord(createResponse.oid, createResponse) : createResponse;
+          this.ajaxOk(req, res, null, okResponse);
         } else {
-          this.ajaxFail(req, res, createResponse.message);
+          if (newRespFormat) {
+            this.ajaxFail(req, res, null, await this.buildResponseError([{detail: createResponse.message}], createResponse));
+          } else {
+            this.ajaxFail(req, res, createResponse.message);
+          }
         }
 
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
-        this.ajaxFail(req, res, msg);
+        if (newRespFormat) {
+          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: msg}], {}));
+        } else {
+          this.ajaxFail(req, res, msg);
+        }
       }
     }
 
@@ -383,6 +393,8 @@ export module Controllers {
     public async restoreRecord(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
+      const newRespFormat = req.param('newRespFormat', 'false')?.toString() === 'true';
+
       if (_.isEmpty(oid)) {
         this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
           success: false,
@@ -399,13 +411,19 @@ export module Controllers {
           oid: oid
         };
         sails.log.verbose(`Successfully restored: ${oid}`);
-        this.ajaxOk(req, res, null, resp);
+        const okResponse = newRespFormat ? await this.buildResponseSuccessRecord(oid, resp) : resp;
+        this.ajaxOk(req, res, null, okResponse);
       } else {
-        this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+        const data = {
           success: false,
           oid: oid,
           message: response.message
-        });
+        };
+        if (newRespFormat){
+          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: response.message, title: TranslationService.t('failed-restore')}], data));
+        } else {
+          this.ajaxFail(req, res, TranslationService.t('failed-restore'), data);
+        }
       }
     }
 
@@ -452,10 +470,12 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
+      const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
+      const newRespFormat = req.param('newRespFormat', 'false')?.toString() === 'true';
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
-      const metadata = req.body;
+      let metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
       let currentRec = await this.getRecord(oid).toPromise();
@@ -472,19 +492,28 @@ export module Controllers {
       let response;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
+        if (shouldMerge) {
+          metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
+        }
         response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
-          this.ajaxOk(req, res, null, response);
+          const okResponse = newRespFormat ? await this.buildResponseSuccessRecord(oid, response) : response;
+          this.ajaxOk(req, res, null, okResponse);
           return response;
         } else {
-          this.ajaxFail(req, res, null, response);
+          const failResponse = newRespFormat ? await this.buildResponseError([], response) : response;
+          this.ajaxFail(req, res, null, failResponse);
         }
       } catch (error) {
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
         sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        if (newRespFormat){
+          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: error.message}], response));
+        } else {
+          this.ajaxFail(req, res, error.message);
+        }
       }
     }
 
@@ -1432,7 +1461,152 @@ export module Controllers {
       const validationName = 'RBValidationError';
       return validationName == err.name ? err.message : defaultMessage;
     }
+
+    private buildResponseSuccess(data: unknown, meta: unknown): DataResponse {
+      // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
+      return {
+        data: {...Object.entries(data)},
+        meta: {...Object.entries(meta)},
+      }
+    }
+
+    private async buildResponseSuccessRecord(oid: string, response: unknown): Promise<DataResponse> {
+      return this.buildResponseSuccess(
+          await this.recordsService.getMeta(oid),
+          response
+      );
+    }
+
+    private async buildResponseError(errors: { [key: string]: unknown }[], response: unknown) : Promise<ErrorResponse> {
+      // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
+      return {
+        errors: errors,
+        meta: {...Object.entries(response)},
+      }
+    }
+
+    private mergeRecordMetadata(currentMetadata: { [key: string]: unknown }, newMetadata: { [key: string]: unknown }): { [key: string]: unknown } {
+      // Merge the current and new metadata into a new object, replacing the current metadata property values with the new property values.
+      return _.mergeWith({}, currentMetadata, newMetadata, (objValue, srcValue) => {
+        if (Array.isArray(objValue)) {
+          // Merge behavior for arrays is to replace the existing array with the new array.
+          // This has the implicit assumption that arrays are complete, not partial.
+          // This makes more sense than concatenating because usually an array will contain all items, not a subset of the items.
+          return srcValue;
+        }
+      });
+    }
   }
+}
+
+/**
+ * From https://github.com/mathematic-inc/ts-japi/blob/main/src/models/error.model.ts
+ * Licence Apache 2.0.
+ */
+export interface ErrorResponseItem {
+  /**
+   * A unique identifier for this particular occurrence of the problem.
+   */
+  id?: string;
+
+  /**
+   * The HTTP status code applicable to this problem, expressed as a string
+   * value.
+   */
+  status?: string;
+
+  /**
+   * An application-specific error code, expressed as a string value.
+   */
+  code?: string;
+
+  /**
+   * A short, human-readable summary of the problem that SHOULD NOT change from
+   * occurrence to occurrence of the problem, except for purposes of
+   * localization.
+   */
+  title?: string;
+
+  /**
+   * A human-readable explanation specific to this occurrence of the problem.
+   * Like title, this field's value can be localized.
+   */
+  detail?: string;
+
+  /**
+   * An object containing references to the source of the error, optionally
+   * including any of the following members.
+   */
+  source?: {
+    /**
+     * A JSON Pointer [RFC6901] to the value in the request document that caused the error
+     * [e.g. "/data" for a primary data object, or "/data/attributes/title" for a specific attribute].
+     * This MUST point to a value in the request document that exists; if it doesn’t,
+     * the client SHOULD simply ignore the pointer.
+     */
+    pointer?: string;
+
+    /**
+     * A string indicating which URI query parameter caused the error.
+     */
+    parameter?: string;
+
+    /**
+     * A string indicating the name of a single request header which caused
+     * the error.
+     */
+    header?: string;
+  };
+
+  /**
+   * Links to more information about the error.
+   */
+  links?: {
+    /**
+     * A link that leads to further details about this particular occurrence of the problem.
+     * When dereferenced, this URI SHOULD return a human-readable description of the error.
+     */
+
+    about?: string;
+    /**
+     * A link that identifies the type of error that this particular error is an instance of.
+     * This URI SHOULD be dereferenceable to a human-readable explanation of the general error.
+     */
+    type?: string;
+  }
+
+  /**
+   * A meta object containing non-standard meta-information about the error.
+   */
+  meta?: { [key: string]: unknown };
+}
+
+/**
+ * An error response to a request.
+ */
+export interface ErrorResponse {
+  /**
+   * The errors.
+   */
+  errors: ErrorResponseItem[];
+  /**
+   * A meta-object containing non-standard meta-information about the response.
+   */
+  meta: { [key: string]: unknown };
+}
+
+/**
+ * A successful response to a request.
+ */
+export interface DataResponse {
+  /**
+   * The response primary data.
+   */
+  data: unknown;
+  /**
+   * A meta-object containing non-standard meta-information about the response.
+   */
+  meta: { [key: string]: unknown };
 }
 
 module.exports = new Controllers.Record().exports();
