@@ -140,7 +140,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const elemFieldEntry = elemEntry.defEntry;
     // Create a new component for the repeatable element
     const componentRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
-    componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
+    // TODO: how to know when to apply defaultComponentConfig or not?
+    // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
 
     const compInstance = await componentRef.instance.initWrapperComponent(elemFieldEntry);
     ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>).removeFn = this.removeElementFn(elemEntry);
