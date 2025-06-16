@@ -13,7 +13,6 @@ export class TextFieldModel extends FormFieldModel<string> {
            [class.is-valid]="isValid"
            [class.is-invalid]="!isValid"
            [attr.required]="isRequired === true ? true : null" />
-
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
     standalone: false
@@ -24,4 +23,6 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
    * The model associated with this component.
    */
   @Input() public override model?: TextFieldModel;
+  
+  
 }

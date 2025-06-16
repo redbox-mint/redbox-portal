@@ -1,7 +1,7 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
 import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
-import {Directive, HostBinding, signal, inject, TemplateRef, effect} from '@angular/core'; // Import HostBinding
+import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
 import { FormFieldComponentStatus } from './status.model';
 import { get as _get, isEmpty as _isEmpty } from 'lodash-es';
@@ -23,7 +23,15 @@ export abstract class FormFieldBaseComponent<ValueType> {
 // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
-  protected loggerService = inject(LoggerService);
+  protected loggerService: LoggerService = inject(LoggerService);
+  protected viewInitialised = signal<boolean>(false);
+
+  @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
+  @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
+
+  ngAfterViewInit() {
+    this.viewInitialised.set(true);
+  }
   protected utilityService = inject(UtilityService);
 
   /**
@@ -40,7 +48,7 @@ export abstract class FormFieldBaseComponent<ValueType> {
    *
    * @param formFieldCompMapEntry
    */
-  async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
+  async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined): Promise<void> {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
@@ -152,6 +160,23 @@ export abstract class FormFieldBaseComponent<ValueType> {
     this.loggerService.debug(`${this.logName}: in setComponentReady component '${name}' is ready.`);
     this.status.set(FormFieldComponentStatus.READY);
   }
+
+  isStatusReady(): boolean {
+    return this.status() === FormFieldComponentStatus.READY;
+  }
+
+  protected untilViewIsInitialised(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const checkStatus = () => {
+        if (this.viewInitialised()) {
+          resolve();
+        } else {
+          setTimeout(checkStatus, 10);
+        }
+      };
+      checkStatus();
+    });
+  }
 }
 
 /**
@@ -167,5 +192,7 @@ export interface FormFieldCompMapEntry {
   compConfigJson: any,
   model?: FormFieldModel<unknown> | null;
   component?: FormFieldBaseComponent<unknown> | null;
+  componentRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
+  layoutRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
   componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> } | null | undefined;
 }
