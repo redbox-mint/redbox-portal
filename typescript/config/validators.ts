@@ -1,13 +1,13 @@
 import {
-    FormValidatorDefinition,
-    formValidatorGetDefinitionArray,
-    formValidatorGetDefinitionBoolean,
-    formValidatorGetDefinitionItem,
-    formValidatorGetDefinitionNumber,
-    formValidatorGetDefinitionRegexp,
-    formValidatorGetDefinitionString,
-    formValidatorLengthOrSize,
-} from '@researchdatabox/sails-ng-common';
+  FormValidatorDefinition,
+  formValidatorGetDefinitionArray,
+  formValidatorGetDefinitionBoolean,
+  formValidatorGetDefinitionItem,
+  formValidatorGetDefinitionNumber,
+  formValidatorGetDefinitionRegexp,
+  formValidatorGetDefinitionString,
+  formValidatorLengthOrSize,
+} from "@researchdatabox/sails-ng-common";
 
 /**
  * A regular expression for validating an email address.
@@ -28,292 +28,304 @@ const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*
  * - formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
  */
 export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
-    {
-        name: "min",
-        message: "@validator-error-min",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "min");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min");
-            const optionMinKey = "min";
-            const optionMinValue = formValidatorGetDefinitionNumber(config, optionMinKey);
-            return (control) => {
-                if (control.value == null || optionMinValue == null) {
-                    return null; // don't validate empty values to allow optional controls
-                }
-                const value = parseFloat(control.value?.toString() ?? null);
-                // Controls with NaN values after parsing should be treated as not having a
-                // minimum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-min
-                if (!isNaN(value) && value < optionMinValue) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                requiredThreshold: optionMinValue,
-                                actual: control.value,
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
+  {
+    name: "min",
+    message: "@validator-error-min",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "min");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min");
+      const optionMinKey = "min";
+      const optionMinValue = formValidatorGetDefinitionNumber(config, optionMinKey);
+      return (control) => {
+        if (control.value == null || optionMinValue == null) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const value = parseFloat(control.value?.toString() ?? null);
+        // Controls with NaN values after parsing should be treated as not having a
+        // minimum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-min
+        if (!isNaN(value) && value < optionMinValue) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                requiredThreshold: optionMinValue,
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
     },
-    {
-        name: "max",
-        message: "@validator-error-max",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "max");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max");
-            const optionMaxKey = "max";
-            const optionMaxValue = formValidatorGetDefinitionNumber(config, optionMaxKey);
-            return (control) => {
-                if (control.value == null || optionMaxValue == null) {
-                    return null; // don't validate empty values to allow optional controls
-                }
-                const value = parseFloat(control.value?.toString());
-                // Controls with NaN values after parsing should be treated as not having a
-                // maximum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-max
-                if (!isNaN(value) && value < optionMaxValue) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                requiredThreshold: optionMaxValue,
-                                actual: control.value,
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
+  },
+  {
+    name: "max",
+    message: "@validator-error-max",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "max");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max");
+      const optionMaxKey = "max";
+      const optionMaxValue = formValidatorGetDefinitionNumber(config, optionMaxKey);
+      return (control) => {
+        if (control.value == null || optionMaxValue == null) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const value = parseFloat(control.value?.toString());
+        // Controls with NaN values after parsing should be treated as not having a
+        // maximum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-max
+        if (!isNaN(value) && value < optionMaxValue) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                requiredThreshold: optionMaxValue,
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
     },
-    {
-        name: "minLength",
-        message: "@validator-error-min-length",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "minLength");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min-length");
-            const optionMinLengthKey = "minLength";
-            const optionMinLengthValue = formValidatorGetDefinitionNumber(config, optionMinLengthKey);
-            return (control) => {
-                const length = formValidatorLengthOrSize(control.value);
-                if (length === null || length === 0) {
-                    // don't validate empty values to allow optional controls
-                    // don't validate values without `length` or `size` property
-                    return null;
-                }
+  },
+  {
+    name: "minLength",
+    message: "@validator-error-min-length",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "minLength");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min-length");
+      const optionMinLengthKey = "minLength";
+      const optionMinLengthValue = formValidatorGetDefinitionNumber(config, optionMinLengthKey);
+      return (control) => {
+        const length = formValidatorLengthOrSize(control.value);
+        if (length === null || length === 0) {
+          // don't validate empty values to allow optional controls
+          // don't validate values without `length` or `size` property
+          return null;
+        }
 
-                return length < optionMinLengthValue
-                    ? {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                requiredLength: optionMinLengthValue,
-                                actualLength: length,
-                            },
-                        },
-                    }
-                    : null;
-            };
-        },
-    },
-    {
-        name: "maxLength",
-        message: "@validator-error-max-length",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "maxLength");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max-length");
-            const optionMaxLengthKey = "maxLength";
-            const optionMaxLengthValue = formValidatorGetDefinitionNumber(config, optionMaxLengthKey);
-            return (control) => {
-                const length = formValidatorLengthOrSize(control.value);
-                if (length !== null && length > optionMaxLengthValue) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                requiredLength: optionMaxLengthValue,
-                                actualLength: length,
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
-    },
-    {
-        name: "required",
-        message: "@validator-error-required",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "required");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
-            const optionRequiredKey = "required";
-            const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
-            return (control) => {
-                if (optionRequiredValue && (control.value == null || formValidatorLengthOrSize(control.value) === 0)) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                required: optionRequiredValue,
-                                actual: control.value,
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
-    },
-    {
-        name: "requiredTrue",
-        message: "@validator-error-required-true",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "requiredTrue")?.toString() ?? "";
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required-true");
-            const optionRequiredKey = "requiredTrue";
-            const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
-            return (control) => {
-                if (optionRequiredValue && control.value !== true) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                required: optionRequiredValue,
-                                actual: control.value,
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
-    },
-    {
-        name: "email",
-        message: "@validator-error-email",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "email");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-email");
-            const optionPatternKey = "pattern";
-            const optionPatternValue = formValidatorGetDefinitionRegexp(config, optionPatternKey, FORM_VALIDATOR_EMAIL_REGEXP);
-            return (control) => {
-                if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
-                    // don't validate empty values to allow optional controls
-                    return null;
-                }
-                if (!optionPatternValue.test(control.value?.toString() ?? "")) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                requiredPattern: optionPatternValue,
-                                actual: control.value,
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
-    },
-    {
-        name: "pattern",
-        message: "@validator-error-pattern",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "pattern");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-pattern");
-            const optionDescriptionKey = "description";
-            const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
-            const optionPatternKey = "pattern";
-            const pattern = formValidatorGetDefinitionItem(config, optionPatternKey);
-            let regex: RegExp;
-            let regexStr: string;
-            if (typeof pattern === "string") {
-                regexStr = "";
-
-                if (pattern.charAt(0) !== "^") regexStr += "^";
-
-                regexStr += pattern;
-
-                if (pattern.charAt(pattern.length - 1) !== "$") regexStr += "$";
-
-                regex = new RegExp(regexStr);
-            } else if (pattern instanceof RegExp) {
-                regexStr = pattern.toString();
-                regex = pattern;
+        return length < optionMinLengthValue
+          ? {
+              [optionNameValue]: {
+                [optionMessageKey]: optionMessageValue,
+                params: {
+                  requiredLength: optionMinLengthValue,
+                  actualLength: length,
+                },
+              },
             }
-            return (control) => {
-                if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
-                    return null; // don't validate empty values to allow optional controls
-                }
-                const value = control.value?.toString();
-                return regex.test(value)
-                    ? null
-                    : {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                requiredPattern: regexStr,
-                                description: optionDescriptionValue,
-                                actual: value,
-                            },
-                        },
-                    };
-            };
-        },
+          : null;
+      };
     },
-    {
-        name: "different-values",
-        message: "@validator-error-different-values",
-        create: (config) => {
-            const optionNameKey = "name";
-            const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "different-values");
-            const optionMessageKey = "message";
-            const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-different-values");
-            const optionControlNamesKey = "controlNames";
-            const optionControlNamesValue = formValidatorGetDefinitionArray(config, optionControlNamesKey);
-            return (control) => {
-                const controls = (optionControlNamesValue ?? [])
-                    ?.filter(i => i !== null && i !== undefined)
-                    ?.map(n => control?.get(n?.toString())) ?? [];
-                const values = new Set(controls?.map(c => c?.value) ?? []);
-                if (values.size !== controls.length) {
-                    return {
-                        [optionNameValue]: {
-                            [optionMessageKey]: optionMessageValue,
-                            params: {
-                                controlNames: optionControlNamesValue,
-                                controlCount: optionControlNamesValue?.length,
-                                valueCount: values.size,
-                                values: Array.from(values),
-                            },
-                        },
-                    };
-                }
-                return null;
-            };
-        },
+  },
+  {
+    name: "maxLength",
+    message: "@validator-error-max-length",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "maxLength");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max-length");
+      const optionMaxLengthKey = "maxLength";
+      const optionMaxLengthValue = formValidatorGetDefinitionNumber(config, optionMaxLengthKey);
+      return (control) => {
+        const length = formValidatorLengthOrSize(control.value);
+        if (length !== null && length > optionMaxLengthValue) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                requiredLength: optionMaxLengthValue,
+                actualLength: length,
+              },
+            },
+          };
+        }
+        return null;
+      };
     },
+  },
+  {
+    name: "required",
+    message: "@validator-error-required",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "required");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
+      const optionRequiredKey = "required";
+      const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
+      return (control) => {
+        if (optionRequiredValue && (control.value == null || formValidatorLengthOrSize(control.value) === 0)) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                required: optionRequiredValue,
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
+    },
+  },
+  {
+    name: "requiredTrue",
+    message: "@validator-error-required-true",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "requiredTrue")?.toString() ?? "";
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required-true");
+      const optionRequiredKey = "requiredTrue";
+      const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
+      return (control) => {
+        if (optionRequiredValue && control.value !== true) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                required: optionRequiredValue,
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
+    },
+  },
+  {
+    name: "email",
+    message: "@validator-error-email",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "email");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-email");
+      const optionPatternKey = "pattern";
+      const optionPatternValue = formValidatorGetDefinitionRegexp(config, optionPatternKey, FORM_VALIDATOR_EMAIL_REGEXP);
+      return (control) => {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+          // don't validate empty values to allow optional controls
+          return null;
+        }
+        if (!optionPatternValue.test(control.value?.toString() ?? "")) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                requiredPattern: optionPatternValue,
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
+    },
+  },
+  {
+    name: "pattern",
+    message: "@validator-error-pattern",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "pattern");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-pattern");
+      const optionDescriptionKey = "description";
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
+      const optionPatternKey = "pattern";
+      const pattern = formValidatorGetDefinitionItem(config, optionPatternKey);
+      let regex: RegExp;
+      let regexStr: string;
+      if (typeof pattern === "string") {
+        regexStr = "";
+
+        if (pattern.charAt(0) !== "^") regexStr += "^";
+
+        regexStr += pattern;
+
+        if (pattern.charAt(pattern.length - 1) !== "$") regexStr += "$";
+
+        regex = new RegExp(regexStr);
+      } else if (pattern instanceof RegExp) {
+        regexStr = pattern.toString();
+        regex = pattern;
+      }
+      return (control) => {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const value = control.value?.toString();
+        return regex.test(value)
+          ? null
+          : {
+              [optionNameValue]: {
+                [optionMessageKey]: optionMessageValue,
+                params: {
+                  requiredPattern: regexStr,
+                  description: optionDescriptionValue,
+                  actual: value,
+                },
+              },
+            };
+      };
+    },
+  },
+  {
+    name: "different-values",
+    message: "@validator-error-different-values",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "different-values");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-different-values");
+      const optionControlNamesKey = "controlNames";
+      const optionControlNamesValue = formValidatorGetDefinitionArray(config, optionControlNamesKey);
+      return (control) => {
+        const controls = (optionControlNamesValue ?? [])
+          ?.filter(i => i !== null && i !== undefined)
+          ?.map(n => control?.get(n?.toString())) ?? [];
+        const values = new Set(controls?.map(c => c?.value) ?? []);
+        if (values.size !== controls.length) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                controlNames: optionControlNamesValue,
+                controlCount: optionControlNamesValue?.length,
+                valueCount: values.size,
+                values: Array.from(values),
+              },
+            },
+          };
+        }
+        return null;
+      };
+    },
+  },
 ];
 
+// Build an array where each validation definition object has a placeholder string instead of the validator function.
+// This array is included in the FormConfig object provided by the server to the client,
+// and the client-side uses these placeholder keys together with the validator functions
+// provided in the compiled validator-functions.js to obtain the functions.
+export const formValidatorDefinitionsFunctionPlaceholders = [];
+for (const item of formValidatorsSharedDefinitions) {
+  formValidatorDefinitionsFunctionPlaceholders.push({
+    name: item.name,
+    message: item.message,
+    create: `func_key_${item.name}`,
+  });
+}
 
-module.exports.validators = formValidatorsSharedDefinitions;
+module.exports.validators = formValidatorDefinitionsFunctionPlaceholders;
