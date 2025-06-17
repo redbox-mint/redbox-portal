@@ -46,6 +46,7 @@ module.exports = function defineWebpackHook(sails) {
       }
       const compiler = webpack(sails.config.webpack.config);
 
+
       // on first compilation (due to either run or watch) if it fails,
       // it should throw, else it should call `done`
       const triggerDoneOnce = once((err, stats) => {
