@@ -7,15 +7,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: |
-            cd core
-            npm install
-            node_modules/.bin/tsc
+          command: npm run compile:core:prod
+      - run:
+          name: Install npm packages and compile for sails-ng-common
+          command: npm run compile:sails-ng-common:prod
       - run:
           name: Install npm packages and compile for project
-          command: |
-            npm install --production
-            node_modules/.bin/tsc
+          command: npm run compile:sails:prod
       - run:
           name: Install nvm
           command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -49,15 +47,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: |
-            cd core
-            npm install
-            node_modules/.bin/tsc
+          command: npm run compile:core:prod
+      - run:
+          name: Install npm packages and compile for sails-ng-common
+          command: npm run compile:sails-ng-common:prod
       - run:
           name: Install npm packages and compile for project
-          command: |
-            npm install --production
-            node_modules/.bin/tsc
+          command: npm run compile:sails:prod
       - run:
           name: Compile sails app using webpack
           command: npm run webpack
