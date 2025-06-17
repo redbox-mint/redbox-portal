@@ -1,9 +1,8 @@
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import { FormComponentLayoutDefinition } from './config.model';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { Component, viewChild, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
+import { FormValidatorComponentErrors, FormComponentLayoutDefinition } from "@researchdatabox/sails-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 
 /**
  * Default Form Component Layout
@@ -32,11 +31,11 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
   @if (model && componentDefinition) {
     @if (componentDefinition.config?.label) {
       <label class="form-label">
-        <span [innerHtml]="componentDefinition?.config?.label"></span>
+        <span [innerHtml]="componentDefinition.config?.label"></span>
         <span
           *ngIf="isRequired"
           class="form-field-required-indicator"
-          [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+          [innerHTML]="componentDefinition.config?.labelRequiredStr"></span>
         @if (componentDefinition.config?.helpText) {
           <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
           <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
@@ -44,7 +43,7 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
         }
       </label>
       @if (helpTextVisible) {
-        <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
+        <span class="help-block" [innerHtml]="componentDefinition.config?.helpText"></span>
       }
     }
     <ng-container #componentContainer></ng-container>
@@ -75,7 +74,7 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
-  componentClass?: typeof FormFieldBaseComponent | null;
+  componentClass?: typeof FormFieldBaseComponent<ValueType> | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;

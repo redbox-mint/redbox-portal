@@ -1,9 +1,12 @@
 import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormFieldCompMapEntry, FormConfig, FormBaseWrapperComponent, DefaultLayoutComponent } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
+import {  FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
+import {FormBaseWrapperComponent} from "./base-wrapper.component";
+import {DefaultLayoutComponent} from "./default-layout.component";
 
 /**
  * Repeatable Form Field Component
