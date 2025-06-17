@@ -1,11 +1,11 @@
-import {Component, inject, Inject, Injector, Input} from '@angular/core';
+import {Component, Inject, Injector, Input} from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldModel,
 } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
-import { FormValidatorSummaryErrors } from "@researchdatabox/sails-ng-common";
 import {FormComponent} from "../form.component";
+import { FormValidatorSummaryErrors } from "@researchdatabox/sails-ng-common";
 
 export class ValidationSummaryFieldModel extends FormFieldModel<string> {
 }
@@ -39,10 +39,8 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
       The form is valid.
     </div>
     <ng-container *ngIf="isDebug">
-      <div class="alert alert-info" role="alert">
-        <h4>Validation Summary Component Debug</h4>
-        <pre [innerHtml]="validationList | json"></pre>
-      </div>
+      <h3>Live Validation Value</h3>
+      <pre [innerHtml]="validationList | json"></pre>
     </ng-container>
   `,
   standalone: false
@@ -57,23 +55,28 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
    */
   @Input() public override model?: ValidationSummaryFieldModel;
 
-  private injector = inject(Injector);
-
   constructor(
     @Inject(FormService) private formService: FormService,
+    private _injector: Injector,
   ) {
     super();
   }
 
+  override get isDebug(): boolean {
+    const formComponent = this.getFormComponent;
+    return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
+  }
+
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
-    const formComponent = this.getFormComponent();
+    const formComponent = this.getFormComponent;
     const componentDefs = formComponent?.formDefMap?.formConfig.componentDefinitions;
     return this.formService.getFormValidatorSummaryErrors(componentDefs, null, formComponent?.form);
   }
 
-  protected override getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+  private get getFormComponent(): FormComponent {
+    return this._injector.get(FormComponent);
   }
+
   public override initChildConfig(): void {
   }
 }

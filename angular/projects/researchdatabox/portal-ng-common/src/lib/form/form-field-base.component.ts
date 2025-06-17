@@ -1,11 +1,12 @@
 import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
-import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, AfterViewInit, DoCheck, ApplicationRef } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
+import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit, DoCheck } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, has as _has, set as _set, keys as _keys} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus, TooltipsModel} from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
+
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -15,8 +16,8 @@ import { LoDashTemplateUtilityService } from '../lodash-template-utility.service
  *
  */
 @Directive()
-export abstract class FormFieldBaseComponent<ValueType = string | undefined> implements AfterViewInit, DoCheck  {
-  protected logName = "FormFieldBaseComponent";
+export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit, DoCheck {
+  protected logName: string | null = "FormFieldBaseComponent";
   public name:string = '';
   public model?: FormFieldModel<ValueType> | null | undefined = null;
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
@@ -32,14 +33,20 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public tooltips: TooltipsModel | null | undefined = null;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
-  public formFieldComponentRef?: ComponentRef<FormFieldBaseComponent>;
+
+  protected viewInitialised = signal<boolean>(false);
+
+  @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
+  @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
 
   public expressions: any[] = [];
   public expressionStateChanged: boolean = false;
 
   protected lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
+
+
   protected utilityService = inject(UtilityService);
-  protected loggerService = inject(LoggerService);
+  protected loggerService: LoggerService = inject(LoggerService);
 
   /**
    * For obtaining a reference to the FormComponent instance.
@@ -72,7 +79,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
    *
    * @param formFieldCompMapEntry
    */
-  async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined) {
+  async initComponent(formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined): Promise<void> {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
@@ -91,7 +98,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
-
+  
   ngDoCheck() {
     if(this.componentViewReady) {
       //Checking expressions undefined ensures it runs only for components that have expressions defined in their component definition
@@ -204,6 +211,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.initConfig();
     this.componentViewReady = true;
     this.loggerService.debug(`FieldComponent ngAfterViewInit: componentViewReady:`, this.componentViewReady);
+    this.viewInitialised.set(true);
   }
 
   public abstract initChildConfig():void;
@@ -397,6 +405,23 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
     this.loggerService.debug(`${this.logName}: in setComponentReady component '${name}' is ready.`);
     this.status.set(FormFieldComponentStatus.READY);
   }
+
+  isStatusReady(): boolean {
+    return this.status() === FormFieldComponentStatus.READY;
+  }
+
+  protected untilViewIsInitialised(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const checkStatus = () => {
+        if (this.viewInitialised()) {
+          resolve();
+        } else {
+          setTimeout(checkStatus, 10);
+        }
+      };
+      checkStatus();
+    });
+  }
 }
 
 /**
@@ -413,6 +438,8 @@ export interface FormFieldCompMapEntry {
   compConfigJson: FormComponentDefinition<unknown>;
   model?: FormFieldModel<unknown> | null;
   component?: FormFieldBaseComponent<unknown> | null;
-  layout?: FormFieldBaseComponent | null;
+  componentRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
+  layout?: FormFieldBaseComponent<unknown> | null;
+  layoutRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
   componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> } | null | undefined;
 }

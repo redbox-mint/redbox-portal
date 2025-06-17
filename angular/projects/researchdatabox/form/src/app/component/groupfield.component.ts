@@ -1,7 +1,8 @@
 import {
   Component,
   ComponentRef,
-  inject, Injector,
+  inject,
+  Injector,
   Input,
   OnDestroy,
   signal,
@@ -16,7 +17,6 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfig,
-  FormStatus,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
@@ -43,6 +43,10 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     return this.formDefMap?.components ?? [];
   }
 
+  public get debugValue() {
+    return this.formDefMap?.formConfig?.debugValue ?? false;
+  }
+
   public get defaultComponentConfig() {
     return this.formDefMap?.formConfig?.defaultComponentConfig;
   }
@@ -51,10 +55,13 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // Don't call the super method, as this model needs a FormGroup, and needs to populate it differently.
     // super.postCreate();
 
-    // Store the initial value.
-    this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
+    // Init with empty object if no default value.
+    if (!this.fieldConfig.config?.defaultValue) {
+      _set(this.fieldConfig, 'config.defaultValue', {});
+    }
 
-    // TODO: create or configure the validators
+    // Store the initial value.
+    this.initValue = _get(this.fieldConfig, 'config.value', this.fieldConfig.config?.defaultValue);
 
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
@@ -90,14 +97,11 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
     <ng-container #componentContainer/>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
-
-    <ng-container *ngIf="(model?.components?.length ?? 0) > 0 && isDebug">
+    @if (isStatusReady() && (model?.components?.length ?? 0) > 0 && model?.debugValue) {
       <div class="alert alert-info" role="alert">
         <h4>Group Component Debug</h4>
         <ul>
           <li>status: {{ status() }}</li>
-          <li>groupStatus: {{ groupStatus() }}</li>
-          <li>componentsLoaded: {{ componentsLoaded() }}</li>
           <li>children:
             <ul>
               @for(component of model?.components; track component.component){
@@ -107,7 +111,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
           </li>
         </ul>
       </div>
-    </ng-container>
+    }
   `,
   standalone: false
 })
@@ -118,12 +122,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   @Input() public override model?: GroupFieldModel;
   protected override logName: string = "GroupFieldComponent";
   /**
-   * A group status separate from this component's own status.
-   * @private
-   */
-  protected groupStatus = signal<FormStatus>(FormStatus.INIT);
-  protected componentsLoaded = signal<boolean>(false);
-  /**
    * Provide access to the NgContainer to allow creating child components.
    * @private
    */
@@ -132,6 +130,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     static: false
   })
   private componentContainer!: ViewContainerRef;
+  private elementFormConfig?: FormConfig;
   /**
    * Store references to the created wrapper components.
    * @private
@@ -145,7 +144,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     this.wrapperComponentRefs = [];
   }
 
-  protected getFormComponent(): FormComponent {
+  protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
 
@@ -158,31 +157,22 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     }
   }
 
-  /**
-   * Notification hook for when a component is ready.
-   *
-   * @param componentEntry - The component entry that is ready.
-   */
-  protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    const thisName = this.utilityService.getNameClass(this.formFieldCompMapEntry);
-    const componentName = this.utilityService.getNameClass(componentEntry);
-    this.loggerService.debug(`${this.logName}: component '${componentName}' registered as ready.`);
-    this.formService.triggerComponentReady(thisName, this.model?.formDefMap, this.componentsLoaded, this.groupStatus);
-  }
-
   protected override async initData() {
     // Build a form config to store the info needed to build the components.
-    const formConfig = new FormConfig();
-
-    // Store the child component definitions.
-    formConfig.componentDefinitions = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [];
-
-    // Get the default config
-    const formComponent = this.getFormComponent();
-    formConfig.defaultComponentConfig = formComponent.formDefMap?.formConfig?.defaultComponentConfig;
+    const formConfig = this.getFormComponent.formDefMap?.formConfig;
+    this.elementFormConfig = {
+      // Store the child component definitions.
+      componentDefinitions: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [],
+      // Get the debugValue from the FormComponent.
+      debugValue: formConfig?.debugValue,
+      // Get the default config.
+      defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // Get the validator definitions so the child components can use them.
+      validatorDefinitions: formConfig?.validatorDefinitions,
+    };
 
     // Construct the components.
-    const formDefMap = await this.formService.createFormComponentsMap(formConfig);
+    const formDefMap = await this.formService.createFormComponentsMap(this.elementFormConfig);
 
     // Create the form group from the form components map.
     const formGroupMap = this.formService.groupComponentsByName(formDefMap);
@@ -193,32 +183,24 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   }
 
   protected override async setComponentReady(): Promise<void> {
+    await this.untilViewIsInitialised();
     const thisName = this.utilityService.getNameClass(this.formFieldCompMapEntry);
     this.loggerService.debug(`${this.logName}: component '${thisName}' is ready, it will now create child components.`);
 
     // Create the wrapper components and set the properties from the model components.
     for (const component of this.model?.components ?? []) {
       const wrapperCompRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
-      wrapperCompRef.instance.model = component.model;
-      wrapperCompRef.instance.componentClass = component.layoutClass || component.componentClass;
-      wrapperCompRef.instance.formFieldCompMapEntry = component;
       wrapperCompRef.instance.defaultComponentConfig = this.model?.defaultComponentConfig;
 
-      // TODO: is this needed? FormBaseWrapperComponent.initComponent doesn't exist.
-      // prepare the FormFieldCompMapEntry including the 'model' field
-      // await wrapperCompRef.instance.initComponent(<the prepared compMapEntry as above>);
+      await wrapperCompRef.instance.initWrapperComponent(component);
 
-      // child should be ready at this point
       this.wrapperComponentRefs.push(wrapperCompRef);
-
-      // call detectChanges to run ngOnInit
-      wrapperCompRef.changeDetectorRef.detectChanges();
     }
 
     // finally set the status to 'READY'
     await super.setComponentReady();
   }
-
+  
   public override initChildConfig(): void {
   }
 }

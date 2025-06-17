@@ -65,12 +65,14 @@ export class FormComponent extends BaseComponent {
   /**
    * The form components
    */
-  components: FormFieldCompMapEntry[] = [];
+  componentDefArr: FormFieldCompMapEntry[] = [];
   formDefMap?: FormComponentsMap;
   modulePaths:string[] = [];
 
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
+
+  @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -88,7 +90,7 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
-
+    
     effect(() => {
       if (this.componentsLoaded()) {
         this.registerUpdateExpression();
@@ -123,32 +125,61 @@ export class FormComponent extends BaseComponent {
       this.loggerService.log(`${this.logName}: creating form definition from provided config`);
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
     }
-    const formGroupInfo = this.formService.createFormGroup(this.formDefMap);
-    if (formGroupInfo !== undefined) {
-      this.form = formGroupInfo.form;
-      // setting components will trigger the form to be rendered
-      this.components = formGroupInfo.components;
+    this.createFormGroup();
+    const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
+    // const compContainerRef:ViewContainerRef | undefined = this.componentsContainer();
+    if (!compContainerRef) {
+      this.loggerService.error(`${this.logName}: No component container found. Cannot load components.`);
+      throw new Error(`${this.logName}: No component container found. Cannot load components.`);
+    }
+    for (const componentDefEntry of this.componentDefArr){
+      const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
+      componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
+      componentRef.changeDetectorRef.detectChanges();
+
+      componentDefEntry.component = await componentRef.instance.initWrapperComponent(componentDefEntry);
     }
     // TODO: set up the event handlers
+
+    // Set the status to READY if all components are loaded
+    this.status.set(FormStatus.READY);
+    this.componentsLoaded.set(true);
   }
 
   /**
-   * Notification hook for when a component is ready.
-   *
-   * @param componentEntry - The component entry that is ready.
+   * Create the form group based on the form definition map.
    */
-  protected registerComponentReady(componentEntry: FormFieldCompMapEntry): void {
-    const thisName = this.appName;
-    const componentName = this.utilityService.getNameClass(componentEntry);
-    this.loggerService.debug(`${this.logName}: component '${componentName}' registered as ready.`);
-    this.formService.triggerComponentReady(thisName, this.formDefMap, this.componentsLoaded, this.status);
+  private createFormGroup(): void {
+    if (this.formDefMap && this.formDefMap.formConfig) {
+      const components = this.formDefMap.components;
+      // set up the form group
+      const formGroupMap = this.formService.groupComponentsByName(this.formDefMap);
+      this.loggerService.debug(`${this.logName}: formGroup:`, formGroupMap);
+      // create the form group
+      if (!_isEmpty(formGroupMap.withFormControl)) {
+        this.form = new FormGroup(formGroupMap.withFormControl);
+
+        // set up validators
+        const validatorDefinitions = this.formDefMap.formConfig.validatorDefinitions;
+        const validatorConfig = this.formDefMap.formConfig.validators;
+        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
+        this.formService.setValidators(this.form, validators);
+
+        // setting this will trigger the form to be rendered
+        this.componentDefArr = components;
+      } else {
+        const msg = `No form controls found in the form definition. Form cannot be rendered.`;
+        this.loggerService.error(`${this.logName}: ${msg}`);
+        throw new Error(msg);
+      }
+    }
   }
 
   protected registerUpdateExpression(){
     if(this.componentsLoaded()) {
       if(!_isUndefined(this.form)) {
         this.form.valueChanges.subscribe((value) => {
-          for(let compEntry of this.components) {
+          for(let compEntry of this.componentDefArr) {
             let compName = _get(compEntry,'name','');
             this.loggerService.info(`FormComponent: valueChanges: `, compName);
             if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
