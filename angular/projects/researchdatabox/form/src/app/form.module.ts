@@ -27,8 +27,14 @@ import { FormService } from './form.service';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
 import {GroupFieldComponent} from "./component/groupfield.component";
+import {DefaultLayoutComponent} from "./component/default-layout.component";
+import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
+import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 @NgModule({
   declarations: [
+    DefaultLayoutComponent,
+    FormBaseWrapperComponent,
+    FormBaseWrapperDirective,
     FormComponent,
     TextFieldComponent,
     ValidationSummaryFieldComponent,

@@ -10,16 +10,18 @@ import {
 } from '@angular/core';
 import {FormGroup} from "@angular/forms";
 import {
-  FormBaseWrapperComponent,
-  FormConfig,
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
   FormFieldModel,
-  FormStatus
 } from "@researchdatabox/portal-ng-common";
+import {
+  FormConfig,
+} from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {get as _get} from "lodash-es";
 import {FormComponent} from "../form.component";
+import {get as _get, set as _set} from "lodash-es";
+import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
 
 export type GroupFieldModelValueType = { [key: string]: unknown };

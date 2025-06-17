@@ -1,14 +1,4 @@
-import {
-  FormValidatorErrors,
-  FormValidatorConfig,
-  FormValidatorControl,
-  FormValidatorFn,
-  FormValidatorCreateFn,
-  FormValidatorDefinition,
-  FormValidatorBlock,
-  FormValidatorComponentErrors,
-  FormValidatorSummaryErrors,
-} from '@researchdatabox/sails-ng-common';
+import { FormValidatorBlock, FormValidatorDefinition } from "./validation";
 
 /**
  * These classes are used to define the configuration for the form and form components.
@@ -62,8 +52,8 @@ export interface HasFormComponentClass {
   class?: string | null | undefined; // makes the 'layout' optional
 }
 
-export interface HasFormComponentConfigBlock {
-  config?: any;
+export interface HasFormComponentConfig {
+  config?: object | null | undefined;
 }
 /**
  * The form component configuration definition.

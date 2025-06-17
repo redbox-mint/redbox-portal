@@ -1,9 +1,8 @@
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import { FormComponentLayoutDefinition } from './config.model';
-import { isEmpty as _isEmpty, set as _set, get as _get, keys as _keys } from 'lodash-es';
-import { Component, ViewChild, ViewContainerRef, TemplateRef, ComponentRef, AfterViewInit } from '@angular/core';
+import { isEmpty as _isEmpty } from 'lodash-es';
+import { Component, viewChild, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
+import { FormValidatorComponentErrors, FormComponentLayoutDefinition } from "@researchdatabox/sails-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 
 /**
  * Default Form Component Layout
@@ -31,12 +30,12 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
   template: `
   @if (isVisible && model && componentDefinition) {
     @if (componentDefinition.config?.label) {
-      <label class="form-label" [attr.title]="tooltips ? tooltips['labelTT'] : ''">
-        <span [innerHtml]="componentDefinition?.config?.label"></span>
+      <label class="form-label">
+        <span [innerHtml]="componentDefinition.config?.label"></span>
         <span
           *ngIf="isRequired"
           class="form-field-required-indicator"
-          [innerHTML]="componentDefinition?.config?.labelRequiredStr"></span>
+          [innerHTML]="componentDefinition.config?.labelRequiredStr"></span>
         @if (componentDefinition.config?.helpText) {
           <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility(name)" [attr.aria-label]="'help' | i18next ">
           <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
@@ -44,7 +43,7 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
         }
       </label>
       @if (helpTextVisible) {
-        <span class="help-block" [innerHtml]="componentDefinition?.config?.helpText"></span>
+        <span class="help-block" [innerHtml]="componentDefinition.config?.helpText"></span>
       }
     }
     <ng-container #componentContainer></ng-container>
@@ -75,12 +74,8 @@ import { FormValidatorComponentErrors } from "@researchdatabox/sails-ng-common";
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements AfterViewInit {
   protected override logName = "DefaultLayoutComponent";
-  helpTextVisible: boolean = false;  
-  labelRequiredStr: string = '';
-  helpTextVisibleOnInit: boolean = false;
-  public clickedBy: string = '';
-  componentClass?: typeof FormFieldBaseComponent | null;
-  
+  helpTextVisible: boolean = false;
+  componentClass?: typeof FormFieldBaseComponent<ValueType> | null;
   public override componentDefinition?: FormComponentLayoutDefinition;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false })

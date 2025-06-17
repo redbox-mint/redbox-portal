@@ -16,21 +16,15 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import {Component, Inject, Input, ElementRef, signal, HostBinding, effect} from '@angular/core';
-import {Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
-import {FormGroup} from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get} from 'lodash-es';
-import {
-  ConfigService,
-  LoggerService,
-  TranslationService,
-  BaseComponent,
-  FormFieldCompMapEntry,
-  FormStatus,
-  FormConfig,
-  UtilityService,
-} from '@researchdatabox/portal-ng-common';
-import {FormComponentsMap, FormService} from './form.service';
+import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect } from '@angular/core';
+import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
+import { FormGroup } from '@angular/forms';
+import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService } from '@researchdatabox/portal-ng-common';
+import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
+import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
+import { FormComponentsMap, FormService } from './form.service';
+
 /**
  * The ReDBox Form
  *

@@ -30,26 +30,22 @@ sudo chmod -R 777 support/development/.dev
 mkdir -p support/development/devdata
 sudo chmod -R 777 support/development/devdata
 
-show_step 'Install npm packages for core.'
-cd core
-npm install
-node_modules/.bin/tsc
-cd ..
+show_step 'Build core.'
+npm run compile:core
 
-show_step 'Compile core.'
-npm install
-node_modules/.bin/tsc
+show_step 'Build sails-ng-common.'
+npm run compile:sails-ng-common
 
-show_step 'Compile backend.'
+show_step 'Build sails.'
 npm run compile:sails
 
-show_step 'Compile frontend apps.'
+show_step 'Build angular apps.'
 # portal-ng-form-custom can be partially created, remove it
 # it will be created as part of building the angular apps
-sudo rm -r ../portal-ng-form-custom
+sudo rm -r ../portal-ng-form-custom || true
 npm run compile:ng-apps
 
-show_step 'Compile frontend legacy.'
+show_step 'Build angular legacy apps.'
 npm run compile:ng-legacy
 
 show_step 'Compile frontend assets.'

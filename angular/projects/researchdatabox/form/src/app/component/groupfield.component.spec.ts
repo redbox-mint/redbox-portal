@@ -20,18 +20,8 @@ import {APP_BASE_HREF} from '@angular/common';
 import {ReactiveFormsModule} from '@angular/forms';
 import {TestBed} from '@angular/core/testing';
 
-import {
-  ConfigService,
-  FormConfig,
-  getStubConfigService,
-  getStubTranslationService,
-  LoggerService,
-  RedboxPortalCoreModule,
-  TranslationService,
-  UtilityService
-} from '@researchdatabox/portal-ng-common';
-import { FormComponent } from '../form.component';
-import { TextFieldComponent } from './textfield.component';
+import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {TextFieldComponent} from './textfield.component';
 import {GroupFieldComponent} from "./groupfield.component";
 
 

@@ -1,0 +1,6 @@
+.idea/
+.nyc_output/
+*.iml
+node_modules/
+dist/
+support/junit/

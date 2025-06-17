@@ -12,13 +12,12 @@ import {
   effect, untracked, OnDestroy
 } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
-import { FormFieldModel } from './base.model';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
-import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
+
 import { set as _set, get as _get } from 'lodash-es';
-import { LoggerService } from '../logger.service';
-import {UtilityService} from "../utility.service";
-import {FormFieldComponentStatus} from "./status.model";
+import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
+import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+
+
 
 /**
  * Form Component Wrapper.
@@ -35,14 +34,10 @@ import {FormFieldComponentStatus} from "./status.model";
   `,
     standalone: false
 })
-export class FormBaseWrapperComponent<ValueType> implements OnInit, OnChanges, OnDestroy {
-  protected logName = "FormBaseWrapperComponent";
-  @Input() model?: FormFieldModel<ValueType> | null | undefined = null;
+export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
+  protected override logName: string | null = "FormBaseWrapperComponent";
   @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
-  @Input() formFieldCompMapEntry: FormFieldCompMapEntry | null | undefined = null;
-  @Input() componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
-  @Input() defaultComponentConfig?: { [key: string]: { [key: string]: string } | string | null } | string | null | undefined = null;
-  @Input() public expressionStateChanged:boolean = false;
+  @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
@@ -67,6 +62,15 @@ export class FormBaseWrapperComponent<ValueType> implements OnInit, OnChanges, O
     this.loggerService.info(`${this.logName}: Starting loadComponent for '${name}'.`);
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
     viewContainerRef.clear();
+    if (!viewContainerRef) {
+      throw new Error(`${this.logName}: ViewContainerRef is not provided. Cannot initialize the component.`);
+    }
+
+    // Select which class to use.
+    const compClass = omitLayout ? this.componentClass : (this.formFieldCompMapEntry?.layoutClass || this.componentClass);
+    // TODO: can typescript typeof be converted to angular Type?
+    //       Casting to unknown then to the angular Type is bit odd?
+    const comClassTyped = compClass as unknown as Type<FormFieldBaseComponent<ValueType>>;
 
     this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(this.componentClass as Type<FormFieldBaseComponent<ValueType>>);
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
