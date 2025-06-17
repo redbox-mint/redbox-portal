@@ -100,7 +100,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
     if(this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
-      this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent;
+      this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
 }
   /**

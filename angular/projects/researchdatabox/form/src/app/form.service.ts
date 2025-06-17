@@ -43,6 +43,7 @@ import {formValidatorsSharedDefinitions} from "./validators";
 
 
 
+
 /**
  *
  * FormService
@@ -135,40 +136,16 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent',
-            config: {
-              disabled: false
-            }
-          },
-          expressions: [
-            {
-              //Target component that will be affected
-              targetComponent: 'text_2',
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'visible',
-              //Expression that will will be evaluated and will yield a result that may or may not trigger a state change
-              //For the moment the expression is evaluated as a lodash template but there may other types of expressions
-              //implemented in the future??? 
-              expression: { 
-                             template: `<% if(_.isEmpty(data)) {
-                                         return false;
-                                       } else {
-                                         return true;
-                                       } %>`
-                          }
-            }
-          ]
+            class: 'TextFieldComponent'
+          }
         },
         {
           name: 'text_2',
           layout: {
             class: 'DefaultLayoutComponent',
             config: {
-              name: 'text2_layout',
-              label: 'TextField with default layout defined',
-              helpText: 'This is a help text for field 2',
-              visible: true,
-              tooltips: { 'fieldTT': 'field tooltip 2', 'labelTT': 'label tooltip 2', }
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
             }
           },
           model: {
@@ -182,137 +159,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent',
-            config: {
-              visible: true,
-              disabled: false,
-              readonly: false
-            }
-          },
-          expressions: [
-            {
-              //Target component that will be affected
-              targetComponent: 'text_3',
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'helpTextVisible',
-              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
-              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
-              //there may other types of expressions implemented in the future??? 
-              expression: {
-                             template: `<% if(_.get(field.getLayoutByName('text_2'),'helpTextVisible',true)) {
-                                         return true;
-                                       } else {
-                                         return false;
-                                       } %>`
-                          }
-            },
-            {
-              //Target component that will be affected
-              targetComponent: 'text_4',
-              //No target then result of expression is applied to self
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'helpTextVisible',
-              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
-              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
-              //there may other types of expressions implemented in the future??? 
-              expression: {
-                             template: `<% if(_.get(field.getLayoutByName('text_2'),'helpTextVisible',true)) {
-                                         return true;
-                                       } else {
-                                         return false;
-                                       } %>`
-                          }
-            }
-          ]
+            class: 'TextFieldComponent'
+          }
         },
-        {
-          name: 'text_3',
-          layout: {
-            class: 'DefaultLayoutComponent',
-            config: {
-              label: 'TextField with default layout defined',
-              helpText: 'This is a help text for field 3',
-              helpTextVisibleOnInit: true,
-              visible: true,
-              tooltips: { 'fieldTT': 'field tooltip 3', 'labelTT': 'label tooltip 3', }
-            }
-          },
-          model: { 
-            class: 'TextFieldModel',
-            config: {
-              value: 'hello world 3!',
-            }
-          },
-          component: {
-            class: 'TextFieldComponent',
-            config: {
-              visible: true,
-              disabled: false,
-              readonly: false
-            }
-          },
-          expressions: [
-            {
-              //If no target component is specified the target is itself
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'visible',
-              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
-              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
-              //there may other types of expressions implemented in the future??? 
-              expression: {
-                             template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
-                                         return false;
-                                       } else {
-                                         return true;
-                                       } %>`
-                          }
-            }
-          ]
-        },
-        {
-          name: 'text_4',
-          layout: {
-            class: 'DefaultLayoutComponent',
-            config: {
-              label: 'TextField with default layout defined',
-              helpText: 'This is a help text for field 4',
-              visible: true,
-              tooltips: { 'fieldTT': 'field tooltip 4', 'labelTT': 'label tooltip 4', }
-            }
-          },
-          model: { 
-            class: 'TextFieldModel',
-            config: {
-              value: 'hello world 4!',
-            }
-          },
-          component: {
-            class: 'TextFieldComponent',
-            config: {
-              visible: true,
-              disabled: false,
-              readonly: false
-            }
-          },
-          expressions: [
-            {
-              //If no target component is specified the target is itself
-              //Because the target is itself a property like label can exist in the component and also in the layout component
-              targetLayout: true,
-              //Target property in the component that will be assigned a value after evaluating the expression
-              targetProperty: 'label',
-              //Expression that will be evaluated and will yield a result that will be assigned to the target property and
-              //may or may not trigger a state change. For the moment the expression is evaluated as a lodash template but 
-              //there may other types of expressions implemented in the future???
-              expression: {
-                             template: `<% let label = _.get(model,'text_2','');
-                                           return label;
-                                          %>`
-                          }
-            }
-          ]
-        },
-        {
+         {
           // first group component
           name: 'group_1_component',
           layout: {
@@ -412,6 +262,40 @@ export class FormService {
               ]
             }
           }
+        },
+        {
+          name: 'repeatable_1',
+          model: {
+            class: 'RepeatableComponentModel',
+            config: {
+              value: ['hello world from repeatable!'],
+              defaultValue: ['hello world from repeatable, default!']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                model: {
+                  class: 'TextFieldModel',
+                  config: {
+                    editCssClasses: 'redbox-form row',
+                    defaultValue: 'hello world from elementTemplate!',
+                  }
+                },
+                component: {
+                  class: 'TextFieldComponent'
+                }
+              },
+            },
+          },
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              label: 'Repeatable TextField with default wrapper defined',
+              helpText: 'Repeatable component help text',
+            }
+          },
         },
         {
           name: 'validation_summary_1',
@@ -552,21 +436,12 @@ export class FormService {
     return componentClass
   }
 
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): FormFieldCompMapEntry[] {
+  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): void {
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${this.utilityService.getNamesClasses(components)}.`);
     const validatorDefinitions = formConfig.validatorDefinitions;
     for (let compEntry of components) {
-      if (compEntry.modelClass) {
-        const ModelType = compEntry.modelClass as typeof FormFieldModel;
-        const modelConfig = compEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
-        const validatorConfig = modelConfig?.config?.validators ?? [];
-        const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
-        compEntry.model = new ModelType(modelConfig, validators) as FormFieldModel<unknown>;
-      } else {
-        this.logNotAvailable(compEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
-      }
+      this.createFormFieldModelInstance(compEntry, validatorDefinitions);
     }
-    return components;
   }
 
   public createFormFieldModelInstance(
@@ -705,32 +580,6 @@ export class FormService {
   }
 
   /**
-   * Create the form group based on the form definition map.
-   * @param formDefMap The form components map.
-   */
-  public createFormGroup(formDefMap: FormComponentsMap): {
-    form: FormGroup,
-    components: FormFieldCompMapEntry[]
-  } | undefined {
-    this.loggerService.debug(`${this.logName}: create form group`, formDefMap);
-    if (formDefMap && formDefMap.formConfig) {
-      const components = formDefMap.components;
-      // set up the form group
-      const formGroupMap = this.groupComponentsByName(formDefMap);
-      this.loggerService.debug(`${this.logName}: form group map`, formGroupMap);
-      // create the form group
-      if (!_isEmpty(formGroupMap.withFormControl)) {
-        return {form: new FormGroup(formGroupMap.withFormControl), components: components};
-      } else {
-        const msg = `No form controls found in the form definition. Form will not be rendered.`;
-        this.loggerService.warn(`${this.logName}: ${msg}`);
-        throw new Error(msg);
-      }
-    }
-    return undefined;
-  }
-
-  /**
    * Notification hook for when components are ready.
    */
   public triggerComponentReady(
@@ -764,6 +613,26 @@ export class FormService {
   private logNotAvailable(name: string, itemType: string, availableItems: { [index: string]: any }): void {
     this.loggerService.error(`${this.logName}: ${itemType} with name '${name}' not found in list. ` +
       `Check the spelling and whether it is declared in the following list.`, availableItems);
+  }
+
+  /**
+   * Apply the validators to the form control.
+   */
+  public setValidators(
+    formControl: AbstractControl | null | undefined,
+    validators?: FormValidatorFn[] | null | undefined
+  ): void {
+    // TODO: This method is duplicated in FormFieldModel.setValidators, see if they can be collapsed to one place.
+    // set validators to the form control
+    const validatorFns = validators?.filter(v => !!v) ?? [];
+    this.loggerService.debug(`${this.logName}: setting validators to formControl`, {
+      validators: validators,
+      formControl: formControl
+    });
+    if (formControl && validatorFns.length > 0) {
+      formControl?.setValidators(validatorFns);
+      formControl?.updateValueAndValidity();
+    }
   }
 }
 

@@ -23,6 +23,10 @@ export const StaticModelCompClassMap = {
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent
   },
+  'RepeatableComponent': {
+    model: RepeatableComponentModel,
+    component: RepeatableComponent
+  },
   'ValidationSummaryField': {
     model: ValidationSummaryFieldModel,
     component: ValidationSummaryFieldComponent,
