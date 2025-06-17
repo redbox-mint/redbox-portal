@@ -33,9 +33,9 @@ services:
       # When testing using the API
       # - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       # - sails_security__csrf=false
-    # depends_on:
-    #   keycloak:
-    #     condition: service_healthy
+      # depends_on:
+      #   keycloak:
+      #     condition: service_healthy
     networks:
       main:
         aliases:
