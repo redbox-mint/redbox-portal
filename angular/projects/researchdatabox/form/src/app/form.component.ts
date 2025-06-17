@@ -20,8 +20,9 @@ import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, v
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, FormFieldComponentStatus, FormStatus, FormConfig, FormBaseWrapperComponent, UtilityService } from '@researchdatabox/portal-ng-common';
-
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService } from '@researchdatabox/portal-ng-common';
+import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
+import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 
 /**

@@ -6,10 +6,12 @@ import {
   OnDestroy
 } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from './form-field-base.component';
+
 import { set as _set, get as _get } from 'lodash-es';
-import { FormFieldComponentStatus } from './status.model';
-import {KeyValueStringNested} from "./config.model";
+import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
+import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+
+
 
 /**
  * Form Component Wrapper.
@@ -34,7 +36,7 @@ import {KeyValueStringNested} from "./config.model";
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
   protected override logName: string | null = "FormBaseWrapperComponent";
-  @Input() componentClass?: typeof FormFieldBaseComponent<ValueType> | null | undefined = null;
+  @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
@@ -83,7 +85,9 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Select which class to use.
     const compClass = omitLayout ? this.componentClass : (this.formFieldCompMapEntry?.layoutClass || this.componentClass);
-    const comClassTyped = compClass as Type<FormFieldBaseComponent<ValueType>>;
+    // TODO: can typescript typeof be converted to angular Type?
+    //       Casting to unknown then to the angular Type is bit odd?
+    const comClassTyped = compClass as unknown as Type<FormFieldBaseComponent<ValueType>>;
 
     // Create an instance of the component from the class.
     const compRef = viewContainerRef.createComponent(comClassTyped);
