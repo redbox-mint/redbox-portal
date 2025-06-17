@@ -19,11 +19,6 @@ export * from './lib/header-sort.component';
 export * from './lib/record-table.component';
 export * from './lib/form/base.model';
 export * from './lib/form/form-field-base.component';
-export * from './lib/form/config.model';
-export * from './lib/form/status.model';
 export * from './lib/form/resolver.interface';
-export * from './lib/form/base-wrapper.component';
-export * from './lib/form/base-wrapper.directive';
-export * from './lib/form/default-layout.component'
 export * from './lib/lodash-template-utility.service';
 export * from './lib/portal-ng-common.module';

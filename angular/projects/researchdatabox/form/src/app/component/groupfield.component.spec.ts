@@ -1,5 +1,5 @@
 
-import {FormConfig} from '@researchdatabox/portal-ng-common';
+import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {TextFieldComponent} from './textfield.component';
 import {GroupFieldComponent} from "./groupfield.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";

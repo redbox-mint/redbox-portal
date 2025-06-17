@@ -1,11 +1,11 @@
 import { FormFieldModel } from './base.model';
 import { FormControl } from '@angular/forms';
-import { FormFieldComponentDefinition, FormComponentLayoutDefinition } from './config.model';
 import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
-import { FormFieldComponentStatus } from './status.model';
 import { get as _get, isEmpty as _isEmpty } from 'lodash-es';
 import {UtilityService} from "../utility.service";
+import {FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
+
 /**
  * Base class for form components. Data binding to a form field is optional.
  *
@@ -75,7 +75,7 @@ export abstract class FormFieldBaseComponent<ValueType> {
     this.formFieldCompMapEntry = formFieldCompMapEntry;
     this.formFieldCompMapEntry.component = this as FormFieldBaseComponent<ValueType>;
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
-    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
+    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
   }
   /**
    * Retrieve or compute any data needed for the component.
@@ -189,7 +189,7 @@ export interface FormFieldCompMapEntry {
   modelClass?: typeof FormFieldModel | null;
   layoutClass?: typeof FormFieldBaseComponent | null;
   componentClass?: typeof FormFieldBaseComponent | null;
-  compConfigJson: any,
+  compConfigJson: FormComponentDefinition<unknown>;
   model?: FormFieldModel<unknown> | null;
   component?: FormFieldBaseComponent<unknown> | null;
   componentRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
