@@ -1,5 +1,5 @@
-import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component, viewChild, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
+import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
+import { Component, viewChild, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type, AfterViewInit } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormValidatorComponentErrors, FormComponentLayoutDefinition } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
@@ -87,7 +87,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   afterComponentTemplate!: TemplateRef<any>;
 
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<unknown>>;
-
+  public clickedBy:string = '';
+  public helpTextVisibleOnInit:boolean = false;
+  public labelRequiredStr:string = '';
   
 
   /**

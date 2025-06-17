@@ -45,9 +45,6 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   public componentRef?: ComponentRef<FormFieldBaseComponent<ValueType>>; // Store the ref if needed later
 
-  private loggerService = inject(LoggerService);
-  private utilityService = inject(UtilityService);
-
   // See https://angular.dev/guide/components/lifecycle#ngoninit
   ngOnInit() {
     this.loadComponent();
@@ -72,7 +69,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     //       Casting to unknown then to the angular Type is bit odd?
     const comClassTyped = compClass as unknown as Type<FormFieldBaseComponent<ValueType>>;
 
-    this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(this.componentClass as Type<FormFieldBaseComponent<ValueType>>);
+    this.componentRef = viewContainerRef.createComponent<FormFieldBaseComponent<ValueType>>(this.componentClass as unknown as Type<FormFieldBaseComponent<ValueType>>);
     if (this.defaultComponentConfig && this.formFieldCompMapEntry && this.formFieldCompMapEntry?.compConfigJson && this.formFieldCompMapEntry?.compConfigJson?.component) {
       _set(this.formFieldCompMapEntry, 'compConfigJson.component.config.defaultComponentCssClasses', _get(this.defaultComponentConfig, 'defaultComponentCssClasses', ''));
     }
@@ -92,5 +89,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     if (this.componentRef) {
       this.componentRef.destroy();
     }
+  }
+
+  public override initChildConfig(): void {
   }
 }

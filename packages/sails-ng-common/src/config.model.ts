@@ -113,7 +113,7 @@ export class FormFieldModelConfigBlock<ValueType> {
 /**
  * Config for the field model configuration, aka the data binding
  */
-export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldModelConfig<ValueType> implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfig {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class: string = ''; // make the class mandatory
   // set the `disabled` property: https://angular.dev/api/forms/FormControl#disabled
@@ -132,7 +132,7 @@ export class FormLayoutConfig extends FormComponentBaseConfig {
 /**
  * Config for the layout component configuration.
  */
-export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormComponentLayoutDefinition implements HasFormComponentIdentity, HasFormComponentClass, HasFormComponentConfig {
   public name?: string | null | undefined; // top-level field name, applies to field and the component, etc.
   public class?: string | null | undefined; // makes the 'layout' optional
 
@@ -148,7 +148,7 @@ export class FormFieldConfig extends FormComponentBaseConfig {
 /**
  * Config for the main component configuration.
  */
-export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfigBlock {
+export class FormFieldComponentDefinition implements HasFormComponentClass, HasFormComponentConfig {
   public class?: string | null | undefined; // makes the 'layout' optional
   public config?: FormFieldConfig | null | undefined = null;
 }

@@ -178,7 +178,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-
+  public override initChildConfig(): void {
+  }
 }
 
 
@@ -221,6 +222,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
       throw new Error(`${this.logName}: formControl is not a FormArray. Cannot remove element.`);
     }
   }
+  
 }
 
 export class RepeatableModelConfig extends FormFieldModelConfig<unknown[]> {

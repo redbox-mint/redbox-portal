@@ -16,9 +16,9 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfig,
+  FormStatus,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
-import {get as _get} from "lodash-es";
 import {FormComponent} from "../form.component";
 import {get as _get, set as _set} from "lodash-es";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
@@ -145,7 +145,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     this.wrapperComponentRefs = [];
   }
 
-  protected override getFormComponent(): FormComponent {
+  protected getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
 

@@ -1,10 +1,11 @@
 import { FormFieldModel } from './base.model';
-import { FormControl } from '@angular/forms';
-import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
+import { FormControl, FormGroup } from '@angular/forms';
+import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, AfterViewInit, DoCheck, ApplicationRef } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
-import { get as _get, isEmpty as _isEmpty } from 'lodash-es';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, has as _has, set as _set, keys as _keys} from 'lodash-es';
 import {UtilityService} from "../utility.service";
-import {FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
+import {FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus, TooltipsModel} from '@researchdatabox/sails-ng-common';
+import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -124,7 +125,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
           try {
 
-            let formComponent = this.getFormComponent();
+            let formComponent = this.getFormComponent2();
 
             if(!_isUndefined(formComponent)) {
               let components = formComponent.instance.components;
@@ -242,11 +243,11 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   }
 
   get isDebug(): boolean {
-    const formComponent = this.getFormComponent();
+    const formComponent = this.getFormComponent2();
     return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
   }
 
-  protected getFormComponent(): any {
+  protected getFormComponent2(): any {
     if(this.formComponent === undefined) {
       this.formComponent = this.appRef.components[0];
     }
@@ -255,7 +256,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
 
   protected getFormGroup(): FormGroup | undefined {
     if(this.form == undefined) {
-      this.form = this.getFormComponent()?.instance?.form;
+      this.form = this.getFormComponent2()?.instance?.form;
     }
     return this.form;
   }
@@ -263,7 +264,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public getComponentByName(targetComponentName:string): any {
     let compRef;
     try {
-      let formComponent = this.getFormComponent();
+      let formComponent = this.getFormComponent2();
 
       if(!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
@@ -285,7 +286,7 @@ export abstract class FormFieldBaseComponent<ValueType = string | undefined> imp
   public getLayoutByName(targetComponentName:string): any {
     let layoutRef;
     try {
-      let formComponent = this.getFormComponent();
+      let formComponent = this.getFormComponent2();
 
       if(!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
