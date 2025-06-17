@@ -1,10 +1,9 @@
-import {TestBed} from '@angular/core/testing';
-import {FormComponent} from './form.component';
 import {FormConfig} from '@researchdatabox/portal-ng-common';
-import {TextFieldComponent} from './component/textfield.component';
-import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
+import {TextFieldComponent} from "./textfield.component";
+import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import {TestBed} from "@angular/core/testing";
 
-describe('FormComponent', () => {
+describe('TextFieldComponent', () => {
   let configService: any;
   let translationService: any;
   beforeEach(async () => {
@@ -14,14 +13,13 @@ describe('FormComponent', () => {
     configService = testbedModuleResult.configService;
     translationService = testbedModuleResult.translationService;
   });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(FormComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+  it('should create component', () => {
+    let fixture = TestBed.createComponent(TextFieldComponent);
+    let component = fixture.componentInstance;
+    expect(component).toBeDefined();
   });
-
-  it('should render basic form config', async () => {
+  it('should render TextField component', async () => {
+    // arrange
     const formConfig: FormConfig = {
       debugValue: true,
       defaultComponentConfig: {
@@ -45,6 +43,8 @@ describe('FormComponent', () => {
         }
       ]
     };
+
+    // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
     // Now run your expectations
