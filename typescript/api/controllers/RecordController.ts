@@ -43,7 +43,7 @@ declare var DashboardTypesService;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion } from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -310,7 +310,7 @@ export module Controllers {
     }
 
     private async createInternal(req, res) {
-      const newRespFormat = req.param('newRespFormat', 'false')?.toString() === 'true';
+      const apiVersion = this.getApiVersion(req);
       try {
         const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const metadata = req.body;
@@ -332,10 +332,13 @@ export module Controllers {
         let createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep);
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
-          const okResponse = newRespFormat ? await this.buildResponseSuccessRecord(createResponse.oid, createResponse) : createResponse;
-          this.ajaxOk(req, res, null, okResponse);
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, createResponse));
+          } else {
+            this.ajaxOk(req, res, null, createResponse);
+          }
         } else {
-          if (newRespFormat) {
+          if (apiVersion === ApiVersion.VERSION_2_0) {
             this.ajaxFail(req, res, null, await this.buildResponseError([{detail: createResponse.message}], createResponse));
           } else {
             this.ajaxFail(req, res, createResponse.message);
@@ -344,7 +347,7 @@ export module Controllers {
 
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
-        if (newRespFormat) {
+        if (apiVersion === ApiVersion.VERSION_2_0) {
           this.ajaxFail(req, res, null, await this.buildResponseError([{detail: msg}], {}));
         } else {
           this.ajaxFail(req, res, msg);
@@ -393,13 +396,13 @@ export module Controllers {
     public async restoreRecord(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
-      const newRespFormat = req.param('newRespFormat', 'false')?.toString() === 'true';
-
+      const apiVersion = this.getApiVersion(req);
+      const msgFailed = TranslationService.t('failed-restore');
       if (_.isEmpty(oid)) {
-        this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+        this.ajaxFail(req, res, msgFailed, {
           success: false,
           oid: oid,
-          message: TranslationService.t('failed-restore')
+          message: msgFailed
         });
         return;
       }
@@ -411,18 +414,21 @@ export module Controllers {
           oid: oid
         };
         sails.log.verbose(`Successfully restored: ${oid}`);
-        const okResponse = newRespFormat ? await this.buildResponseSuccessRecord(oid, resp) : resp;
-        this.ajaxOk(req, res, null, okResponse);
+        if (apiVersion === ApiVersion.VERSION_2_0) {
+          this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(oid, resp));
+        } else {
+          this.ajaxOk(req, res, null, resp);
+        }
       } else {
         const data = {
           success: false,
           oid: oid,
           message: response.message
         };
-        if (newRespFormat){
-          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: response.message, title: TranslationService.t('failed-restore')}], data));
+        if (apiVersion === ApiVersion.VERSION_2_0) {
+          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: response.message, title: msgFailed}], data));
         } else {
-          this.ajaxFail(req, res, TranslationService.t('failed-restore'), data);
+          this.ajaxFail(req, res, msgFailed, data);
         }
       }
     }
@@ -471,7 +477,7 @@ export module Controllers {
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
-      const newRespFormat = req.param('newRespFormat', 'false')?.toString() === 'true';
+      const apiVersion = this.getApiVersion(req);
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
@@ -499,17 +505,23 @@ export module Controllers {
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
-          const okResponse = newRespFormat ? await this.buildResponseSuccessRecord(oid, response) : response;
-          this.ajaxOk(req, res, null, okResponse);
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(oid, response));
+          } else {
+            this.ajaxOk(req, res, null, response);
+          }
           return response;
         } else {
-          const failResponse = newRespFormat ? await this.buildResponseError([], response) : response;
-          this.ajaxFail(req, res, null, failResponse);
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            this.ajaxFail(req, res, null, await this.buildResponseError([], response));
+          } else {
+            this.ajaxFail(req, res, null, response);
+          }
         }
       } catch (error) {
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
         sails.log.error(error);
-        if (newRespFormat){
+        if (apiVersion === ApiVersion.VERSION_2_0){
           this.ajaxFail(req, res, null, await this.buildResponseError([{detail: error.message}], response));
         } else {
           this.ajaxFail(req, res, error.message);

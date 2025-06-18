@@ -1,8 +1,9 @@
+
 declare var _;
 declare var sails;
 
 import {existsSync} from 'fs';
-import {APIErrorResponse } from './model/APIErrorResponse';
+import {APIErrorResponse, ApiVersion, ApiVersionStrings} from "./model";
 export module Controllers.Core {
 
   /**
@@ -332,5 +333,38 @@ export module Controllers.Core {
       }
     }
 
+    /**
+     * Get the API version from the request.
+     * Defaults to v1.
+     * @param req The sails request.
+     * @return The API version string.
+     * @protected
+     */
+    protected getApiVersion(req): ApiVersionStrings {
+      const qs = req.query;
+      const qsKey = "apiVersion";
+      const qsKeyLower = qsKey.toLowerCase();
+
+      const headers = req.headers;
+      const headerKey = "X-ReDBox-Api-Version";
+      const headerKeyLower = headerKey.toLowerCase();
+
+      const qsValue = (_.get(qs, qsKey) ?? _.get(qs, qsKeyLower))?.toString()?.trim()?.toLowerCase();
+      const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
+
+      if (qsValue && headerValue && qsValue !== headerValue) {
+        throw new Error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match.`);
+      }
+
+      // Use the HTTP header value first, then the query string value, then default to v1.
+      const version = headerValue ?? qsValue ?? ApiVersion.VERSION_1_0;
+
+      const available = Array.from(Object.values(ApiVersion));
+      if (!available.includes(version)) {
+        throw new Error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
+      }
+
+      return version;
+    }
   }
 }
