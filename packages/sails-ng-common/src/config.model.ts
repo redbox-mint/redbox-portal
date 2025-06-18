@@ -101,6 +101,17 @@ export class FormComponentBaseConfig  {
   public label?: string = '';
   // the form-supplied css classes
   public defaultComponentCssClasses?: KeyValueStringProperty = null;
+  //
+  public disabled?: boolean = false;
+  //
+  public autofocus?: boolean = false;
+  //
+  public tooltips?: TooltipsModel | null | undefined = null;
+}
+
+export class TooltipsModel {
+  public fieldTT: string = '';
+  public labelTT: string = '';
 }
 
 export class FormFieldModelDefinition<ValueType> {
@@ -129,6 +140,8 @@ export class FormLayoutConfig extends FormComponentBaseConfig {
   public labelRequiredStr?: string = '*';
   public helpText?: string = '';
   public cssClassesMap?: Record<string, string> = {};
+  public helpTextVisibleOnInit?: boolean = false;
+  public helpTextVisible?: boolean = false;
 }
 /**
  * Config for the layout component configuration.
