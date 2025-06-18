@@ -2,7 +2,7 @@ import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, Te
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
 import {  FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
-import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get } from 'lodash-es';
+import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
@@ -30,7 +30,7 @@ import {DefaultLayoutComponent} from "./default-layout.component";
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
   protected override logName: string | null = "RepeatableComponent";
-  @Input() public override model?: RepeatableComponentModel | null | undefined = null;
+  public override model?: RepeatableComponentModel | null | undefined = null;
 
   protected formService = inject(FormService);
   private injector = inject(Injector);
@@ -66,7 +66,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // Get the debugValue from the FormComponent.
       debugValue: formConfig?.debugValue,
       // Get the default config.
-      defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Get the validator definitions so the child components can use them.
       validatorDefinitions: formConfig?.validatorDefinitions,
     };
@@ -127,37 +127,41 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry, this.newElementFormConfig?.validatorDefinitions);
 
-    // Set the value if provided.
-    if (model && value) {
-      model.setValue(value);
-    }
+    elemEntry.model = model;
 
     return {
       defEntry: elemEntry,
       wrapperRef: null,
       localUniqueId: localUniqueId,
+      value: value
     };
   }
 
   protected async createElement(elemEntry: RepeatableElementEntry ) {
     const elemFieldEntry = elemEntry.defEntry;
     // Create a new component for the repeatable element
-    const componentRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
+    const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
-
-    const compInstance = await componentRef.instance.initWrapperComponent(elemFieldEntry);
-    ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>).removeFn = this.removeElementFn(elemEntry);
+    const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
+    const layoutInstance = ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>);
+    layoutInstance.removeFn = this.removeElementFn(elemEntry);
+    // layoutInstance.wrapperComponentRef = componentRef;
+    layoutInstance.hostBindingCssClasses = "row align-items-start";
+    layoutInstance.wrapperComponentRef.instance.hostBindingCssClasses = "col";
 
     elemFieldEntry.component = compInstance;
     if (this.model?.formControl && compInstance?.model) {
+      if (!_isUndefined(elemEntry.value)) {
+        compInstance.model.setValue(elemEntry.value);
+      }
       this.model.formControl.push(compInstance.model.getFormGroupEntry() as AbstractControl);
     } else {
       this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
     }
-    elemEntry.wrapperRef = componentRef;
+    elemEntry.wrapperRef = wrapperRef;
     this.compDefMapEntries.push(elemEntry);
-    return componentRef;
+    return wrapperRef;
   }
 
   public removeElementFn(elemEntry: RepeatableElementEntry) {
@@ -246,24 +250,38 @@ export interface RepeatableElementEntry {
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
   localUniqueId?: number | undefined;
+  // The value of the element. Unfortunately, in the group compoment, the structure of the data model is not known until after the component is initialised, so we store the value here to set afterwards.
+  value: unknown; 
 }
 
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
   <ng-container #componentContainer></ng-container>
+  <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+  
   <ng-template #afterComponentTemplate>
-    <button type="button" class="fa fa-minus-circle btn text-20 pull-right btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+    @let componentValidationList = getFormValidatorComponentErrors;
+    @if (componentValidationList.length > 0) {
+      <div class="invalid-feedback">
+        Field validation errors:
+        <ul>
+          @for (error of componentValidationList; track error.name) {
+            <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+          }
+        </ul>
+      </div>
+    }
+    <div class="valid-feedback">The field is valid.</div>
   </ng-template>
   `,
   standalone: false,
 })
 export class RepeatableLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
-
+  protected override logName = "RepeatableLayoutComponent";
   public removeFn?: () => void;
 
   protected clickedRemove() {
     this.removeFn?.call(this);
   }
-
 }
