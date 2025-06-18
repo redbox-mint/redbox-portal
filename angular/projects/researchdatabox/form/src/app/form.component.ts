@@ -19,7 +19,7 @@
 import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService } from '@researchdatabox/portal-ng-common';
 import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
@@ -90,6 +90,12 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
+    
+    effect(() => {
+      if (this.componentsLoaded()) {
+        this.registerUpdateExpression();
+      }
+    });
   }
 
   protected get getFormService(){
@@ -165,6 +171,25 @@ export class FormComponent extends BaseComponent {
         const msg = `No form controls found in the form definition. Form cannot be rendered.`;
         this.loggerService.error(`${this.logName}: ${msg}`);
         throw new Error(msg);
+      }
+    }
+  }
+
+  protected registerUpdateExpression(){
+    if(this.componentsLoaded()) {
+      if(!_isUndefined(this.form)) {
+        this.form.valueChanges.subscribe((value) => {
+          for(let compEntry of this.componentDefArr) {
+            let compName = _get(compEntry,'name','');
+            this.loggerService.info(`FormComponent: valueChanges: `, compName);
+            if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
+              this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
+              let component = compEntry.component;
+              //the string passed in "model" is only for tracking and not needed for the expressions logic to work
+              component.checkUpdateExpressions('model');
+            }
+          }
+        });
       }
     }
   }

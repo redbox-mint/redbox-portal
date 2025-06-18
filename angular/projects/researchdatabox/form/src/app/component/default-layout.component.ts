@@ -1,5 +1,5 @@
-import { isEmpty as _isEmpty } from 'lodash-es';
-import { Component, viewChild, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
+import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
+import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormValidatorComponentErrors, FormComponentLayoutDefinition } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
@@ -87,6 +87,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
+  public clickedBy:string = '';
+  public helpTextVisibleOnInit:boolean = false;
+  public labelRequiredStr:string = '';
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -96,6 +99,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
+    if(this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
+      this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
+    }
 }
   /**
    * Override what it takes to get the component to be 'ready'
@@ -122,15 +128,64 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     await super.setComponentReady();
   }
 
-  toggleHelpTextVisibility() {
-   this.helpTextVisible = !this.helpTextVisible;
+  override ngAfterViewInit() {
+    
+    //Layout component overrides Component componentDefinition and hence it's needed to normalise componentDefinition that 
+    //is used to track property changes given these may not be present in the Layout componentDefinition
+    _set(this.componentDefinition as object,'config.visible',this.componentDefinition?.config?.visible ?? true);
+    _set(this.componentDefinition as object,'config.disabled',this.componentDefinition?.config?.disabled ?? false);
+    _set(this.componentDefinition as object,'config.readonly',this.componentDefinition?.config?.readonly ?? false);
+    _set(this.componentDefinition as object,'config.autofocus',this.componentDefinition?.config?.autofocus ?? false);
+    _set(this.componentDefinition as object,'config.helpTextVisible',this.componentDefinition?.config?.helpTextVisible ?? false);
+
+    this.initChildConfig();
+  }
+
+  public toggleHelpTextVisibility(clickedBy:string = '') {
+    this.helpTextVisible = !this.helpTextVisible;
+    this.clickedBy = clickedBy;
+  }
+
+  private setHelpTextVisibleOnInit() {
+    this.helpTextVisible = true;
+  }
+
+  //Layout specific config values that need to be applied after generic/base component config has been applied 
+  public override initChildConfig(): void {
+
+    this.isVisible = this.componentDefinition?.config?.visible ?? true;
+    this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
+    this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
+    this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
+    this.label = this.componentDefinition?.config?.label ?? '';
+    this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
+    this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
+    this.helpTextVisible = this.componentDefinition?.config?.helpTextVisible ?? false;
+    
+    //Add required layout specific variables to the local state cache
+    this.componentDefinitionCache = {
+      visible: this.componentDefinition?.config?.visible,
+      disabled: this.componentDefinition?.config?.disabled,
+      readonly: this.componentDefinition?.config?.readonly,
+      autofocus: this.componentDefinition?.config?.autofocus,
+      label: this.componentDefinition?.config?.label,
+      tooltips: this.componentDefinition?.config?.tooltips,
+      labelRequiredStr: this.componentDefinition?.config?.labelRequiredStr,
+      helpTextVisible: this.componentDefinition?.config?.helpTextVisible
+    }
+
+    if(this.helpTextVisibleOnInit) {
+      this.setHelpTextVisibleOnInit();
+    }
+    
+    this.expressionStateChanged = false;
+    this.clickedBy = '';
   }
 
   protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{
     return Object.entries(this.model?.formControl?.errors ?? {}).map(([key, item]) => {
       return {
         name: key,
-
         message: item.message ?? null,
         params: {validatorName: key, ...item.params},
       };

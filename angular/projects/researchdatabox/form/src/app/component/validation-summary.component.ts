@@ -62,7 +62,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     super();
   }
 
-  get isDebug(): boolean {
+  override get isDebug(): boolean {
     const formComponent = this.getFormComponent;
     return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
   }
@@ -75,5 +75,8 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   private get getFormComponent(): FormComponent {
     return this._injector.get(FormComponent);
+  }
+
+  public override initChildConfig(): void {
   }
 }

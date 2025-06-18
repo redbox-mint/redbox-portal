@@ -34,6 +34,7 @@ declare var jQuery: any;
 export class TextField extends FieldBase<string> {
   type: string;
   maxLength: number;
+  extraLabel: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -42,6 +43,7 @@ export class TextField extends FieldBase<string> {
     this.cssClasses = _.isEmpty(this.cssClasses) ? 'form-control' : this.cssClasses;
     // default value from: https://www.w3schools.com/tags/att_input_maxlength.asp
     this.maxLength = _.isUndefined(options['maxLength']) ? 524288 : options['maxLength'] ;
+    this.extraLabel = options['extraLabel'] || '';
   }
 
   postInit(value:any) {

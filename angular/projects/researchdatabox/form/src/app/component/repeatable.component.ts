@@ -178,7 +178,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-
+  public override initChildConfig(): void {
+  }
 }
 
 
