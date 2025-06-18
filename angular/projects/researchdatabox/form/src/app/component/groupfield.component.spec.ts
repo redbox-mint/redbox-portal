@@ -4,7 +4,6 @@ import {TextFieldComponent} from './textfield.component';
 import {GroupFieldComponent} from "./groupfield.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 
 
 describe('GroupFieldComponent', () => {
