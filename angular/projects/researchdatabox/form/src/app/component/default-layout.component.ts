@@ -139,6 +139,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     _set(this.componentDefinition as object,'config.helpTextVisible',this.componentDefinition?.config?.helpTextVisible ?? false);
 
     this.initChildConfig();
+    this.viewInitialised.set(true);
   }
 
   public toggleHelpTextVisibility(clickedBy:string = '') {
