@@ -16,7 +16,7 @@ import {APP_BASE_HREF, CommonModule} from "@angular/common";
 import {BrowserModule, Title} from "@angular/platform-browser";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
 import {FormService} from "./form.service";
-import {FormStatus} from "../../../portal-ng-common/src/lib/form/status.model";
+import {FormStatus} from "@researchdatabox/sails-ng-common";
 
 export async function createFormAndWaitForReady(formConfig: FormConfig) {
   const fixture = TestBed.createComponent(FormComponent);

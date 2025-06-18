@@ -1,14 +1,4 @@
-import {
-  FormValidatorErrors,
-  FormValidatorConfig,
-  FormValidatorControl,
-  FormValidatorFn,
-  FormValidatorCreateFn,
-  FormValidatorDefinition,
-  FormValidatorBlock,
-  FormValidatorComponentErrors,
-  FormValidatorSummaryErrors,
-} from '@researchdatabox/sails-ng-common';
+import { FormValidatorBlock, FormValidatorDefinition } from "./validation";
 
 /**
  * These classes are used to define the configuration for the form and form components.
@@ -73,7 +63,7 @@ export interface HasFormComponentClass {
 }
 
 export interface HasFormComponentConfig {
-  config?: any;
+  config?: object | null | undefined;
 }
 
 export type KeyValueStringProperty = Record<string, string> | string | null | undefined;
@@ -115,6 +105,17 @@ export class FormComponentBaseConfig  {
   public hostCssClasses?: KeyValueStringProperty = null;
   // the wrapper css classes to bind to host
   public wrapperCssClasses?: KeyValueStringProperty = null;
+  //
+  public disabled?: boolean = false;
+  //
+  public autofocus?: boolean = false;
+  //
+  public tooltips?: TooltipsModel | null | undefined = null;
+}
+
+export class TooltipsModel {
+  public fieldTT: string = '';
+  public labelTT: string = '';
 }
 
 export class FormFieldModelDefinition<ValueType> {
@@ -143,6 +144,8 @@ export class FormLayoutConfig extends FormComponentBaseConfig {
   public labelRequiredStr?: string = '*';
   public helpText?: string = '';
   public cssClassesMap?: Record<string, string> = {};
+  public helpTextVisibleOnInit?: boolean = false;
+  public helpTextVisible?: boolean = false;
 }
 /**
  * Config for the layout component configuration.

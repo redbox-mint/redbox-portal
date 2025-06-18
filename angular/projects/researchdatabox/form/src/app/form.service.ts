@@ -22,26 +22,26 @@ import { FormControl , AbstractControl, FormGroup} from '@angular/forms';
 import { isEmpty as _isEmpty, get as _get,  merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
 import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
 import {
-  FormConfig,
   FormFieldModel,
   LoggerService,
-  FormFieldModelConfig,
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
   TranslationService,
-  FormComponentDefinition,
-  FormFieldComponentStatus,
-  FormStatus,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormValidatorDefinition, FormValidatorFn,
+  FormConfig,  FormFieldModelConfig,  FormComponentDefinition,
+  FormFieldComponentStatus,
+  FormStatus,
+  FormValidatorDefinition,
+  FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {formValidatorsSharedDefinitions} from "./validators";
 import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/base.model";
+
 
 
 
@@ -450,7 +450,7 @@ export class FormService {
     validatorDefinitions: FormValidatorDefinition[] | null | undefined
   ): FormFieldModel<unknown> | null {
     if (compMapEntry.modelClass) {
-      const ModelType = compMapEntry.modelClass as typeof FormFieldModel;
+      const ModelType = compMapEntry.modelClass;
       const modelConfig = compMapEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
       const validatorConfig = modelConfig?.config?.validators ?? [];
       const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
@@ -471,7 +471,7 @@ export class FormService {
     const groupMap: any = {};
     const groupWithFormControl: any = {};
     for (let compEntry of compMap.components) {
-      const fieldName:string = compEntry.compConfigJson.name;
+      const fieldName = compEntry.compConfigJson.name ?? "";
       if (_isEmpty(fieldName)) {
         this.loggerService.info(`Field name is empty for component. If you need this component to be part of the form or participate in events, please provide a name.`, compEntry);
         continue;

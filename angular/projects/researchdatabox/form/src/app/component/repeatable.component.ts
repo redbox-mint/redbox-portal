@@ -1,9 +1,12 @@
-import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector, HostBinding } from '@angular/core';
+import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormFieldCompMapEntry, FormConfig, FormBaseWrapperComponent, DefaultLayoutComponent } from '@researchdatabox/portal-ng-common';
-import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
+import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
+import {  FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
+import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
+import {FormBaseWrapperComponent} from "./base-wrapper.component";
+import {DefaultLayoutComponent} from "./default-layout.component";
 
 /**
  * Repeatable Form Field Component
@@ -85,9 +88,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       throw new Error(`${this.logName}: model value is not an array. Cannot initialize the component.`);
     }
 
-    if (elemVals.length === 0 && !_isEmpty(this.model.fieldConfig.config?.defaultValue)) {
+    if (elemVals.length === 0) {
       // If the model is empty, we need to create at least one element with the default value
-      elemVals.push(this.model.fieldConfig.config?.defaultValue);
+      elemVals.push(this.model.fieldConfig.config?.defaultValue || null);
     }
 
     for (let i = 0; i < elemVals.length; i++) {
@@ -95,8 +98,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       await this.appendNewElement(elementValue);
     }
   }
-
-
 
   public async appendNewElement(value?: any) {
     if (!this.elemInitFieldEntry) {
@@ -181,7 +182,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-
+  public override initChildConfig(): void {
+  }
 }
 
 
@@ -259,20 +261,19 @@ export interface RepeatableElementEntry {
   <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
   
   <ng-template #afterComponentTemplate>
-    <span>&nbsp;</span>
-      @let componentValidationList = getFormValidatorComponentErrors;
-      @if (componentValidationList.length > 0) {
-        <div class="invalid-feedback">
-          Field validation errors:
-          <ul>
-            @for (error of componentValidationList; track error.name) {
-              <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
-            }
-          </ul>
-        </div>
-      }
-      <div class="valid-feedback">The field is valid.</div>
-    </ng-template>
+    @let componentValidationList = getFormValidatorComponentErrors;
+    @if (componentValidationList.length > 0) {
+      <div class="invalid-feedback">
+        Field validation errors:
+        <ul>
+          @for (error of componentValidationList; track error.name) {
+            <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+          }
+        </ul>
+      </div>
+    }
+    <div class="valid-feedback">The field is valid.</div>
+  </ng-template>
   `,
   standalone: false,
 })
