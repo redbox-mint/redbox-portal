@@ -101,10 +101,10 @@
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
-    "compile:core": "cd core ; npm install ; node_modules/.bin/tsc ; cd ../",
-    "compile:core:prod": "cd core ; npm install ; node_modules/.bin/tsc ; cd ../",
-    "compile:sails-ng-common": "cd ./packages/sails-ng-common ; npm install ; node_modules/.bin/tsc ; cd ../../",
-    "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common ; npm install ; node_modules/.bin/tsc --project tsconfig.prod.json; cd ../../",
+    "compile:core": "cd core && npm install && node_modules/.bin/tsc && cd ../",
+    "compile:core:prod": "cd core && npm install && node_modules/.bin/tsc && cd ../",
+    "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc && cd ../../",
+    "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc --project tsconfig.prod.json&& cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
@@ -154,8 +154,5 @@
       "text",
       "text-summary"
     ]
-  },
-  "workspaces": [
-    "packages/sails-ng-common"
-  ]
+  }
 }
