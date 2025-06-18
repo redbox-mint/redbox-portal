@@ -40,6 +40,7 @@ import {
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {formValidatorsSharedDefinitions} from "./validators";
+import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/base.model";
 
 
 
@@ -264,11 +265,11 @@ export class FormService {
           }
         },
         {
-          name: 'repeatable_1',
+          name: 'repeatable_textfield_1',
           model: {
             class: 'RepeatableComponentModel',
             config: {
-              value: ['hello world from repeatable!'],
+              value: ['hello world from repeatable value!'],
               defaultValue: ['hello world from repeatable, default!']
             }
           },
@@ -279,14 +280,77 @@ export class FormService {
                 model: {
                   class: 'TextFieldModel',
                   config: {
+                    wrapperCssClasses: 'col',
                     editCssClasses: 'redbox-form row',
                     defaultValue: 'hello world from elementTemplate!',
+                    validators: [
+                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
+                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
+              ]
                   }
                 },
                 component: {
                   class: 'TextFieldComponent'
                 }
               },
+            },
+          },
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              label: 'Repeatable TextField with default wrapper defined',
+              helpText: 'Repeatable component help text',
+            }
+          },
+        },
+        {
+          name: 'repeatable_group_1',
+          model: {
+            class: 'RepeatableComponentModel',
+            config: {
+              value: [ {
+                text_3: "hello world from repeating groups"
+              }]
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                // first group component
+                name: 'group_1_component',
+                model: {
+                  name: 'group_1_model',
+                  class: 'GroupFieldModel',
+                  config: {
+                    defaultValue: {},
+                  }
+                },
+                component: {
+                  class: 'GroupFieldComponent',
+                  config: {
+                    hostCssClasses: 'row',
+                    componentDefinitions: [
+                      {
+                        name: 'text_3',
+                        model: {
+                          class: 'TextFieldModel',
+                          config: {
+                            value: 'hello world 3!',
+                          }
+                        },
+                        component: {
+                          class: 'TextFieldComponent',
+                          config: {
+                            hostCssClasses: '',
+                            wrapperCssClasses: 'col'
+                          }
+                        }
+                      },
+                    ]
+                  }
+                }
+              }
             },
           },
           layout: {
