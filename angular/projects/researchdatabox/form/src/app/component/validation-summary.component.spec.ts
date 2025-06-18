@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
-import {FormConfig} from '@researchdatabox/portal-ng-common';
+import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {formValidatorsSharedDefinitions} from "../validators";
 import {TextFieldComponent} from "./textfield.component";

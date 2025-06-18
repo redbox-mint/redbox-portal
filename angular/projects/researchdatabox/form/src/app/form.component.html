@@ -8,7 +8,8 @@
       <li>isReady: {{ isReady }}</li>
       <li>children:
       <ul>
-        @for(component of componentDefArr; track component.component){
+        <!-- Switched to $index to remove noisy warnings in the console. TODO: We need to create a unique index for when we dynamically insert components. -->
+        @for (component of componentDefArr; track $index) {
           <li>{{ utilityService.getNameClass(component?.component?.formFieldCompMapEntry) }}: {{component?.component?.status()}}</li>
         }
       </ul>

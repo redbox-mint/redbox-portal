@@ -3,7 +3,6 @@ import {TestBed} from "@angular/core/testing";
 import {FormComponent} from "./form.component";
 import {
   ConfigService,
-  FormConfig,
   getStubConfigService,
   getStubTranslationService,
   LoggerService,
@@ -16,7 +15,7 @@ import {APP_BASE_HREF, CommonModule} from "@angular/common";
 import {BrowserModule, Title} from "@angular/platform-browser";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
 import {FormService} from "./form.service";
-import {FormStatus} from "@researchdatabox/sails-ng-common";
+import {FormStatus, FormConfig} from "@researchdatabox/sails-ng-common";
 
 export async function createFormAndWaitForReady(formConfig: FormConfig) {
   const fixture = TestBed.createComponent(FormComponent);
