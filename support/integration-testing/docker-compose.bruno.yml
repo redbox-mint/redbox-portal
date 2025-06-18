@@ -27,7 +27,7 @@ services:
       --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno.xml 
       --bail"
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
+    image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'always'
     ports:
        - "1500:1500"
