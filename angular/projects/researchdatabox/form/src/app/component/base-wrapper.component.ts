@@ -121,7 +121,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       compRef.destroy();
     }
   }
-  
+
   public override initChildConfig(): void {
   }
 }
