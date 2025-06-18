@@ -87,7 +87,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   afterComponentTemplate!: TemplateRef<any>;
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
-  wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
+  public wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -140,5 +140,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   protected get componentName(){
     return this.utilityService.getNameClass(this.formFieldCompMapEntry);
+  }
+
+  public getWrapperComponentRef(): ComponentRef<FormBaseWrapperComponent<ValueType>> | null {
+    return this.wrapperComponentRef || null;
   }
 }

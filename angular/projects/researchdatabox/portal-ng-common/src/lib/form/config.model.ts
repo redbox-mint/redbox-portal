@@ -111,6 +111,10 @@ export class FormComponentBaseConfig  {
   public label?: string = '';
   // the form-supplied css classes
   public defaultComponentCssClasses?: KeyValueStringProperty = null;
+  // the css classes to bind to host 
+  public hostCssClasses?: KeyValueStringProperty = null;
+  // the wrapper css classes to bind to host
+  public wrapperCssClasses?: KeyValueStringProperty = null;
 }
 
 export class FormFieldModelDefinition<ValueType> {
