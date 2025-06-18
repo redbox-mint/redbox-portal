@@ -382,17 +382,20 @@ export module Services {
     }
 
     public queueTriggerCall(oid, record, options, user) {
-      let jobName = _.get(options, "jobName", null);
-      let triggerConfiguration = _.get(options, "triggerConfiguration", null);
-      let queueMessage = {
-        oid: oid,
-        record: record,
-        triggerConfiguration: triggerConfiguration,
-        user: user
-      };
-      sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
-      sails.log.verbose(queueMessage);
-      this.queueService.now(jobName, queueMessage);
+      const triggerCondition = _.get(options, "triggerCondition", "");
+      if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
+        let jobName = _.get(options, "jobName", null);
+        let triggerConfiguration = _.get(options, "triggerConfiguration", null);
+        let queueMessage = {
+         oid: oid,
+         record: record,
+         triggerConfiguration: triggerConfiguration,
+         user: user
+        };
+        sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
+        sails.log.verbose(queueMessage);
+        this.queueService.now(jobName, queueMessage);
+      }
       return Observable.of(record);
     }
 
