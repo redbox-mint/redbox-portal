@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:20.11'
+      - image: 'cimg/node:24.2.0'
     resource_class: large
     steps:
       - checkout
