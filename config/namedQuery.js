@@ -357,9 +357,8 @@ module.exports.namedQuery = {
     brandIdFieldPath: "metaMetadata.brandId",
     mongoQuery: {
       "metaMetadata.type": "activity",
-      "metadata.l_display_title": null,
-      "authorization.view": null,
-    },
+      "metadata.title": null,
+      "authorization.view": null    },
     resultObjectMapping: {
     },
     queryParams: {

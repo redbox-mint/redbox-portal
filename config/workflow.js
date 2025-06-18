@@ -329,5 +329,45 @@ module.exports.workflow = {
       },
       starting: true
     }
+  },
+  "activity": {
+    "draft": {
+      config: {
+        workflow: {
+          stage: 'draft',
+          stageLabel: 'Draft',
+        },
+        authorization: {
+          viewRoles: ['Admin', 'Librarians'],
+          editRoles: ['Admin', 'Librarians']
+        },
+        form: 'generated-view-only',
+        dashboard: {
+          table: {
+            rowConfig: [
+              {
+                title: 'Title',
+                variable: 'metadata.title',
+                template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>`,
+                initialSort: 'desc'
+              },
+              {
+                title: 'header-created',
+                variable: 'metaMetadata.createdOn',
+                template: '<%= util.formatDateLocale(util.parseDateString(dateCreated), "DATETIME_MED") %>',
+                initialSort: 'desc'
+              },
+              {
+                title: 'header-modified',
+                variable: 'metaMetadata.lastSaveDate',
+                template: '<%= util.formatDateLocale(util.parseDateString(dateModified),"DATETIME_MED") %>',
+                initialSort: 'desc'
+              }
+            ]
+          }
+        }
+      },
+      starting: true
+    }
   }
 };
