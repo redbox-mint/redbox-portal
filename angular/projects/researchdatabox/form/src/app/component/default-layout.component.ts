@@ -28,7 +28,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  @if (model && componentDefinition) {
+  @if (isVisible && model && componentDefinition) {
     @if (componentDefinition.config?.label) {
       <label class="form-label">
         <span [innerHtml]="componentDefinition.config?.label"></span>

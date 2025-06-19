@@ -160,6 +160,34 @@ export class FormService {
           },
           component: {
             class: 'TextFieldComponent'
+          },
+          expressions: {
+              // 'component.visible': {
+              //     template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
+              //                 return false;
+              //               } else {
+              //                 return true;
+              //               } %>`
+
+
+              // },
+              'layout.visible': {
+                template: `<% if(_.isEmpty(_.get(model,'text_1_event',''))) {
+                              return false;
+                            } else {
+                              return true;
+                            } %>`
+
+
+              }
+              // ,
+              // 'model.value': {
+              //     template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
+              //                 return false;
+              //               } else {
+              //                 return true;
+              //               } %>`
+              // }
           }
         },
          {
