@@ -23,7 +23,8 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
   public componentDefinition?: FormFieldComponentDefinition | FormComponentLayoutDefinition;
   public componentDefinitionCache: any = {};
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
-  public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
+  // public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
+  public hostBindingCssClasses: string| null | undefined = null;
   public isVisible: boolean = true;
   public isDisabled: boolean = false;
   public isReadonly: boolean = false;
@@ -348,15 +349,25 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
   * Prepare the CSS classes for the host element.
   */
   protected initHostBindingCssClasses() {
-    if (this.componentDefinition?.config?.defaultComponentCssClasses) {
-      if (typeof this.componentDefinition.config?.defaultComponentCssClasses === 'string') {
-      this.hostBindingCssClasses = { [this.componentDefinition.config?.defaultComponentCssClasses]: true };
-      } else {
-      // Assuming it's already in the desired { [key: string]: boolean } format
-      // this.hostBindingCssClasses = this.config.defaultComponentCssClasses;
-      }
+    // If the component definition has default CSS classes, use them.
+    if (this.componentDefinition?.config?.hostCssClasses !== undefined) {
+      if (typeof this.componentDefinition.config.hostCssClasses === 'string') {
+        // this.hostBindingCssClasses = { [this.componentDefinition.config.hostCssClasses]: true };
+        this.hostBindingCssClasses = this.componentDefinition.config.hostCssClasses;
+      } 
     } else {
-      this.hostBindingCssClasses = {}; // Initialize as empty object if no default classes
+      if (this.componentDefinition?.config?.defaultComponentCssClasses) {
+        if (typeof this.componentDefinition.config?.defaultComponentCssClasses === 'string') {
+          // this.hostBindingCssClasses = { [this.componentDefinition.config?.defaultComponentCssClasses]: true };
+          this.hostBindingCssClasses = this.componentDefinition.config?.defaultComponentCssClasses;
+        } else {
+        // Assuming it's already in the desired { [key: string]: boolean } format
+        // this.hostBindingCssClasses = this.config.defaultComponentCssClasses;
+        }
+      } else {
+        this.hostBindingCssClasses = null; // No default classes provided
+        // this.hostBindingCssClasses = {}; // Initialize as empty object if no default classes
+      }
     }
   }
 
@@ -383,7 +394,7 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
 
   // Use @HostBinding to bind to the host element's class attribute
   // This getter returns an object similar to what you'd pass to [ngClass]
-  @HostBinding('class') get hostClasses() {
+  @HostBinding('class') public get hostClasses() {
     return this.hostBindingCssClasses;
   }
 
