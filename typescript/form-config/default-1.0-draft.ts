@@ -17,7 +17,8 @@ const formConfig: FormConfig = {
   // the validator definitions from the client hook form config.
   // The validation functions are placeholder strings - they need to be replaced with the real js functions
   // on the client-side.
-  validatorDefinitions: sails.config.validators,
+  // The validator definitions are available in 'sails.config.validators'.
+  validatorDefinitions: [],
 
   // TODO: a way to create groups of validators
   // This is not implemented yet.

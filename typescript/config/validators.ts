@@ -8,6 +8,7 @@ import {
   formValidatorGetDefinitionString,
   formValidatorLengthOrSize,
 } from "@researchdatabox/sails-ng-common";
+import {buildValidatorDefinitionWithPlaceholders} from "../form-config/form-config-support";
 
 /**
  * A regular expression for validating an email address.
@@ -315,17 +316,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   },
 ];
 
-// Build an array where each validation definition object has a placeholder string instead of the validator function.
-// This array is included in the FormConfig object provided by the server to the client,
-// and the client-side uses these placeholder keys together with the validator functions
-// provided in the compiled validator-functions.js to obtain the functions.
-export const formValidatorDefinitionsFunctionPlaceholders = [];
-for (const item of formValidatorsSharedDefinitions) {
-  formValidatorDefinitionsFunctionPlaceholders.push({
-    name: item.name,
-    message: item.message,
-    create: `func_key_${item.name}`,
-  });
-}
-
-module.exports.validators = formValidatorDefinitionsFunctionPlaceholders;
+// This is the sails config for the validators available in the core redbox project.
+// Sails hooks can extend or override these using the _dontMerge or _delete or create a validator definition with the same name.
+// The config provided to sails does not include the 'create' function.
+// The 'create' functions are provided via a generated js file included in the ejs templates.
+module.exports.validators = {
+  definitions: buildValidatorDefinitionWithPlaceholders(formValidatorsSharedDefinitions),
+};
