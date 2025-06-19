@@ -22,3 +22,4 @@ export * from './lib/form/form-field-base.component';
 export * from './lib/form/resolver.interface';
 export * from './lib/lodash-template-utility.service';
 export * from './lib/portal-ng-common.module';
+export * from './lib/httpClient.service';

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject, WritableSignal } from '@angular/core';
+import { Injectable, Inject, WritableSignal, inject } from '@angular/core';
 import { FormControl , AbstractControl, FormGroup} from '@angular/forms';
 import { isEmpty as _isEmpty, get as _get,  merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
 import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
@@ -27,7 +27,10 @@ import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
   TranslationService,
-  UtilityService
+  UtilityService,
+  HttpClientService,
+  ConfigService,
+  FormFieldModelValueType,
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
@@ -40,7 +43,8 @@ import {
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {formValidatorsSharedDefinitions} from "./validators";
-import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/base.model";
+import {HttpClient} from "@angular/common/http";
+import {APP_BASE_HREF} from "@angular/common";
 
 
 
@@ -59,18 +63,25 @@ import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/ba
     providedIn: 'root'
   }
 )
-export class FormService {
+export class FormService extends HttpClientService {
   protected logName = "FormService";
   protected compClassMap:FormComponentClassMap = {};
   protected modelClassMap:FormFieldModelClassMap = {};
   protected validatorsSupport: ValidatorsSupport;
+
+  private requestOptions = null;
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
+    @Inject(HttpClient) protected override http: HttpClient,
+    @Inject(APP_BASE_HREF) public override rootContext: string,
+    @Inject(UtilityService) protected override utilService: UtilityService,
+    @Inject(ConfigService) protected override configService: ConfigService,
     ) {
+    super(http, rootContext, utilService, configService)
     // start with the static version, will dynamically merge any custom components later
     _merge(this.modelClassMap, StaticModelClassMap);
     _merge(this.compClassMap, StaticComponentClassMap);
@@ -78,6 +89,14 @@ export class FormService {
     this.loggerService.debug(`${this.logName}: Static model classes:`, this.modelClassMap);
 
     this.validatorsSupport = new ValidatorsSupport();
+  }
+
+  public override async waitForInit(): Promise<any> {
+    await super.waitForInit();
+    this.requestOptions = this.reqOptsJsonBodyOnly;
+    this.enableCsrfHeader();
+    _merge(this.requestOptions, {context: this.httpContext});
+    return this;
   }
 
   public get getValidatorsSupport(){
@@ -95,6 +114,11 @@ export class FormService {
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
+    // TODO: download the form config using this.httpClient.
+    // Look at:
+    // angular-legacy/shared/config-service.ts
+    // angular-legacy/shared/base-service.ts
+    // angular-legacy/shared/workspace-service.ts
     const formConfig: FormConfig = {
       debugValue: true,
       domElementType: 'form',
@@ -383,7 +407,7 @@ export class FormService {
         // }
       ]
     } as FormConfig;
-    // Resove the field and component pairs
+    // Resolve the field and component pairs
     return this.createFormComponentsMap(formConfig);
   }
 

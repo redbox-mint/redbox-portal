@@ -1,7 +1,4 @@
 import { FormConfig } from "@researchdatabox/sails-ng-common";
-import { Sails } from "sails";
-
-declare let sails: Sails;
 
 const formConfig: FormConfig = {
   name: "default-1.0-draft",
