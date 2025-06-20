@@ -78,10 +78,9 @@ export class FormService extends HttpClientService {
     @Inject(UtilityService) private utilityService: UtilityService,
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
-    @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
     ) {
-    super(http, rootContext, utilService, configService)
+    super(http, rootContext, utilityService, configService)
     // start with the static version, will dynamically merge any custom components later
     _merge(this.modelClassMap, StaticModelClassMap);
     _merge(this.compClassMap, StaticComponentClassMap);
@@ -119,6 +118,10 @@ export class FormService extends HttpClientService {
     // angular-legacy/shared/config-service.ts
     // angular-legacy/shared/base-service.ts
     // angular-legacy/shared/workspace-service.ts
+
+    const formFields = await this.getFormFields(oid, recordType, editMode, formName);
+    this.loggerService.info('Got form config:', formFields);
+
     const formConfig: FormConfig = {
       debugValue: true,
       domElementType: 'form',
@@ -721,6 +724,19 @@ export class FormService extends HttpClientService {
       formControl?.setValidators(validatorFns);
       formControl?.updateValueAndValidity();
     }
+  }
+
+  private async getFormFields(recordType: string, oid: string | null = null, editable: boolean, formName: string | null = null) {
+    const ts = new Date().getTime().toString();
+    const remainingPaths = oid ? `/auto/${oid}` : `/${recordType}`;
+    const url = new URL(remainingPaths, `${this.brandingAndPortalUrl}/record/form/`);
+    url.searchParams.set('ts', ts);
+    url.searchParams.set('edit', editable?.toString() ?? 'false');
+    if (formName) {
+      url.searchParams.set('formName', formName?.toString());
+    }
+    this.loggerService.info(`Get form fields from url '${url}'.`);
+    return await this.http.get<FormConfig>(url.href).toPromise();
   }
 }
 
