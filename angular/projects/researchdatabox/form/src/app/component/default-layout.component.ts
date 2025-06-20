@@ -28,22 +28,24 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  @if (isVisible && model && componentDefinition) {
+  @if (model && componentDefinition) {
     @if (componentDefinition.config?.label) {
-      <label class="form-label">
-        <span [innerHtml]="componentDefinition.config?.label"></span>
-        <span
-          *ngIf="isRequired"
-          class="form-field-required-indicator"
-          [innerHTML]="componentDefinition.config?.labelRequiredStr"></span>
-        @if (componentDefinition.config?.helpText) {
-          <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-          <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-          </button>
+      @if (isVisible) {
+        <label class="form-label">
+          <span [innerHtml]="componentDefinition.config?.label"></span>
+          <span
+            *ngIf="isRequired"
+            class="form-field-required-indicator"
+            [innerHTML]="componentDefinition.config?.labelRequiredStr"></span>
+          @if (componentDefinition.config?.helpText) {
+            <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </button>
+          }
+        </label>
+        @if (helpTextVisible) {
+          <span class="help-block" [innerHtml]="componentDefinition.config?.helpText"></span>
         }
-      </label>
-      @if (helpTextVisible) {
-        <span class="help-block" [innerHtml]="componentDefinition.config?.helpText"></span>
       }
     }
     <ng-container #componentContainer></ng-container>
@@ -87,7 +89,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
-  public clickedBy:string = '';
   public helpTextVisibleOnInit:boolean = false;
   public labelRequiredStr:string = '';
   /**
@@ -102,7 +103,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if(this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
-}
+  }
   /**
    * Override what it takes to get the component to be 'ready'
    */
@@ -122,8 +123,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
     // Using the wrapper will also set the component instance in the definition map properly
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent<ValueType>);
-    await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
-
+    let tmp = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
+    this.formFieldCompMapEntry.component = tmp;
     // finally set the status to 'READY'
     await super.setComponentReady();
   }
@@ -142,9 +143,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.viewInitialised.set(true);
   }
 
-  public toggleHelpTextVisibility(clickedBy:string = '') {
+  public toggleHelpTextVisibility() {
     this.helpTextVisible = !this.helpTextVisible;
-    this.clickedBy = clickedBy;
   }
 
   private setHelpTextVisibleOnInit() {
@@ -180,7 +180,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
     
     this.expressionStateChanged = false;
-    this.clickedBy = '';
   }
 
   protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{

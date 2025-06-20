@@ -137,7 +137,13 @@ export class FormComponent extends BaseComponent {
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
       componentRef.changeDetectorRef.detectChanges();
 
-      componentDefEntry.component = await componentRef.instance.initWrapperComponent(componentDefEntry);
+      let tmp = await componentRef.instance.initWrapperComponent(componentDefEntry);
+      if(_isUndefined(componentDefEntry.layout)) {
+        componentDefEntry.component = tmp;
+      } else {
+        componentDefEntry.layout = tmp;
+      }
+      this.loggerService.info(`FormComponent: downloadAndCreateFormComponents: `, componentDefEntry.component);
     }
     // TODO: set up the event handlers
 
@@ -187,6 +193,9 @@ export class FormComponent extends BaseComponent {
               let component = compEntry.component;
               //the string passed in "model" is only for tracking and not needed for the expressions logic to work
               component.checkUpdateExpressions('model');
+              if(!_isUndefined(compEntry.layout) && !_isNull(compEntry.layout) && !_isEmpty(compEntry.layout)) {
+                compEntry.layout.checkUpdateExpressions('model');
+              }
             }
           }
         });

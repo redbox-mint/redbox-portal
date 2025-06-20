@@ -152,36 +152,34 @@ export class FormService {
           model: {
             class: 'TextFieldModel',
             config: {
-              value: 'hello world 2!',
-              validators: [
-                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
-                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
-              ]
+              value: 'hello world 2!'
+              // ,
+              // validators: [
+              //   { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
+              //   { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
+              // ]
             }
           },
           component: {
             class: 'TextFieldComponent'
           },
           expressions: {
-              // 'component.visible': {
-              //     template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
-              //                 return false;
-              //               } else {
-              //                 return true;
-              //               } %>`
-
-
-              // },
-              'layout.visible': {
-                template: `<% if(_.isEmpty(_.get(model,'text_1_event',''))) {
+              'component.visible': {
+                  template: `<% if(_.isEmpty(_.get(model,'text_1_event',''))) {
                               return false;
                             } else {
                               return true;
                             } %>`
-
-
               }
-              // ,
+
+              // 'layout.visible': {
+              //   template: `<% if(_.isEmpty(_.get(model,'text_1_event',''))) {
+              //                 return false;
+              //               } else {
+              //                 return true;
+              //               } %>`
+              // }
+
               // 'model.value': {
               //     template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
               //                 return false;
