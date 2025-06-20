@@ -119,7 +119,7 @@ export class FormService extends HttpClientService {
     // angular-legacy/shared/base-service.ts
     // angular-legacy/shared/workspace-service.ts
 
-    const formFields = await this.getFormFields(oid, recordType, editMode, formName);
+    const formFields = await this.getFormFields(recordType, oid, editMode, formName);
     this.loggerService.info('Got form config:', formFields);
 
     const formConfig: FormConfig = {
@@ -728,7 +728,7 @@ export class FormService extends HttpClientService {
 
   private async getFormFields(recordType: string, oid: string | null = null, editable: boolean, formName: string | null = null) {
     const ts = new Date().getTime().toString();
-    const remainingPaths = oid ? `/auto/${oid}` : `/${recordType}`;
+    const remainingPaths = oid ? `auto/${oid}` : `${recordType}`;
     const url = new URL(remainingPaths, `${this.brandingAndPortalUrl}/record/form/`);
     url.searchParams.set('ts', ts);
     url.searchParams.set('edit', editable?.toString() ?? 'false');

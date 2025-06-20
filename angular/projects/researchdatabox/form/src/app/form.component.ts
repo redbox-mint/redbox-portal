@@ -83,7 +83,7 @@ export class FormComponent extends BaseComponent {
     @Inject(UtilityService) protected utilityService: UtilityService
   ) {
     super();
-    this.initDependencies = [this.translationService];
+    this.initDependencies = [this.translationService, this.configService, this.formService];
     this.oid = elementRef.nativeElement.getAttribute('oid');
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
