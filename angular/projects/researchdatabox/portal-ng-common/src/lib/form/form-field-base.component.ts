@@ -2,9 +2,9 @@ import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, has as _has, set as _set, keys as _keys} from 'lodash-es';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
-import {FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus, TooltipsModel} from '@researchdatabox/sails-ng-common';
+import {FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus, TooltipsModel} from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 
 
@@ -26,13 +26,6 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
   public formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined = null;
   // public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   public hostBindingCssClasses: string| null | undefined = null;
-  public isVisible: boolean = true;
-  public isDisabled: boolean = false;
-  public isReadonly: boolean = false;
-  public needsAutofocus: boolean = false;
-  public label: string = '';
-  public helpText: string = '';
-  public tooltips: TooltipsModel | null | undefined = null;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
@@ -91,6 +84,7 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
     try {
       // Create a method that children can override to set their own properties
       this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
+      this.buildPropertyCache(true);
       await this.initData();
       await this.initLayout();
       await this.initEventHandlers();
@@ -130,7 +124,7 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
           if(!_isUndefined(expObj) && !_isEmpty(expObj)) {
 
             let value:any = null;
-            let data = this.model?.formControl?.value;
+            let data = this.model?.getValue();
             let path = key.split('.');
             let targetPropertyPath = path[1];
             if (_get(expObj,'template','').indexOf('<%') != -1) {
@@ -147,20 +141,23 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
               let targetLayout = key.includes('layout.') ? true : false;
               let targetModel = key.includes('model.') ? true : false;
               if(targetModel) {
-                this.model?.formControl?.setValue(value);
-              } else if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinition?.config,targetPropertyPath)) {
-                _set(this.formFieldCompMapEntry?.layout?.componentDefinition,'config.'+targetPropertyPath,value);
+                //TODO consider if there can be other model properties affected different to value? 
+                this.model?.setValue(value);
+              } else if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath)) {
+                _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `,this.name);
-              } else if (!targetLayout && _has(this.componentDefinition.config,targetPropertyPath)) {
-                _set(this.componentDefinition,'config.'+targetPropertyPath,value);
+              } else if (!targetLayout && _has(this.componentDefinitionCache,targetPropertyPath)) {
+                _set(this.componentDefinitionCache,targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in componentDefinition.config `,this.name);
               }
 
               this.expressionStateChanged = this.hasExpressionsConfigChanged();
               this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`,'');
               if(this.expressionStateChanged) {
+                _set(this.componentDefinition?.config as object,targetPropertyPath,value);
                 this.initChildConfig();
               } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged()) {
+                _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
                 this.formFieldCompMapEntry?.layout?.initChildConfig();
               }
@@ -174,16 +171,6 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
   }
 
   ngAfterViewInit() {
-
-    //normalise componentDefinition that is used to track property changes given these may not be present
-    _set(this.componentDefinition as object,'config.visible',this.componentDefinition?.config?.visible ?? true);
-    _set(this.componentDefinition as object,'config.disabled',this.componentDefinition?.config?.disabled ?? false);
-    _set(this.componentDefinition as object,'config.readonly',this.componentDefinition?.config?.readonly ?? false);
-    _set(this.componentDefinition as object,'config.autofocus',this.componentDefinition?.config?.autofocus ?? false);
-    _set(this.componentDefinition as object,'config.label',this.componentDefinition?.config?.label ?? '');
-    _set(this.componentDefinition as object,'config.tooltips',this.componentDefinition?.config?.tooltips ?? null);
-
-    this.initConfig();
     this.componentViewReady = true;
     this.loggerService.debug(`FieldComponent ngAfterViewInit: componentViewReady:`, this.componentViewReady);
     this.viewInitialised.set(true);
@@ -191,30 +178,52 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
 
   public abstract initChildConfig():void;
 
+  public buildPropertyMap(componentDefinition: FormComponentBaseConfig): Map<string, any> {
+    const propertyMap = new Map<string, any>();
 
-  protected initConfig() {
-      this.isVisible = this.componentDefinition?.config?.visible ?? true;
-      this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
-      this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
-      this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
-      this.label = this.componentDefinition?.config?.label ?? '';
-      this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
+    Object.getOwnPropertyNames(componentDefinition).forEach((key) => {
+      const value = (componentDefinition as any)[key];
+      propertyMap.set(key, value);
+    });
 
-      this.componentDefinitionCache = {
-        visible: this.componentDefinition?.config?.visible,
-        disabled: this.componentDefinition?.config?.disabled,
-        readonly: this.componentDefinition?.config?.readonly,
-        autofocus: this.componentDefinition?.config?.autofocus,
-        label: this.componentDefinition?.config?.label,
-        tooltips: this.componentDefinition?.config?.tooltips
+    return propertyMap;
+  }
+
+  protected buildPropertyCache(isInit:boolean = false) {
+
+    if(!_isUndefined(this.componentDefinition) && !_isNull(this.componentDefinition) && !_isEmpty(this.componentDefinition.config)) {
+
+      let propertyMap:Map<string, any> = this.buildPropertyMap(this.componentDefinition.config as FormComponentBaseConfig);
+      for (const key of propertyMap.keys()) {
+        _set(this.componentDefinition.config as FormComponentBaseConfig,key,propertyMap.get(key));
       }
+
+      if(isInit) {
+        //normalise componentDefinition that is used to track property changes given these may not be present
+        let initDef:FormComponentBaseConfig = new FormComponentBaseConfig();
+        let initMap:Map<string, any> = this.buildPropertyMap(initDef);
+        for (const key of initMap.keys()) {
+          _set(this.componentDefinition.config as FormComponentBaseConfig,key,_get(this.componentDefinition.config,key,initMap.get(key)));
+        }
+      }
+
+      this.componentDefinitionCache =  _cloneDeep(this.componentDefinition.config);
+    }
+  }
+
+  public getTooltip(name:string): string {
+    return _get(this.componentDefinition?.config?.tooltips,name,'');
+  }
+
+  public getBooleanProperty(name:string): boolean {
+    return _get(this.componentDefinition?.config,name,true);
   }
 
   hasExpressionsConfigChanged(): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {
-      let newValue = _get(this.componentDefinition?.config,key);
-      let oldValue = _get(this.componentDefinitionCache,key);
+      let oldValue = _get(this.componentDefinition?.config,key);
+      let newValue = _get(this.componentDefinitionCache,key);
       let configPropertyChanged = oldValue !== newValue;
       if(configPropertyChanged) {
         propertyChanged = true;

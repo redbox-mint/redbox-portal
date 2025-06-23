@@ -1,4 +1,4 @@
-import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
+import { isEmpty as _isEmpty, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
 import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormValidatorComponentErrors, FormComponentLayoutDefinition } from "@researchdatabox/sails-ng-common";
@@ -30,9 +30,9 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
   template: `
   @if (model && componentDefinition) {
     @if (componentDefinition.config?.label) {
-      @if (isVisible) {
+      @if (getBooleanProperty('visible')) {
         <label class="form-label">
-          <span [innerHtml]="componentDefinition.config?.label"></span>
+          <span [innerHtml]="componentDefinition.config?.label" [attr.title]="getTooltip('labelTT')"></span>
           <span
             *ngIf="isRequired"
             class="form-field-required-indicator"
@@ -100,6 +100,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
+    //Layout component overrides Component componentDefinition and hence it's needed to normalise componentDefinition that 
+    //is used to track property changes given these may not be present in the Layout componentDefinition
+    //normalise componentDefinition that is used to track property changes given these may not be present
+    this.buildPropertyCache(true);
     if(this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
@@ -130,16 +134,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   override ngAfterViewInit() {
-    
-    //Layout component overrides Component componentDefinition and hence it's needed to normalise componentDefinition that 
-    //is used to track property changes given these may not be present in the Layout componentDefinition
-    _set(this.componentDefinition as object,'config.visible',this.componentDefinition?.config?.visible ?? true);
-    _set(this.componentDefinition as object,'config.disabled',this.componentDefinition?.config?.disabled ?? false);
-    _set(this.componentDefinition as object,'config.readonly',this.componentDefinition?.config?.readonly ?? false);
-    _set(this.componentDefinition as object,'config.autofocus',this.componentDefinition?.config?.autofocus ?? false);
-    _set(this.componentDefinition as object,'config.helpTextVisible',this.componentDefinition?.config?.helpTextVisible ?? false);
-
-    this.initChildConfig();
     this.viewInitialised.set(true);
   }
 
@@ -153,27 +147,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   //Layout specific config values that need to be applied after generic/base component config has been applied 
   public override initChildConfig(): void {
-
-    this.isVisible = this.componentDefinition?.config?.visible ?? true;
-    this.isDisabled = this.componentDefinition?.config?.disabled ?? false;
-    this.isReadonly = this.componentDefinition?.config?.readonly ?? false;
-    this.needsAutofocus = this.componentDefinition?.config?.autofocus ?? false;
-    this.label = this.componentDefinition?.config?.label ?? '';
-    this.labelRequiredStr = this.componentDefinition?.config?.labelRequiredStr ?? '';
-    this.tooltips = this.componentDefinition?.config?.tooltips ?? null;
-    this.helpTextVisible = this.componentDefinition?.config?.helpTextVisible ?? false;
     
     //Add required layout specific variables to the local state cache
-    this.componentDefinitionCache = {
-      visible: this.componentDefinition?.config?.visible,
-      disabled: this.componentDefinition?.config?.disabled,
-      readonly: this.componentDefinition?.config?.readonly,
-      autofocus: this.componentDefinition?.config?.autofocus,
-      label: this.componentDefinition?.config?.label,
-      tooltips: this.componentDefinition?.config?.tooltips,
-      labelRequiredStr: this.componentDefinition?.config?.labelRequiredStr,
-      helpTextVisible: this.componentDefinition?.config?.helpTextVisible
-    }
+    this.buildPropertyCache();
 
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();

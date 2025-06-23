@@ -7,19 +7,16 @@ export class TextFieldModel extends FormFieldModel<string> {
 @Component({
     selector: 'redbox-textfield',
     template: `
-    @if (isVisible) {
+    @if (getBooleanProperty('visible')) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    }
-    <input type='text' [formControl]="formControl"
-           class="form-control"
-           [class.is-valid]="isValid"
-           [class.is-invalid]="!isValid"
-           [attr.required]="isRequired === true ? true : null"
-           [hidden]="!isVisible"
-           [attr.disabled]="isDisabled ? 'true' : null"
-           [attr.readonly]="isReadonly ? 'true' : null"
-           [attr.title]="tooltips ? tooltips['fieldTT'] : ''" />
-    @if (isVisible) {
+      <input type='text' [formControl]="formControl"
+            class="form-control"
+            [class.is-valid]="isValid"
+            [class.is-invalid]="!isValid"
+            [attr.required]="isRequired === true ? true : null"
+            [attr.disabled]="componentDefinition?.config?.disabled ? 'true' : null"
+            [attr.readonly]="componentDefinition?.config?.readonly ? 'true' : null"
+            [attr.title]="getTooltip('fieldTT')" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -33,8 +30,7 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
   @Input() public override model?: TextFieldModel;
 
   public override initChildConfig(): void {
-    this.initConfig();
-    this.loggerService.info('TextFieldComponent isVisible '+this.isVisible);
+    this.buildPropertyCache();
     this.expressionStateChanged = false;
   }
 
