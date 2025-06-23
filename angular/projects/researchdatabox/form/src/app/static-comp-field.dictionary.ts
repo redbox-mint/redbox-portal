@@ -1,5 +1,5 @@
 import { TextFieldModel, TextFieldComponent } from "./component/textfield.component";
-import { RepeatableComponent, RepeatableComponentModel } from "./component/repeatable.component";
+import { RepeatableComponent, RepeatableComponentModel, RepeatableLayoutComponent } from "./component/repeatable.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
@@ -22,6 +22,9 @@ export const StaticModelCompClassMap = {
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent
+  },
+  'RepeatableLayoutComponent': {
+    component: RepeatableLayoutComponent
   },
   'RepeatableComponent': {
     model: RepeatableComponentModel,

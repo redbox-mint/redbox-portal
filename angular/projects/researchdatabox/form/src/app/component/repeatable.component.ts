@@ -80,7 +80,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
-    this.elemInitFieldEntry.layoutClass = RepeatableLayoutComponent;
+    let layoutClass = this.elemInitFieldEntry?.layoutClass;
+    if (!layoutClass) {
+      // If the layout class is not defined, use the default layout class.
+      layoutClass = RepeatableLayoutComponent
+    }
+    this.elemInitFieldEntry.layoutClass = layoutClass;
 
     // Loop through the elements of the model and insert into the container
     const elemVals = this.model.initValue;
