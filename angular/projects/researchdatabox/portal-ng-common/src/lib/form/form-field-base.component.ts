@@ -145,7 +145,10 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
             if(!_isUndefined(this.componentDefinition)) {
 
               let targetLayout = key.includes('layout.') ? true : false;
-              if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinition?.config,targetPropertyPath)) {
+              let targetModel = key.includes('model.') ? true : false;
+              if(targetModel) {
+                this.model?.formControl?.setValue(value);
+              } else if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinition?.config,targetPropertyPath)) {
                 _set(this.formFieldCompMapEntry?.layout?.componentDefinition,'config.'+targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `,this.name);
               } else if (!targetLayout && _has(this.componentDefinition.config,targetPropertyPath)) {
@@ -154,12 +157,12 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
               }
 
               this.expressionStateChanged = this.hasExpressionsConfigChanged();
-              this.loggerService.info(`checkUpdateExpressions expressionStateChanged ${this.expressionStateChanged}`,'');
+              this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`,'');
               if(this.expressionStateChanged) {
                 this.initChildConfig();
               } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged()) {
                 this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
-                this.initChildConfig();
+                this.formFieldCompMapEntry?.layout?.initChildConfig();
               }
             }
           }

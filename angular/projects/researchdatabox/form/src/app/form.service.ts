@@ -152,41 +152,110 @@ export class FormService {
           model: {
             class: 'TextFieldModel',
             config: {
-              value: 'hello world 2!'
-              // ,
-              // validators: [
-              //   { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
-              //   { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
-              // ]
+              value: 'hello world 2!',
+              validators: [
+                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
+                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
+              ]
             }
           },
           component: {
             class: 'TextFieldComponent'
           },
           expressions: {
-              'component.visible': {
-                  template: `<% if(_.isEmpty(_.get(model,'text_1_event',''))) {
-                              return false;
-                            } else {
-                              return true;
-                            } %>`
-              }
-
-              // 'layout.visible': {
-              //   template: `<% if(_.isEmpty(_.get(model,'text_1_event',''))) {
-              //                 return false;
-              //               } else {
-              //                 return true;
-              //               } %>`
-              // }
-
-              // 'model.value': {
-              //     template: `<% if(_.isEmpty(_.get(model,'text_2',''))) {
-              //                 return false;
-              //               } else {
-              //                 return true;
-              //               } %>`
-              // }
+            'model.value': {
+                template: `<%= _.get(model,'text_1_event','') %>`
+            }
+          }
+        },
+        {
+          name: 'text_2_event',
+          model: {
+            name: 'text_2_for_the_form',
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world! component event',
+              defaultValue: 'hello world! component event',
+              validators: [
+                { name: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'TextFieldComponent'
+          }
+        },
+        {
+          name: 'text_2_component_event',
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            }
+          },
+          model: {
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world 2! component expression'
+            }
+          },
+          component: {
+            class: 'TextFieldComponent'
+          },
+          expressions: {
+            'component.visible': {
+                template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+            }
+          }
+        },
+        {
+          name: 'text_3_event',
+          model: {
+            name: 'text_3_for_the_form',
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world! layout event',
+              defaultValue: 'hello world! layout event',
+              validators: [
+                { name: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'TextFieldComponent'
+          }
+        },
+        {
+          name: 'text_3_layout_event',
+          layout: {
+            class: 'DefaultLayoutComponent',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            }
+          },
+          model: {
+            class: 'TextFieldModel',
+            config: {
+              value: 'hello world 2! layout expression'
+            }
+          },
+          component: {
+            class: 'TextFieldComponent'
+          },
+          expressions: {
+            'layout.visible': {
+              template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+            }
           }
         },
          {
