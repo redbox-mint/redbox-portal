@@ -295,7 +295,7 @@ export class FormService {
                   }
                 },
                 layout: {
-                  class: 'RepeatableLayoutComponent',
+                  class: 'RepeatableElementLayoutComponent',
                   config: {
                     hostCssClasses: 'row align-items-start'
                   }
@@ -357,7 +357,7 @@ export class FormService {
                   }
                 },
                 layout: {
-                  class: 'RepeatableLayoutComponent',
+                  class: 'RepeatableElementLayoutComponent',
                   config: {
                     hostCssClasses: 'row align-items-start'
                   }

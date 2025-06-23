@@ -83,7 +83,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     let layoutClass = this.elemInitFieldEntry?.layoutClass;
     if (!layoutClass) {
       // If the layout class is not defined, use the default layout class.
-      layoutClass = RepeatableLayoutComponent
+      layoutClass = RepeatableElementLayoutComponent
     }
     this.elemInitFieldEntry.layoutClass = layoutClass;
 
@@ -149,7 +149,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
-    const layoutInstance = ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>);
+    const layoutInstance = ((compInstance as unknown) as RepeatableElementLayoutComponent<Array<unknown>>);
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
 
     elemFieldEntry.component = compInstance;
@@ -278,7 +278,7 @@ export interface RepeatableElementEntry {
   `,
   standalone: false,
 })
-export class RepeatableLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
+export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = "RepeatableLayoutComponent";
   public removeFn?: () => void;
 

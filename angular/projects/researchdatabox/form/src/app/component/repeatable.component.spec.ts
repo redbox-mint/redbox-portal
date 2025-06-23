@@ -1,6 +1,6 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {TextFieldComponent} from './textfield.component';
-import {RepeatableComponent, RepeatableLayoutComponent} from "./repeatable.component";
+import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import {GroupFieldComponent} from "./groupfield.component";
@@ -13,7 +13,7 @@ describe('RepeatableComponent', () => {
     const testbedModuleResult = await createTestbedModule([
       TextFieldComponent,
       RepeatableComponent,
-      RepeatableLayoutComponent,
+      RepeatableElementLayoutComponent,
     ]);
     configService = testbedModuleResult.configService;
     translationService = testbedModuleResult.translationService;
