@@ -146,9 +146,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
     const layoutInstance = ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>);
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
-    // layoutInstance.wrapperComponentRef = componentRef;
-    layoutInstance.hostBindingCssClasses = "row align-items-start";
-    layoutInstance.wrapperComponentRef.instance.hostBindingCssClasses = "col";
 
     elemFieldEntry.component = compInstance;
     if (this.model?.formControl && compInstance?.model) {
@@ -212,7 +209,6 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const modelElems: AbstractControl[] = [];
 
     this.formControl = new FormArray(modelElems);
-    // console.log("RepeatableComponentModel: created form model:", this.formControl);
   }
 
   public removeElement(targetModel: FormFieldModel<unknown> | null | undefined): void {

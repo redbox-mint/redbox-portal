@@ -109,6 +109,13 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
     this.loggerService.info(`${this.logName}: initComponent done for '${name}'.`);
 
+    // Set the host binding CSS classes for the wrapper element.
+    const wrapperCssClasses = this.formFieldCompMapEntry.compConfigJson?.component?.config?.wrapperCssClasses;
+    if ( wrapperCssClasses !== undefined && typeof wrapperCssClasses === 'string') {
+      this.hostBindingCssClasses = wrapperCssClasses;
+    }
+
+
     // After the component is initialised, this wrapper is now ready.
     this.status.set(FormFieldComponentStatus.READY);
     return compRef.instance;
@@ -120,6 +127,10 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     if (compRef) {
       compRef.destroy();
     }
+  }
+
+  protected override initHostBindingCssClasses() {
+    // do nothing
   }
 
   public override initChildConfig(): void {

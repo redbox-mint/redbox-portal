@@ -98,9 +98,10 @@ export class FormService {
     const formConfig: FormConfig = {
       debugValue: true,
       domElementType: 'form',
-      defaultComponentConfig: {
-        defaultComponentCssClasses: 'row',
-      },
+      // Commented out so as to simplify debugging of CSS assignments, but retained until fully documented.
+      // defaultComponentConfig: {
+      //   defaultComponentCssClasses: 'row',
+      // },
       editCssClasses: "redbox-form form",
 
       // validatorDefinitions is the combination of redbox core validator definitions and
@@ -280,18 +281,25 @@ export class FormService {
                 model: {
                   class: 'TextFieldModel',
                   config: {
-                    wrapperCssClasses: 'col',
-                    editCssClasses: 'redbox-form row',
                     defaultValue: 'hello world from elementTemplate!',
                     validators: [
-                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
-                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
-              ]
+                      { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
+                      { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
+                    ]
                   }
                 },
                 component: {
-                  class: 'TextFieldComponent'
-                }
+                  class: 'TextFieldComponent',
+                  config: {
+                    wrapperCssClasses: 'col',
+                  }
+                },
+                layout: {
+                  class: 'RepeatableLayoutComponent',
+                  config: {
+                    hostCssClasses: 'row align-items-start'
+                  }
+                },
               },
             },
           },
@@ -309,7 +317,7 @@ export class FormService {
             class: 'RepeatableComponentModel',
             config: {
               value: [ {
-                text_3: "hello world from repeating groups"
+                text_group_repeatable: "hello world from repeating groups"
               }]
             }
           },
@@ -329,10 +337,10 @@ export class FormService {
                 component: {
                   class: 'GroupFieldComponent',
                   config: {
-                    hostCssClasses: 'row',
+                    wrapperCssClasses: 'col',
                     componentDefinitions: [
                       {
-                        name: 'text_3',
+                        name: 'text_group_repeatable',
                         model: {
                           class: 'TextFieldModel',
                           config: {
@@ -342,14 +350,18 @@ export class FormService {
                         component: {
                           class: 'TextFieldComponent',
                           config: {
-                            hostCssClasses: '',
-                            wrapperCssClasses: 'col'
                           }
                         }
                       },
                     ]
                   }
-                }
+                },
+                layout: {
+                  class: 'RepeatableLayoutComponent',
+                  config: {
+                    hostCssClasses: 'row align-items-start'
+                  }
+                },
               }
             },
           },
