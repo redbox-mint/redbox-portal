@@ -46,6 +46,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
         @if (helpTextVisible) {
           <span class="help-block" [innerHtml]="componentDefinition.config?.helpText"></span>
         }
+        <br>
       }
     }
     <ng-container #componentContainer></ng-container>
