@@ -44,7 +44,7 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:20.11'
+      - image: 'cimg/node:24.2.0'
     steps:
       - checkout
       - run:
@@ -123,7 +123,7 @@ jobs:
           path: .tmp/junit
   deploy:
     docker:
-      - image: 'cimg/node:18.12'
+      - image: 'cimg/node:24.2.0'
     steps:
       - setup_remote_docker
       - attach_workspace:

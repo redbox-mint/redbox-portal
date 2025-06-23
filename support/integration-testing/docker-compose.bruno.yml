@@ -4,7 +4,7 @@ networks:
 
 services:
   bruno:
-    image: node:20.13.1-buster
+    image: node:24.2.0-buster
     pull_policy: 'always'
     volumes:
       - "../..:/opt/redbox-portal"
