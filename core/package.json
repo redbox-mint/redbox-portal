@@ -16,7 +16,7 @@
     "@tsconfig/node18": "^18.2.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.3",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
     "rxjs": "^6.6.2",
