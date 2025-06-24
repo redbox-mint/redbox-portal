@@ -16,7 +16,7 @@ import { LoDashTemplateUtilityService } from '../lodash-template-utility.service
  *
  */
 @Directive()
-export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit {
+export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   protected logName: string | null = "FormFieldBaseComponent";
   public name:string | null = '';
   public className:string = '';
@@ -155,11 +155,11 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
               this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`,'');
               if(this.expressionStateChanged) {
                 _set(this.componentDefinition?.config as object,targetPropertyPath,value);
-                this.initChildConfig();
+                this.buildPropertyCache();
               } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged()) {
                 _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
-                this.formFieldCompMapEntry?.layout?.initChildConfig();
+                this.formFieldCompMapEntry?.layout?.buildPropertyCache();
               }
             }
           }
@@ -176,8 +176,6 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
     this.viewInitialised.set(true);
   }
 
-  public abstract initChildConfig():void;
-
   public buildPropertyMap(componentDefinition: FormComponentBaseConfig): Map<string, any> {
     const propertyMap = new Map<string, any>();
 
@@ -189,7 +187,7 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
     return propertyMap;
   }
 
-  protected buildPropertyCache(isInit:boolean = false) {
+  public buildPropertyCache(isInit:boolean = false) {
 
     if(!_isUndefined(this.componentDefinition) && !_isNull(this.componentDefinition) && !_isEmpty(this.componentDefinition.config)) {
 
@@ -208,6 +206,7 @@ export abstract class FormFieldBaseComponent<ValueType> implements AfterViewInit
       }
 
       this.componentDefinitionCache =  _cloneDeep(this.componentDefinition.config);
+      this.expressionStateChanged = false;
     }
   }
 

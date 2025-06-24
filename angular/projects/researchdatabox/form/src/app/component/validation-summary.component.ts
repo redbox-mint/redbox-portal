@@ -77,6 +77,4 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return this._injector.get(FormComponent);
   }
 
-  public override initChildConfig(): void {
-  }
 }

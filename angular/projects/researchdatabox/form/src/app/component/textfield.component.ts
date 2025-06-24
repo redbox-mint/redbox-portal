@@ -29,9 +29,5 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
    */
   @Input() public override model?: TextFieldModel;
 
-  public override initChildConfig(): void {
-    this.buildPropertyCache();
-    this.expressionStateChanged = false;
-  }
 
 }

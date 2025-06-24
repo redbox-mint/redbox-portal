@@ -108,6 +108,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if(this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
+    
+    if(this.helpTextVisibleOnInit) {
+      this.setHelpTextVisibleOnInit();
+    }
   }
   /**
    * Override what it takes to get the component to be 'ready'
@@ -128,8 +132,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
     // Using the wrapper will also set the component instance in the definition map properly
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent<ValueType>);
-    let tmp = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
-    this.formFieldCompMapEntry.component = tmp;
+    this.formFieldCompMapEntry.component = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
     // finally set the status to 'READY'
     await super.setComponentReady();
   }
@@ -144,19 +147,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   private setHelpTextVisibleOnInit() {
     this.helpTextVisible = true;
-  }
-
-  //Layout specific config values that need to be applied after generic/base component config has been applied 
-  public override initChildConfig(): void {
-    
-    //Add required layout specific variables to the local state cache
-    this.buildPropertyCache();
-
-    if(this.helpTextVisibleOnInit) {
-      this.setHelpTextVisibleOnInit();
-    }
-    
-    this.expressionStateChanged = false;
   }
 
   protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{
