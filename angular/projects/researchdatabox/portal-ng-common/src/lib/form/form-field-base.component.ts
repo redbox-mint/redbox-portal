@@ -4,7 +4,7 @@ import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewCon
 import { LoggerService } from '../logger.service';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
-import {FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus, TooltipsModel} from '@researchdatabox/sails-ng-common';
+import {FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 
 
