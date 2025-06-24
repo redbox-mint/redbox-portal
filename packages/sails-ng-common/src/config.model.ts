@@ -83,6 +83,7 @@ export class FormComponentDefinition<ValueType> implements HasFormComponentIdent
   model?: FormFieldModelConfig<ValueType> | null | undefined = null;
   component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
+  expressions?: any;
 }
 
 /**

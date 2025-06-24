@@ -122,6 +122,4 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
   }
 
-  public override initChildConfig(): void {
-  }
 }
