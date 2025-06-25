@@ -68,7 +68,8 @@ export interface HasFormComponentConfig {
 
 export type KeyValueStringProperty = Record<string, string> | string | null | undefined;
 export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
-
+export type ExpressionTemplate = { template: string; condition: any };
+export type ExpressionsConfig = Record<string, ExpressionTemplate>;
 
 /**
  * The form component configuration definition.
@@ -83,7 +84,7 @@ export class FormComponentDefinition<ValueType> implements HasFormComponentIdent
   model?: FormFieldModelConfig<ValueType> | null | undefined = null;
   component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
-  expressions?: any;
+  expressions?: ExpressionsConfig;
 }
 
 /**

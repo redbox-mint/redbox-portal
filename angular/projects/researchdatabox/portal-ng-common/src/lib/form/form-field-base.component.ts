@@ -2,7 +2,7 @@ import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, cloneDeep as _cloneDeep} from 'lodash-es';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
@@ -141,8 +141,24 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
               let targetLayout = key.includes('layout.') ? true : false;
               let targetModel = key.includes('model.') ? true : false;
               if(targetModel) {
-                //TODO consider if there can be other model properties affected different to value? 
-                this.model?.setValue(value);
+                if(targetPropertyPath == 'value') {
+                  this.model?.setValue(value);
+                } else if(targetPropertyPath.indexOf('value.') != -1) {
+                  let innerPath = targetPropertyPath.replace('value.','');
+                  let modelValue = this.model?.getValue();
+                  if(_isObject(modelValue)) {
+                    _set(modelValue,innerPath,value);
+                    this.model?.setValue(modelValue);
+                  } else if(_isArray(modelValue)) {
+                    let condition = _get(expObj,'condition','');
+                    for(let entry of modelValue) {
+                      if(condition == '' || condition == _get(modelValue,innerPath,'')) {
+                        _set(entry,innerPath,value);
+                      }
+                    }
+                    this.model?.setValue(modelValue);
+                  }
+                }
               } else if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath)) {
                 _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `,this.name);
@@ -160,6 +176,10 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
                 _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,value);
                 this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
                 this.formFieldCompMapEntry?.layout?.buildPropertyCache();
+                if(targetPropertyPath == 'visible') {
+                  _set(this.componentDefinition?.config as object,targetPropertyPath,value);
+                  this.buildPropertyCache();
+                }
               }
             }
           }
