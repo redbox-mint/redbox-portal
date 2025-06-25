@@ -137,7 +137,8 @@ export class FormComponent extends BaseComponent {
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
       componentRef.changeDetectorRef.detectChanges();
 
-      componentDefEntry.component = await componentRef.instance.initWrapperComponent(componentDefEntry);
+      await componentRef.instance.initWrapperComponent(componentDefEntry);
+      this.loggerService.info(`FormComponent: downloadAndCreateFormComponents: `, componentDefEntry.component);
     }
     // TODO: set up the event handlers
 

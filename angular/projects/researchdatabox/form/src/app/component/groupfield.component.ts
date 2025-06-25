@@ -202,6 +202,4 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
   }
 
-  public override initChildConfig(): void {
-  }
 }
