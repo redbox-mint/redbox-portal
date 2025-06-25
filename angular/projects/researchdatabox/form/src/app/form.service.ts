@@ -69,7 +69,7 @@ export class FormService extends HttpClientService {
   protected modelClassMap:FormFieldModelClassMap = {};
   protected validatorsSupport: ValidatorsSupport;
 
-  private requestOptions = null;
+  private requestOptions: Record<string, unknown> = {};
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
@@ -93,6 +93,12 @@ export class FormService extends HttpClientService {
   public override async waitForInit(): Promise<any> {
     await super.waitForInit();
     this.requestOptions = this.reqOptsJsonBodyOnly;
+
+    if (!Object.hasOwn(this.requestOptions, 'headers')) {
+      this.requestOptions['headers'] = {};
+    }
+    (this.requestOptions['headers'] as Record<string, string>)['X-ReDBox-Api-Version'] = '2.0';
+
     this.enableCsrfHeader();
     _merge(this.requestOptions, {context: this.httpContext});
     return this;
@@ -113,14 +119,11 @@ export class FormService extends HttpClientService {
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
-    // TODO: download the form config using this.httpClient.
-    // Look at:
-    // angular-legacy/shared/config-service.ts
-    // angular-legacy/shared/base-service.ts
-    // angular-legacy/shared/workspace-service.ts
-
-    const formFields = await this.getFormFields(recordType, oid, editMode, formName);
+    const formFields = await this.getFormFields(oid, recordType, editMode, formName);
     this.loggerService.info('Got form config:', formFields);
+
+    const modelData = await this.getModelData(oid, recordType);
+    this.loggerService.info('Got model data:', modelData);
 
     const formConfig: FormConfig = {
       debugValue: true,
@@ -821,8 +824,17 @@ export class FormService extends HttpClientService {
     }
   }
 
-  private async getFormFields(recordType: string, oid: string | null = null, editable: boolean, formName: string | null = null) {
+  /**
+   * Get the form field configuration for the provided oid or recordtype.
+   * @param oid The existing record id.
+   * @param recordType The recordtype.
+   * @param editable Whether the form config should be the editable form or not.
+   * @param formName The optional name of the form.
+   * @private
+   */
+  private async getFormFields(oid: string | null, recordType: string, editable: boolean, formName: string | null = null) {
     const ts = new Date().getTime().toString();
+
     const remainingPaths = oid ? `auto/${oid}` : `${recordType}`;
     const url = new URL(remainingPaths, `${this.brandingAndPortalUrl}/record/form/`);
     url.searchParams.set('ts', ts);
@@ -830,8 +842,31 @@ export class FormService extends HttpClientService {
     if (formName) {
       url.searchParams.set('formName', formName?.toString());
     }
+
     this.loggerService.info(`Get form fields from url '${url}'.`);
-    return await this.http.get<FormConfig>(url.href).toPromise();
+    return await this.http.get<FormConfig>(url.href, this.requestOptions).toPromise();
+  }
+
+  /**
+   * Get the model data for the given oid, or the form defaults if no oid if given.
+   * @param oid The optional oid of an existing record.
+   * @param recordType The recordtype.
+   * @private
+   */
+  private async getModelData(oid?: string, recordType?: string) {
+    if (!oid && !recordType) {
+      throw new Error("Must provide oid or recordType.")
+    }
+
+    const ts = new Date().getTime().toString();
+
+    const url = oid
+      ? new URL(`${this.brandingAndPortalUrl}/record/metadata/${oid}`)
+      : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
+    url.searchParams.set('ts', ts);
+
+    this.loggerService.info(`Get model data from url '${url}'.`);
+    return await this.http.get(url.href, this.requestOptions).toPromise();
   }
 }
 

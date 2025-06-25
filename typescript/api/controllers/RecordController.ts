@@ -28,7 +28,8 @@ import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
   RecordTypeModel,
-  BrandingModel
+  BrandingModel,
+  DataResponseV2
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
@@ -119,6 +120,8 @@ export module Controllers {
       if (oid == '') {
         return res.badRequest();
       }
+      const apiVersion = this.getApiVersion(req);
+
       try {
         let record: any = await this.recordsService.getMeta(oid);
         if(_.isEmpty(record)) {
@@ -126,17 +129,33 @@ export module Controllers {
         }
         let hasViewAccess = await this.hasViewAccess(brand, req.user, record).toPromise()
         if (hasViewAccess) {
-          return res.json(record.metadata);
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            return res.json(this.buildResponseSuccess(record.metadata, {oid: record.redboxOid}))
+          } else {
+            return res.json(record.metadata);
+          }
         } else {
-          return res.json({
-            status: "Access Denied"
-          });
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            return res.status(403).json(this.buildResponseError([{title: TranslationService.t("error-403-heading")}], {oid: record.redboxOid}));
+          } else {
+            return res.json({status: "Access Denied"});
+          }
         }
       } catch (err) {
         sails.log.error("Error retrieving metadata")
         sails.log.error(err);
         return res.serverError();
       }
+    }
+
+    public async getMetaDefault(req, res){
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const name = req.param('name') ?? '';
+      const apiVersion = this.getApiVersion(req);
+
+      // TODO: get the default data model for the record type with 'name'.
+
+
     }
 
     public edit(req, res) {
@@ -1474,27 +1493,11 @@ export module Controllers {
       return validationName == err.name ? err.message : defaultMessage;
     }
 
-    private buildResponseSuccess(data: unknown, meta: unknown): DataResponse {
-      // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
-      return {
-        data: {...Object.entries(data)},
-        meta: {...Object.entries(meta)},
-      }
-    }
-
-    private async buildResponseSuccessRecord(oid: string, response: unknown): Promise<DataResponse> {
+    private async buildResponseSuccessRecord(oid: string, response: unknown): Promise<DataResponseV2> {
       return this.buildResponseSuccess(
           await this.recordsService.getMeta(oid),
           response
       );
-    }
-
-    private async buildResponseError(errors: { [key: string]: unknown }[], response: unknown) : Promise<ErrorResponse> {
-      // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
-      return {
-        errors: errors,
-        meta: {...Object.entries(response)},
-      }
     }
 
     private mergeRecordMetadata(currentMetadata: { [key: string]: unknown }, newMetadata: { [key: string]: unknown }): { [key: string]: unknown } {
@@ -1509,116 +1512,6 @@ export module Controllers {
       });
     }
   }
-}
-
-/**
- * From https://github.com/mathematic-inc/ts-japi/blob/main/src/models/error.model.ts
- * Licence Apache 2.0.
- */
-export interface ErrorResponseItem {
-  /**
-   * A unique identifier for this particular occurrence of the problem.
-   */
-  id?: string;
-
-  /**
-   * The HTTP status code applicable to this problem, expressed as a string
-   * value.
-   */
-  status?: string;
-
-  /**
-   * An application-specific error code, expressed as a string value.
-   */
-  code?: string;
-
-  /**
-   * A short, human-readable summary of the problem that SHOULD NOT change from
-   * occurrence to occurrence of the problem, except for purposes of
-   * localization.
-   */
-  title?: string;
-
-  /**
-   * A human-readable explanation specific to this occurrence of the problem.
-   * Like title, this field's value can be localized.
-   */
-  detail?: string;
-
-  /**
-   * An object containing references to the source of the error, optionally
-   * including any of the following members.
-   */
-  source?: {
-    /**
-     * A JSON Pointer [RFC6901] to the value in the request document that caused the error
-     * [e.g. "/data" for a primary data object, or "/data/attributes/title" for a specific attribute].
-     * This MUST point to a value in the request document that exists; if it doesn’t,
-     * the client SHOULD simply ignore the pointer.
-     */
-    pointer?: string;
-
-    /**
-     * A string indicating which URI query parameter caused the error.
-     */
-    parameter?: string;
-
-    /**
-     * A string indicating the name of a single request header which caused
-     * the error.
-     */
-    header?: string;
-  };
-
-  /**
-   * Links to more information about the error.
-   */
-  links?: {
-    /**
-     * A link that leads to further details about this particular occurrence of the problem.
-     * When dereferenced, this URI SHOULD return a human-readable description of the error.
-     */
-
-    about?: string;
-    /**
-     * A link that identifies the type of error that this particular error is an instance of.
-     * This URI SHOULD be dereferenceable to a human-readable explanation of the general error.
-     */
-    type?: string;
-  }
-
-  /**
-   * A meta object containing non-standard meta-information about the error.
-   */
-  meta?: { [key: string]: unknown };
-}
-
-/**
- * An error response to a request.
- */
-export interface ErrorResponse {
-  /**
-   * The errors.
-   */
-  errors: ErrorResponseItem[];
-  /**
-   * A meta-object containing non-standard meta-information about the response.
-   */
-  meta: { [key: string]: unknown };
-}
-
-/**
- * A successful response to a request.
- */
-export interface DataResponse {
-  /**
-   * The response primary data.
-   */
-  data: unknown;
-  /**
-   * A meta-object containing non-standard meta-information about the response.
-   */
-  meta: { [key: string]: unknown };
 }
 
 module.exports = new Controllers.Record().exports();

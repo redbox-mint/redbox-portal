@@ -3,7 +3,7 @@ declare var _;
 declare var sails;
 
 import {existsSync} from 'fs';
-import {APIErrorResponse, ApiVersion, ApiVersionStrings} from "./model";
+import {APIErrorResponse, ApiVersion, ApiVersionStrings, DataResponseV2, ErrorResponseV2} from "./model";
 export module Controllers.Core {
 
   /**
@@ -363,8 +363,36 @@ export module Controllers.Core {
       if (!available.includes(version)) {
         throw new Error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
       }
-
+      sails.log.verbose(`Using API version '${version}' for url '${req.url}'.`);
       return version;
+    }
+
+    /**
+     * Build a success response with the provided data and meta items.
+     * @param data The primary data for the response.
+     * @param meta The metadata for the response.
+     * @protected
+     */
+    protected buildResponseSuccess(data: unknown[] | Record<string, unknown>, meta: Record<string, unknown>): DataResponseV2 {
+      // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
+      return {
+        data: data,
+        meta: {...Object.entries(meta)},
+      }
+    }
+
+    /**
+     * Build an error response with the provided data and meta items.
+     * @param errors The error details for the response.
+     * @param meta The metadata for the response.
+     * @protected
+     */
+    protected buildResponseError(errors: { [key: string]: unknown }[], meta: Record<string, unknown>): ErrorResponseV2 {
+      // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
+      return {
+        errors: errors,
+        meta: {...Object.entries(meta)},
+      }
     }
   }
 }
