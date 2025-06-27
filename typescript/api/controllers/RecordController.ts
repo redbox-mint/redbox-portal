@@ -87,6 +87,7 @@ export module Controllers {
       'getType',
       'getWorkflowSteps',
       'getMeta',
+      'getMetaDefault',
       'doAttachment',
       'getAttachments',
       'getPermissions',
@@ -155,7 +156,7 @@ export module Controllers {
 
       // TODO: get the default data model for the record type with 'name'.
 
-
+      return res.json({});
     }
 
     public edit(req, res) {
@@ -264,8 +265,13 @@ export module Controllers {
           if (_.isEmpty(form)) {
             return this.ajaxFail(req, res, null, {message: `Error, getting form for record type: ${recordType}`});
           }
-          let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, recordType, {});
-          form.fields = fields;
+          // TODO: process the form config to provide only the fields accessible by the current user
+          // let fields = await this.mergeFields(
+          //     req, res,
+          //     form.fields ?? form.componentDefinitions,
+          //     form.requiredFieldIndicator ?? '*',
+          //     recordType, {});
+          // form.fields = fields;
           mergedForm = form;
           
         } else {
@@ -301,9 +307,13 @@ export module Controllers {
             let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
             FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
           }
-          
-          let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec);
-          form.fields = fields;
+          // TODO: process the form config to provide only the fields accessible by the current user
+          // let fields = await this.mergeFields(
+          //     req, res,
+          //     form.fields ?? form.componentDefinitions,
+          //     form.requiredFieldIndicator ?? '*',
+          //     currentRec.metaMetadata.type, currentRec);
+          // form.fields = fields;
           mergedForm = form;
         }
 

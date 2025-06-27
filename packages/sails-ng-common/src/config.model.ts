@@ -129,6 +129,8 @@ export class FormFieldModelDefinition<ValueType> {
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
   validators?: FormValidatorBlock[] | null | undefined = null;
+  wrapperCssClasses?: string;
+  editCssClasses?: string;
 }
 /**
  * Config field model, aka the data binding

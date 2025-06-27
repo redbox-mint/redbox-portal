@@ -113,18 +113,28 @@ export module Services {
       let result = null;
       if (!_.isNull(formName)) {
         sails.log.verbose(`Preparing to create form...`);
+        // TODO: assess the form config to see what should change
+        const formConfig = sails.config.form.forms[formName];
         const formObj = {
           name: formName,
-          fields: sails.config.form.forms[formName].fields,
+          fields: formConfig.fields,
           workflowStep: workflowStep.id,
-          type: sails.config.form.forms[formName].type,
-          messages: sails.config.form.forms[formName].messages,
-          viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
-          requiredFieldIndicator: sails.config.form.forms[formName].requiredFieldIndicator,
-          editCssClasses: sails.config.form.forms[formName].editCssClasses,
-          skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
-          attachmentFields: sails.config.form.forms[formName].attachmentFields,
-          customAngularApp: sails.config.form.forms[formName].customAngularApp || null
+          type: formConfig.type,
+          messages: formConfig.messages,
+          viewCssClasses: formConfig.viewCssClasses,
+          requiredFieldIndicator: formConfig.requiredFieldIndicator,
+          editCssClasses: formConfig.editCssClasses,
+          skipValidationOnSave: formConfig.skipValidationOnSave,
+          attachmentFields: formConfig.attachmentFields,
+          customAngularApp: formConfig.customAngularApp || null,
+
+          // new fields
+          debugValue: formConfig.debugValue,
+          domElementType: formConfig.domElementType,
+          defaultComponentConfig: formConfig.defaultComponentConfig,
+          validatorDefinitions: formConfig.validatorDefinitions,
+          validators: formConfig.validators,
+          componentDefinitions: formConfig.componentDefinitions,
         };
 
         result = await Form.create(formObj);

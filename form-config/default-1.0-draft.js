@@ -1,1580 +1,393 @@
-/**
- * RDMP form
- */
-module.exports = {
-  name: 'default-1.0-draft',
-  type: 'rdmp',
-  skipValidationOnSave: false,
-  editCssClasses: 'row col-md-12',
-  viewCssClasses: 'row col-md-offset-1 col-md-10',
-  messages: {
-    "saving": ["@dmpt-form-saving"],
-    "validationFail": ["@dmpt-form-validation-fail-prefix", "@dmpt-form-validation-fail-suffix"],
-    "saveSuccess": ["@dmpt-form-save-success"],
-    "saveError": ["@dmpt-form-save-error"]
-  },
-  attachmentFields: [
-    "licences_agreements"
-  ],
-  fields: [{
-      class: 'Container',
-      compClass: 'TextBlockComponent',
-      viewOnly: true,
-      definition: {
-        name: 'title',
-        type: 'h1'
-      }
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const validators_1 = require("../config/validators");
+const formConfig = {
+    name: "default-1.0-draft",
+    type: "rdmp",
+    debugValue: true,
+    domElementType: 'form',
+    defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
     },
-    {
-      class: 'Container',
-      compClass: 'GenericGroupComponent',
-      definition: {
-        cssClasses: "form-inline",
-        fields: [{
-            class: "AnchorOrButton",
-            viewOnly: true,
-            definition: {
-              label: '@dmp-edit-record-link',
-              value: '/@branding/@portal/record/edit/@oid',
-              cssClasses: 'btn btn-large btn-info',
-              showPencil: true,
-              controlType: 'anchor'
+    editCssClasses: "redbox-form form",
+    // validatorDefinitions is the combination of redbox core validator definitions and
+    // the validator definitions from the client hook form config.
+    validatorDefinitions: validators_1.formValidatorsSharedDefinitions,
+    // TODO: a way to crate groups of validators
+    // This is not implemented yet.
+    // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
+    // validatorProfiles: {
+    //     // all: All validators (exclude none).
+    //     all: {exclude: []},
+    //     // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
+    //     minimumSave: {include: ['project_title']},
+    // },
+    // Validators that operate on multiple fields.
+    validators: [
+        { name: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
+    ],
+    componentDefinitions: [
+        {
+            name: 'text_1_event',
+            model: {
+                name: 'text_1_for_the_form',
+                class: 'TextFieldModel',
+                config: {
+                    value: 'hello world!',
+                    defaultValue: 'hello world!',
+                    validators: [
+                        { name: 'required' },
+                    ]
+                }
             },
-            variableSubstitutionFields: ['value']
-          },
-          {
-            class: "AnchorOrButton",
-            roles: ['Admin', 'Librarians'],
-            viewOnly: true,
-            definition: {
-              label: '@view-record-audit-link',
-              value: '/@branding/@portal/record/viewAudit/@oid',
-              cssClasses: 'btn btn-large btn-info margin-15',
-              controlType: 'anchor'
+            component: {
+                class: 'TextFieldComponent'
+            }
+        },
+        {
+            name: 'text_2',
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'TextField with default wrapper defined',
+                    helpText: 'This is a help text',
+                }
             },
-            variableSubstitutionFields: ['value']
-          },
-          {
-            class: "AnchorOrButton",
-            viewOnly: true,
-            definition: {
-              label: '@dmpt-create-datarecord-link',
-              value: '/@branding/@portal/record/dataRecord/edit?rdmpOid=@oid',
-              cssClasses: 'btn btn-large btn-info margin-15',
-              controlType: 'anchor'
+            model: {
+                class: 'TextFieldModel',
+                config: {
+                    value: 'hello world 2!',
+                    validators: [
+                        { name: 'pattern', config: { pattern: /prefix.*/, description: "must start with prefix" } },
+                        { name: 'minLength', message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+                    ]
+                }
             },
-            variableSubstitutionFields: ['value']
-          },
-          {
-            class: 'PDFList',
-            viewOnly: true,
-            definition: {
-              name: 'pdf',
-              label: '@dmpt-pdf-list-label',
-              cssClasses: 'btn btn-large btn-info margin-15'
-            }
-          }
-        ]
-      }
-    },
-    {
-      class: 'TextArea',
-      viewOnly: true,
-      definition: {
-        name: 'description',
-        label: '@dmpt-description'
-      }
-    },
-    {
-      class: "TabOrAccordionContainer",
-      compClass: "TabOrAccordionContainerComponent",
-      definition: {
-        id: "mainTab",
-        accContainerClass: "view-accordion",
-        expandAccordionsOnOpen: true,
-        fields: [
-          // -------------------------------------------------------------------
-          // Welcome Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            editOnly: true,
-            definition: {
-              id: "welcome",
-              label: "@dmpt-welcome-tab",
-              active: true,
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-welcome-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-welcome-par1'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-welcome-par2'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-welcome-par3'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-welcome-par4'
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Project Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "project",
-              label: "@dmpt-project-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-project-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  viewOnly: true,
-                  definition: {
-                    name: 'raidUrl',
-                    label: '@dmpt-raid',
-                    help: '@dmpt-raid-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  editOnly: true,
-                  definition: {
-                    name: 'raidUrl',
-                    label: '@dmpt-raid',
-                    help: '@dmpt-raid-help',
-                    type: 'text',
-                    readOnly: true,
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [
-                          {
-                            action: 'utilityService.getPropertyFromObject',
-                            field: 'raidUrl'
-                          }
-                        ]
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'TextField',
-                  editOnly: true,
-                  definition: {
-                    name: 'title',
-                    label: '@dmpt-project-title',
-                    help: '@dmpt-project-title-help',
-                    type: 'text',
-                    required: true
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'dc:identifier',
-                    label: '@dmpt-project-id',
-                    help: '@dmpt-project-id-help',
-                    type: 'text',
-                    required: true
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  editOnly: true,
-                  definition: {
-                    name: 'description',
-                    label: '@dmpt-project-desc',
-                    help: '@dmpt-project-desc-help',
-                    rows: 10,
-                    cols: 10,
-                    required: true
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableTextfieldComponent',
-                  definition: {
-                    label: "@dmpt-finalKeywords",
-                    help: "@dmpt-finalKeywords-help",
-                    name: "finalKeywords",
-                    editOnly: true,
-                    required: true,
-                    fields: [{
-                      class: 'TextField',
-                      definition: {
-                        required: true,
-                        type: 'text',
-                        validationMessages: {
-                          required: "@dataRecord-keywords-required"
-                        }
-                      }
-                    }]
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'dc:relation_bibo:Website',
-                    label: '@dmpt-project-website',
-                    help: '@dmpt-project-website-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'DateTime',
-                  definition: {
-                    name: "dc:coverage_vivo:DateTimeInterval_vivo:start",
-                    label: "@dmpt-project-startdate",
-                    help: '@dmpt-project-startdate-help',
-                    datePickerOpts: {
-                      format: 'dd/mm/yyyy',
-                      icon: 'fa fa-calendar',
-                      autoclose: true
-                    },
-                    timePickerOpts: false,
-                    hasClearButton: false,
-                    valueFormat: 'YYYY-MM-DD',
-                    displayFormat: 'L',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'DateTime',
-                  definition: {
-                    name: "dc:coverage_vivo:DateTimeInterval_vivo:end",
-                    label: "@dmpt-project-enddate",
-                    help: '@dmpt-project-enddate-help',
-                    datePickerOpts: {
-                      format: 'dd/mm/yyyy',
-                      icon: 'fa fa-calendar',
-                      autoclose: true
-                    },
-                    timePickerOpts: false,
-                    hasClearButton: false,
-                    valueFormat: 'YYYY-MM-DD',
-                    displayFormat: 'L',
-                    subscribe: {
-                      'dc:coverage_vivo:DateTimeInterval_vivo:start': {
-                        onValueUpdate: []
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
-                  definition: {
-                    name: 'foaf:fundedBy_foaf:Agent',
-                    label: "@dmpt-foaf:fundedBy_foaf:Agent",
-                    help: "@dmpt-foaf:fundedBy_foaf:Agent-help",
-                    forceClone: ['lookupService', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        disableEditAfterSelect: false,
-                        vocabId: 'Funding Bodies',
-                        sourceType: 'mint',
-                        fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
-                        searchFields: 'dc_title',
-                        titleFieldArr: ['dc_title'],
-                        stringLabelToField: 'dc_title'
-                      }
-                    }]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
-                  definition: {
-                    name: 'foaf:fundedBy_vivo:Grant',
-                    label: "@dmpt-foaf:fundedBy_vivo:Grant",
-                    help: "@dmpt-foaf:fundedBy_vivo:Grant-help",
-                    forceClone: ['lookupService', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        disableEditAfterSelect: false,
-                        vocabId: 'Research Activities',
-                        sourceType: 'mint',
-                        fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids', 'repository_name'],
-                        searchFields: 'grant_number,dc_title',
-                        titleFieldArr: ['grant_number', 'repository_name', 'dc_title'],
-                        titleFieldDelim: [{
-                            prefix: '[',
-                            suffix: ']'
-                          },
-                          {
-                            prefix: ' (',
-                            suffix: ')'
-                          },
-                          {
-                            prefix: ' ',
-                            suffix: ''
-                          }
-                        ],
-                        stringLabelToField: 'dc_title'
-                      }
-                    }],
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges',
-                        // optional, renames fields `{field: sourcefield}` accessed using _.get, remove to return the entire data set
-                        fields: [{
-                          'grant_number': 'grant_number[0]'
-                        }, {
-                          'dc_title': 'dc_title'
-                        }]
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'dc:subject_anzsrc:toa_rdf:resource',
-                    label: '@dmpt-project-activity-type',
-                    help: '@dmpt-project-activity-type-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        value: "pure",
-                        label: "@dmpt-activity-type-pure"
-                      },
-                      {
-                        value: "strategic",
-                        label: "@dmpt-activity-type-strategic"
-                      },
-                      {
-                        value: "applied",
-                        label: "@dmpt-activity-type-applied"
-                      },
-                      {
-                        value: "experimental",
-                        label: "@dmpt-activity-type-experimental"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'ANDSVocab',
-                  compClass: 'ANDSVocabComponent',
-                  definition: {
-                    label: "@dmpt-project-anzsrcFor",
-                    help: "@dmpt-project-anzsrcFor-help",
-                    name: "dc:subject_anzsrc:for",
-                    vocabId: 'anzsrc-2020-for'
-                  }
-                },
-                {
-                  class: 'ANDSVocab',
-                  compClass: 'ANDSVocabComponent',
-                  definition: {
-                    label: "@dmpt-project-anzsrcSeo",
-                    help: "@dmpt-project-anzsrcSeo-help",
-                    name: "dc:subject_anzsrc:seo",
-                    vocabId: 'anzsrc-2020-seo'
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // People Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "people",
-              label: "@dmpt-people-tab",
-              fields: [
-                {
-                  class: 'ContributorField',
-                  showHeader: true,
-                  showRole: false,
-                  definition: {
-                    name: 'contributor_ci',
-                    required: true,
-                    label: '@dmpt-people-tab-ci',
-                    help: '@dmpt-people-tab-ci-help',
-                    role: "@dmpt-people-tab-ci-role",
-                    freeText: false,
-                    forceLookupOnly: true,
-                    vocabId: 'Parties AND repository_name:People',
-                    sourceType: 'mint',
-                    fieldNames: [{
-                        'text_full_name': 'text_full_name'
-                      }, {
-                        'full_name_honorific': 'text_full_name_honorific'
-                      }, {
-                        'email': 'Email[0]'
-                      },
-                      {
-                        'given_name': 'Given_Name[0]'
-                      },
-                      {
-                        'family_name': 'Family_Name[0]'
-                      },
-                      {
-                        'honorific': 'Honorific[0]'
-                      },
-                      {
-                        'full_name_family_name_first': 'dc_title'
-                      }
-                    ],
-                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
-                    titleFieldArr: ['text_full_name'],
-                    titleFieldDelim: '',
-                    nameColHdr: '@dmpt-people-tab-name-hdr',
-                    emailColHdr: '@dmpt-people-tab-email-hdr',
-                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                    validation_required_name: '@dmpt-people-tab-validation-name-required',
-                    validation_required_email: '@dmpt-people-tab-validation-email-required',
-                    validation_invalid_email: '@dmpt-people-tab-validation-email-invalid',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'ContributorField',
-                  showHeader: true,
-                  definition: {
-                    name: 'contributor_data_manager',
-                    required: true,
-                    label: '@dmpt-people-tab-data-manager',
-                    help: '@dmpt-people-tab-data-manager-help',
-                    role: "@dmpt-people-tab-data-manager-role",
-                    freeText: false,
-                    vocabId: 'Parties AND repository_name:People',
-                    sourceType: 'mint',
-                    fieldNames: [{
-                        'text_full_name': 'text_full_name'
-                      }, {
-                        'full_name_honorific': 'text_full_name_honorific'
-                      }, {
-                        'email': 'Email[0]'
-                      },
-                      {
-                        'given_name': 'Given_Name[0]'
-                      },
-                      {
-                        'family_name': 'Family_Name[0]'
-                      },
-                      {
-                        'honorific': 'Honorific[0]'
-                      },
-                      {
-                        'full_name_family_name_first': 'dc_title'
-                      }
-                    ],
-                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
-                    titleFieldArr: ['text_full_name'],
-                    titleFieldDelim: '',
-                    nameColHdr: '@dmpt-people-tab-name-hdr',
-                    emailColHdr: '@dmpt-people-tab-email-hdr',
-                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                    showRole: false,
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    },
-                    value: {
-                      name: '@user_name',
-                      email: '@user_email',
-                      username: '@user_username',
-                      text_full_name: '@user_name'
-                    }
-                  },
-                  variableSubstitutionFields: ['value.name', 'value.email', 'value.username', 'value.text_full_name']
-                },
-                {
-                  class: 'RepeatableContributor',
-                  compClass: 'RepeatableContributorComponent',
-                  definition: {
-                    name: "contributors",
-                    skipClone: ['showHeader', 'initialValue'],
-                    forceClone: [{
-                      field: 'vocabField',
-                      skipClone: ['injector']
-                    }],
-                    fields: [{
-                      class: 'ContributorField',
-                      showHeader: true,
-                      definition: {
-                        required: false,
-                        label: '@dmpt-people-tab-contributors',
-                        help: '@dmpt-people-tab-contributors-help',
-                        role: "@dmpt-people-tab-contributors-role",
-                        freeText: false,
-                        vocabId: 'Parties AND repository_name:People',
-                        sourceType: 'mint',
-                        fieldNames: [{
-                            'text_full_name': 'text_full_name'
-                          }, {
-                            'full_name_honorific': 'text_full_name_honorific'
-                          }, {
-                            'email': 'Email[0]'
-                          },
-                          {
-                            'given_name': 'Given_Name[0]'
-                          },
-                          {
-                            'family_name': 'Family_Name[0]'
-                          },
-                          {
-                            'honorific': 'Honorific[0]'
-                          },
-                          {
-                            'full_name_family_name_first': 'dc_title'
-                          }
-                        ],
-                        searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
-                        titleFieldArr: ['text_full_name'],
-                        titleFieldDelim: '',
-                        nameColHdr: '@dmpt-people-tab-name-hdr',
-                        emailColHdr: '@dmpt-people-tab-email-hdr',
-                        orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                        showRole: false,
-                        activeValidators: {
-                          email: ['required', 'email']
-                        }
-                      }
-                    }]
-                  }
-                },
-                {
-                  class: 'ContributorField',
-                  showHeader: true,
-                  definition: {
-                    name: 'contributor_supervisor',
-                    required: false,
-                    label: '@dmpt-people-tab-supervisor',
-                    help: '@dmpt-people-tab-supervisor-help',
-                    role: "@dmpt-people-tab-supervisor-role",
-                    freeText: false,
-                    forceLookupOnly: true,
-                    vocabId: 'Parties AND repository_name:People',
-                    sourceType: 'mint',
-                    fieldNames: [{
-                        'text_full_name': 'text_full_name'
-                      }, {
-                        'full_name_honorific': 'text_full_name_honorific'
-                      }, {
-                        'email': 'Email[0]'
-                      },
-                      {
-                        'given_name': 'Given_Name[0]'
-                      },
-                      {
-                        'family_name': 'Family_Name[0]'
-                      },
-                      {
-                        'honorific': 'Honorific[0]'
-                      },
-                      {
-                        'full_name_family_name_first': 'dc_title'
-                      }
-                    ],
-                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
-                    titleFieldArr: ['text_full_name'],
-                    titleFieldDelim: '',
-                    nameColHdr: '@dmpt-people-tab-name-hdr',
-                    emailColHdr: '@dmpt-people-tab-email-hdr',
-                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                    showRole: false,
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'ContributorField',
-                  showHeader: true,
-                  showRole: false,
-                  definition: {
-                    name: 'contributor_ci_internal',
-                    required: false,
-                    label: 'People lookup in index based of record title for contributor component',
-                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
-                    role: "@dmpt-people-tab-ci-role",
-                    freeText: false,
-                    forceLookupOnly: true,
-                    vocabQueryId: 'party',
-                    sourceType: 'query',
-                    fieldNames: [
-                      {
-                        'text_full_name': 'fullName'
-                      }, {
-                        'email': 'email'
-                      }, {
-                        'orcid': 'orcid'
-                      }
-                    ],
-                    searchFields: 'title',
-                    titleFieldArr: ['fullName'],
-                    titleFieldDelim: '',
-                    nameColHdr: '@dmpt-people-tab-name-hdr',
-                    emailColHdr: '@dmpt-people-tab-email-hdr',
-                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                    validation_required_name: '@dmpt-people-tab-validation-name-required',
-                    validation_required_email: '@dmpt-people-tab-validation-email-required',
-                    validation_invalid_email: '@dmpt-people-tab-validation-email-invalid',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
-                  definition: {
-                    name: 'people-lookup-in-index-based-of-record-title',
-                    label: "People lookup in index based of record title",
-                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
-                    forceClone: ['lookupService', 'completerService'],
-                    fields: [
-                      {
-                      class: 'VocabField',
-                      definition: {
-                        disableEditAfterSelect: false,
-                        vocabQueryId: 'party',
-                        vocabQueryResultMaxRows: '30',
-                        sourceType: 'query',
-                        titleFieldName: 'title',
-                        titleFieldArr: ['fullName','email','orcid'],
-                        fieldNames:['fullName','email','orcid'],
-                        stringLabelToField: 'fullName'
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
-                  definition: {
-                    name: 'people-lookup-in-db-based-of-record-title',
-                    label: "People lookup in database based of record title",
-                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
-                    forceClone: ['lookupService', 'completerService'],
-                    fields: [
-                      {
-                      class: 'VocabField',
-                      definition: {
-                        disableEditAfterSelect: false,
-                        vocabQueryId: 'rdmp',
-                        sourceType: 'query',
-                        titleFieldName: 'title',
-                        titleFieldArr: ['metadata.contributor_ci'],
-                        fieldNames:['metadata.contributor_ci'],
-                        stringLabelToField: 'metadata.contributor_ci',
-                        resultArrayProperty: 'records'
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          },
-          {
-            class: "Container",
-            definition: {
-              id: "dataCollection",
-              label: "@dmpt-data-collection-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-data-collection-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_redbox:DataCollectionMethodology',
-                    label: '@dmpt-data-collection-methodology',
-                    help: '@dmpt-data-collection-methodology-help',
-                    rows: 5,
-                    columns: 10,
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-data-collection-methodology-required"
-                    }
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_dc_format',
-                    label: '@dmpt-vivo:Dataset_dc_format',
-                    help: '@dmpt-vivo:Dataset_dc_format-help',
-                    rows: 5,
-                    columns: 10,
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-vivo:Dataset_dc_format-required"
-                    }
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_redbox:DataCollectionResources',
-                    label: '@dmpt-vivo:Dataset_redbox:DataCollectionResources',
-                    help: '@dmpt-vivo:Dataset_redbox:DataCollectionResources-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_redbox:DataAnalysisResources',
-                    label: '@dmpt-vivo:Dataset_redbox:DataAnalysisResources',
-                    help: '@dmpt-vivo:Dataset_redbox:DataAnalysisResources-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_redbox:MetadataStandard',
-                    label: '@dmpt-vivo:Dataset_redbox:MetadataStandard',
-                    help: '@dmpt-vivo:Dataset_redbox:MetadataStandard-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_redbox:DataStructureStandard',
-                    label: '@dmpt-vivo:Dataset_redbox:DataStructureStandard',
-                    help: '@dmpt-vivo:Dataset_redbox:DataStructureStandard-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Storage Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "storage",
-              label: "@dmpt-storage-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-storage-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'vivo:Dataset_dc:extent',
-                    label: '@dmpt-vivo:Dataset_dc:extent',
-                    help: '@dmpt-vivo:Dataset_dc:extent-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        value: "@dmpt-vivo:Dataset_dc:extent-less-than-100GB",
-                        label: "@dmpt-vivo:Dataset_dc:extent-less-than-100GB"
-                      },
-                      {
-                        value: "@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB",
-                        label: "@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB"
-                      },
-                      {
-                        value: "@dmpt-vivo:Dataset_dc:extent-more-than-2TB",
-                        label: "@dmpt-vivo:Dataset_dc:extent-more-than-2TB"
-                      }
-                    ],
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-vivo:Dataset_dc:extent-required"
-                    }
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'vivo:Dataset_dc:location_rdf:PlainLiteral',
-                    label: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral',
-                    help: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
-                      }
-                    ],
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-required"
-                    }
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_dc:location_skos:note',
-                    label: '@dmpt-vivo:Dataset_dc:location_skos:note',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
-                    label: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
-                    help: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space"
-                      },
-                      {
-                        label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other",
-                        value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
-                      }
-                    ],
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-required"
-                    }
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'vivo:Dataset_dc:source_dc:location_skos:note',
-                    label: '@dmpt-vivo:Dataset_dc:source_dc:location_skos:note',
-                    rows: 5,
-                    columns: 10
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Retention Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "retention",
-              label: "@dmpt-retention-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-retention-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'redbox:retentionPeriod_dc:date',
-                    label: '@dmpt-redbox:retentionPeriod_dc:date',
-                    help: '@dmpt-redbox:retentionPeriod_dc:date-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        value: "1year",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date-1year"
-                      },
-                      {
-                        value: "5years",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date-5years"
-                      },
-                      {
-                        value: "7years",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date-7years"
-                      },
-                      {
-                        value: "15years",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date-15years"
-                      },
-                      {
-                        value: "20years",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date-20years"
-                      },
-                      {
-                        value: "permanent",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date-permanent"
-                      }
-                    ],
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-redbox:retentionPeriod_dc:date-required"
-                    }
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'redbox:retentionPeriod_dc:date_skos:note',
-                    label: '@dmpt-redbox:retentionPeriod_dc:date_skos:note',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        value: "heritage",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage"
-                      },
-                      {
-                        value: "controversial",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial"
-                      },
-                      {
-                        value: "ofinterest",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest"
-                      },
-                      {
-                        value: "costly_impossible",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible"
-                      },
-                      {
-                        value: "commercial",
-                        label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'dataowner_name',
-                    label: '@dmpt-dataRetention_data_owner',
-                    type: 'text',
-                    readOnly: true,
-                    subscribe: {
-                      'contributor_ci': {
-                        onValueUpdate: [{
-                          action: 'utilityService.concatenate',
-                          fields: ['text_full_name'],
-                          delim: ''
-                        }]
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'HiddenValue',
-                  compClass: 'HiddenValueComponent',
-                  definition: {
-                    name: 'dataowner_email',
-                    subscribe: {
-                      'contributor_ci': {
-                        onValueUpdate: [{
-                          action: 'utilityService.concatenate',
-                          fields: ['email'],
-                          delim: ''
-                        }]
-                      }
-                    }
-                  }
-                }
-
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Ownership Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "ownership",
-              label: "@dmpt-access-rights-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-access-rights-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'dc:rightsHolder_dc:name',
-                    label: '@dmpt-dc:rightsHolder_dc:name',
-                    help: '@dmpt-dc:rightsHolder_dc:name-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        value: "myUni",
-                        label: "@dmpt-dc:rightsHolder_dc:name-myUni"
-                      },
-                      {
-                        value: "myUnjount",
-                        label: "@dmpt-dc:rightsHolder_dc:name-myUnjount"
-                      },
-                      {
-                        value: "student",
-                        label: "@dmpt-dc:rightsHolder_dc:name-student"
-                      }
-                    ],
-                    required: true,
-                    validationMessages: {
-                      required: "@dmpt-dc:rightsHolder_dc:name-required"
-                    }
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'dc:rightsHolder_dc:description',
-                    label: '@dmpt-dc:rightsHolder_dc:description',
-                    help: '@dmpt-dc:rightsHolder_dc:description-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'redbox:ContractualObligations',
-                    label: '@dmpt-redbox:ContractualObligations',
-                    help: '@dmpt-redbox:ContractualObligations-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableTextfieldComponent',
-                  definition: {
-                    label: "@dmpt-dc:coverage_dc:identifier",
-                    help: "@dmpt-dc:coverage_dc:identifier-help",
-                    name: "dc:coverage_dc:identifier",
-                    editOnly: true,
-                    fields: [{
-                      class: 'TextField',
-                      definition: {
-                        type: 'text'
-                      }
-                    }]
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'SelectionFieldComponent',
-                  definition: {
-                    name: 'dc:accessRights',
-                    label: '@dmpt-dc:accessRights',
-                    help: '@dmpt-dc:accessRights-help',
-                    defaultValue: '@dmpt-dc:accessRights-manager',
-                    controlType: 'radio',
-                    options: [{
-                        value: "@dmpt-dc:accessRights-manager",
-                        label: "@dmpt-dc:accessRights-manager"
-                      },
-                      {
-                        value: "@dmpt-dc:accessRights-open",
-                        label: "@dmpt-dc:accessRights-open"
-                      },
-                      {
-                        value: "@dmpt-dc:accessRights-none-val",
-                        label: "@dmpt-dc:accessRights-none"
-                      }
-                    ],
-                    required: true
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'dataLicensingAccess_manager',
-                    label: '@dmpt-dataLicensingAccess_manager',
-                    type: 'text',
-                    readOnly: true,
-                    subscribe: {
-                      'contributor_data_manager': {
-                        onValueUpdate: [{
-                          action: 'utilityService.concatenate',
-                          fields: ['text_full_name'],
-                          delim: ''
-                        }]
-                      }
-                    },
-                    value: '@user_name'
-                  },
-                  variableSubstitutionFields: ['value']
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Ethics Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "ethics",
-              label: "@dmpt-ethics-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-ethics-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'agls:policy_dc:identifier',
-                    label: '@dmpt-agls:policy_dc:identifier',
-                    help: '@dmpt-agls:policy_dc:identifier-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'agls:policy_skos:note',
-                    label: '@dmpt-agls:policy_skos:note',
-                    help: '@dmpt-agls:policy_skos:note-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-etchics-sensitivities-heading',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'SelectionFieldComponent',
-                  definition: {
-                    name: 'agls:protectiveMarking_dc:type',
-                    label: '@dmpt-agls:protectiveMarking_dc:type',
-                    help: '@dmpt-agls:protectiveMarking_dc:type-help',
-                    controlType: 'checkbox',
-                    options: [{
-                        value: "agls:protectiveMarking_dc:type.redbox:CommerciallySensitive",
-                        label: "@dmpt-agls:protectiveMarking_dc:type-commercial"
-                      },
-                      {
-                        value: "agls:protectiveMarking_dc:type.redbox:CulturallySensitive",
-                        label: "@dmpt-agls:protectiveMarking_dc:type-cultural"
-                      },
-                      {
-                        value: "agls:protectiveMarking_dc:type.redbox:SecurityClassified",
-                        label: "@dmpt-agls:protectiveMarking_dc:type-security"
-                      },
-                      {
-                        value: "agls:protectiveMarking_dc:type.redbox:NonPublic",
-                        label: "@dmpt-agls:protectiveMarking_dc:type-nonPublic"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'agls:protectiveMarking_skos:note',
-                    label: '@dmpt-agls:protectiveMarking_skos:note',
-                    help: '@dmpt-agls:protectiveMarking_skos:note-help',
-                    rows: 5,
-                    columns: 10
-                  }
-                },
-                {
-                  class: 'RelatedFileUpload',
-                  compClass: 'RelatedFileUploadComponent',
-                  definition: {
-                    name: "licences_agreements",
-                    restrictions: {
-                      maxFileSize: 1073741824, // <- Configure web server to match this
-                      minNumberOfFiles: 1,
-                      maxNumberOfFiles: 50
-                    },
-                    notesEnabled: true,
-                    locationHeader: 'Files asociated with this plan',
-                    notesHeader: 'Notes',
-                    uppyDashboardNote: 'Maximum 50 files, up to 1 GB',
-                    attachmentText: 'Add attachment(s)',
-                    attachmentTextDisabled: 'Save your plan to attach files',
-                    help: 'Upload your licence or agreements here. You can only upload after you save your plan.',
-                    label: '@dmpt-licences-agreements'
-                  }
-                },
-                // Hiddden reactive elements...
-                {
-                  class: 'HiddenValue',
-                  compClass: 'HiddenValueComponent',
-                  definition: {
-                    name: 'grant_number_name',
-                    subscribe: {
-                      'foaf:fundedBy_vivo:Grant': {
-                        onValueUpdate: [{
-                          action: 'utilityService.concatenate',
-                          fields: ['grant_number', 'dc_title'],
-                          delim: ' - '
-                        }]
-                      }
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Workspaces Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "workspaces",
-              label: "@dmpt-workspaces-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-workspaces-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dmpt-workspaces-associated-heading',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'RelatedObjectDataField',
-                  showHeader: true,
-                  definition: {
-                    name: 'workspaces',
-                    columns: [{
-                        "label": "Title",
-                        "property": "title",
-                        "link": {
-                          "type": "dynamic",
-                          "pattern": "${portalPath}/record/view/${oid}"
-                        }
-                      },
-                      {
-                        "label": "@dmpt-workspaces-description",
-                        "property": "description"
-                      },
-                      {
-                        "label": "Location",
-                        "property": "storage_type"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  editOnly: true,
-                  definition: {
-                    value: '@dmpt-workspaces-create-title',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'WorkspaceSelectorField',
-                  compClass: 'WorkspaceSelectorFieldComponent',
-                  definition: {
-                    name: 'WorkspaceSelector',
-                    label: '@dmpt-workspace-select-type',
-                    help: '@dmpt-workspace-select-help',
-                    open: '@dmpt-workspace-open',
-                    saveFirst: '@dmpt-workspace-saveFirst',
-                    defaultSelection: [{
-                      name: '',
-                      label: '@dmpt-select:Empty'
-                    }]
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Permissions Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            roles: ['Admin', 'Librarians'],
-            editOnly: true,
-            definition: {
-              id: "permissions",
-              label: "@record-permissions-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: "@record-permissions-tab-heading",
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'RecordPermissionsField',
-                  showHeader: true,
-                  definition: {
-                    name: 'permissions'
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      class: "ButtonBarContainer",
-      compClass: "ButtonBarContainerComponent",
-      definition: {
-        editOnly: true,
-        fields: [{
-            class: "TabNavButton",
-            definition: {
-              id: 'mainTabNav',
-              prevLabel: "@tab-nav-previous",
-              nextLabel: "@tab-nav-next",
-              targetTabContainerId: "mainTab",
-              cssClasses: 'btn btn-primary'
-            }
-          },
-          {
-            class: "Spacer",
-            definition: {
-              width: '50px',
-              height: 'inherit'
-            }
-          },
-          {
-            class: "SaveButton",
-            definition: {
-              label: '@save-button',
-              cssClasses: 'btn-success',
-              disableValidation: true
-            }
-          },
-          {
-            class: "SaveButton",
-            definition: {
-              label: '@save-and-close-button',
-              closeOnSave: true,
-              redirectLocation: '/@branding/@portal/dashboard/rdmp'
+            component: {
+                class: 'TextFieldComponent'
             },
-            variableSubstitutionFields: ['redirectLocation']
-          },
-          {
-            class: "CancelButton",
-            definition: {
-              label: '@close-button',
+            expressions: {
+                'model.value': {
+                    template: `<%= _.get(model,'text_1_event','') %>`
+                }
             }
-          }
-        ]
-      }
-    },
-    {
-      class: "Container",
-      definition: {
-        id: "form-render-complete",
-        label: "Test",
-        fields: [{
-          class: 'Container',
-          compClass: 'TextBlockComponent',
-          definition: {
-            value: 'will be empty',
-            type: 'span'
-          }
-        }]
-      }
-    },
-    {
-      class: 'EventHandler',
-      definition: {
-        eventName: 'beforeunload',
-        eventSource: 'window'
-      }
-    },
-    {
-      class: 'PageTitle',
-      definition: {
-        name: 'pageTitle',
-        // sourceProperty: 'title.control.value', // just using a simple property
-        template: "<%= field.translationService.t('default-title') %> - <%= field.translationService.t('rdmp-title-label') %> - <%= _.isEmpty(field.fieldMap._rootComp.oid) ? field.translationService.t('create-rdmp') : (field.editMode ? field.fieldMap.title.control.value : field.fieldMap.title.field.value) %>",
-        subscribe: {
-          'form': {
-            onFormLoaded: [
-              { action: 'updateTitle' }
-            ],
-            recordCreated: [
-              { action: 'updateTitle' }
-            ],
-            recordSaved: [
-              { action: 'updateTitle' }
-            ]
-          }
-        }
-      }
-    },
-    {
-      class: 'RecordMetadataRetriever',
-      compClass: 'RecordMetadataRetrieverComponent',
-      editOnly: true,
-      definition: {
-        name: 'rdmpGetter',
-        subscribe: {
-          'form': {
-            recordCreated: [
-              {
-                action: 'utilityService.getPropertyFromObject',
-                field: 'oid'
-              },
-              {
-                action: 'publishMetadata'
-              }
-            ]
-          }
-        }
-      }
-    }
-  ]
-}
+        },
+        {
+            name: 'text_2_event',
+            model: {
+                name: 'text_2_for_the_form',
+                class: 'TextFieldModel',
+                config: {
+                    value: 'hello world! component event',
+                    defaultValue: 'hello world! component event',
+                    validators: [
+                        { name: 'required' },
+                    ]
+                }
+            },
+            component: {
+                class: 'TextFieldComponent'
+            }
+        },
+        {
+            name: 'text_2_component_event',
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'TextField with default wrapper defined',
+                    helpText: 'This is a help text',
+                }
+            },
+            model: {
+                class: 'TextFieldModel',
+                config: {
+                    value: 'hello world 2! component expression'
+                }
+            },
+            component: {
+                class: 'TextFieldComponent'
+            },
+            expressions: {
+                'component.visible': {
+                    template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+                }
+            }
+        },
+        {
+            name: 'text_3_event',
+            model: {
+                name: 'text_3_for_the_form',
+                class: 'TextFieldModel',
+                config: {
+                    value: 'hello world! layout event',
+                    defaultValue: 'hello world! layout event',
+                    validators: [
+                        { name: 'required' },
+                    ]
+                }
+            },
+            component: {
+                class: 'TextFieldComponent'
+            }
+        },
+        {
+            name: 'text_3_layout_event',
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'TextField with default wrapper defined',
+                    helpText: 'This is a help text',
+                }
+            },
+            model: {
+                class: 'TextFieldModel',
+                config: {
+                    value: 'hello world 2! layout expression'
+                }
+            },
+            component: {
+                class: 'TextFieldComponent'
+            },
+            expressions: {
+                'layout.visible': {
+                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+                }
+            }
+        },
+        {
+            // first group component
+            name: 'group_1_component',
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'GroupField label',
+                    helpText: 'GroupField help',
+                }
+            },
+            model: {
+                name: 'group_1_model',
+                class: 'GroupFieldModel',
+                config: {
+                    defaultValue: {},
+                }
+            },
+            component: {
+                class: 'GroupFieldComponent',
+                config: {
+                    componentDefinitions: [
+                        {
+                            name: 'text_3',
+                            layout: {
+                                class: 'DefaultLayoutComponent',
+                                config: {
+                                    label: 'TextField with default wrapper defined',
+                                    helpText: 'This is a help text',
+                                }
+                            },
+                            model: {
+                                class: 'TextFieldModel',
+                                config: {
+                                    value: 'hello world 3!',
+                                }
+                            },
+                            component: {
+                                class: 'TextFieldComponent'
+                            }
+                        },
+                        {
+                            name: 'text_4',
+                            model: {
+                                class: 'TextFieldModel',
+                                config: {
+                                    value: 'hello world 4!',
+                                    defaultValue: 'hello world 4!'
+                                }
+                            },
+                            component: {
+                                class: 'TextFieldComponent'
+                            }
+                        },
+                        {
+                            // second group component, nested in first group component
+                            name: 'group_2_component',
+                            layout: {
+                                class: 'DefaultLayoutComponent',
+                                config: {
+                                    label: 'GroupField 2 label',
+                                    helpText: 'GroupField 2 help',
+                                }
+                            },
+                            model: {
+                                name: 'group_2_model',
+                                class: 'GroupFieldModel',
+                                config: {
+                                    defaultValue: {},
+                                }
+                            },
+                            component: {
+                                class: 'GroupFieldComponent',
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: 'text_5',
+                                            layout: {
+                                                class: 'DefaultLayoutComponent',
+                                                config: {
+                                                    label: 'TextField with default wrapper defined',
+                                                    helpText: 'This is a help text',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'TextFieldModel',
+                                                config: {
+                                                    value: 'hello world 5!',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'TextFieldComponent'
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            name: 'repeatable_textfield_1',
+            model: {
+                class: 'RepeatableComponentModel',
+                config: {
+                    value: ['hello world from repeatable value!'],
+                    defaultValue: ['hello world from repeatable, default!']
+                }
+            },
+            component: {
+                class: 'RepeatableComponent',
+                config: {
+                    elementTemplate: {
+                        model: {
+                            class: 'TextFieldModel',
+                            config: {
+                                wrapperCssClasses: 'col',
+                                editCssClasses: 'redbox-form row',
+                                defaultValue: 'hello world from elementTemplate!',
+                                validators: [
+                                    {
+                                        name: 'pattern',
+                                        config: { pattern: /prefix.*/, description: "must start with prefix" }
+                                    },
+                                    {
+                                        name: 'minLength',
+                                        message: "@validator-error-custom-text_2",
+                                        config: { minLength: 3 }
+                                    },
+                                ]
+                            }
+                        },
+                        component: {
+                            class: 'TextFieldComponent'
+                        }
+                    },
+                },
+            },
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'Repeatable TextField with default wrapper defined',
+                    helpText: 'Repeatable component help text',
+                }
+            },
+        },
+        {
+            name: 'repeatable_group_1',
+            model: {
+                class: 'RepeatableComponentModel',
+                config: {
+                    value: [{
+                            text_3: "hello world from repeating groups"
+                        }]
+                }
+            },
+            component: {
+                class: 'RepeatableComponent',
+                config: {
+                    elementTemplate: {
+                        // first group component
+                        name: 'group_1_component',
+                        model: {
+                            name: 'group_1_model',
+                            class: 'GroupFieldModel',
+                            config: {
+                                defaultValue: {},
+                            }
+                        },
+                        component: {
+                            class: 'GroupFieldComponent',
+                            config: {
+                                hostCssClasses: 'row',
+                                componentDefinitions: [
+                                    {
+                                        name: 'text_3',
+                                        model: {
+                                            class: 'TextFieldModel',
+                                            config: {
+                                                value: 'hello world 3!',
+                                            }
+                                        },
+                                        component: {
+                                            class: 'TextFieldComponent',
+                                            config: {
+                                                hostCssClasses: '',
+                                                wrapperCssClasses: 'col'
+                                            }
+                                        }
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                },
+            },
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'Repeatable TextField with default wrapper defined',
+                    helpText: 'Repeatable component help text',
+                }
+            },
+        },
+        {
+            name: 'validation_summary_1',
+            model: { name: 'validation_summary_2', class: 'ValidationSummaryFieldModel' },
+            component: { class: "ValidationSummaryFieldComponent" }
+        },
+        // {
+        //   module: 'custom',
+        //   component: {
+        //     class: 'FormCustomComponent',
+        //   },
+        //   model: {
+        //     class: 'FormCustomFieldModel',
+        //     config: {
+        //       name: 'project_name',
+        //       label: 'Project Name',
+        //       type: 'text',
+        //       value: 'hello world!'
+        //     }
+        //   }
+        // }
+    ]
+};
+module.exports = formConfig;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZGVmYXVsdC0xLjAtZHJhZnQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90eXBlc2NyaXB0L2Zvcm0tY29uZmlnL2RlZmF1bHQtMS4wLWRyYWZ0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7O0FBQ0EscURBQXFFO0FBRXJFLE1BQU0sVUFBVSxHQUFlO0lBQzNCLElBQUksRUFBRSxtQkFBbUI7SUFDekIsSUFBSSxFQUFFLE1BQU07SUFDWixVQUFVLEVBQUUsSUFBSTtJQUNoQixjQUFjLEVBQUUsTUFBTTtJQUN0QixzQkFBc0IsRUFBRTtRQUNwQiwwQkFBMEIsRUFBRSxLQUFLO0tBQ3BDO0lBQ0QsY0FBYyxFQUFFLGtCQUFrQjtJQUVsQyxtRkFBbUY7SUFDbkYsOERBQThEO0lBQzlELG9CQUFvQixFQUFFLDRDQUErQjtJQUVyRCw0Q0FBNEM7SUFDNUMsK0JBQStCO0lBQy9CLCtGQUErRjtJQUMvRix1QkFBdUI7SUFDdkIsNkNBQTZDO0lBQzdDLDBCQUEwQjtJQUMxQiwwR0FBMEc7SUFDMUcsaURBQWlEO0lBQ2pELEtBQUs7SUFFTCw4Q0FBOEM7SUFDOUMsVUFBVSxFQUFFO1FBQ1IsRUFBQyxJQUFJLEVBQUUsa0JBQWtCLEVBQUUsTUFBTSxFQUFFLEVBQUMsWUFBWSxFQUFFLENBQUMsY0FBYyxFQUFFLFFBQVEsQ0FBQyxFQUFDLEVBQUM7S0FDakY7SUFFRCxvQkFBb0IsRUFBRTtRQUNsQjtZQUNJLElBQUksRUFBRSxjQUFjO1lBQ3BCLEtBQUssRUFBRTtnQkFDSCxJQUFJLEVBQUUscUJBQXFCO2dCQUMzQixLQUFLLEVBQUUsZ0JBQWdCO2dCQUN2QixNQUFNLEVBQUU7b0JBQ0osS0FBSyxFQUFFLGNBQWM7b0JBQ3JCLFlBQVksRUFBRSxjQUFjO29CQUM1QixVQUFVLEVBQUU7d0JBQ1IsRUFBQyxJQUFJLEVBQUUsVUFBVSxFQUFDO3FCQUNyQjtpQkFDSjthQUNKO1lBQ0QsU0FBUyxFQUFFO2dCQUNQLEtBQUssRUFBRSxvQkFBb0I7YUFDOUI7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

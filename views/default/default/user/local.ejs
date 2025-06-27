@@ -11,8 +11,4 @@
 </div>
 <script src="<%= BrandingService.getRootContext() %>/angular/local-auth/browser/polyfills<%=CacheService.getNgAppFileHash('local-auth', 'polyfills', '-') %>.js"
    type="module"></script>
-<% if (sails.config.angularDev) { %>
-<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/browser/vendor.js"
-   type="module"></script>
-<% } %>
 <script src="<%= BrandingService.getRootContext() %>/angular/local-auth/browser/main<%=CacheService.getNgAppFileHash('local-auth', 'main', '-') %>.js" type="module"></script>

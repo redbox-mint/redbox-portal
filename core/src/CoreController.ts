@@ -341,6 +341,8 @@ export module Controllers.Core {
      * @protected
      */
     protected getApiVersion(req): ApiVersionStrings {
+      const defaultVersion = ApiVersion.VERSION_1_0;
+
       const qs = req.query;
       const qsKey = "apiVersion";
       const qsKeyLower = qsKey.toLowerCase();
@@ -353,16 +355,19 @@ export module Controllers.Core {
       const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
 
       if (qsValue && headerValue && qsValue !== headerValue) {
-        throw new Error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match.`);
+        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match.`);
+        return defaultVersion;
       }
 
-      // Use the HTTP header value first, then the query string value, then default to v1.
-      const version = headerValue ?? qsValue ?? ApiVersion.VERSION_1_0;
+      // Use the HTTP header value first, then the query string value, then the default.
+      const version = headerValue ?? qsValue ?? defaultVersion;
 
       const available = Array.from(Object.values(ApiVersion));
       if (!available.includes(version)) {
-        throw new Error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
+        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
+        return defaultVersion;
       }
+
       sails.log.verbose(`Using API version '${version}' for url '${req.url}'.`);
       return version;
     }
@@ -373,7 +378,7 @@ export module Controllers.Core {
      * @param meta The metadata for the response.
      * @protected
      */
-    protected buildResponseSuccess(data: unknown[] | Record<string, unknown>, meta: Record<string, unknown>): DataResponseV2 {
+    protected buildResponseSuccess(data: unknown, meta: unknown): DataResponseV2 {
       // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
       return {
         data: data,
@@ -387,7 +392,7 @@ export module Controllers.Core {
      * @param meta The metadata for the response.
      * @protected
      */
-    protected buildResponseError(errors: { [key: string]: unknown }[], meta: Record<string, unknown>): ErrorResponseV2 {
+    protected buildResponseError(errors: { [key: string]: unknown }[], meta: unknown): ErrorResponseV2 {
       // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
       return {
         errors: errors,
