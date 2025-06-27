@@ -182,7 +182,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextFieldComponent',
+            config: {
+              tooltip: 'text_2_event tooltip'
+            }
           }
         },
         {
@@ -192,6 +195,7 @@ export class FormService {
             config: {
               label: 'TextField with default wrapper defined',
               helpText: 'This is a help text',
+              tooltip: 'text_2_component_event layout tooltip'
             }
           },
           model: {
@@ -201,7 +205,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextFieldComponent',
+            config: {
+              tooltip: 'text_2_component_event component tooltip 22222'
+            }
           },
           expressions: {
             'component.visible': {

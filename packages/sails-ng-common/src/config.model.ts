@@ -114,12 +114,7 @@ export class FormComponentBaseConfig  {
   //
   public autofocus?: boolean = false;
   //
-  public tooltips?: TooltipsModel | null | undefined = null;
-}
-
-export class TooltipsModel {
-  public fieldTT: string = '';
-  public labelTT: string = '';
+  public tooltip?: string = '';
 }
 
 export class FormFieldModelDefinition<ValueType> {

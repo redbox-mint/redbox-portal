@@ -128,7 +128,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
             let emitEventOnChange = _get(expObj,'emitEventOnChange',true);
             if (_get(expObj,'template','').indexOf('<%') != -1) {
               let config = { template: _get(expObj,'template') };
-              let v = this.lodashTemplateUtilityService.runTemplate(data,config,{},this,this.getFormGroup()?.value);
+              let v = this.lodashTemplateUtilityService.runTemplate(data,config,{},this,this.getFormGroupFromAppRef()?.value);
               if(enforceTruthy) {
                 newValue = v === 'false' ? false : v;
               }
@@ -180,13 +180,13 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
                         if(condition == _get(modelValue,innerPath,'')) {
                           let innerVal = _get(entry,innerPath);
                           if(!_isEqual(newValue, innerVal)) {
-                              _set(entry,innerPath,newValue);
-                              if(emitEventOnChange) {
-                                this.model?.setValue(newValue);
-                              } else {
-                                this.model?.setValueDontEmitEvent(newValue);
-                              }
-                              break;
+                            _set(entry,innerPath,newValue);
+                            if(emitEventOnChange) {
+                              this.model?.setValue(newValue);
+                            } else {
+                              this.model?.setValueDontEmitEvent(newValue);
+                            }
+                            break;
                           }
                         }
                       }
@@ -209,11 +209,10 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
                 _set(this.componentDefinition?.config as object,targetPropertyPath,newValue);
                 this.buildPropertyCache();
               } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged()) {
-                
                 this.loggerService.info('checkUpdateExpressions layout ',_get(this.componentDefinition,'class',''));
                 this.loggerService.info('checkUpdateExpressions layout name ',this.name);
-                _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,newValue);
                 this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
+                _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,newValue);
                 this.formFieldCompMapEntry?.layout?.buildPropertyCache();
                 if(targetPropertyPath == 'visible') {
                   _set(this.componentDefinition?.config as object,targetPropertyPath,newValue);
@@ -269,12 +268,21 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public getTooltip(name:string): string {
-    return _get(this.componentDefinition?.config?.tooltips,name,'placeholder');
+  public getTooltip(): string {
+    let tooltip = this.componentDefinition?.config?.tooltip;
+    if(_isUndefined(tooltip)) {
+      return '';
+    } else {
+      return tooltip;
+    }
   }
 
   public getBooleanProperty(name:string): boolean {
     return _get(this.componentDefinition?.config,name,true);
+  }
+
+  public getStringProperty(name:string): string {
+    return _get(this.componentDefinition?.config,name,'');
   }
 
   hasExpressionsConfigChanged(): boolean {
@@ -293,20 +301,20 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get isDebug(): boolean {
-    const formComponent = this.getFormComponent2();
+    const formComponent = this.getFormComponentFromAppRef();
     return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
   }
 
-  protected getFormComponent2(): any {
+  protected getFormComponentFromAppRef(): any {
     if(this.formComponent === undefined) {
       this.formComponent = this.appRef.components[0];
     }
     return this.formComponent;
   }
 
-  protected getFormGroup(): FormGroup | undefined {
+  protected getFormGroupFromAppRef(): FormGroup | undefined {
     if(this.form == undefined) {
-      this.form = this.getFormComponent2()?.instance?.form;
+      this.form = this.getFormComponentFromAppRef()?.instance?.form;
     }
     return this.form;
   }
@@ -314,7 +322,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public getComponentByName(targetComponentName:string): any {
     let compRef;
     try {
-      let formComponent = this.getFormComponent2();
+      let formComponent = this.getFormComponentFromAppRef();
 
       if(!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
@@ -336,7 +344,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public getLayoutByName(targetComponentName:string): any {
     let layoutRef;
     try {
-      let formComponent = this.getFormComponent2();
+      let formComponent = this.getFormComponentFromAppRef();
 
       if(!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
