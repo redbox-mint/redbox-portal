@@ -49,7 +49,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
         <br>
       }
     }
-    <ng-container #componentContainer  ></ng-container>
+    <ng-container #componentContainer></ng-container>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
       Before {{ componentName }}

@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 
 export class TextFieldModel extends FormFieldModel<string> {
 }
@@ -24,7 +24,6 @@ export class TextFieldModel extends FormFieldModel<string> {
 })
 export class TextFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "TextFieldComponent";
-
   /**
    * The model associated with this component.
    */

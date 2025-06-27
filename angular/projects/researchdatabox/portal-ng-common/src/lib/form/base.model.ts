@@ -66,6 +66,7 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
    * @param value the value to set
    */
   public setValue(value: FormFieldModelValueType<ValueType>): void {
+    // TODO: this shouldn't need to set emitEvent: false, it is set as a temporary workaround
     this.formControl?.setValue(value, { emitEvent: false });
   }
 

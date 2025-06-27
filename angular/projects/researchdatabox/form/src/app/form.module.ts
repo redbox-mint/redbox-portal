@@ -41,7 +41,7 @@ import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
     RepeatableComponent,
     RepeatableLayoutComponent,
     ValidationSummaryFieldComponent,
-    GroupFieldComponent
+    GroupFieldComponent,
   ],
   imports: [
     CommonModule,

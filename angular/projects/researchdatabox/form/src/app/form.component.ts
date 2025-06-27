@@ -90,7 +90,7 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
-    
+
     effect(() => {
       if (this.componentsLoaded()) {
         this.registerUpdateExpression();
