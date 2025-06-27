@@ -178,8 +178,7 @@ export class FormService {
               defaultValue: 'hello world! component event',
               validators: [
                 { name: 'required' },
-              ],
-              tooltips: { fieldTT: 'text_2_event component tooltip' }
+              ]
             }
           },
           component: {
@@ -193,8 +192,6 @@ export class FormService {
             config: {
               label: 'TextField with default wrapper defined',
               helpText: 'This is a help text',
-              tooltips: { fieldTT: 'text_2_component_event component tooltip',
-                          labelTT: 'text_2_component_event layout tooltip' }
             }
           },
           model: {
@@ -204,10 +201,7 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent',
-            config: {
-              tooltips: { fieldTT: 'text_2_component_event component tooltip 22222' }
-              }
+            class: 'TextFieldComponent'
           },
           expressions: {
             'component.visible': {

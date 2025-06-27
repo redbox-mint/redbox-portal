@@ -14,9 +14,9 @@ export class TextFieldModel extends FormFieldModel<string> {
             [class.is-valid]="isValid"
             [class.is-invalid]="!isValid"
             [attr.required]="isRequired === true ? true : null"
-            [attr.disabled]="getBooleanProperty('disabled') ? 'true' : null"
-            [attr.readonly]="getBooleanProperty('readonly') ? 'true' : null"
-            [attr.title]="tooltip ? tooltip : tooltipPlaceholder" />
+            [attr.disabled]="componentDefinition?.config?.disabled ? 'true' : null"
+            [attr.readonly]="componentDefinition?.config?.readonly ? 'true' : null"
+            [attr.title]="getTooltip('fieldTT')" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -24,19 +24,6 @@ export class TextFieldModel extends FormFieldModel<string> {
 })
 export class TextFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "TextFieldComponent";
-  public tooltip = '';
-  public tooltipPlaceholder = '';
-
-  /**
-     * Override to set additional properties required by the wrapper component.
-     *
-     * @param formFieldCompMapEntry
-     */
-    protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
-      super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-      this.tooltip = this.getTooltip('fieldTT');
-      this.tooltipPlaceholder = this.getTooltip('fieldTT');
-    }
 
   /**
    * The model associated with this component.

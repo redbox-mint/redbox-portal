@@ -277,10 +277,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return _get(this.componentDefinition?.config,name,true);
   }
 
-  public getStringProperty(name:string): string {
-    return _get(this.componentDefinition?.config,name,'');
-  }
-
   hasExpressionsConfigChanged(): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {
