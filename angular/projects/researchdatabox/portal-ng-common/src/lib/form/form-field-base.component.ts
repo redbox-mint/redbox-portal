@@ -2,7 +2,7 @@ import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, cloneDeep as _cloneDeep} from 'lodash-es';
+import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
@@ -111,29 +111,32 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public checkUpdateExpressions(expressionType: string = '') {
+  public checkUpdateExpressions() {
 
     if(!_isUndefined(this.expressions) && !_isEmpty(this.expressions)) {
-      this.loggerService.info('checkUpdateExpressions ',_get(this.componentDefinition,'class',''));
-      this.loggerService.info('checkUpdateExpressions name ',this.name);
-      this.loggerService.info('checkUpdateExpressions expressionType ',expressionType);
       let expressionKeys = _keys(this.expressions);
       for(let key of expressionKeys) {
         try {
           let expObj:any = _get(this.expressions,key,{});
           if(!_isUndefined(expObj) && !_isEmpty(expObj)) {
 
-            let value:any = null;
+            let newValue:any = null;
             let data = this.model?.getValue();
             let path = key.split('.');
             let targetPropertyPath = path[1];
+            let enforceTruthy = _get(expObj,'template',false);
+            let emitEventOnChange = _get(expObj,'emitEventOnChange',true);
             if (_get(expObj,'template','').indexOf('<%') != -1) {
               let config = { template: _get(expObj,'template') };
               let v = this.lodashTemplateUtilityService.runTemplate(data,config,{},this,this.getFormGroup()?.value);
-              value = v === 'false' ? false : v;
+              if(enforceTruthy) {
+                newValue = v === 'false' ? false : v;
+              }
             } else {
               let v = _get(this.componentDefinition,_get(expObj,'value',null));
-              value = v === 'false' ? false : v;
+              if(enforceTruthy) {
+                newValue = v === 'false' ? false : v;
+              }
             }
 
             if(!_isUndefined(this.componentDefinition)) {
@@ -141,25 +144,81 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
               let targetLayout = key.includes('layout.') ? true : false;
               let targetModel = key.includes('model.') ? true : false;
               if(targetModel) {
-                //TODO consider if there can be other model properties affected different to value? 
-                this.model?.setValue(value);
+                let currVal = this.model?.getValue();
+                if(targetPropertyPath == 'value') {
+                  if(!_isEqual(newValue, currVal)) {
+                    if(emitEventOnChange) {
+                      this.model?.setValue(newValue);
+                    } else {
+                      this.model?.setValueDontEmitEvent(newValue);
+                    }
+                  }
+                } else if(targetPropertyPath.indexOf('value.') != -1) {
+                  let innerPath = targetPropertyPath.replace('value.','');
+                  let modelValue = this.model?.getValue();
+                  if(_isObject(modelValue)) {
+                    if(!_isEqual(newValue, currVal)) {
+                      _set(modelValue,innerPath,newValue);
+                      if(emitEventOnChange) {
+                        this.model?.setValue(newValue);
+                      } else {
+                        this.model?.setValueDontEmitEvent(newValue);
+                      }
+                    }
+                  } else if(_isArray(modelValue)) {
+                    let condition = _get(expObj,'condition','');
+                    if(condition == '') {
+                      if(!_isEqual(newValue, currVal)) {
+                        if(emitEventOnChange) {
+                          this.model?.setValue(newValue);
+                        } else {
+                          this.model?.setValueDontEmitEvent(newValue);
+                        }
+                      }
+                    } else {
+                      for(let entry of modelValue) {
+                        if(condition == _get(modelValue,innerPath,'')) {
+                          let innerVal = _get(entry,innerPath);
+                          if(!_isEqual(newValue, innerVal)) {
+                              _set(entry,innerPath,newValue);
+                              if(emitEventOnChange) {
+                                this.model?.setValue(newValue);
+                              } else {
+                                this.model?.setValueDontEmitEvent(newValue);
+                              }
+                              break;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               } else if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath)) {
-                _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath,value);
+                _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath,newValue);
                 this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `,this.name);
               } else if (!targetLayout && _has(this.componentDefinitionCache,targetPropertyPath)) {
-                _set(this.componentDefinitionCache,targetPropertyPath,value);
+                _set(this.componentDefinitionCache,targetPropertyPath,newValue);
                 this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in componentDefinition.config `,this.name);
               }
 
               this.expressionStateChanged = this.hasExpressionsConfigChanged();
               this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`,'');
               if(this.expressionStateChanged) {
-                _set(this.componentDefinition?.config as object,targetPropertyPath,value);
+                this.loggerService.info('checkUpdateExpressions ',_get(this.componentDefinition,'class',''));
+                this.loggerService.info('checkUpdateExpressions name ',this.name);
+                _set(this.componentDefinition?.config as object,targetPropertyPath,newValue);
                 this.buildPropertyCache();
               } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged()) {
-                _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,value);
+                
+                this.loggerService.info('checkUpdateExpressions layout ',_get(this.componentDefinition,'class',''));
+                this.loggerService.info('checkUpdateExpressions layout name ',this.name);
+                _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,newValue);
                 this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
                 this.formFieldCompMapEntry?.layout?.buildPropertyCache();
+                if(targetPropertyPath == 'visible') {
+                  _set(this.componentDefinition?.config as object,targetPropertyPath,newValue);
+                  this.buildPropertyCache();
+                }
               }
             }
           }
@@ -211,7 +270,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   public getTooltip(name:string): string {
-    return _get(this.componentDefinition?.config?.tooltips,name,'');
+    return _get(this.componentDefinition?.config?.tooltips,name,'placeholder');
   }
 
   public getBooleanProperty(name:string): boolean {

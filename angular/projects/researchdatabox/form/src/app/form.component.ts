@@ -90,7 +90,7 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
-    
+
     effect(() => {
       if (this.componentsLoaded()) {
         this.registerUpdateExpression();
@@ -182,12 +182,11 @@ export class FormComponent extends BaseComponent {
         this.form.valueChanges.subscribe((value) => {
           for(let compEntry of this.componentDefArr) {
             let compName = _get(compEntry,'name','');
-            this.loggerService.info(`FormComponent: valueChanges: `, compName);
+            // this.loggerService.info(`FormComponent: valueChanges: `, compName);
             if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
-              this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
+              // this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
               let component = compEntry.component;
-              //the string passed in "model" is only for tracking and not needed for the expressions logic to work
-              component.checkUpdateExpressions('model');
+              component.checkUpdateExpressions();
             }
           }
         });
