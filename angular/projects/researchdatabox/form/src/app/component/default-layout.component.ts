@@ -29,27 +29,27 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
   selector: 'redbox-form-default-component-layout',
   template: `
   @if (model && componentDefinition) {
-    @if (componentDefinition.config?.label) {
+    @if (getStringProperty('label')) {
       @if (getBooleanProperty('visible')) {
         <label class="form-label">
-          <span [innerHtml]="componentDefinition.config?.label" [attr.title]="getTooltip('labelTT')"></span>
+          <span [innerHtml]="getStringProperty('label')" [attr.title]="getTooltip('labelTT')"></span>
           <span
             *ngIf="isRequired"
             class="form-field-required-indicator"
-            [innerHTML]="componentDefinition.config?.labelRequiredStr"></span>
-          @if (componentDefinition.config?.helpText) {
+            [innerHTML]="getStringProperty('labelRequiredStr')"></span>
+          @if (getStringProperty('helpText')) {
             <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
             <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
           }
         </label>
         @if (helpTextVisible) {
-          <span class="help-block" [innerHtml]="componentDefinition.config?.helpText"></span>
+          <span class="help-block" [innerHtml]="getStringProperty('helpText')"></span>
         }
         <br>
       }
     }
-    <ng-container #componentContainer></ng-container>
+    <ng-container #componentContainer  ></ng-container>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
       Before {{ componentName }}
