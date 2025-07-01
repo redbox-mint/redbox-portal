@@ -182,6 +182,18 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
+  public override checkUpdateExpressions() {
+     this.loggerService.debug('repeatable checkUpdateExpressions');
+    super.checkUpdateExpressions();
+    if(this.expressionStateChanged) {
+      //Run top level expression and if changed propagate result to children
+      for(let entry of this.compDefMapEntries) {
+        entry.defEntry.component?.propagateExpressions(this.expressions);
+      }
+    }
+    //TODO run through repeatable components and evaluate expressions for each component
+  }
+
 }
 
 

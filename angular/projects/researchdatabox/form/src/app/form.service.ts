@@ -364,6 +364,15 @@ export class FormService {
                 }
               ]
             }
+          },
+          expressions: {
+            'layout.visible': {
+              template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+            }
           }
         },
         {
@@ -404,6 +413,15 @@ export class FormService {
               helpText: 'Repeatable component help text',
             }
           },
+          expressions: {
+            'layout.visible': {
+              template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+            }
+          }
         },
         {
           name: 'repeatable_group_1',

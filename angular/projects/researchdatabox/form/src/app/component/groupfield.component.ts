@@ -20,7 +20,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {get as _get, set as _set} from "lodash-es";
+import {get as _get, set as _set, keys as _keys, isObject as _isObject} from "lodash-es";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
 
@@ -199,7 +199,21 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // finally set the status to 'READY'
     await super.setComponentReady();
-
   }
+
+  public override checkUpdateExpressions() {
+    this.loggerService.debug('group component checkUpdateExpressions');
+    super.checkUpdateExpressions();
+    if(this.expressionStateChanged) {
+      //Run top level expression and if changed propagate result to children
+      let comps:FormFieldCompMapEntry[] = this.model?.components ?? [];
+      for(let entry of comps){
+        entry.component?.propagateExpressions(this.expressions);
+      }
+    }
+    //TODO run through group inner components and evaluate expressions for each component if present
+  }
+
+  
 
 }
