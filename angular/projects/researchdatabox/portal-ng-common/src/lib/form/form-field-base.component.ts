@@ -230,7 +230,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
               this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`, '');
               _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object, targetPropertyPath, newValue);
               this.formFieldCompMapEntry?.layout?.buildPropertyCache();
-              this.propagateExpressions(this.expressions, true, newValue);
+              //Propagate top level expressions and evaluate in its children components
+              //this is required for the parent component to delegate responsability of
+              //behaiviour to the children i.e. each component will handle its visibility
+              //but has to be maintained in sync with the overarching state of the parent
+              this.formFieldCompMapEntry?.layout?.formFieldCompMapEntry?.component?.propagateExpressions(this.expressions, true, newValue);
             }
           }
         }
