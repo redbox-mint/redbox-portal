@@ -4,7 +4,7 @@ import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewCon
 import { LoggerService } from '../logger.service';
 import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
-import {FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
+import {ExpressionsConfig, FormComponentBaseConfig, FormComponentDefinition, FormComponentLayoutDefinition, FormFieldComponentDefinition, FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 
 
@@ -114,117 +114,132 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public checkUpdateExpressions() {
 
     if(!_isUndefined(this.expressions) && !_isEmpty(this.expressions)) {
-      let expressionKeys = _keys(this.expressions);
-      for(let key of expressionKeys) {
-        try {
-          let expObj:any = _get(this.expressions,key,{});
-          if(!_isUndefined(expObj) && !_isEmpty(expObj)) {
+      this.propagateExpressions(this.expressions);
+    }
+  }
 
-            let newValue:any = null;
-            let data = this.model?.getValue();
-            let path = key.split('.');
-            let targetPropertyPath = path[1];
-            let enforceTruthy = _get(expObj,'template',false);
-            let emitEventOnChange = _get(expObj,'emitEventOnChange',true);
-            if (_get(expObj,'template','').indexOf('<%') != -1) {
-              let config = { template: _get(expObj,'template') };
-              let v = this.lodashTemplateUtilityService.runTemplate(data,config,{},this,this.getFormGroup()?.value);
-              if(enforceTruthy) {
+  public propagateExpressions(expressions:ExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
+    let expressionKeys = _keys(expressions);
+    for (let key of expressionKeys) {
+      try {
+        let expObj: any = _get(expressions, key, {});
+        if (!_isUndefined(expObj) && !_isEmpty(expObj)) {
+
+          let newValue: any = null;
+          let data = this.model?.getValue();
+          let path = key.split('.');
+          let targetPropertyPath = path[1];
+          let emitEventOnChange = _get(expObj, 'emitEventOnChange', true);
+          if(!_isUndefined(forceValue)) {
+            newValue = forceValue;
+          } else {
+            let enforceTruthy = _get(expObj, 'enforceTruthy', false);
+            if (_get(expObj, 'template', '').indexOf('<%') != -1) {
+              let config = { template: _get(expObj, 'template') };
+              let v = this.lodashTemplateUtilityService.runTemplate(data, config, {}, this, this.getFormGroupFromAppRef()?.value);
+              if (enforceTruthy) {
                 newValue = v === 'false' ? false : v;
+              } else {
+                newValue = v;
               }
             } else {
-              let v = _get(this.componentDefinition,_get(expObj,'value',null));
-              if(enforceTruthy) {
+              let v = _get(this.componentDefinition, _get(expObj, 'value', null));
+              if (enforceTruthy) {
                 newValue = v === 'false' ? false : v;
+              } else {
+                newValue = v;
               }
             }
+          }
 
-            if(!_isUndefined(this.componentDefinition)) {
+          if (!_isUndefined(this.componentDefinition)) {
 
-              let targetLayout = key.includes('layout.') ? true : false;
-              let targetModel = key.includes('model.') ? true : false;
-              if(targetModel) {
-                let currVal = this.model?.getValue();
-                if(targetPropertyPath == 'value') {
-                  if(!_isEqual(newValue, currVal)) {
-                    if(emitEventOnChange) {
-                      this.model?.setValue(newValue);
+            let targetLayout = key.includes('layout.') ? true : false;
+            let targetModel = key.includes('model.') ? true : false;
+            if (targetModel) {
+              let currVal = this.model?.getValue();
+              if (targetPropertyPath == 'value') {
+                if (!_isEqual(newValue, currVal)) {
+                  if (emitEventOnChange) {
+                    this.model?.setValue(newValue);
+                  } else {
+                    this.model?.setValueDontEmitEvent(newValue);
+                  }
+                }
+              } else if (targetPropertyPath.indexOf('value.') != -1) {
+                let innerPath = targetPropertyPath.replace('value.', '');
+                let modelValue = this.model?.getValue();
+                if (_isObject(modelValue)) {
+                  let currInnerVale = _get(modelValue, innerPath);
+                  if (!_isEqual(newValue, currInnerVale)) {
+                    _set(modelValue, innerPath, newValue);
+                    if (emitEventOnChange) {
+                      this.model?.setValue(modelValue);
                     } else {
-                      this.model?.setValueDontEmitEvent(newValue);
+                      this.model?.setValueDontEmitEvent(modelValue);
                     }
                   }
-                } else if(targetPropertyPath.indexOf('value.') != -1) {
-                  let innerPath = targetPropertyPath.replace('value.','');
-                  let modelValue = this.model?.getValue();
-                  if(_isObject(modelValue)) {
-                    if(!_isEqual(newValue, currVal)) {
-                      _set(modelValue,innerPath,newValue);
-                      if(emitEventOnChange) {
+                } else if (_isArray(modelValue)) {
+                  let condition = _get(expObj, 'condition', '');
+                  if (condition == '') {
+                    if (!_isEqual(newValue, currVal)) {
+                      if (emitEventOnChange) {
                         this.model?.setValue(newValue);
                       } else {
                         this.model?.setValueDontEmitEvent(newValue);
                       }
                     }
-                  } else if(_isArray(modelValue)) {
-                    let condition = _get(expObj,'condition','');
-                    if(condition == '') {
-                      if(!_isEqual(newValue, currVal)) {
-                        if(emitEventOnChange) {
-                          this.model?.setValue(newValue);
-                        } else {
-                          this.model?.setValueDontEmitEvent(newValue);
-                        }
-                      }
-                    } else {
-                      for(let entry of modelValue) {
-                        if(condition == _get(modelValue,innerPath,'')) {
-                          let innerVal = _get(entry,innerPath);
-                          if(!_isEqual(newValue, innerVal)) {
-                              _set(entry,innerPath,newValue);
-                              if(emitEventOnChange) {
-                                this.model?.setValue(newValue);
-                              } else {
-                                this.model?.setValueDontEmitEvent(newValue);
-                              }
-                              break;
+                  } else {
+                    for (let entry of modelValue) {
+                      if (condition == _get(modelValue, innerPath, '')) {
+                        let innerVal = _get(entry, innerPath);
+                        if (!_isEqual(newValue, innerVal)) {
+                          _set(entry, innerPath, newValue);
+                          if (emitEventOnChange) {
+                            this.model?.setValue(newValue);
+                          } else {
+                            this.model?.setValueDontEmitEvent(newValue);
                           }
+                          break;
                         }
                       }
                     }
                   }
                 }
-              } else if(targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath)) {
-                _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache,targetPropertyPath,newValue);
-                this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `,this.name);
-              } else if (!targetLayout && _has(this.componentDefinitionCache,targetPropertyPath)) {
-                _set(this.componentDefinitionCache,targetPropertyPath,newValue);
-                this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in componentDefinition.config `,this.name);
               }
+            } else if ((!targetLayout && _has(this.componentDefinitionCache, targetPropertyPath)) || forceComponent) {
+              _set(this.componentDefinitionCache, targetPropertyPath, newValue);
+              this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in componentDefinition.config `, this.name);
+            } else if (targetLayout && !forceComponent && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath)) {
+              _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath, newValue);
+              this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `, this.name);
+            } 
 
-              this.expressionStateChanged = this.hasExpressionsConfigChanged();
-              this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`,'');
-              if(this.expressionStateChanged) {
-                this.loggerService.info('checkUpdateExpressions ',_get(this.componentDefinition,'class',''));
-                this.loggerService.info('checkUpdateExpressions name ',this.name);
-                _set(this.componentDefinition?.config as object,targetPropertyPath,newValue);
-                this.buildPropertyCache();
-              } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged()) {
-                
-                this.loggerService.info('checkUpdateExpressions layout ',_get(this.componentDefinition,'class',''));
-                this.loggerService.info('checkUpdateExpressions layout name ',this.name);
-                _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object,targetPropertyPath,newValue);
-                this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`,'');
-                this.formFieldCompMapEntry?.layout?.buildPropertyCache();
-                if(targetPropertyPath == 'visible') {
-                  _set(this.componentDefinition?.config as object,targetPropertyPath,newValue);
-                  this.buildPropertyCache();
-                }
-              }
+            this.expressionStateChanged = this.hasExpressionsConfigChanged(targetPropertyPath);
+            let layoutStateChanged = this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged(targetPropertyPath);
+            this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`, '');
+            this.loggerService.info(`checkUpdateExpressions forceComponent ${forceComponent}`, '');
+            if (this.expressionStateChanged || forceComponent) {
+              this.loggerService.info('checkUpdateExpressions component ', _get(this.componentDefinition, 'class', ''));
+              this.loggerService.info('checkUpdateExpressions component name ', this.name);
+              _set(this.componentDefinition?.config as object, targetPropertyPath, newValue);
+              this.buildPropertyCache();
+            } else if (layoutStateChanged && !forceComponent) {
+              this.loggerService.info('checkUpdateExpressions layout ', _get(this.componentDefinition, 'class', ''));
+              this.loggerService.info('checkUpdateExpressions layout name ', this.name);
+              this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`, '');
+              _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object, targetPropertyPath, newValue);
+              this.formFieldCompMapEntry?.layout?.buildPropertyCache();
+              //Propagate top level expressions and evaluate in its children components
+              //this is required for the parent component to delegate responsability of
+              //behaiviour to the children i.e. each component will handle its visibility
+              //but has to be maintained in sync with the overarching state of the parent
+              this.formFieldCompMapEntry?.layout?.formFieldCompMapEntry?.component?.propagateExpressions(this.expressions, true, newValue);
             }
           }
-        } catch (err) {
-          this.loggerService.error('checkUpdateExpressions failed', err);
         }
+      } catch (err) {
+        this.loggerService.error('checkUpdateExpressions failed', err);
       }
     }
   }
@@ -269,44 +284,57 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public getTooltip(name:string): string {
-    return _get(this.componentDefinition?.config?.tooltips,name,'placeholder');
+  public getTooltip(): string {
+    let tooltip = this.componentDefinition?.config?.tooltip;
+    if(_isUndefined(tooltip)) {
+      return '';
+    } else {
+      return tooltip;
+    }
   }
 
   public getBooleanProperty(name:string): boolean {
     return _get(this.componentDefinition?.config,name,true);
   }
 
-  hasExpressionsConfigChanged(): boolean {
+  public getStringProperty(name:string): string {
+    return _get(this.componentDefinition?.config,name,'');
+  }
+
+  hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {
-      let oldValue = _get(this.componentDefinition?.config,key);
-      let newValue = _get(this.componentDefinitionCache,key);
-      let configPropertyChanged = oldValue !== newValue;
-      if(configPropertyChanged) {
-        propertyChanged = true;
-        this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`,'');
-        break;
+      //TODO in principle comparing properties that are complex objects seems not required
+      //group component has a componentDefinition property of its inner components or maybe
+      if((key == lastKeyChanged && !_isObject(key)) || forceCheckAll ) {
+        let oldValue = _get(this.componentDefinition?.config,key);
+        let newValue = _get(this.componentDefinitionCache,key);
+        let configPropertyChanged = oldValue !== newValue;
+        if(configPropertyChanged) {
+          propertyChanged = true;
+          this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`,'');
+          break;
+        }
       }
     }
     return propertyChanged;
   }
 
   get isDebug(): boolean {
-    const formComponent = this.getFormComponent2();
+    const formComponent = this.getFormComponentFromAppRef();
     return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
   }
 
-  protected getFormComponent2(): any {
+  protected getFormComponentFromAppRef(): any {
     if(this.formComponent === undefined) {
       this.formComponent = this.appRef.components[0];
     }
     return this.formComponent;
   }
 
-  protected getFormGroup(): FormGroup | undefined {
+  protected getFormGroupFromAppRef(): FormGroup | undefined {
     if(this.form == undefined) {
-      this.form = this.getFormComponent2()?.instance?.form;
+      this.form = this.getFormComponentFromAppRef()?.instance?.form;
     }
     return this.form;
   }
@@ -314,7 +342,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public getComponentByName(targetComponentName:string): any {
     let compRef;
     try {
-      let formComponent = this.getFormComponent2();
+      let formComponent = this.getFormComponentFromAppRef();
 
       if(!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
@@ -336,7 +364,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public getLayoutByName(targetComponentName:string): any {
     let layoutRef;
     try {
-      let formComponent = this.getFormComponent2();
+      let formComponent = this.getFormComponentFromAppRef();
 
       if(!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;

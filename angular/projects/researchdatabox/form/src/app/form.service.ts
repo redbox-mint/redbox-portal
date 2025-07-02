@@ -182,7 +182,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextFieldComponent',
+            config: {
+              tooltip: 'text_2_event tooltip'
+            }
           }
         },
         {
@@ -192,6 +195,7 @@ export class FormService {
             config: {
               label: 'TextField with default wrapper defined',
               helpText: 'This is a help text',
+              tooltip: 'text_2_component_event layout tooltip'
             }
           },
           model: {
@@ -201,7 +205,10 @@ export class FormService {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextFieldComponent',
+            config: {
+              tooltip: 'text_2_component_event component tooltip 22222'
+            }
           },
           expressions: {
             'component.visible': {
@@ -357,6 +364,15 @@ export class FormService {
                 }
               ]
             }
+          },
+          expressions: {
+            'layout.visible': {
+              template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+            }
           }
         },
         {
@@ -397,6 +413,15 @@ export class FormService {
               helpText: 'Repeatable component help text',
             }
           },
+          expressions: {
+            'layout.visible': {
+              template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+            }
+          }
         },
         {
           name: 'repeatable_group_1',
