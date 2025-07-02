@@ -118,33 +118,37 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public propagateExpressions(expressions:ExpressionsConfig) {
+  public propagateExpressions(expressions:ExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
     let expressionKeys = _keys(expressions);
     for (let key of expressionKeys) {
       try {
-        let expObj: any = _get(this.expressions, key, {});
+        let expObj: any = _get(expressions, key, {});
         if (!_isUndefined(expObj) && !_isEmpty(expObj)) {
 
           let newValue: any = null;
           let data = this.model?.getValue();
           let path = key.split('.');
           let targetPropertyPath = path[1];
-          let enforceTruthy = _get(expObj, 'enforceTruthy', false);
           let emitEventOnChange = _get(expObj, 'emitEventOnChange', true);
-          if (_get(expObj, 'template', '').indexOf('<%') != -1) {
-            let config = { template: _get(expObj, 'template') };
-            let v = this.lodashTemplateUtilityService.runTemplate(data, config, {}, this, this.getFormGroupFromAppRef()?.value);
-            if (enforceTruthy) {
-              newValue = v === 'false' ? false : v;
-            } else {
-              newValue = v;
-            }
+          if(!_isUndefined(forceValue)) {
+            newValue = forceValue;
           } else {
-            let v = _get(this.componentDefinition, _get(expObj, 'value', null));
-            if (enforceTruthy) {
-              newValue = v === 'false' ? false : v;
+            let enforceTruthy = _get(expObj, 'enforceTruthy', false);
+            if (_get(expObj, 'template', '').indexOf('<%') != -1) {
+              let config = { template: _get(expObj, 'template') };
+              let v = this.lodashTemplateUtilityService.runTemplate(data, config, {}, this, this.getFormGroupFromAppRef()?.value);
+              if (enforceTruthy) {
+                newValue = v === 'false' ? false : v;
+              } else {
+                newValue = v;
+              }
             } else {
-              newValue = v;
+              let v = _get(this.componentDefinition, _get(expObj, 'value', null));
+              if (enforceTruthy) {
+                newValue = v === 'false' ? false : v;
+              } else {
+                newValue = v;
+              }
             }
           }
 
@@ -203,31 +207,30 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
                   }
                 }
               }
-            } else if (targetLayout && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath)) {
-              _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath, newValue);
-              this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `, this.name);
-            } else if (!targetLayout && _has(this.componentDefinitionCache, targetPropertyPath)) {
+            } else if ((!targetLayout && _has(this.componentDefinitionCache, targetPropertyPath)) || forceComponent) {
               _set(this.componentDefinitionCache, targetPropertyPath, newValue);
               this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in componentDefinition.config `, this.name);
-            }
+            } else if (targetLayout && !forceComponent && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath)) {
+              _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath, newValue);
+              this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `, this.name);
+            } 
 
             this.expressionStateChanged = this.hasExpressionsConfigChanged(targetPropertyPath);
+            let layoutStateChanged = this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged(targetPropertyPath);
             this.loggerService.info(`checkUpdateExpressions component expressionStateChanged ${this.expressionStateChanged}`, '');
-            if (this.expressionStateChanged) {
-              this.loggerService.info('checkUpdateExpressions ', _get(this.componentDefinition, 'class', ''));
-              this.loggerService.info('checkUpdateExpressions name ', this.name);
+            this.loggerService.info(`checkUpdateExpressions forceComponent ${forceComponent}`, '');
+            if (this.expressionStateChanged || forceComponent) {
+              this.loggerService.info('checkUpdateExpressions component ', _get(this.componentDefinition, 'class', ''));
+              this.loggerService.info('checkUpdateExpressions component name ', this.name);
               _set(this.componentDefinition?.config as object, targetPropertyPath, newValue);
               this.buildPropertyCache();
-            } else if (this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged(targetPropertyPath)) {
+            } else if (layoutStateChanged && !forceComponent) {
               this.loggerService.info('checkUpdateExpressions layout ', _get(this.componentDefinition, 'class', ''));
               this.loggerService.info('checkUpdateExpressions layout name ', this.name);
               this.loggerService.info(`checkUpdateExpressions layout expressionStateChanged`, '');
               _set(this.formFieldCompMapEntry?.layout?.componentDefinition?.config as object, targetPropertyPath, newValue);
               this.formFieldCompMapEntry?.layout?.buildPropertyCache();
-              if (targetPropertyPath == 'visible') {
-                _set(this.componentDefinition?.config as object, targetPropertyPath, newValue);
-                this.buildPropertyCache();
-              }
+              this.propagateExpressions(this.expressions, true, newValue);
             }
           }
         }
@@ -297,7 +300,9 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {
-      if(key == lastKeyChanged || forceCheckAll) {
+      //TODO in principle comparing properties that are complex objects seems not required
+      //group component has a componentDefinition property of its inner components or maybe
+      if((key == lastKeyChanged && !_isObject(key)) || forceCheckAll ) {
         let oldValue = _get(this.componentDefinition?.config,key);
         let newValue = _get(this.componentDefinitionCache,key);
         let configPropertyChanged = oldValue !== newValue;

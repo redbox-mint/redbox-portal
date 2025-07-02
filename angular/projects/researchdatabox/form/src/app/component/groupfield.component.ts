@@ -203,15 +203,20 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
   public override checkUpdateExpressions() {
     this.loggerService.debug('group component checkUpdateExpressions');
+    let comps:FormFieldCompMapEntry[] = this.model?.components ?? [];
+    //Evaluate top level expressions
     super.checkUpdateExpressions();
-    if(this.expressionStateChanged) {
-      //Run top level expression and if changed propagate result to children
-      let comps:FormFieldCompMapEntry[] = this.model?.components ?? [];
-      for(let entry of comps){
-        entry.component?.propagateExpressions(this.expressions);
-      }
+    //Propagate top level expressions and evaluate in its children components
+    //this is required for the parent component to delegate responsability of
+    //behaiviour to the children i.e. each component will handle its visibility
+    //but has to be maintained in sync with the overarching state of the parent
+    for(let entry of comps){
+      entry.component?.propagateExpressions(this.expressions);
     }
-    //TODO run through group inner components and evaluate expressions for each component if present
+    //Evaluate expressions in children components
+    for(let entry of comps){
+      entry.component?.checkUpdateExpressions();
+    }
   }
 
   
