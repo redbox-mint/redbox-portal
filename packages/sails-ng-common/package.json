@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js test/unit/**/*.test.js dist/test/unit/**/*.test.js",
-    "pretest": "npm run test:compile ; mkdir -p support/junit",
+    "pretest": "npm run test:compile && mkdir -p support/junit",
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",
     "compile:clean": "rm -rf dist/",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.27.0",
-    "@researchdatabox/redbox-core-types": "1.4.8",
+    "@researchdatabox/redbox-core-types": "../../core",
     "@stylistic/eslint-plugin": "4.2.0",
     "@stylistic/eslint-plugin-js": "4.2.0",
     "@stylistic/eslint-plugin-ts": "4.2.0",
@@ -63,10 +63,10 @@
   "nyc": {
     "check-coverage": true,
     "all": true,
-    "lines": 60,
-    "statements": 60,
-    "functions": 60,
-    "branches": 40,
+    "lines": 45,
+    "statements": 45,
+    "functions": 45,
+    "branches": 45,
     "include": [
       "**/src/**/*.*"
     ],

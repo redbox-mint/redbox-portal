@@ -70,7 +70,7 @@ export type KeyValueStringProperty = Record<string, string> | string | null | un
 export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
 // TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
 //   Expression functions will participate in a similar process as the validation functions to get to the client.
-export type ExpressionTemplate = { template: string; condition: any };
+export type ExpressionTemplate = { template: string; condition?: any };
 export type ExpressionsConfig = Record<string, ExpressionTemplate>;
 
 /**
@@ -127,6 +127,8 @@ export class FormFieldModelDefinition<ValueType> {
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
   validators?: FormValidatorBlock[] | null | undefined = null;
+  wrapperCssClasses?: string;
+  editCssClasses?: string;
 }
 /**
  * Config field model, aka the data binding

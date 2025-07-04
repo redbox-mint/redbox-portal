@@ -166,6 +166,7 @@ module.exports.routes = {
   'post /:branding/:portal/admin/users/newUser': 'AdminController.addLocalUser',
   'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
   'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
+  'get /:branding/:portal/record/default/:name': 'RecordController.getMetaDefault',
   'get /:branding/:portal/record/metadata/:oid': 'RecordController.getMeta',
   'get /:branding/:portal/record/form/:name': 'RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',

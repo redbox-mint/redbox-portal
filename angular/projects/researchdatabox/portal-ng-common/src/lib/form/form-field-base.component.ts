@@ -29,7 +29,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
-  protected viewInitialised = signal<boolean>(false);
+  viewInitialised = signal<boolean>(false);
 
   @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
@@ -95,7 +95,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
-  
+
   protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot set component properties because formFieldCompMapEntry was invalid.`);
@@ -213,7 +213,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
             } else if (targetLayout && !forceComponent && _has(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath)) {
               _set(this.formFieldCompMapEntry?.layout?.componentDefinitionCache, targetPropertyPath, newValue);
               this.loggerService.info(`checkUpdateExpressions property '${targetPropertyPath}' found in layout componentDefinition.config `, this.name);
-            } 
+            }
 
             this.expressionStateChanged = this.hasExpressionsConfigChanged(targetPropertyPath);
             let layoutStateChanged = this.formFieldCompMapEntry?.layout?.hasExpressionsConfigChanged(targetPropertyPath);
@@ -320,11 +320,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return propertyChanged;
   }
 
-  get isDebug(): boolean {
-    const formComponent = this.getFormComponentFromAppRef();
-    return formComponent?.formDefMap?.formConfig?.debugValue ?? false;
-  }
-
   protected getFormComponentFromAppRef(): any {
     if(this.formComponent === undefined) {
       this.formComponent = this.appRef.components[0];
@@ -407,7 +402,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       if (typeof this.componentDefinition.config.hostCssClasses === 'string') {
         // this.hostBindingCssClasses = { [this.componentDefinition.config.hostCssClasses]: true };
         this.hostBindingCssClasses = this.componentDefinition.config.hostCssClasses;
-      } 
+      }
     } else {
       if (this.componentDefinition?.config?.defaultComponentCssClasses) {
         if (typeof this.componentDefinition.config?.defaultComponentCssClasses === 'string') {
@@ -481,9 +476,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   protected untilViewIsInitialised(): Promise<void> {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject('Timeout waiting for untilViewIsInitialised'), 2000);
       const checkStatus = () => {
         if (this.viewInitialised()) {
+          clearTimeout(timeout);
           resolve();
         } else {
           setTimeout(checkStatus, 10);
