@@ -43,10 +43,6 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     return this.formDefMap?.components ?? [];
   }
 
-  public get debugValue() {
-    return this.formDefMap?.formConfig?.debugValue ?? false;
-  }
-
   public get defaultComponentConfig() {
     return this.formDefMap?.formConfig?.defaultComponentConfig;
   }
@@ -97,21 +93,6 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
     <ng-container #componentContainer/>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
-    @if (isStatusReady() && (model?.components?.length ?? 0) > 0 && model?.debugValue) {
-      <div class="alert alert-info" role="alert">
-        <h4>Group Component Debug</h4>
-        <ul>
-          <li>status: {{ status() }}</li>
-          <li>children:
-            <ul>
-              @for(component of model?.components; track component.component){
-                <li>{{ utilityService.getNameClass(component?.component?.formFieldCompMapEntry) }}: {{component?.component?.status()}}</li>
-              }
-            </ul>
-          </li>
-        </ul>
-      </div>
-    }
   `,
   standalone: false
 })
@@ -144,6 +125,10 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     this.wrapperComponentRefs = [];
   }
 
+  public get components(): FormFieldCompMapEntry[] {
+    return this.model?.components ?? [];
+  }
+
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
@@ -163,8 +148,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     this.elementFormConfig = {
       // Store the child component definitions.
       componentDefinitions: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [],
-      // Get the debugValue from the FormComponent.
-      debugValue: formConfig?.debugValue,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Get the validator definitions so the child components can use them.
@@ -219,6 +202,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     }
   }
 
-  
+
 
 }
