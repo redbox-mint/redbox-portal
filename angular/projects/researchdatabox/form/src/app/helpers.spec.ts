@@ -21,38 +21,30 @@ import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 
 export async function createFormAndWaitForReady(formConfig: FormConfig) {
+  console.log('createFormAndWaitForReady - starting');
+  // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
+
+  // Set the form component to not download the form config on init.
+  // Each test will provide a form config.
   formComponent.downloadAndCreateOnInit = false;
 
-  await fixture.whenStable();
-  fixture.detectChanges();
+  // Turn on angular's automatic change detection.
+  // This reduces the need to call fixture.detectChanges,
+  // but fixture.whenStable is still required.
+  fixture.autoDetectChanges();
 
+  // Wait until changes have occurred
+  // and no more changes are detected.
+  await fixture.whenStable();
+
+  // Create the form component and field components from the form config.
   await formComponent.downloadAndCreateFormComponents(formConfig);
 
   await fixture.whenStable();
-  fixture.detectChanges();
 
-
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject('Timeout waiting for componentsLoaded'), 3000);
-    const check = () => {
-      fixture.detectChanges();
-      if (formComponent.status() === FormStatus.READY && formComponent.componentsLoaded()) {
-        clearTimeout(timeout);
-        resolve();
-      } else {
-        setTimeout(check, 50);
-      }
-    };
-    check();
-  });
-
-  await fixture.whenStable();
-  // Ensure DOM is updated
-  fixture.detectChanges();
-
-  console.log('Components Loaded:', formComponent.componentsLoaded());
+  console.log(`createFormAndWaitForReady - finished - debugInfo: ${JSON.stringify(formComponent.getDebugInfo())} - validationErrors: ${JSON.stringify(formComponent.getValidationErrors())}`);
 
   return {
     fixture: fixture,
