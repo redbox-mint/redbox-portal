@@ -185,3 +185,14 @@ support/raido/*.tgz
 angular/.angular/cache/
 
 api/configmodels/*
+
+# js files built from ts files
+
+# typescript/assets/default/default/js
+assets/default/default/js/client-script.js
+
+# typescript/config/validators.ts
+config/validators.js
+
+# typescript/form-config
+form-config/default-1.0-draft.js

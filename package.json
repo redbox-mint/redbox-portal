@@ -6,7 +6,7 @@
   "dependencies": {
     "@researchdatabox/oni-ocfl": "^1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "^0.0.3",
-    "@researchdatabox/redbox-core-types": "^1.4.8",
+    "@researchdatabox/redbox-core-types": "./core",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.9",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
     "@scienta/axios-oauth2": "^1.2.1",
@@ -104,7 +104,7 @@
     "compile:core": "cd core && npm install && node_modules/.bin/tsc && cd ../",
     "compile:core:prod": "cd core && npm install && node_modules/.bin/tsc && cd ../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc && cd ../../",
-    "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc --project tsconfig.prod.json&& cd ../../",
+    "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
