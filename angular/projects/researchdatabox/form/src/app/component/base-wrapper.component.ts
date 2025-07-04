@@ -128,11 +128,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       compRef.destroy();
     }
   }
-
   protected override initHostBindingCssClasses() {
     // do nothing
   }
 
-  public override initChildConfig(): void {
-  }
 }

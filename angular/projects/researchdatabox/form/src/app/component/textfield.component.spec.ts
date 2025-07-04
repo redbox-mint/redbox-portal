@@ -4,14 +4,10 @@ import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
 describe('TextFieldComponent', () => {
-  let configService: any;
-  let translationService: any;
   beforeEach(async () => {
-    const testbedModuleResult = await createTestbedModule([
+    await createTestbedModule([
       TextFieldComponent,
     ]);
-    configService = testbedModuleResult.configService;
-    translationService = testbedModuleResult.translationService;
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(TextFieldComponent);
@@ -33,8 +29,8 @@ describe('TextFieldComponent', () => {
             name: 'text_1_for_the_form',
             class: 'TextFieldModel',
             config: {
-              value: 'hello world!',
-              defaultValue: 'hello world!'
+              value: 'hello world saved!',
+              defaultValue: 'hello world default!'
             }
           },
           component: {
@@ -50,7 +46,7 @@ describe('TextFieldComponent', () => {
     // Now run your expectations
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
-    expect(inputElement).toBeTruthy();
+    expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
   });
 
 });

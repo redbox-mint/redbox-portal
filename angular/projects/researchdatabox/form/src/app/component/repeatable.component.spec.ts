@@ -7,16 +7,12 @@ import {GroupFieldComponent} from "./groupfield.component";
 
 
 describe('RepeatableComponent', () => {
-  let configService: any;
-  let translationService: any;
   beforeEach(async () => {
-    const testbedModuleResult = await createTestbedModule([
+    await createTestbedModule([
       TextFieldComponent,
       RepeatableComponent,
       RepeatableElementLayoutComponent,
     ]);
-    configService = testbedModuleResult.configService;
-    translationService = testbedModuleResult.translationService;
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(RepeatableComponent);
@@ -77,9 +73,11 @@ describe('RepeatableComponent', () => {
     expect(inputElements).toHaveSize(1);
 
     // add another element
-
     const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
     await repeatable?.appendNewElement();
+
+    // Wait until the change detection has completed.
+    await fixture.whenStable();
 
     // check that another element was added
     inputElements = compiled.querySelectorAll('input[type="text"]');
