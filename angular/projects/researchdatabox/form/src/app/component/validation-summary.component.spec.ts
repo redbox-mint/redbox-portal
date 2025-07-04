@@ -6,15 +6,11 @@ import {formValidatorsSharedDefinitions} from "../validators";
 import {TextFieldComponent} from "./textfield.component";
 
 describe('ValidationSummaryFieldComponent', () => {
-  let configService: any;
-  let translationService: any;
   beforeEach(async () => {
-    const testbedModuleResult = await createTestbedModule([
+   await createTestbedModule([
       ValidationSummaryFieldComponent,
       TextFieldComponent,
     ]);
-    configService = testbedModuleResult.configService;
-    translationService = testbedModuleResult.translationService;
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
@@ -63,8 +59,8 @@ describe('ValidationSummaryFieldComponent', () => {
             name: 'text_1_for_the_form',
             class: 'TextFieldModel',
             config: {
-              value: 'hello world!',
-              defaultValue: '',
+              value: '',
+              defaultValue: 'default value',
               validators: [
                 { name: 'required' },
               ]
@@ -86,7 +82,8 @@ describe('ValidationSummaryFieldComponent', () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
     const nativeEl: HTMLElement = fixture.nativeElement;
-    const el = nativeEl.querySelector('div.alert-danger')!;
-    expect(el.textContent).toContain('The form is not valid blah blah.');
+    console.log(nativeEl);
+    const el = nativeEl.querySelector('div.alert-danger');
+    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-for-the-form"></a>');
   });
 });

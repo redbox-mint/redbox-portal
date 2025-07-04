@@ -90,7 +90,7 @@ export class FormComponent extends BaseComponent {
     this.formName = elementRef.nativeElement.getAttribute('formName') || "";
     this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
-    
+
     effect(() => {
       if (this.componentsLoaded()) {
         this.registerUpdateExpression();
@@ -182,12 +182,11 @@ export class FormComponent extends BaseComponent {
         this.form.valueChanges.subscribe((value) => {
           for(let compEntry of this.componentDefArr) {
             let compName = _get(compEntry,'name','');
-            this.loggerService.info(`FormComponent: valueChanges: `, compName);
+            // this.loggerService.info(`FormComponent: valueChanges: `, compName);
             if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
-              this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
+              // this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
               let component = compEntry.component;
-              //the string passed in "model" is only for tracking and not needed for the expressions logic to work
-              component.checkUpdateExpressions('model');
+              component.checkUpdateExpressions();
             }
           }
         });
@@ -221,4 +220,60 @@ export class FormComponent extends BaseComponent {
       .map(([className, _]) => className)
       .join(' ');
   }
+
+  public getValidationErrors(){
+    const components = this.formDefMap?.formConfig.componentDefinitions;
+    return this.formService.getFormValidatorSummaryErrors(components, null, this.form);
+  }
+
+  public getDebugInfo(): DebugInfo {
+    return {
+      name: "",
+      class: 'FormComponent',
+      status: this.status(),
+      componentsLoaded: this.componentsLoaded(),
+      isReady: this.isReady,
+      children: this.componentDefArr?.map(i => this.getComponentDebugInfo(i)),
+    };
+  }
+
+  private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
+    const componentEntry = formFieldCompMapEntry;
+    this.loggerService.info('getComponentDebugInfo', formFieldCompMapEntry);
+    const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
+    const name = this.utilityService.getNameClass(componentEntry)
+
+    const componentResult: DebugInfo = {
+      name: name,
+      class: componentConfigClassName,
+      status: componentEntry?.component?.status()?.toString() ?? "",
+      viewInitialised: componentEntry?.component?.viewInitialised(),
+    };
+
+    if (["RepeatableComponent", "GroupFieldComponent"].includes(componentConfigClassName)) {
+      componentResult.children = (formFieldCompMapEntry?.component as any)?.components?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
+    }
+
+    if (componentEntry?.layout) {
+      return {
+        name: name,
+        class: formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "",
+        status: componentEntry?.layout?.status()?.toString() ?? "",
+        viewInitialised: componentEntry?.layout?.viewInitialised(),
+        children: [componentResult],
+      }
+    } else {
+      return componentResult;
+    }
+  }
 }
+
+type DebugInfo = {
+  class: string,
+  status: string,
+  name: string,
+  componentsLoaded?: boolean,
+  viewInitialised?: boolean,
+  isReady?: boolean,
+  children?: any[]
+};

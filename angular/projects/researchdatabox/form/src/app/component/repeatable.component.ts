@@ -182,6 +182,23 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
+  public override checkUpdateExpressions() {
+    this.loggerService.debug('repeatable checkUpdateExpressions');
+    //Evaluate top level expressions 
+    super.checkUpdateExpressions();
+    //Propagate top level expressions and evaluate in its children components
+    //this is required for the parent component to delegate responsability of 
+    //behaiviour to the children i.e. each component will handle its visibility
+    //but has to be maintained in sync with the overarching state of the parent
+    for(let entry of this.compDefMapEntries) {
+      entry.defEntry.component?.propagateExpressions(this.expressions);
+    }
+    //Evaluate expressions in children components
+    for(let entry of this.compDefMapEntries) {
+      entry.defEntry.component?.checkUpdateExpressions();
+    }
+  }
+
 }
 
 
