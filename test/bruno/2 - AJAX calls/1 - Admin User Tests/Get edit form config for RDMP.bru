@@ -36,16 +36,12 @@ tests {
   });
   
   test("RDMP form name is default-1.0-draft", function () {
-      var jsonData = res.getBody();
-      
-      var numFound = jsonData.totalItems;
+      const jsonData = res.getBody();
       expect(jsonData.name).to.eql("default-1.0-draft");
   });
   
   test("Fields array has values", function () {
-      var jsonData = res.getBody();
-      
-      var numFound = jsonData.totalItems;
-      expect(jsonData.fields).to.be.an('array').that.is.not.empty
+      const jsonData = res.getBody();
+      expect(jsonData.componentDefinitions).to.be.an('array').that.is.not.empty
   });
 }
