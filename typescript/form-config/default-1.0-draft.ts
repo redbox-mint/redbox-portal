@@ -90,7 +90,10 @@ const formConfig: FormConfig = {
                 }
             },
             component: {
-                class: 'TextFieldComponent'
+                class: 'TextFieldComponent',
+                config: {
+                    tooltip: 'text_2_event tooltip'
+                }
             }
         },
         {
@@ -100,6 +103,7 @@ const formConfig: FormConfig = {
                 config: {
                     label: 'TextField with default wrapper defined',
                     helpText: 'This is a help text',
+                    tooltip: 'text_2_component_event layout tooltip'
                 }
             },
             model: {
@@ -109,7 +113,10 @@ const formConfig: FormConfig = {
                 }
             },
             component: {
-                class: 'TextFieldComponent'
+                class: 'TextFieldComponent',
+                config: {
+                    tooltip: 'text_2_component_event component tooltip 22222'
+                }
             },
             expressions: {
                 'component.visible': {
@@ -265,6 +272,15 @@ const formConfig: FormConfig = {
                         }
                     ]
                 }
+            },
+            expressions: {
+                'layout.visible': {
+                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+                }
             }
         },
         {
@@ -312,6 +328,15 @@ const formConfig: FormConfig = {
                     helpText: 'Repeatable component help text',
                 }
             },
+            expressions: {
+                'layout.visible': {
+                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
+                }
+            }
         },
         {
             name: 'repeatable_group_1',
