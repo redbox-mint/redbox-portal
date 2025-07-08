@@ -37,7 +37,10 @@ import {
   Sails,
   Model
 } from "sails";
+
 import * as crypto from 'crypto';
+
+
 
 
 declare var sails: Sails;
@@ -77,6 +80,11 @@ export module Services {
 
     searchService: SearchService;
 
+
+    protected async processDynamicImports(): Promise<void> {
+      const passport  = await import('openid-client/passport')
+      console.log(passport)
+    }
     protected localAuthInit () {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
@@ -635,35 +643,39 @@ export module Services {
           }
           for (let oidcConfig of oidcConfigArray) {
             const oidcOpts = oidcConfig.opts;
-            const {
-              Issuer,
-              Strategy,
-              custom
-            } = require('openid-client');
+            const openidClient = await import('openid-client');
+            const openidPassport  = await import('openid-client/passport')
             let configured = false;
             let discoverAttemptsCtr = 0;
             while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
               discoverAttemptsCtr++;
               try {
-                let issuer;
+                let oidcConfiguration;
                 if (_.isString(oidcOpts.issuer)) {
                   sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
-                  issuer = await Issuer.discover(oidcOpts.issuer);
+                  oidcConfiguration = await openidClient.discovery(oidcOpts.issuer,oidcOpts.client.client_id, oidcOpts.client.client_secret);
                 } else {
                   sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
                   sails.log.verbose(JSON.stringify(oidcOpts.issuer));
-                  issuer = new Issuer(oidcOpts.issuer);
+                  // issuer = new Issuer(oidcOpts.issuer);
                 }
                 configured = true;
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-                sails.log.verbose(issuer);
-                const oidcClient = new issuer.Client(oidcOpts.client);
+                sails.log.verbose(oidcConfiguration);
+                const scope = _.get(oidcOpts, 'params.scope', 'openid profile email');
+                let options = {
+                    config: oidcConfiguration,
+                    scope: scope,
+                    passReqToCallback: true as true
+                };
+
+
                 let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
-                  that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
+                  that.openIdConnectAuthVerifyCallback(oidcConfig, oidcConfiguration, req, tokenSet, userinfo, done);
                 };
                 if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req, tokenSet, done) => {
-                    that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
+                  verifyCallbackFn = (req, tokenSet, userinfo, done) => {
+                    that.openIdConnectAuthVerifyCallback(oidcConfig, oidcConfiguration, req, tokenSet, undefined, done);
                   };
                 }
                 let passportIdentifier = 'oidc';
@@ -671,11 +683,9 @@ export module Services {
                   passportIdentifier = `oidc-${oidcConfig.identifier}`
                 }
 
-                sails.config.passport.use(passportIdentifier, new Strategy({
-                  client: oidcClient,
-                  passReqToCallback: true,
-                  params: oidcOpts.params
-                }, verifyCallbackFn));
+                sails.config.passport.use(passportIdentifier, new openidPassport.Strategy(
+                  options
+                , verifyCallbackFn as any));
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
 
 
