@@ -118,7 +118,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public propagateExpressions(expressions:ExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined): any {
+  public propagateExpressions(expressions:ExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
     let expressionKeys = _keys(expressions);
     for (let key of expressionKeys) {
       try {
