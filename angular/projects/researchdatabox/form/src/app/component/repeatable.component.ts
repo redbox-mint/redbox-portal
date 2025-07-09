@@ -41,8 +41,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
 
-  // Simple counter to track the next locally unique ID for the repeatable elements, mainly for deletion purposes, not meant to be globally unique nor persisted in the DB.
-  protected nextLocalUniqueId = 0;
 
   private newElementFormConfig?: FormConfig;
 
@@ -113,15 +111,16 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.createElement(elemEntry);
   }
 
+  protected getNextLocalUniqueId(): string {
+    // Create a unique ID, appending the name, the timestamp, and a random number to ensure uniqueness.
+    return `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
     // TODO: There is a potential data race condition in this method:
     //  if two new fields are created fast enough, they might have the same localUniqueId.
 
-    const localUniqueId = this.nextLocalUniqueId;
-
-    // Increment the local id for the next new field.
-    this.nextLocalUniqueId += 1;
+    const localUniqueId = this.getNextLocalUniqueId();
 
     const elemEntry = {
       modelClass: templateEntry.modelClass,
@@ -130,6 +129,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       compConfigJson: _cloneDeep(templateEntry.compConfigJson),
       localUniqueId: localUniqueId,
     } as FormFieldCompMapEntry;
+    // set the names of the components
+    if (_isEmpty(elemEntry.compConfigJson.name)) {
+      elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
+    }
+    if (_isEmpty(elemEntry.compConfigJson.layout?.name)) {
+      _set(elemEntry, 'compConfigJson.layout.name', `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-layout-${localUniqueId}`);
+    }
+    // elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry, this.newElementFormConfig?.validatorDefinitions);
 
@@ -264,7 +271,7 @@ export interface RepeatableElementEntry {
   defEntry: FormFieldCompMapEntry;
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
-  localUniqueId?: number | undefined;
+  localUniqueId?: string;
   // The value of the element. Unfortunately, in the group compoment, the structure of the data model is not known until after the component is initialised, so we store the value here to set afterwards.
   value: unknown; 
 }
