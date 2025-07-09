@@ -68,7 +68,10 @@ export interface HasFormComponentConfig {
 
 export type KeyValueStringProperty = Record<string, string> | string | null | undefined;
 export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
-
+// TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
+//   Expression functions will participate in a similar process as the validation functions to get to the client.
+export type ExpressionTemplate = { template: string; condition?: any };
+export type ExpressionsConfig = Record<string, ExpressionTemplate>;
 
 /**
  * The form component configuration definition.
@@ -83,6 +86,7 @@ export class FormComponentDefinition<ValueType> implements HasFormComponentIdent
   model?: FormFieldModelConfig<ValueType> | null | undefined = null;
   component?: FormFieldComponentDefinition | null | undefined = null;
   module?: string | null | undefined = null;
+  expressions?: ExpressionsConfig;
 }
 
 /**
@@ -110,12 +114,7 @@ export class FormComponentBaseConfig  {
   //
   public autofocus?: boolean = false;
   //
-  public tooltips?: TooltipsModel | null | undefined = null;
-}
-
-export class TooltipsModel {
-  public fieldTT: string = '';
-  public labelTT: string = '';
+  public tooltip?: string = '';
 }
 
 export class FormFieldModelDefinition<ValueType> {
@@ -128,6 +127,8 @@ export class FormFieldModelDefinition<ValueType> {
   public dataSchema?: FormFieldModelDataConfig | string | null | undefined = null;
   // the validators
   validators?: FormValidatorBlock[] | null | undefined = null;
+  wrapperCssClasses?: string;
+  editCssClasses?: string;
 }
 /**
  * Config field model, aka the data binding

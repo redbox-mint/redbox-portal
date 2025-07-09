@@ -7,15 +7,11 @@ import {TestBed} from "@angular/core/testing";
 
 
 describe('GroupFieldComponent', () => {
-  let configService: any;
-  let translationService: any;
   beforeEach(async () => {
-    const testbedModuleResult = await createTestbedModule([
+    await createTestbedModule([
       TextFieldComponent,
       GroupFieldComponent,
     ]);
-    configService = testbedModuleResult.configService;
-    translationService = testbedModuleResult.translationService;
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(GroupFieldComponent);

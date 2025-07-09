@@ -70,6 +70,14 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
   }
 
   /**
+   * Set the value of the field
+   * @param value the value to set
+   */
+  public setValueDontEmitEvent(value: FormFieldModelValueType<ValueType>): void {
+    this.formControl?.setValue(value, { emitEvent: false });
+  }
+
+  /**
    * Primitive implementation returns the form control.
    * Complex implementations should override this method to create complex form controls.
    * @returns the form control

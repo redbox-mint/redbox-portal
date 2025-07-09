@@ -17,32 +17,48 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject, WritableSignal } from '@angular/core';
-import { FormControl , AbstractControl, FormGroup} from '@angular/forms';
-import { isEmpty as _isEmpty, get as _get,  merge as _merge, isUndefined as _isUndefined } from 'lodash-es';
-import { FormComponentClassMap, FormFieldModelClassMap, StaticComponentClassMap, StaticModelClassMap } from './static-comp-field.dictionary';
+import {Inject, Injectable, WritableSignal} from '@angular/core';
+import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
+import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge} from 'lodash-es';
 import {
-  FormFieldModel,
-  LoggerService,
+  FormComponentClassMap,
+  FormFieldModelClassMap,
+  StaticComponentClassMap,
+  StaticModelClassMap
+} from './static-comp-field.dictionary';
+import {
+  ConfigService,
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
+  FormFieldModel,
+  HttpClientService,
+  LoggerService,
   TranslationService,
-  UtilityService
+  UtilityService,
 } from '@researchdatabox/portal-ng-common';
-import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
+import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormConfig,  FormFieldModelConfig,  FormComponentDefinition,
+  FormComponentDefinition,
+  FormConfig,
   FormFieldComponentStatus,
+  FormFieldModelConfig,
   FormStatus,
   FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
-import {formValidatorsSharedDefinitions} from "./validators";
-import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/base.model";
+import {HttpClient} from "@angular/common/http";
+import {APP_BASE_HREF} from "@angular/common";
 
-
+/**
+ * Declare the redboxClientScript as a property on the window global.
+ * This allows the client-side angular code to reference the property.
+ */
+declare global {
+  interface Window { redboxClientScript: any; }
+}
+window.redboxClientScript = window.redboxClientScript || {};
 
 
 /**
@@ -59,18 +75,24 @@ import {FormFieldModelValueType} from "../../../portal-ng-common/src/lib/form/ba
     providedIn: 'root'
   }
 )
-export class FormService {
+export class FormService extends HttpClientService {
   protected logName = "FormService";
   protected compClassMap:FormComponentClassMap = {};
   protected modelClassMap:FormFieldModelClassMap = {};
   protected validatorsSupport: ValidatorsSupport;
+
+  private requestOptions: Record<string, unknown> = {};
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
+    @Inject(HttpClient) protected override http: HttpClient,
+    @Inject(APP_BASE_HREF) public override rootContext: string,
+    @Inject(ConfigService) protected override configService: ConfigService,
     ) {
+    super(http, rootContext, utilityService, configService)
     // start with the static version, will dynamically merge any custom components later
     _merge(this.modelClassMap, StaticModelClassMap);
     _merge(this.compClassMap, StaticComponentClassMap);
@@ -78,6 +100,20 @@ export class FormService {
     this.loggerService.debug(`${this.logName}: Static model classes:`, this.modelClassMap);
 
     this.validatorsSupport = new ValidatorsSupport();
+  }
+
+  public override async waitForInit(): Promise<any> {
+    await super.waitForInit();
+    this.requestOptions = this.reqOptsJsonBodyOnly;
+
+    if (!Object.hasOwn(this.requestOptions, 'headers')) {
+      this.requestOptions['headers'] = {};
+    }
+    (this.requestOptions['headers'] as Record<string, string>)['X-ReDBox-Api-Version'] = '2.0';
+
+    this.enableCsrfHeader();
+    _merge(this.requestOptions, {context: this.httpContext});
+    return this;
   }
 
   public get getValidatorsSupport(){
@@ -95,307 +131,31 @@ export class FormService {
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
-    const formConfig: FormConfig = {
-      debugValue: true,
-      domElementType: 'form',
-      // Commented out so as to simplify debugging of CSS assignments, but retained until fully documented.
-      // defaultComponentConfig: {
-      //   defaultComponentCssClasses: 'row',
-      // },
-      editCssClasses: "redbox-form form",
+    // Get the form config from the server.
+    const formConfig = await this.getFormConfig(oid, recordType, editMode, formName);
+    if (!formConfig){
+      throw new Error("Form config from server was empty.");
+    }
 
-      // validatorDefinitions is the combination of redbox core validator definitions and
-      // the validator definitions from the client hook form config.
-      validatorDefinitions: formValidatorsSharedDefinitions,
+    // Get the model data from the server.
+    const modelData = await this.getModelData(oid, recordType);
 
-      // TODO: a way to crate groups of validators
-      // This is not implemented yet.
-      // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
-      validatorProfiles: {
-        // all: All validators (exclude none).
-        all:{exclude:[]},
-        // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
-        minimumSave: {include:['project_title']},
-      },
+    // TODO: integrate model data into form config for rendering the form.
 
-      // Validators that operate on multiple fields.
-      validators: [
-        {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
-      ],
+    // Replace the function placeholders in the form config with the functions.
+    const validatorFunctionMap = window.redboxClientScript?.providedToClientFromServer?.validatorFunctionMap || {};
+    this.loggerService.info(`${this.logName}: Validation functions to be applied to form config.`, validatorFunctionMap);
+    for (const validatorDefinition of formConfig.validatorDefinitions || []) {
+      const name = validatorDefinition.name;
+      const createFunction = validatorFunctionMap[name];
+      if (createFunction){
+        validatorDefinition['create'] = createFunction;
+      }
+    }
+    this.loggerService.info(`${this.logName}: Applied validation functions to form config.`, formConfig.validatorDefinitions);
 
-      componentDefinitions: [
-        {
-          name: 'text_1_event',
-          model: {
-            name: 'text_1_for_the_form',
-            class: 'TextFieldModel',
-            config: {
-              value: 'hello world!',
-              defaultValue: 'hello world!',
-              validators: [
-                { name: 'required' },
-              ]
-            }
-          },
-          component: {
-            class: 'TextFieldComponent'
-          }
-        },
-        {
-          name: 'text_2',
-          layout: {
-            class: 'DefaultLayoutComponent',
-            config: {
-              label: 'TextField with default wrapper defined',
-              helpText: 'This is a help text',
-            }
-          },
-          model: {
-            class: 'TextFieldModel',
-            config: {
-              value: 'hello world 2!',
-              validators: [
-                { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
-                { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
-              ]
-            }
-          },
-          component: {
-            class: 'TextFieldComponent'
-          }
-        },
-         {
-          // first group component
-          name: 'group_1_component',
-          layout: {
-            class: 'DefaultLayoutComponent',
-            config: {
-              label: 'GroupField label',
-              helpText: 'GroupField help',
-            }
-          },
-          model: {
-            name: 'group_1_model',
-            class: 'GroupFieldModel',
-            config: {
-              defaultValue: {},
-            }
-          },
-          component: {
-            class: 'GroupFieldComponent',
-            config: {
-              componentDefinitions: [
-                {
-                  name: 'text_3',
-                  layout: {
-                    class: 'DefaultLayoutComponent',
-                    config: {
-                      label: 'TextField with default wrapper defined',
-                      helpText: 'This is a help text',
-                    }
-                  },
-                  model: {
-                    class: 'TextFieldModel',
-                    config: {
-                      value: 'hello world 3!',
-                    }
-                  },
-                  component: {
-                    class: 'TextFieldComponent'
-                  }
-                },
-                {
-                  name: 'text_4',
-                  model: {
-                    class: 'TextFieldModel',
-                    config: {
-                      value: 'hello world 4!',
-                      defaultValue: 'hello world 4!'
-                    }
-                  },
-                  component: {
-                    class: 'TextFieldComponent'
-                  }
-                },
-                {
-                  // second group component, nested in first group component
-                  name: 'group_2_component',
-                  layout: {
-                    class: 'DefaultLayoutComponent',
-                    config: {
-                      label: 'GroupField 2 label',
-                      helpText: 'GroupField 2 help',
-                    }
-                  },
-                  model: {
-                    name: 'group_2_model',
-                    class: 'GroupFieldModel',
-                    config: {
-                      defaultValue: {},
-                    }
-                  },
-                  component: {
-                    class: 'GroupFieldComponent',
-                    config: {
-                      componentDefinitions: [
-                        {
-                          name: 'text_5',
-                          layout: {
-                            class: 'DefaultLayoutComponent',
-                            config: {
-                              label: 'TextField with default wrapper defined',
-                              helpText: 'This is a help text',
-                            }
-                          },
-                          model: {
-                            class: 'TextFieldModel',
-                            config: {
-                              value: 'hello world 5!',
-                            }
-                          },
-                          component: {
-                            class: 'TextFieldComponent'
-                          }
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        },
-        {
-          name: 'repeatable_textfield_1',
-          model: {
-            class: 'RepeatableComponentModel',
-            config: {
-              value: ['hello world from repeatable value!'],
-              defaultValue: ['hello world from repeatable, default!']
-            }
-          },
-          component: {
-            class: 'RepeatableComponent',
-            config: {
-              elementTemplate: {
-                model: {
-                  class: 'TextFieldModel',
-                  config: {
-                    defaultValue: 'hello world from elementTemplate!',
-                    validators: [
-                      { name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"} },
-                      { name: 'minLength', message:"@validator-error-custom-text_2", config: {minLength: 3}},
-                    ]
-                  }
-                },
-                component: {
-                  class: 'TextFieldComponent',
-                  config: {
-                    wrapperCssClasses: 'col',
-                  }
-                },
-                layout: {
-                  class: 'RepeatableElementLayoutComponent',
-                  config: {
-                    hostCssClasses: 'row align-items-start'
-                  }
-                },
-              },
-            },
-          },
-          layout: {
-            class: 'DefaultLayoutComponent',
-            config: {
-              label: 'Repeatable TextField with default wrapper defined',
-              helpText: 'Repeatable component help text',
-            }
-          },
-        },
-        {
-          name: 'repeatable_group_1',
-          model: {
-            class: 'RepeatableComponentModel',
-            config: {
-              value: [ {
-                text_group_repeatable: "hello world from repeating groups"
-              }]
-            }
-          },
-          component: {
-            class: 'RepeatableComponent',
-            config: {
-              elementTemplate: {
-                // first group component
-                name: 'group_1_component',
-                model: {
-                  name: 'group_1_model',
-                  class: 'GroupFieldModel',
-                  config: {
-                    defaultValue: {},
-                  }
-                },
-                component: {
-                  class: 'GroupFieldComponent',
-                  config: {
-                    wrapperCssClasses: 'col',
-                    componentDefinitions: [
-                      {
-                        name: 'text_group_repeatable',
-                        model: {
-                          class: 'TextFieldModel',
-                          config: {
-                            value: 'hello world 3!',
-                          }
-                        },
-                        component: {
-                          class: 'TextFieldComponent',
-                          config: {
-                          }
-                        }
-                      },
-                    ]
-                  }
-                },
-                layout: {
-                  class: 'RepeatableElementLayoutComponent',
-                  config: {
-                    hostCssClasses: 'row align-items-start'
-                  }
-                },
-              }
-            },
-          },
-          layout: {
-            class: 'DefaultLayoutComponent',
-            config: {
-              label: 'Repeatable TextField with default wrapper defined',
-              helpText: 'Repeatable component help text',
-            }
-          },
-        },
-        {
-          name: 'validation_summary_1',
-          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
-          component: {class: "ValidationSummaryFieldComponent"}
-        },
-        // {
-        //   module: 'custom',
-        //   component: {
-        //     class: 'FormCustomComponent',
-        //   },
-        //   model: {
-        //     class: 'FormCustomFieldModel',
-        //     config: {
-        //       name: 'project_name',
-        //       label: 'Project Name',
-        //       type: 'text',
-        //       value: 'hello world!'
-        //     }
-        //   }
-        // }
-      ]
-    } as FormConfig;
-    // Resove the field and component pairs
+
+    // Resolve the field and component pairs
     return this.createFormComponentsMap(formConfig);
   }
 
@@ -709,6 +469,53 @@ export class FormService {
       formControl?.setValidators(validatorFns);
       formControl?.updateValueAndValidity();
     }
+  }
+
+  /**
+   * Get the form field configuration for the provided oid or recordtype.
+   * @param oid The existing record id.
+   * @param recordType The recordtype.
+   * @param editable Whether the form config should be the editable form or not.
+   * @param formName The optional name of the form.
+   * @private
+   */
+  private async getFormConfig(oid: string | null, recordType: string, editable: boolean, formName: string | null = null) {
+    const ts = new Date().getTime().toString();
+
+    const remainingPaths = oid ? `auto/${oid}` : `${recordType}`;
+    const url = new URL(remainingPaths, `${this.brandingAndPortalUrl}/record/form/`);
+    url.searchParams.set('ts', ts);
+    url.searchParams.set('edit', editable?.toString() ?? 'false');
+    if (formName) {
+      url.searchParams.set('formName', formName?.toString());
+    }
+
+    const result = await this.http.get<FormConfig>(url.href, this.requestOptions).toPromise();
+    this.loggerService.info(`Get form fields from url: ${url}`, result);
+    return result;
+  }
+
+  /**
+   * Get the model data for the given oid, or the form defaults if no oid if given.
+   * @param oid The optional oid of an existing record.
+   * @param recordType The recordtype.
+   * @private
+   */
+  private async getModelData(oid?: string, recordType?: string) {
+    if (!oid && !recordType) {
+      throw new Error("Must provide oid or recordType.")
+    }
+
+    const ts = new Date().getTime().toString();
+
+    const url = oid
+      ? new URL(`${this.brandingAndPortalUrl}/record/metadata/${oid}`)
+      : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
+    url.searchParams.set('ts', ts);
+
+    const result = await this.http.get(url.href, this.requestOptions).toPromise();
+    this.loggerService.info(`Get model data from url: ${url}`, result);
+    return result;
   }
 }
 

@@ -132,7 +132,4 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   protected override initHostBindingCssClasses() {
     // do nothing
   }
-
-  public override initChildConfig(): void {
-  }
 }

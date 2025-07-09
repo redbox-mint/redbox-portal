@@ -5,14 +5,10 @@ import {TextFieldComponent} from './component/textfield.component';
 import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
 
 describe('FormComponent', () => {
-  let configService: any;
-  let translationService: any;
   beforeEach(async () => {
-    const testbedModuleResult = await createTestbedModule([
+    await createTestbedModule([
       TextFieldComponent,
     ]);
-    configService = testbedModuleResult.configService;
-    translationService = testbedModuleResult.translationService;
   });
 
   it('should create the app', () => {

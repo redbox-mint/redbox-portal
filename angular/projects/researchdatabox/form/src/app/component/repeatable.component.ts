@@ -50,6 +50,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return this.injector.get(FormComponent);
   }
 
+  public get components(): FormFieldCompMapEntry[] {
+    return this.compDefMapEntries?.map(i => i?.defEntry) ?? [];
+  }
+
   protected override async initData() {
     await this.untilViewIsInitialised();
     // Prepare the element template
@@ -63,8 +67,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
     this.newElementFormConfig = {
       componentDefinitions: [elementTemplate],
-      // Get the debugValue from the FormComponent.
-      debugValue: formConfig?.debugValue,
       // Get the default config.
       // defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Get the validator definitions so the child components can use them.
@@ -98,8 +100,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemVals.push(this.model.fieldConfig.config?.defaultValue || null);
     }
 
-    for (let i = 0; i < elemVals.length; i++) {
-      const elementValue = elemVals[i];
+    for (const elementValue of elemVals) {
       await this.appendNewElement(elementValue);
     }
   }
@@ -184,8 +185,23 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-  public override initChildConfig(): void {
+  public override checkUpdateExpressions() {
+    this.loggerService.debug('repeatable checkUpdateExpressions');
+    //Evaluate top level expressions
+    super.checkUpdateExpressions();
+    //Propagate top level expressions and evaluate in its children components
+    //this is required for the parent component to delegate responsability of
+    //behaiviour to the children i.e. each component will handle its visibility
+    //but has to be maintained in sync with the overarching state of the parent
+    for(let entry of this.compDefMapEntries) {
+      entry.defEntry.component?.propagateExpressions(this.expressions);
+    }
+    //Evaluate expressions in children components
+    for(let entry of this.compDefMapEntries) {
+      entry.defEntry.component?.checkUpdateExpressions();
+    }
   }
+
 }
 
 
@@ -260,7 +276,6 @@ export interface RepeatableElementEntry {
   template: `
   <ng-container #componentContainer></ng-container>
   <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
-  
   <ng-template #afterComponentTemplate>
     @let componentValidationList = getFormValidatorComponentErrors;
     @if (componentValidationList.length > 0) {
