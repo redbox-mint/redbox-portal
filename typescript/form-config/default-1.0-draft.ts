@@ -299,8 +299,6 @@ const formConfig: FormConfig = {
                         model: {
                             class: 'TextFieldModel',
                             config: {
-                                wrapperCssClasses: 'col',
-                                editCssClasses: 'redbox-form row',
                                 defaultValue: 'hello world from elementTemplate!',
                                 validators: [
                                     {
@@ -316,8 +314,17 @@ const formConfig: FormConfig = {
                             }
                         },
                         component: {
-                            class: 'TextFieldComponent'
-                        }
+                            class: 'TextFieldComponent',
+                            config: {
+                                wrapperCssClasses: 'col',
+                            }
+                        },
+                        layout: {
+                            class: 'RepeatableElementLayoutComponent',
+                            config: {
+                                hostCssClasses: 'row align-items-start'
+                            }
+                        },
                     },
                 },
             },
@@ -364,7 +371,7 @@ const formConfig: FormConfig = {
                         component: {
                             class: 'GroupFieldComponent',
                             config: {
-                                hostCssClasses: 'row',
+                                wrapperCssClasses: 'col',
                                 componentDefinitions: [
                                     {
                                         name: 'text_3',
@@ -377,14 +384,18 @@ const formConfig: FormConfig = {
                                         component: {
                                             class: 'TextFieldComponent',
                                             config: {
-                                                hostCssClasses: '',
-                                                wrapperCssClasses: 'col'
                                             }
                                         }
                                     },
                                 ]
                             }
-                        }
+                        },
+                        layout: {
+                            class: 'RepeatableElementLayoutComponent',
+                            config: {
+                                hostCssClasses: 'row align-items-start'
+                            }
+                        },
                     }
                 },
             },
