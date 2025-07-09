@@ -41,7 +41,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  protected get getComponentRef() {
+  protected get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
   }
 
@@ -64,7 +64,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     // If the wrapper has already been initialised, provide the component instance.
     // TODO: Does this make sense, when a different formFieldCompMapEntry might have been provided and set above?
     if (this.status() == FormFieldComponentStatus.READY) {
-      return (this.getComponentRef?.instance as FormFieldBaseComponent<ValueType>) || null;
+      return (this.componentRef?.instance as FormFieldBaseComponent<ValueType>) || null;
     }
 
     // Ensure the component class is available.
@@ -122,7 +122,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   ngOnDestroy() {
-    const compRef = this.getComponentRef;
+    const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
       compRef.destroy();
