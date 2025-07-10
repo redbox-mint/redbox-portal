@@ -105,7 +105,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType> | null;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentDefinition | FormComponentLayoutDefinition;
     this.expressions = this.formFieldCompMapEntry.compConfigJson?.expressions;
-    // this.formFieldCompMapEntry.name = this.formFieldCompMapEntry.compConfigJson.name;
     if(!_isUndefined(this.formFieldCompMapEntry.compConfigJson.name)) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;;
     }

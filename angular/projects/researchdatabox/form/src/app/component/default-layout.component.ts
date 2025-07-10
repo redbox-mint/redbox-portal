@@ -106,6 +106,14 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
+
+    if (_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name) && this.formFieldCompMapEntry) {
+      _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${this.formFieldCompMapEntry?.compConfigJson?.name || this.formFieldCompMapEntry?.name || 'default'}-layout`);
+    }
+
+    if(!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
+      this.name = this.formFieldCompMapEntry?.compConfigJson?.layout?.name;
+    }
     
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();

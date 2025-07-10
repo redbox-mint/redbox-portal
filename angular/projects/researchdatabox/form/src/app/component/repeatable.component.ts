@@ -41,8 +41,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
 
-  // Simple counter to track the next locally unique ID for the repeatable elements, mainly for deletion purposes, not meant to be globally unique nor persisted in the DB.
-  protected nextLocalUniqueId = 0;
 
   private newElementFormConfig?: FormConfig;
 
@@ -82,7 +80,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
-    this.elemInitFieldEntry.layoutClass = RepeatableLayoutComponent;
+    let layoutClass = this.elemInitFieldEntry?.layoutClass;
+    if (!layoutClass) {
+      // If the layout class is not defined, use the default layout class.
+      layoutClass = RepeatableElementLayoutComponent
+    }
+    this.elemInitFieldEntry.layoutClass = layoutClass;
 
     // Loop through the elements of the model and insert into the container
     const elemVals = this.model.initValue;
@@ -108,15 +111,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.createElement(elemEntry);
   }
 
+  protected getLocalUID(): string {
+    // Create a unique ID the timestamp, and a random number to ensure uniqueness.
+    return `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
-    // TODO: There is a potential data race condition in this method:
-    //  if two new fields are created fast enough, they might have the same localUniqueId.
-
-    const localUniqueId = this.nextLocalUniqueId;
-
-    // Increment the local id for the next new field.
-    this.nextLocalUniqueId += 1;
+    const localUniqueId = this.getLocalUID();
 
     const elemEntry = {
       modelClass: templateEntry.modelClass,
@@ -125,6 +126,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       compConfigJson: _cloneDeep(templateEntry.compConfigJson),
       localUniqueId: localUniqueId,
     } as FormFieldCompMapEntry;
+    // set the names of the components
+    // logic: if the name is not set, use the component name from the template, or a default name (appending 'layout', where applicable), and append the localUniqueId to ensure uniqueness. 
+    if (_isEmpty(elemEntry.compConfigJson.name)) {
+      elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
+    }
+    if (_isEmpty(elemEntry.compConfigJson.layout?.name)) {
+      _set(elemEntry, 'compConfigJson.layout.name', `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-layout-${localUniqueId}`);
+    }
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry, this.newElementFormConfig?.validatorDefinitions);
 
@@ -145,13 +154,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
-    const layoutInstance = ((compInstance as unknown) as RepeatableLayoutComponent<Array<unknown>>);
-    layoutInstance.removeFn = this.removeElementFn(elemEntry);
-    // layoutInstance.wrapperComponentRef = componentRef;
-    layoutInstance.hostBindingCssClasses = "row align-items-start";
-    layoutInstance.wrapperComponentRef.instance.hostBindingCssClasses = "col";
-
-    elemFieldEntry.component = compInstance;
+    const layoutInstance = ((compInstance as unknown) as RepeatableElementLayoutComponent<Array<unknown>>);
+    layoutInstance.removeFn = this.removeElementFn(elemEntry); 
     if (this.model?.formControl && compInstance?.model) {
       if (!_isUndefined(elemEntry.value)) {
         compInstance.model.setValue(elemEntry.value);
@@ -228,7 +232,6 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const modelElems: AbstractControl[] = [];
 
     this.formControl = new FormArray(modelElems);
-    // console.log("RepeatableComponentModel: created form model:", this.formControl);
   }
 
   public removeElement(targetModel: FormFieldModel<unknown> | null | undefined): void {
@@ -265,9 +268,9 @@ export interface RepeatableElementEntry {
   defEntry: FormFieldCompMapEntry;
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
-  localUniqueId?: number | undefined;
+  localUniqueId?: string;
   // The value of the element. Unfortunately, in the group compoment, the structure of the data model is not known until after the component is initialised, so we store the value here to set afterwards.
-  value: unknown;
+  value: unknown; 
 }
 
 @Component({
@@ -275,7 +278,6 @@ export interface RepeatableElementEntry {
   template: `
   <ng-container #componentContainer></ng-container>
   <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
-
   <ng-template #afterComponentTemplate>
     @let componentValidationList = getFormValidatorComponentErrors;
     @if (componentValidationList.length > 0) {
@@ -293,7 +295,7 @@ export interface RepeatableElementEntry {
   `,
   standalone: false,
 })
-export class RepeatableLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
+export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = "RepeatableLayoutComponent";
   public removeFn?: () => void;
 

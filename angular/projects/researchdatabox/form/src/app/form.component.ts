@@ -256,7 +256,7 @@ export class FormComponent extends BaseComponent {
 
     if (componentEntry?.layout) {
       return {
-        name: name,
+        name: formFieldCompMapEntry?.compConfigJson?.layout?.name ?? "",
         class: formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "",
         status: componentEntry?.layout?.status()?.toString() ?? "",
         viewInitialised: componentEntry?.layout?.viewInitialised(),
