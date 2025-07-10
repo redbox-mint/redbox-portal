@@ -111,16 +111,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.createElement(elemEntry);
   }
 
-  protected getNextLocalUniqueId(): string {
-    // Create a unique ID, appending the name, the timestamp, and a random number to ensure uniqueness.
+  protected getLocalUID(): string {
+    // Create a unique ID the timestamp, and a random number to ensure uniqueness.
     return `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
-    // TODO: There is a potential data race condition in this method:
-    //  if two new fields are created fast enough, they might have the same localUniqueId.
-
-    const localUniqueId = this.getNextLocalUniqueId();
+    const localUniqueId = this.getLocalUID();
 
     const elemEntry = {
       modelClass: templateEntry.modelClass,
@@ -130,13 +127,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       localUniqueId: localUniqueId,
     } as FormFieldCompMapEntry;
     // set the names of the components
+    // logic: if the name is not set, use the component name from the template, or a default name (appending 'layout', where applicable), and append the localUniqueId to ensure uniqueness. 
     if (_isEmpty(elemEntry.compConfigJson.name)) {
       elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
     }
     if (_isEmpty(elemEntry.compConfigJson.layout?.name)) {
       _set(elemEntry, 'compConfigJson.layout.name', `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-layout-${localUniqueId}`);
     }
-    // elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry, this.newElementFormConfig?.validatorDefinitions);
 
