@@ -41,7 +41,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  protected get getComponentRef() {
+  protected get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
   }
 
@@ -64,7 +64,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     // If the wrapper has already been initialised, provide the component instance.
     // TODO: Does this make sense, when a different formFieldCompMapEntry might have been provided and set above?
     if (this.status() == FormFieldComponentStatus.READY) {
-      return (this.getComponentRef?.instance as FormFieldBaseComponent<ValueType>) || null;
+      return (this.componentRef?.instance as FormFieldBaseComponent<ValueType>) || null;
     }
 
     // Ensure the component class is available.
@@ -109,17 +109,27 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
     this.loggerService.info(`${this.logName}: initComponent done for '${name}'.`);
 
+    // Set the host binding CSS classes for the wrapper element.
+    const wrapperCssClasses = this.formFieldCompMapEntry.compConfigJson?.component?.config?.wrapperCssClasses;
+    if ( wrapperCssClasses !== undefined && typeof wrapperCssClasses === 'string') {
+      this.hostBindingCssClasses = wrapperCssClasses;
+    }
+
+
     // After the component is initialised, this wrapper is now ready.
     this.status.set(FormFieldComponentStatus.READY);
     return compRef.instance;
   }
 
   ngOnDestroy() {
-    const compRef = this.getComponentRef;
+    const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
       compRef.destroy();
     }
   }
 
+  protected override initHostBindingCssClasses() {
+    // do nothing
+  }
 }

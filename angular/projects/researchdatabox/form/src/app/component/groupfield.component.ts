@@ -182,6 +182,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // finally set the status to 'READY'
     await super.setComponentReady();
+
   }
 
   public override checkUpdateExpressions() {
