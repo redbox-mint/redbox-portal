@@ -190,7 +190,7 @@ export module Services {
       // re-usable functions
       const textRegex = function (value) {
         let flags = '';
-        if (caseSensitive) {
+        if (!caseSensitive) {
           flags += 'i';
         }
         const re = new RegExp(regexPattern, flags);
@@ -367,7 +367,7 @@ export module Services {
             return true;
           } else {
             let flags = '';
-            if (caseSensitive) {
+            if (!caseSensitive) {
               flags += 'i';
             }
             const re = new RegExp(regexPattern, flags);
