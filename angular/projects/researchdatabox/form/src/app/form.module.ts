@@ -31,6 +31,7 @@ import {GroupFieldComponent} from "./component/groupfield.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import {SaveButtonComponent} from "./component/save-button.component";
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -42,6 +43,7 @@ import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
     RepeatableElementLayoutComponent,
     ValidationSummaryFieldComponent,
     GroupFieldComponent,
+    SaveButtonComponent,
   ],
   imports: [
     CommonModule,

@@ -24,7 +24,7 @@ import {get as _get, set as _set, keys as _keys, isObject as _isObject} from "lo
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
 
-export type GroupFieldModelValueType = { [key: string]: unknown };
+
 
 /**
  * The model for the Group Component.

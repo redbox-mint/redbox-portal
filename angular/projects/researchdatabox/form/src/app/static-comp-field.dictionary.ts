@@ -4,6 +4,7 @@ import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
 import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
+import {SaveButtonComponent, SaveButtonModel} from "./component/save-button.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -38,6 +39,10 @@ export const StaticModelCompClassMap = {
     model: GroupFieldModel,
     component: GroupFieldComponent
   },
+  'SaveButton': {
+    model: SaveButtonModel,
+    component: SaveButtonComponent,
+  }
 };
 
 

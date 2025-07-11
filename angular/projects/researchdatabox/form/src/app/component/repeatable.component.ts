@@ -1,7 +1,7 @@
-import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
+import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
-import {  FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
+import { FormFieldComponentDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
@@ -127,7 +127,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       localUniqueId: localUniqueId,
     } as FormFieldCompMapEntry;
     // set the names of the components
-    // logic: if the name is not set, use the component name from the template, or a default name (appending 'layout', where applicable), and append the localUniqueId to ensure uniqueness. 
+    // logic: if the name is not set, use the component name from the template, or a default name (appending 'layout', where applicable), and append the localUniqueId to ensure uniqueness.
     if (_isEmpty(elemEntry.compConfigJson.name)) {
       elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
     }
@@ -155,7 +155,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
     const layoutInstance = ((compInstance as unknown) as RepeatableElementLayoutComponent<Array<unknown>>);
-    layoutInstance.removeFn = this.removeElementFn(elemEntry); 
+    layoutInstance.removeFn = this.removeElementFn(elemEntry);
     if (this.model?.formControl && compInstance?.model) {
       if (!_isUndefined(elemEntry.value)) {
         compInstance.model.setValue(elemEntry.value);
@@ -207,9 +207,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 }
 
 
-export class RepeatableFormFieldDefinition extends FormFieldDefinition {
 
-}
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   private logName = "RepeatableComponentModel";
@@ -247,19 +245,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   }
 }
 
-export class RepeatableModelConfig extends FormFieldModelConfig<unknown[]> {
 
-  public override config?: RepeatableModelDefinition | null | undefined = null; // the component definition for the repeatable component, e.g. a list of components to repeat
-
-  // Migrate properties from `RepeatableContainer`
-
-}
-
-export class RepeatableModelDefinition extends FormFieldModelDefinition<Array<unknown>> {
-  public override value?: Array<unknown> | undefined = []; // The initial value of the repeatable component, e.g. an empty array
-  public override defaultValue?: unknown[] | undefined;
-  // TODO: Migrate JSON configurable properties from `RepeatableContainer`
-}
 
 /**
  * Used to store the information about a repeatable element in the form, including its model, component, and layout, and other information needed to add or remove it from the form dynamically.
@@ -270,7 +256,7 @@ export interface RepeatableElementEntry {
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
   localUniqueId?: string;
   // The value of the element. Unfortunately, in the group compoment, the structure of the data model is not known until after the component is initialised, so we store the value here to set afterwards.
-  value: unknown; 
+  value: unknown;
 }
 
 @Component({
@@ -296,7 +282,7 @@ export interface RepeatableElementEntry {
   standalone: false,
 })
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
-  protected override logName = "RepeatableLayoutComponent";
+  protected override logName = "RepeatableElementLayoutComponent";
   public removeFn?: () => void;
 
   protected clickedRemove() {
