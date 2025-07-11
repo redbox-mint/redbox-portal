@@ -30,7 +30,7 @@ describe('The TriggerService', function () {
                 fieldLanguageCode: "title-required",
                 arrayObjFieldDBName: 'row-item',
                 trimLeadingAndTrailingSpacesBeforeValidation: false,
-                caseSensitive: true,
+                caseSensitive: false,
                 allowNulls: false,
                 forceRun: true
             };
