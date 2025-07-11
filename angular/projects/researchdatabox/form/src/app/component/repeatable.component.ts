@@ -2,7 +2,7 @@ import { Input, Component, ComponentRef, inject, ViewChild, ViewContainerRef, Te
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
 import {  FormFieldModelDefinition, FormFieldModelConfig, FormFieldComponentDefinition, FormFieldDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
-import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined } from 'lodash-es';
+import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
@@ -21,7 +21,7 @@ import {DefaultLayoutComponent} from "./default-layout.component";
   `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <ng-container #repeatableContainer></ng-container>
-    @if (isStatusReady()) {
+    @if (isStatusReady() && getBooleanProperty('visible')) {
       <button type="button" class="btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
     }
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -189,21 +189,41 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public override checkUpdateExpressions() {
     this.loggerService.debug('repeatable checkUpdateExpressions');
+    let comps:FormFieldCompMapEntry[] = this.components ?? [];
     //Evaluate top level expressions
     super.checkUpdateExpressions();
     //Propagate top level expressions and evaluate in its children components
     //this is required for the parent component to delegate responsability of
     //behaiviour to the children i.e. each component will handle its visibility
     //but has to be maintained in sync with the overarching state of the parent
-    for(let entry of this.compDefMapEntries) {
-      entry.defEntry.component?.propagateExpressions(this.expressions);
+    for(let entry of comps) {
+      if(_isUndefined(entry.component?.formFieldCompMapEntry?.layout)) {
+        entry.component?.propagateExpressions(this.expressions, true);
+      } else {
+        entry.component?.propagateExpressions(this.expressions);
+      }
+      let components = entry.component?.getComponents();
+      if(!_isUndefined(components) && !_isNull(components) && !_isEmpty(components)) {
+        for(let comp of components) {
+          let temp:FormFieldBaseComponent<unknown> = comp as FormFieldBaseComponent<unknown>;
+          temp.propagateExpressions(this.expressions);
+        }
+      }
     }
     //Evaluate expressions in children components
-    for(let entry of this.compDefMapEntries) {
-      entry.defEntry.component?.checkUpdateExpressions();
+    for(let entry of comps) {
+      entry.component?.checkUpdateExpressions();
     }
   }
 
+  public override getComponents(): any[] {
+    let components = [];
+    for(let comp of this.components) {
+      let component: FormFieldBaseComponent<unknown> | null | undefined = comp.component;
+      components.push(component);
+    }
+    return components;
+  }
 }
 
 
@@ -277,20 +297,24 @@ export interface RepeatableElementEntry {
   selector: 'redbox-form-repeatable-component-layout',
   template: `
   <ng-container #componentContainer></ng-container>
-  <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+  @if (getBooleanProperty('visible')) {
+    <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+  }
   <ng-template #afterComponentTemplate>
-    @let componentValidationList = getFormValidatorComponentErrors;
-    @if (componentValidationList.length > 0) {
-      <div class="invalid-feedback">
-        Field validation errors:
-        <ul>
-          @for (error of componentValidationList; track error.name) {
-            <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
-          }
-        </ul>
-      </div>
+    @if (getBooleanProperty('visible')) {
+      @let componentValidationList = getFormValidatorComponentErrors;
+      @if (componentValidationList.length > 0) {
+        <div class="invalid-feedback">
+          Field validation errors:
+          <ul>
+            @for (error of componentValidationList; track error.name) {
+              <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+            }
+          </ul>
+        </div>
+      }
+      <div class="valid-feedback">The field is valid.</div>
     }
-    <div class="valid-feedback">The field is valid.</div>
   </ng-template>
   `,
   standalone: false,
