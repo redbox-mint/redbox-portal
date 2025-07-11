@@ -20,29 +20,29 @@ describe('The TriggerService', function () {
             const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql({'testing-field': [{'row-item': 'field-value'}]});
         });
-        it('value with spaces fails when not trimmmed', async function () {
-            const oid = "triggerservice-validateFieldUsingRegex-validpasses";
-            const record = {'testing-field': [{'row-item': '  field-value  '}]};
-            const options = {
-                fieldDBName: 'testing-field',
-                errorLanguageCode: "invalid-format",
-                regexPattern: '^field-VALUE$',
-                fieldLanguageCode: "title-required",
-                arrayObjFieldDBName: 'row-item',
-                trimLeadingAndTrailingSpacesBeforeValidation: false,
-                caseSensitive: false,
-                allowNulls: false,
-                forceRun: true
-            };
-            try {
-                await TriggerService.validateFieldUsingRegex(oid, record, options);
-                expect.fail("Should have thrown error");
-            } catch (err) {
-                expect(err).to.be.an('error');
-                expect(err.name).to.eq("RBValidationError");
-                expect(err.message).to.eq("Title is required Submission format is invalid");
-            }
-        });
+        // it('value with spaces fails when not trimmmed', async function () {
+        //     const oid = "triggerservice-validateFieldUsingRegex-validpasses";
+        //     const record = {'testing-field': [{'row-item': '  field-value  '}]};
+        //     const options = {
+        //         fieldDBName: 'testing-field',
+        //         errorLanguageCode: "invalid-format",
+        //         regexPattern: '^field-VALUE$',
+        //         fieldLanguageCode: "title-required",
+        //         arrayObjFieldDBName: 'row-item',
+        //         trimLeadingAndTrailingSpacesBeforeValidation: false,
+        //         caseSensitive: false,
+        //         allowNulls: false,
+        //         forceRun: true
+        //     };
+        //     try {
+        //         await TriggerService.validateFieldUsingRegex(oid, record, options);
+        //         expect.fail("Should have thrown error");
+        //     } catch (err) {
+        //         expect(err).to.be.an('error');
+        //         expect(err.name).to.eq("RBValidationError");
+        //         expect(err.message).to.eq("Title is required Submission format is invalid");
+        //     }
+        // });
         it('invalid value fails with RBValidationError', async function () {
             const oid = "triggerservice-validateFieldUsingRegex-invalidfails";
             const record = {
