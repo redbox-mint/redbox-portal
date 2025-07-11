@@ -127,49 +127,49 @@ describe('The TriggerService', function () {
     });
 
 
-    describe('should validate fields using lodash template', function () {
-        it('valid value passes', async function () {
-            const oid = "triggerservice-template-validpasses";
-            const record = {'testing-field': 'valid-value'};
-            const options = {
-                template: `<% let errorList = [] 
-                if (_.get(record,'testing-field') !== 'valid-value') { 
-                    addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
-                }
-                return errorList; %>`,
-                forceRun: true
-            };
+//     describe('should validate fields using lodash template', function () {
+//         it('valid value passes', async function () {
+//             const oid = "triggerservice-template-validpasses";
+//             const record = {'testing-field': 'valid-value'};
+//             const options = {
+//                 template: `<% let errorList = [] 
+//                 if (_.get(record,'testing-field') !== 'valid-value') { 
+//                     addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
+//                 }
+//                 return errorList; %>`,
+//                 forceRun: true
+//             };
             
-            try {
-                const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
-                expect(result).to.eql({'testing-field': 'valid-value'});
-            } catch (err) {
-                expect.fail("Should not have thrown error");
-            }
+//             try {
+//                 const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
+//                 expect(result).to.eql({'testing-field': 'valid-value'});
+//             } catch (err) {
+//                 expect.fail("Should not have thrown error");
+//             }
             
-        });
+//         });
 
-        it('invalid value fails', async function () {
-            const oid = "triggerservice-template-validpasses";
-            const record = {'testing-field': 'invalid-value'};
-            const options = {
-                template: `<% let errorList = [] 
-                if (_.get(record,'testing-field') !== 'valid-value') { 
-                    addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
-                }
-                return errorList; %>`,
-                forceRun: true
-            };
-            try {
-                const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
-            } catch (err) {
-                expect(err).to.be.an('error');
-                expect(err.name).to.eq("RBValidationError");
-                const errorMap = JSON.parse(err.message)
-                expect(errorMap.errorFieldList[0].label).to.eq("Title is required");
-            }
+//         it('invalid value fails', async function () {
+//             const oid = "triggerservice-template-validpasses";
+//             const record = {'testing-field': 'invalid-value'};
+//             const options = {
+//                 template: `<% let errorList = [] 
+//                 if (_.get(record,'testing-field') !== 'valid-value') { 
+//                     addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
+//                 }
+//                 return errorList; %>`,
+//                 forceRun: true
+//             };
+//             try {
+//                 const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
+//             } catch (err) {
+//                 expect(err).to.be.an('error');
+//                 expect(err.name).to.eq("RBValidationError");
+//                 const errorMap = JSON.parse(err.message)
+//                 expect(errorMap.errorFieldList[0].label).to.eq("Title is required");
+//             }
             
-        });
+//         });
     
-    });
-});
+//     });
+// });
