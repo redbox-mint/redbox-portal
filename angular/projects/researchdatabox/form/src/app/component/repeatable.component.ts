@@ -1,12 +1,13 @@
 import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
-import { FormFieldComponentDefinition, FormConfig, } from '@researchdatabox/sails-ng-common';
+import {FormConfig, RepeatableFormFieldComponentConfig,} from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {DefaultLayoutComponent} from "./default-layout.component";
+import {FormFieldComponentDefinition} from "@researchdatabox/sails-ng-common";
 
 /**
  * Repeatable Form Field Component
@@ -55,8 +56,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected override async initData() {
     await this.untilViewIsInitialised();
     // Prepare the element template
-    const formFieldCompDef = this.componentDefinition as FormFieldComponentDefinition;
-    const elementTemplate = formFieldCompDef?.config?.elementTemplate;
+    const formFieldCompDef = this.componentDefinition;
+    const elementTemplate = (formFieldCompDef?.config as RepeatableFormFieldComponentConfig)?.elementTemplate;
     if (!elementTemplate) {
       throw new Error(`${this.logName}: elementTemplate is not defined in the component definition.`);
     }
@@ -68,7 +69,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // Get the default config.
       // defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions,
+      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
     let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig);
 
@@ -160,7 +161,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       if (!_isUndefined(elemEntry.value)) {
         compInstance.model.setValue(elemEntry.value);
       }
-      this.model.formControl.push(compInstance.model.getFormGroupEntry() as AbstractControl);
+      this.model.formControl.push(compInstance.model.getFormGroupEntry());
     } else {
       this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
     }

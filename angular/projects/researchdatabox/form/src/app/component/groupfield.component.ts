@@ -17,6 +17,7 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfig,
+  GroupFieldModelValueType, GroupFormFieldComponentConfig, GroupFormFieldComponentDefinition,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
@@ -145,13 +146,14 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   protected override async initData() {
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
+    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFormFieldComponentConfig)?.componentDefinitions ?? [];
     this.elementFormConfig = {
       // Store the child component definitions.
-      componentDefinitions: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [],
+      componentDefinitions: groupComponentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions,
+      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
 
     // Construct the components.

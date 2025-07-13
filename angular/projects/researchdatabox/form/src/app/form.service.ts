@@ -41,7 +41,6 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormFieldComponentStatus,
-  FormFieldModelConfig,
   FormStatus,
   FormValidatorDefinition,
   FormValidatorFn,
@@ -238,7 +237,7 @@ export class FormService extends HttpClientService {
             componentClass: componentClass,
             compConfigJson: componentConfig,
             layoutClass: layoutClass,
-          } as FormFieldCompMapEntry);
+          });
         } else {
           this.logNotAvailable(componentClassName, "component class", this.compClassMap);
         }
@@ -286,10 +285,10 @@ export class FormService extends HttpClientService {
   ): FormFieldModel<unknown> | null {
     if (compMapEntry.modelClass) {
       const ModelType = compMapEntry.modelClass;
-      const modelConfig = compMapEntry.compConfigJson.model as FormFieldModelConfig<unknown>;
+      const modelConfig = compMapEntry.compConfigJson.model;
       const validatorConfig = modelConfig?.config?.validators ?? [];
       const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
-      compMapEntry.model = new ModelType(modelConfig, validators) as FormFieldModel<unknown>;
+      compMapEntry.model = new ModelType(modelConfig, validators);
       return compMapEntry.model;
     } else {
       this.logNotAvailable(compMapEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
@@ -401,11 +400,11 @@ export class FormService extends HttpClientService {
     // id is built from the first of these that exists:
     // - componentDefinition.model.name
     // - componentDefinition.name
-    const modelName = componentDef?.model?.name;
+    // const modelName = componentDef?.model?.name;
     const itemName = componentDef?.name;
 
     // construct the id so it is different to the model name
-    const name = modelName || itemName || null;
+    const name = itemName || null;
     const id = name ? [...idParts, name.replaceAll('_', '-')].join('-') : null;
 
     // the label message comes from componentDefinition.layout.config.label

@@ -63,15 +63,15 @@ export class FormConfig {
      * whether to trigger validation on save
      * Default false.
      */
-    skipValidationOnSave: boolean = false;
+    skipValidationOnSave?: boolean = false;
     /**
      * The definitions of the available validators.
      */
-    validatorDefinitions: FormValidatorDefinition[] = [];
+    validatorDefinitions?: FormValidatorDefinition[] = [];
     /**
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */
-    validators: FormValidatorConfig[] = [];
+    validators?: FormValidatorConfig[] = [];
 
     // TODO: a way to crate groups of validators
     // This is not implemented yet.
@@ -92,11 +92,11 @@ export class FormConfig {
     /**
      * the components of this form
      */
-    componentDefinitions: FormComponentDefinition<unknown>[] = [];
+    componentDefinitions?: FormComponentDefinition<unknown>[] = [];
     /**
      * debug: show the form JSON
      * Default false.
      */
-    debugValue: boolean = false;
+    debugValue?: boolean = false;
 }
 
