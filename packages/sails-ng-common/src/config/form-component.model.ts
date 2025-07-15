@@ -5,7 +5,7 @@ import {FormFieldComponentDefinition, FormFieldLayoutDefinition, FormFieldModelD
  * The form component configuration definition.
  *
  */
-export interface FormComponentDefinition<ValueType> {
+export interface FormComponentDefinition {
     /**
      * top-level field name, applies to field and the component, etc.
      */
@@ -13,7 +13,7 @@ export interface FormComponentDefinition<ValueType> {
     /**
      * The definition of the model that backs the form field.
      */
-    model: FormFieldModelDefinition<ValueType>;
+    model: FormFieldModelDefinition;
     /**
      * The definition of the client-side component for the form field.
      */
@@ -28,9 +28,11 @@ export interface FormComponentDefinition<ValueType> {
      * TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
      *   Expression functions will participate in a similar process as the validation functions to get to the client.
      */
-    expressions?: Record<string, { template: string; condition?: any }>;
+    expressions?: ExpressionsConfig;
     /**
      * For a custom form component definition, module defines where to find the definition.
      */
     module?: string;
 }
+
+export type ExpressionsConfig = Record<string, { template: string; condition?: any }>;

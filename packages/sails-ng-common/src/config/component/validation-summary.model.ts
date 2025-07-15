@@ -1,5 +1,7 @@
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
+import {FormValidatorSummaryErrors} from "../../validation";
+
 
 export interface ValidationSummaryFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "ValidationSummaryFieldComponent";
@@ -10,11 +12,11 @@ export class ValidationSummaryFormFieldComponentConfig extends BaseFormFieldComp
 
 }
 
-export interface ValidationSummaryFormFieldModelDefinition<ValueType> extends BaseFormFieldModelDefinition<ValueType> {
+export interface ValidationSummaryFormFieldModelDefinition extends BaseFormFieldModelDefinition<FormValidatorSummaryErrors> {
     class: "ValidationSummaryFieldModel";
-    config: ValidationSummaryFormFieldModelConfig<ValueType>;
+    config: ValidationSummaryFormFieldModelConfig;
 }
 
-export class ValidationSummaryFormFieldModelConfig<ValueType> extends BaseFormFieldModelConfig<ValueType> {
+export class ValidationSummaryFormFieldModelConfig extends BaseFormFieldModelConfig<FormValidatorSummaryErrors> {
 
 }

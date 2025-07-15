@@ -1,35 +1,58 @@
 import {KeyValueStringProperty} from "./shared.model";
 
 /**
- *
+ * The common form field component definition properties.
  */
 export interface BaseFormFieldComponentDefinition {
 }
 
 /**
- *
+ * The common form field component config properties.
  */
 export class BaseFormFieldComponentConfig {
-    // the view read-only state
+    /**
+     * Whether the component is read-only or not.
+     */
     public readonly?: boolean = false;
-    // the visibility state
+    /**
+     * Whether the component is visible or not.
+     */
     public visible?: boolean = true;
-    // the editMode
+    /**
+     * Whether the component is in edit mode or not.
+     */
     public editMode?: boolean = true;
     // the component/control type
+    /**
+     * The component's type.
+     */
     public type?: string = '';
-    // the label
+    /**
+     * The label text translation message id.
+     */
     public label?: string = '';
-    // the form-supplied css classes
+    /**
+     * The form-supplied css classes
+     */
     public defaultComponentCssClasses?: KeyValueStringProperty = null;
-    // the css classes to bind to host
+    /**
+     * The css classes to bind to host
+     */
     public hostCssClasses?: KeyValueStringProperty = null;
-    // the wrapper css classes to bind to host
+    /**
+     * The wrapper css classes to bind to host
+     */
     public wrapperCssClasses?: KeyValueStringProperty = null;
-    //
+    /**
+     * Whether the component is disabled or not.
+     */
     public disabled?: boolean = false;
-    //
+    /**
+     * Whether the component has autofocus or not.
+     */
     public autofocus?: boolean = false;
-    //
+    /**
+     * The tooltip text translation message id.
+     */
     public tooltip?: string = '';
 }

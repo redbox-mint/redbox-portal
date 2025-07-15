@@ -3,23 +3,22 @@ import {FormComponentDefinition} from "../form-component.model";
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
 
-export type TextFieldModelValueType = Record<string, unknown>;
+export type TextFieldModelValueType = string;
 
 export interface TextFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "TextFieldComponent";
     config?: TextFormFieldComponentConfig;
 }
 
-export interface TextFormFieldComponentConfig extends BaseFormFieldComponentConfig {
-    componentDefinitions?: FormComponentDefinition<unknown>[];
+export class TextFormFieldComponentConfig extends BaseFormFieldComponentConfig {
+    componentDefinitions?: FormComponentDefinition[];
 }
 
-export interface TextFormFieldModelDefinition<ValueType> extends BaseFormFieldModelDefinition<ValueType> {
+export interface TextFormFieldModelDefinition extends BaseFormFieldModelDefinition<TextFieldModelValueType> {
     class: "TextFieldModel";
-    config: TextFormFieldModelConfig<ValueType>;
+    config: TextFormFieldModelConfig;
 }
 
-export interface TextFormFieldModelConfig<ValueType> extends BaseFormFieldModelConfig<ValueType> {
-    value?: TextFieldModelValueType | ValueType;
-    defaultValue?: TextFieldModelValueType | ValueType;
+export class TextFormFieldModelConfig extends BaseFormFieldModelConfig<TextFieldModelValueType> {
+
 }

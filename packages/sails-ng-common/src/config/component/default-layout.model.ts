@@ -5,6 +5,6 @@ export interface DefaultFormFieldLayoutDefinition extends BaseFormFieldLayoutDef
     config: DefaultFormFieldLayoutConfig;
 }
 
-export interface DefaultFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
+export class DefaultFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
 
 }

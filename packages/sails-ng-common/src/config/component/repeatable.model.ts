@@ -1,17 +1,17 @@
-import { BaseFormFieldComponentDefinition, BaseFormFieldComponentConfig} from "../form-field-component.model";
+import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 import {BaseFormFieldLayoutConfig, BaseFormFieldLayoutDefinition} from "../form-field-layout.model";
-import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition } from "../form-field-model.model";
+import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
 import {FormComponentDefinition} from "../form-component.model";
 
-export type RepeatableModelValueType<ValueType> = ValueType[];
+export type RepeatableModelValueType = unknown[];
 
 export interface RepeatableFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "RepeatableComponent";
     config?: RepeatableFormFieldComponentConfig;
 }
 
-export interface RepeatableFormFieldComponentConfig extends BaseFormFieldComponentConfig {
-    elementTemplate?: FormComponentDefinition<unknown>;
+export class RepeatableFormFieldComponentConfig extends BaseFormFieldComponentConfig {
+    elementTemplate?: FormComponentDefinition;
 }
 
 export interface RepeatableElementFormFieldLayoutDefinition extends BaseFormFieldLayoutDefinition {
@@ -19,21 +19,16 @@ export interface RepeatableElementFormFieldLayoutDefinition extends BaseFormFiel
     config: RepeatableElementFormFieldLayoutConfig;
 }
 
-export interface RepeatableElementFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
+export class RepeatableElementFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
 
 }
 
-export interface RepeatableFormFieldModelDefinition<ValueType> extends BaseFormFieldModelDefinition<ValueType> {
+export interface RepeatableFormFieldModelDefinition extends BaseFormFieldModelDefinition<RepeatableModelValueType> {
     class: "RepeatableComponentModel";
-    config: RepeatableFormFieldModelConfig<ValueType>;
+    config: RepeatableFormFieldModelConfig;
     // TODO: Migrate properties from `RepeatableContainer`
 }
 
-export interface RepeatableFormFieldModelConfig<ValueType> extends BaseFormFieldModelConfig<ValueType> {
-    /**
-     * The initial value of the repeatable component, e.g. an empty array
-     */
-    value?: RepeatableModelValueType<ValueType>;
-    defaultValue?: RepeatableModelValueType<ValueType>;
+export class RepeatableFormFieldModelConfig extends BaseFormFieldModelConfig<RepeatableModelValueType> {
     // TODO: Migrate JSON configurable properties from `RepeatableContainer`
 }

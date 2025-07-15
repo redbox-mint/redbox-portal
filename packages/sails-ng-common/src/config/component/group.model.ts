@@ -10,16 +10,15 @@ export interface GroupFormFieldComponentDefinition extends BaseFormFieldComponen
     config?: GroupFormFieldComponentConfig;
 }
 
-export interface GroupFormFieldComponentConfig extends BaseFormFieldComponentConfig {
-    componentDefinitions?: FormComponentDefinition<unknown>[];
+export class GroupFormFieldComponentConfig extends BaseFormFieldComponentConfig {
+    componentDefinitions?: FormComponentDefinition[];
 }
 
-export interface GroupFormFieldModelDefinition<ValueType> extends BaseFormFieldModelDefinition<ValueType> {
+export interface GroupFormFieldModelDefinition extends BaseFormFieldModelDefinition<GroupFieldModelValueType> {
     class: "GroupFieldModel";
-    config: GroupFormFieldModelConfig<ValueType>;
+    config: GroupFormFieldModelConfig;
 }
 
-export interface GroupFormFieldModelConfig<ValueType> extends BaseFormFieldModelConfig<ValueType> {
-    value?: GroupFieldModelValueType | ValueType;
-    defaultValue?: GroupFieldModelValueType | ValueType;
+export class GroupFormFieldModelConfig extends BaseFormFieldModelConfig<GroupFieldModelValueType> {
+
 }

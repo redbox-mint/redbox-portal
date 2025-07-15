@@ -92,7 +92,7 @@ export class FormConfig {
     /**
      * the components of this form
      */
-    componentDefinitions?: FormComponentDefinition<unknown>[] = [];
+    componentDefinitions?: FormComponentDefinition[] = [];
     /**
      * debug: show the form JSON
      * Default false.
