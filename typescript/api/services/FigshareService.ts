@@ -155,10 +155,6 @@ export module Services {
       return enabled;
     }
 
-    private isRecordTransitionForFigsharePropertyEnabled(){
-
-    }
-
     private getAxiosConfig(method, urlSectionPattern, requestBody) {
 
       let figshareBaseUrl = sails.config.figshareAPI.baseURL + urlSectionPattern
@@ -1899,8 +1895,7 @@ export module Services {
         return false;
       }
 
-      // Check if the status is public in Figshare item for each one of its corresponding ReDBox records
-      // exclude figshare items that have in progress uploads
+      // Exclude figshare items that have in progress uploads.
       const articleFileList = await this.getArticleFileList(articleId);
       const figshareIsUploadInProgressResult = await this.isFileUploadInProgress(articleId, articleFileList);
       if (figshareIsUploadInProgressResult) {
@@ -1908,7 +1903,7 @@ export module Services {
         return false;
       }
 
-      // check if the figshare item has expected property key and value
+      // Check if the figshare item has expected property key and value.
       const articleDetails = await this.getArticleDetails(articleId);
       const figshareFieldValue = _.get(articleDetails, figshareTargetFieldKey, null);
       const figshareFieldValueMatches = figshareFieldValue !== null && figshareFieldValue === figshareTargetFieldValue;
@@ -1917,24 +1912,27 @@ export module Services {
         return false;
       }
 
+      sails.log.debug(`${prefix} the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' matches expected value '${JSON.stringify(figshareTargetFieldValue)}'`);
       return true;
     }
 
     private async transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid: string, articleId: string, targetStep: string, figshareTargetFieldKey: string, figshareTargetFieldValue: string) {
       const prefix = "FigService -"
+      const msgPartial = `record oid '${oid}' with figshare article id '${articleId}' to step '${targetStep}'`;
+
       if (!oid) {
-        sails.log.error(`${prefix} cannot transition record because the record oid '${oid}' is not valid`);
+        sails.log.error(`${prefix} cannot transition ${msgPartial} because the record oid is not valid`);
         return;
       }
 
       const isArticleInExpectedState = await this.isArticleInExpectedState(articleId, figshareTargetFieldKey, figshareTargetFieldValue);
       if (!isArticleInExpectedState){
-        sails.log.warn(`${prefix} cannot transition record oid '${oid}' to step '${targetStep}' because the linked article id '${articleId}' is not in the required state`);
+        sails.log.warn(`${prefix} cannot transition ${msgPartial} because the linked article is not in the required state`);
         return;
       }
 
       // --> If there are any ReDBox records in stage queued that the corresponding Figshare item
-      // status is public then move the dataPublication record to stage published
+      // status is public then move the dataPublication record to stage 'targetStep'
       // The automated processing of ReDBox dataPublication records should be equivalent to the
       // action performed by the user.
       // The process to replicate is when a user manually opens a data publication in stage queued,
@@ -1942,7 +1940,7 @@ export module Services {
       const currentRec = await RecordsService.getMeta(oid);
       const hasEditAccess = await RecordsService.hasEditAccess(brand, user, user.roles, currentRec)
       if (!hasEditAccess) {
-        sails.log.warn(`${prefix} cannot transition record oid '${oid}' to step '${targetStep}' because user '${user}' does not have edit permission`);
+        sails.log.warn(`${prefix} cannot transition ${msgPartial} because user '${user}' does not have edit permission`);
         return;
       }
       const recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
@@ -1951,9 +1949,9 @@ export module Services {
       const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
       const isSuccessful = _.get(recordUpdateResult, 'success', true)?.toString() === 'true';
       if (isSuccessful) {
-        sails.log.info(`${prefix} updated record oid '${oid}' with approved figshare article id '${articleId}' to published`);
+        sails.log.info(`${prefix} updated ${msgPartial}`);
       } else {
-        sails.log.error(`${prefix} failed to update record oid '${oid}' with approved figshare article id '${articleId}' to published: ${JSON.stringify(recordUpdateResult)}`);
+        sails.log.error(`${prefix} failed to update ${msgPartial}: ${JSON.stringify(recordUpdateResult)}`);
       }
     }
 
@@ -2134,13 +2132,11 @@ export module Services {
     }
 
     public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: any) {
-      const prefix = "FigService -"
+      const prefix = "FigService -";
 
-      // TODO: how to get the brandId?
-      const brand: BrandingModel = BrandingService.getBrand('default');
-
-      // TODO: how to get the user?
-      const user = {};
+      const data = job.attrs.data;
+      const brand: BrandingModel = BrandingService.getBrand(data.brandId);
+      const user = data.user;
 
       // configurable criteria
       const jobConfig = this.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {};
