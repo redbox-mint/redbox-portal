@@ -87,15 +87,8 @@ export module Controllers {
           return this.apiFail(req, res, 400, new APIErrorResponse("Rows must not be greater than 100"));
         }
         let namedQueryConfig = sails.config.namedQuery[queryName];
-
-        let configMongoQuery = namedQueryConfig.mongoQuery;
-        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
-        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
-        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
-        let mongoQuery = _.clone(configMongoQuery);
-        let queryParams = namedQueryConfig.queryParams;
         let paramMap = _.clone(req.query);
-        let response = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery,queryParams,paramMap,brand,start,rows)
+        let response = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         sails.log.verbose(`NamedQueryService response: ${JSON.stringify(response)}`);
         return this.apiRespond(req, res, response, 200)
       } catch (error) {
