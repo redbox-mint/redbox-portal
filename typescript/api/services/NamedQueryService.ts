@@ -46,8 +46,10 @@ export module Services {
 
     protected _exportedMethods: any = [
       "bootstrap",
+      "getNamedQueryConfig",
       "performNamedQuery",
-      "getNamedQueryConfig"
+      "performNamedQueryFromConfig",
+      "performNamedQueryFromConfigResults",
     ];
 
      public async bootstrap (defBrand) {

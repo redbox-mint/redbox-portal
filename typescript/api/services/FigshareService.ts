@@ -78,7 +78,8 @@ export module Services {
       'deleteFilesFromRedboxTrigger',
       'publishAfterUploadFilesJob',
       'queueDeleteFiles',
-      'queuePublishAfterUploadFiles'
+      'queuePublishAfterUploadFiles',
+      'transitionRecordWorkflowFromFigshareArticlePropertiesJob',
     ];
 
     private createUpdateFigshareArticleLogLevel = 'verbose';
