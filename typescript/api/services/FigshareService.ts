@@ -17,7 +17,17 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Services as services, DatastreamService, RBValidationError, QueueService, BrandingModel, FigshareArticleCreate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
+import {
+  Services as services,
+  DatastreamService,
+  RBValidationError,
+  QueueService,
+  BrandingModel,
+  FigshareArticleCreate,
+  FigshareArticleUpdate,
+  FigshareArticleEmbargo,
+  ListAPIResponse
+} from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 const moment = require('moment');
 const axios = require('axios');
@@ -29,6 +39,9 @@ declare let sails: Sails;
 declare let TranslationService;
 declare let BrandingService;
 declare let RecordsService;
+declare let NamedQueryService;
+declare let RecordTypesService;
+declare let WorkflowStepsService;
 
 export module Services {
 
@@ -71,6 +84,14 @@ export module Services {
     private createUpdateFigshareArticleLogLevel = 'verbose';
     private figshareAccountAuthorIDs;
     private extraVerboseLogging = false;
+
+    private figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob: {
+      enabled: true,
+      namedQuery?: string,
+      targetStep?: string,
+      figshareTargetFieldKey?: string,
+      figshareTargetFieldValue?: string,
+    } ;
 
     constructor() {
       //Better not use 'this.createUpdateFigshareArticleLogLevel' in the constructor as it may not be available for certain events.
@@ -119,6 +140,7 @@ export module Services {
           that.recordAuthorExternalName = sails.config.figshareAPI.mapping.recordAuthorExternalName;
           that.recordAuthorUniqueBy = sails.config.figshareAPI.mapping.recordAuthorUniqueBy;
           that.extraVerboseLogging = sails.config.figshareAPI.extraVerboseLogging;
+          that.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob = sails.config.figshareAPI.mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {};
           sails.log.verbose('FigService - constructor end');
         }
       });
@@ -130,6 +152,10 @@ export module Services {
         enabled = true;
       }
       return enabled;
+    }
+
+    private isRecordTransitionForFigsharePropertyEnabled(){
+
     }
 
     private getAxiosConfig(method, urlSectionPattern, requestBody) {
@@ -1865,6 +1891,71 @@ export module Services {
       return record;
     }
 
+    private async isArticleInExpectedState(articleId: string, figshareTargetFieldKey: string, figshareTargetFieldValue: string){
+      const prefix = "FigService -"
+      if (!articleId?.toString()?.trim()) {
+        sails.log.error(`${prefix} the article id '${articleId}' is not valid`);
+        return false;
+      }
+
+      // Check if the status is public in Figshare item for each one of its corresponding ReDBox records
+      // exclude figshare items that have in progress uploads
+      const articleFileList = await this.getArticleFileList(articleId);
+      const figshareIsUploadInProgressResult = await this.isFileUploadInProgress(articleId, articleFileList);
+      if (figshareIsUploadInProgressResult) {
+        sails.log.warn(`${prefix} the article id '${articleId}' has an upload in progress`);
+        return false;
+      }
+
+      // check if the figshare item has expected property key and value
+      const articleDetails = await this.getArticleDetails(articleId);
+      const figshareFieldValue = _.get(articleDetails, figshareTargetFieldKey, null);
+      const figshareFieldValueMatches = figshareFieldValue !== null && figshareFieldValue === figshareTargetFieldValue;
+      if (!figshareFieldValueMatches) {
+        sails.log.warn(`${prefix} the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' is not '${JSON.stringify(figshareTargetFieldValue)}'`);
+        return false;
+      }
+
+      return true;
+    }
+
+    private async transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid: string, articleId: string, targetStep: string, figshareTargetFieldKey: string, figshareTargetFieldValue: string) {
+      const prefix = "FigService -"
+      if (!oid) {
+        sails.log.error(`${prefix} cannot transition record because the record oid '${oid}' is not valid`);
+        return;
+      }
+
+      const isArticleInExpectedState = await this.isArticleInExpectedState(articleId, figshareTargetFieldKey, figshareTargetFieldValue);
+      if (!isArticleInExpectedState){
+        sails.log.warn(`${prefix} cannot transition record oid '${oid}' to step '${targetStep}' because the linked article id '${articleId}' is not in the required state`);
+        return;
+      }
+
+      // --> If there are any ReDBox records in stage queued that the corresponding Figshare item
+      // status is public then move the dataPublication record to stage published
+      // The automated processing of ReDBox dataPublication records should be equivalent to the
+      // action performed by the user.
+      // The process to replicate is when a user manually opens a data publication in stage queued,
+      // and then they click Submit for publication button.
+      const currentRec = await RecordsService.getMeta(oid);
+      const hasEditAccess = await RecordsService.hasEditAccess(brand, user, user.roles, currentRec)
+      if (!hasEditAccess) {
+        sails.log.warn(`${prefix} cannot transition record oid '${oid}' to step '${targetStep}' because user '${user}' does not have edit permission`);
+        return;
+      }
+      const recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+      const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
+      const metadata = currentRec.metadata;
+      const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
+      const isSuccessful = _.get(recordUpdateResult, 'success', true)?.toString() === 'true';
+      if (isSuccessful) {
+        sails.log.info(`${prefix} updated record oid '${oid}' with approved figshare article id '${articleId}' to published`);
+      } else {
+        sails.log.error(`${prefix} failed to update record oid '${oid}' with approved figshare article id '${articleId}' to published: ${JSON.stringify(recordUpdateResult)}`);
+      }
+    }
+
     //This method has been designed to be called by a pre save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
     public createUpdateFigshareArticle(oid, record, options, user) {
@@ -2040,7 +2131,44 @@ export module Services {
         this.queueService.schedule(jobName, scheduleIn, queueMessage);
       }
     }
-    
+
+    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: any) {
+      const prefix = "FigService -"
+
+      // TODO: how to get the brandId?
+      const brand: BrandingModel = BrandingService.getBrand('default');
+
+      // TODO: how to get the user?
+      const user = {};
+
+      // configurable criteria
+      const jobConfig = this.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {};
+      const enabled = _.get(jobConfig, 'enabled', '')?.toString() === 'true';
+      const queryName = _.get(jobConfig, 'queryName', '') ?? "";
+      const targetStep = _.get(jobConfig, 'targetStep', '') ?? "";
+      const figshareTargetFieldKey = _.get(jobConfig, 'figshareTargetFieldKey', '') ?? "";
+      const figshareTargetFieldValue = _.get(jobConfig, 'figshareTargetFieldValue', '') ?? "";
+
+      // TODO: does the named query paramMap belong in the config too?
+      const paramMap = {};
+
+      // --> Check whether this process is enabled.
+      if (!enabled) {
+        sails.log.info(`${prefix} transitionRecordWorkflowFromFigshareArticlePropertiesJob is disabled by config`);
+        return;
+      }
+
+      // --> Find dataPublication records in stage queued in ReDBox database
+      const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryName);
+      const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, queryName);
+
+      for (const queryResult of queryResults) {
+        const oid = _.get(queryResult, 'oid');
+        const articleId = _.get(queryResult, this.figArticleIdPathInRecord);
+        await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
+      }
+    }
+
   }
 }
 module.exports = new Services.FigshareService().exports();
