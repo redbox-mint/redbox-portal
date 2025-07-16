@@ -310,9 +310,7 @@ export module Services {
       return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user);
     }
 
-    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand, queryName: string,  user?) {
-      const rows = 30;
-      let start = 0;
+    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user = undefined) {
       const records = [];
       let requestCount = 0;
       sails.log.debug(`All named query results: start query with name '${queryName}' brand ${JSON.stringify(brand)} start ${start} rows ${rows} paramMap ${JSON.stringify(paramMap)}`);
@@ -344,6 +342,11 @@ export module Services {
 
         // update the start point
         start = currentRetrievedCount;
+
+        // Check the number of records and fail if it is more than maxRecords.
+        if (records.length > maxRecords){
+          sails.log.warn(`All named query results: returning early before finished with ${records.length} results for '${queryName}' from ${requestCount} requests because the number of records is more than max records ${maxRecords}`);
+        }
 
         // continue the while loop
       }

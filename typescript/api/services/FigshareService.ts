@@ -2131,38 +2131,45 @@ export module Services {
       }
     }
 
-    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: any) {
+    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: any): Promise<void> {
       const prefix = "FigService -";
 
-      const data = job.attrs.data;
-      const brand: BrandingModel = BrandingService.getBrand(data.brandId);
-      const user = data.user;
+      try {
+        const data = job.attrs.data;
+        const brand: BrandingModel = BrandingService.getBrand(data.brandId);
+        const user = data.user;
+        const start = 0;
+        const rows = 30;
+        const maxRecords = 100;
 
-      // configurable criteria
-      const jobConfig = this.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {};
-      const enabled = _.get(jobConfig, 'enabled', '')?.toString() === 'true';
-      const queryName = _.get(jobConfig, 'queryName', '') ?? "";
-      const targetStep = _.get(jobConfig, 'targetStep', '') ?? "";
-      const figshareTargetFieldKey = _.get(jobConfig, 'figshareTargetFieldKey', '') ?? "";
-      const figshareTargetFieldValue = _.get(jobConfig, 'figshareTargetFieldValue', '') ?? "";
+        // configurable criteria
+        const jobConfig = this.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {};
+        const enabled = _.get(jobConfig, 'enabled', '')?.toString() === 'true';
+        const queryName = _.get(jobConfig, 'queryName', '') ?? "";
+        const targetStep = _.get(jobConfig, 'targetStep', '') ?? "";
+        const figshareTargetFieldKey = _.get(jobConfig, 'figshareTargetFieldKey', '') ?? "";
+        const figshareTargetFieldValue = _.get(jobConfig, 'figshareTargetFieldValue', '') ?? "";
 
-      // TODO: does the named query paramMap belong in the config too?
-      const paramMap = {};
+        // TODO: does the named query paramMap belong in the config too?
+        const paramMap = {};
 
-      // --> Check whether this process is enabled.
-      if (!enabled) {
-        sails.log.info(`${prefix} transitionRecordWorkflowFromFigshareArticlePropertiesJob is disabled by config`);
-        return;
-      }
+        // --> Check whether this process is enabled.
+        if (!enabled) {
+          sails.log.info(`${prefix} transitionRecordWorkflowFromFigshareArticlePropertiesJob is disabled by config`);
+          return;
+        }
 
-      // --> Find dataPublication records in stage queued in ReDBox database
-      const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryName);
-      const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, queryName);
+        // --> Find dataPublication records in stage queued in ReDBox database
+        const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryName);
+        const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, queryName, start, rows, maxRecords, user);
 
-      for (const queryResult of queryResults) {
-        const oid = _.get(queryResult, 'oid');
-        const articleId = _.get(queryResult, this.figArticleIdPathInRecord);
-        await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
+        for (const queryResult of queryResults) {
+          const oid = _.get(queryResult, 'oid');
+          const articleId = _.get(queryResult, this.figArticleIdPathInRecord);
+          await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
+        }
+      } catch (err) {
+        sails.log.error(`${prefix} error in transitionRecordWorkflowFromFigshareArticlePropertiesJob with job ${JSON.stringify(job)}`, err);
       }
     }
 
