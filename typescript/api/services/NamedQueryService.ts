@@ -85,7 +85,8 @@ export module Services {
         queryParams: JSON.stringify(config.queryParams),
         collectionName: config.collectionName,
         resultObjectMapping: JSON.stringify(config.resultObjectMapping),
-        brandIdFieldPath: config.brandIdFieldPath
+        brandIdFieldPath: config.brandIdFieldPath,
+        sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
       }));
     }
 
@@ -97,47 +98,47 @@ export module Services {
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<Object>> {
-      
+    async performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user = undefined, sort: NamedQuerySortConfig | undefined = undefined): Promise<ListAPIResponse<Object>> {
+      const criteriaMeta = {enableExperimentalDeepTargets: true};
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
 
       let that = this;
-      
+
+      // Add branding
       if(brandIdFieldPath != '') {
         mongoQuery[brandIdFieldPath] = brand.id;
       }
-      sails.log.debug("Mongo query to be executed");
-      sails.log.debug(mongoQuery);
-      
+      sails.log.debug("Mongo query to be executed", mongoQuery);
+
+      // Get the total count of matching records
       let totalItems = 0;
       if(collectionName == 'user') {
-        totalItems = await User.count(mongoQuery).meta({
-          enableExperimentalDeepTargets: true
-        });
+        totalItems = await User.count(mongoQuery).meta(criteriaMeta);
       } else {
-        totalItems = await Record.count(mongoQuery).meta({
-          enableExperimentalDeepTargets: true
-        });
+        totalItems = await Record.count(mongoQuery).meta(criteriaMeta);
       }
 
+      // Build query criteria
+      const criteria = {
+        where: mongoQuery,
+        skip: start,
+        limit: rows
+      };
+
+      // Add sorting
+      if (sort !== undefined && Array.isArray(sort) && (sort?.length ?? 0) > 0) {
+        // e.g. [{ name:  'ASC'}, { age: 'DESC' }]
+        criteria['sort'] = sort;
+      }
+
+      // Run query
+      sails.log.debug("Mongo query criteria", criteria);
       let results = [];
       if (totalItems > 0) {
         if(collectionName == 'user') {
-          results = await User.find({
-            where: mongoQuery,
-            skip: start,
-            limit: rows
-          }).meta({
-            enableExperimentalDeepTargets: true
-          });
+          results = await User.find(criteria).meta(criteriaMeta);
         } else {
-          results = await Record.find({
-            where: mongoQuery,
-            skip: start,
-            limit: rows
-          }).meta({
-            enableExperimentalDeepTargets: true
-          });
+          results = await Record.find(criteria).meta(criteriaMeta);
         }
       }
       
@@ -301,13 +302,22 @@ export module Services {
       return _.get(variables, templateOrPath);
     }
 
-    public async performNamedQueryFromConfig(config: NamedQueryConfig, paramMap, brand, start, rows, user?){
-      const collectionName = _.get(config, 'collectionName', '');
-      const resultObjectMapping = _.get(config, 'resultObjectMapping', {});
-      const brandIdFieldPath = _.get(config, 'brandIdFieldPath', '');
-      const mongoQuery = _.clone(_.get(config, 'mongoQuery', {}));
-      const queryParams = _.get(config, 'queryParams', {});
-      return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user);
+    public async performNamedQueryFromConfig(config: NamedQueryConfig, paramMap, brand, start, rows, user?) {
+      sails.log.debug("performNamedQueryFromConfig with parameters", {
+        config: config,
+        paramMap: paramMap,
+        brand: brand,
+        start: start,
+        rows: rows,
+        user: user
+      });
+      const collectionName = _.get(config, 'collectionName', '') ?? '';
+      const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
+      const brandIdFieldPath = _.get(config, 'brandIdFieldPath', '') ?? '';
+      const mongoQuery = _.clone(_.get(config, 'mongoQuery', {}) ?? {});
+      const queryParams = _.get(config, 'queryParams', {}) ?? {};
+      const sort = _.get(config, 'sort', []) ?? [];
+      return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort);
     }
 
     public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user = undefined) {
@@ -375,6 +385,8 @@ enum NamedQueryFormatOptions {
   ISODate = 'ISODate'
 }
 
+type NamedQuerySortConfig = Record<string, "ASC" | "DESC">[];
+
 class QueryParameterDefinition {
   required:boolean
   type:DataType
@@ -398,6 +410,7 @@ export class NamedQueryConfig {
   collectionName: string;
   resultObjectMapping: any;
   brandIdFieldPath: string;
+  sort: NamedQuerySortConfig | undefined;
 
   constructor(values:any) {
       this.name = values.name;
@@ -411,6 +424,7 @@ export class NamedQueryConfig {
       this.collectionName = values.collectionName;
       this.resultObjectMapping = JSON.parse(values.resultObjectMapping);
       this.brandIdFieldPath = values.brandIdFieldPath;
+      this.sort = (values.sort !== undefined && values.sort.length > 0) ? JSON.parse(values.sort) : [];
   }
 }
 
