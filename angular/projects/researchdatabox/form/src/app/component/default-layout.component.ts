@@ -77,7 +77,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
-  componentClass?: typeof FormFieldBaseComponent<ValueType> | null;
+  componentClass?: typeof FormFieldBaseComponent<ValueType>;
   public override componentDefinition?: FormFieldLayoutDefinition;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
@@ -99,7 +99,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.componentClass = formFieldCompMapEntry?.componentClass;
+    this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
     //normalise componentDefinition that is used to track property changes given these may not be present
     this.buildPropertyCache(true);
@@ -138,7 +138,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
     // Using the wrapper will also set the component instance in the definition map properly
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent<ValueType>);
-    this.formFieldCompMapEntry.component = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
+    const wrapperComponent = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
+    if (wrapperComponent !== null) {
+      this.formFieldCompMapEntry.component = wrapperComponent
+    }
     // finally set the status to 'READY'
     await super.setComponentReady();
   }

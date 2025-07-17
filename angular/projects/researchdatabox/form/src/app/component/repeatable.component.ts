@@ -31,7 +31,7 @@ import {FormFieldComponentDefinition} from "@researchdatabox/sails-ng-common";
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
   protected override logName: string | null = "RepeatableComponent";
-  public override model?: RepeatableComponentModel | null | undefined = null;
+  public override model?: RepeatableComponentModel | undefined;
 
   protected formService = inject(FormService);
   private injector = inject(Injector);
@@ -137,8 +137,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry, this.newElementFormConfig?.validatorDefinitions);
-
-    elemEntry.model = model;
+    if (model !== null) {
+      elemEntry.model = model;
+    }
 
     return {
       defEntry: elemEntry,
@@ -212,7 +213,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   private logName = "RepeatableComponentModel";
-  public override initValue?: Array<unknown> | null | undefined;
+  public override initValue?: Array<unknown> | undefined;
   public override formControl!: FormArray;
 
 
@@ -231,6 +232,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const modelElems: AbstractControl[] = [];
 
     this.formControl = new FormArray(modelElems);
+    console.log(`RepeatableComponentModel: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
   public removeElement(targetModel: FormFieldModel<unknown> | null | undefined): void {

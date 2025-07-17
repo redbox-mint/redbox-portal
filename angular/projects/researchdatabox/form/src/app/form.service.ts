@@ -179,7 +179,7 @@ export class FormService extends HttpClientService {
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition<unknown>[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
+  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
     this.loggerService.debug(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${this.utilityService.getNamesClasses(componentDefinitions)}`);
     const components = componentDefinitions || [];
@@ -338,7 +338,7 @@ export class FormService extends HttpClientService {
    * @return An array of validation errors.
    */
   public getFormValidatorSummaryErrors(
-    componentDefs: FormComponentDefinition<unknown>[] | null | undefined,
+    componentDefs: FormComponentDefinition[] | null | undefined,
     name: string | null | undefined = null,
     control: AbstractControl | null | undefined = null,
     parents: string[] | null = null,
@@ -391,7 +391,7 @@ export class FormService extends HttpClientService {
    *
    * @param componentDef The component definition from the form config.
    */
-  public componentIdLabel(componentDef: FormComponentDefinition<unknown> | null): {
+  public componentIdLabel(componentDef: FormComponentDefinition | null): {
     id: string | null,
     labelMessage: string | null
   } {

@@ -46,5 +46,5 @@ export class BaseFormFieldModelConfig<ValueType> {
  * The data model description for the field value (e.g. string, object, number, array)
  */
 export class FormFieldModelDataConfig {
-// TODO
+// TODO: remove this when the jsonSchema generation is figured out
 }

@@ -11,7 +11,6 @@ export interface TextFormFieldComponentDefinition extends BaseFormFieldComponent
 }
 
 export class TextFormFieldComponentConfig extends BaseFormFieldComponentConfig {
-    componentDefinitions?: FormComponentDefinition[];
 }
 
 export interface TextFormFieldModelDefinition extends BaseFormFieldModelDefinition<TextFieldModelValueType> {

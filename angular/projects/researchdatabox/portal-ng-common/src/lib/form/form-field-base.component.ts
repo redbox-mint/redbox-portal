@@ -513,14 +513,14 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
  */
 export interface FormFieldCompMapEntry {
   name?: string;
-  modelClass?: typeof FormFieldModel | null;
-  layoutClass?: typeof FormFieldBaseComponent | null;
-  componentClass?: typeof FormFieldBaseComponent | null;
+  modelClass?: typeof FormFieldModel<unknown>;
+  layoutClass?: typeof FormFieldBaseComponent<unknown>;
+  componentClass?: typeof FormFieldBaseComponent<unknown>;
   compConfigJson: FormComponentDefinition;
-  model?: FormFieldModel<unknown> | null;
-  component?: FormFieldBaseComponent<unknown> | null;
-  componentRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
-  layout?: FormFieldBaseComponent<unknown> | null | undefined;
-  layoutRef?: ComponentRef<FormFieldBaseComponent<unknown> | null | undefined>;
-  componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> } | null | undefined;
+  model?: FormFieldModel<unknown>;
+  component?: FormFieldBaseComponent<unknown>;
+  componentRef?: ComponentRef<FormFieldBaseComponent<unknown>>;
+  layout?: FormFieldBaseComponent<unknown>;
+  layoutRef?: ComponentRef<FormFieldBaseComponent<unknown>>;
+  componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> };
 }

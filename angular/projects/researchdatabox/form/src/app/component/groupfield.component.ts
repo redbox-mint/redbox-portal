@@ -38,7 +38,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
    */
   public formDefMap?: FormComponentsMap;
 
-  public override formControl: FormGroup | null | undefined;
+  public override formControl: FormGroup | undefined;
 
   public get components(): FormFieldCompMapEntry[] {
     return this.formDefMap?.components ?? [];
@@ -64,7 +64,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // This is different from FormComponent, which has no model.
     // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
     this.formControl = new FormGroup({});
-    console.log(`GroupFieldModel: created form control '${this.fieldConfig?.name ?? '(no model name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.log(`GroupFieldModel: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
   /**
