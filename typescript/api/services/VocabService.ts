@@ -152,8 +152,16 @@ export module Services {
       if (queryConfig.querySource == 'database') {
 
         let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryConfig.databaseQuery.queryName);
+
+        let configMongoQuery = namedQueryConfig.mongoQuery;
+        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
+        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
+        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
+        let mongoQuery = _.clone(configMongoQuery);
+        let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
-        let dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+
+        let dbResults = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         if(queryConfig.resultObjectMapping) {
           return this.getResultObjectMappings(dbResults,queryConfig);
         } else {
