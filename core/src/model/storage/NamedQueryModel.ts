@@ -9,5 +9,5 @@ export class NamedQueryModel {
     collectionName?: string;
     resultObjectMapping?: string;
     brandIdFieldPath?: string;
-
+    sort?: string;
   }
