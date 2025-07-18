@@ -52,22 +52,28 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
     <ng-container #componentContainer  ></ng-container>
     <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
     <ng-template #beforeComponentTemplate>
-      Before {{ componentName }}
+      @if (getBooleanProperty('visible')) {
+        Before {{ componentName }}
+        <br>
+      }
     </ng-template>
     <ng-template #afterComponentTemplate>
-      After {{ componentName }}
-      @let componentValidationList = getFormValidatorComponentErrors;
-      @if (componentValidationList.length > 0) {
-        <div class="invalid-feedback">
-          Field validation errors:
-          <ul>
-            @for (error of componentValidationList; track error.name) {
-              <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
-            }
-          </ul>
-        </div>
+      @if (getBooleanProperty('visible')) {
+        After {{ componentName }}
+        @let componentValidationList = getFormValidatorComponentErrors;
+        @if (componentValidationList.length > 0) {
+          <div class="invalid-feedback">
+            Field validation errors:
+            <ul>
+              @for (error of componentValidationList; track error.name) {
+                <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+              }
+            </ul>
+          </div>
+        }
+        <div class="valid-feedback">The field is valid.</div>
+        <br>
       }
-      <div class="valid-feedback">The field is valid.</div>
     </ng-template>
   }
   `,

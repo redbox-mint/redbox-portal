@@ -21,7 +21,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {get as _get, set as _set, keys as _keys, isObject as _isObject} from "lodash-es";
+import {get as _get, set as _set, keys as _keys, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, isObject as _isObject} from "lodash-es";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
 
@@ -189,22 +189,39 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
   public override checkUpdateExpressions() {
     this.loggerService.debug('group component checkUpdateExpressions');
-    let comps:FormFieldCompMapEntry[] = this.model?.components ?? [];
+    let comps:FormFieldCompMapEntry[] = this.components ?? [];
     //Evaluate top level expressions
     super.checkUpdateExpressions();
     //Propagate top level expressions and evaluate in its children components
     //this is required for the parent component to delegate responsability of
     //behaiviour to the children i.e. each component will handle its visibility
     //but has to be maintained in sync with the overarching state of the parent
-    for(let entry of comps){
-      entry.component?.propagateExpressions(this.expressions);
+    for(let entry of comps) {
+      if(_isUndefined(entry.component?.formFieldCompMapEntry?.layout)) {
+        entry.component?.propagateExpressions(this.expressions, true);
+      } else {
+        entry.component?.propagateExpressions(this.expressions);
+      }
+      let components = entry.component?.getComponents();
+      if(!_isUndefined(components) && !_isNull(components) && !_isEmpty(components)) {
+        for(let comp of components) {
+          let temp:FormFieldBaseComponent<unknown> = comp as FormFieldBaseComponent<unknown>;
+          temp.propagateExpressions(this.expressions);
+        }
+      }
     }
     //Evaluate expressions in children components
-    for(let entry of comps){
+    for(let entry of comps) {
       entry.component?.checkUpdateExpressions();
     }
   }
 
-
-
+  public override getComponents(): any[] {
+    let components = [];
+    for(let comp of this.components) {
+      let component: FormFieldBaseComponent<unknown> | null | undefined = comp.component;
+      components.push(component);
+    }
+    return components;
+  }
 }
