@@ -196,6 +196,3 @@ config/validators.js
 
 # typescript/form-config
 form-config/default-1.0-draft.js
-
-# example-custom-form-config
-test/example-custom-form-config/dist
