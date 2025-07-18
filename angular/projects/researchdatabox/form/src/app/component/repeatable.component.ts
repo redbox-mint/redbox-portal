@@ -296,7 +296,7 @@ export interface RepeatableElementEntry {
         <div class="invalid-feedback">
           Field validation errors:
           <ul>
-            @for (error of componentValidationList; track error.name) {
+            @for (error of componentValidationList; track $index) {
               <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
             }
           </ul>

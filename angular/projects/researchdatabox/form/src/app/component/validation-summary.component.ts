@@ -24,7 +24,7 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
                 {{ item.message ?? "(no label)" | i18next }}
               }
               <ul>
-                @for (error of item.errors; track error.name) {
+                @for (error of item.errors; track $index) {
                   <li>{{ error.message ?? "(no message)" | i18next: error.params }}
                   </li>
                 }
