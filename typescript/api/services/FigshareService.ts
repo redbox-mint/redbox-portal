@@ -42,6 +42,7 @@ declare let RecordsService;
 declare let NamedQueryService;
 declare let RecordTypesService;
 declare let WorkflowStepsService;
+declare let UsersService;
 
 export module Services {
 
@@ -90,8 +91,11 @@ export module Services {
       enabled: true,
       namedQuery?: string,
       targetStep?: string,
+      paramMap?: Record<string, unknown>,
       figshareTargetFieldKey?: string,
       figshareTargetFieldValue?: string,
+      username?: string,
+      userType?: string,
     } ;
 
     constructor() {
@@ -2135,9 +2139,11 @@ export module Services {
       const prefix = "FigService -";
 
       try {
-        const data = job.attrs.data;
-        const brand: BrandingModel = BrandingService.getBrand(data.brandId);
-        const user = data.user;
+        // TODO: job.attrs.data doesn't seem to include brand or user. Is it supposed to?
+        // const data = job.attrs.data;
+        // TODO: the brand is hard-coded to 'default' - this should be obtained from somewhere
+        const brand: BrandingModel = BrandingService.getBrand('default');
+
         const start = 0;
         const rows = 30;
         const maxRecords = 100;
@@ -2147,11 +2153,19 @@ export module Services {
         const enabled = _.get(jobConfig, 'enabled', '')?.toString() === 'true';
         const queryName = _.get(jobConfig, 'queryName', '') ?? "";
         const targetStep = _.get(jobConfig, 'targetStep', '') ?? "";
+        const paramMap = _.get(jobConfig, 'paramMap', {}) ?? {};
         const figshareTargetFieldKey = _.get(jobConfig, 'figshareTargetFieldKey', '') ?? "";
         const figshareTargetFieldValue = _.get(jobConfig, 'figshareTargetFieldValue', '') ?? "";
+        const username = _.get(jobConfig, 'username', '') ?? "";
+        const userType = _.get(jobConfig, 'userType', '') ?? "";
 
-        // TODO: does the named query paramMap belong in the config too?
-        const paramMap = {};
+        // TODO: this works to obtain the user, but should the user come from the agendaqueue job.attrs.data.user instead?
+        const user = UsersService.getUserWithUsername(username);
+
+        if (!user || !user?.username || user?.type !== userType) {
+          sails.log.error(`${prefix} cannot run job because could not find user with username '${username}' and type '${userType} user:`, user);
+          return;
+        }
 
         // --> Check whether this process is enabled.
         if (!enabled) {
@@ -2169,7 +2183,7 @@ export module Services {
           await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
         }
       } catch (err) {
-        sails.log.error(`${prefix} error in transitionRecordWorkflowFromFigshareArticlePropertiesJob with job ${JSON.stringify(job)}`, err);
+        sails.log.error(`${prefix} error in transitionRecordWorkflowFromFigshareArticlePropertiesJob`, err);
       }
     }
 

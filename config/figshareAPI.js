@@ -57,8 +57,11 @@ module.exports.figshareAPI = {
         enabled: false,
         namedQuery: "",
         targetStep: "",
+        paramMap: {},
         figshareTargetFieldKey: "",
         figshareTargetFieldValue: "",
+        username: "",
+        userType: "",
     },
     //Optional to add a file upload finished indicator value saved in a field in the record
     // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',
