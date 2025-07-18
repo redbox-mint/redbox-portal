@@ -17,6 +17,7 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfig,
+  GroupFieldModelValueType, GroupFormFieldComponentConfig, GroupFormFieldComponentDefinition,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
@@ -24,7 +25,7 @@ import {get as _get, set as _set, keys as _keys, isEmpty as _isEmpty, isUndefine
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
 
-export type GroupFieldModelValueType = { [key: string]: unknown };
+
 
 /**
  * The model for the Group Component.
@@ -37,7 +38,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
    */
   public formDefMap?: FormComponentsMap;
 
-  public override formControl: FormGroup | null | undefined;
+  public override formControl: FormGroup | undefined;
 
   public get components(): FormFieldCompMapEntry[] {
     return this.formDefMap?.components ?? [];
@@ -63,7 +64,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // This is different from FormComponent, which has no model.
     // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
     this.formControl = new FormGroup({});
-    console.log(`GroupFieldModel: created form control '${this.fieldConfig?.name ?? '(no model name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.log(`GroupFieldModel: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
   /**
@@ -145,13 +146,14 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   protected override async initData() {
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
+    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFormFieldComponentConfig)?.componentDefinitions ?? [];
     this.elementFormConfig = {
       // Store the child component definitions.
-      componentDefinitions: this.formFieldCompMapEntry?.compConfigJson?.component?.config?.componentDefinitions ?? [],
+      componentDefinitions: groupComponentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions,
+      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
 
     // Construct the components.

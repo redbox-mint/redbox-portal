@@ -1,4 +1,4 @@
-import { FormValidatorBlock, FormValidatorDefinition, FormValidatorFn } from "./form.model";
+import { FormValidatorConfig, FormValidatorDefinition, FormValidatorFn } from "./form.model";
 
 export class ValidatorsSupport {
   /**
@@ -9,7 +9,7 @@ export class ValidatorsSupport {
    */
   public createFormValidatorInstances(
     definition: FormValidatorDefinition[] | null | undefined,
-    config: FormValidatorBlock[] | null | undefined,
+    config: FormValidatorConfig[] | null | undefined,
   ): FormValidatorFn[] {
     const defMap = new Map<string, FormValidatorDefinition>();
     for (const definitionItem of (definition ?? [])) {

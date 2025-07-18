@@ -3,7 +3,6 @@ import {TextFieldComponent} from './textfield.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import {GroupFieldComponent} from "./groupfield.component";
 
 
 describe('RepeatableComponent', () => {
@@ -41,6 +40,7 @@ describe('RepeatableComponent', () => {
             class: 'RepeatableComponent',
             config: {
               elementTemplate: {
+                name: "repeatable_component_1",
                 model: {
                   class: 'TextFieldModel',
                   config: {

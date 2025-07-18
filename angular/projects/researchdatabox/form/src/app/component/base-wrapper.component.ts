@@ -36,7 +36,7 @@ import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/s
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
   protected override logName: string | null = "FormBaseWrapperComponent";
-  @Input() componentClass?: typeof FormFieldBaseComponent | null | undefined = null;
+  @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
@@ -46,7 +46,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   public async initWrapperComponent(
-    formFieldCompMapEntry?: FormFieldCompMapEntry | null | undefined,
+    formFieldCompMapEntry?: FormFieldCompMapEntry,
     omitLayout: boolean = false
   ): Promise<FormFieldBaseComponent<ValueType> | null> {
     const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
@@ -59,7 +59,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Store the form field details.
     this.formFieldCompMapEntry = formFieldCompMapEntry;
-    this.componentClass = this.formFieldCompMapEntry.componentClass;
+    this.componentClass = this.formFieldCompMapEntry.componentClass as typeof FormFieldBaseComponent<ValueType>;
 
     // If the wrapper has already been initialised, provide the component instance.
     // TODO: Does this make sense, when a different formFieldCompMapEntry might have been provided and set above?

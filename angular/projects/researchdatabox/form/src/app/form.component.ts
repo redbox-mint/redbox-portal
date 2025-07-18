@@ -210,12 +210,12 @@ export class FormComponent extends BaseComponent {
     }
 
     if (_isString(cssClasses)) {
-      return cssClasses as string;
+      return cssClasses;
     }
 
     // If cssClasses is an object with key-value pairs, transform it to space-delimited string
     // where keys with truthy values become class names
-    return Object.entries(cssClasses as { [key: string]: string })
+    return Object.entries(cssClasses)
       .filter(([_, value]) => value)
       .map(([className, _]) => className)
       .join(' ');
@@ -251,7 +251,9 @@ export class FormComponent extends BaseComponent {
     };
 
     if (["RepeatableComponent", "GroupFieldComponent"].includes(componentConfigClassName)) {
-      componentResult.children = (formFieldCompMapEntry?.component as any)?.components?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
+      // TODO: can this be improved? The check on the class name helps avoid issues, but 'any' type is still not great.
+      const component = formFieldCompMapEntry?.component as any;
+      componentResult.children = component?.components?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
     }
 
     if (componentEntry?.layout) {

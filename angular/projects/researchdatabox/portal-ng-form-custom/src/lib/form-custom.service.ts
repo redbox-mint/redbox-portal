@@ -4,7 +4,7 @@ import { FormComponentResolver, FormFieldResolver, FormFieldBaseComponent, FormF
 @Injectable({
   providedIn: 'root'
 })
-export class PortalNgFormCustomService implements FormComponentResolver , FormFieldResolver 
+export class PortalNgFormCustomService implements FormComponentResolver , FormFieldResolver
 {
   public async getFieldClass(fieldClass: string): Promise<typeof FormFieldModel> {
     throw new Error(`Failed to resolve field: ${fieldClass}`);

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { FormValidatorConfig } from "./form.model";
+import { FormValidatorCreateConfig } from "./form.model";
 
 /**
  * Extract the length property in case it's an array or a string.
@@ -21,7 +21,7 @@ export function formValidatorLengthOrSize(value: null | string | unknown[] | Set
 }
 
 export function formValidatorGetDefinitionItem(
-  config: FormValidatorConfig | null | undefined,
+  config: FormValidatorCreateConfig | null | undefined,
   key: string,
   defaultValue: unknown = undefined,
 ): unknown {
@@ -33,7 +33,7 @@ export function formValidatorGetDefinitionItem(
 }
 
 export function formValidatorGetDefinitionString(
-  config: FormValidatorConfig | null | undefined,
+  config: FormValidatorCreateConfig | null | undefined,
   key: string,
   defaultValue: string | undefined = undefined,
 ): string {
@@ -42,7 +42,7 @@ export function formValidatorGetDefinitionString(
 }
 
 export function formValidatorGetDefinitionNumber(
-  config: FormValidatorConfig | null | undefined,
+  config: FormValidatorCreateConfig | null | undefined,
   key: string,
   defaultValue: string | undefined = undefined,
 ): number {
@@ -56,7 +56,7 @@ export function formValidatorGetDefinitionNumber(
 }
 
 export function formValidatorGetDefinitionBoolean(
-  config: FormValidatorConfig | null | undefined,
+  config: FormValidatorCreateConfig | null | undefined,
   key: string,
   defaultValue: boolean | undefined = undefined,
 ) {
@@ -69,7 +69,7 @@ export function formValidatorGetDefinitionBoolean(
 }
 
 export function formValidatorGetDefinitionRegexp(
-  config: FormValidatorConfig | null | undefined,
+  config: FormValidatorCreateConfig | null | undefined,
   key: string,
   defaultValue: RegExp | undefined = undefined,
 ): RegExp {
@@ -81,7 +81,7 @@ export function formValidatorGetDefinitionRegexp(
 }
 
 export function formValidatorGetDefinitionArray(
-  config: FormValidatorConfig | null | undefined,
+  config: FormValidatorCreateConfig | null | undefined,
   key: string,
   defaultValue: unknown[] | undefined = undefined,
 ): unknown[] {

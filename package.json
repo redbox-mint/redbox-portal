@@ -109,7 +109,8 @@
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js",
-    "dev:prepare": "./support/development/prepareLocalDev.sh"
+    "dev:prepare": "./support/development/prepareLocalDev.sh",
+    "compile:jsonSchema": "./support/development/compileJsonSchema.sh"
   },
   "main": "app.js",
   "repository": {

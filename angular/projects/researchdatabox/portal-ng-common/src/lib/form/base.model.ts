@@ -1,18 +1,22 @@
 import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
-
 import {AbstractControl, FormControl} from '@angular/forms';
-import {FormValidatorFn, FormFieldModelConfig} from "@researchdatabox/sails-ng-common";
+import {
+  BaseFormFieldModelDefinition,
+  FormFieldModelDefinition,
+  FormValidatorFn
+} from "@researchdatabox/sails-ng-common";
+
 /**
  * Core model for form elements.
  *
  */
-export abstract class FormModel<ConfigType> {
+export abstract class FormModel<ValueType, DefinitionType extends BaseFormFieldModelDefinition<ValueType>> {
   // The configuration when the field is created
-  public initConfig: ConfigType;
+  public initConfig: DefinitionType;
   // The "live" config
-  public fieldConfig: ConfigType;
+  public fieldConfig: DefinitionType;
 
-  constructor(initConfig: ConfigType) {
+  protected constructor(initConfig: DefinitionType) {
     this.initConfig = initConfig;
     this.fieldConfig = _cloneDeep(initConfig);
     this.postCreate();
@@ -24,23 +28,19 @@ export abstract class FormModel<ConfigType> {
   abstract postCreate(): void;
 }
 
-export type FormFieldModelValueType<ValueType> = ValueType | null | undefined;
-
 /**
  * Model for the form field configuration.
  *
  */
-export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<ValueType>> {
+export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFieldModelDefinition<ValueType>> {
   // The value when the field is created
-  public initValue?: FormFieldModelValueType<ValueType>;
+  public initValue?: ValueType;
 
-  public formControl: AbstractControl<FormFieldModelValueType<ValueType>> | null | undefined;
+  public formControl?: AbstractControl<ValueType>;
 
-  public validators?: FormValidatorFn[] | null | undefined;
+  public validators?: FormValidatorFn[];
 
-  constructor(
-    initConfig: FormFieldModelConfig<ValueType>,
-    validators?: FormValidatorFn[] | null | undefined) {
+  constructor(initConfig: BaseFormFieldModelDefinition<ValueType>, validators?: FormValidatorFn[]) {
     super(initConfig);
     this.validators = validators;
     this.setValidators();
@@ -50,14 +50,14 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
     this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
 
     // create the form model
-    this.formControl = new FormControl<FormFieldModelValueType<ValueType>>(this.initValue);
-    console.log(`FormFieldModel: created form control '${this.fieldConfig?.name ?? '(no model name)'}' with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    this.formControl = this.initValue === undefined ? new FormControl() : new FormControl<ValueType>(this.initValue);
+    console.log(`FormFieldModel: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
   /**
    * Get the value of the field
    */
-  public getValue(): FormFieldModelValueType<ValueType> {
+  public getValue(): ValueType | undefined {
     return this.formControl?.value;
   }
 
@@ -65,7 +65,7 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
    * Set the value of the field
    * @param value the value to set
    */
-  public setValue(value: FormFieldModelValueType<ValueType>): void {
+  public setValue(value: ValueType): void {
     this.formControl?.setValue(value);
   }
 
@@ -73,8 +73,8 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
    * Set the value of the field
    * @param value the value to set
    */
-  public setValueDontEmitEvent(value: FormFieldModelValueType<ValueType>): void {
-    this.formControl?.setValue(value, { emitEvent: false });
+  public setValueDontEmitEvent(value: ValueType): void {
+    this.formControl?.setValue(value, {emitEvent: false});
   }
 
   /**
@@ -82,7 +82,7 @@ export class FormFieldModel<ValueType> extends FormModel<FormFieldModelConfig<Va
    * Complex implementations should override this method to create complex form controls.
    * @returns the form control
    */
-  public getFormGroupEntry(): AbstractControl<ValueType | null | undefined> | null | undefined {
+  public getFormGroupEntry(): AbstractControl<ValueType>  {
     if (this.formControl) {
       return this.formControl;
     } else {
