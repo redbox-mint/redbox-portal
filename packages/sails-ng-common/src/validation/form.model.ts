@@ -13,7 +13,7 @@ export type FormValidatorErrors = {
  * The map of validator config.
  * The config is different for each validator.
  */
-export type FormValidatorConfig = {
+export type FormValidatorCreateConfig = {
   [key: string]: unknown;
 };
 
@@ -53,7 +53,7 @@ export type FormValidatorFn = (control: FormValidatorControl) => FormValidatorEr
  *
  * Returns a form validator function.
  */
-export type FormValidatorCreateFn = (config: FormValidatorConfig | null | undefined) => FormValidatorFn;
+export type FormValidatorCreateFn = (config: FormValidatorCreateConfig | null | undefined) => FormValidatorFn;
 
 /**
  * The definition of a validator for a form or a form control.
@@ -76,7 +76,7 @@ export interface FormValidatorDefinition {
 /**
  * The configuration block for a validator for a form or a form control.
  */
-export interface FormValidatorBlock {
+export interface FormValidatorConfig {
   /**
    * The name used in a validator definition.
    * The optional message and config will be applied to the validator definition with this name.
@@ -90,7 +90,7 @@ export interface FormValidatorBlock {
   /**
    * The validator config. Can be left out if the validator takes no config.
    */
-  config?: FormValidatorConfig | null | undefined;
+  config?: FormValidatorCreateConfig | null | undefined;
 }
 
 /**

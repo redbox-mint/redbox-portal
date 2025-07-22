@@ -1,7 +1,7 @@
 import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
 import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import { FormValidatorComponentErrors, FormComponentLayoutDefinition } from "@researchdatabox/sails-ng-common";
+import {FormFieldLayoutDefinition, FormValidatorComponentErrors} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 
 /**
@@ -65,7 +65,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
           <div class="invalid-feedback">
             Field validation errors:
             <ul>
-              @for (error of componentValidationList; track error.name) {
+              @for (error of componentValidationList; track $index) {
                 <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
               }
             </ul>
@@ -83,8 +83,8 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
-  componentClass?: typeof FormFieldBaseComponent<ValueType> | null;
-  public override componentDefinition?: FormComponentLayoutDefinition;
+  componentClass?: typeof FormFieldBaseComponent<ValueType>;
+  public override componentDefinition?: FormFieldLayoutDefinition;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
   // @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
@@ -105,8 +105,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.componentClass = formFieldCompMapEntry?.componentClass;
-    this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout as FormComponentLayoutDefinition;
+    this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
+    this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
     //normalise componentDefinition that is used to track property changes given these may not be present
     this.buildPropertyCache(true);
     if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
@@ -120,7 +120,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     if(!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
       this.name = this.formFieldCompMapEntry?.compConfigJson?.layout?.name;
     }
-    
+
     if(this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
@@ -144,7 +144,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
     // Using the wrapper will also set the component instance in the definition map properly
     this.wrapperComponentRef = this.componentContainer.createComponent(FormBaseWrapperComponent<ValueType>);
-    this.formFieldCompMapEntry.component = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
+    const wrapperComponent = await this.wrapperComponentRef.instance.initWrapperComponent(this.formFieldCompMapEntry, true);
+    if (wrapperComponent !== null) {
+      this.formFieldCompMapEntry.component = wrapperComponent
+    }
     // finally set the status to 'READY'
     await super.setComponentReady();
   }

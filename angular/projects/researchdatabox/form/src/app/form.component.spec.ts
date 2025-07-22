@@ -28,7 +28,6 @@ describe('FormComponent', () => {
         {
           name: 'text_1_event',
           model: {
-            name: 'text_1_for_the_form',
             class: 'TextFieldModel',
             config: {
               value: 'hello world!',

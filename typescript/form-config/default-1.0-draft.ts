@@ -10,6 +10,7 @@ const formConfig: FormConfig = {
         defaultComponentCssClasses: 'row',
     },
     editCssClasses: "redbox-form form",
+    skipValidationOnSave: false,
 
     // validatorDefinitions is the combination of redbox core validator definitions and
     // the validator definitions from the client hook form config.
@@ -43,7 +44,6 @@ const formConfig: FormConfig = {
         {
             name: 'text_1_event',
             model: {
-                name: 'text_1_for_the_form',
                 class: 'TextFieldModel',
                 config: {
                     value: 'hello world!',
@@ -88,7 +88,6 @@ const formConfig: FormConfig = {
         {
             name: 'text_2_event',
             model: {
-                name: 'text_2_for_the_form',
                 class: 'TextFieldModel',
                 config: {
                     value: 'hello world! component event',
@@ -140,7 +139,6 @@ const formConfig: FormConfig = {
         {
             name: 'text_3_event',
             model: {
-                name: 'text_3_for_the_form',
                 class: 'TextFieldModel',
                 config: {
                     value: 'hello world! layout event',
@@ -193,7 +191,6 @@ const formConfig: FormConfig = {
                 }
             },
             model: {
-                name: 'group_1_model',
                 class: 'GroupFieldModel',
                 config: {
                     defaultValue: {},
@@ -246,7 +243,6 @@ const formConfig: FormConfig = {
                                 }
                             },
                             model: {
-                                name: 'group_2_model',
                                 class: 'GroupFieldModel',
                                 config: {
                                     defaultValue: {},
@@ -305,6 +301,7 @@ const formConfig: FormConfig = {
                 class: 'RepeatableComponent',
                 config: {
                     elementTemplate: {
+                        name: 'example_repeatable',
                         model: {
                             class: 'TextFieldModel',
                             config: {
@@ -371,7 +368,6 @@ const formConfig: FormConfig = {
                         // first group component
                         name: 'group_1_component',
                         model: {
-                            name: 'group_1_model',
                             class: 'GroupFieldModel',
                             config: {
                                 defaultValue: {},
@@ -418,7 +414,7 @@ const formConfig: FormConfig = {
         },
         {
             name: 'validation_summary_1',
-            model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
+            model: { class: 'ValidationSummaryFieldModel', config: {}},
             component: {class: "ValidationSummaryFieldComponent"}
         },
         // {

@@ -1,5 +1,5 @@
 import {
-  FormValidatorBlock,
+  FormValidatorConfig,
   FormValidatorControl,
   FormValidatorDefinition,
   FormValidatorErrors,
@@ -133,7 +133,7 @@ describe("Validators", async () => {
     };
   };
   const cases: {
-    args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorBlock };
+    args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
     expected: FormValidatorErrors;
   }[] = [
     {
