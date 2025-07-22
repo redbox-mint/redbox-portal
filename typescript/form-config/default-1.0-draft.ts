@@ -32,6 +32,15 @@ const formConfig: FormConfig = {
 
     componentDefinitions: [
         {
+            name: 'main_tab',
+            component: {
+                class: 'TabComponent',
+                config: {
+                    
+                }
+            }
+        },
+        {
             name: 'text_1_event',
             model: {
                 name: 'text_1_for_the_form',

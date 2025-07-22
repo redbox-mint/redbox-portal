@@ -191,10 +191,10 @@ export class FormService extends HttpClientService {
       const modelClassName:string = componentConfig.model?.class || '';
       let componentClassName:string = componentConfig.component?.class || '';
       let layoutClassName:string = componentConfig.layout?.class || '';
-      if (_isEmpty(modelClassName)) {
-        this.loggerService.error(`${this.logName}: model class name is empty for component.`, componentConfig);
-        continue;
-      }
+      // if (_isEmpty(modelClassName)) {
+      //   this.loggerService.error(`${this.logName}: model class name is empty for component.`, componentConfig);
+      //   continue;
+      // }
       if (!_isEmpty(componentConfig.module)) {
         // TODO:
         // 1. for statically imported (e.g. modules) class doesn't have to be resolved here
@@ -231,19 +231,42 @@ export class FormService extends HttpClientService {
           layoutClass = this.compClassMap[layoutClassName];
         }
       }
+      let fieldDef = {};
       if (modelClass) {
-        if (componentClass) {
-          fieldArr.push({
-            modelClass: modelClass,
-            componentClass: componentClass,
-            compConfigJson: componentConfig,
-            layoutClass: layoutClass,
-          } as FormFieldCompMapEntry);
-        } else {
-          this.logNotAvailable(componentClassName, "component class", this.compClassMap);
-        }
+        _merge(fieldDef, {
+          modelClass: modelClass,
+        });
       } else {
         this.logNotAvailable(modelClassName, "model class", this.modelClassMap);
+      }
+      if (componentClass) {
+        _merge(fieldDef, {
+          componentClass: componentClass,
+          compConfigJson: componentConfig,
+          layoutClass: layoutClass,
+        });
+      } else {
+        this.logNotAvailable(componentClassName, "component class", this.compClassMap);
+        // Dont' add to the array if the component class is not available
+        fieldDef = {};
+      }
+      // if (modelClass) {
+      //   if (componentClass) {
+
+      //     fieldArr.push({
+      //       modelClass: modelClass,
+      //       componentClass: componentClass,
+      //       compConfigJson: componentConfig,
+      //       layoutClass: layoutClass,
+      //     } as FormFieldCompMapEntry);
+      //   } else {
+      //     this.logNotAvailable(componentClassName, "component class", this.compClassMap);
+      //   }
+      // } else {
+      //   this.logNotAvailable(modelClassName, "model class", this.modelClassMap);
+      // }
+      if (!_isEmpty(fieldDef)) {
+        fieldArr.push(fieldDef as FormFieldCompMapEntry);
       }
     }
     this.loggerService.debug(`${this.logName}: resolved form component types:`, fieldArr);
