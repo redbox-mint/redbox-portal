@@ -306,15 +306,16 @@ export class FormService extends HttpClientService {
     compMapEntry: FormFieldCompMapEntry,
     validatorDefinitions: FormValidatorDefinition[] | null | undefined
   ): FormFieldModel<unknown> | null {
-    if (compMapEntry.modelClass) {
-      const ModelType = compMapEntry.modelClass;
-      const modelConfig = compMapEntry.compConfigJson.model;
+    const ModelType = compMapEntry.modelClass;
+    const modelConfig = compMapEntry.compConfigJson.model;
+    if (ModelType && modelConfig) {
       const validatorConfig = modelConfig?.config?.validators ?? [];
       const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
       compMapEntry.model = new ModelType(modelConfig, validators);
       return compMapEntry.model;
     } else {
-      this.logNotAvailable(compMapEntry.modelClass ?? "(unknown)", "model class", this.modelClassMap);
+      // Model is now optional, so we can return null if the model is not defined. Add appropriate warning to catch config errors.
+      this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component. If this is unexpected, check your form configuration.`, compMapEntry);
     }
     return null;
   }
