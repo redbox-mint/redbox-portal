@@ -29,7 +29,7 @@ describe('ValidationSummaryFieldComponent', () => {
       componentDefinitions: [
         {
           name: 'validation_summary_1',
-          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
+          model: {class: 'ValidationSummaryFieldModel', config: {}},
           component: {class: "ValidationSummaryFieldComponent"}
         },
       ]
@@ -56,7 +56,6 @@ describe('ValidationSummaryFieldComponent', () => {
         {
           name: 'text_1_event',
           model: {
-            name: 'text_1_for_the_form',
             class: 'TextFieldModel',
             config: {
               value: '',
@@ -72,7 +71,7 @@ describe('ValidationSummaryFieldComponent', () => {
         },
         {
           name: 'validation_summary_1',
-          model: {name: 'validation_summary_2', class: 'ValidationSummaryFieldModel'},
+          model: { class: 'ValidationSummaryFieldModel', config: {}},
           component: {class: "ValidationSummaryFieldComponent"}
         },
       ]
@@ -84,6 +83,6 @@ describe('ValidationSummaryFieldComponent', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-for-the-form"></a>');
+    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-event"></a>');
   });
 });

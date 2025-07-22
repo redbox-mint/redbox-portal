@@ -41,7 +41,6 @@ describe('GroupFieldComponent', () => {
             }
           },
           model: {
-            name: 'group_1_model',
             class: 'GroupFieldModel',
             config: {
               defaultValue: {},
@@ -98,7 +97,6 @@ describe('GroupFieldComponent', () => {
                     }
                   },
                   model: {
-                    name: 'group_2_model',
                     class: 'GroupFieldModel',
                     config: {
                       defaultValue: {},
