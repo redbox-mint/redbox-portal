@@ -83,6 +83,6 @@ describe('ValidationSummaryFieldComponent', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-for-the-form"></a>');
+    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-event"></a>');
   });
 });
