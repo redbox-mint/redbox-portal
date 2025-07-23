@@ -1,5 +1,3 @@
-
-
 describe('The FormsService', function () {
   before(function (done) {
     done();
@@ -107,4 +105,169 @@ describe('The FormsService', function () {
     })
   });
 
+  describe("build client form config", function () {
+
+    it('should build the expected config', function (done) {
+      const formConfig = {
+        name: "default-1.0-draft",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        skipValidationOnSave: false,
+        componentDefinitions: [
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayoutComponent',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'TextFieldModel',
+              config: {
+                value: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'TextFieldComponent',
+            },
+            constraints: {
+              authorization: {
+                allowRoles: [],
+              },
+              allowModes: [],
+            },
+          }
+        ]
+      };
+      const original = JSON.stringify(formConfig);
+      const result = FormsService.buildClientFormConfig(formConfig);
+
+      // ensure the formConfig has not been modified
+      expect(JSON.stringify(formConfig)).to.eql(original);
+
+      // create the expected client form config
+      const expected = {...formConfig, componentDefinitions: [{...formConfig.componentDefinitions[0]}]};
+      delete expected.componentDefinitions[0].constraints;
+
+      // confirm the client form config looks as expected
+      expect(result).to.eql(expected);
+      done();
+    });
+    it('should remove the component because the user does not have the required roles', function (done) {
+      const formConfig = {
+        name: "default-1.0-draft",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        skipValidationOnSave: false,
+        componentDefinitions: [
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayoutComponent',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'TextFieldModel',
+              config: {
+                value: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'TextFieldComponent',
+            },
+            constraints: {
+              authorization: {
+                allowRoles: ['Admin', 'Librarians'],
+              },
+              allowModes: [],
+            },
+          }
+        ]
+      };
+      const original = JSON.stringify(formConfig);
+      const result = FormsService.buildClientFormConfig(formConfig);
+
+      // ensure the formConfig has not been modified
+      expect(JSON.stringify(formConfig)).to.eql(original);
+
+      // create the expected client form config
+      const expected = {...formConfig, componentDefinitions: []};
+
+      // confirm the client form config looks as expected
+      expect(result).to.eql(expected);
+      done();
+    });
+    it('should remove the component because the client does not have the required mode', function (done) {
+      const formConfig = {
+        name: "default-1.0-draft",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        skipValidationOnSave: false,
+        componentDefinitions: [
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayoutComponent',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'TextFieldModel',
+              config: {
+                value: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'TextFieldComponent',
+            },
+            expressions: {
+              'model.value': {
+                template: `<%= _.get(model,'text_1_event','') %>`
+              }
+            },
+            constraints: {
+              authorization: {
+                allowRoles: [],
+              },
+              allowModes: ['edit'],
+            },
+          }
+        ]
+      };
+      const original = JSON.stringify(formConfig);
+      const result = FormsService.buildClientFormConfig(formConfig);
+
+      // ensure the formConfig has not been modified
+      expect(JSON.stringify(formConfig)).to.eql(original);
+
+      // create the expected client form config
+      const expected = {...formConfig, componentDefinitions: []};
+
+      // confirm the client form config looks as expected
+      expect(result).to.eql(expected);
+      done();
+    });
+  });
 });
