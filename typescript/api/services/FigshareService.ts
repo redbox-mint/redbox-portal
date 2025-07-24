@@ -2160,7 +2160,7 @@ export module Services {
         const userType = _.get(jobConfig, 'userType', '') ?? "";
 
         // TODO: this works to obtain the user, but should the user come from the agendaqueue job.attrs.data.user instead?
-        const user = UsersService.getUserWithUsername(username);
+        const user = await UsersService.getUserWithUsername(username).toPromise();
 
         if (!user || !user?.username || user?.type !== userType) {
           sails.log.error(`${prefix} cannot run job because could not find user with username '${username}' and type '${userType} user:`, user);
