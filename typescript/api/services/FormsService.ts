@@ -532,8 +532,7 @@ export module Services {
         },
         build: context?.build ?? [],
       };
-      sails.log.verbose({
-        msg:`FormsService - buildClientFormConfig`,
+      sails.log.verbose(`FormsService - buildClientFormConfig`, {
         context:context
       });
       // create the client form config
@@ -585,11 +584,26 @@ export module Services {
      */
     public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> {
       // TODO: apply the current form mode from the context
-      // create the client form config
-      return {
-        ...item,
 
+      // create the client form config
+      const result =  {
+        ...item,
       };
+      // Cater for GroupFormFieldComponentConfig componentDefinitions
+      const itemRecord = item as Record<string, unknown>;
+      if (Object.keys(itemRecord?.config ?? {}).includes('componentDefinitions') && Array.isArray(itemRecord?.config['componentDefinitions'])) {
+        result['componentDefinitions'] = itemRecord?.config['componentDefinitions']
+            .map(i => this.buildClientFormComponentDefinition(i, context))
+            .filter(i => i !== null);
+      }
+      // Cater for RepeatableFormFieldComponentConfig elementTemplate
+      if (Object.keys(itemRecord?.config ?? {}).includes('elementTemplate') && _.isObject(itemRecord?.config['elementTemplate'])) {
+        result['elementTemplate'] = this.buildClientFormComponentDefinition(itemRecord?.config['elementTemplate'], context) ?? null;
+        if ([null, undefined].includes(result['elementTemplate'])) {
+          delete result['elementTemplate'];
+        }
+      }
+      return result;
     }
 
     /**
@@ -602,7 +616,6 @@ export module Services {
       // create the client form config
       return {
         ...item,
-
       };
     }
 
@@ -617,12 +630,14 @@ export module Services {
         const isArray = Array.isArray(i);
         const hasElements = i?.length > 0;
         const hasAtLeastOneUserRole = hasElements && currentUserRoles.some(c => i.includes(c));
+        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionAuthorization - isAllowed`, {
+          isArray:isArray,hasElements:hasElements,hasAtLeastOneUserRole:hasAtLeastOneUserRole,
+        });
         return (isArray && hasElements && hasAtLeastOneUserRole) || !isArray || !hasElements;
       });
 
       if (!isAllowed) {
-        sails.log.verbose({
-          msg: `FormsService - checkClientFormComponentDefinitionAuthorization - denied`,
+        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionAuthorization - denied`, {
           currentUserRoles:currentUserRoles,
           requiredRoles: requiredRoles
         });
@@ -642,12 +657,14 @@ export module Services {
         const isArray = Array.isArray(i);
         const hasElements = i?.length > 0;
         const hasAtLeastOneUserRole = hasElements && i.includes(currentContextMode);
+        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionMode - isAllowed`, {
+          isArray:isArray,hasElements:hasElements,hasAtLeastOneUserRole:hasAtLeastOneUserRole,
+        });
         return (isArray && hasElements && hasAtLeastOneUserRole) || !isArray || !hasElements;
       });
 
       if (!isAllowed) {
-        sails.log.verbose({
-          msg: `FormsService - checkClientFormComponentDefinitionMode - denied`,
+        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionMode - denied`, {
           currentContextMode:currentContextMode,
           requiredModes: requiredModes
         });
