@@ -589,7 +589,7 @@ export module Services {
       if (Object.keys(itemRecord?.config ?? {}).includes('componentDefinitions') && Array.isArray(itemRecord?.config['componentDefinitions'])) {
         const before = JSON.parse(JSON.stringify(item));
 
-        result['componentDefinitions'] = itemRecord?.config['componentDefinitions']
+        result['config']['componentDefinitions'] = itemRecord?.config['componentDefinitions']
             .map(i => this.buildClientFormComponentDefinition(i, context))
             .filter(i => i !== null);
         sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - componentDefinitions`, {
@@ -600,9 +600,9 @@ export module Services {
       if (Object.keys(itemRecord?.config ?? {}).includes('elementTemplate') && _.isObject(itemRecord?.config['elementTemplate'])) {
         const before = JSON.parse(JSON.stringify(item));
 
-        result['elementTemplate'] = this.buildClientFormComponentDefinition(itemRecord?.config['elementTemplate'], context) ?? null;
-        if ([null, undefined].includes(result['elementTemplate'])) {
-          delete result['elementTemplate'];
+        result['config']['elementTemplate'] = this.buildClientFormComponentDefinition(itemRecord?.config['elementTemplate'], context) ?? null;
+        if ([null, undefined].includes(result['config']['elementTemplate'])) {
+          result['config']['elementTemplate'] = {};
         }
         sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - elementTemplate`, {
           before: before, after: result,

@@ -19,7 +19,7 @@ describe('The FormsService', function () {
   });
 
   it('should get dataPublication-1.0-embargoed form', function (done) {
-    
+
     var formName = 'dataPublication-1.0-embargoed';
 
     FormsService.getFormByName(formName, true).subscribe(function(form) {
@@ -80,7 +80,7 @@ describe('The FormsService', function () {
         }]
       }
     };
-    
+
     FormsService.getForm(brand, '', true, '', record).then(form => {
       expect(form).to.have.property('name', formName);
       done();
@@ -105,272 +105,277 @@ describe('The FormsService', function () {
     })
   });
 
-  describe("build client form config", function () {
+    describe("build client form config", function () {
 
-    it('should build the expected config', function (done) {
-      const formConfig = {
-        name: "default-1.0-draft",
-        type: "rdmp",
-        debugValue: true,
-        domElementType: 'form',
-        defaultComponentConfig: {
-          defaultComponentCssClasses: 'row',
-        },
-        editCssClasses: "redbox-form form",
-        skipValidationOnSave: false,
-        componentDefinitions: [
-          {
-            name: 'text_2',
-            layout: {
-              class: 'DefaultLayoutComponent',
-              config: {
-                label: 'TextField with default wrapper defined',
-                helpText: 'This is a help text',
-              }
-            },
-            model: {
-              class: 'TextFieldModel',
-              config: {
-                value: 'hello world 2!',
-              }
-            },
-            component: {
-              class: 'TextFieldComponent',
-            },
-            constraints: {
-              authorization: {
-                allowRoles: [],
-              },
-              allowModes: [],
-            },
-          }
-        ]
-      };
-      const original = JSON.stringify(formConfig);
-      const result = FormsService.buildClientFormConfig(formConfig);
-
-      // ensure the formConfig has not been modified
-      expect(JSON.stringify(formConfig)).to.eql(original);
-
-      // create the expected client form config
-      const expected = JSON.parse(original);
-      expected.componentDefinitions = [{...expected.componentDefinitions[0]}];
-      delete expected.componentDefinitions[0].constraints;
-
-      // confirm the client form config looks as expected
-      expect(result).to.eql(expected);
-      done();
-    });
-    it('should remove the component because the user does not have the required roles', function (done) {
-      const formConfig = {
-        name: "default-1.0-draft",
-        type: "rdmp",
-        debugValue: true,
-        domElementType: 'form',
-        defaultComponentConfig: {
-          defaultComponentCssClasses: 'row',
-        },
-        editCssClasses: "redbox-form form",
-        skipValidationOnSave: false,
-        componentDefinitions: [
-          {
-            name: 'text_2',
-            layout: {
-              class: 'DefaultLayoutComponent',
-              config: {
-                label: 'TextField with default wrapper defined',
-                helpText: 'This is a help text',
-              }
-            },
-            model: {
-              class: 'TextFieldModel',
-              config: {
-                value: 'hello world 2!',
-              }
-            },
-            component: {
-              class: 'TextFieldComponent',
-            },
-            constraints: {
-              authorization: {
-                allowRoles: ['Admin', 'Librarians'],
-              },
-              allowModes: [],
-            },
-          }
-        ]
-      };
-      const original = JSON.stringify(formConfig);
-      const result = FormsService.buildClientFormConfig(formConfig);
-
-      // ensure the formConfig has not been modified
-      expect(JSON.stringify(formConfig)).to.eql(original);
-
-      // create the expected client form config
-      const expected = JSON.parse(original);
-      expected.componentDefinitions = [];
-
-      // confirm the client form config looks as expected
-      expect(result).to.eql(expected);
-      done();
-    });
-    it('should remove the component because the client does not have the required mode', function (done) {
-      const formConfig = {
-        name: "default-1.0-draft",
-        type: "rdmp",
-        debugValue: true,
-        domElementType: 'form',
-        defaultComponentConfig: {
-          defaultComponentCssClasses: 'row',
-        },
-        editCssClasses: "redbox-form form",
-        skipValidationOnSave: false,
-        componentDefinitions: [
-          {
-            name: 'text_2',
-            layout: {
-              class: 'DefaultLayoutComponent',
-              config: {
-                label: 'TextField with default wrapper defined',
-                helpText: 'This is a help text',
-              }
-            },
-            model: {
-              class: 'TextFieldModel',
-              config: {
-                value: 'hello world 2!',
-              }
-            },
-            component: {
-              class: 'TextFieldComponent',
-            },
-            expressions: {
-              'model.value': {
-                template: `<%= _.get(model,'text_1_event','') %>`
-              }
-            },
-            constraints: {
-              authorization: {
-                allowRoles: [],
-              },
-              allowModes: ['edit'],
-            },
-          }
-        ]
-      };
-      const original = JSON.stringify(formConfig);
-      const result = FormsService.buildClientFormConfig(formConfig);
-
-      // ensure the formConfig has not been modified
-      expect(JSON.stringify(formConfig)).to.eql(original);
-
-      // create the expected client form config
-      const expected = JSON.parse(original);
-      expected.componentDefinitions = [];
-
-      // confirm the client form config looks as expected
-      expect(result).to.eql(expected);
-      done();
-    });
-    it('should remove the components nested in repeatable and group components when the constraints are not met', function (done) {
-      const formConfig = {
-        name: "default-1.0-draft",
-        type: "rdmp",
-        debugValue: true,
-        domElementType: 'form',
-        defaultComponentConfig: {
-          defaultComponentCssClasses: 'row',
-        },
-        editCssClasses: "redbox-form form",
-        skipValidationOnSave: false,
-        componentDefinitions: [
-          {
-            name: 'repeatable_group_1',
-            model: {
-              class: 'RepeatableComponentModel',
-              config: {
-                value: [{
-                  text_1: "hello world from repeating groups"
-                }]
-              }
-            },
-            component: {
-              class: 'RepeatableComponent',
-              config: {
-                elementTemplate: {
-                  name: 'group_1_component',
-                  model: {
-                    class: 'GroupFieldModel',
-                    config: {
-                      defaultValue: {},
-                    }
-                  },
-                  component: {
-                    class: 'GroupFieldComponent',
-                    config: {
-                      wrapperCssClasses: 'col',
-                      componentDefinitions: [
-                        {
-                          name: 'text_1',
-                          model: {
+        it('should build the expected config', function (done) {
+            const formConfig = {
+                name: "default-1.0-draft",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'text_2',
+                        layout: {
+                            class: 'DefaultLayoutComponent',
+                            config: {
+                                label: 'TextField with default wrapper defined',
+                                helpText: 'This is a help text',
+                            }
+                        },
+                        model: {
                             class: 'TextFieldModel',
                             config: {
-                              value: 'hello world 1!',
+                                value: 'hello world 2!',
                             }
-                          },
-                          component: {
+                        },
+                        component: {
                             class: 'TextFieldComponent',
-                            config: {
-                            }
-                          },
-                          constraints: {
+                        },
+                        constraints: {
                             authorization: {
-                              allowRoles: [],
+                                allowRoles: [],
+                            },
+                            allowModes: [],
+                        },
+                    }
+                ]
+            };
+            const original = JSON.stringify(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig);
+
+            // ensure the formConfig has not been modified
+            expect(JSON.stringify(formConfig)).to.eql(original);
+
+            // create the expected client form config
+            const expected = JSON.parse(original);
+            expected.componentDefinitions = [{...expected.componentDefinitions[0]}];
+            delete expected.componentDefinitions[0].constraints;
+
+            // confirm the client form config looks as expected
+            expect(result).to.eql(expected);
+            done();
+        });
+        it('should remove the component because the user does not have the required roles', function (done) {
+            const formConfig = {
+                name: "default-1.0-draft",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'text_2',
+                        layout: {
+                            class: 'DefaultLayoutComponent',
+                            config: {
+                                label: 'TextField with default wrapper defined',
+                                helpText: 'This is a help text',
+                            }
+                        },
+                        model: {
+                            class: 'TextFieldModel',
+                            config: {
+                                value: 'hello world 2!',
+                            }
+                        },
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                        constraints: {
+                            authorization: {
+                                allowRoles: ['Admin', 'Librarians'],
+                            },
+                            allowModes: [],
+                        },
+                    }
+                ]
+            };
+            const original = JSON.stringify(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig);
+
+            // ensure the formConfig has not been modified
+            expect(JSON.stringify(formConfig)).to.eql(original);
+
+            // create the expected client form config
+            const expected = JSON.parse(original);
+            expected.componentDefinitions = [];
+
+            // confirm the client form config looks as expected
+            expect(result).to.eql(expected);
+            done();
+        });
+        it('should remove the component because the client does not have the required mode', function (done) {
+            const formConfig = {
+                name: "default-1.0-draft",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'text_2',
+                        layout: {
+                            class: 'DefaultLayoutComponent',
+                            config: {
+                                label: 'TextField with default wrapper defined',
+                                helpText: 'This is a help text',
+                            }
+                        },
+                        model: {
+                            class: 'TextFieldModel',
+                            config: {
+                                value: 'hello world 2!',
+                            }
+                        },
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                        expressions: {
+                            'model.value': {
+                                template: `<%= _.get(model,'text_1_event','') %>`
+                            }
+                        },
+                        constraints: {
+                            authorization: {
+                                allowRoles: [],
                             },
                             allowModes: ['edit'],
-                          },
                         },
-                        {
-                          name: 'text_2',
-                          model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
-                          component: {class: 'TextFieldComponent', config: {}},
-                        }
-                      ]
                     }
-                  },
-                  layout: {
-                    class: 'RepeatableElementLayoutComponent',
-                    config: {
-                      hostCssClasses: 'row align-items-start'
-                    }
-                  },
-                }
-              },
-            },
-            layout: {
-              class: 'DefaultLayoutComponent',
-              config: {
-                label: 'Repeatable TextField with default wrapper defined',
-                helpText: 'Repeatable component help text',
-              }
-            },
-          },
-        ]
-      };
-      const original = JSON.stringify(formConfig);
-      const result = FormsService.buildClientFormConfig(formConfig);
+                ]
+            };
+            const original = JSON.stringify(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig);
 
-      // ensure the formConfig has not been modified
-      expect(JSON.stringify(formConfig)).to.eql(original);
+            // ensure the formConfig has not been modified
+            expect(JSON.stringify(formConfig)).to.eql(original);
 
-      // create the expected client form config
-      const expected = JSON.parse(original);
-      const nestedCompDefs = expected.componentDefinitions[0].component.config.elementTemplate.component.config.componentDefinitions;
-      expected.componentDefinitions[0].component.config.elementTemplate.component.config.componentDefinitions = nestedCompDefs.slice(1);
+            // create the expected client form config
+            const expected = JSON.parse(original);
+            expected.componentDefinitions = [];
 
-      // confirm the client form config looks as expected
-      expect(result).to.eql(expected);
-      done();
+            // confirm the client form config looks as expected
+            expect(result).to.eql(expected);
+            done();
+        });
+        it('should remove the components nested in repeatable and group components when the constraints are not met', function (done) {
+            const formConfig = {
+                name: "default-1.0-draft",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'repeatable_group_1',
+                        model: {
+                            class: 'RepeatableComponentModel',
+                            config: {value: [{text_1: "hello world from repeating groups"}]}
+                        },
+                        component: {
+                            class: 'RepeatableComponent',
+                            config: {
+                                elementTemplate: {
+                                    name: 'group_1_component',
+                                    model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
+                                    component: {
+                                        class: 'GroupFieldComponent',
+                                        config: {
+                                            wrapperCssClasses: 'col',
+                                            componentDefinitions: [
+                                                {
+                                                    // requires mode edit, so expect to be removed
+                                                    name: 'text_1',
+                                                    model: {
+                                                        class: 'TextFieldModel',
+                                                        config: {value: 'hello world 1!',}
+                                                    },
+                                                    component: {class: 'TextFieldComponent', config: {}},
+                                                    constraints: {allowModes: ['edit']},
+                                                },
+                                                {
+                                                    name: 'text_2',
+                                                    model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
+                                                    component: {class: 'TextFieldComponent', config: {}},
+                                                },
+                                                {
+                                                    // requires role 'Admin', so is removed
+                                                    name: 'repeatable_for_admin',
+                                                    model: {class: 'RepeatableComponentModel', config: {}},
+                                                    component: {
+                                                        class: 'RepeatableComponent',
+                                                        config: {
+                                                            elementTemplate: {
+                                                                name: 'text_for_repeatable_for_admin',
+                                                                model: {
+                                                                    class: 'TextFieldModel',
+                                                                    config: {value: 'hello world from repeatable for admin'}
+                                                                },
+                                                                component: {class: 'TextFieldComponent', config: {}},
+                                                                constraints: {authorization: {allowRoles: ['Admin']}},
+                                                            }
+                                                        }
+                                                    },
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    layout: {
+                                        class: 'RepeatableElementLayoutComponent',
+                                        config: {hostCssClasses: 'row align-items-start'}
+                                    },
+                                    // requires mode view, so is kept
+                                    constraints: {authorization: {allowRoles: []}, allowModes: ['view']}
+                                }
+                            },
+                        },
+                        layout: {
+                            class: 'DefaultLayoutComponent',
+                            config: {
+                                label: 'Repeatable TextField with default wrapper defined',
+                                helpText: 'Repeatable component help text',
+                            }
+                        },
+                    },
+                ]
+            };
+            const original = JSON.stringify(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig);
+
+            // ensure the formConfig has not been modified
+            expect(JSON.stringify(formConfig)).to.eql(original);
+
+            // create the expected client form config
+            const expected = JSON.parse(original);
+            // remove the third element in the group component definitions - removing the repeatable elementTemplate means that the repeatable needs to be removed
+            delete expected.componentDefinitions[0].component.config.elementTemplate.component.config.componentDefinitions[2];
+            // remove the first element in the group component definitions
+            delete expected.componentDefinitions[0].component.config.elementTemplate.component.config.componentDefinitions[0];
+            // remove only the constraints property, the component definition is kept
+            delete expected.componentDefinitions[0].component.config.elementTemplate.constraints;
+
+
+            // confirm the client form config looks as expected
+            expect(result).to.eql(expected);
+            done();
+        });
     });
-  });
 });
