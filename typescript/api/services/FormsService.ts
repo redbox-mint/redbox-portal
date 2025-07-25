@@ -511,11 +511,6 @@ export module Services {
       });
     }
 
-    // TODO: some combination of Visitor, Iterator, Composite patterns for generating form config for the client.
-    //  https://refactoring.guru/design-patterns/composite
-    //  https://refactoring.guru/design-patterns/iterator
-    //  https://refactoring.guru/design-patterns/visitor
-
     /**
      * Convert a server-side form config to a client-side form config.
      * @param item The source item.
@@ -592,16 +587,26 @@ export module Services {
       // Cater for GroupFormFieldComponentConfig componentDefinitions
       const itemRecord = item as Record<string, unknown>;
       if (Object.keys(itemRecord?.config ?? {}).includes('componentDefinitions') && Array.isArray(itemRecord?.config['componentDefinitions'])) {
+        const before = JSON.parse(JSON.stringify(item));
+
         result['componentDefinitions'] = itemRecord?.config['componentDefinitions']
             .map(i => this.buildClientFormComponentDefinition(i, context))
             .filter(i => i !== null);
+        sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - componentDefinitions`, {
+          before: before, after: result,
+        });
       }
       // Cater for RepeatableFormFieldComponentConfig elementTemplate
       if (Object.keys(itemRecord?.config ?? {}).includes('elementTemplate') && _.isObject(itemRecord?.config['elementTemplate'])) {
+        const before = JSON.parse(JSON.stringify(item));
+
         result['elementTemplate'] = this.buildClientFormComponentDefinition(itemRecord?.config['elementTemplate'], context) ?? null;
         if ([null, undefined].includes(result['elementTemplate'])) {
           delete result['elementTemplate'];
         }
+        sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - elementTemplate`, {
+          before: before, after: result,
+        });
       }
       return result;
     }
