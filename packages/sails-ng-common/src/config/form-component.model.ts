@@ -44,7 +44,7 @@ export type ExpressionsConfig = Record<string, { template: string; condition?: a
 /**
  * The constraints that must be fulfilled for the form field to be included.
  */
-export interface FormConstraintConfig {
+export class FormConstraintConfig {
     /**
      * The current user must fulfill these authorization constraints.
      * This is only available on the server side.
@@ -56,18 +56,35 @@ export interface FormConstraintConfig {
      * If this is not specified, the form field will be included in all modes.
      */
     allowModes?: FormModesConfig[]
+
+    /**
+     * Create a new instance from an existing instance to ensure no references are shared.
+     * @param other
+     */
+    constructor(other: FormConstraintConfig) {
+        this.authorization = new FormConstraintAuthorizationConfig(other.authorization ?? {});
+        this.allowModes = [...other.allowModes ?? []];
+    }
 }
 
 /**
  * The options available for the authorization constraints.
  */
-export interface FormConstraintAuthorizationConfig {
+export class FormConstraintAuthorizationConfig {
     /**
      * The current user must have at least one of these roles for the form field to be included.
      *
      * e.g. allowRoles: ['Admin', 'Librarians'],
      */
     allowRoles?: string[];
+
+    /**
+     * Create a new instance from an existing instance to ensure no references are shared.
+     * @param other
+     */
+    constructor(other: FormConstraintAuthorizationConfig) {
+        this.allowRoles = [...other.allowRoles ?? []];
+    }
 }
 
 /**
