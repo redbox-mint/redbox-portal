@@ -1900,20 +1900,20 @@ export module Services {
         return false;
       }
 
-      // Exclude figshare items that have in progress uploads.
-      const articleFileList = await this.getArticleFileList(articleId);
-      const figshareIsUploadInProgressResult = await this.isFileUploadInProgress(articleId, articleFileList);
-      if (figshareIsUploadInProgressResult) {
-        sails.log.warn(`${prefix} the article id '${articleId}' has an upload in progress`);
-        return false;
-      }
-
       // Check if the figshare item has expected property key and value.
       const articleDetails = await this.getArticleDetails(articleId);
       const figshareFieldValue = _.get(articleDetails, figshareTargetFieldKey, null);
       const figshareFieldValueMatches = figshareFieldValue !== null && figshareFieldValue === figshareTargetFieldValue;
       if (!figshareFieldValueMatches) {
         sails.log.warn(`${prefix} the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' is not '${JSON.stringify(figshareTargetFieldValue)}'`);
+        return false;
+      }
+
+      // Exclude figshare items that have in progress uploads.
+      const articleFileList = await this.getArticleFileList(articleId);
+      const figshareIsUploadInProgressResult = await this.isFileUploadInProgress(articleId, articleFileList);
+      if (figshareIsUploadInProgressResult) {
+        sails.log.warn(`${prefix} the article id '${articleId}' has an upload in progress`);
         return false;
       }
 
@@ -2178,8 +2178,12 @@ export module Services {
         for (const queryResult of queryResults) {
           const oid = _.get(queryResult, 'oid');
           const articleId = _.get(queryResult, this.figArticleIdPathInRecord);
-          await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
-        }
+            try {
+              await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
+            } catch(error) {
+              //continue processing other records
+            }
+          }
       } catch (err) {
         sails.log.error(`${prefix} error in transitionRecordWorkflowFromFigshareArticlePropertiesJob`, err);
       }
