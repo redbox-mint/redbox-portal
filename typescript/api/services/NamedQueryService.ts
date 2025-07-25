@@ -361,7 +361,7 @@ export module Services {
         // continue the while loop
       }
 
-      sails.log.log(`All named query results: returning ${records.length} results for '${queryName}' from ${requestCount} requests`);
+      sails.log.debug(`All named query results: returning ${records.length} results for '${queryName}' from ${requestCount} requests`);
       return records;
     }
 
