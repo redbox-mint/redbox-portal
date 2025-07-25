@@ -30,7 +30,9 @@ const formConfig: FormConfig = {
     validators: [
         {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
-
+    // componentTemplates: [
+    //     // TODO - server-side only, replaced in componentDefinitions
+    // ],
     componentDefinitions: [
         {
             name: 'text_1_event',
@@ -64,17 +66,35 @@ const formConfig: FormConfig = {
                     validators: [
                         {name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
                         {name: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
-                    ]
+                    ],
                 }
             },
             component: {
-                class: 'TextFieldComponent'
+                // TODO: the TextFieldComponent will have metadata that says the default components to use in each mode.
+                class: 'TextFieldComponent',
             },
             expressions: {
                 'model.value': {
                     template: `<%= _.get(model,'text_1_event','') %>`
                 }
+            },
+            constraints: {
+                authorization: {
+                    allowRoles: ['Admin', 'Librarians'],
+                },
+                allowModes: ['edit'],
             }
+
+            // TODO: the client is in a mode, it asks for the form in that mode
+            // The 'available modes' that this item is shown in.
+            // 'view', 'markdown' ????
+            // Each component has a default for each mode.
+            // TODO: THis is for customisations - not sure where to define yet.
+            // renderedModes: [
+            //     {class: "TextFieldViewComponent", mode:"view"},
+            //     {class: "TextFieldMarkdownComponent", mode:"markdown"},
+            //     'edit'
+            // ],
         },
         {
             name: 'text_2_event',
