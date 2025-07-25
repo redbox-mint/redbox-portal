@@ -1374,6 +1374,7 @@ export module Services {
             let foundFileAttachment = this.isFileAttachmentInDataLocations(dataLocations);
             let countFileAttachments = this.countFileAttachmentsInDataLocations(dataLocations);
             
+            sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - before override foundAttachment '+foundFileAttachment);
             //Evaluate project specific rules that can override the need to upload files present in data locations list
             if(!_.isEmpty(sails.config.figshareAPI.mapping.upload.override)) {
               foundFileAttachment = this.getValueFromRecord(record,sails.config.figshareAPI.mapping.upload.override.template);
@@ -2139,9 +2140,7 @@ export module Services {
       const prefix = "FigService -";
 
       try {
-        // TODO: job.attrs.data doesn't seem to include brand or user. Is it supposed to?
-        // const data = job.attrs.data;
-        // TODO: the brand is hard-coded to 'default' - this should be obtained from somewhere
+        //For the moment it is ok to hard code the branding. Once multi tenancy is fully implemented this can be revisited 
         const brand: BrandingModel = BrandingService.getBrand('default');
 
         const start = 0;
@@ -2159,7 +2158,6 @@ export module Services {
         const username = _.get(jobConfig, 'username', '') ?? "";
         const userType = _.get(jobConfig, 'userType', '') ?? "";
 
-        // TODO: this works to obtain the user, but should the user come from the agendaqueue job.attrs.data.user instead?
         const user = await UsersService.getUserWithUsername(username).toPromise();
 
         if (!user || !user?.username || user?.type !== userType) {
