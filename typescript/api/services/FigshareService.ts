@@ -2150,7 +2150,7 @@ export module Services {
         // configurable criteria
         const jobConfig = this.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {};
         const enabled = _.get(jobConfig, 'enabled', '')?.toString() === 'true';
-        const queryName = _.get(jobConfig, 'queryName', '') ?? "";
+        const namedQuery = _.get(jobConfig, 'namedQuery', '') ?? "";
         const targetStep = _.get(jobConfig, 'targetStep', '') ?? "";
         const paramMap = _.get(jobConfig, 'paramMap', {}) ?? {};
         const figshareTargetFieldKey = _.get(jobConfig, 'figshareTargetFieldKey', '') ?? "";
@@ -2172,8 +2172,8 @@ export module Services {
         }
 
         // --> Find dataPublication records in stage queued in ReDBox database
-        const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryName);
-        const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, queryName, start, rows, maxRecords, user);
+        const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, namedQuery);
+        const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, namedQuery, start, rows, maxRecords, user);
 
         for (const queryResult of queryResults) {
           const oid = _.get(queryResult, 'oid');
