@@ -681,11 +681,15 @@ export module Services {
       }
     }
 
-    private async getArticleFileList(articleId) {
+    private async getArticleFileList(articleId:string, logEnabled:boolean = true) {
       let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+      if(logEnabled) {
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+      }
       let responseArticleList = await axios(articleFileListConfig);
-      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+      if(logEnabled) {
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+      }
       let articleFileList = responseArticleList.data;
       return articleFileList;
     }
@@ -698,7 +702,7 @@ export module Services {
       //Files in figshare article have to be status available. Status 'created' means that the file is still being uploaded to the article
       let fileUploadInProgress = _.find(articleFileList, ['status', 'created']);
       if(!_.isUndefined(fileUploadInProgress)) {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - isFileUploadInProgress - true');
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - isFileUploadInProgress - true - articleId ${articleId}`);
         return true;
       } else {
         return false;
@@ -1910,7 +1914,7 @@ export module Services {
       }
 
       // Exclude figshare items that have in progress uploads.
-      const articleFileList = await this.getArticleFileList(articleId);
+      const articleFileList = await this.getArticleFileList(articleId, false);
       const figshareIsUploadInProgressResult = await this.isFileUploadInProgress(articleId, articleFileList);
       if (figshareIsUploadInProgressResult) {
         sails.log.warn(`${prefix} the article id '${articleId}' has an upload in progress`);
