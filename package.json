@@ -74,7 +74,6 @@
     "sass-loader": "^16.0.5",
     "skipper": "^0.9.5",
     "skipper-gridfs": "^1.0.2",
-    "solr-client": "^0.9.0",
     "style-loader": "^4.0.0",
     "systemjs": "6.15.1",
     "ts-node": "^10.9.2",
