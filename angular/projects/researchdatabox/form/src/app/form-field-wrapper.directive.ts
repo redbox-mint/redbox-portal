@@ -7,7 +7,8 @@ import { Directive, ViewContainerRef } from '@angular/core';
  *
  */
 @Directive({
-  selector: '[formFieldComp]',
+    selector: '[formFieldComp]',
+    standalone: false
 })
 export class FormFieldWrapperDirective {
   constructor(public viewContainerRef: ViewContainerRef) { }

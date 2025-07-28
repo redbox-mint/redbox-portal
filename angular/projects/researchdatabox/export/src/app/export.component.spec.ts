@@ -1,10 +1,11 @@
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { UtilityService, LoggerService, TranslationService, RecordService, ConfigService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubRecordService, appInit, localeId } from '@researchdatabox/portal-ng-common';
 import { ExportComponent } from './export.component';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
+import i18next from 'i18next';
+import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { DateTime } from 'luxon';
@@ -14,6 +15,14 @@ let recordService: any;
 let translationService: any;
 let recordData: any;
 let recordTypes: any;
+
+export function i18AppInit() {
+  return () => i18next
+  .init({
+    fallbackLng: 'en',
+    debug: true
+  });
+}
 
 describe('ExportComponent', () => {
   beforeEach(async () => {
@@ -53,20 +62,12 @@ describe('ExportComponent', () => {
           provide: RecordService,
           useValue: recordService
         },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
-        {
-          provide: LOCALE_ID,
-          deps: [I18NEXT_SERVICE],
-          useValue: localeId
-        }
+        provideAppInitializer(i18AppInit()),
+        provideI18Next(
+          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
+        )
       ]
     });
-    TestBed.inject(I18NEXT_SERVICE);
     await testModule.compileComponents();
   });
 

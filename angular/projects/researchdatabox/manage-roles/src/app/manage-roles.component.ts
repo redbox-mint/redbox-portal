@@ -5,9 +5,10 @@ import { Role, User } from '@researchdatabox/portal-ng-common';
 import * as _ from 'lodash';
 
 @Component({
-  selector: 'manage-roles',
-  templateUrl: './manage-roles.component.html',
-  styleUrls: ['./manage-roles.component.scss']
+    selector: 'manage-roles',
+    templateUrl: './manage-roles.component.html',
+    styleUrls: ['./manage-roles.component.scss'],
+    standalone: false
 })
 export class ManageRolesComponent extends BaseComponent {
   title = '@researchdatabox/manage-roles';

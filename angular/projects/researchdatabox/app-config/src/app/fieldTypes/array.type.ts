@@ -2,8 +2,8 @@ import { Component } from '@angular/core';
 import { FieldArrayType } from '@ngx-formly/core';
 
 @Component({
-  selector: 'formly-array-type',
-  template: `
+    selector: 'formly-array-type',
+    template: `
     <div class="mb-3">
       <legend *ngIf="props.label">{{ props.label }}</legend>
       <p *ngIf="props.description">{{ props.description }}</p>
@@ -28,5 +28,6 @@ import { FieldArrayType } from '@ngx-formly/core';
       </div>
     </div>
   `,
+    standalone: false
 })
 export class ArrayTypeComponent extends FieldArrayType {}

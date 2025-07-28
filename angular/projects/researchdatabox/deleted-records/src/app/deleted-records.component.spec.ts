@@ -1,4 +1,4 @@
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 import {
@@ -9,18 +9,15 @@ import {
   ConfigService,
   getStubConfigService,
   getStubTranslationService,
-  appInit,
-  localeId,
   getStubRecordService,
-  RecordService
+  RecordService,
+  RecordResponseTable
 } from '@researchdatabox/portal-ng-common';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { DeletedRecordsComponent } from './deleted-records.component';
 import { ModalModule } from "ngx-bootstrap/modal";
-import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 
 describe('DeletedRecordsComponent', () => {
   let configService: any;
@@ -76,7 +73,6 @@ describe('DeletedRecordsComponent', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot(),
         BsDatepickerModule.forRoot(),
         PaginationModule.forRoot(),
         ModalModule.forRoot(),
@@ -100,21 +96,9 @@ describe('DeletedRecordsComponent', () => {
         {
           provide: RecordService,
           useValue: recordService
-        },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
-        {
-          provide: LOCALE_ID,
-          deps: [I18NEXT_SERVICE],
-          useValue: localeId
         }
       ]
     });
-    TestBed.inject(I18NEXT_SERVICE);
     await testModule.compileComponents();
   });
 
