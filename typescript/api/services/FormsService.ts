@@ -17,20 +17,17 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
-import { BrandingModel, FormModel, Services as services } from '@researchdatabox/redbox-core-types';
-import {
-  Sails,
-  Model
-} from "sails";
-import { createSchema } from 'genson-js';
+import {Observable} from 'rxjs/Rx';
+import {BrandingModel, FormModel, Services as services} from '@researchdatabox/redbox-core-types';
+import {Model, Sails} from "sails";
+import {createSchema} from 'genson-js';
 import {
   BaseFormFieldComponentDefinition,
   BaseFormFieldLayoutDefinition,
   FormComponentDefinition,
-  FormConfig, FormConstraintConfig, FormModesConfig
+  FormConfig,
+  FormConstraintConfig,
+  FormModesConfig
 } from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
@@ -511,14 +508,28 @@ export module Services {
       });
     }
 
+    // TODO: Can the client form building be extracted to a separate class?
+    //    Does it needs access to some of the services?
+
+    /*
+     * Methods for building the client form config.
+     *
+     *
+     * Note that returning null means to remove the block from the config.
+     * What that means differs between various kinds of config blocks.
+     * Specifically null, undefined does *not* mean to remove the block, as some blocks have optional properties.
+     */
+
     /**
      * Convert a server-side form config to a client-side form config.
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
     public buildClientFormConfig(item: FormConfig, context?: ClientFormContext): Record<string, unknown> {
-      sails.log.verbose(`FormsService - buildClientFormConfig - processing form config with name '${item?.name}'`);
-      // set defaults for the context
+      sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
+
+      // Create a new context to avoid changing the provided context.
+      // Set defaults for the context.
       context = {
         current: {
           mode: context?.current?.mode ?? 'view',
@@ -528,20 +539,13 @@ export module Services {
         },
         build: context?.build ?? [],
       };
-      sails.log.verbose(`FormsService - buildClientFormConfig`, {
-        context: context
-      });
-      // create the client form config
-      const result: Record<string, unknown> = {...item};
-      result.componentDefinitions = this.buildClientFormComponentDefinitions(item.componentDefinitions, context);
-      return result;
-    }
 
-    public buildClientFormComponentDefinitions(items: FormComponentDefinition[], context: ClientFormContext): Record<string, unknown>[] {
-      sails.log.verbose(`FormsService - buildClientFormComponentDefinitions - processing ${items?.length} items`);
-      return items
-          .map(i => this.buildClientFormComponentDefinition(i, context))
-          .filter(i => i !== null);
+      // create the client form config
+      const result = this.buildClientFormObject(item as Record<string, unknown>, context);
+      if (!result) {
+        throw new Error(`The form config is invalid because all form fields were removed, the form config must have at least one field the current user can view.`)
+      }
+      return result;
     }
 
     /**
@@ -549,9 +553,8 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> {
-      sails.log.verbose(`FormsService - buildClientFormComponentDefinition - processing component definition with name '${item?.name}'`);
-      // TODO: apply constraints and remove the constraints property
+    public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
+      sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}'`);
       // add the item constraints to the context build
       if (item?.constraints) {
         context = new ClientFormContext(context);
@@ -563,32 +566,21 @@ export module Services {
 
       // remove this component definition (by returning null) if the constraints are not met
       if (!this.checkClientFormComponentDefinitionAuthorization(context)) {
+        sails.log.verbose(`FormsService - returning null because constraint authorization was not met`);
         return null;
       }
       if (!this.checkClientFormComponentDefinitionMode(context)) {
+        sails.log.verbose(`FormsService - returning null because constraint form mode was not met`);
         return null;
       }
 
       // create the client form config
       const result: Record<string, unknown> = {...item};
 
-      if (item?.component !== undefined) {
-        const componentResult = this.buildClientFormFieldComponentDefinition(item.component, context);
-        if (componentResult === null) {
-          delete result.component;
-        } else {
-          result.component = componentResult
-        }
-      }
-
-      if (item?.layout !== undefined) {
-        result.layout = this.buildClientFormFieldLayoutDefinition(item.layout, context);
-      }
-
       // remove the constraints property
       delete result.constraints;
 
-      return result;
+      return this.buildClientFormObject(result, context);
     }
 
     /**
@@ -596,38 +588,13 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> {
-      sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - processing field component definition with class '${item?.['class']}'`);
-      // TODO: apply the current form mode from the context
-
+    public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
+      sails.log.verbose(`FormsService - build client form field component definition with class '${item?.['class']}'`);
       // create the client form config
-      const result: Record<string, unknown> = {...item};
-
-      // Cater for GroupFormFieldComponentConfig componentDefinitions
-      const itemRecord = item as Record<string, unknown>;
-      if (Object.keys(itemRecord?.config ?? {}).includes('componentDefinitions') && Array.isArray(itemRecord?.config['componentDefinitions'])) {
-        const before = JSON.parse(JSON.stringify(item));
-
-        result['config']['componentDefinitions'] = this.buildClientFormComponentDefinitions(itemRecord?.config['componentDefinitions'], context);
-        sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - componentDefinitions`, {
-          before: before, after: result,
-        });
+      if (!this.isFormFieldDefinition(item)) {
+        throw new Error(`FormsService - item is not a form field component definition ${JSON.stringify(item)}`);
       }
-
-      // Cater for RepeatableFormFieldComponentConfig elementTemplate
-      if (Object.keys(itemRecord?.config ?? {}).includes('elementTemplate') && _.isObject(itemRecord?.config['elementTemplate'])) {
-        const before = JSON.parse(JSON.stringify(item));
-
-        const elementTemplateResult = this.buildClientFormComponentDefinition(itemRecord?.config['elementTemplate'], context) ?? null;
-        if ([null, undefined].includes(elementTemplateResult)) {
-          return null;
-        }
-        sails.log.verbose(`FormsService - buildClientFormFieldComponentDefinition - elementTemplate`, {
-          before: before, after: result,
-        });
-      }
-
-      return result;
+      return this.buildClientFormObject(item, context);
     }
 
     /**
@@ -635,44 +602,121 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> {
-      sails.log.verbose(`FormsService - buildClientFormFieldLayoutDefinition - processing field layout definition with class '${item?.['class']}'`);
-      // TODO: apply the current form mode from the context
+    public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
+      sails.log.verbose(`FormsService - build client form field layout definition with class '${item?.['class']}'`);
       // create the client form config
-      return {...item};
+      if (!this.isFormFieldDefinition(item)) {
+        throw new Error(`FormsService - item is not a form field layout definition ${JSON.stringify(item)}`);
+      }
+      return this.buildClientFormObject(item, context);
+    }
+
+    private buildClientFormObject(item: Record<string, unknown>, context: ClientFormContext): Record<string, unknown> | null {
+      const result: Record<string, unknown> = {};
+
+      if (this.isFormFieldDefinition(item) && item.config === null) {
+        // if the config was removed, then remove the definition block
+        sails.log.verbose(`FormsService - remove form field definition with class '${item?.['class']}'`);
+        return null;
+      }
+
+      for (const [key, value] of Object.entries(item ?? {})) {
+        switch (key) {
+
+          case 'componentDefinitions':
+            const intermediate = [];
+            const arrayItems = Array.isArray(value) ? value : [];
+            for (const arrayItem of arrayItems) {
+              const i = this.buildClientFormComponentDefinition(arrayItem, context);
+              if (i === null) {
+                sails.log.verbose(`FormsService - remove componentDefinitions form component definition with name '${arrayItem?.['name']}'`);
+              } else {
+                intermediate.push(i);
+              }
+            }
+            result[key] = intermediate;
+            if (intermediate.length !== arrayItems.length) {
+              sails.log.verbose(`FormsService - remove ${arrayItems.length - intermediate.length} componentDefinitions form component definitions`);
+            }
+            if (intermediate.length === 0) {
+              // if there are no componentDefinitions,
+              // then the parent block needs to be removed
+              sails.log.verbose(`FormsService - remove all componentDefinitions form component definitions`);
+              return null;
+            }
+            break;
+
+          case 'component':
+            result[key] = this.buildClientFormFieldComponentDefinition(value, context);
+            if (result[key] === null || result[key]?.['config'] === null) {
+              // if a component or component config is set to null,
+              // then the component definition needs to be removed
+              sails.log.verbose(`FormsService - remove component form field component definition with class '${value?.['class']}'`);
+              return null;
+            }
+            break;
+
+          case 'layout':
+            result[key] = this.buildClientFormFieldLayoutDefinition(value, context);
+            break;
+
+          case 'elementTemplate':
+            if (this.isFormComponentDefinition(value)) {
+              result[key] = this.buildClientFormComponentDefinition(value, context);
+              if (result[key] === null) {
+                // if the elementTemplate was removed,
+                // then remove the repeatable
+                sails.log.verbose(`FormsService - remove elementTemplate form component definition with name '${value?.['name']}'`);
+                return null;
+              }
+            }
+            break;
+
+          default:
+            if (Array.isArray(value)) {
+              // sails.log.verbose(`FormsService - unknown array ${key}: ${JSON.stringify(value)}`);
+              result[key] = this.buildClientFormArray(value, context);
+            } else if (_.isObject(value)) {
+              // sails.log.verbose(`FormsService - unknown object ${key}: ${JSON.stringify(value)}`);
+              result[key] = this.buildClientFormObject(value as Record<string, unknown>, context);
+            } else {
+              // sails.log.verbose(`FormsService - unknown value ${key}: ${JSON.stringify(value)}`);
+              result[key] = value;
+            }
+            break;
+        }
+      }
+      return result;
+    }
+
+    private buildClientFormArray(item: unknown[], context: ClientFormContext): unknown[] | null {
+      return item;
     }
 
     private checkClientFormComponentDefinitionAuthorization(context: ClientFormContext): boolean {
-      sails.log.verbose(`FormsService - checkClientFormComponentDefinitionAuthorization - processing component definition authorization '${JSON.stringify(context)}'`);
       // Get the current user's roles, default to no roles.
       const currentUserRoles = context?.current?.user?.roles ?? [];
 
-      const requiredRoles = context?.build?.map(b => b?.authorization?.allowRoles);
+      const requiredRoles = context?.build
+          ?.map(b => b?.authorization?.allowRoles)
+          ?.filter(i => i !== null) ?? [];
 
       // The current user must have at least one of the roles required by each component.
       const isAllowed = requiredRoles?.every(i => {
         const isArray = Array.isArray(i);
         const hasElements = i?.length > 0;
         const hasAtLeastOneUserRole = hasElements && currentUserRoles.some(c => i.includes(c));
-        const isAllowed = (isArray && hasElements && hasAtLeastOneUserRole) || !isArray || !hasElements;
-        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionAuthorization - isAllowed`, {
-          isArray: isArray, hasElements: hasElements, hasAtLeastOneUserRole: hasAtLeastOneUserRole, isAllowed: isAllowed,
-        });
-        return isAllowed;
+        return (isArray && hasElements && hasAtLeastOneUserRole) || !isArray || !hasElements;
       });
 
       if (!isAllowed) {
-        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionAuthorization - denied`, {
-          currentUserRoles: currentUserRoles,
-          requiredRoles: requiredRoles
-        });
+        sails.log.verbose(`FormsService - access denied for form component definition authorization, current: ${currentUserRoles?.join(', ')}, required: ${requiredRoles?.join(', ')}`);
       }
 
       return isAllowed;
     }
 
     private checkClientFormComponentDefinitionMode(context: ClientFormContext): boolean {
-      sails.log.verbose(`FormsService - checkClientFormComponentDefinitionAuthorization - processing component definition mode '${JSON.stringify(context)}'`);
       // Get the current context mode, default to no mode.
       const currentContextMode = context?.current?.mode ?? null;
 
@@ -683,21 +727,34 @@ export module Services {
         const isArray = Array.isArray(i);
         const hasElements = i?.length > 0;
         const hasMode = hasElements && i.includes(currentContextMode);
-        const isAllowed = (isArray && hasElements && hasMode) || !isArray || !hasElements;
-        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionMode - isAllowed`, {
-          isArray: isArray, hasElements: hasElements, hasMode: hasMode, isAllowed: isAllowed,
-        });
-        return isAllowed;
+        return (isArray && hasElements && hasMode) || !isArray || !hasElements;
       });
 
       if (!isAllowed) {
-        sails.log.verbose(`FormsService - checkClientFormComponentDefinitionMode - denied`, {
-          currentContextMode: currentContextMode,
-          requiredModes: requiredModes
-        });
+        sails.log.verbose(`FormsService - access denied for form component definition mode, current: ${currentContextMode}, required: ${requiredModes?.join(', ')}`);
       }
 
       return isAllowed;
+    }
+
+    private isFormFieldDefinition(item: unknown): item is Record<string, unknown> {
+      // use typescript narrowing to check the value
+      // see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
+      // not using 'BaseFormFieldComponentDefinition' because it is too general -
+      // it does not include the class and config
+      const i = item as Record<string, unknown>;
+      // note that 'config' can be null or object, or not set
+      return 'class' in i && typeof i?.class === 'string' &&
+          ('config' in i && (typeof i?.config === 'object' || i?.config === null) || i?.config === undefined);
+    }
+
+    private isFormComponentDefinition(item: unknown): item is FormComponentDefinition {
+      // use typescript narrowing to check the value
+
+      const i = item as FormComponentDefinition;
+      // only name and component are required
+      return 'name' in i && typeof i?.name === 'string' &&
+          'component' in i && this.isFormFieldDefinition(i?.component);
     }
   }
 }

@@ -13,7 +13,7 @@ export interface FormComponentDefinition {
     /**
      * The definition of the model that backs the form field.
      */
-    model: FormFieldModelDefinition;
+    model?: FormFieldModelDefinition;
     /**
      * The definition of the client-side component for the form field.
      */

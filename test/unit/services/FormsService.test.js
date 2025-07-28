@@ -174,6 +174,12 @@ describe('The FormsService', function () {
                 skipValidationOnSave: false,
                 componentDefinitions: [
                     {
+                        name: 'text_1',
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                    },
+                    {
                         name: 'text_2',
                         layout: {
                             class: 'DefaultLayoutComponent',
@@ -208,7 +214,7 @@ describe('The FormsService', function () {
 
             // create the expected client form config
             const expected = JSON.parse(original);
-            expected.componentDefinitions = [];
+            expected.componentDefinitions = [expected.componentDefinitions[0]];
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
@@ -226,6 +232,12 @@ describe('The FormsService', function () {
                 editCssClasses: "redbox-form form",
                 skipValidationOnSave: false,
                 componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                    },
                     {
                         name: 'text_2',
                         layout: {
@@ -266,7 +278,7 @@ describe('The FormsService', function () {
 
             // create the expected client form config
             const expected = JSON.parse(original);
-            expected.componentDefinitions = [];
+            expected.componentDefinitions = [expected.componentDefinitions[0]];
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
