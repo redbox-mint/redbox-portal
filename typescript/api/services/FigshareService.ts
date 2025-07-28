@@ -2185,7 +2185,7 @@ export module Services {
             try {
               await this.transitionRecordWorkflowFromFigshareArticleProperties(brand, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
             } catch(error) {
-              //continue processing other records
+              sails.log.verbose(`${prefix} transitionRecordWorkflowFromFigshareArticlePropertiesJob unable to process articleId ${articleId}`, error);
             }
           }
       } catch (err) {
