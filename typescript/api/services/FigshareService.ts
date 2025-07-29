@@ -206,7 +206,7 @@ export module Services {
         let context = {
           moment: moment,
           field: field,
-          artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
+          artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts)
         }
         value = _.template(pathOrTemplate)(context);
         if(this.extraVerboseLogging) {
@@ -224,7 +224,7 @@ export module Services {
         let context = {
           moment: moment,
           record: record,
-          artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
+          artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts)
         }
         value = _.template(pathOrTemplate)(context);
         if(this.extraVerboseLogging) {
@@ -255,7 +255,7 @@ export module Services {
             article: article,
             moment: moment,
             field: field,
-            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts)
           }
           value = _.template(template)(context);
           
@@ -304,7 +304,7 @@ export module Services {
             record: record,
             moment: moment,
             field: standardField,
-            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts)
           }
           value = _.template(template)(context);
           
@@ -335,7 +335,7 @@ export module Services {
             record: record,
             moment: moment,
             field: customField,
-            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts)
           }
           value = _.template(template)(context);
           
@@ -371,7 +371,7 @@ export module Services {
             record: record,
             moment: moment,
             field: field,
-            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts),
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts),
             runtimeArtifacts: runtimeArtifacts
           }
           value = _.template(template)(context);
@@ -747,8 +747,8 @@ export module Services {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
 
-      this.figshareItemGroupId = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.figshareItemGroupId',sails.config.figshareAPI.mapping.figshareItemGroupId); 
-      this.figshareItemType =  _.get(sails.config,'figshareAPIEnv.overrideArtifacts.figshareItemType',sails.config.figshareAPI.mapping.figshareItemType);
+      this.figshareItemGroupId = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.figshareItemGroupId',sails.config.figshareAPI.mapping.figshareItemGroupId); 
+      this.figshareItemType =  _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.figshareItemType',sails.config.figshareAPI.mapping.figshareItemType);
 
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
       let requestBodyUpdate = _.cloneDeep(new FigshareArticleUpdate(this.figshareItemGroupId,this.figshareItemType)); 
@@ -1170,7 +1170,7 @@ export module Services {
                   request: requestBody,
                   moment: moment,
                   field: field,
-                  artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts),
+                  artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts),
                   record: record
                 }
               } else {
@@ -1178,7 +1178,7 @@ export module Services {
                   request: requestBody,
                   moment: moment,
                   field: field,
-                  artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
+                  artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts.mapping.artifacts',sails.config.figshareAPI.mapping.artifacts)
                 }
               }
             }
