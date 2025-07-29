@@ -5,11 +5,10 @@
   "keywords": [],
   "dependencies": {
     "@researchdatabox/oni-ocfl": "^1.4.0",
-    "@researchdatabox/raido-openapi-generated-node": "^0.0.3",
-    "@researchdatabox/redbox-core-types": "^1.4.8",
+    "@researchdatabox/raido-openapi-generated-node": "file:support/raido",
+    "@researchdatabox/redbox-core-types": "file:core",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.9",
     "@researchdatabox/sails-ng-common": "^0.2.1",
-    "@scienta/axios-oauth2": "^1.2.1",
     "@tsconfig/node18": "^18.2.4",
     "agenda": "github:redbox-mint-contrib/agenda#dist",
     "async": "3.2.6",
