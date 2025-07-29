@@ -71,6 +71,9 @@ export module Services {
     private figshareItemType;
     private figLicenceIDs: any;
     private forCodesMapping: any;
+    private APIToken = '';
+    private baseURL = '';
+    private frontEndURL = '';
 
     protected _exportedMethods: any = [
       'createUpdateFigshareArticle',
@@ -85,7 +88,7 @@ export module Services {
 
     private createUpdateFigshareArticleLogLevel = 'verbose';
     private figshareAccountAuthorIDs;
-    private extraVerboseLogging = false;
+    private extraVerboseLogging = true;
 
     private figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob: {
       enabled: true,
@@ -131,7 +134,7 @@ export module Services {
             });
   
           that.forCodesMapping = sails.config.figshareReDBoxFORMapping.FORMapping;
-          that.figshareItemGroupId = sails.config.figshareAPI.mapping.figshareItemGroupId;
+          that.figshareItemGroupId = sails.config.figshareAPI.mapping.figshareItemGroupId; 
           that.figshareItemType = sails.config.figshareAPI.mapping.figshareItemType;
           that.figArticleIdPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleId;
           that.figArticleURLPathInRecordList = sails.config.figshareAPI.mapping.recordFigArticleURL;
@@ -152,8 +155,8 @@ export module Services {
     }
 
     private isFigshareAPIEnabled() {
-      let enabled = false; 
-      if(!_.isEmpty(sails.config.figshareAPI.APIToken) && !_.isEmpty(sails.config.figshareAPI.baseURL) && !_.isEmpty(sails.config.figshareAPI.frontEndURL)) {
+      let enabled = false;
+      if(!_.isEmpty(this.APIToken) && !_.isEmpty(this.baseURL) && !_.isEmpty(this.frontEndURL)) {
         enabled = true;
       }
       return enabled;
@@ -161,8 +164,14 @@ export module Services {
 
     private getAxiosConfig(method, urlSectionPattern, requestBody) {
 
-      let figshareBaseUrl = sails.config.figshareAPI.baseURL + urlSectionPattern
-      let figAccessToken = 'token '+sails.config.figshareAPI.APIToken;
+      if(_.isEmpty(this.APIToken)) {
+        this.APIToken = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.APIToken',sails.config.figshareAPI.APIToken);
+        this.baseURL = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.baseURL',sails.config.figshareAPI.baseURL);
+        this.frontEndURL = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.frontEndURL',sails.config.figshareAPI.frontEndURL);
+      }
+
+      let figshareBaseUrl = this.baseURL + urlSectionPattern
+      let figAccessToken = 'token '+this.APIToken;
 
       let figHeaders = { 
         'Content-Type': 'application/json',
@@ -197,7 +206,7 @@ export module Services {
         let context = {
           moment: moment,
           field: field,
-          artifacts: sails.config.figshareAPI.mapping.artifacts
+          artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
         }
         value = _.template(pathOrTemplate)(context);
         if(this.extraVerboseLogging) {
@@ -215,7 +224,7 @@ export module Services {
         let context = {
           moment: moment,
           record: record,
-          artifacts: sails.config.figshareAPI.mapping.artifacts
+          artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
         }
         value = _.template(pathOrTemplate)(context);
         if(this.extraVerboseLogging) {
@@ -246,7 +255,7 @@ export module Services {
             article: article,
             moment: moment,
             field: field,
-            artifacts: sails.config.figshareAPI.mapping.artifacts
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
           }
           value = _.template(template)(context);
           
@@ -295,7 +304,7 @@ export module Services {
             record: record,
             moment: moment,
             field: standardField,
-            artifacts: sails.config.figshareAPI.mapping.artifacts
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
           }
           value = _.template(template)(context);
           
@@ -326,7 +335,7 @@ export module Services {
             record: record,
             moment: moment,
             field: customField,
-            artifacts: sails.config.figshareAPI.mapping.artifacts
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
           }
           value = _.template(template)(context);
           
@@ -362,7 +371,7 @@ export module Services {
             record: record,
             moment: moment,
             field: field,
-            artifacts: sails.config.figshareAPI.mapping.artifacts,
+            artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts),
             runtimeArtifacts: runtimeArtifacts
           }
           value = _.template(template)(context);
@@ -500,7 +509,7 @@ export module Services {
     //and these rules are meant to be project spefic and hence these are set in figshareAPI config file  
     private getContributorsFromRecord(record:any) {
       let authors = [];
-      let template = sails.config.figshareAPI.mapping.artifacts.getContributorsFromRecord.template;
+      let template = sails.config.figshareAPI.mapping.runtimeArtifacts.getContributorsFromRecord.template;
       if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
         let context = {
           record: record
@@ -522,7 +531,7 @@ export module Services {
     private isRecordEmbargoed(request:any, filesOrURLsAttached:boolean) {
       let isEmbargoed = false;
       if(!_.isEmpty(sails.config.figshareAPI.mapping.standardFields.embargo)) {
-        let template = sails.config.figshareAPI.mapping.artifacts.isRecordEmbargoed.template;
+        let template = sails.config.figshareAPI.mapping.runtimeArtifacts.isRecordEmbargoed.template;
         if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
           let context = {
             request: request,
@@ -552,7 +561,7 @@ export module Services {
       let isEmbargoSet = _.get(articleDetails,'is_embargoed',false);
       if(isEmbargoSet) {
         if(!_.isEmpty(sails.config.figshareAPI.mapping.standardFields.embargo)) {
-          let template = sails.config.figshareAPI.mapping.artifacts.isRecordEmbargoCleared.template;
+          let template = sails.config.figshareAPI.mapping.runtimeArtifacts.isRecordEmbargoCleared.template;
           if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
             let context = {
               request: request
@@ -610,7 +619,7 @@ export module Services {
     private findCategoryIDs(record:any) {
       let catIDs = [];
       if(!_.isUndefined(this.forCodesMapping) && !_.isEmpty(this.forCodesMapping)){
-        let template = sails.config.figshareAPI.mapping.artifacts.getCategoryIDs.template;
+        let template = sails.config.figshareAPI.mapping.runtimeArtifacts.getCategoryIDs.template;
         if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
           let context = {
             record: record,
@@ -737,6 +746,10 @@ export module Services {
     private getArticleUpdateRequestBody(record:any, figshareAccountAuthorIDs:any, figCategoryIDs:any, figLicenceIDs:any) {
       //Custom_fields is a dict not an array 
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
+
+      this.figshareItemGroupId = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.figshareItemGroupId',sails.config.figshareAPI.mapping.figshareItemGroupId); 
+      this.figshareItemType =  _.get(sails.config,'figshareAPIEnv.overrideArtifacts.figshareItemType',sails.config.figshareAPI.mapping.figshareItemType);
+
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
       let requestBodyUpdate = _.cloneDeep(new FigshareArticleUpdate(this.figshareItemGroupId,this.figshareItemType)); 
 
@@ -914,7 +927,7 @@ export module Services {
                   _.set(record,figArticleURLPathInRecordResponse,articleLocationURL);
 
                   for(let figArticleURLPathInRecord of this.figArticleURLPathInRecordList) {
-                    _.set(record,figArticleURLPathInRecord,`${sails.config.figshareAPI.frontEndURL}/${articleId}`);
+                    _.set(record,figArticleURLPathInRecord,`${this.frontEndURL}/${articleId}`);
                   }
                 }
                 
@@ -996,7 +1009,7 @@ export module Services {
                 _.set(record,figArticleURLPathInRecordResponse,articleLocationURL);
 
                 for(let figArticleURLPathInRecord of this.figArticleURLPathInRecordList) {
-                  _.set(record,figArticleURLPathInRecord,`${sails.config.figshareAPI.frontEndURL}/${articleId}`);
+                  _.set(record,figArticleURLPathInRecord,`${this.frontEndURL}/${articleId}`);
                 }
               }
 
@@ -1157,7 +1170,7 @@ export module Services {
                   request: requestBody,
                   moment: moment,
                   field: field,
-                  artifacts: sails.config.figshareAPI.mapping.artifacts,
+                  artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts),
                   record: record
                 }
               } else {
@@ -1165,7 +1178,7 @@ export module Services {
                   request: requestBody,
                   moment: moment,
                   field: field,
-                  artifacts: sails.config.figshareAPI.mapping.artifacts
+                  artifacts: _.get(sails.config,'figshareAPIEnv.overrideArtifacts',sails.config.figshareAPI.mapping.artifacts)
                 }
               }
             }
@@ -1678,7 +1691,7 @@ export module Services {
       
           let uploadFileLocation = responseStep1.data.location;
 
-          let figAccessToken = 'token '+sails.config.figshareAPI.APIToken;
+          let figAccessToken = 'token '+this.APIToken;
 
           let figHeaders = { 
             'Content-Type': 'application/json',
@@ -1780,7 +1793,7 @@ export module Services {
                 let configStep4 = {
                   headers: { 
                     'Content-Type': 'application/octet-stream',
-                    'Authorization': 'Token '+sails.config.figshareAPI.APIToken
+                    'Authorization': 'Token '+this.APIToken
                   },
                   maxContentLength: Infinity,
                   maxBodyLength: Infinity,
