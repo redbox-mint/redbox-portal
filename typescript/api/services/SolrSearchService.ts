@@ -131,12 +131,7 @@ export module Services {
       let coreIds: string[] = Object.keys(solrConfig.cores);
       for (let coreId of coreIds) {
         let solrOpts: SolrOptions = solrConfig.cores[coreId].options;
-
-
-
         let client: SolrClient = Solr.createClient(solrOpts);
-        // client.autoCommit = true;
-
         this.clients[coreId] = client;
       }
     }
