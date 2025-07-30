@@ -88,7 +88,10 @@ export module Services {
 
     private createUpdateFigshareArticleLogLevel = 'verbose';
     private figshareAccountAuthorIDs;
-    private extraVerboseLogging = true;
+    //Do not enable this setting. Use it in local dev only or in special circustances the figshare service 
+    //can be volume mounted in test or prod with this setting enabled to debug an specific issue but handle 
+    //it with care given it's generally not recommended because it will add too much noise to the tracelogs  
+    private extraVerboseLogging = false;
 
     private figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob: {
       enabled: true,
@@ -1397,7 +1400,7 @@ export module Services {
             
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - before override foundAttachment '+foundFileAttachment);
             //Evaluate project specific rules that can override the need to upload files present in data locations list
-            if(!_.isEmpty(sails.config.figshareAPI.mapping.upload.override)) {
+            if(!_.isEmpty(sails.config.figshareAPI.mapping.upload.override) && foundFileAttachment) {
               foundFileAttachment = this.getValueFromRecord(record,sails.config.figshareAPI.mapping.upload.override.template);
             }
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - foundAttachment '+foundFileAttachment);
