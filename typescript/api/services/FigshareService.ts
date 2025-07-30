@@ -1330,6 +1330,26 @@ export module Services {
       return foundAttachment;
     }
 
+    private isURLAttachmentInDataLocations(dataLocations) {
+      let foundURLAttachment = false;
+      if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
+        for(let urlAttachment of dataLocations) {
+          if(!_.isUndefined(urlAttachment) && !_.isEmpty(urlAttachment) && urlAttachment.type == 'url' && urlAttachment.selected == true) {
+            foundURLAttachment = true;
+            break;
+          }
+        }
+      } else {
+        for(let urlAttachment of dataLocations) {
+          if(!_.isUndefined(urlAttachment) && !_.isEmpty(urlAttachment) && urlAttachment.type == 'url') {
+            foundURLAttachment = true;
+            break;
+          }
+        }
+      }
+      return foundURLAttachment;
+    }
+
     private countFileAttachmentsInDataLocations(dataLocations) {
       let count = 0;
       if(sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
@@ -1497,102 +1517,113 @@ export module Services {
 
             } else {
               let onlyUploadURLIfSelected = sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedLocationURLs;
-              for(let attachmentFile of dataLocations) {
-                if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url' && ((onlyUploadURLIfSelected && _.get(attachmentFile,'selected',false)) || !onlyUploadURLIfSelected) && !_.get(attachmentFile,'ignore',false)) {
+              let foundURLAttachment = this.isURLAttachmentInDataLocations(dataLocations);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - before override foundURLAttachment '+foundURLAttachment);
+              //Evaluate project specific rules that can override the need to upload files present in data locations list
+              if(!_.isEmpty(sails.config.figshareAPI.mapping.upload.override) && foundURLAttachment) {
+                foundURLAttachment = this.getValueFromRecord(record,sails.config.figshareAPI.mapping.upload.override.template);
+              }
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - foundURLAttachment '+foundURLAttachment);
 
-                  let linkOnlyFileFound = false;
-                  let linkOnlyId;
-                  for(let linkOnly of articleFileList) {
-                    if(linkOnly['is_link_only'] == true){
-                      linkOnlyFileFound = true;
-                      linkOnlyId = linkOnly['id'];
-                      break;
-                    }
-                  }
+              if(foundURLAttachment) {
 
-                  if(linkOnlyFileFound) {
-                    let configDelete = this.getAxiosConfig('delete',`/account/articles/${articleId}/files/${linkOnlyId}`,{});
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${configDelete.method} - ${configDelete.url}`);
-                    let responseDelete = await axios(configDelete);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - responseDelete status: ${responseDelete.status} statusText: ${responseDelete.statusText}`);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](responseDelete.data);
-                  } 
-            
-                  let requestBody =  
-                  {
-                    link: attachmentFile.location
-                  }
-                  let config = this.getAxiosConfig('post',`/account/articles/${articleId}/files`,requestBody);
-                  
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${config.method} - ${config.url}`);
-                  let response = await axios(config);
-                  sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - response link only status: ${response.status} statusText: ${response.statusText}`);
-                  sails.log[this.createUpdateFigshareArticleLogLevel](response.data);
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - response link only '+response.data.location);
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
-                  
-                  //File embargo can be set only if there are file attachments and these have been successfully uploaded 
-                  //therefore if the attachments are sigle URL link then only embargo type article can be set     
-                  let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
-                  let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, false);
-                  let isEmbargoCleared = await this.isClearEmbargoNeeded(requestEmbargoBody, articleId, articleDetails);
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - in progress check isEmbargoed '+isEmbargoed);
-                  sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - in progress check isEmbargoCleared '+isEmbargoCleared);
-        
-                  if((isEmbargoed) ) {
-                    //validate requestEmbargoBody
-                    this.validateEmbargoRequestBody(record, requestEmbargoBody);
-                    
-                    let embargoDetailsChanged = await this.checkEmbargoDetailsChanged(requestEmbargoBody, articleId, articleDetails);
-                    if(embargoDetailsChanged) {
-                      let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
-                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending update embargo - ${embargoConfig.method} - ${embargoConfig.url}`);
-                      let responseEmbargo = await axios(embargoConfig);
-                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
-                    }
-                  } else if(isEmbargoCleared) {
-                    let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending clear embargo - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
-                    let responseEmbargoDelete = await axios(embargoDeleteConfig);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
-                  }
+                for(let attachmentFile of dataLocations) {
+                  if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url' && ((onlyUploadURLIfSelected && _.get(attachmentFile,'selected',false)) || !onlyUploadURLIfSelected) && !_.get(attachmentFile,'ignore',false)) {
 
-                  if(this.figNeedsPublishAfterFileUpload) {
-                    //https://docs.figshare.com/#private_article_publish
-                    let requestBodyPublishAfterFileUploads = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending requestBodyPublishAfterFileUploads ${JSON.stringify(requestBodyPublishAfterFileUploads)}`);
-                    let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterFileUploads);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending ${publishConfig.method} - ${publishConfig.url}`);
-                    let responsePublish = {status: '', statusText: ''}
-                    
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - linkOnlyFileFound publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
-                    responsePublish = await axios(publishConfig);
-                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
-                  
-                    if(!_.isEmpty(sails.config.figshareAPI.mapping.response.article)) {
-                      //articleDetails needs to be retrieved after publish to update handle and doi and other fields that may have been empty
-                      articleDetails = await this.getArticleDetails(articleId);
-                      if(this.extraVerboseLogging) {
-                        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - after publish articleDetails ${JSON.stringify(articleDetails)}`);
+                    let linkOnlyFileFound = false;
+                    let linkOnlyId;
+                    for(let linkOnly of articleFileList) {
+                      if(linkOnly['is_link_only'] == true){
+                        linkOnlyFileFound = true;
+                        linkOnlyId = linkOnly['id'];
+                        break;
                       }
-                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - after publish mapping.response.article ${JSON.stringify(sails.config.figshareAPI.mapping.response.article)}`);
-                      for(let field of sails.config.figshareAPI.mapping.response.article) {
-                        this.setFieldInRecord(record,articleDetails,field);
-                      }
-                      if(this.extraVerboseLogging) {
-                        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending record before ${JSON.stringify(record)}`);
-                      }
-                      const brand:BrandingModel = BrandingService.getBrandById(record.metaMetadata.brandId);
-                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending oid: ${oid} user: ${JSON.stringify(user)}`);
-                      if(!_.isUndefined(sails.config.figshareAPI.mapping.recordAllFilesUploaded) && !_.isEmpty(sails.config.figshareAPI.mapping.recordAllFilesUploaded)){
-                        _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
-                      }
-                      let result = await RecordsService.updateMeta(brand, oid, record, user, false, false);
                     }
-                  }
+
+                    if(linkOnlyFileFound) {
+                      let configDelete = this.getAxiosConfig('delete',`/account/articles/${articleId}/files/${linkOnlyId}`,{});
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${configDelete.method} - ${configDelete.url}`);
+                      let responseDelete = await axios(configDelete);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - responseDelete status: ${responseDelete.status} statusText: ${responseDelete.statusText}`);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](responseDelete.data);
+                    } 
+              
+                    let requestBody =  
+                    {
+                      link: attachmentFile.location
+                    }
+                    let config = this.getAxiosConfig('post',`/account/articles/${articleId}/files`,requestBody);
                     
-                  break;
+                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${config.method} - ${config.url}`);
+                    let response = await axios(config);
+                    sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - response link only status: ${response.status} statusText: ${response.statusText}`);
+                    sails.log[this.createUpdateFigshareArticleLogLevel](response.data);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - response link only '+response.data.location);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - -------------------------------------------');
+                    
+                    //File embargo can be set only if there are file attachments and these have been successfully uploaded 
+                    //therefore if the attachments are sigle URL link then only embargo type article can be set     
+                    let requestEmbargoBody = this.getEmbargoRequestBody(record, this.figshareAccountAuthorIDs);
+                    let isEmbargoed = this.isRecordEmbargoed(requestEmbargoBody, false);
+                    let isEmbargoCleared = await this.isClearEmbargoNeeded(requestEmbargoBody, articleId, articleDetails);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - in progress check isEmbargoed '+isEmbargoed);
+                    sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - in progress check isEmbargoCleared '+isEmbargoCleared);
+          
+                    if((isEmbargoed) ) {
+                      //validate requestEmbargoBody
+                      this.validateEmbargoRequestBody(record, requestEmbargoBody);
+                      
+                      let embargoDetailsChanged = await this.checkEmbargoDetailsChanged(requestEmbargoBody, articleId, articleDetails);
+                      if(embargoDetailsChanged) {
+                        let embargoConfig = this.getAxiosConfig('put', `/account/articles/${articleId}/embargo`, requestEmbargoBody); 
+                        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending update embargo - ${embargoConfig.method} - ${embargoConfig.url}`);
+                        let responseEmbargo = await axios(embargoConfig);
+                        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseEmbargo.status} statusText: ${responseEmbargo.statusText}`);
+                      }
+                    } else if(isEmbargoCleared) {
+                      let embargoDeleteConfig = this.getAxiosConfig('delete', `/account/articles/${articleId}/embargo`, {}); 
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending clear embargo - ${embargoDeleteConfig.method} - ${embargoDeleteConfig.url}`);
+                      let responseEmbargoDelete = await axios(embargoDeleteConfig);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending status: ${responseEmbargoDelete.status} statusText: ${responseEmbargoDelete.statusText}`);
+                    }
+
+                    if(this.figNeedsPublishAfterFileUpload) {
+                      //https://docs.figshare.com/#private_article_publish
+                      let requestBodyPublishAfterFileUploads = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending requestBodyPublishAfterFileUploads ${JSON.stringify(requestBodyPublishAfterFileUploads)}`);
+                      let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterFileUploads);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending ${publishConfig.method} - ${publishConfig.url}`);
+                      let responsePublish = {status: '', statusText: ''}
+                      
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - linkOnlyFileFound publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                      responsePublish = await axios(publishConfig);
+                      sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - publish checkUploadFilesPending status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                    
+                      if(!_.isEmpty(sails.config.figshareAPI.mapping.response.article)) {
+                        //articleDetails needs to be retrieved after publish to update handle and doi and other fields that may have been empty
+                        articleDetails = await this.getArticleDetails(articleId);
+                        if(this.extraVerboseLogging) {
+                          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - after publish articleDetails ${JSON.stringify(articleDetails)}`);
+                        }
+                        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - after publish mapping.response.article ${JSON.stringify(sails.config.figshareAPI.mapping.response.article)}`);
+                        for(let field of sails.config.figshareAPI.mapping.response.article) {
+                          this.setFieldInRecord(record,articleDetails,field);
+                        }
+                        if(this.extraVerboseLogging) {
+                          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending record before ${JSON.stringify(record)}`);
+                        }
+                        const brand:BrandingModel = BrandingService.getBrandById(record.metaMetadata.brandId);
+                        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending oid: ${oid} user: ${JSON.stringify(user)}`);
+                        if(!_.isUndefined(sails.config.figshareAPI.mapping.recordAllFilesUploaded) && !_.isEmpty(sails.config.figshareAPI.mapping.recordAllFilesUploaded)){
+                          _.set(record,sails.config.figshareAPI.mapping.recordAllFilesUploaded,'yes');
+                        }
+                        let result = await RecordsService.updateMeta(brand, oid, record, user, false, false);
+                      }
+                    }
+                      
+                    break;
+                  }
                 }
               }
             }
