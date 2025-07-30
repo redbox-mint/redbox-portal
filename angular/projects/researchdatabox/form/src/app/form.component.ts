@@ -246,9 +246,9 @@ export class FormComponent extends BaseComponent {
       viewInitialised: componentEntry?.component?.viewInitialised(),
     };
 
-    if (["RepeatableComponent", "GroupFieldComponent", "TabComponent", "TabContentComponent"].includes(componentConfigClassName)) {
-      // TODO: can this be improved? The check on the class name helps avoid issues, but 'any' type is still not great.
-      const component = formFieldCompMapEntry?.component as any;
+    // If the component has children components, recursively get their debug info. This used to be hardcoded for specific component types, but now it is generic.
+    const component = formFieldCompMapEntry?.component as any;
+    if (!_isEmpty(component?.components)) {
       componentResult.children = component?.components?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
     }
 
