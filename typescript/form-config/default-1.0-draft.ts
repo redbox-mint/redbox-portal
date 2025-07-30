@@ -37,6 +37,11 @@ const formConfig: FormConfig = {
             component: {
                 class: 'TabComponent',
                 config: {
+                    mainCssClass: 'd-flex align-items-start',
+                    buttonSectionCssClass: 'nav flex-column nav-pills me-5',
+                    tabContentSectionCssClass: 'tab-content',
+                    tabPaneCssClass: 'tab-pane fade',
+                    tabPaneActiveCssClass: 'active show',
                     tabs: [
                         {
                             id: 'tab_1',
@@ -186,6 +191,7 @@ const formConfig: FormConfig = {
                         {
                             id: 'tab_2',
                             buttonLabel: 'Tab 2',
+                            active: true,
                             componentDefinitions: [
                                 {
                                     // first group component

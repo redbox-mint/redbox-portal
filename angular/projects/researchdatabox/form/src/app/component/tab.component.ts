@@ -1,12 +1,10 @@
-import { Component, ViewChild, ViewContainerRef, TemplateRef, signal, input, Input, ViewChildren, ElementRef, QueryList, Directive, ContentChildren, contentChildren, computed, ComponentRef, inject, Injector } from '@angular/core';
+import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import { FormConfig, TabComponentEntryDefinition, TabComponentConfig, TabContentComponentConfig } from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull, find as _find, merge as _merge } from 'lodash-es';
 import { FormComponent } from "../form.component";
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import { TabsetComponent } from 'ngx-bootstrap/tabs';
 import { FormComponentsMap, FormService } from '../form.service';
-
 /**
  * Repeatable Form Field Component
  *
@@ -17,26 +15,23 @@ import { FormComponentsMap, FormService } from '../form.service';
 @Component({
   selector: 'redbox-form-tab',
   template:` 
-  <div class="d-flex align-items-start">
+  <div [class]="mainCssClass">
     <!-- Button Section -->
-    <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+    <div [class]="buttonSectionCssClass" role="tablist" aria-orientation="vertical">
       <!-- Loop through tabs and create buttons -->
       @for (tab of tabs; track $index) {
         <button class="nav-link"
-                [class.active]="$index === 0"
-                [attr.id]="'v-pills-' + tab.id + '-tab'"
-                [attr.data-bs-toggle]="'pill'"
-                [attr.data-bs-target]="'#v-pills-' + tab.id"
+                [class.active]="tab.id == selectedTabId"
+                [attr.id]="tab.id + '-tab-button'"
                 type="button"
                 role="tab" 
-                [attr.aria-controls]="'v-pills-' + tab.id"
-                [attr.aria-selected]="$index === 0" 
+                [attr.aria-controls]="tab.id + '-tab-content'"  
                 [innerHTML]="tab.buttonLabel" (click)="selectTab(tab.id)"> 
         </button>
       }
     </div>
     <!-- Content Section -->
-    <div class="tab-content" id="v-pills-tabContent">
+    <div [class]="tabContentSectionCssClass" id="tabContent">
       <ng-container #tabsContainer />
     </div>
   </div>
@@ -52,9 +47,24 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   componentFormMapEntries: FormFieldCompMapEntry[] = [];
   @ViewChild('tabsContainer', { read: ViewContainerRef, static: true }) private tabsContainer!: ViewContainerRef;
 
+  protected get tabConfig(): TabComponentConfig {
+    return (this.componentDefinition?.config as TabComponentConfig);
+  }
+
+  protected get mainCssClass(): string | undefined {
+    return this.tabConfig.mainCssClass;
+  }
+
+  protected get buttonSectionCssClass(): string | undefined{
+    return this.tabConfig.buttonSectionCssClass;
+  }
+
+  protected get tabContentSectionCssClass(): string | undefined {
+    return this.tabConfig.tabContentSectionCssClass;
+  }
+
   protected override async initData() {
-    this.tabs = (this.componentDefinition?.config as TabComponentConfig)?.tabs || [];
-    
+    this.tabs = this.tabConfig.tabs || [];
   }
 
   protected override async setComponentReady(): Promise<void> {
@@ -73,23 +83,18 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
           component: {
             class: 'TabContentComponent',
             config: {
-              tab: tab,
-              wrapperCssClasses: 'tab-pane fade'
+              tab: tab
             }
           }
         }
       } as FormFieldCompMapEntry;
-      if (i === 0) {
-        _set(fieldMapDefEntry, 'compConfigJson.component.config.wrapperCssClasses', 'tab-pane fade show active');
-      }
-      console.log(fieldMapDefEntry);
-      // tabWrapperRef.instance.tab = tab;
+      
       try {
         await tabWrapperRef.instance.initWrapperComponent(fieldMapDefEntry, false);
       } catch (error) {
         this.loggerService.error(`${this.logName}: Error initializing tab wrapper component`, error);
       }
-      console.log(fieldMapDefEntry);
+
       this.componentFormMapEntries.push(fieldMapDefEntry);
       this.wrapperRefs.push(tabWrapperRef);
       // append the tab's content pane together
@@ -101,6 +106,9 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         }
         _merge(this.formFieldCompMapEntry.formControlMap, fieldMapDefEntry.formControlMap);
       }
+      if (tab.active) {
+        this.selectTab(tab.id);
+      }
     }      
     await super.setComponentReady();
   }
@@ -109,6 +117,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     this.loggerService.info(`${this.logName}: Selecting tab with ID: ${tabId}`);
     if (tabId === this.selectedTabId) {
       this.loggerService.warn(`${this.logName}: Tab with ID ${tabId} is already selected.`);
+      return;
+    }
+    const tab = this.tabs.find(t => t.id === tabId);
+    if (!tab) {
+      this.loggerService.error(`${this.logName}: Tab with ID ${tabId} not found.`);
       return;
     }
     // Peek ahead if the tab exists
@@ -123,10 +136,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     this.wrapperRefs.forEach((ref: ComponentRef<FormBaseWrapperComponent<unknown>>) => {
       const instance = ref.instance;
       if (instance.formFieldCompMapEntry?.compConfigJson?.name == tabId) {
-        instance.hostBindingCssClasses = `${instance.hostBindingCssClasses} show active`;
+        instance.hostBindingCssClasses = `${this.tabConfig.tabPaneCssClass} ${this.tabConfig.tabPaneActiveCssClass}`;
         this.selectedTabId = tabId;
+        tab.active = true;
       } else {
-        instance.hostBindingCssClasses = instance.hostBindingCssClasses?.replace('show active', '');
+        instance.hostBindingCssClasses = this.tabConfig.tabPaneCssClass;
       }
     });
   }
@@ -190,7 +204,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       
       const groupedByNameMap = this.formService.groupComponentsByName(this.formDefMap);
       if (this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
-        // Populate the `formControlMap` with the models of the created components
+        // Populate the `formControlMap` with the controls of the content components.
         this.formFieldCompMapEntry.formControlMap = groupedByNameMap.withFormControl;
       }
     }
@@ -209,6 +223,10 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
 
   public get components(): FormFieldCompMapEntry[] {
     return this.formDefMap?.components || [];
+  }
+
+  @HostBinding('id') get hostId(): string {
+    return this.tab?.id + '-tab-content' || '';
   }
 }
 
