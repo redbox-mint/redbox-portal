@@ -156,6 +156,13 @@ export module Services {
 
     private isFigshareAPIEnabled() {
       let enabled = false;
+      
+      if(_.isEmpty(this.APIToken)) {
+        this.APIToken = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.APIToken',sails.config.figshareAPI.APIToken);
+        this.baseURL = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.baseURL',sails.config.figshareAPI.baseURL);
+        this.frontEndURL = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.frontEndURL',sails.config.figshareAPI.frontEndURL);
+      }
+
       if(!_.isEmpty(this.APIToken) && !_.isEmpty(this.baseURL) && !_.isEmpty(this.frontEndURL)) {
         enabled = true;
       }
@@ -163,12 +170,6 @@ export module Services {
     }
 
     private getAxiosConfig(method, urlSectionPattern, requestBody) {
-
-      if(_.isEmpty(this.APIToken)) {
-        this.APIToken = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.APIToken',sails.config.figshareAPI.APIToken);
-        this.baseURL = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.baseURL',sails.config.figshareAPI.baseURL);
-        this.frontEndURL = _.get(sails.config,'figshareAPIEnv.overrideArtifacts.frontEndURL',sails.config.figshareAPI.frontEndURL);
-      }
 
       let figshareBaseUrl = this.baseURL + urlSectionPattern
       let figAccessToken = 'token '+this.APIToken;
@@ -905,7 +906,10 @@ export module Services {
             }
           }
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare status: ${responseCreate.status} statusText: ${responseCreate.statusText}`);
-
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare entityIdFAR: ${this.entityIdFAR} `);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare sails.config.figshareAPI.testMode: ${sails.config.figshareAPI.testMode} `);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - sendDataPublicationToFigshare responseCreate.data: ${JSON.stringify(responseCreate.data)} `);
+          sails.log[this.createUpdateFigshareArticleLogLevel](responseCreate.data);
           //Note that lodash isEmpty will return true if the value is a number therefore had to be removed from the condition 
           if(_.has(responseCreate.data, this.entityIdFAR)) {
 
