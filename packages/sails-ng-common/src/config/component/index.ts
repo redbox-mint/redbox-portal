@@ -25,7 +25,7 @@ import {
     TextFormFieldModelDefinition
 } from "./text.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
-import { TabComponentConfig, TabComponentDefinition } from "./tab.model";
+import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
 /**
  * Possible form field component definitions.
  */
@@ -34,7 +34,8 @@ export type FormFieldComponentDefinition =
     RepeatableFormFieldComponentDefinition |
     ValidationSummaryFormFieldComponentDefinition |
     GroupFormFieldComponentDefinition |
-    TabComponentDefinition;
+    TabFormFieldComponentDefinition | 
+    TabContentComponentDefinition;
 
 /**
  * Possible form field component configs.

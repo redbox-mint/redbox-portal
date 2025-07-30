@@ -345,6 +345,16 @@ export class FormService extends HttpClientService {
         if (formControl && fieldName) {
           groupWithFormControl[fieldName] = formControl;
         }
+      } else {
+        // Some components may not have a model themselves, but can 'contain' other components
+        if (compEntry.formControlMap && !_isEmpty(compEntry.formControlMap)) {
+          // traverse the model map and add the models to the group map
+          for (const [name, formControl] of Object.entries(compEntry.formControlMap)) {
+            if (formControl && name) {
+              groupWithFormControl[name] = formControl;
+            }
+          } 
+        }
       }
     }
     compMap.completeGroupMap = groupMap;
