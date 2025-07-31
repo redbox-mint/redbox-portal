@@ -11,7 +11,7 @@ export interface TabComponentEntryDefinition {
     id: string; // internal identifier for the tab
     buttonLabel: string; // The text on the button
     componentDefinitions: FormComponentDefinition[]; // The components to render in the tab
-    active?: boolean; // Whether the tab is active
+    selected?: boolean; // Whether the tab is selected on initialization
 }
 
 export class TabComponentConfig extends BaseFormFieldComponentConfig {

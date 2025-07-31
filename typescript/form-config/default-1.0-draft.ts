@@ -191,7 +191,7 @@ const formConfig: FormConfig = {
                         {
                             id: 'tab_2',
                             buttonLabel: 'Tab 2',
-                            active: true,
+                            selected: true,
                             componentDefinitions: [
                                 {
                                     // first group component

@@ -15,7 +15,7 @@ import { FormComponentsMap, FormService } from '../form.service';
 @Component({
   selector: 'redbox-form-tab',
   template:` 
-  <div [class]="mainCssClass">
+  <div [class]="mainCssClass" [id]="name">
     <!-- Button Section -->
     <div [class]="buttonSectionCssClass" role="tablist" aria-orientation="vertical">
       <!-- Loop through tabs and create buttons -->
@@ -25,13 +25,14 @@ import { FormComponentsMap, FormService } from '../form.service';
                 [attr.id]="tab.id + '-tab-button'"
                 type="button"
                 role="tab" 
+                [attr.aria-selected]="tab.id == selectedTabId" 
                 [attr.aria-controls]="tab.id + '-tab-content'"  
                 [innerHTML]="tab.buttonLabel" (click)="selectTab(tab.id)"> 
         </button>
-      }
+      } 
     </div>
     <!-- Content Section -->
-    <div [class]="tabContentSectionCssClass" id="tabContent">
+    <div [class]="tabContentSectionCssClass" [id]="name + '_tabContent'">
       <ng-container #tabsContainer />
     </div>
   </div>
@@ -75,7 +76,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     for (let i = 0; i < this.tabs.length; i++) {
       const tab = this.tabs[i];
       const tabWrapperRef = this.tabsContainer.createComponent(FormBaseWrapperComponent<null>);
-
+      tab.id = `${tab.id || i}`;
       const fieldMapDefEntry = {
         componentClass: TabContentComponent,
         compConfigJson: {
@@ -106,14 +107,14 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         }
         _merge(this.formFieldCompMapEntry.formControlMap, fieldMapDefEntry.formControlMap);
       }
-      if (tab.active) {
+      if (tab.selected) {
         this.selectTab(tab.id);
       }
     }      
     await super.setComponentReady();
   }
 
-  selectTab(tabId: string) {
+  public selectTab(tabId: string) {
     this.loggerService.info(`${this.logName}: Selecting tab with ID: ${tabId}`);
     if (tabId === this.selectedTabId) {
       this.loggerService.warn(`${this.logName}: Tab with ID ${tabId} is already selected.`);
@@ -138,7 +139,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
       if (instance.formFieldCompMapEntry?.compConfigJson?.name == tabId) {
         instance.hostBindingCssClasses = `${this.tabConfig.tabPaneCssClass} ${this.tabConfig.tabPaneActiveCssClass}`;
         this.selectedTabId = tabId;
-        tab.active = true;
+        tab.selected = true;
       } else {
         instance.hostBindingCssClasses = this.tabConfig.tabPaneCssClass;
       }
@@ -152,6 +153,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   public get components(): FormFieldCompMapEntry[] {
     return this.componentFormMapEntries;
   }
+
+  public get activeTabId(): string | null {
+    return this.selectedTabId;
+  }
+  
 }
 
 @Component({
@@ -226,7 +232,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   }
 
   @HostBinding('id') get hostId(): string {
-    return this.tab?.id + '-tab-content' || '';
+    return this.tab?.id + '-tab-content';
   }
 }
 
