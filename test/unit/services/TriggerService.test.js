@@ -13,14 +13,31 @@ describe('The TriggerService', function () {
                 fieldLanguageCode: "title-required",
                 arrayObjFieldDBName: 'row-item',
                 trimLeadingAndTrailingSpacesBeforeValidation: true,
-                forceRun: true
-                // caseSensitive: true, - default
-                // allowNulls: true, - default
+                forceRun: true,
+                caseSensitive: false,
+                allowNulls: true,
             };
             const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql({'testing-field': [{'row-item': 'field-value'}]});
         });
-        it('value with spaces fails when not trimmmed', async function () {
+        it('value with different case fails when case sensitive', async function () {
+            const oid = "triggerservice-validateFieldUsingRegex-validpasses";
+            const record = {'testing-field': [{'row-item': '  field-value  '}]};
+            const options = {
+                fieldDBName: 'testing-field',
+                errorLanguageCode: "invalid-format",
+                regexPattern: '^field-value$',
+                fieldLanguageCode: "title-required",
+                arrayObjFieldDBName: 'row-item',
+                trimLeadingAndTrailingSpacesBeforeValidation: true,
+                forceRun: true,
+                caseSensitive: true,
+                allowNulls: true,
+            };
+            const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
+            expect(result).to.eql({'testing-field': [{'row-item': 'field-value'}]});
+        });
+        it('value with spaces fails when not trimmed', async function () {
             const oid = "triggerservice-validateFieldUsingRegex-validpasses";
             const record = {'testing-field': [{'row-item': '  field-value  '}]};
             const options = {
@@ -30,7 +47,7 @@ describe('The TriggerService', function () {
                 fieldLanguageCode: "title-required",
                 arrayObjFieldDBName: 'row-item',
                 trimLeadingAndTrailingSpacesBeforeValidation: false,
-                caseSensitive: true,
+                caseSensitive: false,
                 allowNulls: false,
                 forceRun: true
             };
@@ -122,14 +139,14 @@ describe('The TriggerService', function () {
                 return errorList; %>`,
                 forceRun: true
             };
-            
+
             try {
                 const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
                 expect(result).to.eql({'testing-field': 'valid-value'});
             } catch (err) {
                 expect.fail("Should not have thrown error");
             }
-            
+
         });
 
         it('invalid value fails', async function () {
@@ -151,8 +168,8 @@ describe('The TriggerService', function () {
                 const errorMap = JSON.parse(err.message)
                 expect(errorMap.errorFieldList[0].label).to.eq("Title is required");
             }
-            
+
         });
-    
+
     });
 });

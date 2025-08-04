@@ -30,7 +30,9 @@ const formConfig: FormConfig = {
     validators: [
         {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
-
+    // componentTemplates: [
+    //     // TODO - server-side only, replaced in componentDefinitions
+    // ],
     componentDefinitions: [
         {
             name: 'main_tab',
