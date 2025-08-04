@@ -305,7 +305,7 @@ export class RepeatableGroupComponent extends RepeatableComponent {
   <ng-container *ngIf="field.visible">
     <ng-container *ngIf="field.editMode">
       <ng-container *ngFor="let childField of field.fields; let isFirst = first">
-        <ng-container *ngIf="isFirst">
+        <ng-container *ngIf="isFirst && childField.visible">
           <span dmp-disable-state="enabled" #dmpFieldContainer>
             <ng-container *ngIf="field.label">
               <div class='row'>
@@ -332,10 +332,10 @@ export class RepeatableGroupComponent extends RepeatableComponent {
     </ng-container>
     <ng-container *ngIf="!field.editMode">
       <ng-container *ngFor="let childField of field.fields; let isFirst = first">
-        <ng-container *ngIf="isFirst">
+        <ng-container *ngIf="isFirst && childField.visible">
           <span dmp-disable-state="enabled" #dmpFieldContainer>
             <div [formGroup]='form' [ngClass]="'row '+field.cssClasses">
-              <div class="col-xs-10">
+              <div [ngClass]="'col-xs-10 '+childField.cssClasses">
                 <dmp-field [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
               </div>
               <div class="col-xs-2">
