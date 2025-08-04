@@ -136,14 +136,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     // remove the 'show active' classes from all tabs
     this.wrapperRefs.forEach((ref: ComponentRef<FormBaseWrapperComponent<unknown>>) => {
       const instance = ref.instance;
-      if (instance.formFieldCompMapEntry?.compConfigJson?.name == tabId) {
-        instance.hostBindingCssClasses = `${this.tabConfig.tabPaneCssClass} ${this.tabConfig.tabPaneActiveCssClass}`;
-        this.selectedTabId = tabId;
-        tab.selected = true;
-      } else {
-        instance.hostBindingCssClasses = this.tabConfig.tabPaneCssClass;
-      }
+      instance.hostBindingCssClasses = this.tabConfig.tabPaneCssClass;
     });
+    wrapperInst.instance.hostBindingCssClasses = `${this.tabConfig.tabPaneCssClass} ${this.tabConfig.tabPaneActiveCssClass}`;
+    this.selectedTabId = tabId;
+    tab.selected = true;
   }
 
   public override getComponents(): any[] {
@@ -233,6 +230,10 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
 
   @HostBinding('id') get hostId(): string {
     return this.tab?.id + '-tab-content';
+  }
+
+  public get tabs(): TabComponentEntryDefinition[] {
+    return this.tabs;
   }
 }
 

@@ -264,6 +264,24 @@ export class FormComponent extends BaseComponent {
       return componentResult;
     }
   }
+
+  // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
+  public getComponentDefByName(name: string, componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr): FormFieldCompMapEntry | undefined {
+    let foundComponentDef = componentDefArr.find(comp => {  
+      return comp.compConfigJson?.name === name;
+    });
+    // If not found, continue to search in the component's children
+    if (!foundComponentDef) {
+      let componentDef = foundComponentDef as any;
+      if (!_isEmpty(componentDef?.component?.components)) {
+        for (const child of componentDef?.component?.components) {
+          foundComponentDef = this.getComponentDefByName(name, child.component?.components || []);
+        }
+      }
+    }
+    return foundComponentDef;
+  }
+  
 }
 
 type DebugInfo = {

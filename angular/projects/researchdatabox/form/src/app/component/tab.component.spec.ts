@@ -169,4 +169,43 @@ describe('TabComponent', () => {
 
   });
 
+  it('should allow tab switching', async () => {
+    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const tabConfig: TabComponentConfig | undefined =  componentDefinitions?.component?.config as TabComponentConfig;
+    expect(tabConfig).toBeDefined();
+
+    const mainTabDef = formComponent.getComponentDefByName('main_tab');
+    expect(mainTabDef).toBeDefined();
+    if (mainTabDef === undefined) {
+      throw new Error("Main tab component is not defined");
+    }
+
+    console.log("Main tab component:", JSON.stringify(mainTabDef.compConfigJson, null, 2));
+    const mainTab = (mainTabDef.component as TabComponent);
+    mainTab?.selectTab('tab1');
+
+    const tabSelected = mainTab?.tabs?.find(tab => tab.selected);
+    expect(tabSelected).toBeDefined();
+    expect(tabSelected?.id).toBe('tab1');
+    // Trigger change detection
+    fixture.detectChanges();
+    await fixture.whenStable();
+    // check if the first tab is selected
+    const firstTabButton = compiled.querySelector(`#tab1-tab-button`);
+    expect(firstTabButton).toBeTruthy();
+    // check if the first tab button has the 'active' class
+    let classList = firstTabButton?.className.split(' ') || [];
+    expect(classList).toContain('active');
+
+    // check if aria-selected is set to true
+    expect(firstTabButton?.getAttribute('aria-selected')).toBe('true');
+
+  });
+
 });
