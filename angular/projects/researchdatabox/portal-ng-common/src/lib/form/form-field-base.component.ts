@@ -527,4 +527,6 @@ export interface FormFieldCompMapEntry {
   layout?: FormFieldBaseComponent<unknown>;
   layoutRef?: ComponentRef<FormFieldBaseComponent<unknown>>;
   componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> };
+  // optional control map to support 'container' like components that don't have a model themselves
+  formControlMap?: { [key: string]: FormControl };
 }

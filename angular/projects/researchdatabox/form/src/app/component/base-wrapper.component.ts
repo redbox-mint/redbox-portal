@@ -41,7 +41,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
-  protected get componentRef() {
+  public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
   }
 
