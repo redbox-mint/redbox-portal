@@ -190,10 +190,7 @@ export class FormService extends HttpClientService {
       const modelClassName:string = componentConfig.model?.class || '';
       let componentClassName:string = componentConfig.component?.class || '';
       let layoutClassName:string = componentConfig.layout?.class || '';
-      // if (_isEmpty(modelClassName)) {
-      //   this.loggerService.error(`${this.logName}: model class name is empty for component.`, componentConfig);
-      //   continue;
-      // }
+
       if (!_isEmpty(componentConfig.module)) {
         // TODO:
         // 1. for statically imported (e.g. modules) class doesn't have to be resolved here
@@ -230,6 +227,7 @@ export class FormService extends HttpClientService {
           layoutClass = this.compClassMap[layoutClassName];
         }
       }
+      // Components may not have a model class, e.g. a static text component.
       let fieldDef = {};
       if (modelClass) {
         _merge(fieldDef, {
