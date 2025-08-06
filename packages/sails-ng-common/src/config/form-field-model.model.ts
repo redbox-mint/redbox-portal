@@ -25,10 +25,6 @@ export class BaseFormFieldModelConfig<ValueType> {
      */
     public defaultValue?: ValueType;
     /**
-     * The data model describing this field's value.
-     */
-    public dataSchema?: FormFieldModelDataConfig;
-    /**
      * The validators that are configured at the field level that look at only this model.
      */
     validators?: FormValidatorConfig[];
@@ -40,11 +36,4 @@ export class BaseFormFieldModelConfig<ValueType> {
      * The optional css classes to be applied to the form dom node in edit mode.
      */
     editCssClasses?: string;
-}
-
-/**
- * The data model description for the field value (e.g. string, object, number, array)
- */
-export class FormFieldModelDataConfig {
-// TODO: remove this when the jsonSchema generation is figured out
 }
