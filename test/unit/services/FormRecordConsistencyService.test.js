@@ -1,5 +1,5 @@
 describe('The FormRecordConsistencyService', function () {
-    it('should detect simple changes', function () {
+    it('should detect changes using compareRecords', function () {
         const original = {
             name: 'my object',
             description: "it's an object!",
@@ -63,236 +63,258 @@ describe('The FormRecordConsistencyService', function () {
         expect(outcome).to.eql(expected)
     });
 
-    it('should merge properly with no changes', function () {
-        const clientFormConfig = {
-            name: "remove-items-constrains-nested",
-            type: "rdmp",
-            debugValue: true,
-            domElementType: 'form',
-            defaultComponentConfig: {
-                defaultComponentCssClasses: 'row',
-            },
-            editCssClasses: "redbox-form form",
-            skipValidationOnSave: false,
-            componentDefinitions: [
-                {
-                    name: 'repeatable_group_1',
-                    model: {
-                        class: 'RepeatableComponentModel',
-                        config: {value: [{text_1: "hello world from repeating groups"}]}
-                    },
-                    component: {
-                        class: 'RepeatableComponent',
-                        config: {
-                            elementTemplate: {
-                                name: 'group_1_component',
-                                model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
-                                component: {
-                                    class: 'GroupFieldComponent',
-                                    config: {
-                                        wrapperCssClasses: 'col',
-                                        componentDefinitions: [
-                                            // <-- requires mode edit, so expect to be removed
-                                            {
-                                                name: 'text_2',
-                                                model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
-                                                component: {class: 'TextFieldComponent', config: {}},
+    describe('mergeRecord methods', function () {
+        const cases = [
+            {
+                // no changes
+                args: {
+                    componentDefinitions: [
+                        {
+                            name: 'repeatable_group_1',
+                            model: {
+                                class: 'RepeatableComponentModel',
+                                config: {value: [{text_1: "hello world from repeating groups"}]}
+                            },
+                            component: {
+                                class: 'RepeatableComponent',
+                                config: {
+                                    elementTemplate: {
+                                        name: 'group_1_component',
+                                        model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
+                                        component: {
+                                            class: 'GroupFieldComponent',
+                                            config: {
+                                                wrapperCssClasses: 'col',
+                                                componentDefinitions: [
+                                                    {
+                                                        name: 'text_2',
+                                                        model: {
+                                                            class: 'TextFieldModel',
+                                                            config: {value: 'hello world 2!'}
+                                                        },
+                                                        component: {class: 'TextFieldComponent', config: {}},
+                                                    },
+                                                ],
                                             },
-                                            // <-- requires role 'Admin', so is removed
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                    original: {
+                        redboxOid: "abcd",
+                        metadata: {
+                            repeatable_group_1: [
+                                {
+                                    group_1_component: {
+                                        text_1: "text 1 value",
+                                        text_2: "text 2 value",
+                                        repeatable_for_admin: [
+                                            {text_for_repeatable_for_admin: "rpt value 1"},
+                                            {text_for_repeatable_for_admin: "rpt value 2"}
                                         ]
                                     }
                                 },
-                                layout: {
-                                    class: 'RepeatableElementLayoutComponent',
-                                    config: {hostCssClasses: 'row align-items-start'}
-                                },
-                                // <-- requires mode view, so is kept, constraints removed
-                            }
-                        },
-                    },
-                    layout: {
-                        class: 'DefaultLayoutComponent',
-                        config: {
-                            label: 'Repeatable TextField with default wrapper defined',
-                            helpText: 'Repeatable component help text',
-                        }
-                    },
-                },
-            ]
-        };
-        const record = {
-            redboxOid: "abcd",
-            metadata: {
-                repeatable_group_1: [
-                    {
-                        group_1_component: {
-                            text_1: "text 1 value",
-                            text_2: "text 2 value",
-                            repeatable_for_admin: [
                                 {
-                                    text_for_repeatable_for_admin: "rpt value 1",
-                                },
-                                {
-                                    text_for_repeatable_for_admin: "rpt value 2",
+                                    group_1_component: {
+                                        text_1: "text 1 value 2",
+                                        text_2: "text 2 value 2",
+                                        repeatable_for_admin: [
+                                            {text_for_repeatable_for_admin: "rpt value 1 2"},
+                                            {text_for_repeatable_for_admin: "rpt value 2 2"}
+                                        ]
+                                    }
                                 }
                             ]
                         }
                     },
-                    {
-                        group_1_component: {
-                            text_1: "text 1 value 2",
-                            text_2: "text 2 value 2",
-                            repeatable_for_admin: [
+                    changed: {
+                        redboxOid: "abcd",
+                        metadata: {
+                            repeatable_group_1: [
                                 {
-                                    text_for_repeatable_for_admin: "rpt value 1 2",
+                                    group_1_component: {
+                                        text_1: "text 1 value",
+                                        text_2: "text 2 value",
+                                        repeatable_for_admin: [
+                                            {text_for_repeatable_for_admin: "rpt value 1"},
+                                            {text_for_repeatable_for_admin: "rpt value 2"}
+                                        ]
+                                    }
                                 },
                                 {
-                                    text_for_repeatable_for_admin: "rpt value 2 2",
+                                    group_1_component: {
+                                        text_1: "text 1 value 2",
+                                        text_2: "text 2 value 2",
+                                        repeatable_for_admin: [
+                                            {text_for_repeatable_for_admin: "rpt value 1 2"},
+                                            {text_for_repeatable_for_admin: "rpt value 2 2"}
+                                        ]
+                                    }
                                 }
                             ]
                         }
                     }
-                ]
-            }
-        };
-        const result = FormRecordConsistencyService.mergeRecordClientFormConfig(record, record, clientFormConfig);
-
-        // expect(result).to.eql(record);
-        expect(result).to.eql({});
-    });
-    it('should merge properly with changes', function () {
-        const clientFormConfig = {
-            name: "remove-items-constrains-nested",
-            type: "rdmp",
-            debugValue: true,
-            domElementType: 'form',
-            defaultComponentConfig: {
-                defaultComponentCssClasses: 'row',
-            },
-            editCssClasses: "redbox-form form",
-            skipValidationOnSave: false,
-            componentDefinitions: [
-                {
-                    name: 'repeatable_group_1',
-                    model: {
-                        class: 'RepeatableComponentModel',
-                        config: {value: [{text_1: "hello world from repeating groups"}]}
-                    },
-                    component: {
-                        class: 'RepeatableComponent',
-                        config: {
-                            elementTemplate: {
-                                name: 'group_1_component',
-                                model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
-                                component: {
-                                    class: 'GroupFieldComponent',
-                                    config: {
-                                        wrapperCssClasses: 'col',
-                                        componentDefinitions: [
-                                            // <-- requires mode edit, so expect to be removed
-                                            {
-                                                name: 'text_2',
-                                                model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
-                                                component: {class: 'TextFieldComponent', config: {}},
-                                            },
-                                            // <-- requires role 'Admin', so is removed
-                                        ]
-                                    }
-                                },
-                                layout: {
-                                    class: 'RepeatableElementLayoutComponent',
-                                    config: {hostCssClasses: 'row align-items-start'}
-                                },
-                                // <-- requires mode view, so is kept, constraints removed
+                },
+                expected: {
+                    redboxOid: "abcd",
+                    metadata: {
+                        repeatable_group_1: [
+                            {
+                                group_1_component: {
+                                    text_1: "text 1 value",
+                                    text_2: "text 2 value",
+                                    repeatable_for_admin: [
+                                        {text_for_repeatable_for_admin: "rpt value 1"},
+                                        {text_for_repeatable_for_admin: "rpt value 2"}
+                                    ]
+                                }
+                            },
+                            {
+                                group_1_component: {
+                                    text_1: "text 1 value 2",
+                                    text_2: "text 2 value 2",
+                                    repeatable_for_admin: [
+                                        {text_for_repeatable_for_admin: "rpt value 1 2"},
+                                        {text_for_repeatable_for_admin: "rpt value 2 2"}
+                                    ]
+                                }
                             }
+                        ]
+                    }
+                },
+            },
+            {
+                // basic allowed and prevented changes
+                args: {
+                    componentDefinitions: [
+                        {
+                            name: 'group_1',
+                            model: {class: 'GroupFieldModel', config: {}},
+                            component: {
+                                class: 'GroupFieldComponent',
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: 'text_1',
+                                            model: {class: 'TextFieldModel', config: {value: 'hello world 1!'}},
+                                            component: {class: 'TextFieldComponent', config: {}},
+                                        },
+                                        {
+                                            name: 'group_2',
+                                            model: {class: 'GroupFieldModel', config: {}},
+                                            component: {
+                                                class: 'GroupFieldComponent',
+                                                config: {
+                                                    componentDefinitions: [
+                                                        {
+                                                            name: 'text_2',
+                                                            model: {
+                                                                class: 'TextFieldModel',
+                                                                config: {}
+                                                            },
+                                                            component: {class: 'TextFieldComponent', config: {}},
+                                                        },
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
                         },
+                        {
+                            name: 'repeatable_1',
+                            model: {
+                                class: 'RepeatableComponentModel',
+                                config: {defaultValue: [{text_rpt_1: "hello world from repeating groups"}]}
+                            },
+                            component: {
+                                class: 'RepeatableComponent',
+                                config: {
+                                    elementTemplate: {
+                                        name: 'text_rpt_1',
+                                        model: {class: 'TextFieldModel', config: {}},
+                                        component: {class: 'TextFieldComponent', config: {}},
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                    original: {
+                        redboxOid: "abcd",
+                        metadata: {
+                            group_1: {
+                                text_1: 'hello world 1!',
+                                group_2: {text_2: "group_1 group_2 text_2"},
+                            },
+                            repeatable_1: [
+                                {text_rpt_1: "hello world from repeating groups"},
+                            ]
+                        }
                     },
-                    layout: {
-                        class: 'DefaultLayoutComponent',
-                        config: {
-                            label: 'Repeatable TextField with default wrapper defined',
-                            helpText: 'Repeatable component help text',
+                    changed: {
+                        redboxOid: "abcd",
+                        metadata: {
+                            text_0: "text_0 this is not allowed, ignore it",
+                            group_1: {
+                                text_1: 'text_1 new value',
+                                text_another: "text_another this is not allowed, ignore it",
+                            },
+                            repeatable_1: [
+                                {
+                                    text_rpt_1: "repeatable_1 text_rpt_1 index 0 new value",
+                                    text_more: "text_more this is not allowed, ignore it",
+                                },
+                                {
+                                    text_rpt_1: "hello world from repeating groups",
+                                },
+                            ]
                         }
                     },
                 },
-            ]
-        };
-        const changed = {
-            redboxOid: "abcd",
-            metadata: {
-                repeatable_group_1: [
-                    // text_1 is not allowed for the current user, ignore it
-                    {group_1_component: {text_1: "grp 1 text 1 value new", text_2: "text 2 value new"}},
-                    // repeatable_for_admin is not allowed for the current user, ignore it
-                    {group_1_component: {text_2: "grp 2 text 2 value new", repeatable_for_admin: []}},
-                    {group_1_component: {text_2: "grp 3 text 2 value new",}},
-                    // text_1 is not allowed for the current user, ignore it
-                    {group_1_component: {text_1: "grp 4 text 1 value new",}},
-                ]
-            }
-        };
-        const original = {
-            redboxOid: "abcd",
-            metadata: {
-                repeatable_group_1: [
-                    {
-                        group_1_component: {
-                            text_1: "grp 1 text 1 value 1",
-                            text_2: "grp 1 text 2 value 1",
-                            repeatable_for_admin: [
-                                {text_for_repeatable_for_admin: "rpt 1 value 1",},
-                                {text_for_repeatable_for_admin: "rpt 1 value 2",}
-                            ]
-                        }
-                    },
-                    {
-                        group_1_component: {
-                            text_1: "grp 2 text 1 value 1",
-                            text_2: "grp 2 text 2 value 1",
-                            repeatable_for_admin: [
-                                {text_for_repeatable_for_admin: "rpt 2 value 1",},
-                                {text_for_repeatable_for_admin: "rpt 2 value 2",}
-                            ]
-                        }
+                expected: {
+                    redboxOid: "abcd",
+                    metadata: {
+                        group_1: {
+                            text_1: 'text_1 new value',
+                            group_2: {text_2: "group_1 group_2 text_2"},
+                        },
+                        repeatable_1: [
+                            {
+                                text_rpt_1: "repeatable_1 text_rpt_1 index 0 new value",
+                            },
+                            {
+                                text_rpt_1: "hello world from repeating groups",
+                            },
+                        ]
                     }
-                ]
+                }
             }
-        };
-        const expected = {
-            redboxOid: "abcd",
-            metadata: {
-                repeatable_group_1: [
-                    {
-                        group_1_component: {
-                            text_1: "grp 1 text 1 value 1",
-                            text_2: "grp 1 text 2 value new",
-                            repeatable_for_admin: [
-                                {text_for_repeatable_for_admin: "rpt 1 value 1",},
-                                {text_for_repeatable_for_admin: "rpt 1 value 2",}
-                            ]
-                        }
+        ];
+        cases.forEach(({args, expected}) => {
+            it(`should merge as expected ${JSON.stringify(expected)} for args ${JSON.stringify(args)}`, (done) => {
+                const clientFormConfig = {
+                    name: "client-form-config",
+                    type: "rdmp",
+                    debugValue: true,
+                    domElementType: 'form',
+                    defaultComponentConfig: {
+                        defaultComponentCssClasses: 'row',
                     },
-                    {
-                        group_1_component: {
-                            text_1: "grp 2 text 1 value 1",
-                            text_2: "grp 2 text 2 value new",
-                            repeatable_for_admin: [
-                                {text_for_repeatable_for_admin: "rpt 2 value 1",},
-                                {text_for_repeatable_for_admin: "rpt 2 value 2",}
-                            ]
-                        }
-                    },
-                    {
-                        group_1_component: {
-                            text_2: "grp 3 text 2 value new"
-                        }
-                    }
-                ]
-            }
-        };
-        const result = FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, clientFormConfig);
-
-        // expect(result).to.eql(expected);
-        expect(result).to.eql({});
+                    editCssClasses: "redbox-form form",
+                    skipValidationOnSave: false,
+                    componentDefinitions: args.componentDefinitions ?? [],
+                };
+                const result = FormRecordConsistencyService.mergeRecordClientFormConfig(
+                    args.original ?? {},
+                    args.changed ?? {},
+                    clientFormConfig
+                );
+                expect(result).to.eql(expected);
+                done();
+            });
+        });
     });
 });

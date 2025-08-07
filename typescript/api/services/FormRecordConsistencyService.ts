@@ -114,16 +114,18 @@ export module Services {
 
         /**
          * Merge the existing original and changed records using the clientFormConfig.
-         * No changes are made to the records. The return value is new instance.
+         * No changes are made to the records. The return value is a new instance.
          *
-         * Notes on the merge process:
-         * - Arrays are merged with one of these assumptions:
+         * Note that arrays are merged by either of these approaches:
          *   - the user has full access to the array, the new array will be the full array, so replace any existing array
          *   - the user has no access to the array, so leave the existing array
          *
+         * The implication of the array merging approach is that arrays cannot contain components that have constraints,
+         * as it is not possible to determine which array element an existing component's value should be part of, as the array elements may have been moved.
+         *
          * @param original The existing original record.
          * @param changed The new record.
-         * @param clientFormConfig The client form config, with the fields the current user can't access filtered out.
+         * @param clientFormConfig The client form config, the fields the current user can't access are already filtered out.
          * @return The merged record.
          */
         public mergeRecordClientFormConfig(
@@ -138,9 +140,7 @@ export module Services {
             return {
                 ...original,
                 redboxOid: original?.redboxOid ?? "",
-                metadata: this.mergeRecordPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
-                permittedChanges: permittedChanges,
-                changes: changes,
+                metadata: this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
             }
         }
 
@@ -152,94 +152,122 @@ export module Services {
          * @param changes The differences between the original and the changed items.
          * @param currentPath The path to the current point in the structure.
          */
-        public mergeRecordPermitted(original: object, changed: object, permittedChanges: Record<string, unknown>, changes: FormRecordConsistencyChange[], currentPath?: FormRecordConsistencyChangePath): Record<string, unknown> {
-            if (!currentPath) {
-                currentPath = [];
-            }
-            const relevantChanges = changes?.filter(i => !currentPath || this.arrayStartsWithArray(currentPath, i?.path));
+        public mergeRecordMetadataPermitted(
+            original: object,
+            changed: object,
+            permittedChanges: Record<string, unknown>,
+            changes: FormRecordConsistencyChange[],
+            currentPath?: FormRecordConsistencyChangePath
+        ): Record<string, unknown> {
+            // ensure there is a current path
+            currentPath = currentPath ?? [];
 
-            // permittedDataModel is an object, with properties that are objects, arrays, or simple values
+            // filter the changes to only those relevant to the current path
+            const relevantChanges = changes?.filter(i => {
+                return !currentPath || this.arrayStartsWithArray(currentPath, i?.path);
+            });
 
-            // the goal is to begin with all the original properties,
-            // and recursively merge the changed records,
-            // using changes to not have to look at every property on both original and changed.
-            // The permittedDataModel indicates which properties can be modified by the changed record.
-
+            // check all keys in either the original or changes objects
             const {keys: originalKeys} = this.toKeysEntries(original);
             const {keys: changedKeys} = this.toKeysEntries(changed);
             const allKeys = new Set(originalKeys);
             changedKeys.forEach(i => allKeys.add(i));
 
-            const result = {};
+            // permittedChanged is in JSON Type Def format
+            // permitted changes is always for an object (i.e. has property 'properties')
+            const permittedChangesObj = permittedChanges as object;
+            if (!('properties' in permittedChangesObj)) {
+                throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
+            }
+            const permittedChangesProps = permittedChangesObj['properties'] as object;
 
+
+            // create a new record instance
+            const result = {
+                // for debugging:
+                // _meta: {keys:Array.from(allKeys),currentPath:currentPath},
+            };
+
+            // for each key, evaluate the value
             for (const key of allKeys) {
-                const isOriginalKey = key in original;
-                const isChangedKey = key in changed;
-                const originalValue = isOriginalKey ? original[key] : undefined;
-                const changedValue = isChangedKey ? changed[key] : undefined;
-                const isOriginalValueArray = _.isArray(originalValue);
-                const isOriginalValueObject = _.isPlainObject(originalValue);
-                const isChangedValueArray = _.isArray(changedValue);
-                const isChangedValueObject = _.isPlainObject(changedValue);
+                // pre-calculate aspects of the original item
+                const isKeyInOriginal = key in original;
+                const originalValue = isKeyInOriginal ? original[key] : undefined;
+                const originalValueType = this.guessType(originalValue);
 
-                // TODO: fix detecting whether the current key is an object or array or something else
-                // permittedChanged is in JSON Type Def format
-                const isPermittedChangeObject = key in ((permittedChanges?.['properties'] as object) ?? {});
-                const isPermittedChangeArray = 'elements' in permittedChanges;
-                const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray([...currentPath, key], i?.path));
+                // pre-calculate aspects of the changed item
+                const isKeyInChanged = key in changed;
+                const changedValue = isKeyInChanged ? changed[key] : undefined;
+                const changedValueType = this.guessType(changedValue);
 
-                sails.log.verbose(`mergeRecordPermitted key ${key} currentPath ${currentPath}: ${JSON.stringify({
-                    original: original,
-                    changed: changed,
-                    permittedChanges: permittedChanges,
-                    changes: changes,
-                    isOriginalKey: isOriginalKey,
-                    isChangedKey: isChangedKey,
-                    originalValue: originalValue,
-                    changedValue: changedValue,
-                    isOriginalValueArray: isOriginalValueArray,
-                    isOriginalValueObject: isOriginalValueObject,
-                    isChangedValueArray: isChangedValueArray,
-                    isChangedValueObject: isChangedValueObject,
+                // pre-calculate aspects of the permitted changes
+                const isKeyInPermittedChange = key in permittedChangesProps;
+                const permittedChangesValue = permittedChangesProps?.[key];
+                const isPermittedChangeObject = isKeyInPermittedChange && 'properties' in permittedChangesValue;
+                const isPermittedChangeArray = isKeyInPermittedChange && 'elements' in permittedChangesValue;
+                const isPermittedChangeType = isKeyInPermittedChange && 'type' in permittedChangesValue;
+                const isPermittedChangeEmpty = isKeyInPermittedChange && Object.keys(permittedChangesValue).length === 0;
+
+                // ensure the permitted changes item is valid
+                const isPermittedChangeMatches = {
                     isPermittedChangeObject: isPermittedChangeObject,
                     isPermittedChangeArray: isPermittedChangeArray,
-                    keyChanges: keyChanges,
-                })}`);
+                    isPermittedChangeType: isPermittedChangeType,
+                    isPermittedChangeEmpty: isPermittedChangeEmpty,
+                };
+                if (isKeyInPermittedChange && Object.values(isPermittedChangeMatches).filter(i => i === true).length !== 1) {
+                    throw new Error(`Invalid permittedChanges object, all definitions must have a property that is one of 'properties', 'elements', 'type', (none): ${JSON.stringify(isPermittedChangeMatches)} - ${JSON.stringify(permittedChangesValue)}`);
+                }
 
-                if (isPermittedChangeArray && isOriginalKey && isChangedKey && isOriginalValueArray && isChangedValueArray) {
-                    // Option: all of: change is permitted, original and changed have the key, original and changed are arrays.
-                    // For an array, the merge logic is to compare the same index in the original and the changed arrays.
+                // evaluate the combinations of original and changed values
+                if (
+                    isPermittedChangeArray
+                    && isKeyInOriginal
+                    && isKeyInChanged
+                    && originalValueType === "array"
+                    && changedValueType === "array"
+                ) {
+                    // The change is permitted and an array, original and changed have the key and both are arrays.
+                    // For an array, the merge logic is to replace the original array with the changed array
+                    // TODO: Consider how to replace each element in the array instead of the whole array.
+                    //       Replacing the whole array prevents use of constraints in components in the array elements.
+                    const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
                     result[key] = changedValue.map((changedElement: object, index: number) => {
-                        // Get the original value in the same index as the changed index.
-                        const originalElement = originalValue[index];
                         // Evaluate the element in the array.
-                        const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray([...currentPath, key, index], i?.path));
-                        return this.mergeRecordPermitted(originalElement, changedElement, permittedChanges['elements'] as Record<string, unknown>, keyChanges);
+                        // TODO: Should the 'original' element be an instance of the elementTemplate with default values?
+                        const originalElement = {};
+                        const newPath = [...currentPath, key, index];
+                        const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
+                        return this.mergeRecordMetadataPermitted(originalElement, changedElement, newPermittedChanges, keyChanges, newPath);
                     });
-                } else if (isPermittedChangeObject && isOriginalKey && isChangedKey && isOriginalValueObject && isChangedValueObject) {
-                    // Option:  all of: change is permitted, original and changed have the key, original and changed are objects.
-                    // Evaluate the values.
 
-                    result[key] = this.mergeRecordPermitted(originalValue, changedValue, permittedChanges[key] as Record<string, unknown>, keyChanges);
-                } else if (isPermittedChangeArray && isOriginalKey && isChangedKey && (isOriginalValueArray && !isChangedValueArray)) {
-                    // Option: all of: change is permitted, original and changed have the key, original is array and changed is object.
+                } else if (
+                    isPermittedChangeObject
+                    && isKeyInOriginal
+                    && isKeyInChanged
+                    && originalValueType === "object"
+                    && changedValueType === "object"
+                ) {
+                    // The change is permitted and an object, original and changed have the key and both are objects.
+                    // Evaluate the properties of the object.
+                    const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
+                    const newPath = [...currentPath, key];
+                    const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
+                    result[key] = this.mergeRecordMetadataPermitted(originalValue, changedValue, newPermittedChanges, keyChanges, newPath);
+
+                } else if (isKeyInPermittedChange && isKeyInChanged) {
+                    // The change is permitted and the key is in the changed.
                     // Replace the original value with the changed value.
                     result[key] = changedValue;
-                } else if (isPermittedChangeObject && isOriginalKey && isChangedKey && (isOriginalValueObject && !isChangedValueObject)) {
-                    // Option: all of: change is permitted, original and changed have the key, original is object and changed is array.
-                    // Replace the original value with the changed value.
-                    result[key] = changedValue;
-                } else if (isPermittedChangeObject && !isOriginalKey && isChangedKey) {
-                    // Option: all of: change is permitted, key not in original is in changed
-                    // Set value from changed
-                    result[key] = changedValue;
 
-                } else {
-                    // Option: any other condition
+                } else if (isKeyInOriginal && originalValue !== undefined) {
+                    // The key is in the original, so keep the key & value.
                     // Keep the original value.
                     result[key] = originalValue;
                 }
             }
+
+            /*
             sails.log.verbose(`mergeRecordPermitted currentPath ${currentPath}: ${JSON.stringify({
                 original: original,
                 changed: changed,
@@ -247,6 +275,8 @@ export module Services {
                 changes: changes,
                 result: result,
             })}`);
+             */
+
             return result;
         }
 
@@ -257,6 +287,7 @@ export module Services {
         public buildDataModelDefaultForFormConfig(item: FormConfig): Record<string, unknown> {
             // each component definition is a property,
             // where the key is the name and the value is the model value
+            // TODO: provide defaults from ancestors to descendants, so the descendants can either use their default or an ancestors default
             const result = {};
             for (const componentDefinition of item?.componentDefinitions) {
                 const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition);
@@ -314,7 +345,8 @@ export module Services {
          */
         public buildSchemaForFormComponentDefinition(item: FormComponentDefinition): Record<string, unknown> {
             // Using JSON Type Definition schema
-            // Refs: https://jsontypedef.com/docs/jtd-in-5-minutes/  https://ajv.js.org/json-type-definition.html
+            // Ref: https://jsontypedef.com/docs/jtd-in-5-minutes/
+            // Ref: https://ajv.js.org/json-type-definition.html
             const result = {properties: {}};
             if (item?.component?.class === "RepeatableComponent" && item?.component?.config?.['elementTemplate'] !== undefined) {
                 // array elements: https://jsontypedef.com/docs/jtd-in-5-minutes/#elements-schemas
@@ -462,19 +494,23 @@ export module Services {
             if (_.isArray(value)) {
                 return "array";
             }
+
+            // check for date
+            const momentFormats = [
+                'YYYY-MM-DDTHH:mm:ss.SSSZ', // ISO8601
+                'YYYY-MM-DDTHH:mm:ssZ', // RFC3339
+            ];
             try {
-                const momentFormats = [
-                    'YYYY-MM-DDTHH:mm:ss.SSSZ', // ISO8601
-                    'YYYY-MM-DDTHH:mm:ssZ', // RFC3339
-                ];
-                const result = moment(value?.toString(), momentFormats, true);
-                sails.log.verbose(`guessType value '${value}' Date '${result}' typeof '${typeof result}' isValid '${result.isValid()}'`);
+                const strict = true;
+                const result = moment(value?.toString(), momentFormats, strict);
+                sails.log.verbose(`guessType date input '${value}' output '${result}' typeof '${typeof result}' moment.isValid '${result.isValid()}'`);
                 if (result && result.isValid()) {
                     return "timestamp";
                 }
             } catch (err) {
-                sails.log.verbose(`guessType parse error with value '${value}' error ${err}`);
+                sails.log.verbose(`guessType parse error with value '${value}' formats ${JSON.stringify(momentFormats)}: ${err}`);
             }
+
             if (_.isString(value)) {
                 return "string";
             }

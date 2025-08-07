@@ -18,6 +18,9 @@ export class BaseFormFieldModelConfig<ValueType> {
     public disableFormBinding?: boolean = false;
     /**
      * The current value of this model.
+     *
+     * TODO: The value is only settable and gettable from the client, not the form config.
+     *       Maybe use getter/setter methods instead?
      */
     public value?: ValueType;
     /**
