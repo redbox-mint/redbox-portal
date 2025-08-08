@@ -131,7 +131,7 @@ describe('The FormsService', function () {
                         model: {
                             class: 'TextFieldModel',
                             config: {
-                                value: 'hello world 2!',
+                                defaultValue: 'hello world 2!',
                             }
                         },
                         component: {
@@ -191,7 +191,7 @@ describe('The FormsService', function () {
                         model: {
                             class: 'TextFieldModel',
                             config: {
-                                value: 'hello world 2!',
+                                defaultValue: 'hello world 2!',
                             }
                         },
                         component: {
@@ -250,7 +250,7 @@ describe('The FormsService', function () {
                         model: {
                             class: 'TextFieldModel',
                             config: {
-                                value: 'hello world 2!',
+                                defaultValue: 'hello world 2!',
                             }
                         },
                         component: {
@@ -300,7 +300,7 @@ describe('The FormsService', function () {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableComponentModel',
-                            config: {value: [{text_1: "hello world from repeating groups"}]}
+                            config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
@@ -318,14 +318,14 @@ describe('The FormsService', function () {
                                                     name: 'text_1',
                                                     model: {
                                                         class: 'TextFieldModel',
-                                                        config: {value: 'hello world 1!',}
+                                                        config: {defaultValue: 'hello world 1!',}
                                                     },
                                                     component: {class: 'TextFieldComponent', config: {}},
                                                     constraints: {allowModes: ['edit']},
                                                 },
                                                 {
                                                     name: 'text_2',
-                                                    model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
+                                                    model: {class: 'TextFieldModel', config: {defaultValue: 'hello world 2!'}},
                                                     component: {class: 'TextFieldComponent', config: {}},
                                                 },
                                                 {
@@ -339,7 +339,7 @@ describe('The FormsService', function () {
                                                                 name: 'text_for_repeatable_for_admin',
                                                                 model: {
                                                                     class: 'TextFieldModel',
-                                                                    config: {value: 'hello world from repeatable for admin'}
+                                                                    config: {defaultValue: 'hello world from repeatable for admin'}
                                                                 },
                                                                 component: {class: 'TextFieldComponent', config: {}},
                                                                 constraints: {authorization: {allowRoles: ['Admin']}},
@@ -384,7 +384,7 @@ describe('The FormsService', function () {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableComponentModel',
-                            config: {value: [{text_1: "hello world from repeating groups"}]}
+                            config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
@@ -400,7 +400,7 @@ describe('The FormsService', function () {
                                                 // <-- requires mode edit, so expect to be removed
                                                 {
                                                     name: 'text_2',
-                                                    model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
+                                                    model: {class: 'TextFieldModel', config: {defaultValue: 'hello world 2!'}},
                                                     component: {class: 'TextFieldComponent', config: {}},
                                                 },
                                                 // <-- requires role 'Admin', so is removed

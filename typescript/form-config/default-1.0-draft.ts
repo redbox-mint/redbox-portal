@@ -39,7 +39,6 @@ const formConfig: FormConfig = {
             model: {
                 class: 'TextFieldModel',
                 config: {
-                    value: 'hello world!',
                     defaultValue: 'hello world!',
                     validators: [
                         {name: 'required'},
@@ -62,7 +61,7 @@ const formConfig: FormConfig = {
             model: {
                 class: 'TextFieldModel',
                 config: {
-                    value: 'hello world 2!',
+                    defaultValue: 'hello world 2!',
                     validators: [
                         {name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
                         {name: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
@@ -101,7 +100,6 @@ const formConfig: FormConfig = {
             model: {
                 class: 'TextFieldModel',
                 config: {
-                    value: 'hello world! component event',
                     defaultValue: 'hello world! component event',
                     validators: [
                         {name: 'required'},
@@ -128,7 +126,7 @@ const formConfig: FormConfig = {
             model: {
                 class: 'TextFieldModel',
                 config: {
-                    value: 'hello world 2! component expression'
+                    defaultValue: 'hello world 2! component expression'
                 }
             },
             component: {
@@ -152,7 +150,6 @@ const formConfig: FormConfig = {
             model: {
                 class: 'TextFieldModel',
                 config: {
-                    value: 'hello world! layout event',
                     defaultValue: 'hello world! layout event',
                     validators: [
                         {name: 'required'},
@@ -175,7 +172,7 @@ const formConfig: FormConfig = {
             model: {
                 class: 'TextFieldModel',
                 config: {
-                    value: 'hello world 2! layout expression'
+                    defaultValue: 'hello world 2! layout expression'
                 }
             },
             component: {
@@ -223,7 +220,7 @@ const formConfig: FormConfig = {
                             model: {
                                 class: 'TextFieldModel',
                                 config: {
-                                    value: 'hello world 3!',
+                                    defaultValue: 'hello world 3!',
                                 }
                             },
                             component: {
@@ -235,7 +232,6 @@ const formConfig: FormConfig = {
                             model: {
                                 class: 'TextFieldModel',
                                 config: {
-                                    value: 'hello world 4!',
                                     defaultValue: 'hello world 4!'
                                 }
                             },
@@ -275,7 +271,7 @@ const formConfig: FormConfig = {
                                             model: {
                                                 class: 'TextFieldModel',
                                                 config: {
-                                                    value: 'hello world 5!',
+                                                    defaultValue: 'hello world 5!',
                                                 }
                                             },
                                             component: {
@@ -304,7 +300,6 @@ const formConfig: FormConfig = {
             model: {
                 class: 'RepeatableComponentModel',
                 config: {
-                    value: ['hello world from repeatable value!'],
                     defaultValue: ['hello world from repeatable, default!']
                 }
             },
@@ -367,9 +362,7 @@ const formConfig: FormConfig = {
             model: {
                 class: 'RepeatableComponentModel',
                 config: {
-                    value: [{
-                        text_3: "hello world from repeating groups"
-                    }]
+                    defaultValue: [{text_3: "hello world from repeating groups"}]
                 }
             },
             component: {
@@ -394,7 +387,7 @@ const formConfig: FormConfig = {
                                         model: {
                                             class: 'TextFieldModel',
                                             config: {
-                                                value: 'hello world 3!',
+                                                defaultValue: 'hello world 3!',
                                             }
                                         },
                                         component: {
@@ -439,7 +432,7 @@ const formConfig: FormConfig = {
         //       name: 'project_name',
         //       label: 'Project Name',
         //       type: 'text',
-        //       value: 'hello world!'
+        //       defaultValue: 'hello world!'
         //     }
         //   }
         // }
