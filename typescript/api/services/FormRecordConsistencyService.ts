@@ -301,25 +301,41 @@ export module Services {
         /**
          * Convert a form component definition into the matching data model with defaults.
          * @param item One form config component definition.
+         * @param defaultValue The default value if there is an ancestor component.
          */
-        public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition): Record<string, unknown> {
+        public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition, defaultValue?: Record<string, unknown>): Record<string, unknown> {
             const result = {};
-            if (item?.component?.config?.['elementTemplate'] !== undefined) {
-                result[item?.name] = [this.buildDataModelDefaultForFormComponentDefinition(item?.component?.config?.['elementTemplate'] ?? {})];
-            } else if (item?.component?.config?.['componentDefinitions'] !== undefined) {
-                result[item?.name] = {};
-                for (const componentDefinition of item?.component?.config?.['componentDefinitions'] ?? []) {
-                    const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition);
+            const itemName = item?.name;
+            const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
+            const componentDefinitions = item?.component?.config?.['componentDefinitions'];
+            const elementTemplate = item?.component?.config?.['elementTemplate'];
+
+            if (elementTemplate !== undefined) {
+                // for each element in the default value array, build the component from any ancestor defaultValues
+                // the default in the elementTemplate is the default for _new_ items, the template default doesn't create any array elements
+                // build the array of components from any ancestor defaultValues
+                const componentName = elementTemplate?.name;
+                result[itemName] = (itemDefaultValue ?? []).map(arrayElementDefaultValue => {
+                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - elementTemplate component ${componentName} - arrayElementDefaultValue ${JSON.stringify(arrayElementDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
+                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplate, arrayElementDefaultValue);
+                });
+
+            } else if (componentDefinitions !== undefined) {
+                // apply the default value to each element in a component definition
+                result[itemName] = {};
+                for (const componentDefinition of (componentDefinitions ?? [])) {
+                    const componentName = componentDefinition?.name;
+                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - componentDefinitions component ${componentName} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
+                    const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition, itemDefaultValue);
                     for (const [key, value] of Object.entries(def ?? {})) {
-                        result[item?.name][key] = value;
+                        result[itemName][key] = value;
                     }
                 }
-            } else if (item?.model?.config?.value !== undefined) {
-                result[item?.name] = item?.model?.config?.value;
-            } else if (item?.model?.config?.defaultValue !== undefined) {
-                result[item?.name] = item?.model?.config?.defaultValue;
+
             } else {
-                result[item?.name] = undefined;
+                result[itemName] = itemDefaultValue !== undefined
+                    ? itemDefaultValue
+                    : _.get(defaultValue, itemName, undefined);
             }
             return result;
         }
@@ -363,9 +379,6 @@ export module Services {
                         ...def.properties as object,
                     };
                 }
-            } else if (item?.model?.config?.value !== undefined) {
-                // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-                result.properties[item?.name] = {type: this.guessType(item?.model?.config?.value)};
             } else if (item?.model?.config?.defaultValue !== undefined) {
                 // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
                 result.properties[item?.name] = {type: this.guessType(item?.model?.config?.defaultValue)};
@@ -479,6 +492,29 @@ export module Services {
         public async validateRecordValues(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
             // TODO
             return [];
+        }
+
+        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition) {
+            const itemName = item?.name;
+            const itemDefaultValue = item?.model?.config?.defaultValue;
+            return _.mergeWith(
+                {},
+                current ?? {},
+                {[itemName]: itemDefaultValue},
+                (objValue, srcValue, key, object, source, stack) => {
+                    // merge approach for arrays is to choose the source array,
+                    // or the one that is an array if the other isn't
+                    if (Array.isArray(objValue) && Array.isArray(srcValue)) {
+                        return srcValue;
+                    } else if (Array.isArray(objValue) && !Array.isArray(srcValue)) {
+                        return objValue;
+                    } else if (!Array.isArray(objValue) && Array.isArray(srcValue)) {
+                        return srcValue;
+                    }
+                    // undefined = use the default merge approach
+                    return undefined;
+                }
+            );
         }
 
         private guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "unknown" {

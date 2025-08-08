@@ -316,5 +316,153 @@ describe('The FormRecordConsistencyService', function () {
                 done();
             });
         });
+
+        it("fails when permittedChanges does not have a 'properties' property", function () {
+            const func = function () {
+                FormRecordConsistencyService.mergeRecordMetadataPermitted({}, {}, {}, [])
+            }
+            expect(func).to.throw(Error, 'top level');
+        });
+        it("fails when permittedChanges nested object is invalid", function () {
+            const record = {prop1: "value1"};
+            const permittedChanges = {properties: {prop1: {wrong: "wrong"}}};
+            const func = function () {
+                FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
+            }
+            expect(func).to.throw(Error, 'elements');
+        });
+    });
+
+    describe('buildDataModelDefault methods', function () {
+        it("creates the expected default data model by using the most specific defaultValue", function () {
+            const formConfig = {
+                name: "remove-item-constraint-roles",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'group_1',
+                        model: {
+                            class: 'GroupFieldModel',
+                            config: {
+                                defaultValue: {
+                                    text_1: "group_1 text_1 default",
+                                    group_2: {text_2: "group_1 group_2 text_2 default"}
+                                }
+                            }
+                        },
+                        component: {
+                            class: 'GroupFieldComponent',
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: 'text_1',
+                                        model: {class: 'TextFieldModel', config: {defaultValue: 'text_1 default'}},
+                                        component: {class: 'TextFieldComponent', config: {}},
+                                    },
+                                    {
+                                        name: 'group_2',
+                                        model: {
+                                            class: 'GroupFieldModel',
+                                            config: {
+                                                defaultValue: {
+                                                    text_3: "group_2 text_3 default",
+                                                    repeatable_2: [{text_rpt_2: "group_2 repeatable_2 text_rpt_2 default"}]
+                                                }
+                                            }
+                                        },
+                                        component: {
+                                            class: 'GroupFieldComponent',
+                                            config: {
+                                                componentDefinitions: [
+                                                    {
+                                                        name: 'text_2',
+                                                        model: {class: 'TextFieldModel', config: {}},
+                                                        component: {class: 'TextFieldComponent', config: {}},
+                                                    },
+                                                    {
+                                                        name: 'text_3',
+                                                        model: {
+                                                            class: 'TextFieldModel',
+                                                            config: {defaultValue: "text_3 default"}
+                                                        },
+                                                        component: {class: 'TextFieldComponent', config: {}},
+                                                    },
+                                                    {
+                                                        name: 'repeatable_2',
+                                                        model: {
+                                                            class: 'RepeatableComponentModel',
+                                                            config: {defaultValue: [{text_rpt_2: "text_rpt_2 default 1"}, {text_rpt_2: "text_rpt_2 default 2"}]}
+                                                        },
+                                                        component: {
+                                                            class: 'RepeatableComponent',
+                                                            config: {
+                                                                elementTemplate: {
+                                                                    name: 'text_rpt_2',
+                                                                    model: {class: 'TextFieldModel', config: {}},
+                                                                    component: {
+                                                                        class: 'TextFieldComponent',
+                                                                        config: {}
+                                                                    },
+                                                                },
+                                                            },
+                                                        },
+                                                    },
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                    },
+                    {
+                        name: 'repeatable_1',
+                        // defaultValue of '{}' says that there is an item in the array, but with no properties
+                        model: {class: 'RepeatableComponentModel', config: {defaultValue: [{}]}},
+                        component: {
+                            class: 'RepeatableComponent',
+                            config: {
+                                elementTemplate: {
+                                    name: 'text_rpt_1',
+                                    model: {
+                                        class: 'TextFieldModel',
+                                        // properties in this defaultValue will be added to the model.config.defaultValue
+                                        // only if the properties are not present (or are present and have value 'undefined')
+                                        // in model.config.defaultValue
+                                        config: {defaultValue: "hello world from repeating groups"}
+                                    },
+                                    component: {class: 'TextFieldComponent', config: {}},
+                                },
+                            },
+                        },
+                    },
+                ],
+            };
+            const expected = {
+                group_1: {
+                    text_1: "text_1 default",
+                    group_2: {
+                        text_2: "group_1 group_2 text_2 default",
+                        text_3: "text_3 default",
+                        repeatable_2: [
+                            {text_rpt_2: "text_rpt_2 default 1"},
+                            {text_rpt_2: "text_rpt_2 default 2"},
+                        ],
+                    },
+                },
+                repeatable_1: [
+                    {text_rpt_1: "hello world from repeating groups"},
+                ],
+            };
+            const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig);
+            expect(result).to.eql(expected);
+        });
     });
 });
