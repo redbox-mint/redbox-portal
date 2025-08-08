@@ -65,6 +65,14 @@ function createBaseComponent({ field, componentClass, modelClass = null, compone
     _.set(componentDefinition, 'component.config.type', common.type);
   }
 
+  if(!_.isEmpty(common.controlType)) {
+    _.set(componentDefinition, 'component.config.controlType', common.controlType);
+  }
+
+  if(!_.isEmpty(common.cssClasses)) {
+    _.set(componentDefinition, 'component.config.cssClasses', common.cssClasses);
+  }
+
   if(!_.isEmpty(common.required)) {
     _.set(componentDefinition, 'model.config.validators', [ { name: 'required' } ]);
   }
@@ -98,21 +106,19 @@ module.exports = {
   TextField: (field) => {
 
     //component specific mapping
-    let textFieldConfig = {
+    let fieldConfig = {
       maxLength: field?.definition?.maxLength ?? 0,
       extraLabel: field?.definition?.extraLabel ?? ''
     }
 
-    // console.log(JSON.stringify(field));
     let componentDefinition = createBaseComponent({
         field,
         componentClass: 'TextFieldComponent',
         modelClass: 'TextFieldModel'
     });
 
-    if(textFieldConfig.maxLength > 0) {
-    //   console.log(JSON.stringify(textFieldConfig));
-      _.set(componentDefinition, 'model.config.validators', [ {name: 'maxLength', message: '', config: {maxLength: textFieldConfig.maxLength}} ]);
+    if(fieldConfig.maxLength > 0) {
+      _.set(componentDefinition, 'model.config.validators', [ {name: 'maxLength', message: '', config: {maxLength: fieldConfig.maxLength}} ]);
     }
 
     return componentDefinition;
@@ -128,7 +134,239 @@ module.exports = {
 
     return componentDefinition;
   },
+  TextArea: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'TextAreaComponent',
+        modelClass: 'TextAreaModel'
+    });
 
+    return componentDefinition;
+  },
+  GenericGroupComponent: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'GroupFieldComponent'
+    });
+
+    _.unset(componentDefinition,'name');
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  ButtonBarContainer: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'GroupFieldComponent'
+    });
+
+    _.unset(componentDefinition,'name');
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  AnchorOrButton: (field) => {
+    
+    //component specific mapping
+    let fieldConfig = {
+      showPencil: field?.definition?.showPencil ?? '',
+      needsEditAccess: field?.needsEditAccess ?? '',
+      name: field?.definition?.label ?? ''
+    }
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'AnchorOrButtonComponent',
+        modelClass: 'AnchorOrButtonModel'
+    });
+
+    if(!_.isEmpty(fieldConfig.showPencil)) {
+      _.set(componentDefinition, 'component.config.showPencil');
+    }
+    
+    if(!_.isEmpty(fieldConfig.needsEditAccess)) {
+      _.set(componentDefinition, 'component.config.needsEditAccess');
+    }
+    
+    if(!_.isEmpty(fieldConfig.name)) {
+      _.set(componentDefinition,'name',fieldConfig.name);
+    }
+    
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  RepeatableVocabComponent: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'RepeatableComponent',
+        modelClass: 'RepeatableComponentModel'
+    });
+
+    _.unset(componentDefinition,'name');
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  RepeatableContributorComponent: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'RepeatableComponent',
+        modelClass: 'RepeatableComponentModel'
+    });
+
+    _.unset(componentDefinition,'name');
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  RepeatableGroupComponent: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'RepeatableComponent',
+        modelClass: 'RepeatableComponentModel'
+    });
+
+    _.unset(componentDefinition,'name');
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  RepeatableVocab: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'RepeatableComponent',
+        modelClass: 'RepeatableComponentModel'
+    });
+    return componentDefinition;
+  },
+  RepeatableContainer: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'RepeatableComponent',
+        modelClass: 'RepeatableComponentModel'
+    });
+
+    _.unset(componentDefinition,'name');
+    _.unset(componentDefinition,'layout');
+
+    return componentDefinition;
+  },
+  vocabField: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'vocabFieldComponent'
+    });
+    return componentDefinition;
+  },
+  ContributorField: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'ContributorFieldComponent'
+    });
+    return componentDefinition;
+  },
+  HiddenValue: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'HiddenValueComponent'
+    });
+    _.unset(componentDefinition,'layout');
+    return componentDefinition;
+  },
+  ANDSVocab: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'ANDSVocabComponent'
+    });
+    return componentDefinition;
+  },
+  SelectionField: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'SelectionFieldComponent'
+    });
+    return componentDefinition;
+  },
+  DateTime: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'DateTimeComponent'
+    });
+    return componentDefinition;
+  },
+  TabNavButton: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'TabNavButtonComponent'
+    });
+    _.unset(componentDefinition,'layout');
+    return componentDefinition;
+  },
+  SaveButton: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'SaveButtonComponent'
+    });
+    _.unset(componentDefinition,'layout');
+    return componentDefinition;
+  },
+  CancelButton: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'CancelButtonComponent'
+    });
+    _.unset(componentDefinition,'layout');
+    return componentDefinition;
+  },
+  RelatedObjectSelector: (field) => {
+    let componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'RelatedObjectSelectorComponent'
+    });
+    _.unset(componentDefinition,'layout');
+    return componentDefinition;
+  },
+  //TODO not sure if we need any of these
+  // Spacer: (field) => {
+  //   let componentDefinition = createBaseComponent({
+  //       field,
+  //       componentClass: 'SpacerComponent'
+  //   });
+  //   _.unset(componentDefinition,'layout');
+  //   return componentDefinition;
+  // },
+  // EventHandler: (field) => {
+  //   let componentDefinition = createBaseComponent({
+  //       field,
+  //       componentClass: 'EventHandlerComponent'
+  //   });
+  //   _.unset(componentDefinition,'layout');
+  //   return componentDefinition;
+  // },
+  // ParameterRetriever: (field) => {
+  //   let componentDefinition = createBaseComponent({
+  //       field,
+  //       componentClass: 'ParameterRetrieverComponent'
+  //   });
+  //   _.unset(componentDefinition,'layout');
+  //   return componentDefinition;
+  // },
+  // RecordMetadataRetriever: (field) => {
+  //   let componentDefinition = createBaseComponent({
+  //       field,
+  //       componentClass: 'RecordMetadataRetrieverComponent'
+  //   });
+  //   _.unset(componentDefinition,'layout');
+  //   return componentDefinition;
+  // },
+  // LinkValueComponent: (field) => {
+  //   let componentDefinition = createBaseComponent({
+  //       field,
+  //       componentClass: 'RecordMetadataRetrieverComponent'
+  //   });
+  //   _.unset(componentDefinition,'layout');
+  //   return componentDefinition;
+  // }
 
   // Add more mappings as needed...
 };

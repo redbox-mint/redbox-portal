@@ -1,5 +1,6 @@
 const fieldComponentMap = require('./fieldComponentMap');
 const config = require('./config');
+const _ = require('lodash');
 
 function parseFields(fields) {
   return fields.map(field => {
@@ -22,12 +23,13 @@ function parseFields(fields) {
           originalField: field
         };
       } else {
-        parsedField = {};
+        parsedField = { class: 'Unparsable Component: ' + field.class };
       }
     }
 
     // Step 2: Recursively parse nested fields if they exist
-    if (field.definition?.fields && Array.isArray(field.definition.fields)) {
+    if (!_.isUndefined(field?.definition?.fields) && _.isArray(field?.definition?.fields)) {
+      // console.log(JSON.stringify(field));
       parsedField.componentDefinitions = parseFields(field.definition.fields);
     }
 
