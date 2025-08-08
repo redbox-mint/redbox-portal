@@ -1,35 +1,48 @@
 const fieldComponentMap = require('./fieldComponentMap');
 const config = require('./config');
 
-module.exports = function parseTabFields(tabs) {
-  return tabs.map(tab => ({
-    ...tab,
-    componentDefinitions: tab.componentDefinitions.map(field => {
-      
-      let mapper;
+function parseFields(fields) {
+  return fields.map(field => {
+    let mapper;
 
-      // Case 1: field.class === 'Container' and has a compClass
-      if (field.class === 'Container' && field.compClass) {
-        mapper = fieldComponentMap[field.compClass];
-      } else {
-        // Default: use field.class
-        mapper = fieldComponentMap[field.class];
-      }
+    // Step 1: Decide which mapper to use
+    if (field.class === 'Container' && field.compClass) {
+      mapper = fieldComponentMap[field.compClass];
+    } else {
+      mapper = fieldComponentMap[field.class];
+    }
 
-      if (mapper) {
-        return mapper(field);
-      }
-
-      if(!config.config.skipUnparsablefields) {
-        // fallback if class is unknown
-        return {
-            class: 'Unparsable Component: '+field.class,
-            originalField: field
+    let parsedField;
+    if (mapper) {
+      parsedField = mapper(field);
+    } else {
+      if (!config.config.skipUnparsablefields) {
+        parsedField = {
+          class: 'Unparsable Component: ' + field.class,
+          originalField: field
         };
       } else {
-        return {};
+        parsedField = {};
       }
+    }
 
-    })
+    // Step 2: Recursively parse nested fields if they exist
+    if (field.definition?.fields && Array.isArray(field.definition.fields)) {
+      parsedField.componentDefinitions = parseFields(field.definition.fields);
+    }
+
+    return parsedField;
+  });
+}
+
+function parseTabFields(tabs) {
+  return tabs.map(tab => ({
+    ...tab,
+    componentDefinitions: parseFields(tab.componentDefinitions)
   }));
+}
+
+module.exports = {
+  parseTabFields,
+  parseFields
 };

@@ -1,6 +1,59 @@
 {
   "componentDefinitions": [
     {
+      "name": "title",
+      "component": {
+        "class": "TextBlockComponent",
+        "config": {
+          "type": "h1"
+        }
+      },
+      "model": {
+        "class": "TextBlockModel",
+        "config": {
+          "defaultValue": ""
+        }
+      }
+    },
+    {
+      "componentDefinitions": [
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+    {},
+    {
+      "componentDefinitions": [
+        {},
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+    {
+      "componentDefinitions": [
+        {
+          "name": "",
+          "component": {
+            "class": "TextBlockComponent",
+            "config": {
+              "type": "span"
+            }
+          },
+          "model": {
+            "class": "TextBlockModel",
+            "config": {
+              "defaultValue": "will be empty"
+            }
+          }
+        }
+      ]
+    },
+    {},
+    {
       "name": "main_tab",
       "component": {
         "class": "TabComponent",
@@ -67,9 +120,17 @@
                     }
                   }
                 },
+                {
+                  "componentDefinitions": [
+                    {}
+                  ]
+                },
                 {},
-                {},
-                {},
+                {
+                  "componentDefinitions": [
+                    {}
+                  ]
+                },
                 {},
                 {}
               ]
@@ -117,7 +178,32 @@
                 },
                 {},
                 {},
-                {},
+                {
+                  "componentDefinitions": [
+                    {
+                      "name": "",
+                      "layout": {
+                        "class": "DefaultLayoutComponent",
+                        "config": {
+                          "label": "",
+                          "helpText": ""
+                        }
+                      },
+                      "component": {
+                        "class": "TextFieldComponent",
+                        "config": {
+                          "type": "text"
+                        }
+                      },
+                      "model": {
+                        "class": "TextFieldModel",
+                        "config": {
+                          "defaultValue": ""
+                        }
+                      }
+                    }
+                  ]
+                },
                 {
                   "name": "dc_extent",
                   "layout": {
@@ -172,7 +258,11 @@
                 },
                 {},
                 {},
-                {},
+                {
+                  "componentDefinitions": [
+                    {}
+                  ]
+                },
                 {},
                 {},
                 {}
@@ -200,7 +290,60 @@
                 {},
                 {},
                 {},
-                {}
+                {
+                  "componentDefinitions": [
+                    {
+                      "componentDefinitions": [
+                        {},
+                        {
+                          "name": "related_url",
+                          "layout": {
+                            "class": "DefaultLayoutComponent",
+                            "config": {
+                              "label": "@dmpt-related-publication-url",
+                              "helpText": ""
+                            }
+                          },
+                          "component": {
+                            "class": "TextFieldComponent",
+                            "config": {
+                              "type": "text"
+                            }
+                          },
+                          "model": {
+                            "class": "TextFieldModel",
+                            "config": {
+                              "defaultValue": ""
+                            }
+                          }
+                        },
+                        {
+                          "name": "related_title",
+                          "layout": {
+                            "class": "DefaultLayoutComponent",
+                            "config": {
+                              "label": "@dmpt-related-publication-title",
+                              "helpText": ""
+                            }
+                          },
+                          "component": {
+                            "class": "TextFieldComponent",
+                            "config": {
+                              "type": "text"
+                            }
+                          },
+                          "model": {
+                            "class": "TextFieldModel",
+                            "config": {
+                              "defaultValue": ""
+                            }
+                          }
+                        },
+                        {}
+                      ]
+                    }
+                  ]
+                }
               ]
             },
             {

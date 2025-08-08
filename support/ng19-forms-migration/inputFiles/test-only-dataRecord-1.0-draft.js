@@ -16,7 +16,8 @@ module.exports = {
   attachmentFields: [
     "dataLocations"
   ],
-  fields: [{
+  fields: [
+    {
       class: 'Container',
       compClass: 'TextBlockComponent',
       viewOnly: true,
