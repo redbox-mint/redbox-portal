@@ -85,7 +85,7 @@ export class TreeSelectorField extends FieldBase<any> {
 
       if(!_.isEmpty(curVal) && this.enforceAvoidDuplicates) {
         let i = _.findIndex(curVal, ['id', item.id]);
-        if(i < 0) {
+        if(i < 0 && !_.isUndefined(item.name) && item.name != 'undefined') {
           curVal.push(item);
         }
       } else {
@@ -94,7 +94,7 @@ export class TreeSelectorField extends FieldBase<any> {
 
     } else {
       _.remove(curVal, (entry:any) => {
-        return entry.name == item.name;
+        return entry.name === item.name;
       });
     }
     this.setValue(curVal);
