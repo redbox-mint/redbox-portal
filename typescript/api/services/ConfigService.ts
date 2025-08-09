@@ -242,7 +242,7 @@ sails.log.verbose(`${hook_log_header}::Merging branded app configuration...compl
         return filelist;
       }
       try {
-        var files = fs.readdirSync(dir);
+        var files = fs.readdirSync(dir).sort();
         _.each(files, (file) => {
           const resolved = resolve(dir, file);
           if (fs.statSync(resolved).isDirectory()) {

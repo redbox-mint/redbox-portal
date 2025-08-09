@@ -53,6 +53,16 @@ module.exports.figshareAPI = {
     figshareForceEmbargoUpdateAlways: false,
     figshareOnlyPublishSelectedAttachmentFiles: true,
     figshareOnlyPublishSelectedLocationURLs: true,
+    figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob: {
+        enabled: false,
+        namedQuery: "",
+        targetStep: "",
+        paramMap: {},
+        figshareTargetFieldKey: "",
+        figshareTargetFieldValue: "",
+        username: "",
+        userType: "",
+    },
     //Optional to add a file upload finished indicator value saved in a field in the record
     // recordAllFilesUploaded: 'metadata.figshare_all_files_uploaded',
     recordFigArticleId: 'metadata.figshare_article_id',
@@ -75,19 +85,9 @@ module.exports.figshareAPI = {
       ]
     },
     artifacts: {
-      authorResearchInstitute:  [
-          {figshareName: 'Appleton Institute', redboxName: 'Appleton Institute (AI)'},
-          {figshareName: 'Centre for Intelligent Systems', redboxName: 'Centre for Intelligent Systems (CIS)'},
-          {figshareName: 'Centre for Railway Engineering', redboxName: 'Centre for Railway Engineering (CRE)'},
-          {figshareName: 'Centre for Indigenous Health Equity Research', redboxName: 'Centre for Indigenous Health Equity Research (CIHER)'},
-          {figshareName: 'Coastal Marine Ecosystems Research Centre (CMERC)', redboxName: 'Coastal Marine Ecosystems Research Centre (CMERC)'},
-          {figshareName: 'Institute for Future Farming Systems', redboxName: 'Institute for Future Farming Systems (IFFS)'},
-          {figshareName: 'Queensland Centre for Domestic and Family Violence', redboxName: 'Queensland Centre for Domestic and Family Violence Research (QCDFVR)'},
-          {figshareName: 'Centre for Research in Equity and Advancement of Teaching & Education (CREATE)', redboxName: 'Centre for Research in Equity and the Advancement of Teaching and Education (CREATE)'},
-          {figshareName: 'Centre for Tourism and Regional Opportunities', redboxName: ''}, //In Figshare only for historical purposes no need to be send across
-          {figshareName: 'Centre for Regional Advancement of Learning, Equity, Access and Participation (LEAP)', redboxName: ''}, //In Figshare only for historical purposes no need to be send across
-          {figshareName: 'Centre for Regional Economics and Supply Chain (RESC)', redboxName: 'Centre for Regional Economies and Supply Chains (CRESC)'}
-      ],
+      figshareItemEmbargoAdminGroupId: 1780
+    },
+    runtimeArtifacts: {
       //This artifact allows to configure project specific rules to build a list of authors based of the particular structure of a
       //ReDBox record. In example in CQU the contributor_ci field is joined with the list of users in contributors field but in UON 
       //we just need the list from creators field but also ensuring each row is a valid entry row. The algorithim basic process is
@@ -851,13 +851,11 @@ module.exports.figshareAPI = {
                         }
                       %>`
         },
-        //[{id: 1780}], //adminstrator stage
-        //[{id: 105}], //adminstrator prod
         {
           figName: 'embargo_options',
           rbName: '',
-          template: `<% let embargoOptions = {id: 1780};
-                        return [embargoOptions]; 
+          template: `<% let embargoOptions = {id: artifacts.figshareItemEmbargoAdminGroupId };
+                        return [embargoOptions];
                       %>`
         }
       ]
