@@ -136,11 +136,6 @@ export class FormService extends HttpClientService {
       throw new Error("Form config from server was empty.");
     }
 
-    // Get the model data from the server.
-    const modelData = await this.getModelData(oid, recordType);
-
-    // TODO: integrate model data into form config for rendering the form.
-
     // Replace the function placeholders in the form config with the functions.
     const validatorFunctionMap = window.redboxClientScript?.providedToClientFromServer?.validatorFunctionMap || {};
     this.loggerService.info(`${this.logName}: Validation functions to be applied to form config.`, validatorFunctionMap);
@@ -153,6 +148,11 @@ export class FormService extends HttpClientService {
     }
     this.loggerService.info(`${this.logName}: Applied validation functions to form config.`, formConfig.validatorDefinitions);
 
+    // Get the model data from the server.
+    const modelData = await this.getModelData(oid, recordType) ?? {};
+
+    // Integrate model data into form config for rendering the form.
+    this.populateFormConfigFromModelData(formConfig, modelData);
 
     // Resolve the field and component pairs
     return this.createFormComponentsMap(formConfig);
@@ -530,9 +530,8 @@ export class FormService extends HttpClientService {
    * Get the model data for the given oid, or the form defaults if no oid if given.
    * @param oid The optional oid of an existing record.
    * @param recordType The recordtype.
-   * @private
    */
-  private async getModelData(oid?: string, recordType?: string) {
+  public async getModelData(oid?: string, recordType?: string): Promise<Record<string, unknown>> {
     if (!oid && !recordType) {
       throw new Error("Must provide oid or recordType.")
     }
@@ -544,9 +543,13 @@ export class FormService extends HttpClientService {
       : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
-    const result = await this.http.get(url.href, this.requestOptions).toPromise();
+    const result = await this.http.get(url.href, this.requestOptions).toPromise() as Record<string, unknown>;
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result;
+  }
+
+  public populateFormConfigFromModelData(formConfig: FormConfig, modelData: Record<string, unknown>): void {
+    // TODO: populate form config model.value from modelData
   }
 }
 
