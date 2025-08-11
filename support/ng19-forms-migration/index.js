@@ -39,7 +39,7 @@ function processDataRecord(form) {
     const componentDefinitions = topComponentDefinitions.concat(tabStructure.componentDefinitions);
     return {
      componentDefinitions: componentDefinitions
-    }
+    };
 
   } else if(!_.isUndefined(form?.definition?.fields) && _.isArray(form?.definition?.fields)) {
     // No TabOrAccordionContainer — go straight to parsing fields
@@ -59,7 +59,6 @@ function processDataRecord(form) {
   }
 }
 
-
 function processModulesFromDir(dirPath) {
   const files = fs.readdirSync(dirPath).filter(file => file.endsWith('.js'));
 
@@ -67,21 +66,12 @@ function processModulesFromDir(dirPath) {
     const fullPath = path.join(__dirname, dirPath + '/' +file);
     const input = require(fullPath);
 
-    // --- Run the processing ---
+    //Run the processing
     const output = processDataRecord(input);
-    fs.writeFileSync(`./outputFiles/parsed-${file}`, JSON.stringify(output, null, 2));
+    fs.writeFileSync(`${config.settings.outputFilesFolderPath}/parsed-${file}`, JSON.stringify(output, null, 2));
 
-    // if (input.dataRecord && input.dataRecord.header) {
-    //   input.dataRecord.header.dateProcessed = new Date().toISOString();
-    //   console.log(`Updated: ${file}`);
-    // } else {
-    //   console.warn(`Skipping ${file} — missing dataRecord.header`);
-    // }
   });
 }
 
-// Example usage:
-processModulesFromDir('./inputFiles');
-
-
+processModulesFromDir(config.settings.inputFilesFolderPath);
 console.log('=== done ===');

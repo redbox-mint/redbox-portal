@@ -7,7 +7,9 @@ function parseFields(fields) {
     let mapper;
 
     // Step 1: Decide which mapper to use
-    if (field.class === 'Container' && field.compClass) {
+    if ((field.class === 'Container' || field.class === 'RepeatableContributor' || field.class === 'SelectionField' ||
+         field.class === 'RepeatableContainer' || field.class === 'RepeatableVocab' || field.class === 'NotInFormField' ||
+         field.class === 'WorkspaceSelectorField') && field.compClass) {
       mapper = fieldComponentMap[field.compClass];
     } else {
       mapper = fieldComponentMap[field.class];
@@ -17,7 +19,7 @@ function parseFields(fields) {
     if (mapper) {
       parsedField = mapper(field);
     } else {
-      if (!config.config.skipUnparsablefields) {
+      if (!config.settings.skipUnparsablefields) {
         parsedField = {
           class: 'Unparsable Component: ' + field.class,
           originalField: field

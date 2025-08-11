@@ -1,5 +1,7 @@
 module.exports = {
-    config: {
-      skipUnparsablefields: true
+    settings: {
+      skipUnparsablefields: true,
+      inputFilesFolderPath: './inputFiles',
+      outputFilesFolderPath: './outputFiles'
     }
 }
