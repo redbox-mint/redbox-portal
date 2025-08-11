@@ -30,7 +30,7 @@ import { RaidApi, RaidCreateRequest, Title, ModelDate, Description, Access, Alte
 import moment = require('moment');
 import numeral from 'numeral';
 import axios from 'axios';
-import {clientFactory} from '@scienta/axios-oauth2';
+
 
 
 declare var sails: Sails;
@@ -136,13 +136,14 @@ export module Services {
           password: password,
           client_id: oauthClientId
         };
-        //@ts-ignore
-        const client = clientFactory(axios.create(), oauthConfig);
-        const auth1 = await client();
+        
+        const auth1 = await this.fetchAuthToken(oauthConfig);
         sails.log.verbose(`${this.logHeader} getToken() -> Got new token!`);
-        this.oauthTokenData.responseData = auth1;
-        this.oauthTokenData.accessTokenExpiryMillis = Date.now() + (auth1.expires_in * 1000);
-        this.oauthTokenData.accessToken = auth1.access_token;
+        if(auth1) {
+         this.oauthTokenData.responseData = auth1;
+          this.oauthTokenData.accessTokenExpiryMillis = Date.now() + (auth1.expires_in * 1000);
+          this.oauthTokenData.accessToken = auth1.access_token;
+        }
       } catch (err) {
         sails.log.error(`${this.logHeader} getToken() -> Failed to get token!`);
         sails.log.error(err);
@@ -151,6 +152,30 @@ export module Services {
       }
       return this.oauthTokenData.accessToken;
     }
+
+    private async fetchAuthToken(oauthConfig): Promise<any> {
+      
+      try {
+          const response = await axios.post(oauthConfig.url,
+              new URLSearchParams({
+                  'grant_type': oauthConfig.grantType,
+                  'client_id': oauthConfig.clientId,
+                  'username': oauthConfig.username,
+                  'password': oauthConfig.password
+              }), {
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+              }
+          });
+
+          const tokenData = response.data;
+          return tokenData;
+
+      } catch (error) {
+          console.error('Error fetching the token:', error);
+          throw error;
+      }
+  }
 
     private async mintRaid(oid, record, options, attemptCount:number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;

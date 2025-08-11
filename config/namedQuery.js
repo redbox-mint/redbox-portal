@@ -13,6 +13,7 @@ module.exports.namedQuery = {
       'metadata.title': null,
       'dateCreated': null
     },
+    sort: [{'lastSaveDate': 'DESC'}],
     queryParams: {
       'title': {
         type: 'string',
