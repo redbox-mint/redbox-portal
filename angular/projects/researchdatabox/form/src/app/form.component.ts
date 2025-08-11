@@ -125,9 +125,8 @@ export class FormComponent extends BaseComponent {
       this.loggerService.log(`${this.logName}: creating form definition from provided config`);
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
     }
-    this.createFormGroup();
+    this.componentDefArr = this.formDefMap.components;
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
-    // const compContainerRef:ViewContainerRef | undefined = this.componentsContainer();
     if (!compContainerRef) {
       this.loggerService.error(`${this.logName}: No component container found. Cannot load components.`);
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
@@ -140,8 +139,8 @@ export class FormComponent extends BaseComponent {
       await componentRef.instance.initWrapperComponent(componentDefEntry);
       this.loggerService.info(`FormComponent: downloadAndCreateFormComponents: `, componentDefEntry.component);
     }
-    // TODO: set up the event handlers
-
+    // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
+    this.createFormGroup();
     // Set the status to READY if all components are loaded
     this.status.set(FormStatus.READY);
     this.componentsLoaded.set(true);
@@ -164,10 +163,7 @@ export class FormComponent extends BaseComponent {
         const validatorDefinitions = this.formDefMap.formConfig.validatorDefinitions;
         const validatorConfig = this.formDefMap.formConfig.validators;
         const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
-        this.formService.setValidators(this.form, validators);
-
-        // setting this will trigger the form to be rendered
-        this.componentDefArr = components;
+        this.formService.setValidators(this.form, validators);        
       } else {
         const msg = `No form controls found in the form definition. Form cannot be rendered.`;
         this.loggerService.error(`${this.logName}: ${msg}`);
@@ -250,9 +246,9 @@ export class FormComponent extends BaseComponent {
       viewInitialised: componentEntry?.component?.viewInitialised(),
     };
 
-    if (["RepeatableComponent", "GroupFieldComponent"].includes(componentConfigClassName)) {
-      // TODO: can this be improved? The check on the class name helps avoid issues, but 'any' type is still not great.
-      const component = formFieldCompMapEntry?.component as any;
+    // If the component has children components, recursively get their debug info. This used to be hardcoded for specific component types, but now it is generic.
+    const component = formFieldCompMapEntry?.component as any;
+    if (!_isEmpty(component?.components)) {
       componentResult.children = component?.components?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
     }
 
@@ -268,6 +264,24 @@ export class FormComponent extends BaseComponent {
       return componentResult;
     }
   }
+
+  // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
+  public getComponentDefByName(name: string, componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr): FormFieldCompMapEntry | undefined {
+    let foundComponentDef = componentDefArr.find(comp => {  
+      return comp.compConfigJson?.name === name;
+    });
+    // If not found, continue to search in the component's children
+    if (!foundComponentDef) {
+      let componentDef = foundComponentDef as any;
+      if (!_isEmpty(componentDef?.component?.components)) {
+        for (const child of componentDef?.component?.components) {
+          foundComponentDef = this.getComponentDefByName(name, child.component?.components || []);
+        }
+      }
+    }
+    return foundComponentDef;
+  }
+  
 }
 
 type DebugInfo = {
