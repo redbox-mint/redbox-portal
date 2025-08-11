@@ -17,9 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { Observable, of, from, throwError, lastValueFrom, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
 import {
   isObservable
@@ -390,13 +389,11 @@ export module Services {
     }
 
     private resolveHookResponse(hookResponse) {
-      let response = hookResponse;
       if (isObservable(hookResponse)) {
-        response = hookResponse.toPromise();
+        return firstValueFrom(hookResponse);
       } else {
-        response = Promise.resolve(hookResponse);
+        return Promise.resolve(hookResponse);
       }
-      return response;
     }
 
     protected aafAuthInit = () => {
@@ -1034,7 +1031,7 @@ export module Services {
       // ignore audit events for users with no user, which had crashed the app when user has already logged out
       if (_.isEmpty(user)) {
         sails.log.verbose('No user to audit, ignoring: ' + action);
-        return Observable.of(null).toPromise();
+        return firstValueFrom(of(null));
       }
       let auditEvent = {};
       if (!_.isEmpty(user.password)) {
@@ -1046,7 +1043,7 @@ export module Services {
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
-      return super.getObservable(UserAudit.create(auditEvent)).toPromise();
+  return firstValueFrom(super.getObservable(UserAudit.create(auditEvent)));
     }
 
     stringifyObject(object: any): any {
@@ -1190,7 +1187,7 @@ export module Services {
     }
 
     public updateUserRoles = (userid, newRoleIds): Observable<UserModel> => {
-      return this.getUserWithId(userid).flatMap(user => {
+      return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
             return throwError(new Error('Please assign at least one role'));

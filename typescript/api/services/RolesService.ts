@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, of, from, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, last, first } from 'rxjs/operators';
 import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
@@ -114,7 +115,7 @@ export module Services {
       };
       sails.log.verbose('createRoleWithBrand - brand.id ' + brand.id);
       let rolesResp: any = {};
-      let rolesRespPromise = await this.getRolesWithBrand(brand).pipe(flatMap(roles => {
+      let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap(roles => {
         _.map(roles, (role) => {
           if (_.isEmpty(rolesResp.roles)) {
             rolesResp.roles = [];
@@ -122,7 +123,7 @@ export module Services {
           rolesResp.roles.push(role);
         });
         return of(rolesResp);
-      }), first()).toPromise();
+      }), first()));
 
       sails.log.verbose(rolesRespPromise);
       let roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
@@ -131,7 +132,7 @@ export module Services {
         let newRole = await Role.create(roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
-        return await super.getObservable(q, 'exec', 'simplecb').toPromise();
+  return await firstValueFrom(super.getObservable(q, 'exec', 'simplecb'));
       } else {
         sails.log.verbose('createRoleWithBrand - role ' + roleName + ' exists');
         return of(brand);
@@ -142,10 +143,10 @@ export module Services {
       var adminRole = this.getAdmin(defBrand);
       if (adminRole == null) {
         sails.log.verbose("Creating default admin, and other roles...");
-        return Observable.from(this.getConfigRoles())
-                         .flatMap(roleConfig => {
+        return from(this.getConfigRoles())
+                         .pipe(flatMap(roleConfig => {
                            return super.getObservable(Role.create(roleConfig))
-                                       .flatMap(newRole => {
+                                       .pipe(flatMap(newRole => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
                                          var brand:BrandingModel = sails.services.brandingservice.getDefault();
                                          // START Sails 1.0 upgrade
@@ -154,12 +155,12 @@ export module Services {
                                          // return super.getObservable(brand, 'save', 'simplecb');
                                          return super.getObservable(q, 'exec', 'simplecb');
                                          // END Sails 1.0 upgrade
-                                       });
-                         })
-                         .last()
-                         .flatMap(brand => {
+                                       }));
+                         }),
+                         last(),
+                         flatMap(brand => {
                            return sails.services.brandingservice.loadAvailableBrands();
-                         });
+                         }));
       } else {
         sails.log.verbose("Admin role exists.");
         return of(defBrand);

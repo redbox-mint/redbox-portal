@@ -17,9 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { Observable, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import { BrandingModel, FormModel, Services as services } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -171,7 +170,7 @@ export module Services {
         return await this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
-        return await this.getFormByName(formName, editMode).toPromise();
+  return await firstValueFrom(this.getFormByName(formName, editMode));
       }
     }
 
@@ -181,35 +180,31 @@ export module Services {
 
       return super.getObservable(RecordType.findOne({
         key: branding.id + "_" + recordType
-      }))
-        .flatMap(recordType => {
-
+      })).pipe(
+        flatMap(recordType => {
           return super.getObservable(WorkflowStep.findOne({
             recordType: recordType.id,
             starting: starting
           }));
-        })
-        ,flatMap(workflowStep => {
-
+        }),
+        flatMap(workflowStep => {
           if (workflowStep.starting == true) {
-
             return super.getObservable(Form.findOne({
               name: workflowStep.config.form
             }));
           }
-
           return of(null);
-        })
-        ,flatMap(form => {
-
+        }),
+        flatMap(form => {
           if (form) {
             this.setFormEditMode(form.fields, editMode);
             return of(form);
           }
           return of(null);
-        })
-        ,filter(result => result !== null)
-        ,last());
+        }),
+        filter(result => result !== null),
+        last()
+      );
     }
 
     public inferSchemaFromMetadata(record: any): any {

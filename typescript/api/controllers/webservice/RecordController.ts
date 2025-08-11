@@ -33,7 +33,8 @@ declare var User;
 /**
  * Package that contains all Controllers.
  */
-import { Observable,from,throwError,of,flatMap } from 'rxjs';
+import { Observable, from, throwError, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import * as path from "path";
 import {
   APIErrorResponse,
@@ -447,7 +448,7 @@ export module Controllers {
 
             let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
-            var obs = Observable.fromPromise(createPromise);
+            var obs = from(createPromise);
             obs.subscribe(response => {
               if (response.isSuccessful()) {
 
@@ -850,7 +851,7 @@ export module Controllers {
         return this.apiFailWrapper(req, res, 400, null, null,
             "Missing brand.");
       }
-      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+  let recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
       const response = await this.RecordsService.delete(oid, permanentlyDelete, record, recordType, user);
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
@@ -898,8 +899,8 @@ export module Controllers {
           return this.apiFailWrapper(req, res, 500, null, null,
               `User has no edit permissions for :${oid}`);
         }
-        const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
-        const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
+  const recType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+  const nextStep = await firstValueFrom(WorkflowStepsService.get(recType, targetStepName));
         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user, true, true, nextStep);
         this.apiRespond(req, res, response);
       } catch (err) {
@@ -1062,7 +1063,7 @@ export module Controllers {
       }
 
       var recordType = req.param('recordType');
-      var recordTypeModel:RecordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
+  var recordTypeModel:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {
         return this.apiFailWrapper(req, res, 400,null, null, "Record Type provided is not valid");
@@ -1116,7 +1117,7 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 
       var recordType = req.param('recordType');
-      var recordTypeModel:RecordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
+  var recordTypeModel:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {
         return this.apiFailWrapper(req, res, 400,null, null, 'Record Type provided is not valid');
@@ -1258,7 +1259,7 @@ export module Controllers {
         let response = await this.RecordsService.create(brand, request, recordTypeModel, user);
 
         if(workflowStage) {
-          let wfStep = await WorkflowStepsService.get(recordTypeModel, workflowStage).toPromise();
+          let wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage));
           this.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
         }
 

@@ -18,14 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable,from,of,throwError,flatMap
+  Observable, from, of, throwError, firstValueFrom
 } from 'rxjs';
 import { Services as services } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
 } from "sails";
-import 'rxjs/add/operator/toPromise';
+// removed deprecated rxjs/add/operator imports; use firstValueFrom instead
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
@@ -82,7 +82,7 @@ export module Services {
       otherSendOptions: { [dict_key: string]: any } = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
     ): Observable<{ success: boolean, msg: string }> {
 
-      return Observable.fromPromise(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc, otherSendOptions));
+  return from(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc, otherSendOptions));
 
     }
 
@@ -205,7 +205,7 @@ export module Services {
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
     public buildFromTemplate(template: string, data: any = {}): Observable<any> {
-      return Observable.fromPromise(this.buildFromTemplateAsync(template, data));
+  return from(this.buildFromTemplateAsync(template, data));
     }
 
     /**
@@ -288,13 +288,13 @@ export module Services {
           throw new Error('Invalid email address.');
         }
 
-        const buildResult = await optionsEvaluated.templateRendered.toPromise();
+  const buildResult = await firstValueFrom(optionsEvaluated.templateRendered);
 
         if (buildResult['status'] != 200) {
           sails.log.error(`Failed to build email body ${msgPartial}, result: ${JSON.stringify(buildResult)}`);
           throw new Error('Invalid email body.');
         }
-        const sendResult = await this.sendMessage(
+        const sendResult = await firstValueFrom(this.sendMessage(
           optionsEvaluated.toRendered,
           buildResult['body'],
           optionsEvaluated.subjectRendered,
@@ -303,7 +303,7 @@ export module Services {
           optionsEvaluated.ccRendered,
           optionsEvaluated.bccRendered,
           _.get(options, 'otherSendOptions', {}),
-        ).toPromise();
+        ));
 
         if (sendResult.success) {
           sails.log.verbose(`Record send notification succeeded ${msgPartial}`);
@@ -319,12 +319,12 @@ export module Services {
                 let postSendHookResult = postSendHookFn(oid, record, postSendHookOpts, user, response);
 
                 if (isObservable(postSendHookResult)) {
-                  postSendHookResult = postSendHookResult.toPromise();
+                  postSendHookResult = firstValueFrom(postSendHookResult);
                 } else {
                   postSendHookResult = Promise.resolve(postSendHookResult);
                 }
 
-                postSendHookResult.then(result => {
+                (postSendHookResult as Promise<any>).then(result => {
                   sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' completed with result: ${JSON.stringify(result)}`);
                 }).catch(error => {
                   sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' failed with error: ${JSON.stringify(error)}`);

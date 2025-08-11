@@ -20,7 +20,8 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-import { Observable,of,flatMap } from 'rxjs';
+import { Observable, of, from } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 declare var BrandingService, RolesService, DashboardService, ReportsService;
 declare var _;
 /**
@@ -68,7 +69,7 @@ export module Controllers {
 
     public getResults(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      var response = Observable.fromPromise(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
+  var response = from(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
       return response.subscribe(responseObject => {
         if (responseObject) {
           let response:any = responseObject;

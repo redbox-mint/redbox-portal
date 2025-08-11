@@ -21,12 +21,13 @@
 declare var module;
 declare var sails;
 declare var _;
-import { of,flatMap } from 'rxjs';
+import { of } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 
 import { v4 as uuidv4 } from 'uuid';
 declare var BrandingService, RolesService, UsersService;
 
-import { BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, BrandingModel } from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -74,7 +75,7 @@ export module Controllers {
 
     public getUsers(req, res) {
       var pageData:any = {};
-      var users = UsersService.getUsers().pipe(flatMap(users => {
+  var users = UsersService.getUsers().pipe(flatMap(users => {
         _.map(users, (user) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
             // not hidden, adding to view data...
@@ -99,7 +100,7 @@ export module Controllers {
       // basic roles page: view all users and their roles
       var pageData:any = {};
       var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      var roles = RolesService.getRolesWithBrand(brand).flatMap(roles => {
+  var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
         _.map(roles, (role) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...

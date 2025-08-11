@@ -17,9 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { Observable, from, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { ListAPIResponse, ReportConfig, ReportModel, ReportFilterType, ReportSource, ReportResult, SearchService, Services as services } from '@researchdatabox/redbox-core-types';
 import { DateTime } from 'luxon';
 import {
@@ -151,7 +150,7 @@ export module Services {
         key: brand.id + "_" + name
       }));
 
-      let reportObject = await reportObs.toPromise()
+  let reportObject = await firstValueFrom(reportObs)
 
 
       reportObject = this.convertLegacyReport(reportObject);
@@ -262,9 +261,9 @@ export module Services {
 
     public async getCSVResult(brand, name = '', req, start = 0, rows = 1000000000) {
 
-      var report:ReportModel = await super.getObservable(Report.findOne({
+      var report:ReportModel = await firstValueFrom(super.getObservable(Report.findOne({
         key: brand.id + "_" + name
-      })).toPromise();
+      })));
 
       report = this.convertLegacyReport(report);
 

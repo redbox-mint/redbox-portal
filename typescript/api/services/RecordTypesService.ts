@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, firstValueFrom } from 'rxjs';
 import {BrandingModel, RecordTypeModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
@@ -68,7 +68,7 @@ export module Services {
           let rTypes = [];
           for(let recordType in sails.config.recordtype) {
             let config:RecordTypeModel = sails.config.recordtype[recordType];
-            rTypes.push(await this.create(defBrand, recordType, config).toPromise())
+            rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)))
           }    
           return rTypes;
         } 

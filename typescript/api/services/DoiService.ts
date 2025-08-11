@@ -29,7 +29,6 @@ import {
   Sails,
   Model
 } from "sails";
-import 'rxjs/add/operator/toPromise';
 import {default as moment} from 'moment';
 import axios from 'axios';
 import { isArray } from 'lodash';

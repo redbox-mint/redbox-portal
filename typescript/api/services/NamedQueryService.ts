@@ -33,7 +33,7 @@ declare var _this;
 declare var _;
 
 import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 
 export module Services {
   /**
@@ -52,10 +52,10 @@ export module Services {
       "performNamedQueryFromConfigResults",
     ];
 
-     public async bootstrap (defBrand) {
-      let namedQueries = await super.getObservable(NamedQuery.find({
+  public async bootstrap (defBrand) {
+      const namedQueries = await firstValueFrom(super.getObservable(NamedQuery.find({
         branding: defBrand.id
-      })).toPromise()
+   })));
       
         if (!_.isEmpty(namedQueries)) {
           if (sails.config.appmode.bootstrapAlways) {
@@ -67,13 +67,13 @@ export module Services {
           }
         } 
         sails.log.verbose("Bootstrapping named query definitions... ");
-        await this.createNamedQueriesForBrand(defBrand);
+  await this.createNamedQueriesForBrand(defBrand);
     }
 
     private async createNamedQueriesForBrand(defBrand: any) {
       for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
         const namedQueryConfig: any = config;
-        await this.create(defBrand, namedQuery, namedQueryConfig).toPromise();
+  await firstValueFrom(this.create(defBrand, namedQuery, namedQueryConfig));
       }
     }
 

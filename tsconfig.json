@@ -5,7 +5,9 @@
       "rootDir": "./typescript",
       "strict": false,
       "inlineSourceMap": true,
-      "experimentalDecorators": true
+      "experimentalDecorators": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true
     },
     "exclude": [
       "node_modules/**",

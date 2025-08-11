@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, flatMap, zip, from, of } from 'rxjs';
+import { Observable, zip, from, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
@@ -83,7 +84,7 @@ export module Services {
                 if(form == '') {
                   _.set(workflowConf.config,'form','generated-view-only');
                 }
-                var obs = await this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']).toPromise();
+                var obs = await firstValueFrom(this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']));
                 workflowSteps.push(obs);
               };
             }

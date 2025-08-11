@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable,of,flatMap } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { default as NodeCache } from "node-cache";

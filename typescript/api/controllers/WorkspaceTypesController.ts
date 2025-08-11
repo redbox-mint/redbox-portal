@@ -19,7 +19,7 @@
 
 declare var module;
 declare var sails;
-import {Observable} from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 import skipperGridFs from "skipper-gridfs";
 declare var _;
 
