@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, zip, flatMap } from 'rxjs';
-import { Services as services } from '@researchdatabox/redbox-core-types';
-import { Sails, Model } from "sails";
+import { Observable } from 'rxjs/Rx';
+import {BrandingModel, RecordTypeModel, Services as services}   from '@researchdatabox/redbox-core-types';
+import {Sails, Model} from "sails";
 
 declare var sails: Sails;
 declare var RecordType: Model;
@@ -43,42 +43,48 @@ export module Services {
       'getAllCache'
     ];
 
-    protected recordTypes;
+    protected recordTypes:RecordTypeModel[];
 
-    public bootstrap = (defBrand) => {
-      let startQ = RecordType.find({ branding: defBrand.id });
+    public async bootstrap (defBrand:BrandingModel):Promise<RecordTypeModel[]> {
+      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id});
       if (sails.config.appmode.bootstrapAlways) {
-        startQ = RecordType.destroy({ branding: defBrand.id });
+        await RecordType.destroy({branding:defBrand.id});
+        recordTypes  = null;
       }
-      return super.getObservable(startQ).pipe(flatMap(recordTypes => {
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
         }
         sails.log.debug(`RecordTypes found: ${recordTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
         if (_.isEmpty(recordTypes)) {
-          var rTypes = [];
+          // var rTypesObs = [];
           sails.log.verbose("Bootstrapping record type definitions... ");
-          _.forOwn(sails.config.recordtype, (config, recordType) => {
-            recordTypes.push(recordType);
-            var obs = this.create(defBrand, recordType, config);
-            rTypes.push(obs);
-          });
-          this.recordTypes = recordTypes;
-          return zip(...rTypes);
-        } else {
+          // _.forOwn(sails.config.recordtype, (config, recordType) => {
+          //   recordTypes.push(recordType);
+          //   var obs = this.create(defBrand, recordType, config);
+          //   rTypesObs.push(obs);
+          // });
+
+          this.recordTypes= recordTypes;
+          let rTypes = [];
+          for(let recordType in sails.config.recordtype) {
+            let config:RecordTypeModel = sails.config.recordtype[recordType];
+            rTypes.push(await this.create(defBrand, recordType, config).toPromise())
+          }    
+          return rTypes;
+        } 
           sails.log.verbose("Default recordTypes definition(s) exist.");
           sails.log.verbose(JSON.stringify(recordTypes));
           this.recordTypes = recordTypes;
-          return of(recordTypes);
-        }
-      }));
+          return recordTypes;
     }
 
-    public create(brand, name, config) {
+    public create(brand:BrandingModel, name:string, config:RecordTypeModel):Observable<RecordTypeModel> {
+    
       return super.getObservable(RecordType.create({
         name: name,
         branding: brand.id,
         packageType: config.packageType,
+        searchCore: config.searchCore,
         searchFilters: config.searchFilters,
         hooks: config.hooks,
         transferResponsibility: config.transferResponsibility,
@@ -87,25 +93,25 @@ export module Services {
       }));
     }
 
-    public get(brand, name, fields: any[] = null) {
-      const criteria: any = { where: { branding: brand.id, name: name } };
+    public get(brand:BrandingModel, name:string, fields:string[]=null): Observable<RecordTypeModel> {
+      const criteria:any = {where: {branding: brand.id, name: name}};
       if (fields) {
         criteria.select = fields;
       }
       return super.getObservable(RecordType.findOne(criteria));
     }
 
-    public getAll(brand, fields: any[] = null) {
-      const criteria: any = { where: { branding: brand.id } };
+    public getAll(brand:BrandingModel, fields:string[] = null): Observable<RecordTypeModel[]> {
+      const criteria:any = {where: {branding: brand.id}};
       if (fields) {
         criteria.select = fields;
       }
       return super.getObservable(RecordType.find(criteria));
     }
 
-    public getAllCache() {
+    public getAllCache(): RecordTypeModel[] {
       return this.recordTypes;
-    }
+        }
   }
 }
 module.exports = new Services.RecordTypes().exports();

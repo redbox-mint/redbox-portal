@@ -13,11 +13,24 @@ let recordDataStandard = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
-      filterWorkflowStepsBy: [], 
-      sortBy: 'metaMetadata.lastSaveDate:-1',
-      groupBy: '', 
-      sortGroupBy: [], 
+      filterBy: [],
+      filterWorkflowStepsBy: [],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
+      groupBy: '',
+      sortGroupBy: [],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -54,12 +67,6 @@ let recordDataStandard = {
     totalItems: 0,
     currentPage: 1,
     noItems: 10
-  },
-  sortData: {
-    sort: 'asc',
-    step: 'draft',
-    title: 'Record Title',
-    variable: 'metadata.title'
   },
   paginationData: {
     itemsPerPage: 10,
@@ -134,14 +141,12 @@ describe('DashboardComponent standard', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     await dashboardComponent.initView('rdmp');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    expect(dashboardComponent.sortMap['draft']['metadata.title'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap['draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
     expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
@@ -152,12 +157,25 @@ let recordDataWorkspace = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
+      filterBy: [],
       recordTypeFilterBy: 'existing-locations',
-      filterWorkflowStepsBy: [ 'existing-locations-draft'], 
-      sortBy: 'metaMetadata.lastSaveDate:-1',
-      groupBy: '', 
-      sortGroupBy: [], 
+      filterWorkflowStepsBy: [ 'existing-locations-draft'],
+      queryFilters: {
+        workspace: [
+                      { 
+                        filterType: 'text',
+                        filterFields: [
+                                        { 
+                                          name: 'Title',
+                                          path: 'metadata.title'
+                                        }
+                                      ]
+                      }
+                    ]
+      },
+      groupBy: '',
+      sortGroupBy: [],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -194,12 +212,6 @@ let recordDataWorkspace = {
     totalItems: 0,
     currentPage: 1,
     noItems: 10
-  },
-  sortData: {
-    sort: 'asc',
-    step: 'existing-locations-draft',
-    title: 'Record Title',
-    variable: 'metadata.title'
   },
   paginationData: {
     itemsPerPage: 10,
@@ -248,7 +260,6 @@ describe('DashboardComponent workspace', () => {
         }
       ]
     });
-    // TestBed.inject(I18NEXT_SERVICE);
     TestBed.inject(RecordService);
     await testModule.compileComponents();
   });
@@ -277,14 +288,12 @@ describe('DashboardComponent workspace', () => {
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'workspace';
     await dashboardComponent.initView('workspace');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
-    expect(dashboardComponent.sortMap['existing-locations-draft']['metadata.title'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap['existing-locations-draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
     expect(dashboardComponent.records['existing-locations-draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['existing-locations-draft'].items.length).toBeGreaterThan(0);
@@ -295,11 +304,25 @@ let recordDataConsolidated = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
-      filterWorkflowStepsBy: ['consolidated'], 
+      filterBy: [],
+      filterWorkflowStepsBy: ['consolidated'],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
       sortBy: '',
-      groupBy: 'groupedByRecordType', 
-      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
+      groupBy: 'groupedByRecordType',
+      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -477,8 +500,16 @@ describe('DashboardComponent consolidated group by record type', () => {
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'consolidated';
     await dashboardComponent.initView('consolidated');
+    console.log('===================== DashboardComponent consolidated group by record type =========================');
+    console.log('==============================================');
+    console.log('==============================================');
+    console.log(JSON.stringify(dashboardComponent.sortFields));
+    console.log(JSON.stringify(dashboardComponent.sortMap));
+    console.log('==============================================');
+    console.log('==============================================');
+    console.log('==============================================');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
     await dashboardComponent.initStep('','consolidated','rdmp','',1);
     let groupedRecords = recordDataConsolidated['groupedRecords'];
@@ -505,11 +536,25 @@ let recordDataConsolidatedRelationships = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
-      filterWorkflowStepsBy: ['consolidated'], 
+      filterBy: [],
+      filterWorkflowStepsBy: ['consolidated'],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
       sortBy: '',
-      groupBy: 'groupedByRelationships', 
-      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
+      groupBy: 'groupedByRelationships',
+      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -705,7 +750,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
     dashboardComponent.dashboardTypeSelected = 'consolidated';
     await dashboardComponent.initView('consolidated');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
     await dashboardComponent.initStep('','consolidated','rdmp','',1);
     let groupedRecords = recordDataConsolidatedRelationships['groupedRecords'];

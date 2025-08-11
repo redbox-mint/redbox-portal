@@ -10,6 +10,7 @@
                <div class="panel-body">
                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><%= TranslationService.t('reports-heading')%></a></div>
                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/export"><%= TranslationService.t('menu-export')%></a></div>
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/deletedRecords"><%= TranslationService.t('deleted-records-heading')%></a></div>
                </div>
                <!-- end panel-body -->
            </div>
@@ -25,6 +26,23 @@
                <div class="panel-body">
                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/roles"><%= TranslationService.t('menu-rolemgmt')%></a></div>
                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/users"><%= TranslationService.t('menu-usermgmt')%></a></div>
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/appconfig/edit/systemMessage"><%= TranslationService.t('menu-systemmessages')%></a></div>
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/appconfig/edit/authorizedDomainsEmails"><%= TranslationService.t('menu-authorizeddomainsemails')%></a></div>
+               </div>
+               <!-- end panel-body -->
+           </div>
+           <!-- end panel-primary -->
+    </div>
+    <% }%>
+    <% if ( hasRole(req,'Admin')) {%>
+    <div class="col-md-3">
+      <div class="panel panel-default">
+               <div class="panel-heading">
+                   <span class="panel-title"><%= TranslationService.t('system-lookup-records')%></span>
+               </div>
+               <!-- end panel-heading -->
+               <div class="panel-body">
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/party"><%= TranslationService.t('system-lookup-record-item1')%></a></div>
                </div>
                <!-- end panel-body -->
            </div>

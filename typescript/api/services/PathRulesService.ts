@@ -17,10 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable,flatMap,from,of,last } from 'rxjs';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import { Observable } from 'rxjs/Rx';
+import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import UrlPattern = require('url-pattern');
+import { default as UrlPattern } from 'url-pattern';
 
 declare var sails: Sails;
 declare var PathRule: Model;
@@ -50,7 +50,7 @@ export module Services {
 
     public bootstrap = (defUser, defRoles) => {
       sails.log.verbose("Bootstrapping path rules....");
-      var defBrand = BrandingService.getDefault();
+      var defBrand:BrandingModel = BrandingService.getDefault();
       return this.loadRules()
         .pipe(flatMap(rules => {
           if (!rules || rules.length == 0) {

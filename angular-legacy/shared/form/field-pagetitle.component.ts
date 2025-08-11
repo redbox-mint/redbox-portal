@@ -21,7 +21,7 @@ import { SimpleComponent } from './field-simple.component';
 import { NotInFormField } from './field-simple';
 import * as _ from "lodash";
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 /**
  * Allows the form to set the page title of the current page.
  * 

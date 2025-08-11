@@ -49,3 +49,4 @@ export {
 from "./RecordAuditParams";
 
 export * from './model'
+export * from './decorator'

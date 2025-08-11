@@ -20,9 +20,10 @@
 import { Observable } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import * as i18next from "i18next"
-// import  Backend from 'i18next-sync-fs-backend';
-import  * as Backend from 'i18next-node-fs-backend';
+import i18next from "i18next"
+import Backend from 'i18next-fs-backend';
+
+declare var _;
 declare var sails: Sails;
 
 export module Services {
@@ -39,45 +40,75 @@ export module Services {
       'bootstrap',
       't',
       'reloadResources',
-      'tInter'
+      'tInter',
+      'handle'
     ];
-    /** Warning this is synch... */
-    public bootstrap() {
+    
+    public async bootstrap() {
+      sails.log.debug("TranslationService initialising...")
       sails.log.debug("#####################");
       sails.log.debug(Backend);
       sails.log.debug("#####################");
 
+      let initConfig = _.merge(sails.config.i18n.next.init, {
+        backend: {
+          loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
+        }
+      });
+
       //@ts-ignore
-      i18next.use(Backend).init({
-          preload: ['en'],
-          debug: true,
-          lng: 'en',
-          fallbackLng: 'en',
-          initImmediate: false,
-          skipOnVariables: false,
-          backend: {
-            loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
-          }
-        }).then(i18next => {
-          sails.log.debug("**************************");
-          sails.log.debug("i18next initialised");
-          sails.log.debug("**************************");
-          });
+      await i18next.use(Backend).init(initConfig);
+      sails.log.debug("**************************");
+      sails.log.debug(`i18next initialised, default: '${initConfig.fallbackLng}', supported: ${initConfig.supportedLngs} `);
+      sails.log.debug("**************************");
     }
 
-    public t(key, context = null) {
-      //@ts-ignore
-      return i18next.t(key);
+    public t(key, context = undefined, langCode:string = 'en') {
+      return i18next.getFixedT(langCode)(key, context);
     }
 
-    public tInter(key, context = null) {
-      //@ts-ignore
-      return i18next.t(key, context);
+    public tInter(key, context = null, langCode:string = 'en') {
+      return this.t(key, context, langCode);
     }
 
     public reloadResources() {
       //@ts-ignore
       i18next.reloadResources();
+    }
+
+    public handle(req, res, next) {
+      let langCode = req.param('lng');
+      let sessLangCode = req.session.lang;
+      let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
+      if (_.isEmpty(langCode) && _.isEmpty(sessLangCode)) {
+        // use the default
+        langCode = defaultLang;
+      } else if (!_.isEmpty(sessLangCode) && _.isEmpty(langCode)) {
+        // use the session code if not found as request param
+        langCode = sessLangCode;
+      }
+      // validating language 
+      if (_.findIndex(sails.config.i18n.next.init.supportedLngs, (l) => { return langCode == l }) == -1) {
+        // unsupported language, set to default
+        sails.log.warn(`Unsupported language code: ${langCode}, setting to default.`);
+        langCode = defaultLang;
+      }
+      // save the lang in the session
+      if (_.isEmpty(req.session)) {
+        req.session = {};
+      }
+      req.session.lang = langCode;
+      // set the locals lang code
+      req.options.locals.lang = langCode;
+      // set the cookie
+      res.cookie('lng', langCode);
+      // return this.middleware(req, res, next);
+      req.options.locals.TranslationService = _.merge(this, {
+        t: function(key, context) {
+          return i18next.getFixedT(langCode)(key, context);
+        }
+      });
+      next();
     }
   }
 }

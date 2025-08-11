@@ -1,0 +1,22 @@
+meta {
+  name: Restore Deleted Record
+  type: http
+  seq: 23
+}
+
+put {
+  url: {{host}}/default/rdmp/api/deletedrecords/{{dmpOidToDelete}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+}

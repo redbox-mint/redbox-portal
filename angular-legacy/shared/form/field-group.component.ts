@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Input, Component, ViewChild, ViewContainerRef, OnInit } from '@angular/core';
+import { Input, Component, ViewChild, ViewContainerRef, OnInit, Renderer, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { EmbeddableComponent, RepeatableComponent } from './field-repeatable.component';
 import * as _ from "lodash";
 /**
@@ -89,6 +89,7 @@ Generic component for grouping components together. The resulting JSON will have
         </label>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
       </div>
+      <span dmp-disable-state="enabled" #dmpFieldContainer>
       <ng-container *ngIf="isEmbedded">
         <div [formGroup]='form' [ngClass]="field.cssClasses">
           <div class='row'>
@@ -103,21 +104,68 @@ Generic component for grouping components together. The resulting JSON will have
         </div>
       </ng-container>
       <ng-container *ngIf="!isEmbedded">
+      <span dmp-disable-state="enabled" #dmpFieldContainer>
         <div [formGroup]='form' [ngClass]="field.cssClasses">
           <dmp-field *ngFor="let childField of field.fields" [field]="childField" [form]="form" [fieldMap]="fieldMap" [name] = "childField.name" ></dmp-field>
         </div>
+        </span>
       </ng-container>
+    </span>
     </ng-container>
     <ng-container *ngIf="!field.editMode">
+    <span dmp-disable-state="enabled" #dmpFieldContainer>
       <div [formGroup]='form' [ngClass]="field.cssClasses">
         <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
       </div>
+      </span>
     </ng-container>
   </ng-container>
   `,
 })
 export class GenericGroupComponent extends EmbeddableComponent {
   static clName = 'GenericGroupComponent';
+  private originallyDisabledElements: Set<HTMLElement> = new Set();
+  @ViewChild('dmpFieldContainer', { read: ElementRef }) dmpFieldContainer!: ElementRef;
+
+  constructor(private vcr: ViewContainerRef, private renderer: Renderer) {
+    super();
+  }
+
+  public enableInputFields() {
+    const parentElement = this.dmpFieldContainer.nativeElement;
+    if (parentElement.getAttribute("dmp-disable-state") === "disabled") {
+      parentElement.setAttribute("dmp-disable-state", "enabled");
+      ['input', 'button', 'textarea', 'select'].forEach(selector => {
+        const elements = parentElement.querySelectorAll(selector);
+        elements.forEach((el: HTMLElement) => {
+          if (!this.originallyDisabledElements.has(el)) {
+            // Only re-enable elements that were originally enabled
+            this.renderer.setElementAttribute(el, 'disabled', null);
+          }
+        });
+      });
+      this.originallyDisabledElements.clear();
+    }
+  }
+
+  public disableInputFields() {
+    const parentElement = this.dmpFieldContainer.nativeElement;
+    if (parentElement.getAttribute("dmp-disable-state") === "enabled") {
+      parentElement.setAttribute("dmp-disable-state", "disabled");
+      ['input', 'button', 'textarea', 'select'].forEach(selector => {
+        const elements = parentElement.querySelectorAll(selector);
+        elements.forEach((el: HTMLElement) => {
+          if (el.hasAttribute('disabled')) {
+            // Store only elements that were originally disabled
+            this.originallyDisabledElements.add(el);
+          } else {
+            // Disable elements that were initially enabled
+            this.renderer.setElementAttribute(el, 'disabled', 'true');
+          }
+        });
+      });
+    }
+  }
 
 }
 
@@ -205,7 +253,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
       <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
         <div class="row">
           <span class="col-xs-12">
-            <generic-group-field [name]="fieldElem.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i" ></generic-group-field>
+            <generic-group-field [name]="fieldElem.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="!disabled && field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i" ></generic-group-field>
           </span>
         </div>
         <div class="row">
@@ -216,8 +264,8 @@ export class GenericGroupComponent extends EmbeddableComponent {
         <span class="col-xs-11">&nbsp;
         </span>
         <span class="col-xs-1">
-          <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-          <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
+          <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [attr.disabled]="disabled ? 'disabled': null" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
+          <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [attr.disabled]="disabled ? 'disabled': null" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
         </span>
       </div>
     </div>
@@ -234,5 +282,162 @@ export class GenericGroupComponent extends EmbeddableComponent {
 })
 export class RepeatableGroupComponent extends RepeatableComponent {
   static clName = 'RepeatableGroupComponent';
+  @ViewChildren(GenericGroupComponent) fieldComponents!: QueryList<GenericGroupComponent>;
+
+
+  enableInputFields() {
+    this.fieldComponents.forEach(fieldComponent => {
+      fieldComponent.enableInputFields();
+    });
+  }
+
+  disableInputFields() {
+    this.fieldComponents.forEach(fieldComponent => {
+      fieldComponent.disableInputFields();
+    });
+  }
+}
+
+
+@Component({
+  selector: 'copy-group-field',
+  template: `
+  <ng-container *ngIf="field.visible">
+    <ng-container *ngIf="field.editMode">
+      <ng-container *ngFor="let childField of field.fields; let isFirst = first">
+        <ng-container *ngIf="isFirst && childField.visible">
+          <span dmp-disable-state="enabled" #dmpFieldContainer>
+            <ng-container *ngIf="field.label">
+              <div class='row'>
+                <div class="col-xs-12">
+                  <label>
+                    <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
+                    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+                  </label>
+                  <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
+                </div>
+              </div>
+            </ng-container>
+            <div [formGroup]='form' [ngClass]="'row '+field.cssClasses" >
+              <div class="col-xs-10 padding-remove-right">
+                <dmp-field [name]="childField.name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap" ></dmp-field>
+              </div>
+              <div class="col-xs-2 padding-remove">
+                <button type='button' (click)="copyTextToClipboard()" [attr.disabled]="childField.disabled ? 'disabled': null"  [ngClass]="'btn btn-primary'" [attr.aria-label]="childField.extraLabel | translate">{{ childField.extraLabel | translate }}</button>
+              </div>
+            </div>
+          </span>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+    <ng-container *ngIf="!field.editMode">
+      <ng-container *ngFor="let childField of field.fields; let isFirst = first">
+        <ng-container *ngIf="isFirst && childField.visible">
+          <span dmp-disable-state="enabled" #dmpFieldContainer>
+            <div [formGroup]='form' [ngClass]="'row '+field.cssClasses">
+              <div [ngClass]="'col-xs-10 '+childField.cssClasses">
+                <dmp-field [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+              </div>
+              <div class="col-xs-2">
+                <button type='button' (click)="copyTextToClipboard()" [ngClass]="'btn btn-primary'" [attr.aria-label]="childField.extraLabel | translate">{{ childField.extraLabel | translate }}</button>
+              </div>
+            </div>
+          </span>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+  `,
+})
+export class CopyGroupComponent extends EmbeddableComponent {
+  static clName = 'CopyGroupComponent';
+  private originallyDisabledElements: Set<HTMLElement> = new Set();
+  @ViewChild('dmpFieldContainer', { read: ElementRef }) dmpFieldContainer!: ElementRef;
+
+  constructor(private vcr: ViewContainerRef, private renderer: Renderer) {
+    super();
+  }
+
+  public copyTextToClipboard() {
+      const inputElement = this.dmpFieldContainer.nativeElement;
+      if(this.field.editMode) {
+        const firstInput: HTMLInputElement | null = inputElement.querySelector('input');
+        this.selectAndCopy(firstInput);
+      } else {
+        const firstInput: HTMLInputElement | null = inputElement.querySelector('.value');
+        if (firstInput) {
+          const text = firstInput.textContent || '';
+          //Use a temporary textarea to copy the text
+          const tempInput = document.createElement('textarea');
+          tempInput.value = text;
+          document.body.appendChild(tempInput);
+          this.selectAndCopy(tempInput);
+          document.body.removeChild(tempInput);
+        }
+      }
+    
+  }
+
+  private selectAndCopy(firstInput: any) {
+    try {
+      let copyMessage = 'Text copied to clipboard!';
+      if (firstInput) {
+        firstInput.select();
+        firstInput.setSelectionRange(0, 99999); // For compatibilty with mobile devices
+        const successful = document.execCommand('copy');
+        if (successful) {
+          alert(copyMessage);
+        } else {
+          copyMessage = 'Failed to copy text.';
+          alert(copyMessage);
+          console.log('Failed to copy text: ' + navigator.userAgent);
+          console.log('Failed to copy text: ' + navigator.platform);
+        }
+      }
+      setTimeout(() => {
+        copyMessage = '';
+      }, 2000);
+    } catch (err) {
+      console.log('Copy command failed: ' + navigator.userAgent);
+      console.log('Copy command failed: ' + navigator.platform);
+      console.log('Copy command failed: ' + err);
+    }
+  }
+
+  public enableInputFields() {
+    const parentElement = this.dmpFieldContainer.nativeElement;
+    if (parentElement.getAttribute("dmp-disable-state") === "disabled") {
+      parentElement.setAttribute("dmp-disable-state", "enabled");
+      ['input', 'button', 'textarea', 'select'].forEach(selector => {
+        const elements = parentElement.querySelectorAll(selector);
+        elements.forEach((el: HTMLElement) => {
+          if (!this.originallyDisabledElements.has(el)) {
+            // Only re-enable elements that were originally enabled
+            this.renderer.setElementAttribute(el, 'disabled', null);
+          }
+        });
+      });
+      this.originallyDisabledElements.clear();
+    }
+  }
+
+  public disableInputFields() {
+    const parentElement = this.dmpFieldContainer.nativeElement;
+    if (parentElement.getAttribute("dmp-disable-state") === "enabled") {
+      parentElement.setAttribute("dmp-disable-state", "disabled");
+      ['input', 'button', 'textarea', 'select'].forEach(selector => {
+        const elements = parentElement.querySelectorAll(selector);
+        elements.forEach((el: HTMLElement) => {
+          if (el.hasAttribute('disabled')) {
+            // Store only elements that were originally disabled
+            this.originallyDisabledElements.add(el);
+          } else {
+            // Disable elements that were initially enabled
+            this.renderer.setElementAttribute(el, 'disabled', 'true');
+          }
+        });
+      });
+    }
+  }
 
 }

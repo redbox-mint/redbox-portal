@@ -46,6 +46,10 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
+  public disableExpandCollapseToggleByName: boolean;
+  public skipLeafNodeExpandCollapseProcessing: number;
+  public component:any;
+  public ccsClassName:string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -55,6 +59,9 @@ export class ANDSVocabField extends FieldBase<any> {
     this.disableCheckboxRegexPattern = options['disableCheckboxRegexPattern'] || "";
     this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
     this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
+    this.disableExpandCollapseToggleByName = options['disableExpandCollapseToggleByName'] || false;
+    this.skipLeafNodeExpandCollapseProcessing = options['skipLeafNodeExpandCollapseProcessing'] || 4;
+    this.ccsClassName = options['cssClassName'] || 'tree-node-checkbox';
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -82,6 +89,71 @@ export class ANDSVocabField extends FieldBase<any> {
     this.setValue(curVal);
   }
 
+  public toggleVisibility() {
+    this.visible = !this.visible;
+    if(this.visible) {
+      this.component.initialiseControl();
+    }
+  }
+
+  public setVisibility(data, eventConf:any = {}) {
+    let newVisible = this.visible;
+    if (_.isArray(this.visibilityCriteria)) {
+      // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
+      if (!_.isEmpty(eventConf) && !_.isEmpty(eventConf.srcName)) {
+        this.subscriptionData[eventConf.srcName] = data;
+      }
+      // only run the function set if we have all the data...
+      if (_.size(this.subscriptionData) == _.size(this.visibilityCriteria)) {
+        newVisible = true;
+        _.each(this.visibilityCriteria, (visibilityCriteria) => {
+          const dataEntry = this.subscriptionData[visibilityCriteria.fieldName];
+          newVisible = newVisible && this.execVisibilityFn(dataEntry, visibilityCriteria);
+        });
+
+      }
+    } else
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+    } else {
+      newVisible = _.isEqual(data, this.visibilityCriteria);
+    }
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {       
+              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+                that['enableValidators']();
+              } else {
+                that.formModel.setValidators(that.validators);
+              }
+              that.formModel.updateValueAndValidity();
+          }
+        }
+      }
+      that.visible = newVisible;
+      if(that.visible) {
+        that.component.initialiseControl();
+      }
+    });
+    if(eventConf.returnData == true) {
+      return data;
+    }
+  }
 }
 /**
 * Component utilising the ANDS Vocabb selector widget
@@ -110,24 +182,32 @@ export class ANDSVocabComponent extends SimpleComponent {
   readonly STATUS_EXPANDING = 3;
   readonly STATUS_EXPANDED = 4;
   loadState: any;
+  initialised:boolean = false;
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
     this.elementRef = elementRef;
     this.treeData = [];
 
+    //https://angular2-tree.readme.io/docs/options
+    //nodeClass is a function useful for styling the nodes individually
     this.options = {
       useCheckbox: true,
       useTriState: false,
       getChildren: this.getChildren.bind(this),
-      scrollContainer: document.body.parentElement
+      scrollContainer: document.body.parentElement,
+      nodeClass: () => {
+        return this.field.ccsClassName;
+      }
     };
     this.nodeEventSubject = new Subject<any>();
     this.loadState = this.STATUS_INIT;
+    
   }
 
   public ngOnInit() {
     if (this.field.editMode) {
+      this.field.component = this;
       jQuery(this.elementRef.nativeElement)['vocab_widget']({
         repository: this.field.vocabId,
         endpoint: 'https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/',
@@ -139,7 +219,11 @@ export class ANDSVocabComponent extends SimpleComponent {
   }
 
   public ngAfterViewInit() {
-    if (this.field.editMode) {
+    this.initialiseControl();
+  }
+  
+  initialiseControl() {
+    if (!this.initialised && this.field.editMode && this.field.visible) {
       const that = this;
       if (this.loadState == this.STATUS_INIT) {
         this.loadState = this.STATUS_LOADING;
@@ -160,12 +244,16 @@ export class ANDSVocabComponent extends SimpleComponent {
         });
 
         this.startTreeInit();
+        
       }
     }
   }
 
+  //This method is called when the record edit view is first loaded and sets state and expand nodes that have checkboxes selected
   protected startTreeInit() {
     this.treeInitListener = Observable.interval(1000).subscribe(()=> {
+      
+      try {
       if (!_.isEmpty(this.expandNodeIds)) {
         this.expandNodes();
       } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == this.STATUS_LOADED) {
@@ -176,6 +264,10 @@ export class ANDSVocabComponent extends SimpleComponent {
         this.treeInitListener.unsubscribe();
         this.loadState = this.STATUS_EXPANDED;
       }
+      this.initialised = true;
+    } catch (err) {
+      //TODO: Visibility is set asynchronously so there's no guarantee that everything required is in the DOM when this code is run onInit (when using onFormLoaded setVisibility)
+    }
     });
   }
 
@@ -199,6 +291,7 @@ export class ANDSVocabComponent extends SimpleComponent {
       event = eventArr[1];
     }
     let currentState = this.getNodeSelected(event.node.id);
+
     switch(event.eventName) {
       case "nodeActivate":
         if (currentState == undefined) {
@@ -215,6 +308,10 @@ export class ANDSVocabComponent extends SimpleComponent {
       case "nodeDeactivate":
         this.updateSingleNodeSelectedState(event.node, false);
         break;
+    }
+
+    if(!this.field.disableExpandCollapseToggleByName) {
+      this.expandCollapseNode(event.node);
     }
   }
 
@@ -235,6 +332,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.nodeEventSubject.next(event);
   }
 
+  //This method is called when the record edit view is first loaded populates expandNodeIds list
   public updateTreeView(that) {
     const state = that.andsTree.treeModel.getState();
     that.expandNodeIds = [];
@@ -251,6 +349,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     that.expandNodeIds = _.sortBy(that.expandNodeIds, (o) => { return _.isString(o) ? o.length : 0 });
   }
 
+  //Takes the first entry in expandNodeIds list and expands the node and the removed the id from the list 
   protected expandNodes() {
     if (!_.isEmpty(this.expandNodeIds)) {
       const parentId = this.expandNodeIds[0];
@@ -258,6 +357,24 @@ export class ANDSVocabComponent extends SimpleComponent {
       if (node) {
         node.expand();
         _.remove(this.expandNodeIds, (id) => { return id == parentId });
+      }
+    }
+  }
+
+  protected expandCollapseNode(nodeEvent: any) {
+    const nodeId = _.get(nodeEvent,'id','');
+
+    //Ignore expand collapse processing if id string value has length that exceeds default
+    if(nodeId == '' || nodeId.length > this.field.skipLeafNodeExpandCollapseProcessing) {
+      return;
+    }
+
+    const node = this.andsTree.treeModel.getNodeById(nodeId);
+    if (node) {
+      if(_.get(node, 'isCollapsed', false)) {
+        node.expand();
+      } else {
+        node.collapse();
       }
     }
   }
@@ -351,4 +468,6 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.loadState = this.STATUS_LOADED;
     this.startTreeInit();
   }
+
+  
 }

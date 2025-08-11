@@ -18,27 +18,30 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, RecordPage, ReportFilter } from '@researchdatabox/portal-ng-common';
-import { RecordSource, RecordPropViewMeta, Report, ReportResult } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent } from '@researchdatabox/portal-ng-common';
+import { RecordSource } from '@researchdatabox/portal-ng-common';
+import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
 import { DateTime } from 'luxon';
 /**
  * Report Component
- * 
+ *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo B</a>
  */
 @Component({
-  selector: 'report',
-  templateUrl: './report.component.html'
+    selector: 'report',
+    templateUrl: './report.component.html',
+    styleUrls: ['./report.component.scss'],
+    standalone: false
 })
 export class ReportComponent extends BaseComponent implements RecordSource {
   datePickerPlaceHolder: string = '';
   datePickerOpts: any;
   filterParams: any = {};
   initTracker: any = { reportLoaded: false, resultsReturned: false };
-  report: Report = null as any;
-  reportResult: ReportResult = null as any;
-  tableHeaders: RecordPropViewMeta[] = null as any;
+  report: ReportDto = null as any;
+  reportResult: ReportResultDto = null as any;
+  tableHeaders: RecordPropViewMetaDto[] = null as any;
   appName:string = 'report';
   optTemplateData:any = {};
   reportName: string = '';
@@ -58,14 +61,14 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     super();
     this.initDependencies = [this.translationService, this.reportService];
     this.reportName = elementRef.nativeElement.getAttribute('reportName');
-    this.loggerService.debug(`'${this.appName} - ${this.reportName}' waiting for deps to init...`); 
+    this.loggerService.debug(`'${this.appName} - ${this.reportName}' waiting for deps to init...`);
   }
 
   getCurrentPage() {
     return this.reportResult;
   }
 
-  async gotoPage(pageNum: number): Promise<RecordPage> {
+  async gotoPage(pageNum: number): Promise<RecordPageDto> {
     this.initTracker.resultsReturned = false;
     this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, this.getParams(), this.recordsPerPage);
     this.initTracker.resultsReturned = true;
@@ -76,7 +79,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     const sysConfig = await this.configService.getConfig();
     const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
     const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
-    this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerOpts', defaultDatePickerOpts);  
+    this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerOpts', defaultDatePickerOpts);
     this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerPlaceHolder', defaultDatePickerPlaceHolder);
     this.brandingAndPortalUrl = this.reportService.brandingAndPortalUrl;
     _set(this.optTemplateData, 'brandingAndPortalUrl', this.brandingAndPortalUrl);
@@ -87,7 +90,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.tableHeaders = this.report.columns;
     this.initTracker.reportLoaded = true;
     this.gotoPage(1);
-    this.loggerService.debug(`'${this.appName}' ready!`); 
+    this.loggerService.debug(`'${this.appName}' ready!`);
   }
 
   public async filter(event?: any) {
@@ -108,7 +111,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       srcDate.setHours(0, 0, 0, 0);
     } else if (mode == 'ceil') {
       srcDate.setHours(23, 59, 59, 999);
-    } 
+    }
     return DateTime.fromJSDate(srcDate, {zone: tz});
   }
 
@@ -120,13 +123,13 @@ export class ReportComponent extends BaseComponent implements RecordSource {
         const toDateJs = this.filterParams[filter.paramName + "_toDate"];
         var fromDate = fromDateJs ? this.getLuxonDateFromJs(fromDateJs, this.dateParamTz, 'floor') : null;
         var toDate = toDateJs ? this.getLuxonDateFromJs(toDateJs, this.dateParamTz, 'ceil') : null;
-  
+
         if (fromDate != null) {
           params[filter.paramName + "_fromDate"] = fromDate.toISO();
-        } 
+        }
         if (toDate != null) {
           params[filter.paramName + "_toDate"] = toDate.toISO();
-        } 
+        }
       } else {
         let paramValue = this.filterParams[filter.paramName];
         if(!_isEmpty(paramValue)) {
@@ -135,5 +138,13 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       }
     }
     return params;
+  }
+
+  public async recordTableAction(event: any, data: any, actionName: string) {
+    console.log('recordTableAction', arguments);
+  }
+
+  public async headerSortChanged(event: any, data: any) {
+    console.log('headerSortChanged', arguments);
   }
 }

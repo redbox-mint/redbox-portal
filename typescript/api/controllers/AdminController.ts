@@ -26,7 +26,7 @@ import { of,flatMap } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 declare var BrandingService, RolesService, UsersService;
 
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -98,8 +98,8 @@ export module Controllers {
     public getBrandRoles(req, res) {
       // basic roles page: view all users and their roles
       var pageData:any = {};
-      var brand = BrandingService.getBrand(req.session.branding);
-      var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
+      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      var roles = RolesService.getRolesWithBrand(brand).flatMap(roles => {
         _.map(roles, (role) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
@@ -159,7 +159,7 @@ export module Controllers {
         UsersService.addLocalUser(username, name, details.email, password).subscribe(user => {
           if (details.roles) {
             var roles = details.roles;
-            var brand = BrandingService.getBrand(req.session.branding);
+            var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
               this.ajaxOk(req, res, "User created successfully");
@@ -189,7 +189,7 @@ export module Controllers {
         UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
           if (details.roles) {
             var roles = details.roles;
-            var brand = BrandingService.getBrand(req.session.branding);
+            var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
               this.ajaxOk(req, res, "User updated successfully");
@@ -219,7 +219,7 @@ export module Controllers {
       var userid = req.body.userid;
       if (userid && newRoleNames) {
         // get the ids of the role names...
-        var brand = BrandingService.getBrand(req.session.branding);
+        var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         var roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
         UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
           this.ajaxOk(req, res, "Save OK.");

@@ -7,9 +7,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="apple-touch-icon" sizes="180x180" "<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" "<%= BrandingService.getRootContext() %>/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" "<%= BrandingService.getRootContext() %>/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="<%= BrandingService.getRootContext() %>/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="<%= BrandingService.getRootContext() %>/favicon-16x16.png">
 
   <title>
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
@@ -53,6 +53,39 @@
             </ul>
           </div>
         </div>
+        <div class="col-md-4">
+          <div class="mt-3" >
+            <div class="dropdown pull-right">
+                <% 
+                  // remove the cimode
+                  const langCodes = _.filter(sails.config.i18n.next.init.supportedLngs, (lng) => {
+                    return lng != 'cimode';                    
+                  });
+                  if (langCodes.length > 1) { %>
+                  <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                    <%= TranslationService.t('lang-' + lang) %>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <%
+                    for (const langCode of langCodes) {
+                      if (langCode != lang) {
+                        const langUrl = new URL(`${req.protocol}://${req.get('host')}${req.originalUrl}`);
+                        const params = new URLSearchParams(langUrl.search);
+                        params.set('lng', langCode);
+                        langUrl.search = params;
+                        %>
+                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= TranslationService.t('lang-' + langCode) %></a></li>
+                        <%
+                      }
+                    } 
+                  %>
+                  </ul>
+                    <% 
+                  }
+                %>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -81,6 +114,16 @@
   <!-- End mainmenu area -->
 <% if (typeof title!== 'undefined') { %>
 <% } %>
+ 
+<% if (sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.enabled === true) { %>
+  <div id="system-message-area" class="container">
+  <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
+    <h4><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.title %></h4>
+    <div><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.message %></div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+</div>
+ <% } %>
 
   <div class="maincontent-body">
     <%- body %>
@@ -99,7 +142,7 @@
 
   
   <script>
-  $(document).ready(function() {
+  jQuery(document).ready(function() {
     $('li.active').removeClass('active');
     var findFn = function(path) {
       return $('a[href="' + path + '"]');
@@ -122,11 +165,34 @@
         curHref.closest('li').addClass('active').closest('.dropdown').addClass('site-branding-area');
       }
     }
+
+    const storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
+
+   if (storedsystemMessageDismissalTime) {
+    const currentsystemMessageDismissalTime = Date.now();
+    const eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
+     //Already been dismissed in the past 8 hours so close it
+      $('#system-message-area').show()
+    }  else {
+      //remove the system message area as it takes up space even when hidden
+      const systemMessageArea = document.getElementById('system-message-area');
+      systemMessageArea.parentNode.removeChild(systemMessageArea)
+    }
+  }  else {
+    $('#system-message-area').show()
+  }
+
+    $('#system-message').on('closed.bs.alert', function () {
+
+    const currentEpochMillis = Date.now();
+
+    localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
+    //remove the system message area as it takes up space even when hidden
+    const systemMessageArea = document.getElementById('system-message-area');
+      systemMessageArea.parentNode.removeChild(systemMessageArea)
+  })
   });
   </script>
 </body>
-<% if (res.statusCode <= 400 && sails.config.ng2.use_bundled) { %>
-  <!-- NG2 bundled scripts section, expects a 'ng2_apps' local containing the list of apps to load for this view -->
-  <%- partial ('../../misc/ng2-apps.ejs', {apps: ng2_apps}) %>
-<% } %>
 </html>

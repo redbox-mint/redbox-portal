@@ -22,12 +22,13 @@ declare var module;
 declare var sails;
 
 declare var BrandingService;
+declare var AppConfigService;
 declare var RolesService;
 declare var DashboardService;
 declare var UsersService;
 declare var User;
 declare var _;
-import { APIActionResponse, APIErrorResponse } from '@researchdatabox/redbox-core-types';
+import { APIActionResponse, APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
@@ -51,7 +52,9 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-      'refreshCachedResources'
+      'refreshCachedResources',
+      'setAppConfig',
+      'getAppConfig'
     ];
 
     /**
@@ -75,6 +78,43 @@ export module Controllers {
         this.apiFail(req, res, 500, new APIErrorResponse(error.message));
       }
     }
+
+    public async setAppConfig(req, res) {
+      try {
+        let configKey = req.param('configKey')
+        
+        let brandName:string = BrandingService.getBrandFromReq(req);
+        let brand:BrandingModel = BrandingService.getBrand(brandName);
+        
+        let config = await AppConfigService.createOrUpdateConfig(brand.name, configKey, req.body)
+        
+        let response = new APIActionResponse('App configuration updated successfully');
+
+        return this.apiRespond(req, res, response, 200)
+      } catch (error) {
+        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      }
+    }
+
+    public async getAppConfig(req, res) {
+      try {
+        let configKey = req.param('configKey')
+        
+        let brandName:string = BrandingService.getBrandFromReq(req);
+        
+        let brand:BrandingModel = BrandingService.getBrand(brandName);
+        
+        let config = AppConfigService.getAppConfigurationForBrand(brand.name)
+        if(!_.isEmpty(configKey)) {
+          config = _.get(config, configKey, null)
+        }
+
+        return this.apiRespond(req, res, config, 200)
+      } catch (error) {
+        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      }
+    }
+
 
    
 

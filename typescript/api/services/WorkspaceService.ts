@@ -1,7 +1,7 @@
 import { Observable, from } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import * as request from "request-promise";
+import axios from 'axios';
 
 declare var RecordsService, BrandingService;
 declare var sails: Sails;
@@ -20,9 +20,6 @@ export module Services {
       'registerUserApp',
       'userInfo',
       'provisionerUser',
-      'getCookies',
-      'getCookieValue',
-      'cookieJar',
       'infoFormUserId',
       'createWorkspaceInfo',
       'updateWorkspaceInfo',
@@ -30,36 +27,12 @@ export module Services {
       'removeAppFromUserId',
       'mapToRecord',
       'addWorkspaceToRecord',
+      'removeWorkspaceFromRecord',
       'getWorkspaces'
     ];
 
     constructor() {
       super();
-    }
-
-    getCookies(cookies) {
-      const cookieJar = [];
-      cookies.forEach((rawcookies) => {
-        var cookie = request.cookie(rawcookies);
-        cookieJar.push({key: cookie.key, value: cookie.value, expires: cookie.expires});
-      });
-      return cookieJar;
-    }
-
-    getCookieValue(cookieJar, key) {
-      const cookie = _.findWhere(cookieJar, {key: key});
-      if(cookie) {
-        return cookie.value;
-      }else return '';
-    }
-
-    cookieJar(jar: any, config:any, key: string, value: string){
-      const keyvalue = key + '=' + value;
-      const cookie = request.cookie('' + keyvalue);
-      jar.setCookie(cookie, config.host, function(error, cookie) {
-        sails.log.debug(cookie);
-      });
-      return jar;
     }
 
     mapToRecord(obj: any, recordMap: any) {
@@ -85,6 +58,21 @@ export module Services {
       return await RecordsService.appendToRecord(targetRecordOid, workspaceData, 'metadata.workspaces', 'array', targetRecord);
     }
 
+/**
+     * Remove a workspace to a record.
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  targetRecordOid - the OID of the record to update
+     * @param  workspaceOid - the OID of the workspace, this will override the 'id' field in workspaceData parameter
+     * @param  workspaceData - in addition to the workspace id, any optional data to add, defaults to empty map. Note that the user interface will not be relying on the data on this array to display the association.
+     * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
+     * @return
+     */
+    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData:any = {}, targetRecord: any = undefined) {
+      workspaceData.id = workspaceOid;
+      return await RecordsService.removeFromRecord(targetRecordOid, workspaceData, 'metadata.workspaces', targetRecord);
+    }    
+
     /**
      * Retrieves workspaces from a record.
      *
@@ -108,10 +96,10 @@ export module Services {
       // TODO: how to get the workflowStage??
       // TODO: Get the project metadata from the form, move this logic to the controller
       sails.log.debug(config);
-      const post = request({
-        uri: config.brandingAndPortalUrl + `/api/records/metadata/${recordType}`,
-        method: 'POST',
-        body: {
+      const post = {
+        method: 'post',
+        url: config.brandingAndPortalUrl + `/api/records/metadata/${recordType}`,
+        data: {
           authorization: {
             edit: [username],
             view: [username],
@@ -121,30 +109,28 @@ export module Services {
           metadata: project,
           workflowStage: workflowStage
         },
-        json: true,
         headers: config.redboxHeaders
-      });
-      return from(post);
+      };
+      return Observable.fromPromise(axios(post));
     }
 
     getRecordMeta(config: any, rdmp: string) {
-      const get = request({
-        uri: config.brandingAndPortalUrl + '/api/records/metadata/' + rdmp,
-        json: true,
+      const get = {
+        method: 'get',
+        url: config.brandingAndPortalUrl + '/api/records/metadata/' + rdmp,
         headers: config.redboxHeaders
-      });
-      return from(get);
+      };
+      return Observable.fromPromise(axios(get));
     }
 
     updateRecordMeta(config: any, record: any, id: string) {
-      const post = request({
-        uri: config.brandingAndPortalUrl + '/api/records/metadata/' + id,
-        method: 'PUT',
-        body: record,
-        json: true,
+      const post = {
+        method: 'put',
+        url: config.brandingAndPortalUrl + '/api/records/metadata/' + id,
+        data: record,
         headers: config.redboxHeaders
-      });
-      return from(post);
+      };
+      return Observable.fromPromise(axios(post));
     }
 
     userInfo(userId: string) {
@@ -177,7 +163,8 @@ export module Services {
     updateWorkspaceInfo(id, info) {
       return this.getObservable(
         WorkspaceApp.update(
-          {id: id},
+          {id: id})
+        .set(
           {info: info}
         )
       );

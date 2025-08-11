@@ -26,7 +26,7 @@ declare var BrandingService, RolesService, DashboardService, ReportsService;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -54,7 +54,7 @@ export module Controllers {
     }
 
     public render(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 
       ReportsService.findAllReportsForBrand(brand).subscribe(reports => {
       req.options.locals["reports"] = reports;

@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable,flatMap,of,throwError } from 'rxjs';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import { Observable } from 'rxjs/Rx';
+import {Services as services, BrandingModel}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;
@@ -43,7 +43,8 @@ export module Services {
       'getBrandFromReq',
       'getPortalFromReq',
       'getFullPath',
-      'getRootContext'
+      'getRootContext',
+      'getBrandById'
     ];
 
     protected availableBrandings: any = []
@@ -72,7 +73,7 @@ export module Services {
         .pipe(flatMap(brands => {
           this.brandings = brands;
           this.availableBrandings = _.map(this.brandings, 'name');
-          var defBrandEntry = this.getDefault();
+          var defBrandEntry:BrandingModel = this.getDefault();
           if (defBrandEntry == null) {
             sails.log.error("Failed to load default brand!");
             return throwError(new Error("Failed to load default brand!"));
@@ -81,19 +82,23 @@ export module Services {
         }));
     }
 
-    public getDefault = (): any => {
+    public getDefault = (): BrandingModel => {
       return _.find(this.brandings, (o) => { return o.name == this.dBrand.name });
     }
 
-    public getBrand = (name): any => {
+    public getBrand = (name): BrandingModel => {
       return _.find(this.brandings, (o) => { return o.name == name });
+    }
+
+    public getBrandById = (id): BrandingModel => {
+      return _.find(this.brandings, (o) => { return o.id == id });
     }
 
     public getAvailable = () => {
       return this.availableBrandings;
     }
 
-    public getBrandAndPortalPath(req) {
+    public getBrandAndPortalPath(req): string{
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
       const rootContext = this.getRootContext();
@@ -104,7 +109,7 @@ export module Services {
       }
     }
 
-    public getRootContext() {
+    public getRootContext():string {
       
       const rootContext = sails.config.http.rootContext;
       if(_.isEmpty(rootContext)) {
@@ -115,11 +120,11 @@ export module Services {
     }
 
 
-    public getFullPath(req){
+    public getFullPath(req):string{
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
-    public getBrandFromReq(req) {
+    public getBrandFromReq(req):string {
       var branding = req.params['branding'];
       if (branding == null) {
         if (req.body != null) {

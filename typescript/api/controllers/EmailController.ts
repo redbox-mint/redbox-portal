@@ -22,8 +22,7 @@ declare var module;
 declare var sails;
 declare var EmailService;
 declare var _;
-import { Observable } from 'rxjs';
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -73,55 +72,61 @@ export module Controllers {
         public sendNotification(req, res) {
             if (!req.body.to){
                 sails.log.error("No email recipient in email notification request!");
+                this.apiFail(req, res, 400);
                 return;
             }
             if (!req.body.template){
                 sails.log.error("No template specified in email notification request!");
+                this.apiFail(req, res, 400);
                 return;
             }
-            var to = req.body.to;
-            let cc = _.get(sails.config.emailnotification.defaults, 'cc', '')
-            if(!_.isEmpty(req.body.cc)) {
-                cc = req.body.cc;
-            }
-            let from = sails.config.emailnotification.defaults.from;
-            if(!_.isEmpty(req.body.from)) {
-                from = req.body.from    ;
-            }
 
-            let format = sails.config.emailnotification.defaults.format;
-            if(!_.isEmpty(req.body.format)) {
-                format = req.body.format    ;
-            }
+            const options = {
+                format: req.body.format,
+                from: req.body.from,
+                to: req.body.to,
+                cc: req.body.cc,
+                bcc: req.body.bcc,
+                subject: req.body.subject,
+                template: req.body.template,
+            };
+            const config = {};
+            const templateDate = req.body.data;
 
-            let bcc = null
-            if(!_.isEmpty(req.body.bcc)) {
-                bcc = req.body.bcc;
-            }
-            var template = req.body.template;
+            const emailProperties = EmailService.evaluateProperties(options, config, templateDate);
+            // const format = emailProperties.format;
+            const formatRendered = emailProperties.formatRendered;
+            // const from = emailProperties.from;
+            const fromRendered = emailProperties.fromRendered;
+            // const to = emailProperties.to;
+            const toRendered = emailProperties.toRendered;
+            // const cc = emailProperties.cc;
+            const ccRendered = emailProperties.ccRendered;
+            // const bcc = emailProperties.bcc;
+            const bccRendered = emailProperties.bccRendered;
+            // const subject = emailProperties.subject;
+            const subjectRendered = emailProperties.subjectRendered;
+            // const template = emailProperties.template;
+            const templateRendered = emailProperties.templateRendered;
 
-            // use subject if provided, else use template default
-            var subject;
-            if (req.body.subject) { subject = req.body.subject; }
-            else { subject = sails.config.emailnotification.templates[template].subject; }
-
-            var data = {};
-            if (req.body.data) { data = req.body.data; }
-
-            var buildResponse = EmailService.buildFromTemplate(template, data);
-
-            return buildResponse.subscribe(buildResult => {
+            return templateRendered.subscribe(buildResult => {
                 if (buildResult['status'] != 200) {
                     return this.apiFail(req, res, 500);
-                }
-                else {
-                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject,from, format,cc);
+                } else {
+                    const sendResponse = EmailService.sendMessage(
+                        toRendered,
+                        buildResult['body'],
+                        subjectRendered,
+                        fromRendered,
+                        formatRendered,
+                        ccRendered,
+                        bccRendered,
+                    );
 
                     sendResponse.subscribe(sendResult => {
                         if (!sendResult['success']) {
                             return this.apiFail(req, res, 500);
-                        }
-                        else {
+                        } else {
                             return this.apiRespond(req, res, {message: sendResult['msg']}, 200);
                         }
                     });

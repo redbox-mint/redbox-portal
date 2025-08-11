@@ -1,0 +1,39 @@
+meta {
+  name: Add attachment to Datarecord
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~Content-Type: application/json
+}
+
+body:multipart-form {
+  attachmentFields: @file(attachment.png)
+  ~dataLocations: 
+}
+
+assert {
+  res.body.message.fileIds.length: eq 1
+}
+
+script:post-response {
+  let jsonData = res.getBody();
+  console.log(jsonData)
+  bru.setVar("attDataRecordStreamId", jsonData.message.fileIds[0].fileId)
+}
+
+tests {
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+}

@@ -12,13 +12,16 @@
  const schedule = require('node-schedule');
  
  const actualBootstrap = async function() {
+   await sails.services.translationservice.bootstrap();
+   sails.log.verbose("Translation service, bootstrapped.");
    let defaultBrand = await sails.services.brandingservice.bootstrap().toPromise()
    sails.log.verbose("Branding service, bootstrapped.");
    let rolesBootstrapResult = await sails.services.rolesservice.bootstrap(defaultBrand).toPromise();
    sails.log.verbose("Roles service, bootstrapped.");
    let reportsBootstrapResult = await sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
    sails.log.verbose("Reports service, bootstrapped.");
-
+   let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
+   sails.log.verbose("Named Query service, bootstrapped.");
    // sails doesn't support 'populating' of nested associations
    // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
    let defRoles = await sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()).toPromise();
@@ -28,19 +31,19 @@
    sails.log.verbose("Pathrules service, bootstrapped.");
    let pathRulesBootstrapResult = await sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles).toPromise();
    sails.log.verbose("Record types service, bootstrapped.");
-   let recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("Workflowsteps service, bootstrapped.");
-   let dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("DashboardTypes service, bootstrapped.");
-   let workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes).toPromise();
+   let workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
    sails.log.verbose("Workflowsteps service, bootstrapped.");
    if (_.isArray(workflowSteps)) {
  
      for (let workflowStep of workflowSteps) {
-       await sails.services.formsservice.bootstrap(workflowStep).toPromise();
+       await sails.services.formsservice.bootstrap(workflowStep);
      }
    } else {
-     await sails.services.formsservice.bootstrap(workflowSteps).toPromise();
+     await sails.services.formsservice.bootstrap(workflowSteps);
    }
  
  
@@ -58,9 +61,15 @@
      sails.log.debug('cronjobs scheduled...');
    }
  
-   sails.log.verbose("Cron service, bootstrapped.");
-   // After last, because it was being triggered twice
-   await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+  // Initialise the applicationConfig for all the brands
+  await sails.services.appconfigservice.bootstrap()
+  // bind convenience function to sails.config so that configuration access syntax is consistent
+  sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand
+    
+  sails.log.verbose("Cron service, bootstrapped.");
+  // After last, because it was being triggered twice
+  await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+
  
    sails.log.verbose("WorkspaceTypes service, bootstrapped.");
 
@@ -101,9 +110,8 @@
    } else {
      throw new Error('ReDBox Storage failed to start');
    }
- 
+
  }
- 
  
  module.exports.bootstrap = function (cb) {
    if (sails.config.security.csrf === "false") {
@@ -112,14 +120,14 @@
    // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
    sails.config.startupMinute = Math.floor(Date.now() / 60000);
    
-   sails.services.translationservice.bootstrap();
-   sails.log.verbose("Translation service, bootstrapped.");
    if (sails.config.environment == "production" || sails.config.ng2.force_bundle) {
      sails.config.ng2.use_bundled = true;
      console.log("Using NG2 Bundled files.......");
    }
- 
-   
+
+   // Update the pino log level to the sails.log.level.
+   sails.config.log.customLogger.level = sails.config.log.level;
+
    // actual bootstrap...
    sails.log.debug("Starting boostrap process with boostrapAlways set to: " + sails.config.appmode.bootstrapAlways);
    actualBootstrap().then(response => {

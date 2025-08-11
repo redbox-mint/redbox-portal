@@ -161,7 +161,6 @@ export class RelatedFileUploadComponent extends SimpleComponent {
 
   public applyPendingChanges(savedInfo) {
     if (savedInfo.success) {
-      // this.field.value = this.field.fieldMap._rootComp.form.value[this.field.name];
       const finalVal = this.field.fieldMap._rootComp.form.controls[this.field.name].value;
       this.field.fieldMap[this.field.name].field.value = finalVal;
     } else {
@@ -213,9 +212,9 @@ export class RelatedFileUploadComponent extends SimpleComponent {
     let fieldVal: any = null;
     // attach event handers...
     this.uppy.on('upload-success', (file, resp, uploadURL) => {
-      console.debug("File info:");
+      console.debug('File info:');
       console.debug(file);
-      console.debug("Response:");
+      console.debug('Response:');
       console.debug(resp);
       console.debug(`Upload URL:${uploadURL}`);
       // add to form control on each upload...
@@ -223,7 +222,7 @@ export class RelatedFileUploadComponent extends SimpleComponent {
       const fileId = urlParts[urlParts.length - 1];
       const choppedUrl = urlParts.slice(6, urlParts.length).join('/');
       const newLoc = {
-        type: "attachment",
+        type: 'attachment',
         pending: true,
         location: choppedUrl,
         notes: file.meta.notes,
@@ -253,8 +252,10 @@ export class RelatedFileUploadComponent extends SimpleComponent {
     if (_.isEmpty(this.oid)) {
       this.field.attachmentText = this.field.attachmentTextDisabled;
       return true;
+    } else {
+      this.field.attachmentText='Add attachment(s)';
+      return false;
     }
-    return false;
   }
 
   public getAbsUrl(location: string) {

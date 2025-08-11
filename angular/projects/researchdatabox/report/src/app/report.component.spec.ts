@@ -1,11 +1,10 @@
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService, ReportFilter, Report, ReportResult, RecordPropViewMeta } from '@researchdatabox/portal-ng-common';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
+import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, getStubReportService } from '@researchdatabox/portal-ng-common';
+import { ReportFilterDto, ReportDto, ReportResultDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
-import { DateTime } from 'luxon';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { ReportComponent } from './report.component';
 
@@ -34,15 +33,15 @@ describe('ReportComponent', () => {
           "property": "title",
           "message": "Filter by title"
         }
-      ] as ReportFilter[],
+      ] as ReportFilterDto[],
       columns: [
         {
           "label": "Chief Investigator",
           "property": "contributor_ci.text_full_name",
           "template" : "${ data['contributor_ci.text_full_name'] }"
         }
-      ] as RecordPropViewMeta[]
-    } as Report;
+      ] as RecordPropViewMetaDto[]
+    } as ReportDto;
     let pageNum = 1;
     const mockReportResult = {
       records: [
@@ -54,7 +53,7 @@ describe('ReportComponent', () => {
       total: 10,
       pageNum: pageNum,
       recordsPerPage: 1
-    } as ReportResult;
+    } as ReportResultDto;
     mockReportData = {
       reportConfig: mockReportConfigData,
       reportResult: mockReportResult
@@ -66,7 +65,6 @@ describe('ReportComponent', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot(),
         BsDatepickerModule.forRoot(),
         PaginationModule.forRoot(),
         RedboxPortalCoreModule
@@ -89,21 +87,9 @@ describe('ReportComponent', () => {
         {
           provide: ReportService,
           useValue: reportService
-        },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
-        {
-          provide: LOCALE_ID,
-          deps: [I18NEXT_SERVICE],
-          useValue: localeId
         }
       ]
     });
-    TestBed.inject(I18NEXT_SERVICE);
     await testModule.compileComponents();
   });
 

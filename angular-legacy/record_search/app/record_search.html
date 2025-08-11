@@ -14,9 +14,7 @@
             <button [disabled]="isSearching || !params.basicSearch" class="btn btn-primary" type='button' (click)="search()">
               {{ 'record-search-' + record_type + '-submit' | translate }}
             </button>
-            <button [disabled]="isSearching" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              <span class="caret"></span>
-            </button>
+            <button [disabled]="isSearching" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
             <ul class="dropdown-menu dropdown-menu-right">
               <li *ngFor="let recTypeName of getRecordTypeNames()">
                 <a href="#" (click)="setRecordType(recTypeName, $event)">{{ 'record-search-' + recTypeName + '-submit' | translate }}</a>
@@ -27,7 +25,7 @@
         <div><br/></div>
         <button [disabled]="isSearching" class="btn btn-primary" type='button' (click)="resetSearch()">{{ 'record-search-reset' | translate }}</button>
         <div><br/></div>
-        <div *ngIf="searchMsg" class="bg-{{searchMsgType}} text-center" [innerHtml]="searchMsg"></div>
+        <div *ngIf="searchMsg" class="bg-{{searchMsgType}} text-center" id="searchMsg" tabindex="0" [innerHtml]="searchMsg"></div>
       </div>
     </div>
   </div>
@@ -41,7 +39,7 @@
     </div>
     <div class="col-md-10">
       <div class="panel panel-default" *ngFor="let plan of plans">
-        <div class="panel-body">
+        <div class="panel-body" id>
           <h3>
             <a href="{{ recordsService.brandingAndPortalUrl }}/record/view/{{ plan.storage_id }}" target="_blank">{{ plan.dashboardTitle }}</a>
             <a *ngIf="plan.hasEditAccess" class="glyphicon glyphicon-pencil" href="{{ recordsService.brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}" tooltip="Edit" ></a>

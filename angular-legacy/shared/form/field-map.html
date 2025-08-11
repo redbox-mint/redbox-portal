@@ -1,5 +1,5 @@
-<ng-container *ngIf="field.visible">
-<div class='padding-bottom-10'>
+<ng-container >
+<div class='padding-bottom-10' [style.display]="field.visible? 'block': 'none'">
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
   <label [attr.for]="field.name">
     {{field.label}} {{ getRequiredLabelStr()}}

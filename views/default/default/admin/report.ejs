@@ -1,5 +1,5 @@
 <% let appName = 'report'; %>
-<div class="row"></div>
+<div class="row"><div class="col-xs-2"></div><div class="col-xs-8"><a class="btn btn-large btn-primary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= TranslationService.t('report-return-to-reports-list') %></a></div></div>
 <div class="row">
   <div class="col-xs-2"></div>
   <div class="col-xs-8">
@@ -9,10 +9,9 @@
   </div>
   <div class="col-xs-2"></div>
 </div>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/runtime<%= CacheService.getNgAppFileHash(appName, 'runtime', '.') %>.js" type="module"></script>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '.') %>.js" type="module"></script>
-<% if (sails.config.angularDev) { %>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/vendor.js" type="module"></script>
-<% } %>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/main<%=CacheService.getNgAppFileHash(appName, 'main', '.') %>.js" type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '.') %>.css">
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
+   type="module"></script>
+
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+   type="module"></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">

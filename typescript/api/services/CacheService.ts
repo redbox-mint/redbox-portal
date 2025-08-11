@@ -20,9 +20,9 @@
 import { Observable,of,flatMap } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import * as NodeCache from "node-cache";
-import moment = require('moment');
-import { readdir } from 'node:fs/promises';
+import { default as NodeCache } from "node-cache";
+import { default as moment } from 'moment';
+import { readdir, access } from 'node:fs/promises';
 declare var sails: Sails;
 declare var _;
 declare var CacheEntry: Model;
@@ -115,14 +115,28 @@ export module Services {
         const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
         for (const appName of ngAppDirs) {
           let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
+          try {
+            await access(`${ngPath}/browser`);
+            ngPath = `${ngPath}/browser`;
+          } catch (error) {
+            sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
+            continue;
+          }
           const ngFiles = await readdir(ngPath);
           for (const fileNamePrefix of targetFilesPrefix) {
             const fileName = _.find(ngFiles, (file) => { return _.startsWith(file, fileNamePrefix) });
             const nameParts = _.split(fileName, '.');
             let appHash = '';
+            //legacy angular app cache path
             if (nameParts && nameParts.length == 3) {
               appHash = nameParts[1];
+            } 
+            //angular 18+ cache path
+            if (nameParts && nameParts.length == 2 && nameParts[0].indexOf('-') > 0) {
+              const hashParts = _.split(nameParts[0], '-');
+              appHash = hashParts[1];
             }   
+
             _.set(this.ngFileAppHash, `${appName}.${fileNamePrefix}`, appHash);
           }
         }

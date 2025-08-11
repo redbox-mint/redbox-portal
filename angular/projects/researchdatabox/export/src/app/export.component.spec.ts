@@ -1,10 +1,11 @@
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { UtilityService, LoggerService, TranslationService, RecordService, ConfigService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubRecordService, appInit, localeId } from '@researchdatabox/portal-ng-common';
 import { ExportComponent } from './export.component';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
+import i18next from 'i18next';
+import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { DateTime } from 'luxon';
@@ -14,6 +15,14 @@ let recordService: any;
 let translationService: any;
 let recordData: any;
 let recordTypes: any;
+
+export function i18AppInit() {
+  return () => i18next
+  .init({
+    fallbackLng: 'en',
+    debug: true
+  });
+}
 
 describe('ExportComponent', () => {
   beforeEach(async () => {
@@ -53,20 +62,12 @@ describe('ExportComponent', () => {
           provide: RecordService,
           useValue: recordService
         },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
-        {
-          provide: LOCALE_ID,
-          deps: [I18NEXT_SERVICE],
-          useValue: localeId
-        }
+        provideAppInitializer(i18AppInit()),
+        provideI18Next(
+          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
+        )
       ]
     });
-    TestBed.inject(I18NEXT_SERVICE);
     await testModule.compileComponents();
   });
 
@@ -93,8 +94,11 @@ describe('ExportComponent', () => {
     let generatedUrl:string = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=&after=&recType=rdmp`;
     expect(url).toEqual(generatedUrl);
     // test with modified after set
-    const dateNow = DateTime.local();
-    const dateNowStr = dateNow.toFormat('yyyy-MM-dd');
+    let dateNow = DateTime.local();
+    dateNow = dateNow.startOf('day');
+    const dateEnd = dateNow.endOf('day');
+    const dateEndStr = dateEnd.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const dateNowStr = dateNow.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     app.modAfter = dateNow.toJSDate();
     app.download();
     generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=&after=${dateNowStr}&recType=rdmp`;
@@ -102,17 +106,17 @@ describe('ExportComponent', () => {
     // test with modified before set
     app.modBefore = dateNow.toJSDate();
     app.download();
-    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateNowStr}&after=${dateNowStr}&recType=rdmp`;
+    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateEndStr}&after=${dateNowStr}&recType=rdmp`;
     expect(url).toEqual(generatedUrl);
     // test with different data type
     app.setRecordType('dataRecord', event);
     app.download();
-    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateNowStr}&after=${dateNowStr}&recType=dataRecord`;
+    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateEndStr}&after=${dateNowStr}&recType=dataRecord`;
     expect(url).toEqual(generatedUrl);
     // test with different format
     app.setExportFormat('json', event);
     app.download();
-    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/json?before=${dateNowStr}&after=${dateNowStr}&recType=dataRecord`;
+    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/json?before=${dateEndStr}&after=${dateNowStr}&recType=dataRecord`;
     expect(url).toEqual(generatedUrl);
   });
 });

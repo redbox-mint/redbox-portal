@@ -5,7 +5,7 @@ import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash";
 import { WorkspaceTypeService } from '../workspace-service';
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 
 declare var jQuery: any;
 declare var $: any;
@@ -135,8 +135,7 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
   workspaceTypeService: WorkspaceTypeService;
   workspaceApp: any;
   appLink: string;
-  // will show up as list
-  displayAsList: boolean;
+  displayType: string; // choice of 'dropdown', 'panels', 'cards'
   shouldSaveForm: boolean;
   allowAdd: boolean;
   // template to execute to enable editing of this
@@ -149,7 +148,7 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     this.open = this.getTranslated(options['open'], options['open']);
     this.saveFirst = this.getTranslated(options['saveFirst'], options['saveFirst']);
     this.rdmp = undefined;
-    this.displayAsList = _.isUndefined(options['displayAsList']) ? false : options['displayAsList'];
+    this.displayType = _.isUndefined(options['displayType']) ? 'dropdown' : options['displayType'];
     this.shouldSaveForm = _.isUndefined(options['shouldSaveForm']) ? true: options['shouldSaveForm'];
     this.allowAddTemplate = options['allowAddTemplate'];
     // this.options = options['options'] || [];

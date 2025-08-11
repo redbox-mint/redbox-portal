@@ -1,0 +1,89 @@
+meta {
+  name: Update RDMP Metadata using AJAX form call
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{host}}/default/rdmp/recordmeta/{{dmpOid}}
+  body: json
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: {{host}}
+  Accept-Encoding: gzip, deflate, br
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  X-Source: jsclient
+  Content-Type: application/json;charset=UTF-8
+  Accept: application/json, text/plain, */*
+  Cache-Control: no-cache
+  Referer: {{host}}/default/rdmp/record/edit/{{dmpOid}}
+  Connection: keep-alive
+  
+}
+
+body:json {
+  {
+      "title": "Andrew's integration test - Updated from form AJAX call",
+      "dc:identifier": "http://purl.org/au-research/grants/nhmrc/566728",
+      "description": "Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.",
+      "finalKeywords": [
+          "270199",
+          "Golgi apparatus",
+          "endocytosis",
+          "membrane transport",
+          "protein trafficking",
+          "secretion",
+          "HIV-AIDS",
+          "bacterial pathogen",
+          "hormone secretion",
+          "immune development",
+          "lysosomal storage disorder"
+      ],
+      "contributor_ci": {
+          "text_full_name": "Prof Paul Gleeson",
+          "email": "notAReal@email.edu.au",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributor_data_manager": {
+          "text_full_name": "Prof Paul Gleeson",
+          "email": "notAReal@email.edu.au",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributors": [
+          {
+              "text_full_name": "Prof Paul Gleeson",
+              "email": "notAReal@email.edu.au",
+              "orcid": "http://orcid.org/0000-0000-0000-000"
+          }
+      ],
+      "vivo:Dataset_redbox:DataCollectionMethodology": "The data collection methodology",
+      "vivo:Dataset_dc_format": "xls",
+      "vivo:Dataset_dc:location_rdf:PlainLiteral": "eResearch Store network drive",
+      "vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral": "shared university network drive (e.g. G, H, etc)",
+      "vivo:Dataset_dc:extent": "100GB - 2TB",
+      "redbox:retentionPeriod_dc:date": "1year",
+      "dc:rightsHolder_dc:name": "myUni",
+      "dc:accessRights": "permission from the data manager",
+      "authorization": []
+  }
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+}

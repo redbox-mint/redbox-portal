@@ -3,9 +3,11 @@
   <div class="row">
     <table class="table">
       <thead>
-          <tr>
-              <ng-container *ngFor="let header of field.columns"><th *ngIf='header.show != false'>{{ header.label }}</th></ng-container>
-          </tr>
+        <tr>
+          <ng-container *ngFor="let header of field.columns">
+            <th *ngIf='header.show != false'>{{ header.label | translate }}</th>
+          </ng-container>
+        </tr>
       </thead>
       <tbody>
         <tr *ngFor="let item of field.relatedObjects">
@@ -17,26 +19,39 @@
                 <div *ngFor="let itemEntry of field.getPropertyValue(item, column)">
                   <ng-container *ngIf='column.link && column.link.type == "dynamic"'>
                     <!-- Don't run a template when pattern is not set, just show the value as a link -->
-                    <a *ngIf="!column.link.pattern" [href]="sanitizeUrl(field.getPropertyValue(itemEntry, column))">{{ field.getPropertyValue(itemEntry, column) }}</a>
+                    <a *ngIf="!column.link.pattern" [href]="sanitizeUrl(field.getPropertyValue(itemEntry, column))">{{
+                      field.getPropertyValue(itemEntry, column) }}</a>
                     <!-- Run a template when we have pattern and use that as the URL, with the value as the link label -->
-                    <a  *ngIf="column.link.pattern" [href]="sanitizeUrl(column.link.pattern | stringTemplate:itemEntry)">{{ field.getPropertyValue(itemEntry, column) }}</a>
+                    <a *ngIf="column.link.pattern"
+                      [href]="sanitizeUrl(column.link.pattern | stringTemplate:itemEntry)">{{
+                      field.getPropertyValue(itemEntry, column) }}</a>
                   </ng-container>
                   <ng-container *ngIf='column.link && (column.link.type == "static" || column.link.type == null)'>
                     <div *ngIf="itemEntry['label'] !=null; else ordinaryLinkBlock">
-                      <a *ngIf="itemEntry['link'] != null; else disableLinkBlock" target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry['link'])" [innerHtml]="itemEntry['label']"></a>
+                      <a *ngIf="itemEntry['link'] != null; else disableLinkBlock" target="_blank"
+                        rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry['link'])"
+                        [innerHtml]="itemEntry['label']"></a>
                       <ng-template #disableLinkBlock>
-                        <span>
+                        <span *ngIf="!column.containsHtml">
                           {{ itemEntry['label'] }}
+                        </span>
+                        <span *ngIf="column.containsHtml" [innerHtml]="itemEntry['label']">
                         </span>
                       </ng-template>
                     </div>
                     <ng-template #ordinaryLinkBlock>
-                      <a target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry)" [innerHtml]="itemEntry"></a>
+                      <a target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry)"
+                        [innerHtml]="itemEntry"></a>
                     </ng-template>
                   </ng-container>
                   <!-- Displaying the value as is -->
                   <ng-container *ngIf='!column.link'>
-                    {{ itemEntry }}
+                    <ng-container *ngIf="column.containsHtml">
+                      <span [innerHtml]="itemEntry"></span>
+                    </ng-container>
+                    <ng-container *ngIf="!column.containsHtml">
+                      {{ itemEntry }}
+                    </ng-container>
                   </ng-container>
                 </div>
               </ng-container>
@@ -44,14 +59,18 @@
               <ng-container *ngIf='field.isMultiValue(item, column) === false'>
                 <ng-container *ngIf='column.link && column.link.type == "dynamic"'>
                   <!-- Don't run a template when pattern is not set, just show the value as a link -->
-                  <a *ngIf="!column.link.pattern" [href]="sanitizeUrl(field.getPropertyValue(item, column))">{{ field.getPropertyValue(item, column) }}</a>
+                  <a *ngIf="!column.link.pattern" [href]="sanitizeUrl(field.getPropertyValue(item, column))">{{
+                    field.getPropertyValue(item, column) }}</a>
                   <!-- Run a template when we have pattern and use that as the URL, with the value as the link label -->
-                  <a  *ngIf="column.link.pattern" [href]="sanitizeUrl(column.link.pattern | stringTemplate:item)">{{ field.getPropertyValue(item, column) }}</a>
+                  <a *ngIf="column.link.pattern" [href]="sanitizeUrl(column.link.pattern | stringTemplate:item)">{{
+                    field.getPropertyValue(item, column) }}</a>
                 </ng-container>
                 <!-- For static links -->
                 <ng-container *ngIf='column.link && column.link.type == "static"'>
                   <div *ngIf="field.getPropertyValue(item, column)['label']; else ordinaryLinkBlock">
-                    <a *ngIf="field.getPropertyValue(item, column)['link']; else disableLinkBlock" target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(field.getPropertyValue(item, column)['link'])" [innerHtml]="field.getPropertyLabel(item, column)"></a>
+                    <a *ngIf="field.getPropertyValue(item, column)['link']; else disableLinkBlock" target="_blank"
+                      rel="noopener noreferrer" [href]="sanitizeUrl(field.getPropertyValue(item, column)['link'])"
+                      [innerHtml]="field.getPropertyLabel(item, column)"></a>
                     <!-- Disabled link retained for backwards compat -->
                     <ng-template #disableLinkBlock>
                       <span>
@@ -60,12 +79,19 @@
                     </ng-template>
                   </div>
                   <ng-template #ordinaryLinkBlock>
-                    <a target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(field.getPropertyValue(item, column))" [innerHtml]="field.getPropertyValue(item, column)"></a>
+                    <a target="_blank" rel="noopener noreferrer"
+                      [href]="sanitizeUrl(field.getPropertyValue(item, column))"
+                      [innerHtml]="field.getPropertyValue(item, column)"></a>
                   </ng-template>
                 </ng-container>
                 <!-- Displaying the value as is -->
                 <ng-container *ngIf='!column.link'>
-                  {{ field.getPropertyValue(item, column )}}
+                  <ng-container *ngIf="column.containsHtml">
+                    <span [innerHtml]="field.getPropertyValue(item, column)"></span>
+                    </ng-container>
+                    <ng-container *ngIf="!column.containsHtml">
+                      {{ field.getPropertyValue(item, column )}}
+                    </ng-container>
                 </ng-container>
               </ng-container>
             </td>
@@ -73,7 +99,9 @@
         </tr>
       </tbody>
     </table>
-    <p *ngIf="field.failedObjects.length > 0">There were {{ field.failedObjects.length }} records that failed to load</p>
-    <p *ngIf="field.accessDeniedObjects.length > 0">There were {{ field.accessDeniedObjects.length }} records that you do not have access to</p>
+    <p *ngIf="field.failedObjects.length > 0">There were {{ field.failedObjects.length }} records that failed to load
+    </p>
+    <p *ngIf="field.accessDeniedObjects.length > 0">There were {{ field.accessDeniedObjects.length }} records that you
+      do not have access to</p>
   </div>
 </div>

@@ -28,7 +28,7 @@
             <ng-container *ngIf="dataLocation.pending">
               {{ dataLocation.name }}
             </ng-container>
-            <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank">
+            <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank" rel="noopener noreferrer">
               {{ dataLocation.name }}
             </a>
           </ng-container>

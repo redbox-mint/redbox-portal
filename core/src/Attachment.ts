@@ -29,7 +29,7 @@ export class Attachment {
   dateCreated: any;
   body: any; // bad idea to load everything in-memory
   readstream: any; // strongly suggest services stream rather than load everything in-mem
-
+  size: number; // the number of bytes the attachment is
   constructor() {
   }
 }

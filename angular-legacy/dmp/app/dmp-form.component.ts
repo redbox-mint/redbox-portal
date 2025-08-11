@@ -201,9 +201,7 @@ export class DmpFormComponent extends LoadableComponent {
         }).catch((err:any) => {
           console.log("Error loading form...");
           console.log(err);
-          if (err.status == false) {
-              this.criticalError = err.message;
-          }
+          this.criticalError = err.message;
           this.setLoading(false);
         });
       });
@@ -232,11 +230,13 @@ export class DmpFormComponent extends LoadableComponent {
     console.log("Saving the following values:");
     console.log(this.payLoad);
     this.needsSave = false;
+    this.failedValidationLinks = [];
     if (_.isEmpty(this.oid)) {
       return this.RecordsService.create(this.payLoad, this.recordType, targetStep).flatMap((res:any)=>{
         this.clearSaving();
         console.log("Create Response:");
         console.log(res);
+        let postSaveSyncWarning = _.get(res, 'metadata.postSaveSyncWarning', false);
         if (res.success) {
           this.oid = res.oid;
           this.recordCreated.emit({oid: this.oid});
@@ -244,8 +244,32 @@ export class DmpFormComponent extends LoadableComponent {
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           this.form.markAsPristine();
           return Observable.of(true);
+        } else if(!res.success && postSaveSyncWarning) {
+          this.oid = res.oid;
+          this.recordCreated.emit({oid: this.oid});
+          this.LocationService.go(`record/edit/${this.oid}`);
+          try {
+            let errorFieldMap = JSON.parse(res.message);
+            if(!_.isEmpty(errorFieldMap.errorFieldList)) {
+              this.isValid(false, errorFieldMap);
+            } else {
+              this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+            }
+          } catch(error) {
+            this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          }
+          return Observable.of(false);
         } else {
-          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          try {
+            let errorFieldMap = JSON.parse(res.message);
+            if(!_.isEmpty(errorFieldMap.errorFieldList)) {
+              this.isValid(false, errorFieldMap);
+            } else {
+              this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+            }
+          } catch(error) {
+            this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          }
           return Observable.of(false);
         }
       }).catch((err:any)=>{
@@ -264,7 +288,16 @@ export class DmpFormComponent extends LoadableComponent {
           return Observable.of(true);
         } else {
           this.recordSaved.emit({oid: this.oid, success:false});
-          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          try {
+            let errorFieldMap = JSON.parse(res.message);
+            if(!_.isEmpty(errorFieldMap.errorFieldList)) {
+              this.isValid(false, errorFieldMap);
+            } else {
+              this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+            }
+          } catch(error) {
+            this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          }
           return Observable.of(false);
         }
       }).catch((err:any)=>{
@@ -276,15 +309,22 @@ export class DmpFormComponent extends LoadableComponent {
   }
 
   delete() {
-    this.setSaving(this.getMessage(this.formDef.messages.saving));
+    this.setSaving(this.getMessage(this.formDef.messages.deleting));
+    // reset the form to prevent any unload event handler
+    this.form.markAsPristine();
+    this.needsSave = false;
     return this.RecordsService.delete(this.oid)
     .flatMap((res:any)=>{
       this.clearSaving();
       console.log("Delete Response:");
       console.log(res);
+      let postSaveSyncWarning = _.get(res, 'metadata.postSaveSyncWarning', false);
       if (res.success) {
-        this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
+        this.setSuccess(this.getMessage(this.formDef.messages.deleteSuccess));
         return Observable.of(true);
+      } else if(!res.success && postSaveSyncWarning) {
+        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+        return Observable.of(false);
       } else {
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
         return Observable.of(false);
@@ -426,7 +466,7 @@ export class DmpFormComponent extends LoadableComponent {
    * @param  {boolean=false} forceValidate
    * @return {[type]}
    */
-  isValid(forceValidate:boolean=false) {
+  isValid(forceValidate:boolean=false, backendFieldList:any={}) {
     if (this.formDef.skipValidationOnSave  && (_.isUndefined(forceValidate) || _.isNull(forceValidate) || !forceValidate)) {
       return true;
     }
@@ -434,14 +474,39 @@ export class DmpFormComponent extends LoadableComponent {
     if (this.formDef.skipValidationOnSave === false && forceValidate === true) {
       return true;
     }
-    this.triggerValidation();
-    if (!this.form.valid) {
-      // STEST-22
-      this.setError(this.getMessage(this.formDef.messages.validationFail));
-      this.generateFailedValidationLinks();
+
+    if(!forceValidate && !_.isEmpty(backendFieldList.errorFieldList)) {
+      if(!_.isEmpty(backendFieldList.altErrorMessage)) {
+        this.setError(this.getMessage(backendFieldList.altErrorMessage));
+      } else {
+        this.setError(this.getMessage(this.formDef.messages.validationFail));
+      }
+      this.failedValidationLinks = this.failedValidationLinks || [];
+      this.generateBackendFailedValidationLinks(backendFieldList);
       return false;
+    } else {
+      this.triggerValidation();
+      if (!this.form.valid) {
+        // STEST-22
+        this.setError(this.getMessage(this.formDef.messages.validationFail));
+        this.generateFailedValidationLinks();
+        return false;
+      }
     }
     return true;
+  }
+
+
+  generateBackendFailedValidationLinks(fieldMap: any) {
+    let label = null;
+    for(let field of fieldMap.errorFieldList)  {
+      label = field.label;
+      label = this.failedValidationLinks.length > 0 ? `, ${label}` : label;
+      this.failedValidationLinks.push({
+        label: label,
+        parentId: this.fieldMap[field.name].instance.parentId
+      });
+    }
   }
 
   // STEST-22
@@ -582,4 +647,13 @@ export class DmpFormComponent extends LoadableComponent {
       event.returnValue = warningMessage;
     }
   }
+
+  onKeydown(event: KeyboardEvent, parentId: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.gotoTab(parentId);
+    }
+  }
+
+
 }

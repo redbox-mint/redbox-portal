@@ -1,0 +1,8 @@
+.tmp
+.circleci
+support
+*.tgz
+.nvmrc
+.dockerignore
+Dockerfile
+.gitignore

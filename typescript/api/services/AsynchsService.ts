@@ -24,7 +24,7 @@ import {Sails, Model} from "sails";
 declare var sails: Sails;
 declare var _;
 declare var AsynchProgress: Model;
-import moment = require('moment');
+import { default as moment } from 'moment';
 
 export module Services {
   /**

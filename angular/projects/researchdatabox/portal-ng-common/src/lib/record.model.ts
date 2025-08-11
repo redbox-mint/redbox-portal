@@ -18,35 +18,29 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-/**
- * Defines the property/column rendering configuration
- */
-export interface RecordPropViewMeta {
-  // control visibility - warning breaking change, used to be called 'show'
-  hide: boolean; 
-  // if set, will run this against _.template
-  template: string;
-  // the property/variable name
-  property: string;
-  // the column header
-  label: string;
-  // whether to expect the property to be multi-valued
-  multivalue: boolean;
-}
-
-/**
- * Model for each page of records
- */
-export interface RecordPage {
-  records: any[];
-  total: number;
-  pageNum: number;
-}
+import { RecordPageDto } from "@researchdatabox/sails-ng-common";
 
 /**
  * The data source, decouples the renderer.
  */
 export interface RecordSource {
-  getCurrentPage(): RecordPage;
-  gotoPage(pageNum: number): Promise<RecordPage>;
+  getCurrentPage(): RecordPageDto;
+  gotoPage(pageNum: number): Promise<RecordPageDto>;
+
+  /**
+   * The record table button action click event.
+   * Used by RecordTableComponent.
+   * @param event The click event data.
+   * @param data The data for the current item.
+   * @param actionName The name of the action.
+   */
+  recordTableAction(event: any, data: any, actionName: string): Promise<void>;
+
+  /**
+   * The header sort changed event.
+   * Emitted by HeaderSortComponent.
+   * @param event The sort changed data.
+   * @param data The data for the current item.
+   */
+  headerSortChanged(event:any, data: any): Promise<void>;
 }

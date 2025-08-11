@@ -5,10 +5,14 @@
     "paths": {
       "@researchdatabox/portal-ng-common": [
         "dist/researchdatabox/portal-ng-common"
+      ],
+      "@researchdatabox/portal-ng-form-custom": [
+        "dist/researchdatabox/portal-ng-form-custom"
       ]
     },
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitOverride": true,
@@ -17,7 +21,6 @@
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "declaration": false,
-    "downlevelIteration": true,
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "importHelpers": true,

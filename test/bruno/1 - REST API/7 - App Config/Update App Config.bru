@@ -1,0 +1,44 @@
+meta {
+  name: Update App Config
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/api/appconfig/systemMessage
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "enabled": false,
+      "title": "The new title",
+      "message": "The new message"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has enabled property", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property("enabled");
+  });
+  
+  test("Has title property", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property("title");
+  });
+  
+  test("Has message property", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property("message");
+  });
+}

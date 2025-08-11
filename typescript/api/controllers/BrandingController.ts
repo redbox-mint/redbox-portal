@@ -1,13 +1,12 @@
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import skipperGridFs = require('skipper-gridfs');
+import skipperGridFs from "skipper-gridfs";
 import {Model} from "sails";
 import {Sails} from "sails";
 import {Observable} from 'rxjs';
 import 'rxjs/add/operator/toPromise';
-import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
-import path = require('path');
+import path from "path";
 
 
 declare var sails: Sails;
@@ -80,6 +79,7 @@ export module Controllers {
      */
     public renderApiB(req, res) {
       res.contentType('text/plain');
+      req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsapib", {layout: false});
     }
 
@@ -93,6 +93,7 @@ export module Controllers {
      */
     public renderSwaggerJSON(req, res) {
       res.contentType('application/json');
+      req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggerjson", {layout: false});
     }
 
@@ -105,6 +106,7 @@ export module Controllers {
      */
     public renderSwaggerYAML(req, res) {
       res.contentType('application/x-yaml');
+      req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggeryaml", {layout: false});
     }
 

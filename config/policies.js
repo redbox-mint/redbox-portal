@@ -16,7 +16,15 @@
  * http://sailsjs.org/#!/documentation/reference/sails.config/sails.config.policies.html
  */
 
-
+const defaultPolicies = [
+  'brandingAndPortal',
+  'checkBrandingValid',
+  'setLang',
+  'prepWs',
+  'isWebServiceAuthenticated',
+  'checkAuth'
+];
+const noCachePlusDefaultPolicies = ['noCache', ...defaultPolicies];
 module.exports.policies = {
 
   /***************************************************************************
@@ -49,17 +57,24 @@ module.exports.policies = {
 		// feed : ['isNiceToAnimals', 'hasRabbitFood']
 	// }
   UserController: {
-    'localLogin': true,
-    'aafLogin': true,
-    'openidConnectLogin': true,
-    'beginOidc': true,
-    'info': 'isAuthenticated'
+    '*': noCachePlusDefaultPolicies,
+    'localLogin': 'noCache',
+    'aafLogin': 'noCache',
+    'openidConnectLogin': 'noCache',
+    'beginOidc': 'noCache',
+    'info': [
+      'noCache',
+      'isAuthenticated'
+    ]
   },
-  '*': ['brandingAndPortal',
-         'checkBrandingValid',
-         'prepWs',
-         'isWebServiceAuthenticated',
-         'checkAuth'
-  ]
-
+  RenderViewController: {
+    'render': noCachePlusDefaultPolicies
+  },
+  'webservice/RecordController': {
+    '*': noCachePlusDefaultPolicies
+  },
+  'DynamicAssetController': {
+    '*': noCachePlusDefaultPolicies
+  },
+  '*': defaultPolicies
 };

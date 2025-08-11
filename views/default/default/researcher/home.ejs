@@ -1,6 +1,6 @@
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%= TranslationService.t('welcome-title') %></h1>
+    <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
     <div class="col-md-3 homepanel">
@@ -66,32 +66,6 @@
     </div>
 
 </div>
-
-<% let appName = 'dashboard'; %>
-<div class="row equal">
-  <div class="col-md-12 homepanel">
-    <div class="panel panel-default">
-      <div class="panel-body">
-        <dashboard recordType="consolidated" dashboardType="consolidated">
-          <div class="col-xs-1">
-          </div>
-          <div class="col-xs-10">
-            <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-          </div>
-          <div class="col-xs-1">
-          </div>
-        </dashboard>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/runtime<%= CacheService.getNgAppFileHash(appName, 'runtime', '.') %>.js" type="module"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '.') %>.js" type="module"></script>
-<% if (sails.config.angularDev) { %>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/vendor.js" type="module"></script>
-<% } %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/main<%=CacheService.getNgAppFileHash(appName, 'main', '.') %>.js" type="module"></script>
 
 <!-- simple jquery script to make all the panels equal height -->
 <script>

@@ -1,8 +1,7 @@
 declare var _;
 declare var sails;
 
-import {pathExistsSync} from 'path-exists';
-
+import {existsSync} from 'fs';
 import {APIErrorResponse } from './model/APIErrorResponse';
 export module Controllers.Core {
 
@@ -59,13 +58,36 @@ export module Controllers.Core {
       // Sails controller custom config.
       '_config',
     ];
+    
+    constructor() {
+      this.processDynamicImports().then(result => {
+        sails.log.verbose("Dynamic imports imported");
+        this.onDynamicImportsCompleted();
+      })
+    }
+    
+    /** 
+     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
+     * Called in the constructor and intended to be overridden in sub class to allow imports.
+     */
+    protected async processDynamicImports() {
+      // Override in sub class as needed
+    }
+
+    /** 
+     * Function that is called during the construction of the Controller after the dynamic imports are completed.
+     * Intended to be overridden in the sub class
+     */
+    protected onDynamicImportsCompleted() {
+      // Override in sub class as needed
+    }
 
     /**
      **************************************************************************************************
      **************************************** Public methods ******************************************
      **************************************************************************************************
      */
-
+     
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
@@ -146,13 +168,13 @@ export module Controllers.Core {
 
       //Check if view exists for branding and portal
       var viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
-      if (pathExistsSync(viewToTest)) {
+      if (existsSync(viewToTest)) {
         resolvedView = branding + "/" + portal + "/" + view;
       }
       // If view doesn't exist, next try for portal with default branding
       if (resolvedView == null) {
         viewToTest = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
-        if (pathExistsSync(viewToTest)) {
+        if (existsSync(viewToTest)) {
           resolvedView = "default/" + portal + "/" + view;
         }
       }
@@ -160,7 +182,7 @@ export module Controllers.Core {
       // If view still doesn't exist, next try for default portal with default branding
       if (resolvedView == null) {
         viewToTest = sails.config.appPath + "/views/default/default/" + view + ".ejs";
-        if (pathExistsSync(viewToTest)) {
+        if (existsSync(viewToTest)) {
           resolvedView = "default/default/" + view;
         }
       }
@@ -173,13 +195,13 @@ export module Controllers.Core {
 
       //Check if view exists for branding and portal
       var layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
-      if (pathExistsSync(layoutToTest)) {
+      if (existsSync(layoutToTest)) {
         resolvedLayout = branding + "/" + portal + "/layout";
       }
       // If view doesn't exist, next try for portal with default branding
       if (resolvedLayout == null) {
         layoutToTest = sails.config.appPath + "/views/default/" + portal + "/layout.ejs";
-        if (pathExistsSync(layoutToTest)) {
+        if (existsSync(layoutToTest)) {
           resolvedLayout = "/default/" + portal + "/layout";
         }
       }
@@ -187,7 +209,7 @@ export module Controllers.Core {
       // If view still doesn't exist, next try for default portal with default branding
       if (resolvedLayout == null) {
         layoutToTest = sails.config.appPath + "/views/default/default/" + "layout.ejs";
-        if (pathExistsSync(layoutToTest)) {
+        if (existsSync(layoutToTest)) {
           resolvedLayout = "default/default/layout";
         }
       }

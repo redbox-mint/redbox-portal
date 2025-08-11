@@ -1,0 +1,30 @@
+meta {
+  name: Search Index
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/search/?searchStr=Andrew
+  body: none
+  auth: none
+}
+
+query {
+  searchStr: Andrew
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has record array", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property("records");
+  });
+}

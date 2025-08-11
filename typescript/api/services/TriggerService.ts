@@ -19,10 +19,14 @@
 
 import { Observable, of, from, concatMap, last } from 'rxjs';
 import {
+  RBValidationError,
+  BrandingModel,
   Services as services,
-  RBValidationError
+  PopulateExportedMethods,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
+import { default as moment } from 'moment';
+import numeral from 'numeral';
 
 declare var sails: Sails;
 declare var RecordType: Model;
@@ -31,6 +35,7 @@ declare var _;
 declare var User;
 declare var RecordsService;
 declare var TranslationService;
+declare var BrandingService;
 
 export module Services {
   /**
@@ -39,14 +44,9 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
+  @PopulateExportedMethods
   export class Trigger extends services.Core.Service {
 
-    protected _exportedMethods: any = [
-      'transitionWorkflow',
-      'runHooksSync',
-      'validateFieldUsingRegex',
-      'applyFieldLevelPermissions'
-    ];
 
     /**
      * Used in changing the workflow stages automatically based on configuration.
@@ -127,30 +127,6 @@ export module Services {
       }
     }
 
-    private validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive) {
-      let re;
-      if (caseSensitive) {
-        re = new RegExp(regexPattern);
-      } else {
-        re = new RegExp(regexPattern, 'i');
-      }
-      sails.log.verbose('validateFieldUsingRegex data.toString() ' + data.toString());
-      let reTest = re.test(data.toString());
-      sails.log.verbose('validateFieldUsingRegex caseSensitive ' + caseSensitive + ' reTest ' + reTest);
-      if (!reTest) {
-        let customError: RBValidationError;
-        if (!_.isUndefined(fieldLanguageCode)) {
-          let fieldName = TranslationService.t(fieldLanguageCode);
-          let baseErrorMessage = TranslationService.t(errorMessageCode);
-          customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
-        } else {
-          let baseErrorMessage = TranslationService.t(errorMessageCode);
-          customError = new RBValidationError(baseErrorMessage);
-        }
-        throw customError;
-      }
-    }
-
     public async applyFieldLevelPermissions(oid, record, options, user) {
       // mandatory
       let fieldDBNames = _.get(options, 'fieldDBNames', []);
@@ -184,57 +160,424 @@ export module Services {
       return false;
     }
 
-    public validateFieldUsingRegex(oid, record, options) {
-      //mandatory
+    public async validateFieldUsingRegex(oid, record, options) {
+      // mandatory
       let fieldDBName = _.get(options, 'fieldDBName');
-      let errorMessageCode = _.get(options, 'errorLanguageCode');
+      let errorLanguageCode = _.get(options, 'errorLanguageCode');
       let regexPattern = _.get(options, 'regexPattern');
-      //optional
+
+      // optional
       let fieldLanguageCode = _.get(options, 'fieldLanguageCode');
       let arrayObjFieldDBName = _.get(options, 'arrayObjFieldDBName');
-      //Set false by default if not present this option will remove leading and trailing spaces from a none array value
-      //then it will modify the value in the record if the the regex validation is passed therefore handle with care
+
+      // trimLeadingAndTrailingSpacesBeforeValidation:
+      // Set false by default if not present this option will remove leading and trailing spaces from a none array value
+      // then it will modify the value in the record if the regex validation is passed therefore handle with care
       let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
-      let caseSensitive = _.get(options, 'caseSensitive') || true;
 
-      let data = _.get(record, fieldDBName);
+      // default to true - is only false when set to bool false or string 'false'
+      let caseSensitive = _.get(options, 'caseSensitive',true)?.toString() !== 'false';
+      // default to true for backwards compatibility - is only false when set to bool false or string 'false'
+      let allowNulls = _.get(options, 'allowNulls', true)?.toString() !== 'false';
 
-      if (_.isArray(data) && !_.isUndefined(arrayObjFieldDBName)) {
+      // re-usable functions
+      const textRegex = function (value) {
+        let flags = '';
+        if (!caseSensitive) {
+          flags += 'i';
+        }
+        const re = new RegExp(regexPattern, flags);
+        return re.test(value);
+      }
+      const getError = function () {
+        let customError: RBValidationError;
+        if (fieldLanguageCode) {
+          let fieldName = TranslationService.t(fieldLanguageCode);
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
+        } else {
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          customError = new RBValidationError(baseErrorMessage);
+        }
+        sails.log.error('validateFieldUsingRegex', customError, record, options);
+        return customError;
+      }
+      const hasValue = function (data) {
+        return data !== '' &&
+            data !== null &&
+            data !== undefined &&
+            (data?.length !== undefined && data.length > 0);
+      }
+      const evaluate = function (element, fieldName) {
+        let value = _.get(element, fieldName);
 
-        sails.log.verbose(`validateFieldUsingRegex is array ${fieldDBName} ` + JSON.stringify(data));
-        sails.log.verbose('validateFieldUsingRegex is array regexPattern ' + regexPattern);
-        for (let row of data) {
-
-          let objField = _.get(row, arrayObjFieldDBName);
-
-          if (!_.isUndefined(objField) && objField != null && objField != '' && !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode)) {
-
-            this.validateRegex(objField, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive);
-          }
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          value = _.trim(value);
         }
 
-      } else {
-
-        sails.log.verbose(`validateFieldUsingRegex ${fieldDBName} ` + data);
-        sails.log.verbose('validateFieldUsingRegex regexPattern ' + regexPattern);
-        if (!_.isUndefined(data) && data != null && data != '' && !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode)) {
-
-          if (trimLeadingAndTrailingSpacesBeforeValidation) {
-            let trimData = _.trim(data);
-            data = trimData;
-          }
-
-          this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive);
-
-          if (trimLeadingAndTrailingSpacesBeforeValidation) {
-            _.set(record, fieldDBName, data);
-          }
+        if (!hasValue(value) && !allowNulls) {
+          return false;
+        } else if (!hasValue(value) && allowNulls) {
+          // this is ok
+        } else if (!textRegex(value)) {
+          return false;
         }
+
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          _.set(element, fieldName, value);
+        }
+
+        return true;
       }
 
-      return of(record);
+      // get the data
+      const data = _.get(record, fieldDBName);
+
+      // early checks
+      if (!hasValue(data) && !allowNulls) {
+        throw getError();
+      }
+      if (!hasValue(data) && allowNulls) {
+        sails.log.debug(
+            'validateFieldUsingRegex',
+            'data value is null and value is allowed to be null',
+            record,
+            options);
+        return record;
+      }
+      if (!_.isArray(data) && arrayObjFieldDBName) {
+        throw getError();
+      }
+      if (_.isArray(data) && !arrayObjFieldDBName) {
+        throw getError();
+      }
+
+      // evaluate the record field against the regex
+      if (_.isArray(data)) {
+        for (const row of data) {
+          if (!evaluate(row, arrayObjFieldDBName)) {
+            throw getError() ;
+          }
+        }
+      } else {
+        if (!evaluate(record, fieldDBName)) {
+          throw getError();
+        }
+      }
+      sails.log.debug(
+          'validateFieldUsingRegex',
+          'data value passed check',
+          record,
+          options);
+      return record;
     }
 
+    /**
+     * Trigger function that will run a lodash template that can be used to validate a record.
+     * The trigger expects the template to return an array of error objects of the format:
+     *  {
+     *   name: 'the field name that is in validation error',
+     *   label: 'the human readable label for the field',
+     *   error: 'optional error message'
+     *  }
+     * 
+     *  An empty array should be returned if no errors are found.
+     * 
+     * @param oid 
+     * @param record 
+     * @param options 
+     * @returns 
+     */
+    public async validateFieldsUsingTemplate(oid, record, options) {
+      sails.log.verbose('validateFieldsUsingTemplate - enter');
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+
+        sails.log.verbose('validateFieldsUsingTemplate - metTriggerCondition');
+
+
+        const getErrorMessage = function (errorLanguageCode: string) {
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          return baseErrorMessage;
+        }
+
+        const addError = function (errorFieldList, name, label, errorLabel) {
+          let errorField:any = {};
+            _.set(errorField,'name', name);
+            _.set(errorField,'label',getErrorMessage(label));
+            let error = getErrorMessage(errorLabel);
+            if(error != '') {
+              _.set(errorField,'error',error);
+            }
+            errorFieldList.push(errorField);
+        }
+
+        let template = _.get(options,'template',"<% return []; %>");
+
+        const imports = {
+          moment: moment,
+          numeral: numeral,
+          _ : _,
+          TranslationService: TranslationService
+        }
+
+        let altErrorMessage = _.get(options,'altErrorMessage',[]);
+
+        if(_.isString(template)) {
+          const compiledTemplate = _.template(template, imports);
+          options.template = compiledTemplate;
+          template = compiledTemplate;
+        }
+
+        const errorFieldList = template({oid:oid, record: record, options: options, addError: addError,
+          getErrorMessage: getErrorMessage});
+
+        
+        const errorMap = { 
+                         altErrorMessage: altErrorMessage,
+                         errorFieldList: errorFieldList
+                       };
+
+        if(!_.isEmpty(errorMap.errorFieldList)) {
+          let customError: RBValidationError;
+          customError = new RBValidationError(JSON.stringify(errorMap));
+          throw customError;
+        }
+
+        sails.log.debug('validateFieldsUsingTemplate data value passed check');
+      }
+      return record;
+    }
+
+    public async validateFieldMapUsingRegex(oid, record, options) {
+      sails.log.verbose('validateFieldMapUsingRegex - enter');
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+
+        sails.log.verbose('validateFieldMapUsingRegex - metTriggerCondition');
+
+        // re-usable functions
+        const textRegex = function (value, regexPattern, caseSensitive) {
+          if(regexPattern == '') {
+            return true;
+          } else {
+            let flags = '';
+            if (!caseSensitive) {
+              flags += 'i';
+            }
+            const re = new RegExp(regexPattern, flags);
+            return re.test(value);
+          }
+        }
+        const getError = function (errorLanguageCode: string) {
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
+          return baseErrorMessage;
+        }
+        const hasValue = function (data) {
+          return data !== '' &&
+              data !== null &&
+              data !== undefined &&
+              (data?.length !== undefined && data.length > 0);
+        }
+        const evaluate = function (element, fieldName, trim, allowNulls, regexPattern, caseSensitive) {
+          let value = '';
+          if(_.isString(element) && fieldName == ''){
+            value = element;
+          } else if(fieldName != '') {
+            value = _.get(element, fieldName);
+            sails.log.debug('validateFieldMapUsingRegex evaluate fieldName '+fieldName+' value '+value);
+          }
+
+          if (trim) {
+            value = _.trim(value);
+          }
+
+          if (!hasValue(value) && !allowNulls) {
+            return false;
+          } else if (!hasValue(value) && allowNulls) {
+            // this is ok
+          } else if (!textRegex(value, regexPattern, caseSensitive)) {
+            return false;
+          }
+
+          if (trim && _.isObject(element) && fieldName != '') {
+            _.set(element, fieldName, value);
+          }
+
+          return true;
+        }
+
+        let fieldObjectList = _.get(options,'fieldObjectList',[]);
+        let altErrorMessage = _.get(options,'altErrorMessage',[]);
+        let errorMap = { 
+                         altErrorMessage: altErrorMessage,
+                         errorFieldList: []
+                       };
+
+        sails.log.debug('validateFieldMapUsingRegex fieldObjectList '+JSON.stringify(fieldObjectList));
+
+        for(let field of fieldObjectList) {
+          // get the data
+          const data = _.get(record, 'metadata.'+field.name);
+          // caseSensitive default is true - is only false when set to bool false or string 'false'
+          let caseSensitive = _.get(field, 'caseSensitive', true)?.toString() !== 'false';
+          sails.log.debug('validateFieldMapUsingRegex field.allowNulls '+field.allowNulls);
+          let allowNulls = _.get(field,'allowNulls',true);
+          sails.log.debug('validateFieldMapUsingRegex allowNulls '+allowNulls);
+          let trim = _.get(field,'trim',true);
+          let regexPattern = _.get(field,'regexPattern','');
+
+          sails.log.debug('validateFieldMapUsingRegex '+field.name+' data '+JSON.stringify(data));
+          // early checks
+          if (!hasValue(data) && !allowNulls) {
+            let errorField:any = {};
+            _.set(errorField,'name',field.name);
+            _.set(errorField,'label',getError(field.label));
+            let error = getError(field.errorLabel);
+            if(error != '') {
+              _.set(errorField,'error',error);
+            }
+            errorMap.errorFieldList.push(errorField);
+            sails.log.debug('validateFieldMapUsingRegex !hasValue(data) && !allowNulls');
+            continue;
+          }
+
+          // evaluate the record field against the regex
+          if (_.isArray(data)) {
+            for (const row of data) {
+              let innerFieldName = _.get(field,'arrayObjFieldDBName','');
+              if (!evaluate(row, innerFieldName, trim, allowNulls, regexPattern, caseSensitive)) {
+                sails.log.debug('validateFieldMapUsingRegex evaluate arrayObjFieldDBName '+field.name);
+                let errorField:any = {};
+                _.set(errorField,'name',field.name);
+                _.set(errorField,'label',getError(field.label));
+                let error = getError(field.errorLabel);
+                if(error != '') {
+                  _.set(errorField,'error',error);
+                }
+                errorMap.errorFieldList.push(errorField);
+              }
+            }
+          } else {
+            if (!evaluate(data, '', trim, allowNulls, regexPattern, caseSensitive)) {
+              sails.log.debug('validateFieldMapUsingRegex evaluate field.name '+field.name);
+              let errorField:any = {};
+              _.set(errorField,'name',field.name);
+              _.set(errorField,'label',getError(field.label));
+              let error = getError(field.errorLabel);
+              if(error != '') {
+                _.set(errorField,'error',error);
+              }
+              errorMap.errorFieldList.push(errorField);
+            }
+          }
+          
+        }
+
+        sails.log.debug('validateFieldMapUsingRegex errorMap '+JSON.stringify(errorMap));
+
+        if(!_.isEmpty(errorMap.errorFieldList)) {
+          let customError: RBValidationError;
+          customError = new RBValidationError(JSON.stringify(errorMap));
+          throw customError;
+        }
+
+        sails.log.debug('validateFieldMapUsingRegex data value passed check');
+      }
+      return record;
+    }
+
+    public async runTemplatesOnRelatedRecord(relatedOid, relatedRecord, options, user) {
+
+      if (this.metTriggerCondition(relatedOid, relatedRecord, options) === "true") {
+
+        sails.log.verbose('runTemplatesOnRelatedRecord - metTriggerCondition');
+        sails.log.verbose(`runTemplatesOnRelatedRecord config: ${JSON.stringify(options.templates)}`);
+        sails.log.verbose(`runTemplatesOnRelatedRecord to oid: ${relatedOid} with user: ${JSON.stringify(user)}`);
+
+        let pathToRelatedOid = _.get(options,'pathToRelatedOid');
+        let innerPathToRelatedOid = _.get(options,'innerPathToRelatedOid','');
+        let runPreSaveTriggers = _.get(options,'runPreSaveTriggers',false);
+        let runPostSaveTriggers = _.get(options,'runPostSaveTriggers',false);
+        let parseObject = _.get(options, 'parseObject', false);
+        let oidStringOrArray = _.get(relatedRecord,pathToRelatedOid,'');
+        let record = null;
+        let oidList = [];
+
+        if(!_.isArray(oidStringOrArray) && _.isString(oidStringOrArray)) {
+          oidList.push(oidStringOrArray);
+        } else if (_.isArray(oidStringOrArray)) {
+          if(innerPathToRelatedOid != '') {
+            for(let oidObj of oidStringOrArray) {
+              let tmpOid = _.get(oidObj,innerPathToRelatedOid,'');
+              if(tmpOid != '' && _.isString(tmpOid)) {
+                oidList.push(tmpOid);
+              }
+            }
+          } else {
+            for(let oid of oidStringOrArray) {
+              if(_.isString(oid)) {
+                oidList.push(oid);
+              }
+            }
+          }
+        }
+
+        if(!_.isEmpty(oidList)) {
+          for(let oid of oidList) {
+            sails.log.verbose(`runTemplatesOnRelatedRecord trying to find related record with oid: ${oid}`);
+            let tmplConfig = null;
+            try {
+              record = await RecordsService.getMeta(oid);
+              if(_.isObject(record)) {
+                sails.log.verbose(`runTemplatesOnRelatedRecord related record found and will run templates...`);
+                _.each(options.templates, (templateConfig) => {
+                  tmplConfig = templateConfig;
+                  const imports = _.extend({
+                    
+                    moment: moment,
+                    numeral: numeral
+                  }, this);
+                  const templateImportsData = {
+                    imports: imports
+                  };
+                  const templateData = {
+                    oid: oid,
+                    record: record,
+                    user: user,
+                    options: options
+                  }
+                  if (_.isString(templateConfig.template)) {
+                    const compiledTemplate = _.template(templateConfig.template, templateImportsData);
+                    templateConfig.template = compiledTemplate;
+                  }
+                  const data = templateConfig.template(templateData);
+                  if (parseObject) {
+                    let obj = JSON.parse(data);
+                    _.set(record, templateConfig.field, obj);
+                  } else {
+                    _.set(record, templateConfig.field, data);
+                  }
+                });
+                let brandId = _.get(record,'metaMetadata.brandId');
+                const brand:BrandingModel = BrandingService.getBrandById(brandId);
+                sails.log.verbose(`runTemplatesOnRelatedRecord Brand: ${JSON.stringify(brand)}`);
+                await RecordsService.updateMeta(brand, oid, record, user, runPreSaveTriggers, runPostSaveTriggers);
+              } else {
+                sails.log.verbose(`runTemplatesOnRelatedRecord did't find related record using oid: ${oid} - object retrived is: ${JSON.stringify(record)}`);
+              }
+            } catch (e) {
+              const errLog = `runTemplatesOnRelatedRecord Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
+              sails.log.error(errLog);
+              sails.log.error(e);
+              throw new Error(errLog);
+            }
+          } 
+        } else {
+          sails.log.verbose(`runTemplatesOnRelatedRecord did't find related oid list: ${JSON.stringify(oidList)} - in specified path: ${pathToRelatedOid} - and inner path ${innerPathToRelatedOid}`);
+        }
+      }
+      return relatedRecord;
+    }
   }
 }
 module.exports = new Services.Trigger().exports();

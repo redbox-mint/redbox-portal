@@ -1,0 +1,36 @@
+meta {
+  name: Send Email Notification missing to
+  type: http
+  seq: 43
+}
+
+post {
+  url: {{host}}/default/rdmp/api/sendNotification
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+    {
+        "from": "from-example@redboxresearchdata.com.au",
+        "cc": "cc-example@redboxresearchdata.com.au",
+        "bcc": "bcc-example@redboxresearchdata.com.au",
+        "template": "test",
+        "data": {
+            "data": "the test data"
+        }
+    }
+}
+
+tests {
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
+  });
+  test("Message contains error", function () {
+      expect(res.getBody().message).to.contain("An error has occurred");
+  });
+}

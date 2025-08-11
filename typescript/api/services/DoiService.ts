@@ -22,14 +22,15 @@ import {
 } from 'rxjs';
 import {
   Services as services,
-  RBValidationError
+  RBValidationError,
+  BrandingModel
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
 } from "sails";
 import 'rxjs/add/operator/toPromise';
-import * as moment from 'moment';
+import {default as moment} from 'moment';
 import axios from 'axios';
 import { isArray } from 'lodash';
 
@@ -503,7 +504,7 @@ export module Services {
     public async publishDoiTrigger(oid, record, options): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        const brand = BrandingService.getBrand('default');
+        const brand:BrandingModel = BrandingService.getBrand('default');
         let doi = await this.publishDoi(oid, record);
 
         if (doi != null) {
@@ -561,11 +562,13 @@ export module Services {
       return record;
     }
 
+    //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in 
+    //      which will allow to standardise config structure in all places were object mappings are needed
     protected runTemplate(template: string, variables) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }
-      return _.get(template, variables);
+      return _.get(variables,template);
     }
   }
 }

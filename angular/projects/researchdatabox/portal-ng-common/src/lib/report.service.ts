@@ -27,28 +27,7 @@ import { HttpClientService } from './httpClient.service';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
-import { RecordPropViewMeta, RecordPage } from './record.model';
-
-export interface ReportFilter {
-  type: string;
-  paramName: string;
-  message: string;
-  property:string;
-}
-
-export interface Report {
-  title: string;
-  name: string;
-  solrQuery: string;
-  filter: ReportFilter[];
-  columns: RecordPropViewMeta[];
-}
-/**
- * Users of Record Table must extend RecordPage model
- */
-export interface ReportResult extends RecordPage {
-  recordsPerPage: number;
-}
+import { ReportDto, ReportResultDto } from '@researchdatabox/sails-ng-common';
 
 /**
  * Report Service
@@ -82,7 +61,7 @@ export class ReportService extends HttpClientService {
     const req = this.http.get(`${this.brandingAndPortalUrl}/admin/getReport?name=${name}`, this.reqOptsJsonBodyOnly);
     req.pipe(
       map((data:any) => {
-        return data as Report
+        return data as ReportDto
       })
     );
     return firstValueFrom(req);
@@ -104,7 +83,7 @@ export class ReportService extends HttpClientService {
     const req = this.http.get(url, this.reqOptsJsonBodyOnly);
     req.pipe(
       map((data:any) => {
-        return data as ReportResult
+        return data as ReportResultDto
       })
     );
     return await firstValueFrom(req);

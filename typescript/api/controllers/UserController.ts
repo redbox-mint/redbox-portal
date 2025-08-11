@@ -21,10 +21,10 @@
 declare var module;
 declare var sails;
 declare var _;
-declare var BrandingService, UsersService, ConfigService;
+declare var BrandingService, UsersService, ConfigService, TranslationService;
 import { v4 as uuidv4 } from 'uuid';
 
-import { Controllers as controllers, RequestDetails} from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Controllers as controllers, RequestDetails } from '@researchdatabox/redbox-core-types';
 
 
 export module Controllers {
@@ -109,6 +109,8 @@ export module Controllers {
       let postLoginUrl = null;
       if (req.session.redirUrl) {
         postLoginUrl = req.session.redirUrl;
+      } else if (req.query.redirUrl) {
+        postLoginUrl = req.query.redirUrl;
       } else {
         postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${ConfigService.getBrand(branding, 'auth').local.postLoginRedir}`;
       }
@@ -122,6 +124,12 @@ export module Controllers {
       if (req.session.user && req.session.user.type == 'oidc') {
         redirUrl = req.session.logoutUrl;
       }
+      
+      // If the redirect URL is empty then revert back to the default
+      if(_.isEmpty(redirUrl)) {
+        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir)?`${BrandingService.getBrandAndPortalPath(req)}/home`: sails.config.auth.postLogoutRedir;
+      }
+
       let user = req.session.user ? req.session.user : req.user;
       req.logout(function(err) {
         if (err) { res.send(500, 'Logout failed'); }
@@ -260,9 +268,10 @@ export module Controllers {
 
     public openidConnectLogin(req, res) {
       let passportIdentifier = 'oidc'
-      if(!_.isEmpty(req.param('id'))) {
-        passportIdentifier= `oidc-${req.param('id')}`
+      if (!_.isEmpty(req.param('id'))) {
+        passportIdentifier = `oidc-${req.param('id')}`
       }
+      let that = this;
       sails.config.passport.authenticate(passportIdentifier, function (err, user, info) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
         sails.log.verbose("Error:");
@@ -272,10 +281,8 @@ export module Controllers {
         sails.log.verbose("User:");
         sails.log.verbose(user);
 
-
-
         if (!_.isEmpty(err) || _.isUndefined(user) || _.isEmpty(user) || user == false) {
-          sails.log.error(`OpenId Connect Login failed!`)
+          sails.log.error(`OpenId Connect Login failed!`);
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
           if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info)) {
             info = JSON.stringify(info);
@@ -285,11 +292,22 @@ export module Controllers {
             }
           }
 
-          // check if the issue is some obscure session destruction bug
-          if (_.startsWith(err, "Error: did not find expected authorization request details in session")) {
-            // letting the user try again seems to 'refresh' the session
-            req.session['data'] = `oidc-login-session-destroyed`;
-            return res.serverError();  
+          let oidcConfig = _.get(sails.config, 'auth.default.oidc');
+          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
+
+          if (errorMessage === "authorized-email-denied") {
+            req.session['data'] = {
+              message: "error-auth",
+              detailedMessage: "authorized-email-denied",
+            }
+            return res.forbidden();
+          }
+
+          let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
+          sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
+          if(!_.isEmpty(errorMessageDecoded)) {
+            req.session['data'] = errorMessageDecoded;
+            return res.serverError();
           }
 
           if (_.isEmpty(err)) {
@@ -300,15 +318,15 @@ export module Controllers {
           // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
           // so storing the data in session
           if (_.isEmpty(req.session.data)) {
-            req.session['data'] = { 
+            req.session['data'] = {
               "message": 'error-auth',
-              "detailedMessager": `${err}${info}`
+              "detailedMessage": `${err}${info}`
             };
           }
 
           const url = `${BrandingService.getFullPath(req)}/home`;
-          return res.redirect(url); 
-        }       
+          return res.redirect(url);
+        }
         let requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : user.id}`)
@@ -328,12 +346,123 @@ export module Controllers {
     public beginOidc(req, res) {
       sails.log.verbose(`At OIDC begin flow, redirecting...`);
       let passportIdentifier = 'oidc'
-      if(!_.isEmpty(req.param('id'))) {
-        passportIdentifier= `oidc-${req.param('id')}`
+      if (!_.isEmpty(req.param('id'))) {
+        passportIdentifier = `oidc-${req.param('id')}`
       }
       sails.config.passport.authenticate(passportIdentifier)(req, res);
     }
 
+    private decodeErrorMappings(options, errorMessage) {
+
+      sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
+      sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
+      let errorMessageDecoded = 'oidc-default-unknown-error';
+      let errorMappingList = _.get(options, 'errorMappings', []);
+
+      let errorMessageDecodedAsObject = {};
+
+      if(!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
+
+        sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
+        for(let errorMappingDetails of errorMappingList) {
+
+          let matchRegex =  false;
+          let matchString = false;
+          let matchRegexWithGroups =  _.get(errorMappingDetails, 'matchRegexWithGroups', false);
+          let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
+          let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
+          let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
+          let regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
+          
+          if(!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
+            matchRegex =  true;
+            matchString = false;
+          } else if(!_.isUndefined(regexPattern) && !_.isRegExp(regexPattern) && _.isString(regexPattern) && !_.isEmpty(regexPattern)) {
+            matchRegex =  false;
+            matchString = true;
+          } else {
+            errorMessageDecoded = fieldLanguageCode;
+            break;
+          }
+
+          if (matchRegex) {
+            sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
+            if(this.validateRegex(errorMessage, regexPattern)) {
+              if(asObject) {
+                errorMessageDecodedAsObject = { 
+                  message: fieldLanguageCode, 
+                  detailedMessage: fieldLanguageCode2
+                }
+                break;
+              } else if(matchRegexWithGroups && _.isRegExp(regexPattern)) {
+                let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
+                if(!_.isEmpty(matchRegexGroupsDecoded)) {
+                  sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
+                  sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
+                  errorMessageDecodedAsObject = { 
+                    message: fieldLanguageCode, 
+                    detailedMessage: fieldLanguageCode2,
+                    interpolation: true,
+                    interpolationObj: matchRegexGroupsDecoded 
+                  }
+                  break;
+                }
+              } else {
+                errorMessageDecoded = fieldLanguageCode;
+                break;
+              }
+            }
+            
+          } else if (matchString) {
+            let errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
+            if(errorMessage.includes(errorRefDesc)){
+              if(asObject) {
+                errorMessageDecodedAsObject = { 
+                  message: fieldLanguageCode, 
+                  detailedMessage: fieldLanguageCode2
+                }
+              } else {
+                errorMessageDecoded = fieldLanguageCode;
+              }
+              break;
+            }
+          }
+        
+        }
+      }
+
+      if(!_.isEmpty(errorMessageDecodedAsObject)) {
+        return errorMessageDecodedAsObject;
+      } else {
+        return errorMessageDecoded;
+      }
+    }
+
+    private validateRegex(errorMessage, regexPattern) {
+      if(_.isRegExp(regexPattern)) {
+        let re = new RegExp(regexPattern);
+        sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
+        let reTestResult = re.test(errorMessage.toString());
+        sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
+        return reTestResult;
+      } else {
+        return false;
+      }
+    }
+
+    private validateRegexWithGroups(errorMessage, regexPattern) {
+      // let decodedGroups = _.clone(groups);
+      let re = new RegExp(regexPattern);
+      const matches = re.exec(errorMessage);
+
+      let interpolationMap = {}
+      let groups = _.get(matches, 'groups');
+      if(!_.isUndefined(groups)) {
+        interpolationMap = groups;
+      }
+
+      return interpolationMap;
+    }
 
     public aafLogin(req, res) {
       sails.config.passport.authenticate('aaf-jwt', function (err, user, info) {
@@ -346,17 +475,27 @@ export module Controllers {
         sails.log.verbose(user);
         if ((err) || (!user)) {
           sails.log.error(err)
-            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
-            // from https://sailsjs.com/documentation/reference/response-res/res-server-error
-            // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
-            // so storing the data in session
-            if (_.isEmpty(req.session.data)) {
-              req.session['data'] = { 
-                "message": 'error-auth',
-                "detailedMessager": `${err}${info}`
-              };
+          // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+
+          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
+          if (errorMessage === "authorized-email-denied") {
+            req.session['data'] = {
+              message: "error-auth",
+              detailedMessage: "authorized-email-denied",
             }
-            return res.serverError();
+            return res.forbidden();
+          }
+
+          // from https://sailsjs.com/documentation/reference/response-res/res-server-error
+          // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
+          // so storing the data in session
+          if (_.isEmpty(req.session.data)) {
+            req.session['data'] = {
+              "message": 'error-auth',
+              "detailedMessage": `${err}${info}`
+            };
+          }
+          return res.serverError();
         }
 
         let requestDetails = new RequestDetails(req);
@@ -376,7 +515,7 @@ export module Controllers {
     }
 
     public find(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const searchSource = req.query.source;
       const searchName = req.query.name;
       UsersService.findUsersWithName(searchName, brand.id, searchSource).subscribe(users => {

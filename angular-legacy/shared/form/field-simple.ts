@@ -49,7 +49,13 @@ export class SelectionField extends FieldBase<any>  {
   compare: any;
   disableOptionLabelsFor: boolean = false;
   useFormGroup: string;
-  
+  controlGroupCssClasses: string = 'selection-control-group';
+  fieldSetCssClasses: string = 'selection-field-set';
+  controlInputCssClasses:string = 'selection-control-input';
+  controlLabelCssClasses:string = 'selection-control-label';
+  /* BEGIN UTS IMPORT */
+  @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
+  /* END UTS IMPORT */
   constructor(options: any, injector: any) {
     super(options, injector);
     this.compare = this.compareFn.bind(this);
@@ -91,6 +97,10 @@ export class SelectionField extends FieldBase<any>  {
     }
     this.disableOptionLabelsFor = options['disableOptionLabelsFor'];
     this.useFormGroup = options['useFormGroup'];
+    this.controlGroupCssClasses = options['controlGroupCssClasses'] == undefined ? this.controlGroupCssClasses : options['controlGroupCssClasses'];
+    this.fieldSetCssClasses = options['fieldSetCssClasses'] == undefined ? this.fieldSetCssClasses : options['fieldSetCssClasses'];
+    this.controlInputCssClasses = options['controlInputCssClasses'] == undefined ? this.controlInputCssClasses : options['controlInputCssClasses'];
+    this.controlLabelCssClasses = options['controlLabelCssClasses'] == undefined ? this.controlLabelCssClasses : options['controlLabelCssClasses'];
   }
 
 
@@ -154,6 +164,13 @@ export class SelectionField extends FieldBase<any>  {
 
   public setValue(value: any, emitEvent: boolean = true) {
     if (this.controlType == "checkbox") {
+      if (_.isEmpty(value)) {
+        // clear all check boxes
+        if (this.formModel) {
+          this.formModel.reset([], {emitEvent: emitEvent});
+        }
+        return;
+      }
       if (!_.isArray(value) || value.length > this.selectOptions.length) {
         console.error(`The value is not an array or the array exceeds the available options.`);
         return;
@@ -313,6 +330,7 @@ export class DateTime extends FieldBase<any> {
   valueFormat: string;
   displayFormat: string;
   adjustStartRange: boolean;
+  disableInputByKeyboard: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -322,9 +340,16 @@ export class DateTime extends FieldBase<any> {
     this.hasClearButton = options['hasClearButton'] || false;
     this.valueFormat = options['valueFormat'] || 'YYYY-MM-DD';
     this.displayFormat = options['displayFormat'] || 'YYYY-MM-DD';
+    this.disableInputByKeyboard = options['disableInputByKeyboard'] || false;
     this.controlType = 'datetime';
     this.value = this.value ? this.parseToDate(this.value) : this.value;
     this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
+  }
+
+  public createFormModel(valueElem: any = null): any {
+    this.value = valueElem || this.value;
+    this.value = this.value ? this.parseToDate(this.value) : this.value;
+    return super.createFormModel(this.value);
   }
 
   updatePlaceholderAsFormat(options: any, fieldName = 'placeholderAsFormat') {
@@ -346,7 +371,11 @@ export class DateTime extends FieldBase<any> {
   }
 
   parseToDate(value: any) {
-    return moment(value, this.valueFormat).local().toDate();
+    if(moment(value, this.valueFormat).isValid()) {
+      return moment(value, this.valueFormat).local().toDate();
+    } else {
+      return null;
+    }
   }
 
   formatValueForDisplay() {
@@ -398,12 +427,14 @@ export class SaveButton extends FieldBase<string> {
   disableValidation: boolean;
   // added value when clicked
   clickedValue: string;
+  redirectDelaySeconds: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.label = this.getTranslated(options['label'], 'Save');
     this.closeOnSave = options['closeOnSave'] || false;
     this.redirectLocation = options['redirectLocation'] || false;
+    this.redirectDelaySeconds = options['redirectDelaySeconds'] || 3;
     this.cssClasses = options['cssClasses'] || "btn-primary";
     this.targetStep = options['targetStep'] || null;
     this.additionalData = options['additionalData'] || null;
@@ -553,7 +584,9 @@ export class Spacer extends NotInFormField {
 
 export class Toggle extends FieldBase<boolean> {
   type: string;
-
+  /* BEGIN UTS IMPORT */
+  @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
+  /* END UTS IMPORT */
   constructor(options: any, injector: any) {
     super(options, injector);
     this.type = options['type'] || 'checkbox';

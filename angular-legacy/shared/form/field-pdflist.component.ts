@@ -23,7 +23,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 
 
 
@@ -151,7 +151,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     const oid = this.fieldMap._rootComp.oid;
     if(oid) {
       let allAttachmentsPromise = this.field.recordsService.getAttachments(oid);
-      let matchingExpression = new RegExp(`${this.field.startsWith}-[0-9a-fA-F]{32}-[0-9]+\.pdf`);
+      let matchingExpression = new RegExp(`${this.field.startsWith}-[0-9a-fA-F]{32}-[0-9]+\\.pdf`);
       var that = this;
       allAttachmentsPromise.then(allAttachments => {
         that.field.latestPdf = null;

@@ -24,9 +24,9 @@ import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
-import { ReportService, Report, ReportFilter, ReportResult } from './report.service';
+import { ReportService } from './report.service';
+import { ReportDto, ReportFilterDto, ReportResultDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { getStubConfigService } from './helper.spec';
-import { RecordPropViewMeta } from './record.model';
 
 describe('ReportService testing', () => {
   let configService: any;
@@ -82,15 +82,15 @@ describe('ReportService testing', () => {
           "property": "date_object_modified",
           "message": "Filter by date modified"
         }
-      ] as ReportFilter[],
+      ] as ReportFilterDto[],
       columns: [
         {
           "label": "Chief Investigator",
           "property": "contributor_ci.text_full_name",
           "template" : "${ data['contributor_ci.text_full_name'] }"
         }
-      ] as RecordPropViewMeta[]
-    } as Report;
+      ] as RecordPropViewMetaDto[]
+    } as ReportDto;
     const obs3 = from(reportService.getReportConfig(mockReportData.name));
     obs3.subscribe((reportData:any) => {
       expect(reportData).toEqual(mockReportData);
@@ -117,7 +117,7 @@ describe('ReportService testing', () => {
       total: 10,
       pageNum: pageNum,
       recordsPerPage: 1
-    } as ReportResult;
+    } as ReportResultDto;
     const params = {
       param1: 'value1'
     };

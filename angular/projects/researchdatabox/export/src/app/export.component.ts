@@ -24,8 +24,9 @@ import { map as _map, get as _get } from 'lodash-es';
 import { DateTime } from 'luxon';
 
 @Component({
-  selector: 'export',
-  templateUrl: './export.component.html'
+    selector: 'export',
+    templateUrl: './export.component.html',
+    standalone: false
 })
 export class ExportComponent extends BaseComponent {
   datePickerPlaceHolder: string = '';
@@ -72,9 +73,18 @@ export class ExportComponent extends BaseComponent {
   }
 
   download() {
-    const formatStr = 'yyyy-MM-dd'
-    const before = this.modBefore ? DateTime.fromObject(this.modBefore).toFormat(formatStr) : '';
-    const after = this.modAfter ? DateTime.fromObject(this.modAfter).toFormat(formatStr) : '';
+    let before = '';
+    let after = '';
+    if(this.modBefore) {
+      this.modBefore.setHours(23,59,59,999);
+      before = this.modBefore.toISOString();
+    }
+    if(this.modAfter) {
+      this.modAfter.setHours(0,0,0,0);
+      after = this.modAfter.toISOString();
+    }
+    
+    
     const url = `${this.recordService.brandingAndPortalUrl}/export/record/download/${this.export_format}?before=${before}&after=${after}&recType=${this.record_type}`;
     this.window.open(url, '_blank');
   }
