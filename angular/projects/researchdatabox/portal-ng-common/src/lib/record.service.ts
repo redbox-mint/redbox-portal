@@ -245,4 +245,32 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
+  public async create(record: any, recordType: string, targetStep: string = '') {
+    const httpOptions = this.getHttpOptions();
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${ this.getTargetStepParam(targetStep, '?' )}`;
+    const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
+    let result:unknown = await firstValueFrom(result$);
+    console.log('Record created:', result);
+    return result as RecordActionResult;
+  }
+
+  public async update(oid: string, record: any, targetStep: string = '') {
+    const httpOptions = this.getHttpOptions();
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${ this.getTargetStepParam(targetStep, '?' )}`;
+    const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
+    let result:unknown = await firstValueFrom(result$);
+    return result as RecordActionResult;
+  }
+
+  protected getTargetStepParam(targetStep: string, delim: string) {
+    return _isEmpty(targetStep) ? '' : `${delim}targetStep=${targetStep}`;
+  }
+}
+
+export class RecordActionResult {
+  success:boolean = false;
+  oid: string = '';
+  message: string = '';
+  // TODO: placeholder for incremental setting of data unto the form, etc.
+  data: any = null;
 }

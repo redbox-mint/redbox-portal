@@ -20,7 +20,7 @@ import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, v
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
@@ -74,6 +74,8 @@ export class FormComponent extends BaseComponent {
 
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
+  recordService = inject(RecordService);
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(ConfigService) private configService: ConfigService,
@@ -83,7 +85,7 @@ export class FormComponent extends BaseComponent {
     @Inject(UtilityService) protected utilityService: UtilityService
   ) {
     super();
-    this.initDependencies = [this.translationService, this.configService, this.formService];
+    this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
     this.oid = elementRef.nativeElement.getAttribute('oid');
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
@@ -282,6 +284,50 @@ export class FormComponent extends BaseComponent {
     return foundComponentDef;
   }
   
+  public async saveForm(forceSave: boolean = false, targetStep: string = '') {
+    // Check if the form is touched
+    if (this.form && (this.form.dirty || forceSave)) {
+      if (this.form.valid) {
+        this.loggerService.info(`${this.logName}: Form is valid. Submitting...`);
+        // Here you can handle the form submission, e.g., send it to the server
+        this.loggerService.info(`${this.logName}: Form value:`, this.form.value);
+        // set status to 'saving' 
+        this.status.set(FormStatus.SAVING);
+        try {
+          let response: RecordActionResult;
+          if (_isEmpty(this.oid)) {
+            response = await this.recordService.create(this.form.value, this.recordType, targetStep);
+          } else {
+            response = await this.recordService.update(this.oid, this.form.value, targetStep);
+          }
+          if (response?.success) {
+            this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
+            this.form.markAsPristine();
+          } else {
+            this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
+          }
+        } catch (error) {
+          this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
+        }
+        // set back to ready when all processing is complete
+        this.status.set(FormStatus.READY);
+      } else {
+        this.loggerService.warn(`${this.logName}: Form is invalid. Cannot submit.`);
+        // Handle form errors, e.g., show a message to the user
+      }
+    } else {
+      this.loggerService.info(`${this.logName}: Form is not dirty or forceSave is false. No action taken.`);
+    }
+  }
+
+  // Expose the `form` status 
+  public get dataStatus(): { valid: boolean; dirty: boolean, pristine: boolean } {
+    return {
+      valid: this.form?.valid || false,
+      dirty: this.form?.dirty || false,
+      pristine: this.form?.pristine || false,
+    };
+  }
 }
 
 type DebugInfo = {

@@ -232,9 +232,6 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
     return this.tab?.id + '-tab-content';
   }
 
-  public get tabs(): TabComponentEntryDefinition[] {
-    return this.tabs;
-  }
 }
 
 

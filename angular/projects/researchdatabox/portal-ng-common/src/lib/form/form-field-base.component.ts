@@ -16,7 +16,6 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
-
 export type FormFieldComponentOrLayoutDefinition = FormFieldComponentDefinition | FormFieldLayoutDefinition;
 export type FormFieldComponentOrLayoutConfig = FormFieldComponentConfig | FormFieldLayoutConfig;
 
@@ -65,7 +64,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * Cache the reference to the FormComponent instance.
    * @private
    */
-  private formComponent?:any;
+  protected formComponent: unknown;
   /**
    * Cache the reference to the FormGroup instance.
    * @private
