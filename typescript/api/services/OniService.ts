@@ -30,8 +30,8 @@ const finished = promisify(stream.finished);
 import {languageProfileURI} from "language-data-commons-vocabs";
 import * as mime from 'mime-types';
 import {ROCrate} from "ro-crate";
-import { convertToWK } from 'wkt-parser-helper';
 
+let wktParserHelper; 
 declare var sails: Sails;
 declare var RecordsService, UsersService;
 declare var _;
@@ -63,6 +63,10 @@ export module Services {
 				that.getDatastreamService();
 			});
 		}
+
+		protected async processDynamicImports() {
+      	  	wktParserHelper = await import("wkt-parser-helper");
+    	}
 
 		getDatastreamService() {
 			this.datastreamService = sails.services[sails.config.record.datastreamService];
@@ -467,7 +471,7 @@ export module Services {
 		private convertToWkt(id: string, geoJsonSrc:any) {
 			let geoJson = _.cloneDeep(geoJsonSrc);
 			_.unset(geoJson, '@type');
-			const wkt = convertToWK(geoJson);
+			const wkt = wktParserHelper.convertToWK(geoJson);
 			sails.log.verbose(`Converted WKT -> ${wkt}`);
 			return {
 				"@id": id,

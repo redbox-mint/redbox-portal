@@ -49,6 +49,7 @@ export async function createFormAndWaitForReady(formConfig: FormConfig) {
   return {
     fixture: fixture,
     formComponent: formComponent,
+    componentDefinitions: formConfig?.componentDefinitions ? formConfig?.componentDefinitions[0] : undefined
   }
 }
 
