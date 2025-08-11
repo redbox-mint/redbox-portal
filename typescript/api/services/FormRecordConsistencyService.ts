@@ -572,7 +572,7 @@ export module Services {
         }
 
         private arrayStartsWithArray(base: unknown[], check: unknown[]) {
-            return base?.every((value, index) => check?.length >= 0 && check?.[index] == value);
+            return base?.every((value, index) => check?.length > index && check?.[index] == value);
         }
     }
 }
