@@ -24,6 +24,7 @@ import {createSchema} from 'genson-js';
 import {
   BaseFormFieldComponentDefinition,
   BaseFormFieldLayoutDefinition,
+  BaseFormFieldModelDefinition,
   FormComponentDefinition,
   FormConfig,
   FormConstraintConfig,
@@ -611,6 +612,18 @@ export module Services {
       return this.buildClientFormObject(item, context);
     }
 
+    public buildClientFormFieldModelDefinition(item: BaseFormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
+      sails.log.verbose(`FormsService - build client form field model definition with class '${item?.['class']}'`);
+      // create the client form config
+      if (!this.isFormFieldDefinition(item)) {
+          throw new Error(`FormsService - item is not a form field model definition ${JSON.stringify(item)}`);
+      }
+      if (item?.config?.value !== undefined) {
+          throw new Error(`FormsService - 'value' in the base form field model definition config is for the client-side, use defaultValue instead ${JSON.stringify(item)}`);
+      }
+      return this.buildClientFormObject(item, context);
+    }
+
     private buildClientFormObject(item: Record<string, unknown>, context: ClientFormContext): Record<string, unknown> | null {
       const result: Record<string, unknown> = {};
 
@@ -655,6 +668,11 @@ export module Services {
               return null;
             }
             break;
+
+          case 'model':
+              const modelItem = value as unknown as BaseFormFieldModelDefinition<unknown>;
+              result[key] = this.buildClientFormFieldModelDefinition(modelItem, context);
+              break;
 
           case 'layout':
             result[key] = this.buildClientFormFieldLayoutDefinition(value, context);
