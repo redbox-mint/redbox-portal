@@ -41,7 +41,7 @@ import {
 import axios from 'axios';
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
-import { default as moment } from 'moment';
+import { DateTime } from 'luxon';
 
 import {
   isObservable
@@ -188,9 +188,9 @@ export module Services {
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
       let formName = _.get(wfStep, 'config.form');
 
-      let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
+  let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
 
-      let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
+  let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, DateTime.local().toISO());
       _.set(record,'metaMetadata',metaMetadata);
        //set the initial workflow metadata to the first step
        this.setWorkflowStepRelatedMetadata(record, wfStep);
@@ -438,7 +438,7 @@ export module Services {
       if(!_.isUndefined(user) && !_.isEmpty(_.get(user,'username',''))) {
         record.metaMetadata.lastSavedBy = _.get(user,'username');
       }
-      record.metaMetadata.lastSaveDate = moment().format();
+  record.metaMetadata.lastSaveDate = DateTime.local().toISO();
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
       sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
@@ -617,7 +617,7 @@ export module Services {
       let attachments = [];
       _.each(datastreams, (datastream) => {
         let attachment = {};
-        attachment['dateUpdated'] = moment(datastream['uploadDate']).format();
+  attachment['dateUpdated'] = DateTime.fromJSDate(new Date(datastream['uploadDate'])).toISO();
         attachment['label'] = _.get(datastream.metadata, 'name');
         attachment['contentType'] = _.get(datastream.metadata, 'mimeType');
         attachment = _.merge(attachment, datastream.metadata);

@@ -26,7 +26,7 @@ declare var RecordsService;
  * Package that contains all Controllers.
  */
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import { default as moment } from 'moment';
+import moment from '../helpers/momentShim';
 import { orderBy } from 'lodash';
 
 export module Controllers {
@@ -61,7 +61,7 @@ export module Controllers {
       RecordsService.getRecordAudit(params).then(records => {
         let orderedRecords = orderBy(records, ['updatedAt'], ['desc']);
         req.options.locals["records"] = orderedRecords;
-        req.options.locals["moment"] = moment;
+  req.options.locals["moment"] = moment;
         return this.sendView(req, res, 'record/viewAudit');
       });
     }

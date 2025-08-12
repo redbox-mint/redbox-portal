@@ -27,7 +27,7 @@ import {
 } from "sails";
 import { RaidApi, RaidCreateRequest, Title, ModelDate, Description, Access, AlternateUrl, Contributor, ContributorRoleCreditNisoOrgType, ContributorRoleSchemeType, Organisation } from '@researchdatabox/raido-openapi-generated-node';
 
-import moment = require('moment');
+import moment from '../helpers/momentShim';
 import numeral from 'numeral';
 import axios from 'axios';
 
