@@ -25,7 +25,7 @@ import {
   PopulateExportedMethods,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import moment from '../helpers/momentShim';
+import moment from '../shims/momentShim';
 import numeral from 'numeral';
 
 declare var sails: Sails;

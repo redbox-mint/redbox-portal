@@ -26,7 +26,7 @@ declare var RecordsService;
  * Package that contains all Controllers.
  */
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import moment from '../helpers/momentShim';
+import moment from '../shims/momentShim';
 import { orderBy } from 'lodash';
 
 export module Controllers {

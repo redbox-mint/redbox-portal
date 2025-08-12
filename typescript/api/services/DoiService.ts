@@ -31,7 +31,7 @@ import {
 } from "sails";
 import 'rxjs/add/operator/toPromise';
 import { DateTime } from 'luxon';
-import moment from '../helpers/momentShim';
+import moment from '../shims/momentShim';
 import axios from 'axios';
 import { isArray } from 'lodash';
 
