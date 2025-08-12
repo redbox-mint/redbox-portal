@@ -19,7 +19,7 @@
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge} from 'lodash-es';
+import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, isPlainObject as _isPlainObject, get as _get} from 'lodash-es';
 import {
   FormComponentClassMap,
   FormFieldModelClassMap,
@@ -548,8 +548,55 @@ export class FormService extends HttpClientService {
     return result;
   }
 
+
+  // TODO: do this on the server-side instead: if new record, use the form config defaults, if existing, use the record values
+  //       set the defaultValue or existing values to the model.config.value, remove model.config.defaultValue
+  /**
+   * Populate the `model.config.value` properties of components in the form config from the data model.
+   *
+   * @param formConfig The form config.
+   * @param modelData The model data for the form config.
+   */
   public populateFormConfigFromModelData(formConfig: FormConfig, modelData: Record<string, unknown>): void {
-    // TODO: populate form config model.value from modelData
+    const componentDefinitions = (formConfig.componentDefinitions ?? {}) as Record<string, unknown>[]
+    this.populateFormConfigFromModelDataWorker(componentDefinitions, modelData);
+  }
+
+  private populateFormConfigFromModelDataWorker(componentDefinitions: Record<string, unknown>[], currentModelData: Record<string, unknown>):void{
+    for (const componentDefinition of componentDefinitions) {
+
+      const componentClass = _get(componentDefinition, 'component.class')?.toString();
+      const name = _get(componentDefinition, 'name')?.toString();
+      if (name === undefined){
+        this.loggerService.debug(`${this.logName}: Cannot populate component '${componentClass}' from model data because there is no property '${name}'`);
+        continue;
+      }
+
+      const value = _get(currentModelData, name);
+      if (value === undefined){
+        this.loggerService.debug(`${this.logName}: Cannot populate component '${componentClass}' from model data because the property '${name}' has value 'undefined'`);
+        continue;
+      }
+
+      const model = _get(componentDefinition, 'model');
+      if (model === undefined){
+        this.loggerService.debug(`${this.logName}: No model in the component '${componentClass}' name '${name}'`);
+        continue;
+      }
+
+      // recurse into 'container' components that don't have a model
+      // Can set the model value for components that do have a model (e.g. RepeatableComponent, GroupFieldComponent)
+      switch(componentClass){
+        case 'TabComponent':
+          const tabs = _get(componentDefinition, 'component.config.tabs', []) as Record<string, unknown>[];
+          tabs.forEach(t => {
+            this.populateFormConfigFromModelDataWorker(t['componentDefinitions'] as Record<string, unknown>[], currentModelData);
+          });
+          break;
+        default:
+          break;
+      }
+    }
   }
 }
 
