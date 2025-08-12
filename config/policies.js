@@ -76,5 +76,17 @@ module.exports.policies = {
   'DynamicAssetController': {
     '*': noCachePlusDefaultPolicies
   },
+  // Allow public access to i18n resources served by TranslationController
+  // Keep branding/context setup, but skip authentication policies so the
+  // frontend can load translations before login.
+  'TranslationController': {
+    '*': [
+      'noCache',
+      'brandingAndPortal',
+      'checkBrandingValid',
+      'setLang',
+      'prepWs'
+    ]
+  },
   '*': defaultPolicies
 };

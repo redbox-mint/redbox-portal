@@ -23,7 +23,7 @@ declare var BrandingService;
 declare var I18nBundle;
 declare var I18nTranslation;
 
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, PopulateExportedMethods } from '@researchdatabox/redbox-core-types';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
@@ -31,11 +31,9 @@ export module Controllers {
   /**
    * TranslationController - serves i18next namespace JSON for http-backend.
    */
+  @PopulateExportedMethods
   export class Translation extends controllers.Core.Controller {
-    protected _exportedMethods: any = [
-  'getNamespace',
-  'getLanguages'
-    ];
+  
 
     public async getNamespace(req, res) {
       try {

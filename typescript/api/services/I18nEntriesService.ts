@@ -26,6 +26,7 @@ declare var _;
 // Waterline globals
 declare var I18nTranslation: Model;
 declare var I18nBundle: Model;
+declare let BrandingService: any;
 
 export module Services {
   /**
@@ -42,8 +43,49 @@ export module Services {
       'getBundle',
       'setBundle',
       'composeNamespace',
-      'syncEntriesFromBundle'
+      'syncEntriesFromBundle',
+      'bootstrap'
     ];
+    
+    /**
+     * Seed default i18n bundles into DB from assets/locales for the default brand.
+     * - Only creates bundles if none exist (no overwrite).
+     */
+    public async bootstrap(): Promise<void> {
+      try {
+        const fs = await import('node:fs');
+        const path = await import('node:path');
+        const supported: string[] = (sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en'];
+        const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
+
+        // Default brand
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const defaultBrand: any = BrandingService.getBrand('default');
+        const brandingId = defaultBrand?.id || 'default';
+
+        const localesDir = path.join(sails.config.appPath, 'assets', 'locales');
+        for (const lng of supported) {
+          for (const ns of namespaces) {
+            try {
+              // Skip if bundle already exists
+              const existing = await this.getBundle(brandingId, lng, ns);
+              if (existing) continue;
+
+              const filePath = path.join(localesDir, lng, `${ns}.json`);
+              if (fs.existsSync(filePath)) {
+                const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                await this.setBundle(brandingId, lng, ns, json, { splitToEntries: true, overwriteEntries: false });
+                sails.log.verbose(`[I18nEntriesService.bootstrap] Seeded bundle ${brandingId}:${lng}:${ns}`);
+              }
+            } catch (e) {
+              sails.log.verbose('[I18nEntriesService.bootstrap] Skipping seed for', lng, ns, 'due to error:', (e as Error)?.message || e);
+            }
+          }
+        }
+      } catch (err) {
+        sails.log.warn('I18nEntriesService.bootstrap failed:', (err as Error)?.message || err);
+      }
+    }
 
     // Minimal flatten utility (dot notation) to avoid ESM-only deps
     private flatten(obj: any, prefix = '', out: any = {}): any {

@@ -15,8 +15,13 @@
 
   <div *ngIf="selectedLang">
     <div class="mb-3" *ngFor="let keyName of keys()">
-      <label class="form-label"><code>{{ keyName }}</code></label>
+      <label class="form-label">{{ keyName }}</label>
       <textarea class="form-control" rows="2" [(ngModel)]="values[keyName]"></textarea>
     </div>
+  </div>
+
+   <div *ngIf="selectedLang" class="mb-3">
+    <button class="btn btn-primary me-2" (click)="save()">Save</button>
+    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
   </div>
 </div>

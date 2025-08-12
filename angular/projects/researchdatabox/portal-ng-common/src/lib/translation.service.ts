@@ -82,12 +82,13 @@ export class TranslationService implements Service {
     this.subjects['init'] = new Subject<any>();
     this.ts = new Date().getTime();
     // default loadPath
-    this.loadPath = `${this.rootContext}/locales/{{lng}}/{{ns}}.json`;
+    this.loadPath = `${this.rootContext}/default/rdmp/locales/{{lng}}/{{ns}}.json`;
   }
 
   async initTranslator(): Promise<any> {
     await this.utilService.waitForDependencies([this.configService]);
     this.config = await this.configService.getConfig();
+    this.loadPath = `${this.rootContext}/${this.config.branding}/${this.config.portal}/locales/{{lng}}/{{ns}}.json`;
     if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
       this.i18NextOpts = _get(this.config, 'i18NextOpts');
       if (_isUndefined(_get(this.i18NextOpts, 'backend.loadPath'))) {

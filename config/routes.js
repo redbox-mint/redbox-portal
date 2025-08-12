@@ -527,6 +527,12 @@ module.exports.routes = {
     action: 'getNamespace',
     csrf: false
   },
+  // TODO: Fix pattern so above route works.
+  'get /:branding/:portal/locales/:lng/translation.json': {
+    controller: 'TranslationController',
+    action: 'getNamespace',
+    csrf: false
+  },
   // Languages list for Translation app
   'get /:branding/:portal/locales': {
     controller: 'TranslationController',
