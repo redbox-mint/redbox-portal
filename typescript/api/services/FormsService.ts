@@ -35,7 +35,6 @@ declare var sails: Sails;
 declare var Form: Model;
 declare var RecordType: Model;
 declare var WorkflowStep: Model;
-declare var RecordsService;
 
 declare var _;
 
@@ -509,9 +508,6 @@ export module Services {
       });
     }
 
-    // TODO: Can the client form building be extracted to a separate class?
-    //    Does it needs access to some of the services?
-
     /*
      * Methods for building the client form config.
      *
@@ -519,27 +515,30 @@ export module Services {
      * Note that returning null means to remove the block from the config.
      * What that means differs between various kinds of config blocks.
      * Specifically null, undefined does *not* mean to remove the block, as some blocks have optional properties.
+     *
+     * TODO: Can the client form building be extracted to a separate class?
+     *  Does it needs access to some of the services?
      */
 
     /**
      * Convert a server-side form config to a client-side form config.
+     * This process includes:
+     * - removing fields the user does not have permissions to access
+     * - converting fields from the server-side config format to the client-side config format
+     *
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
     public buildClientFormConfig(item: FormConfig, context?: ClientFormContext): Record<string, unknown> {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
 
+      // TODO: includes populating the model.config.value properties from either
+      //  the model.config.defaultValue properties
+      //  or the existing record
+
       // Create a new context to avoid changing the provided context.
       // Set defaults for the context.
-      context = {
-        current: {
-          mode: context?.current?.mode ?? 'view',
-          user: {
-            roles: context?.current?.user?.roles ?? [],
-          },
-        },
-        build: context?.build ?? [],
-      };
+      context = new ClientFormContext(context);
 
       // create the client form config
       const result = this.buildClientFormObject(item as Record<string, unknown>, context);
@@ -621,6 +620,7 @@ export module Services {
       if (item?.config?.value !== undefined) {
           throw new Error(`FormsService - 'value' in the base form field model definition config is for the client-side, use defaultValue instead ${JSON.stringify(item)}`);
       }
+      // TODO: Populate model.config.value from either model.config.defaultValue or context.current.model.data.
       return this.buildClientFormObject(item, context);
     }
 
@@ -778,12 +778,24 @@ export module Services {
 }
 module.exports = new Services.Forms().exports();
 
+/**
+ * The client form context used to build the form config for the client.
+ * The data include (all are optional)
+ * - the current form mode
+ * - the current user's roles
+ * - the current model id
+ * - the current model data
+ */
 export class ClientFormContext {
   current: {
     mode: FormModesConfig;
     user?: {
       roles: string[];
     };
+    model?: {
+        id?: string;
+        data?: unknown;
+    },
   };
   build: FormConstraintConfig[];
 
@@ -791,11 +803,15 @@ export class ClientFormContext {
    * Create a new instance from an existing instance to ensure no references are shared.
    * @param other
    */
-  constructor(other: ClientFormContext) {
+  constructor(other?: ClientFormContext) {
     this.current = {
       mode: other?.current?.mode ?? 'view',
       user: {
         roles: other?.current?.user?.roles ?? [],
+      },
+      model: {
+          id: other?.current?.model?.id ?? null,
+          data: other?.current?.model?.data ?? null,
       }
     };
     this.build = (other?.build ?? [])?.map(b => new FormConstraintConfig(b));
