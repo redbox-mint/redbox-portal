@@ -30,7 +30,7 @@
     "express-session": "^1.18.2",
     "flat": "^6.0.1",
     "font-awesome-sass": "4.7.0",
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.3.1",
     "genson-js": "^0.0.8",
     "glob": "^11.0.1",
     "har-validator": "5.1.5",
