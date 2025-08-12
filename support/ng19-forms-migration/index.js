@@ -15,6 +15,7 @@ function processDataRecord(form) {
 
   if (hasTabOrAccordion) {
 
+    // First level pass through in root/top level
     const topComponentDefinitions = [];
     for(let f of form.fields) {
       if(f.class === 'TabOrAccordionContainer') {
