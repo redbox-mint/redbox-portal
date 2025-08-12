@@ -335,14 +335,12 @@ export module Controllers {
         }
 
         // process the form config to provide only the fields accessible by the current user
-        const currentContext = new ClientFormContext({
-            current: {
-                mode: editMode ? "edit" : "view",
-                user: {roles: []},
-                model: {id: oid, data: currentRec},
-            },
-            build: [],
-        });
+        const currentContext = new ClientFormContext();
+        currentContext.current.mode = editMode ? "edit" : "view";
+        currentContext.current.user = {roles: []};
+        currentContext.current.model = {id: oid, data: currentRec};
+        currentContext.build = [];
+
         const mergedForm = FormsService.buildClientFormConfig(form, currentContext);
 
         // return the form config
@@ -403,13 +401,13 @@ export module Controllers {
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
           if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, createResponse));
+            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, {...createResponse}));
           } else {
             this.ajaxOk(req, res, null, createResponse);
           }
         } else {
           if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxFail(req, res, null, this.buildResponseError([{detail: createResponse.message}], createResponse));
+            this.ajaxFail(req, res, null, this.buildResponseError([{detail: createResponse.message}], {...createResponse}));
           } else {
             this.ajaxFail(req, res, createResponse.message);
           }
@@ -1545,7 +1543,7 @@ export module Controllers {
       return validationName == err.name ? err.message : defaultMessage;
     }
 
-    private async buildResponseSuccessRecord(oid: string, response: unknown): Promise<DataResponseV2> {
+    private async buildResponseSuccessRecord(oid: string, response: { [key: string]: unknown }): Promise<DataResponseV2> {
       return this.buildResponseSuccess(
           await this.recordsService.getMeta(oid),
           response

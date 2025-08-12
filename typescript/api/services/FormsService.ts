@@ -532,10 +532,6 @@ export module Services {
     public buildClientFormConfig(item: FormConfig, context?: ClientFormContext): Record<string, unknown> {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
 
-      // TODO: includes populating the model.config.value properties from either
-      //  the model.config.defaultValue properties
-      //  or the existing record
-
       // Create a new context to avoid changing the provided context.
       // Set defaults for the context.
       context = new ClientFormContext(context);
@@ -556,12 +552,12 @@ export module Services {
     public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}'`);
       // add the item constraints to the context build
-      if (item?.constraints) {
+      if (item?.name) {
         context = new ClientFormContext(context);
-        context.build.push(new FormConstraintConfig({
-          authorization: item.constraints.authorization,
-          allowModes: item.constraints.allowModes,
-        }));
+        context.build.push({
+          name: item?.name,
+          constraints: new FormConstraintConfig(item.constraints)
+        });
       }
 
       // remove this component definition (by returning null) if the constraints are not met
@@ -620,7 +616,25 @@ export module Services {
       if (item?.config?.value !== undefined) {
           throw new Error(`FormsService - 'value' in the base form field model definition config is for the client-side, use defaultValue instead ${JSON.stringify(item)}`);
       }
-      // TODO: Populate model.config.value from either model.config.defaultValue or context.current.model.data.
+
+      // Populate model.config.value from either model.config.defaultValue or context.current.model.data.
+      // Use the context to decide where to obtain any existing data model value.
+      // If there is a model id, use the context current model data.
+      // If there isn't a model id, use the model.config.defaultValue.
+      const hasContextModelId = context?.current?.model?.id?.toString()?.trim()?.length > 0;
+      const hasContextModelData = context?.current?.model?.data && _.isPlainObject(context?.current?.model?.data);
+      if ((hasContextModelId && !hasContextModelData) || (!hasContextModelId && hasContextModelData)) {
+        throw new Error(`FormsService - cannot populate client form data model values due to inconsistent context current model id and data. Either provide both id and data, or neither.`);
+      }
+      if (hasContextModelId && hasContextModelData) {
+        const path = context.pathFromBuildNames();
+        const modelValue = _.get(context?.current?.model?.data, path, undefined);
+        _.set(item, 'config.value', modelValue);
+      } else if (item?.config?.defaultValue !== undefined) {
+        const defaultValue = _.get(item, 'config.defaultValue', undefined);
+        _.set(item, 'config.value', defaultValue);
+      }
+
       return this.buildClientFormObject(item, context);
     }
 
@@ -716,7 +730,7 @@ export module Services {
       const currentUserRoles = context?.current?.user?.roles ?? [];
 
       const requiredRoles = context?.build
-          ?.map(b => b?.authorization?.allowRoles)
+          ?.map(b => b?.constraints?.authorization?.allowRoles)
           ?.filter(i => i !== null) ?? [];
 
       // The current user must have at least one of the roles required by each component.
@@ -738,7 +752,7 @@ export module Services {
       // Get the current context mode, default to no mode.
       const currentContextMode = context?.current?.mode ?? null;
 
-      const requiredModes = context?.build?.map(b => b?.allowModes);
+      const requiredModes = context?.build?.map(b => b?.constraints?.allowModes);
 
       // The current user must have at least one of the roles required by each component.
       const isAllowed = requiredModes?.every(i => {
@@ -787,17 +801,8 @@ module.exports = new Services.Forms().exports();
  * - the current model data
  */
 export class ClientFormContext {
-  current: {
-    mode: FormModesConfig;
-    user?: {
-      roles: string[];
-    };
-    model?: {
-        id?: string;
-        data?: unknown;
-    },
-  };
-  build: FormConstraintConfig[];
+  current: ClientFormCurrentContext;
+  build: ClientFormBuildContext[];
 
   /**
    * Create a new instance from an existing instance to ensure no references are shared.
@@ -810,12 +815,38 @@ export class ClientFormContext {
         roles: other?.current?.user?.roles ?? [],
       },
       model: {
-          id: other?.current?.model?.id ?? null,
-          data: other?.current?.model?.data ?? null,
+        id: other?.current?.model?.id ?? null,
+        data: other?.current?.model?.data ?? null,
       }
     };
-    this.build = (other?.build ?? [])?.map(b => new FormConstraintConfig(b));
+    this.build = (other?.build ?? [])?.map(b => {
+      return {name: b?.name, constraints: new FormConstraintConfig(b?.constraints)}
+    });
+  }
+
+  public pathFromBuildNames() {
+    return this.build?.map(i => i?.name)?.filter(i => !!i);
   }
 }
 
+export type ClientFormCurrentContext = {
+  mode: FormModesConfig;
+  user?: ClientFormCurrentUserContext;
+  model?: ClientFormCurrentModelContext;
+};
+
+export type ClientFormCurrentUserContext = {
+  roles: string[];
+};
+
+export type ClientFormCurrentModelContext = {
+  id?: string;
+  data?: unknown;
+};
+
+
+export type ClientFormBuildContext = {
+  name: string;
+  constraints?: FormConstraintConfig;
+};
 
