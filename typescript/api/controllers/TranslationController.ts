@@ -1,0 +1,142 @@
+// Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
+//
+// GNU GENERAL PUBLIC LICENSE
+//    Version 2, June 1991
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+declare var module;
+declare var sails;
+declare var BrandingService;
+declare var I18nBundle;
+declare var I18nTranslation;
+
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+
+export module Controllers {
+  /**
+   * TranslationController - serves i18next namespace JSON for http-backend.
+   */
+  export class Translation extends controllers.Core.Controller {
+    protected _exportedMethods: any = [
+  'getNamespace',
+  'getLanguages'
+    ];
+
+    public async getNamespace(req, res) {
+      try {
+        const brandingName = req.params.branding;
+        const lng = req.params.lng;
+        const ns = req.params.ns || 'translation';
+
+        const branding = BrandingService.getBrand(brandingName);
+        if (!branding) {
+          return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        }
+
+        let bundle = await I18nBundle.findOne({ branding: branding.id, locale: lng, namespace: ns });
+
+        if (!bundle) {
+          const entries = await I18nTranslation.find({ branding: branding.id, locale: lng, namespace: ns });
+          if (entries && entries.length > 0) {
+            const flat = {} as any;
+            for (const e of entries) flat[e.key] = e.value;
+            bundle = { data: this.unflatten(flat) } as any;
+          }
+        }
+
+        if (!bundle) {
+          const filepath = path.join(sails.config.appPath, 'assets', 'locales', lng, `${ns}.json`);
+          if (fs.existsSync(filepath)) {
+            const json = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+            return res.json(json);
+          }
+          return res.notFound({ message: 'Namespace not found' });
+        }
+
+        return res.json(bundle.data || {});
+      } catch (err) {
+        sails.log.error('Error in TranslationController.getNamespace:', err);
+        return res.serverError(err);
+      }
+    }
+
+    /**
+     * Return the list of supported languages for the current branding/portal.
+     * Combines configured languages with any detected from DB bundles and assets/locales.
+     */
+    public async getLanguages(req, res) {
+      try {
+        const brandingName = req.params.branding;
+        const branding = BrandingService.getBrand(brandingName);
+        if (!branding) {
+          return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        }
+
+        const langs = new Set<string>();
+        const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
+        if (Array.isArray(configured)) configured.forEach((l: string) => l && langs.add(l));
+
+        // From DB bundles
+        try {
+          const bundles = await I18nBundle.find({ branding: branding.id });
+          bundles.forEach((b: any) => b?.locale && langs.add(b.locale));
+        } catch (e) {
+          sails.log.verbose('getLanguages: skipping DB scan due to error:', e?.message || e);
+        }
+
+        // From assets/locales directory
+        try {
+          const localesDir = path.join(sails.config.appPath, 'assets', 'locales');
+          if (fs.existsSync(localesDir)) {
+            const entries = fs.readdirSync(localesDir, { withFileTypes: true });
+            entries.filter(d => d.isDirectory()).forEach(d => langs.add(d.name));
+          }
+        } catch (e) {
+          sails.log.verbose('getLanguages: skipping filesystem scan due to error:', e?.message || e);
+        }
+
+        const list = Array.from(langs);
+        list.sort();
+        return res.json(list);
+      } catch (err) {
+        sails.log.error('Error in TranslationController.getLanguages:', err);
+        return res.serverError(err);
+      }
+    }
+
+    private unflatten(flatObj: any): any {
+      const result: any = {};
+      Object.keys(flatObj || {}).forEach(flatKey => {
+        const parts = flatKey.split('.');
+        let cursor = result;
+        for (let i = 0; i < parts.length; i++) {
+          const p = parts[i];
+          if (i === parts.length - 1) {
+            cursor[p] = flatObj[flatKey];
+          } else {
+            if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
+            cursor = cursor[p];
+          }
+        }
+      });
+      return result;
+    }
+  }
+}
+
+module.exports = new Controllers.Translation().exports();

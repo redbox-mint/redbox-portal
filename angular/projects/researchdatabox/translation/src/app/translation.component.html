@@ -1,0 +1,22 @@
+<div class="container p-3">
+  <h2>Translation Manager</h2>
+
+  <div class="mb-3">
+    <label class="form-label">Language</label>
+    <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
+      <option *ngFor="let lang of languages()" [value]="lang">{{ lang }}</option>
+    </select>
+  </div>
+
+  <div *ngIf="selectedLang" class="mb-3">
+    <button class="btn btn-primary me-2" (click)="save()">Save</button>
+    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+  </div>
+
+  <div *ngIf="selectedLang">
+    <div class="mb-3" *ngFor="let keyName of keys()">
+      <label class="form-label"><code>{{ keyName }}</code></label>
+      <textarea class="form-control" rows="2" [(ngModel)]="values[keyName]"></textarea>
+    </div>
+  </div>
+</div>

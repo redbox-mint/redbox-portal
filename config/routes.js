@@ -85,6 +85,13 @@ module.exports.routes = {
       'view': 'admin/home'
     }
   },
+  '/:branding/:portal/admin/translation': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: {
+      'view': 'admin/translation'
+    }
+  },
   '/:branding/:portal/admin/roles': {
     controller: 'AdminController',
     action: 'rolesIndex',
@@ -513,6 +520,52 @@ module.exports.routes = {
     action: 'saveAppConfig',
     csrf: false
   },
+  // i18next http-backend compatible route to fetch namespaces
+  // Example: /default/rdmp/locales/en/translation.json
+  'get /:branding/:portal/locales/:lng/:ns.json': {
+    controller: 'TranslationController',
+    action: 'getNamespace',
+    csrf: false
+  },
+  // Languages list for Translation app
+  'get /:branding/:portal/locales': {
+    controller: 'TranslationController',
+    action: 'getLanguages',
+    csrf: false
+  },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
+  ,
+  // Translation management API (webservice)
+  'get /:branding/:portal/api/i18n/entries': {
+    controller: 'webservice/TranslationController',
+    action: 'listEntries',
+    csrf: false
+  },
+  // Allow dots in keys via * slug
+  'get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'getEntry',
+    csrf: false
+  },
+  'post /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'setEntry',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'deleteEntry',
+    csrf: false
+  },
+  'get /:branding/:portal/api/i18n/bundles/:locale/:namespace': {
+    controller: 'webservice/TranslationController',
+    action: 'getBundle',
+    csrf: false
+  },
+  'post /:branding/:portal/api/i18n/bundles/:locale/:namespace': {
+    controller: 'webservice/TranslationController',
+    action: 'setBundle',
+    csrf: false
+  }
 };
