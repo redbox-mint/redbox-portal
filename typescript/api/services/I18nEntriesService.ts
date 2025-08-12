@@ -51,7 +51,7 @@ export module Services {
    * Seed default i18n bundles into DB from language-defaults for the default brand.
    * - Only creates bundles if none exist (no overwrite).
    */
-    public async bootstrap(): Promise<void> {
+  public async bootstrap(): Promise<void> {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
@@ -59,23 +59,25 @@ export module Services {
         const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
         // Default brand
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const defaultBrand: any = BrandingService.getBrand('default');
-        const brandingId = defaultBrand?.id || 'default';
+        const defaultBrand: BrandingModel | null = BrandingService.getBrand('default');
+        if (!defaultBrand) {
+          sails.log.warn('[I18nEntriesService.bootstrap] Default brand not found, skipping seeding');
+          return;
+        }
 
   const localesDir = path.join(sails.config.appPath, 'language-defaults');
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
               // Skip if bundle already exists
-              const existing = await this.getBundle(brandingId, lng, ns);
+              const existing = await this.getBundle(defaultBrand, lng, ns);
               if (existing) continue;
 
               const filePath = path.join(localesDir, lng, `${ns}.json`);
               if (fs.existsSync(filePath)) {
                 const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                await this.setBundle(brandingId, lng, ns, json, { splitToEntries: true, overwriteEntries: false });
-                sails.log.verbose(`[I18nEntriesService.bootstrap] Seeded bundle ${brandingId}:${lng}:${ns}`);
+                await this.setBundle(defaultBrand, lng, ns, json, { splitToEntries: true, overwriteEntries: false });
+                sails.log.verbose(`[I18nEntriesService.bootstrap] Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
               }
             } catch (e) {
               sails.log.verbose('[I18nEntriesService.bootstrap] Skipping seed for', lng, ns, 'due to error:', (e as Error)?.message || e);
@@ -120,26 +122,24 @@ export module Services {
       return result;
     }
 
-    private buildBrandingPart(branding?: string | BrandingModel | null): string {
-      if (!branding) return 'global';
-      if (typeof branding === 'string') return branding; // assume id
-      return branding.id || 'global';
+    private resolveBrandingId(branding: BrandingModel): string {
+      return branding?.id || 'global';
     }
 
-    private buildUid(branding: string | BrandingModel | null, locale: string, namespace: string, key: string): string {
-      const brandingPart = this.buildBrandingPart(branding);
+    private buildUid(branding: BrandingModel, locale: string, namespace: string, key: string): string {
+      const brandingPart = this.resolveBrandingId(branding);
       const ns = namespace || 'translation';
       return `${brandingPart}:${locale}:${ns}:${key}`;
     }
 
-    public async getEntry(branding: string | BrandingModel | null, locale: string, namespace: string, key: string): Promise<any | null> {
+    public async getEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<any | null> {
       const uid = this.buildUid(branding, locale, namespace, key);
       return await I18nTranslation.findOne({ uid });
     }
 
-    public async setEntry(branding: string | BrandingModel | null, locale: string, namespace: string, key: string, value: any, bundleId?: string): Promise<any> {
-      const brandingId = this.buildBrandingPart(branding);
-      const existing = await this.getEntry(brandingId, locale, namespace, key);
+    public async setEntry(branding: BrandingModel, locale: string, namespace: string, key: string, value: any, bundleId?: string): Promise<any> {
+      const brandingId = this.resolveBrandingId(branding);
+      const existing = await this.getEntry(branding, locale, namespace, key);
       if (existing) {
         return await I18nTranslation.updateOne({ id: existing.id }).set({ value, branding: brandingId, locale, namespace, key, bundle: bundleId });
       } else {
@@ -147,15 +147,15 @@ export module Services {
       }
     }
 
-    public async deleteEntry(branding: string | BrandingModel | null, locale: string, namespace: string, key: string): Promise<boolean> {
-      const brandingId = this.buildBrandingPart(branding);
-      const uid = this.buildUid(brandingId, locale, namespace, key);
+    public async deleteEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<boolean> {
+      const brandingId = this.resolveBrandingId(branding);
+      const uid = this.buildUid(branding, locale, namespace, key);
       const deleted = await I18nTranslation.destroyOne({ uid });
       return !!deleted;
     }
 
-    public async listEntries(branding: string | BrandingModel | null, locale: string, namespace: string, keyPrefix?: string): Promise<any[]> {
-      const brandingId = this.buildBrandingPart(branding);
+    public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<any[]> {
+      const brandingId = this.resolveBrandingId(branding);
       const where: any = { branding: brandingId, locale, namespace };
       if (keyPrefix) {
         // Mongo-specific regex for prefix match
@@ -164,15 +164,15 @@ export module Services {
       return await I18nTranslation.find({ where }).sort('key ASC');
     }
 
-    public async getBundle(branding: string | BrandingModel | null, locale: string, namespace: string): Promise<any | null> {
-      const brandingId = this.buildBrandingPart(branding);
+    public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<any | null> {
+      const brandingId = this.resolveBrandingId(branding);
       const uid = `${brandingId}:${locale}:${namespace || 'translation'}`;
       return await I18nBundle.findOne({ uid });
     }
 
-    public async setBundle(branding: string | BrandingModel | null, locale: string, namespace: string, data: any, options?: { splitToEntries?: boolean; overwriteEntries?: boolean }): Promise<any> {
-      const brandingId = this.buildBrandingPart(branding);
-      const existing = await this.getBundle(brandingId, locale, namespace);
+    public async setBundle(branding: BrandingModel, locale: string, namespace: string, data: any, options?: { splitToEntries?: boolean; overwriteEntries?: boolean }): Promise<any> {
+      const brandingId = this.resolveBrandingId(branding);
+      const existing = await this.getBundle(branding, locale, namespace);
       let bundle;
       if (existing) {
         bundle = await I18nBundle.updateOne({ id: existing.id }).set({ data, branding: brandingId, locale, namespace });
@@ -201,17 +201,22 @@ export module Services {
         : bundleOrId;
       if (!bundle) throw new Error('Bundle not found');
 
-  const { branding, locale, namespace, id: bundleId } = bundle;
+      const { branding, locale, namespace, id: bundleId } = bundle;
   const flat = this.flatten(bundle.data || {});
       const keys = Object.keys(flat);
 
+      // Ensure we have a BrandingModel for downstream calls
+      const brandingModel: BrandingModel = (typeof branding === 'string')
+        ? (BrandingService.getBrand(branding) || ({ id: branding } as BrandingModel))
+        : (branding as BrandingModel);
+
       for (const key of keys) {
         const val = flat[key];
-        const existing = await this.getEntry(branding, locale, namespace, key);
+        const existing = await this.getEntry(brandingModel, locale, namespace, key);
         if (existing && !overwrite) {
           continue;
         }
-        await this.setEntry(branding, locale, namespace, key, val, bundleId);
+        await this.setEntry(brandingModel, locale, namespace, key, val, bundleId);
       }
     }
   }

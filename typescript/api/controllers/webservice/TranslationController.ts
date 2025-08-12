@@ -51,7 +51,7 @@ export module Controllers {
         const namespace = req.param('namespace') || 'translation';
         const keyPrefix = req.param('keyPrefix');
 
-        const entries = await I18nEntriesService.listEntries(branding.id, locale, namespace, keyPrefix);
+  const entries = await I18nEntriesService.listEntries(branding, locale, namespace, keyPrefix);
         return this.apiRespond(req, res, entries, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
@@ -66,7 +66,7 @@ export module Controllers {
         const namespace = req.param('namespace') || 'translation';
         const key = req.param('key');
 
-        const entry = await I18nEntriesService.getEntry(branding.id, locale, namespace, key);
+  const entry = await I18nEntriesService.getEntry(branding, locale, namespace, key);
         if (!entry) return this.apiFail(req, res, 404, new APIErrorResponse('Entry not found'));
         return this.apiRespond(req, res, entry, 200);
       } catch (error) {
@@ -83,7 +83,7 @@ export module Controllers {
         const key = req.param('key');
         const value = req.body?.value;
 
-        const saved = await I18nEntriesService.setEntry(branding.id, locale, namespace, key, value);
+  const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value);
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
@@ -98,7 +98,7 @@ export module Controllers {
         const namespace = req.param('namespace') || 'translation';
         const key = req.param('key');
 
-        const ok = await I18nEntriesService.deleteEntry(branding.id, locale, namespace, key);
+  const ok = await I18nEntriesService.deleteEntry(branding, locale, namespace, key);
         if (!ok) return this.apiFail(req, res, 404, new APIErrorResponse('Entry not found'));
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
@@ -113,7 +113,7 @@ export module Controllers {
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
 
-        const bundle = await I18nEntriesService.getBundle(branding.id, locale, namespace);
+  const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
         if (!bundle) return this.apiFail(req, res, 404, new APIErrorResponse('Bundle not found'));
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
@@ -131,7 +131,7 @@ export module Controllers {
         const splitToEntries = req.param('splitToEntries') === 'true' || req.body?.splitToEntries === true;
         const overwriteEntries = req.param('overwriteEntries') === 'true' || req.body?.overwriteEntries === true;
 
-        const bundle = await I18nEntriesService.setBundle(branding.id, locale, namespace, data, { splitToEntries, overwriteEntries });
+  const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, { splitToEntries, overwriteEntries });
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
