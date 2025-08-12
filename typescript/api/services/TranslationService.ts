@@ -52,7 +52,7 @@ export module Services {
 
       let initConfig = _.merge(sails.config.i18n.next.init, {
         backend: {
-          loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
+          loadPath: `${sails.config.appPath}/language-defaults/{{lng}}/{{ns}}.json`
         }
       });
 

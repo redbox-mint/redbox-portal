@@ -47,10 +47,10 @@ export module Services {
       'bootstrap'
     ];
     
-    /**
-     * Seed default i18n bundles into DB from assets/locales for the default brand.
-     * - Only creates bundles if none exist (no overwrite).
-     */
+  /**
+   * Seed default i18n bundles into DB from language-defaults for the default brand.
+   * - Only creates bundles if none exist (no overwrite).
+   */
     public async bootstrap(): Promise<void> {
       try {
         const fs = await import('node:fs');
@@ -63,7 +63,7 @@ export module Services {
         const defaultBrand: any = BrandingService.getBrand('default');
         const brandingId = defaultBrand?.id || 'default';
 
-        const localesDir = path.join(sails.config.appPath, 'assets', 'locales');
+  const localesDir = path.join(sails.config.appPath, 'language-defaults');
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {

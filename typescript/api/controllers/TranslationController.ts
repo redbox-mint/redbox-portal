@@ -58,7 +58,7 @@ export module Controllers {
         }
 
         if (!bundle) {
-          const filepath = path.join(sails.config.appPath, 'assets', 'locales', lng, `${ns}.json`);
+          const filepath = path.join(sails.config.appPath, 'language-defaults', lng, `${ns}.json`);
           if (fs.existsSync(filepath)) {
             const json = JSON.parse(fs.readFileSync(filepath, 'utf8'));
             return res.json(json);
@@ -97,9 +97,9 @@ export module Controllers {
           sails.log.verbose('getLanguages: skipping DB scan due to error:', e?.message || e);
         }
 
-        // From assets/locales directory
+        // From language-defaults directory
         try {
-          const localesDir = path.join(sails.config.appPath, 'assets', 'locales');
+          const localesDir = path.join(sails.config.appPath, 'language-defaults');
           if (fs.existsSync(localesDir)) {
             const entries = fs.readdirSync(localesDir, { withFileTypes: true });
             entries.filter(d => d.isDirectory()).forEach(d => langs.add(d.name));

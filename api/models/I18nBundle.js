@@ -2,7 +2,7 @@
  * I18nBundle.js
  *
  * @description :: Stores an entire i18next namespace for a given locale and branding.
- *                 Mirrors the structure of assets/locales/<lng>/<namespace>.json
+ *                 Mirrors the structure of language-defaults/<lng>/<namespace>.json
  */
 
 module.exports = {
