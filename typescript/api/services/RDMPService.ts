@@ -30,7 +30,7 @@ import {
   Sails,
   Model
 } from "sails";
-import { default as moment } from 'moment';
+import moment from '../shims/momentShim';
 import numeral from 'numeral';
 
 import {

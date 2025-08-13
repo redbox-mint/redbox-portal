@@ -30,7 +30,7 @@ import {
   RecordTypeModel,
   BrandingModel
 } from '@researchdatabox/redbox-core-types';
-import { default as moment } from 'moment';
+import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
@@ -525,7 +525,7 @@ export module Controllers {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
       currentRec.metaMetadata.lastSavedBy = user.username;
-      currentRec.metaMetadata.lastSaveDate = moment().format();
+  currentRec.metaMetadata.lastSaveDate = DateTime.local().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
       return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));

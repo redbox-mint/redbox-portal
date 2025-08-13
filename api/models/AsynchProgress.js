@@ -4,7 +4,7 @@
  * @description :: Tracks Asynchrounous progress started by the portal.
  * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
  */
-var moment = require('moment');
+// moment removed: not used; dates stored as plain strings.
 
 module.exports = {
   attributes: {

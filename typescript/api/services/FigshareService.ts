@@ -19,7 +19,7 @@
 
 import { Services as services, DatastreamService, RBValidationError, QueueService, BrandingModel, FigshareArticleCreate, FigshareArticleUpdate, FigshareArticleEmbargo } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
-const moment = require('moment');
+import moment from '../shims/momentShim';
 const axios = require('axios');
 const _ = require('lodash');
 const fs = require('fs');
