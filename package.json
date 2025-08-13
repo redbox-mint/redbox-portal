@@ -19,7 +19,7 @@
     "check-disk-space": "^3.4.0",
     "chokidar": "~4.0.3",
     "connect-mongo": "^5.1.0",
-    "copy-webpack-plugin": "^13.0.0",
+    "copy-webpack-plugin": "^13.0.1",
     "core-js": "^3.45.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
