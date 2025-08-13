@@ -22,6 +22,8 @@ declare var sails;
 declare var BrandingService;
 declare var I18nBundle;
 declare var I18nTranslation;
+declare var I18nEntriesService;
+declare var TranslationService;
 
 import { Controllers as controllers, PopulateExportedMethods } from '@researchdatabox/redbox-core-types';
 import * as path from 'node:path';
@@ -143,6 +145,45 @@ export module Controllers {
         }
       });
       return result;
+    }
+
+    /**
+     * Angular app endpoints (CSRF-enabled by default)
+     */
+    public async listEntriesApp(req, res) {
+      try {
+        const brandingName = req.params.branding;
+        const branding = BrandingService.getBrand(brandingName);
+        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const locale = req.param('locale');
+        const namespace = req.param('namespace') || 'translation';
+        const keyPrefix = req.param('keyPrefix');
+        const entries = await I18nEntriesService.listEntries(branding, locale, namespace, keyPrefix);
+        return res.json(entries);
+      } catch (err) {
+        sails.log.error('Error in TranslationController.listEntriesApp:', err);
+        return res.serverError(err);
+      }
+    }
+
+    public async setEntryApp(req, res) {
+      try {
+        const brandingName = req.params.branding;
+        const branding = BrandingService.getBrand(brandingName);
+        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const locale = req.param('locale');
+        const namespace = req.param('namespace') || 'translation';
+        const key = req.param('key');
+        const value = req.body?.value;
+        const category = req.body?.category;
+        const description = req.body?.description;
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
+        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e?.message || e); }
+        return res.json(saved);
+      } catch (err) {
+        sails.log.error('Error in TranslationController.setEntryApp:', err);
+        return res.serverError(err);
+      }
     }
   }
 }

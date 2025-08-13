@@ -1,7 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http';
+import { TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
 
 @Component({
   selector: 'app-root',
@@ -16,7 +17,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   `]
 })
 export class AppComponent implements OnInit {
-  private http = inject(HttpClient);
+  private svc = inject(PortalTranslationService);
 
   // Simple state
   languages = signal<string[]>([]);
@@ -30,7 +31,7 @@ export class AppComponent implements OnInit {
   selectedCategory: string = '';
   // View model: filtered + sorted entries for display
   viewEntries = signal<Array<{ key: string; value: any; description?: string; category?: string }>>([]);
-  sortBy: 'key' | 'value' = 'key';
+  sortBy: 'key' | 'value' | 'category' = 'key';
   sortAsc = true;
 
   // Modal state
@@ -39,13 +40,19 @@ export class AppComponent implements OnInit {
   editValue: any = '';
   editDescription: string | undefined;
 
+  // Save status signals
+  saving = signal(false);
+  saveSuccess = signal(false);
+  saveError = signal(false);
+
   async ngOnInit() {
-    await this.loadLanguages();
+  await this.svc.waitForInit();
+  await this.loadLanguages();
   }
 
   private async loadLanguages() {
     try {
-      const list = await this.http.get<string[]>(`/default/rdmp/locales`).toPromise();
+  const list = await this.svc.listLanguages();
       this.languages.set(Array.isArray(list) ? list : []);
       if (!this.selectedLang && this.languages().length > 0) {
         this.selectedLang = this.languages()[0];
@@ -65,9 +72,7 @@ export class AppComponent implements OnInit {
   // Load individual entries with metadata for the selected language
   private async loadEntries() {
     try {
-      const params = new URLSearchParams({ locale: this.selectedLang, namespace: this.namespace });
-      const url = `/default/rdmp/api/i18n/entries?${params.toString()}`;
-      const data = await this.http.get<Array<{ key: string; value: any; description?: string; category?: string }>>(url).toPromise();
+  const data = await this.svc.listEntries(this.selectedLang, this.namespace);
       this.entries.set(Array.isArray(data) ? data : []);
       // Reset category filter on language change
       this.selectedCategory = '';
@@ -80,7 +85,7 @@ export class AppComponent implements OnInit {
     }
   }
 
-  setSort(col: 'key' | 'value') {
+  setSort(col: 'key' | 'value' | 'category') {
     if (this.sortBy === col) {
       this.sortAsc = !this.sortAsc;
     } else {
@@ -109,8 +114,18 @@ export class AppComponent implements OnInit {
     // Sort
     const dir = this.sortAsc ? 1 : -1;
     const sorted = [...filtered].sort((a, b) => {
-      const av = (this.sortBy === 'key' ? String(a.key) : String(a.value ?? ''));
-      const bv = (this.sortBy === 'key' ? String(b.key) : String(b.value ?? ''));
+      let av: string;
+      let bv: string;
+      if (this.sortBy === 'key') {
+        av = String(a.key);
+        bv = String(b.key);
+      } else if (this.sortBy === 'value') {
+        av = String(a.value ?? '');
+        bv = String(b.value ?? '');
+      } else { // category
+        av = String(a.category ?? '');
+        bv = String(b.category ?? '');
+      }
       return av.localeCompare(bv) * dir;
     });
     this.viewEntries.set(sorted);
@@ -131,26 +146,32 @@ export class AppComponent implements OnInit {
 
   async saveEdit() {
     if (!this.selectedLang || !this.editKey) return;
-    const url = this.buildEntryApiUrl(this.selectedLang, this.namespace, this.editKey);
     try {
-      await this.http.post(url, { value: this.editValue }).toPromise();
+  this.saving.set(true);
+  this.saveSuccess.set(false);
+  this.saveError.set(false);
+  await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value: this.editValue });
       // Update local state
   const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value: this.editValue } : e);
   this.entries.set(updated);
   this.refreshDerived();
-      this.modalOpen.set(false);
+  this.modalOpen.set(false);
+  this.saving.set(false);
+  this.saveSuccess.set(true);
+  // Auto-hide success after a short delay
+  setTimeout(() => this.saveSuccess.set(false), 5000);
     } catch (e) {
       console.error('Failed to save entry', e);
-      alert('Save failed');
+  this.saving.set(false);
+  this.saveError.set(true);
+  // Auto-hide error after delay (leave longer than success)
+  setTimeout(() => this.saveError.set(false), 8000);
     }
   }
 
   closeModal() { this.modalOpen.set(false); }
 
-  private buildEntryApiUrl(lng: string, ns: string, key: string) {
-    // Dotted keys supported via wildcard route
-    return `/default/rdmp/api/i18n/entries/${lng}/${ns}/${encodeURIComponent(key)}`;
-  }
+  // URL builder not needed; handled in service
 
   // Utilities
   private flatten(obj: any, prefix = '', out: any = {}): any {

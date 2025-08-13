@@ -18,11 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Injectable, Inject } from '@angular/core';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, map } from 'rxjs';
 import { APP_BASE_HREF } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set } from 'lodash-es';
 
 import { Service } from './service.interface';
+import { HttpClientService } from './httpClient.service';
 
 import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18NextModule } from 'angular-i18next';
 import HttpApi from 'i18next-http-backend';
@@ -38,13 +40,14 @@ import { LoggerService  } from './logger.service';
  * 
  */
 @Injectable()
-export class TranslationService implements Service {
-  protected config: any;
+export class TranslationService extends HttpClientService implements Service {
+  protected override config: any;
   protected subjects: any;
   protected translatorReady: boolean = false;
   public loadPath: string = '';
   public ts: any;
   protected i18NextOpts: any;
+  private requestOptions: any = null as any;
   protected i18NextOptsDefault = {
     load: 'languageOnly',
     supportedLngs: ['en'],
@@ -72,12 +75,14 @@ export class TranslationService implements Service {
   };
   
   constructor (
-    @Inject(APP_BASE_HREF) public rootContext: string, 
+    @Inject(HttpClient) protected override http: HttpClient,
+    @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService,
-    @Inject(UtilityService) private utilService: UtilityService,
-    @Inject(ConfigService) private configService: ConfigService,
+    @Inject(UtilityService) protected override utilService: UtilityService,
+    @Inject(ConfigService) protected override configService: ConfigService,
     @Inject(LoggerService) private loggerService: LoggerService
     ) {
+    super(http, rootContext, utilService, configService);
     this.subjects = {};
     this.subjects['init'] = new Subject<any>();
     this.ts = new Date().getTime();
@@ -86,8 +91,13 @@ export class TranslationService implements Service {
   }
 
   async initTranslator(): Promise<any> {
-    await this.utilService.waitForDependencies([this.configService]);
-    this.config = await this.configService.getConfig();
+    await super.waitForInit();
+    this.config = this.getConfig();
+    // enable CSRF for admin calls and prepare default request options
+    this.requestOptions = this.reqOptsJsonBodyOnly;
+    this.enableCsrfHeader();
+    // attach context for interceptor
+    (this.requestOptions as any).context = this["httpContext"];
     this.loadPath = `${this.rootContext}/${this.config.branding}/${this.config.portal}/locales/{{lng}}/{{ns}}.json`;
     if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
       this.i18NextOpts = _get(this.config, 'i18NextOpts');
@@ -130,11 +140,11 @@ export class TranslationService implements Service {
     return this.i18NextService.t(key);
   }
 
-  public getInitSubject(): Subject<any> {
+  public override getInitSubject(): Subject<any> {
     return this.subjects['init'];
   } 
 
-  async waitForInit(): Promise<any> {
+  override async waitForInit(): Promise<any> {
     if (this.translatorReady) {
       return this;
     } 
@@ -144,11 +154,38 @@ export class TranslationService implements Service {
     return firstValueFrom(this.getInitSubject());
   }
 
-  public isInitializing(): boolean {
+  public override isInitializing(): boolean {
     return !this.translatorReady;
   }
 
-  public getConfig(appName?:string) {
+  public override getConfig(appName?:string) {
     return this.config;
+  }
+
+  // ===== Admin translation API (Angular app) =====
+  /** List i18n entries for the current branding */
+  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string }>> {
+    await this.waitForInit();
+    const params = new URLSearchParams({ locale, namespace });
+    if (keyPrefix) params.set('keyPrefix', keyPrefix);
+    const url = `${this.brandingAndPortalUrl}/app/i18n/entries?${params.toString()}`;
+    const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
+    return firstValueFrom(req$);
+  }
+
+  /** Create/update a single entry for the current branding */
+  public async setEntry(locale: string, namespace: string, key: string, body: { value: any; category?: string; description?: string }): Promise<any> {
+    await this.waitForInit();
+    const url = `${this.brandingAndPortalUrl}/app/i18n/entries/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
+    const req$ = this.http.post(url, body, this.requestOptions).pipe(map(res => res));
+    return firstValueFrom(req$);
+  }
+
+  /** List supported languages for current branding */
+  public async listLanguages(): Promise<string[]> {
+    await this.waitForInit();
+    const url = `${this.brandingAndPortalUrl}/locales`;
+    const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
+    return firstValueFrom(req$);
   }
 }

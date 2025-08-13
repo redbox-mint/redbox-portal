@@ -574,4 +574,14 @@ module.exports.routes = {
     action: 'setBundle',
     csrf: false
   }
+  ,
+  // Angular app i18n endpoints (CSRF enabled)
+  'get /:branding/:portal/app/i18n/entries': {
+    controller: 'TranslationController',
+    action: 'listEntriesApp'
+  },
+  'post /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'TranslationController',
+    action: 'setEntryApp'
+  }
 };

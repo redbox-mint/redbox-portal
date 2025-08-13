@@ -2,6 +2,7 @@
   <div class="panel panel-default">
     <div class="panel-heading">Translation Manager</div>
     <div class="panel-body">
+  
 
   <div class="row g-3 mb-3">
     <div class="col-md-4">
@@ -18,14 +19,24 @@
       </select>
     </div>
   </div>
-
+  <!-- Status Alerts -->
+  <p class="alert-info text-16 padding-10 mt-2" *ngIf="saving()">Saving translation <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
+  <p class="alert-success text-16 padding-10 mt-2" *ngIf="saveSuccess()">Translation saved successfully</p>
+  <p class="alert-danger text-16 padding-10 mt-2" *ngIf="saveError()">Failed to save translation. Please try again.</p> 
   <div *ngIf="selectedLang">
     <div class="table-responsive">
       <table class="table table-sm table-striped table-hover align-middle">
         <thead>
           <tr>
             <th>
-              Category
+              <a href="#" role="button"
+                 (click)="setSort('category'); $event.preventDefault()"
+                 [attr.aria-sort]="sortBy==='category' ? (sortAsc ? 'ascending' : 'descending') : null">
+                Category
+                <span class="ms-1" *ngIf="sortBy==='category'">
+                  <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
+                </span>
+              </a>
             </th>
             <th>
               <a href="#" role="button"
