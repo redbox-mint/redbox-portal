@@ -38,9 +38,7 @@ function processDataRecord(form) {
     tabStructure.componentDefinitions[0].component.config.tabs = enrichedTabs;
 
     const componentDefinitions = topComponentDefinitions.concat(tabStructure.componentDefinitions);
-    return {
-     componentDefinitions: componentDefinitions
-    };
+    return componentDefinitions;
 
   } else if(!_.isUndefined(form?.definition?.fields) && _.isArray(form?.definition?.fields)) {
     // No TabOrAccordionContainer — go straight to parsing fields
@@ -65,11 +63,24 @@ function processModulesFromDir(dirPath) {
 
   files.forEach(file => {
     const fullPath = path.join(__dirname, dirPath + '/' +file);
-    const input = require(fullPath);
+    const formConfig = require(fullPath);
+    const formName = _.get(formConfig,'name','modularFormConfigFile');
+    const fileName = file.replace('.js','.ts');
 
     //Run the processing
-    const output = processDataRecord(input);
-    fs.writeFileSync(`${config.settings.outputFilesFolderPath}/parsed-${file}`, JSON.stringify(output, null, 2));
+    const componentDefinitions = processDataRecord(formConfig);
+
+    const tsContent = `import { FormConfig } from "@researchdatabox/sails-ng-common";
+    import { formValidatorsSharedDefinitions } from "../config/validators";
+
+    const formConfig: FormConfig = {
+        name: "${formName}",
+        componentDefinitions: ${JSON.stringify(componentDefinitions, null, 2)}
+    };
+
+    module.exports = formConfig;
+    `;
+    fs.writeFileSync(`${config.settings.outputFilesFolderPath}/parsed-${fileName}`, tsContent, "utf8");
 
   });
 }
