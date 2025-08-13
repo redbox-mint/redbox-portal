@@ -100,6 +100,7 @@
     "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
     "compile:core": "cd core && npm install && node_modules/.bin/tsc && cd ../",
+    "compile:all": "npm run compile:core && npm run compile:sails-ng-common && npm run compile:sails && npm run compile:ng",
     "compile:core:prod": "cd core && npm install && node_modules/.bin/tsc && cd ../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",
