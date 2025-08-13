@@ -44,6 +44,7 @@ export module Services {
   export class AppConfigs extends services.Core.Service {
     brandingAppConfigMap: {};
     modelSchemaMap: any = {};
+  private extraTsGlobs: Set<string> = new Set();
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -53,7 +54,8 @@ export module Services {
       'createOrUpdateConfig',
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
-      'createConfig'
+      'createConfig',
+      'registerConfigModel'
     ];
 
 
@@ -78,10 +80,20 @@ export module Services {
     }
 
     async initAllConfigFormSchemas(): Promise<any> {
-      let configKeys: string[] = ConfigModels.getConfigKeys();
-      for (let configKey of configKeys) {
-        let modelDefinition: any = ConfigModels.getModelInfo(configKey);
-        this.modelSchemaMap[modelDefinition.modelName] = this.getJsonSchema(modelDefinition);
+      const configKeys: string[] = ConfigModels.getConfigKeys();
+      for (const configKey of configKeys) {
+        const modelDefinition: any = ConfigModels.getModelInfo(configKey);
+        // If schema is provided by the model definition, prefer it and cache
+        if (modelDefinition?.schema) {
+          this.modelSchemaMap[modelDefinition.modelName] = modelDefinition.schema;
+        } else {
+          this.modelSchemaMap[modelDefinition.modelName] = this.getJsonSchema(modelDefinition);
+        }
+        // Allow model definition to contribute additional TS globs for schema generation
+        if (modelDefinition?.tsGlob) {
+          const globs = Array.isArray(modelDefinition.tsGlob) ? modelDefinition.tsGlob : [modelDefinition.tsGlob];
+          globs.filter(Boolean).forEach(g => this.extraTsGlobs.add(g));
+        }
       }
     }
 
@@ -100,8 +112,8 @@ export module Services {
 
     public async loadAppConfigurationModel(brandId: string): Promise<any> {
       let appConfiguration = {};
-      const modelNames = ConfigModels.getConfigKeys();
-      for (let modelName of modelNames) {
+  const modelNames = ConfigModels.getConfigKeys();
+  for (let modelName of modelNames) {
         const modelClass = ConfigModels.getModelInfo(modelName).class;
         let defaultModel = new modelClass();
         _.set(appConfiguration, modelName, defaultModel);
@@ -172,9 +184,9 @@ export module Services {
 
       let appConfig = await this.getAppConfigurationForBrand(branding.name);
 
-      let modelDefinition: any = ConfigModels.getModelInfo(configForm);
+  let modelDefinition: any = ConfigModels.getModelInfo(configForm);
       let model = _.get(appConfig, configForm, new modelDefinition.class());
-      const jsonSchema: any = this.getJsonSchema(modelDefinition);
+  const jsonSchema: any = modelDefinition?.schema ?? this.getJsonSchema(modelDefinition);
 
       let configData = { model: model, schema: jsonSchema, fieldOrder: modelDefinition.class.getFieldOrder() };
       return configData;
@@ -185,7 +197,11 @@ export module Services {
         return this.modelSchemaMap[modelDefinition.modelName];
       }
       const wildcardPath = `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
-      const filePaths = globSync(wildcardPath);
+      const extraGlobs = Array.from(this.extraTsGlobs.values());
+      const filePaths = Array.from(new Set([
+        ...globSync(wildcardPath),
+        ...extraGlobs.flatMap(g => globSync(g))
+      ]));
       const typeName = modelDefinition.modelName;
 
       const program = TJS.getProgramFromFiles(filePaths);
@@ -200,6 +216,40 @@ export module Services {
       // Generate the schema
       const schema = TJS.generateSchema(program, typeName, settings);
       return schema;
+    }
+
+    /**
+     * Public API for hooks/extensions to register additional config models.
+     * - If a prebuilt JSON schema is provided, it will be cached and preferred.
+     * - If a TS glob is provided, it will be used to find model types for schema generation.
+     */
+    public registerConfigModel(info: { key: string; modelName: string; class: any; schema?: any; tsGlob?: string | string[] }): void {
+      // persist in ConfigModels registry
+      ConfigModels.register(info.key, { modelName: info.modelName, class: info.class, schema: info.schema, tsGlob: info.tsGlob });
+      // cache schema if provided
+      if (info.schema) {
+        this.modelSchemaMap[info.modelName] = info.schema;
+      }
+      // collect any extra TS globs
+      if (info.tsGlob) {
+        const globs = Array.isArray(info.tsGlob) ? info.tsGlob : [info.tsGlob];
+        globs.filter(Boolean).forEach(g => this.extraTsGlobs.add(g));
+      }
+      // ensure existing branding app configs get a default instance if not present
+      if (this.brandingAppConfigMap) {
+        try {
+          const defaultInstance = new info.class();
+          Object.keys(this.brandingAppConfigMap).forEach(brandName => {
+            const brandConfig = this.brandingAppConfigMap[brandName] || {};
+            if (_.get(brandConfig, info.key) === undefined) {
+              _.set(brandConfig, info.key, defaultInstance);
+            }
+            this.brandingAppConfigMap[brandName] = brandConfig;
+          });
+        } catch (e) {
+          sails.log.warn(`registerConfigModel: could not instantiate default for ${info.key}: ${e?.message || e}`);
+        }
+      }
     }
   }
 
