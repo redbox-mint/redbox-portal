@@ -1,0 +1,29 @@
+meta {
+  name: Get Bundle After Set
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/default/rdmp/api/i18n/bundles/en/translation
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Bundle has data and _meta for hello.world", function () {
+      var data = res.getBody();
+      expect(data).to.have.property("data");
+      expect(data.data).to.have.property("_meta");
+      expect(data.data._meta).to.have.property("hello.world");
+      expect(data.data._meta["hello.world"].category).to.equal("test");
+  });
+}

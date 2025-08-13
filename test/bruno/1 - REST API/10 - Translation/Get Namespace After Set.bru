@@ -1,0 +1,26 @@
+meta {
+  name: Get Namespace After Set
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/locales/en/translation.json
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("hello.world reflects updated value", function () {
+      var data = res.getBody();
+      expect(data.hello.world).to.equal("Hello World!!");
+  });
+}

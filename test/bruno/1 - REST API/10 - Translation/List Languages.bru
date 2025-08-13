@@ -1,0 +1,27 @@
+meta {
+  name: List Languages
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/locales
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Returns array including 'en'", function () {
+      var data = res.getBody();
+      expect(Array.isArray(data)).to.equal(true);
+      expect(data).to.include("en");
+  });
+}

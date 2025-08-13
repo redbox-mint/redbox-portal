@@ -1,0 +1,21 @@
+meta {
+  name: Get Bundle
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/i18n/bundles/en/translation
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200 or 404", function () {
+      expect([200,404]).to.include(res.getStatus());
+  });
+}

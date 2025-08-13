@@ -1,0 +1,29 @@
+meta {
+  name: Get Entry
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/i18n/entries/en/translation/hello.world
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has key and value", function () {
+      var data = res.getBody();
+      expect(data).to.have.property("key");
+      expect(data).to.have.property("value");
+      expect(data.key).to.equal("hello.world");
+      expect(data.value).to.equal("Hello World");
+  });
+}
