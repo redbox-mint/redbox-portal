@@ -10,6 +10,9 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   templateUrl: './translation.component.html',
   styles: [`
     .table th { cursor: pointer; user-select: none; }
+    /* Align key text and help badge */
+    td > span.text-truncate { vertical-align: middle; }
+    a.key-help { vertical-align: middle; padding-top: 0 !important; line-height: 1.2; display: inline-block; }
   `]
 })
 export class AppComponent implements OnInit {
@@ -111,6 +114,8 @@ export class AppComponent implements OnInit {
       return av.localeCompare(bv) * dir;
     });
     this.viewEntries.set(sorted);
+  // Reinitialize tooltips after DOM updates
+  this.initTooltipsAsync();
   }
 
   onCategoryChange() {
@@ -177,5 +182,34 @@ export class AppComponent implements OnInit {
       }
     }
     return result;
+  }
+
+  // Initialize Bootstrap tooltips (supports Bootstrap 3 and 5);
+  // called after viewEntries updates to ensure DOM is ready.
+  private initTooltipsAsync() {
+    // Defer until after change detection paints
+    setTimeout(() => this.initTooltipsSafe(), 0);
+  }
+
+  private initTooltipsSafe() {
+    try {
+      const w: any = window as any;
+      // Bootstrap 5: instantiate Tooltip on elements with data-bs-toggle
+      if (w.bootstrap && typeof w.bootstrap.Tooltip === 'function') {
+        const els = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]')) as HTMLElement[];
+        els.forEach(el => {
+          // If a tooltip instance already exists, skip
+          try { new w.bootstrap.Tooltip(el, { container: 'body' }); } catch (_) { /* no-op */ }
+        });
+        return;
+      }
+      // Bootstrap 3: use jQuery plugin $('[data-toggle="tooltip"]').tooltip()
+      const $: any = w.jQuery || w.$;
+      if ($ && typeof $.fn?.tooltip === 'function') {
+        $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
+      }
+    } catch (_) {
+      // ignore; native title still provides a fallback
+    }
   }
 }

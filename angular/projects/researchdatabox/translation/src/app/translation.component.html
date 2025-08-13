@@ -1,5 +1,7 @@
 <div class="container p-3">
-  <h2>Translation Manager</h2>
+  <div class="panel panel-default">
+    <div class="panel-heading">Translation Manager</div>
+    <div class="panel-body">
 
   <div class="row g-3 mb-3">
     <div class="col-md-4">
@@ -25,13 +27,25 @@
             <th>
               Category
             </th>
-            <th (click)="setSort('key')">
-              Key
-              <span class="ms-1" *ngIf="sortBy==='key'">{{ sortAsc ? '▲' : '▼' }}</span>
+            <th>
+              <a href="#" role="button"
+                 (click)="setSort('key'); $event.preventDefault()"
+                 [attr.aria-sort]="sortBy==='key' ? (sortAsc ? 'ascending' : 'descending') : null">
+                Key
+                <span class="ms-1" *ngIf="sortBy==='key'">
+                  <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
+                </span>
+              </a>
             </th>
-            <th (click)="setSort('value')">
-              Value
-              <span class="ms-1" *ngIf="sortBy==='value'">{{ sortAsc ? '▲' : '▼' }}</span>
+            <th>
+              <a href="#" role="button"
+                 (click)="setSort('value'); $event.preventDefault()"
+                 [attr.aria-sort]="sortBy==='value' ? (sortAsc ? 'ascending' : 'descending') : null">
+                Value
+                <span class="ms-1" *ngIf="sortBy==='value'">
+                  <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
+                </span>
+              </a>
             </th>
             <th style="width: 100px;">Actions</th>
           </tr>
@@ -42,14 +56,22 @@
               <span class="text-truncate d-inline-block" style="max-width: 220px;" [title]="e.category || 'Uncategorized'">{{ e.category || '—' }}</span>
             </td>
             <td>
-              <span class="text-truncate d-inline-block" style="max-width: 560px;" [title]="e.key">{{ e.key }}</span>
-              <span class="badge bg-light text-dark rounded-circle border ms-1" [ngClass]="{ 'opacity-50': !e.description }" [title]="e.description || 'No description'">?</span>
+          <span class="text-truncate d-inline-block" style="max-width: 560px;" [title]="e.key">{{ e.key }}</span>
+          <a href="#" role="button" tabindex="0"
+            class="badge bg-light text-dark rounded-circle border ms-1 key-help"
+            [ngClass]="{ 'opacity-50': !e.description }"
+            [attr.title]="e.description || 'No description'"
+            [attr.aria-label]="e.description || 'No description'"
+            data-toggle="tooltip"
+            data-bs-toggle="tooltip"
+            [attr.data-bs-title]="e.description || 'No description'"
+            (click)="$event.preventDefault()">?</a>
             </td>
             <td>
               <span class="text-break" [title]="e.value">{{ e.value }}</span>
             </td>
             <td>
-              <button class="btn btn-sm btn-outline-primary" (click)="openEdit(e)">Edit</button>
+              <button class="btn btn-large btn-primary" (click)="openEdit(e)">Edit</button>
             </td>
           </tr>
         </tbody>
@@ -84,4 +106,6 @@
     </div>
   </div>
   <div *ngIf="modalOpen()" class="modal-backdrop fade show"></div>
+    </div>
+  </div>
 </div>
