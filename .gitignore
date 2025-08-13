@@ -186,11 +186,4 @@ angular/.angular/cache/
 
 api/configmodels/*
 api/shims/*.js
-typescript/api/controllers/RecordAuditController.ts
-typescript/api/helpers/momentShim.ts
-typescript/api/services/DoiService.ts
-typescript/api/services/FigshareService.ts
-typescript/api/services/RaidService.ts
-typescript/api/services/RDMPService.ts
-typescript/api/services/TriggerService.ts
-typescript/api/shims/momentShim.ts
+
