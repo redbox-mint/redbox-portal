@@ -146,6 +146,19 @@ export module Services {
       }
     }
 
+    // Remove a dot-notation key from an object (best-effort, leaves empty parent objects in place)
+    private removeNested(obj: any, dottedKey: string): void {
+      if (!obj) return;
+      const parts = String(dottedKey).split('.');
+      let cursor = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const p = parts[i];
+        if (cursor[p] == null || typeof cursor[p] !== 'object') return; // nothing to remove
+        cursor = cursor[p];
+      }
+      delete cursor[parts[parts.length - 1]];
+    }
+
     private resolveBrandingId(branding: BrandingModel): string {
       return branding?.id || 'global';
     }
@@ -213,6 +226,18 @@ export module Services {
       const brandingId = this.resolveBrandingId(branding);
       const uid = this.buildUid(branding, locale, namespace, key);
       const deleted = await I18nTranslation.destroyOne({ uid });
+      // Keep bundle in sync by removing the key path if it exists
+      if (deleted) {
+        try {
+          const bundle = await this.getBundle(branding, locale, namespace);
+          if (bundle?.data) {
+            this.removeNested(bundle.data, key);
+            await I18nBundle.updateOne({ id: bundle.id }).set({ data: bundle.data });
+          }
+        } catch (e) {
+          sails.log.warn('[I18nEntriesService.deleteEntry] Bundle sync (remove) failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
+        }
+      }
       return !!deleted;
     }
 
@@ -247,10 +272,11 @@ export module Services {
       } else {
         bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace });
       }
-
-      const split = options?.splitToEntries === true;
-  if (split) {
-        await this.syncEntriesFromBundle(bundle, options?.overwriteEntries === true);
+      // Always synchronise entries with the saved bundle (force overwrite & prune) to avoid desync.
+      try {
+        await this.syncEntriesFromBundle(bundle, true /* overwrite */);
+      } catch (e) {
+        sails.log.warn('[I18nEntriesService.setBundle] Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
       return bundle;
     }
@@ -263,7 +289,7 @@ export module Services {
       return this.unflatten(flat);
     }
 
-    public async syncEntriesFromBundle(bundleOrId: any, overwrite = false): Promise<void> {
+  public async syncEntriesFromBundle(bundleOrId: any, overwrite = false): Promise<void> {
       const bundle = _.isString(bundleOrId)
         ? await I18nBundle.findOne({ id: bundleOrId })
         : bundleOrId;
@@ -288,20 +314,25 @@ export module Services {
         ? (BrandingService.getBrand(branding) || ({ id: branding } as BrandingModel))
         : (branding as BrandingModel);
 
+      // Track existing keys to detect removals
+      const existingEntries = await I18nTranslation.find({ branding: brandingModel.id || brandingModel, locale, namespace });
+      const existingKeysSet = new Set(existingEntries.map(e => e.key));
+
       for (const key of keys) {
         const val = flat[key];
+        existingKeysSet.delete(key); // still present
         const existing = await this.getEntry(brandingModel, locale, namespace, key);
-        if (existing && !overwrite) {
-          continue;
+        if (existing && !overwrite) continue;
+        await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description });
+      }
+
+      // Any keys left in existingKeysSet are no longer present in the bundle -> remove to avoid desync
+    for (const obsoleteKey of existingKeysSet) {
+        try {
+      await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
+        } catch (e) {
+          sails.log.warn('[I18nEntriesService.syncEntriesFromBundle] Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
-        await this.setEntry(
-          brandingModel,
-          locale,
-          namespace,
-          key,
-          val,
-          { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description }
-        );
       }
     }
   }
