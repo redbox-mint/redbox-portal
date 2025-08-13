@@ -25,6 +25,7 @@ declare var _;
 
 declare var BrandingService;
 declare var I18nEntriesService;
+declare var TranslationService;
 
 import { APIActionResponse, APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
@@ -87,6 +88,8 @@ export module Controllers {
     const description = req.body?.description;
 
   const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
+  // Auto-refresh server-side i18n cache; best-effort and non-blocking
+  try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setEntry] reload failed', e?.message || e); }
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
@@ -103,6 +106,8 @@ export module Controllers {
 
   const ok = await I18nEntriesService.deleteEntry(branding, locale, namespace, key);
         if (!ok) return this.apiFail(req, res, 404, new APIErrorResponse('Entry not found'));
+  // Refresh i18n cache after deletion
+  try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.deleteEntry] reload failed', e?.message || e); }
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
@@ -135,6 +140,8 @@ export module Controllers {
         const overwriteEntries = req.param('overwriteEntries') === 'true' || req.body?.overwriteEntries === true;
 
   const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, { splitToEntries, overwriteEntries });
+  // Refresh i18n cache after bundle update
+  try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setBundle] reload failed', e?.message || e); }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));

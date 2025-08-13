@@ -1,27 +1,87 @@
 <div class="container p-3">
   <h2>Translation Manager</h2>
 
-  <div class="mb-3">
-    <label class="form-label">Language</label>
-    <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
-      <option *ngFor="let lang of languages()" [value]="lang">{{ lang }}</option>
-    </select>
-  </div>
-
-  <div *ngIf="selectedLang" class="mb-3">
-    <button class="btn btn-primary me-2" (click)="save()">Save</button>
-    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
-  </div>
-
-  <div *ngIf="selectedLang">
-    <div class="mb-3" *ngFor="let keyName of keys()">
-      <label class="form-label">{{ keyName }}</label>
-      <textarea class="form-control" rows="2" [(ngModel)]="values[keyName]"></textarea>
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Language</label>
+      <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
+        <option *ngFor="let lang of languages()" [value]="lang">{{ lang }}</option>
+      </select>
+    </div>
+    <div class="col-md-4" *ngIf="selectedLang">
+      <label class="form-label">Filter by category</label>
+      <select class="form-select" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
+        <option value="">All categories</option>
+        <option *ngFor="let c of categories()" [value]="c">{{ c }}</option>
+      </select>
     </div>
   </div>
 
-   <div *ngIf="selectedLang" class="mb-3">
-    <button class="btn btn-primary me-2" (click)="save()">Save</button>
-    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+  <div *ngIf="selectedLang">
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-hover align-middle">
+        <thead>
+          <tr>
+            <th>
+              Category
+            </th>
+            <th (click)="setSort('key')">
+              Key
+              <span class="ms-1" *ngIf="sortBy==='key'">{{ sortAsc ? '▲' : '▼' }}</span>
+            </th>
+            <th (click)="setSort('value')">
+              Value
+              <span class="ms-1" *ngIf="sortBy==='value'">{{ sortAsc ? '▲' : '▼' }}</span>
+            </th>
+            <th style="width: 100px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of viewEntries()">
+            <td>
+              <span class="text-truncate d-inline-block" style="max-width: 220px;" [title]="e.category || 'Uncategorized'">{{ e.category || '—' }}</span>
+            </td>
+            <td>
+              <span class="text-truncate d-inline-block" style="max-width: 560px;" [title]="e.key">{{ e.key }}</span>
+              <span class="badge bg-light text-dark rounded-circle border ms-1" [ngClass]="{ 'opacity-50': !e.description }" [title]="e.description || 'No description'">?</span>
+            </td>
+            <td>
+              <span class="text-break" [title]="e.value">{{ e.value }}</span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" (click)="openEdit(e)">Edit</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
+  <!-- Bootstrap-styled modal (no JS) -->
+  <div *ngIf="modalOpen()" class="modal fade show" tabindex="-1" style="display:block;" (click)="closeModal()">
+    <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Translation</h5>
+          <button type="button" class="btn-close" aria-label="Close" (click)="closeModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Key</label>
+            <input class="form-control" [value]="editKey" disabled />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Value</label>
+            <textarea class="form-control" rows="4" [(ngModel)]="editValue"></textarea>
+          </div>
+          <div class="text-muted small" *ngIf="editDescription">{{ editDescription }}</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+          <button class="btn btn-primary" (click)="saveEdit()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="modalOpen()" class="modal-backdrop fade show"></div>
 </div>

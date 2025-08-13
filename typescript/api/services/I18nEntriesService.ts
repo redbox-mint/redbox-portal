@@ -129,6 +129,23 @@ export module Services {
       return result;
     }
 
+    // Minimal setter for dot-notation keys inside an object
+    private setNested(obj: any, dottedKey: string, value: any): void {
+      if (!obj) return;
+      const parts = String(dottedKey).split('.');
+      let cursor = obj;
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        const isLast = i === parts.length - 1;
+        if (isLast) {
+          cursor[p] = value;
+        } else {
+          if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
+          cursor = cursor[p];
+        }
+      }
+    }
+
     private resolveBrandingId(branding: BrandingModel): string {
       return branding?.id || 'global';
     }
@@ -165,11 +182,31 @@ export module Services {
       if (options?.category !== undefined) updates.category = options.category;
       if (options?.description !== undefined) updates.description = options.description;
 
-      if (existing) {
-        return await I18nTranslation.updateOne({ id: existing.id }).set(updates);
-      } else {
-        return await I18nTranslation.create(updates);
+      const saved = existing
+        ? await I18nTranslation.updateOne({ id: existing.id }).set(updates)
+        : await I18nTranslation.create(updates);
+
+      // Keep I18nBundle.data in sync for this branding/locale/namespace
+      try {
+        let bundle = await this.getBundle(branding, locale, namespace);
+        if (!bundle) {
+          // Create a minimal bundle containing this key
+          const data = this.unflatten({ [key]: value });
+          bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace });
+          // Backfill the entry's bundle relation if not set via options
+          if (!options?.bundleId && saved?.id) {
+            await I18nTranslation.updateOne({ id: saved.id }).set({ bundle: bundle.id });
+          }
+        } else {
+          const data = bundle.data || {};
+          this.setNested(data, key, value);
+          await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+        }
+      } catch (e) {
+        sails.log.warn('[I18nEntriesService.setEntry] Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
+
+      return saved;
     }
 
     public async deleteEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<boolean> {

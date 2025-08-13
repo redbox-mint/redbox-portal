@@ -1,14 +1,16 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './translation.component.html',
-  styles: [``]
+  styles: [`
+    .table th { cursor: pointer; user-select: none; }
+  `]
 })
 export class AppComponent implements OnInit {
   private http = inject(HttpClient);
@@ -17,9 +19,22 @@ export class AppComponent implements OnInit {
   languages = signal<string[]>([]);
   selectedLang: string = '';
   namespace = 'translation';
-  values: Record<string, any> = {};
 
-  keys = signal<string[]>([]);
+  // Entries loaded from the webservice API (include metadata)
+  entries = signal<Array<{ key: string; value: any; description?: string; category?: string }>>([]);
+  // Distinct categories from entries and current selection
+  categories = signal<string[]>([]);
+  selectedCategory: string = '';
+  // View model: filtered + sorted entries for display
+  viewEntries = signal<Array<{ key: string; value: any; description?: string; category?: string }>>([]);
+  sortBy: 'key' | 'value' = 'key';
+  sortAsc = true;
+
+  // Modal state
+  modalOpen = signal(false);
+  editKey = '';
+  editValue: any = '';
+  editDescription: string | undefined;
 
   async ngOnInit() {
     await this.loadLanguages();
@@ -41,47 +56,95 @@ export class AppComponent implements OnInit {
 
   async onLangChange() {
     if (!this.selectedLang) return;
-    // fetch namespace json
-    const url = this.buildBundleUrl(this.selectedLang, this.namespace);
+    await this.loadEntries();
+  }
+
+  // Load individual entries with metadata for the selected language
+  private async loadEntries() {
     try {
-      const bundle = await this.http.get<any>(url).toPromise();
-      // flatten to key/value
-      const flat = this.flatten(bundle || {});
-      this.values = flat;
-      this.keys.set(Object.keys(flat).sort());
+      const params = new URLSearchParams({ locale: this.selectedLang, namespace: this.namespace });
+      const url = `/default/rdmp/api/i18n/entries?${params.toString()}`;
+      const data = await this.http.get<Array<{ key: string; value: any; description?: string; category?: string }>>(url).toPromise();
+      this.entries.set(Array.isArray(data) ? data : []);
+      // Reset category filter on language change
+      this.selectedCategory = '';
+      this.refreshDerived();
     } catch (e) {
-      console.error('Failed to load translations', e);
-      this.values = {};
-      this.keys.set([]);
+      console.error('Failed to load entries', e);
+      this.entries.set([]);
+      this.viewEntries.set([]);
+      this.categories.set([]);
     }
   }
 
-  async save() {
-    if (!this.selectedLang) return;
-    const data = this.unflatten(this.values);
-    const url = this.buildBundleApiUrl(this.selectedLang, this.namespace);
-    // Save bundle and split into entries on server
+  setSort(col: 'key' | 'value') {
+    if (this.sortBy === col) {
+      this.sortAsc = !this.sortAsc;
+    } else {
+      this.sortBy = col;
+      this.sortAsc = true;
+    }
+    this.refreshDerived();
+  }
+
+  private refreshDerived() {
+    const data = this.entries();
+    // Update categories
+    const catSet = new Set<string>();
+    for (const e of data) {
+      if (e.category && e.category.trim().length > 0) catSet.add(e.category);
+    }
+    const cats = Array.from(catSet).sort((a, b) => a.localeCompare(b));
+    this.categories.set(cats);
+
+    // Filter by category
+    let filtered = data;
+    if (this.selectedCategory) {
+      filtered = data.filter(e => (e.category || '') === this.selectedCategory);
+    }
+
+    // Sort
+    const dir = this.sortAsc ? 1 : -1;
+    const sorted = [...filtered].sort((a, b) => {
+      const av = (this.sortBy === 'key' ? String(a.key) : String(a.value ?? ''));
+      const bv = (this.sortBy === 'key' ? String(b.key) : String(b.value ?? ''));
+      return av.localeCompare(bv) * dir;
+    });
+    this.viewEntries.set(sorted);
+  }
+
+  onCategoryChange() {
+    this.refreshDerived();
+  }
+
+  openEdit(entry: { key: string; value: any; description?: string }) {
+    this.editKey = entry.key;
+    this.editValue = entry.value;
+    this.editDescription = entry.description;
+    this.modalOpen.set(true);
+  }
+
+  async saveEdit() {
+    if (!this.selectedLang || !this.editKey) return;
+    const url = this.buildEntryApiUrl(this.selectedLang, this.namespace, this.editKey);
     try {
-      await this.http.post(url + '?splitToEntries=true&overwriteEntries=true', { data }).toPromise();
-      alert('Saved');
+      await this.http.post(url, { value: this.editValue }).toPromise();
+      // Update local state
+  const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value: this.editValue } : e);
+  this.entries.set(updated);
+  this.refreshDerived();
+      this.modalOpen.set(false);
     } catch (e) {
-      console.error('Failed to save', e);
+      console.error('Failed to save entry', e);
       alert('Save failed');
     }
   }
 
-  cancel() {
-    this.onLangChange();
-  }
+  closeModal() { this.modalOpen.set(false); }
 
-  private buildBundleUrl(lng: string, ns: string) {
-    // Use same path as i18next-http-backend via server controller
-    // NOTE: Branding/portal assumed default here; update if needed.
-    return `/default/rdmp/locales/${lng}/${ns}.json`;
-  }
-
-  private buildBundleApiUrl(lng: string, ns: string) {
-    return `/default/rdmp/api/i18n/bundles/${lng}/${ns}`;
+  private buildEntryApiUrl(lng: string, ns: string, key: string) {
+    // Dotted keys supported via wildcard route
+    return `/default/rdmp/api/i18n/entries/${lng}/${ns}/${encodeURIComponent(key)}`;
   }
 
   // Utilities

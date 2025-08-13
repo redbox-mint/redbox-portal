@@ -21,10 +21,12 @@ import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import i18next from "i18next"
-import Backend from 'i18next-fs-backend';
 
 declare var _;
 declare var sails: Sails;
+// Waterline globals
+declare var I18nBundle: Model;
+declare let BrandingService: any;
 
 export module Services {
   /**
@@ -45,22 +47,54 @@ export module Services {
     ];
     
     public async bootstrap() {
-      sails.log.debug("TranslationService initialising...")
-      sails.log.debug("#####################");
-      sails.log.debug(Backend);
-      sails.log.debug("#####################");
-
-      let initConfig = _.merge(sails.config.i18n.next.init, {
-        backend: {
-          loadPath: `${sails.config.appPath}/language-defaults/{{lng}}/{{ns}}.json`
-        }
+      sails.log.debug("TranslationService initialising from DB...")
+      const initBase = sails.config.i18n.next.init || {};
+      // Build resources from DB bundles for the default brand
+      const resources = await this._fetchResourcesFromDb();
+      await i18next.init({
+        ...initBase,
+        resources
       });
+      sails.log.debug("**************************");
+      const fallback = Array.isArray(initBase.fallbackLng) ? initBase.fallbackLng[0] : initBase.fallbackLng;
+      sails.log.debug(`i18next initialised (DB), default: '${fallback}', supported: ${initBase.supportedLngs}`);
+      sails.log.debug("**************************");
+    }
 
-      //@ts-ignore
-      await i18next.use(Backend).init(initConfig);
-      sails.log.debug("**************************");
-      sails.log.debug(`i18next initialised, default: '${initConfig.fallbackLng}', supported: ${initConfig.supportedLngs} `);
-      sails.log.debug("**************************");
+    private async _fetchResourcesFromDb(): Promise<Record<string, Record<string, any>>> {
+      const supported: string[] = (sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en'];
+      const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
+      const brand = BrandingService.getBrand('default');
+      if (!brand) {
+        sails.log.warn('[TranslationService] Default brand not found; resources will be empty');
+        return {};
+      }
+      const brandingId = brand.id || 'default';
+      const resources: Record<string, Record<string, any>> = {};
+      for (const lng of supported) {
+        resources[lng] = {};
+        for (const ns of namespaces) {
+          try {
+            // Prefer explicit fields query
+            let bundle = await I18nBundle.findOne({ branding: brandingId, locale: lng, namespace: ns });
+            if (!bundle) {
+              // Fallback to uid-based lookup if needed
+              const uid = `${brandingId}:${lng}:${ns}`;
+              bundle = await I18nBundle.findOne({ uid });
+            }
+            const data = (bundle?.data && typeof bundle.data === 'object') ? { ...bundle.data } : {};
+            if (data && typeof data === 'object' && data._meta) {
+              // strip metadata from runtime resources
+              delete (data as any)._meta;
+            }
+            resources[lng][ns] = data || {};
+          } catch (e) {
+            sails.log.verbose('[TranslationService] Failed to load bundle', brandingId, lng, ns, (e as Error)?.message || e);
+            resources[lng][ns] = {};
+          }
+        }
+      }
+      return resources;
     }
 
     public t(key, context = undefined, langCode:string = 'en') {
@@ -71,9 +105,17 @@ export module Services {
       return this.t(key, context, langCode);
     }
 
-    public reloadResources() {
-      //@ts-ignore
-      i18next.reloadResources();
+    public async reloadResources() {
+      // Reload from DB and replace resource bundles
+      const resources = await this._fetchResourcesFromDb();
+      const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
+      for (const lng of Object.keys(resources)) {
+        for (const ns of namespaces) {
+          const data = resources[lng][ns] || {};
+          // addResourceBundle(lng, ns, resources, deep, overwrite)
+          i18next.addResourceBundle(lng, ns, data, true, true);
+        }
+      }
     }
 
     public handle(req, res, next) {
