@@ -69,18 +69,25 @@ export module Services {
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
-              // Skip if bundle already exists
               const existing = await this.getBundle(defaultBrand, lng, ns);
-              if (existing) continue;
-
               const filePath = path.join(localesDir, lng, `${ns}.json`);
-              if (fs.existsSync(filePath)) {
-                const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+              if (!fs.existsSync(filePath)) {
+                continue; // nothing to seed/sync for this pair
+              }
+
+              const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+              if (!existing) {
+                // First-time seed: create bundle and split to entries (no overwrite)
                 await this.setBundle(defaultBrand, lng, ns, json, { splitToEntries: true, overwriteEntries: false });
                 sails.log.verbose(`[I18nEntriesService.bootstrap] Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
+              } else {
+                // Incremental: add any new keys found in defaults into entries; do not touch bundle data
+                await this.syncEntriesFromBundle({ branding: defaultBrand, locale: lng, namespace: ns, id: existing.id, data: json }, false);
+                sails.log.verbose(`[I18nEntriesService.bootstrap] Synced new keys for ${defaultBrand.id}:${lng}:${ns}`);
               }
             } catch (e) {
-              sails.log.verbose('[I18nEntriesService.bootstrap] Skipping seed for', lng, ns, 'due to error:', (e as Error)?.message || e);
+              sails.log.verbose('[I18nEntriesService.bootstrap] Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
             }
           }
         }
@@ -137,13 +144,31 @@ export module Services {
       return await I18nTranslation.findOne({ uid });
     }
 
-    public async setEntry(branding: BrandingModel, locale: string, namespace: string, key: string, value: any, bundleId?: string): Promise<any> {
+    public async setEntry(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      key: string,
+      value: any,
+      options?: { bundleId?: string; category?: string; description?: string }
+    ): Promise<any> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
+      const updates: any = {
+        value,
+        branding: brandingId,
+        locale,
+        namespace,
+        key
+      };
+      if (options?.bundleId) updates.bundle = options.bundleId;
+      if (options?.category !== undefined) updates.category = options.category;
+      if (options?.description !== undefined) updates.description = options.description;
+
       if (existing) {
-        return await I18nTranslation.updateOne({ id: existing.id }).set({ value, branding: brandingId, locale, namespace, key, bundle: bundleId });
+        return await I18nTranslation.updateOne({ id: existing.id }).set(updates);
       } else {
-        return await I18nTranslation.create({ value, branding: brandingId, locale, namespace, key, bundle: bundleId });
+        return await I18nTranslation.create(updates);
       }
     }
 
@@ -170,7 +195,13 @@ export module Services {
       return await I18nBundle.findOne({ uid });
     }
 
-    public async setBundle(branding: BrandingModel, locale: string, namespace: string, data: any, options?: { splitToEntries?: boolean; overwriteEntries?: boolean }): Promise<any> {
+    public async setBundle(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      data: any,
+      options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
+    ): Promise<any> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getBundle(branding, locale, namespace);
       let bundle;
@@ -181,7 +212,7 @@ export module Services {
       }
 
       const split = options?.splitToEntries === true;
-      if (split) {
+  if (split) {
         await this.syncEntriesFromBundle(bundle, options?.overwriteEntries === true);
       }
       return bundle;
@@ -202,7 +233,17 @@ export module Services {
       if (!bundle) throw new Error('Bundle not found');
 
       const { branding, locale, namespace, id: bundleId } = bundle;
-  const flat = this.flatten(bundle.data || {});
+      const data = bundle.data || {};
+      // Extract optional metadata map at root level: { [keyPath]: { category?, description? } }
+      const meta: Record<string, { category?: string; description?: string }> = (data && typeof data._meta === 'object') ? data._meta : {};
+
+      // Flatten the data then strip any _meta entries
+      const flatAll = this.flatten(data || {});
+      const flat: Record<string, any> = {};
+      Object.keys(flatAll).forEach(k => {
+        if (k === '_meta' || k.startsWith('_meta.')) return; // skip meta keys
+        flat[k] = flatAll[k];
+      });
       const keys = Object.keys(flat);
 
       // Ensure we have a BrandingModel for downstream calls
@@ -216,7 +257,14 @@ export module Services {
         if (existing && !overwrite) {
           continue;
         }
-        await this.setEntry(brandingModel, locale, namespace, key, val, bundleId);
+        await this.setEntry(
+          brandingModel,
+          locale,
+          namespace,
+          key,
+          val,
+          { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description }
+        );
       }
     }
   }

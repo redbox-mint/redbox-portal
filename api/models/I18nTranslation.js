@@ -32,6 +32,20 @@ module.exports = {
       required: true
     },
 
+    // Optional category to help organise keys in the editor (e.g. "dashboard", "forms")
+    category: {
+      type: 'string',
+      required: false,
+      allowNull: true
+    },
+
+    // Optional human-readable description of where/how this key is used
+    description: {
+      type: 'string',
+      required: false,
+      allowNull: true
+    },
+
     // Optional branding association to scope translations per brand; when absent, global applies
     branding: {
       model: 'brandingconfig',

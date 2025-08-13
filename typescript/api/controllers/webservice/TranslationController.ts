@@ -52,6 +52,7 @@ export module Controllers {
         const keyPrefix = req.param('keyPrefix');
 
   const entries = await I18nEntriesService.listEntries(branding, locale, namespace, keyPrefix);
+        // Ensure metadata fields are included in the response
         return this.apiRespond(req, res, entries, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
@@ -82,8 +83,10 @@ export module Controllers {
         const namespace = req.param('namespace') || 'translation';
         const key = req.param('key');
         const value = req.body?.value;
+    const category = req.body?.category;
+    const description = req.body?.description;
 
-  const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value);
+  const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));

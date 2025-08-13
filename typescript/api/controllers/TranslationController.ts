@@ -66,7 +66,17 @@ export module Controllers {
           return res.notFound({ message: 'Namespace not found' });
         }
 
-        return res.json(bundle.data || {});
+        // If bundle contains metadata at _meta, do not include that when serving i18next namespace
+        const payload = bundle.data || {};
+        if (payload && typeof payload === 'object' && payload._meta) {
+          try {
+            const { _meta, ...rest } = payload;
+            return res.json(rest);
+          } catch (_e) {
+            // fallback
+          }
+        }
+        return res.json(payload);
       } catch (err) {
         sails.log.error('Error in TranslationController.getNamespace:', err);
         return res.serverError(err);
