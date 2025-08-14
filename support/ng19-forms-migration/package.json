@@ -1,0 +1,11 @@
+{
+  "name": "redbox-ng19-forms-migration-utility",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}
