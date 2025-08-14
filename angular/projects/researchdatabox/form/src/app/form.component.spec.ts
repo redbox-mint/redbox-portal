@@ -16,15 +16,38 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import { provideAppInitializer } from '@angular/core';
+import { APP_BASE_HREF } from '@angular/common'; 
 import { TestBed } from '@angular/core/testing';
 import { FormComponent } from './form.component';
+import { UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 
 describe('FormComponent', () => {
+  let configService:any;
+  let translationService: any;
   beforeEach(async () => {
+    configService = getStubConfigService();
+    translationService = getStubTranslationService();
     await TestBed.configureTestingModule({
       declarations: [
         FormComponent
       ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: 'base'
+        },
+        LoggerService,
+        UtilityService,
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        }
+      ]
     }).compileComponents();
   });
 

@@ -12,13 +12,15 @@
     </div>
     <div class="col-xs-2"></div>
   </div>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/runtime<%= CacheService.getNgAppFileHash(appName, 'runtime', '.') %>.js" type="module"></script>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '.') %>.js" type="module"></script>
-  <% if (sails.config.angularDev) { %>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/vendor.js" type="module"></script>
-  <% } %>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/main<%=CacheService.getNgAppFileHash(appName, 'main', '.') %>.js" type="module"></script>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '.') %>.css">
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/runtime<%=CacheService.getNgAppFileHash(appName, 'runtime', '-') %>.js"
+     type="module"></script>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/vendor<%=CacheService.getNgAppFileHash(appName, 'vendor', '-') %>.js"
+     type="module"></script>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
+     type="module"></script>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+     type="module"></script>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
 <% } else { %>
   <!-- Legacy Form  -->
   <div class="row" id="loading" alt="<%= TranslationService.t('loading-alt-text') %>">

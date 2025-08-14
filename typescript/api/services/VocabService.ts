@@ -17,17 +17,15 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, Scheduler } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
-import {Sails, Model} from "sails";
+import { Observable } from 'rxjs/Rx';
+import { SearchService, VocabQueryConfig, BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails } from 'sails';
 import axios from 'axios';
 
-
-declare var CacheService, RecordsService, AsynchsService;
+declare var CacheService, AsynchsService;
+declare var NamedQueryService;
 declare var sails: Sails;
-declare var _this;
 declare var _;
-declare var Institution: Model;
 
 export module Services {
   /**
@@ -47,22 +45,23 @@ export module Services {
       'findInMint',
       'findInExternalService',
       'rvaGetResourceDetails',
-      'findInMintTriggerWrapper'
+      'findInMintTriggerWrapper',
+      'findRecords'
     ];
 
     public bootstrap() {
       return _.isEmpty(sails.config.vocab.bootStrapVocabs) ?
-      Observable.of(null)
-      : Observable.from(sails.config.vocab.bootStrapVocabs)
-      .flatMap(vocabId => {
-        return this.getVocab(vocabId);
-      })
-      .last();
+        Observable.of(null)
+        : Observable.from(sails.config.vocab.bootStrapVocabs)
+          .flatMap(vocabId => {
+            return this.getVocab(vocabId);
+          })
+          .last();
     }
 
     public async findInMintTriggerWrapper(user: object, options: object, failureMode: string) {
       let additionalInfoFound = _.get(user, 'additionalInfoFound');
-      if(!_.isArray(additionalInfoFound)) {
+      if (!_.isArray(additionalInfoFound)) {
         additionalInfoFound = [];
       }
       try {
@@ -70,22 +69,22 @@ export module Services {
         let queryStringTmp = _.get(options, 'queryString');
         let compiledTemplate = _.template(queryStringTmp, {});
         let fieldsToMap = _.get(options, 'fieldsToMap');
-        
-        let queryString = compiledTemplate({user: user});
-        let mintResponse = await this.findInMint(sourceType, queryString).toPromise();
-        let responseDocs = _.get(mintResponse, 'response.docs');
-        if(_.isArray(responseDocs) && responseDocs.length > 0) {
 
-          for(let fieldName of fieldsToMap) {
+        let queryString = compiledTemplate({ user: user });
+        let mintResponse = await this.findInMint(sourceType, queryString);
+        let responseDocs = _.get(mintResponse, 'response.docs');
+        if (_.isArray(responseDocs) && responseDocs.length > 0) {
+
+          for (let fieldName of fieldsToMap) {
             let sourceField = _.get(responseDocs[0], fieldName);
-            if(!_.isUndefined(sourceField) && !_.isEmpty(sourceField) && !_.isNull(sourceField)) {
-              _.set(user, 'additionalAttributes.'+fieldName, sourceField);
+            if (!_.isUndefined(sourceField) && !_.isEmpty(sourceField) && !_.isNull(sourceField)) {
+              _.set(user, 'additionalAttributes.' + fieldName, sourceField);
             }
           }
           this.setSuccessOrFailure(user, additionalInfoFound, '', true);
 
         } else {
-          
+
           this.setSuccessOrFailure(user, additionalInfoFound, failureMode);
         }
 
@@ -96,12 +95,12 @@ export module Services {
         sails.log.error(err);
         sails.log.error(options);
         this.setSuccessOrFailure(user, additionalInfoFound, failureMode);
-        return user; 
+        return user;
       }
     }
 
-    private setSuccessOrFailure( user: object, additionalInfoFound: any, failureMode: string, forceSuccess: boolean = false) {
-      
+    private setSuccessOrFailure(user: object, additionalInfoFound: any, failureMode: string, forceSuccess: boolean = false) {
+
       if (forceSuccess) {
 
         let successResponse = {
@@ -130,7 +129,7 @@ export module Services {
       }
     }
 
-    public findInMint(sourceType, queryString) {
+    public async findInMint(sourceType, queryString): Promise<any> {
       queryString = _.trim(queryString);
       let searchString = '';
       if (!_.isEmpty(queryString)) {
@@ -141,21 +140,132 @@ export module Services {
       sails.log(mintUrl);
       const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
       sails.log.verbose(options);
-      
-      return Observable.fromPromise(axios(options).then(res => res.data));
+
+      let response = await axios(options);
+      return response.data;
     }
 
-    public findInExternalService(providerName, params) {
-      const method = sails.config.vocab.providers[providerName].method;
-      let url = sails.config.vocab.providers[providerName].url;
+    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user:any): Promise<any> {
+
+      const queryConfig:VocabQueryConfig = sails.config.vocab.queries[sourceType];
+
+      if (queryConfig.querySource == 'database') {
+
+        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryConfig.databaseQuery.queryName);
+        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
+        let dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        if(queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(dbResults,queryConfig);
+        } else {
+          return dbResults;
+        }
+      } else if (queryConfig.querySource == 'solr') {
+        let solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json',user);
+        let solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, null, solrQuery);
+        if(queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(solrResults,queryConfig);
+        } else {
+          return solrResults;
+        }
+      }
+    }
+
+    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user:any):any {
+      let paramMap = {}
+      if (queryConfig.queryField.type == 'text') {
+        paramMap[queryConfig.queryField.property] = searchString;
+      }
+      if (queryConfig.userQueryFields != null) {
+        for(let userQueryField of queryConfig.userQueryFields) {
+          paramMap[userQueryField.property] = _.get(user, userQueryField.userValueProperty, null);
+        }
+      }
+      return paramMap;
+    }
+
+    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json',user):string {
+      let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
+      query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+
+      if (queryConfig.queryField.type == 'text') {
+        let value = searchString;
+        if (!_.isEmpty(value)) {
+          let searchProperty = queryConfig.queryField.property;
+          query = query + '&fq=' + searchProperty + ':';
+          if(value.indexOf('*') != -1){
+            query = query + value.replaceAll('*','') + '*';
+          } else {
+            query = query + value + '*';
+          }
+        }
+      }
+
+      if (queryConfig.userQueryFields != null) {
+        for(let userQueryField of queryConfig.userQueryFields) {
+          let searchProperty = userQueryField.property;
+          query = query + '&fq=' + searchProperty + ':'+ _.get(user, userQueryField.userValueProperty, null);
+        }
+      }
+
+      return query;
+    }
+
+    getResultObjectMappings(results:any, queryConfig:VocabQueryConfig) {
+
+      let responseRecords = _.get(results,'response.docs','');
+      if(responseRecords == '') {
+        responseRecords = results.records;
+      }
+      let response = [];
+      let that = this;
+      let resultObjectMapping = queryConfig.resultObjectMapping;
+      for(let record of responseRecords) {
+        try {
+          let variables = { 
+            record: record,
+            _: _
+           };
+          let defaultMetadata = {};
+          if(!_.isEmpty(resultObjectMapping)) {
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            });
+            defaultMetadata = resultMetadata;
+            response.push(defaultMetadata);
+          }
+        } catch (error) {
+            //This is required because the records retrieved from the solr index can have different structure and runTemplate method 
+            //cannot handle this .i.e if there are records type rdmp thar normal rdmp records and there are mock mint records that 
+            //are also rdmp type when the mock mint records are set to a different record type this should not happen 
+            continue;
+        }
+      }
+      return response;
+    }
+
+    private getSearchService(): SearchService{
+      return sails.services[sails.config.search.serviceName];
+    }
+
+    private runTemplate(templateOrPath: string, variables: any) {
+      if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
+          return _.template(templateOrPath)(variables);
+      }
+      return _.get(variables, templateOrPath);
+    }
+
+    public async findInExternalService(providerName, params): Promise<any> {
+      const method = sails.config.vocab.external[providerName].method;
+      let url = sails.config.vocab.external[providerName].url;
 
       let templateFunction = this.getTemplateStringFunction(url);
       url = templateFunction(params.options);
 
       sails.log.info(url);
-      let options = sails.config.vocab.providers[providerName].options;
+      let options = sails.config.vocab.external[providerName].options;
 
-      if(method == 'post') {
+      if (method == 'post') {
         const post = {
           method: method,
           url: url,
@@ -163,27 +273,29 @@ export module Services {
           params: options
         };
         sails.log.verbose(post);
-        
-        return Observable.fromPromise(axios(post));
+
+        let response = await axios(post);
+        return response.data;
       } else {
         const getSearch = {
-          method: sails.config.record.api.search.method,
+          method: method,
           url: url,
           params: options
         };
         sails.log.verbose(getSearch);
-        
-        return Observable.fromPromise(axios(getSearch));
+
+        let response = await axios(getSearch);
+        return response.data;
       }
     }
 
     private getTemplateStringFunction(template) {
       var sanitized = template
-          .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function(_, match){
-              return `\$\{map.${match.trim()}\}`;
-              })
-          // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
-          .replace(/(\$\{(?!map\.)[^}]+\})/g, '');
+        .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function (_, match) {
+          return `\$\{map.${match.trim()}\}`;
+        })
+        // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
+        .replace(/(\$\{(?!map\.)[^}]+\})/g, '');
 
       return Function('map', `return \`${sanitized}\``);
     }
@@ -205,7 +317,7 @@ export module Services {
         return this.getConcepts(url, rawItems).flatMap(allRawItems => {
           //   // we only are interested in notation, label and the uri
           items = _.map(allRawItems, rawItem => {
-            return {uri: rawItem._about, notation: rawItem.notation, label: rawItem.prefLabel._value};
+            return { uri: rawItem._about, notation: rawItem.notation, label: rawItem.prefLabel._value };
           });
           CacheService.set(vocabId, items);
           return Observable.of(items);
@@ -217,25 +329,25 @@ export module Services {
     protected getConcepts(url, rawItems) {
       console.log(`Getting concepts....${url}`);
       return Observable.fromPromise(axios.get(url))
-      .flatMap((resp) => {
-        let response:any = resp;
-        rawItems = rawItems.concat(response.result.items);
-        if (response.result && response.result.next) {
-          return this.getConcepts(response.result.next, rawItems);
-        }
-        return Observable.of(rawItems);
-      });
+        .flatMap((resp) => {
+          let response: any = resp.data;
+          rawItems = rawItems.concat(response.result.items);
+          if (response.result && response.result.next) {
+            return this.getConcepts(response.result.next, rawItems);
+          }
+          return Observable.of(rawItems);
+        });
     }
 
     protected getNonAndsVocab(vocabId) {
       const url = sails.config.vocab.nonAnds[vocabId].url;
       return Observable.fromPromise(axios.get(url)).flatMap(response => {
-        CacheService.set(vocabId, response);
+        CacheService.set(vocabId, response.data);
         return Observable.of(response);
       });
     }
 
-    loadCollection(collectionId, progressId, force=false) {
+    loadCollection(collectionId, progressId = null, force = false) {
       const getMethod = sails.config.vocab.collection[collectionId].getMethod;
       const bufferCount = sails.config.vocab.collection[collectionId].processingBuffer;
       const processWindow = sails.config.vocab.collection[collectionId].processingTime;
@@ -247,36 +359,36 @@ export module Services {
           sails.log.verbose(`Loading collection: ${collectionId}, using url: ${url}`);
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
           return Observable.fromPromise(axios.get(url))
-          .flatMap(resp => {
-            let response:any = resp;
-            sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
-            sails.log.verbose(`Number of items: ${response.length}`);
-            const itemsToSave = _.chunk(response, bufferCount);
-            collectionData = itemsToSave;
-            // sails.log.verbose(collectionData);
-            const updateObj = { currentIdx: 0, targetIdx: collectionData.length };
-            return AsynchsService.update({id:progressId}, updateObj);
-          })
-          .flatMap(updateResp => {
-            sails.log.verbose(`Updated asynch progress...`);
-            return Observable.from(collectionData);
-          })
-          .map((buffer, i) => {
-            setTimeout(()=> {
-              sails.log.verbose(`Processing chunk: ${i}`);
-              return this.saveCollectionChunk(methodName, buffer, i)
-              .flatMap(saveResp => {
-                sails.log.verbose(`Updating chunk progress...${i}`);
-                if (i == collectionData.length) {
-                  sails.log.verbose(`Asynch completed.`);
-                  return AsynchsService.finish(progressId);
-                } else {
-                  return AsynchsService.update({id: progressId}, {currentIdx: i+1, status: 'processing'});
-                }
-              });
-            }, i * processWindow);
-          })
-          .concat()
+            .flatMap(resp => {
+              let response: any = resp.data;
+              sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
+              sails.log.verbose(`Number of items: ${response.length}`);
+              const itemsToSave = _.chunk(response, bufferCount);
+              collectionData = itemsToSave;
+              // sails.log.verbose(collectionData);
+              const updateObj = { currentIdx: 0, targetIdx: collectionData.length };
+              return AsynchsService.update({ id: progressId }, updateObj);
+            })
+            .flatMap(updateResp => {
+              sails.log.verbose(`Updated asynch progress...`);
+              return Observable.from(collectionData);
+            })
+            .map((buffer, i) => {
+              setTimeout(() => {
+                sails.log.verbose(`Processing chunk: ${i}`);
+                return this.saveCollectionChunk(methodName, buffer, i)
+                  .flatMap(saveResp => {
+                    sails.log.verbose(`Updating chunk progress...${i}`);
+                    if (i == collectionData.length) {
+                      sails.log.verbose(`Asynch completed.`);
+                      return AsynchsService.finish(progressId);
+                    } else {
+                      return AsynchsService.update({ id: progressId }, { currentIdx: i + 1, status: 'processing' });
+                    }
+                  });
+              }, i * processWindow);
+            })
+            .concat()
         } else {
           sails.log.verbose(`Collection already loaded: ${collectionId}`);
           return Observable.of(null);
@@ -292,21 +404,21 @@ export module Services {
       return this[sails.config.vocab.collection[collectionId].searchMethod](searchString);
     }
 
-    public rvaGetResourceDetails(uri,vocab) {
-      const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
+    public rvaGetResourceDetails(uri, vocab) {
+      const url = sails.config.vocab.rootUrl + `${vocab}/resource.json?uri=${uri}`;
       return Observable.fromPromise(axios.get(url)).flatMap(response => {
-        CacheService.set(vocab, response);
+        CacheService.set(vocab, response.data);
         return Observable.of(response);
       });
     }
 
     protected getMintOptions(url, method, contentType = 'application/json; charset=utf-8') {
 
-      const opts =  {
+      const opts = {
         method: method,
         url: url,
         headers: {
-          'Authorization': `Bearer ${sails.config.mint.apiKey}`, 
+          'Authorization': `Bearer ${sails.config.mint.apiKey}`,
           'Content-Type': contentType
         }
       };

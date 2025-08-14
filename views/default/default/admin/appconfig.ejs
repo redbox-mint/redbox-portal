@@ -1,0 +1,20 @@
+<% let appName = 'app-config'; %>
+
+<div class="main container clearfix">
+  <h2><%= formTitle %></h2>
+  
+  <app-config configKey="<%= configKey %>">
+    <div class="col-xs-1">
+    </div>
+    <div class="col-xs-10">
+      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    </div>
+    <div class="col-xs-1">
+    </div>
+  </app-config>
+</div>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
+   type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+   type="module"></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">

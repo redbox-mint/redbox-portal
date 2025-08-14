@@ -43,6 +43,16 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/record/destroy(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/listDeletedRecords(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/admin',
       role: 'Librarians',
       can_update:true
@@ -158,6 +168,11 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/appconfig(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/asynch(/*)',
       role: 'Researcher',
       can_update:true
@@ -207,15 +222,15 @@ module.exports.auth = {
         },
         onUpdate: {
           pre: [
-          {
-            function: 'sails.services.vocabservice.findInMintTriggerWrapper',
-            failureMode: 'continue', //options continue or stop processing
-            options: {
-              sourceType: 'Parties AND repository_name:People',
-              queryString: 'autocomplete_given_name:<%= user.name%>* OR autocomplete_family_name:<%= user.name%>* OR autocomplete_full_name:<%= user.name%>*',
-              fieldsToMap: ['text_full_name', 'dc_identifier']
-            }
-          }
+          // {
+          //   function: 'sails.services.vocabservice.findInMintTriggerWrapper',
+          //   failureMode: 'continue', //options continue or stop processing
+          //   options: {
+          //     sourceType: 'Parties AND repository_name:People',
+          //     queryString: 'autocomplete_given_name:<%= user.name%>* OR autocomplete_family_name:<%= user.name%>* OR autocomplete_full_name:<%= user.name%>*',
+          //     fieldsToMap: ['text_full_name', 'dc_identifier']
+          //   }
+          // }
         ],
         post: []
       }

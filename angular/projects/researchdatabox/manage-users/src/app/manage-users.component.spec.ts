@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { FormsModule, FormBuilder } from "@angular/forms";
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
+import i18next from 'i18next';
+import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
 import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService, appInit, localeId } from '@researchdatabox/portal-ng-common';
 
@@ -36,6 +37,14 @@ let usersData = [
                 ]
         }
    ];
+
+export function i18AppInit() {
+  return () => i18next
+  .init({
+    fallbackLng: 'en',
+    debug: true
+  });
+}
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -70,23 +79,15 @@ describe('AppComponent', () => {
           provide: UserService,
           useValue: userService
         },
-        {
-          provide: APP_INITIALIZER,
-          useFactory: appInit,
-          deps: [I18NEXT_SERVICE],
-          multi: true,
-        },
-        {
-          provide: LOCALE_ID,
-          deps: [I18NEXT_SERVICE],
-          useValue: localeId
-        }
+        provideAppInitializer(i18AppInit()),
+        provideI18Next(
+          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
+        ),
       ]
     });
     
     TestBed.inject(FormBuilder);
     TestBed.inject(UserService);
-    TestBed.inject(I18NEXT_SERVICE);
     await testModule.compileComponents();
   });
 

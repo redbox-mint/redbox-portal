@@ -1,0 +1,37 @@
+meta {
+  name: Send Email Notification
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{host}}/default/rdmp/api/sendNotification
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+    {
+        "from": "from-example@redboxresearchdata.com.au",
+        "to": "to-example@redboxresearchdata.com.au",
+        "cc": "cc-example@redboxresearchdata.com.au",
+        "bcc": "bcc-example@redboxresearchdata.com.au",
+        "template": "test",
+        "data": {
+            "data": "the test data"
+        }
+    }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  test("Message was sent successfully", function () {
+      expect(res.getBody().message).to.contain("Email sent successfully.");
+  });
+}

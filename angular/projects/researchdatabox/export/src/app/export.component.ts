@@ -24,8 +24,9 @@ import { map as _map, get as _get } from 'lodash-es';
 import { DateTime } from 'luxon';
 
 @Component({
-  selector: 'export',
-  templateUrl: './export.component.html'
+    selector: 'export',
+    templateUrl: './export.component.html',
+    standalone: false
 })
 export class ExportComponent extends BaseComponent {
   datePickerPlaceHolder: string = '';

@@ -1,0 +1,27 @@
+meta {
+  name: List Forms
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/forms
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has forms in response", function () {
+      var jsonData = res.getBody();
+       expect(jsonData).to.have.property("records");
+       expect(jsonData.records.length).to.be.greaterThan(0)
+  });
+}

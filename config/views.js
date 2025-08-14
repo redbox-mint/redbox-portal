@@ -10,7 +10,6 @@
  * For more information on views and layouts, check out:
  * http://sailsjs.org/#!/documentation/concepts/Views
  */
-
 module.exports.views = {
 
   /****************************************************************************
@@ -89,7 +88,12 @@ module.exports.views = {
   *                                                                           *
   ****************************************************************************/
 
-  partials: false
+  partials: false,
 
-
+  // Set no cache headers for certain view paths
+  noCache: [
+    "/default/rdmp/researcher/home",
+    "/default/rdmp/home",
+    "/"
+  ]
 };

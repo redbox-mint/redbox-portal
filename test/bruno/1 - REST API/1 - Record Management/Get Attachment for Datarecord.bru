@@ -1,0 +1,29 @@
+meta {
+  name: Get Attachment for Datarecord
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}/{{attDataRecordStreamId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  const _ = require('lodash')
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Body has attachment content", function () {
+      let obj = res.getBody();
+    // TODO: It's actually not 28398 bytes but I think bruno garbles it in res.getBody
+    expect(_.size(res.getBody())).to.eql(28398);
+    expect(res.headers['content-type']).to.eql('image/png');
+  });
+}

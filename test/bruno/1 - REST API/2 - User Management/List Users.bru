@@ -1,0 +1,34 @@
+meta {
+  name: List Users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/users
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Number of users returned in results array equals numFound or 10", function () {
+      var jsonData = res.getBody();
+      
+      var numFound = jsonData.summary.numFound;
+      
+      if(numFound < 10) {
+          expect(jsonData.records.length).to.eql(numFound);
+      } else {
+          expect(jsonData.records.length).to.eql(10);
+      }
+  });
+}

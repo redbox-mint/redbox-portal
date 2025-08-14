@@ -20,7 +20,7 @@
    sails.log.verbose("Roles service, bootstrapped.");
    let reportsBootstrapResult = await sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
    sails.log.verbose("Reports service, bootstrapped.");
-   let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("Named Query service, bootstrapped.");
    // sails doesn't support 'populating' of nested associations
    // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
@@ -61,9 +61,15 @@
      sails.log.debug('cronjobs scheduled...');
    }
  
-   sails.log.verbose("Cron service, bootstrapped.");
-   // After last, because it was being triggered twice
-   await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+  // Initialise the applicationConfig for all the brands
+  await sails.services.appconfigservice.bootstrap()
+  // bind convenience function to sails.config so that configuration access syntax is consistent
+  sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand
+    
+  sails.log.verbose("Cron service, bootstrapped.");
+  // After last, because it was being triggered twice
+  await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+
  
    sails.log.verbose("WorkspaceTypes service, bootstrapped.");
 
@@ -104,9 +110,8 @@
    } else {
      throw new Error('ReDBox Storage failed to start');
    }
- 
+
  }
- 
  
  module.exports.bootstrap = function (cb) {
    if (sails.config.security.csrf === "false") {
@@ -119,8 +124,10 @@
      sails.config.ng2.use_bundled = true;
      console.log("Using NG2 Bundled files.......");
    }
- 
-   
+
+   // Update the pino log level to the sails.log.level.
+   sails.config.log.customLogger.level = sails.config.log.level;
+
    // actual bootstrap...
    sails.log.debug("Starting boostrap process with boostrapAlways set to: " + sails.config.appmode.bootstrapAlways);
    actualBootstrap().then(response => {

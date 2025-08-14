@@ -330,6 +330,7 @@ export class DateTime extends FieldBase<any> {
   valueFormat: string;
   displayFormat: string;
   adjustStartRange: boolean;
+  disableInputByKeyboard: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -339,9 +340,16 @@ export class DateTime extends FieldBase<any> {
     this.hasClearButton = options['hasClearButton'] || false;
     this.valueFormat = options['valueFormat'] || 'YYYY-MM-DD';
     this.displayFormat = options['displayFormat'] || 'YYYY-MM-DD';
+    this.disableInputByKeyboard = options['disableInputByKeyboard'] || false;
     this.controlType = 'datetime';
     this.value = this.value ? this.parseToDate(this.value) : this.value;
     this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
+  }
+
+  public createFormModel(valueElem: any = null): any {
+    this.value = valueElem || this.value;
+    this.value = this.value ? this.parseToDate(this.value) : this.value;
+    return super.createFormModel(this.value);
   }
 
   updatePlaceholderAsFormat(options: any, fieldName = 'placeholderAsFormat') {
@@ -363,7 +371,11 @@ export class DateTime extends FieldBase<any> {
   }
 
   parseToDate(value: any) {
-    return moment(value, this.valueFormat).local().toDate();
+    if(moment(value, this.valueFormat).isValid()) {
+      return moment(value, this.valueFormat).local().toDate();
+    } else {
+      return null;
+    }
   }
 
   formatValueForDisplay() {
@@ -415,12 +427,14 @@ export class SaveButton extends FieldBase<string> {
   disableValidation: boolean;
   // added value when clicked
   clickedValue: string;
+  redirectDelaySeconds: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.label = this.getTranslated(options['label'], 'Save');
     this.closeOnSave = options['closeOnSave'] || false;
     this.redirectLocation = options['redirectLocation'] || false;
+    this.redirectDelaySeconds = options['redirectDelaySeconds'] || 3;
     this.cssClasses = options['cssClasses'] || "btn-primary";
     this.targetStep = options['targetStep'] || null;
     this.additionalData = options['additionalData'] || null;

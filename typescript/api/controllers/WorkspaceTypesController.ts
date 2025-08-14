@@ -27,7 +27,7 @@ declare var BrandingService, WorkspaceTypesService;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
 	/**
@@ -55,7 +55,7 @@ export module Controllers {
 		}
 
 		public get(req, res) {
-			const brand = BrandingService.getBrand(req.session.branding);
+			const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 			return WorkspaceTypesService.get(brand).subscribe(response => {
 				let workspaceTypes = [];
 				if (response) {
@@ -70,7 +70,7 @@ export module Controllers {
 
 		public getOne(req, res) {
 			const name = req.param('name');
-			const brand = BrandingService.getBrand(req.session.branding);
+			const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 			return WorkspaceTypesService.getOne(brand, name)
 				.subscribe(response => {
 					let workspaceType = null;
@@ -96,7 +96,7 @@ export module Controllers {
 
 		public renderImage(req, res) {
 			const type = req.param('workspaceType');
-			const brand = BrandingService.getBrand(req.session.branding);
+			const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 			return WorkspaceTypesService.getOne(brand, type).subscribe(response => {
 				this.blobAdapter.read(response.logo, function (error, file) {
 					if (error) {

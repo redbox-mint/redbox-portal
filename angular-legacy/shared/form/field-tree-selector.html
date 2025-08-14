@@ -1,0 +1,58 @@
+<ng-container *ngIf="field.visible">
+<div *ngIf="!field.editMode" class="key-value-pair">
+  <span *ngIf="field.label" class="key">{{field.label}}</span>
+  <ul>
+    <ng-container *ngFor="let value of field.value">
+      <ng-container *ngIf="value.type == 'sector'">
+        <li>Sector - {{ value.name }}</li>
+        <ng-container *ngFor="let asset of field.value">
+          <ng-container *ngIf="asset.type == 'asset' && asset.parent[0].name == value.name">
+            {{ '     - Asset' }} - {{ asset.name }}<br>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+      <ng-container *ngIf="value.type == 'sectorNoAssets'">
+        <li>Sector - {{ value.name }}</li>
+      </ng-container>
+    </ng-container>
+  </ul>
+</div>
+<div *ngIf="field.editMode" [formGroup]='form' [ngClass]="getGroupClass()">
+  <span class="label-font">
+   <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+  </span>
+  <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
+  <tree-root *ngIf="field.editMode"
+      #treeSelector
+      class="reverse"
+      id="treeSelector"
+      [nodes]="treeData"
+      [options]="options"
+      (nodeActivate)="onNodeActivate($event)"
+      (nodeDeactivate)="onNodeDeactivate($event)"
+      (event)="onEvent($event)"
+      >
+      <ng-template #treeNodeWrapperTemplate let-node let-index="index">
+        <div class="node-wrapper" [style.padding-left]="node.getNodePadding()">
+          <tree-node-expander [node]="node"></tree-node-expander>
+          <rb-tree-node-checkbox *ngIf="node.options.useCheckbox" [node]="node" [ariaLabel]="node.data.name" [cssClassName]="node.options.nodeClass()"></rb-tree-node-checkbox>
+          <div class="node-content-wrapper"
+            [class.node-content-wrapper-active]="node.isActive"
+            [class.node-content-wrapper-focused]="node.isFocused"
+            (click)="node.mouseAction('click', $event)"
+            (dblclick)="node.mouseAction('dblClick', $event)"
+            (contextmenu)="node.mouseAction('contextMenu', $event)"
+            (treeDrop)="node.onDrop($event)"
+            [treeAllowDrop]="node.allowDrop"
+            [treeDrag]="node"
+            [treeDragEnabled]="node.allowDrag()">
+
+            <tree-node-content [node]="node" [index]="index"></tree-node-content>
+          </div>
+        </div>
+      </ng-template>
+  </tree-root>
+  <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
+</div>
+</ng-container>

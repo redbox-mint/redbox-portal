@@ -18,27 +18,17 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-declare var module;
-declare var sails;
+import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary } from '@researchdatabox/redbox-core-types';
+import {Services as formsService} from '../../services/FormsService';
+import {Sails, Model} from "sails";
 
-declare var BrandingService;
-declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
-declare var User;
+
 declare var _;
-import { APIErrorResponse, ListAPIResponse, ListAPISummary } from '@researchdatabox/redbox-core-types';
+
 import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
-/**
- * Package that contains all Controllers.
- */
-
-
-
-
-
-declare var FormsService;
+declare var sails: Sails;
+declare var FormsService:formsService.Forms;
 
 export module Controllers {
   /**
@@ -70,12 +60,12 @@ export module Controllers {
 
     public async getForm(req, res) {
       try {
-        let name = req.param('name');
-        let editable = req.param('editable');
+        let name:string = req.param('name');
+        let editable:boolean = req.param('editable');
         if (editable == null) {
           editable = true;
         }
-        let form = await FormsService.getFormByName(name, editable).toPromise();
+        let form:FormModel = await FormsService.getFormByName(name, editable).toPromise();
 
         return this.apiRespond(req, res, form, 200)
       } catch (error) {
@@ -85,7 +75,7 @@ export module Controllers {
 
     public async listForms(req, res) {
       try {
-        let forms = await FormsService.listForms().toPromise();
+        let forms:FormModel[] = await FormsService.listForms().toPromise();
         let response: ListAPIResponse < any > = new ListAPIResponse();
         let summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;

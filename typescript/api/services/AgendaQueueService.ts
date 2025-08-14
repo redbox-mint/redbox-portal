@@ -42,7 +42,7 @@ import {QueueService, Services as services}   from '@researchdatabox/redbox-core
 import {Sails, Model} from "sails";
 import { Agenda } from 'agenda';
 
-declare var module;
+
 declare var sails: Sails;
 declare var User: Model;
 declare var _;
@@ -60,7 +60,8 @@ export module Services {
        'now',
        'jobs',
        'sampleFunctionToDemonstrateHowToDefineAJobFunction',
-       'defineJob'
+       'defineJob',
+       'moveCompletedJobsToHistory'
       ];
 
       protected agenda: Agenda;
@@ -87,8 +88,9 @@ export module Services {
         _.forOwn(sails.config.agendaQueue.options, (optionVal:any, optionName:string) => {
           this.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
+        const dbManager = User.getDatastore().manager;
         if (_.isEmpty(_.get(agendaOpts, 'db.address'))) {
-          agendaOpts['mongo'] = User.getDatastore().manager;
+          agendaOpts['mongo'] = dbManager;
         }
         this.agenda = new Agenda(agendaOpts);
         this.defineJobs(sails.config.agendaQueue.jobs);
@@ -111,6 +113,12 @@ export module Services {
           sails.log.error(err);
         });
         await this.agenda.start();
+
+        //Create indexes after agenda start
+        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
+        await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1});
+
         // check for in-line job schedule
         _.each(sails.config.agendaQueue.jobs, (job) => {
           if (!_.isEmpty(job.schedule)) {
@@ -121,7 +129,7 @@ export module Services {
             if (method == 'now') {
               this.now(job.name, data)
             } else if (method == 'every') {
-              this.every(job.name, intervalOrSchedule, data, opts);
+              this.every(job.name, intervalOrSchedule,  data, opts);
             } else if (method == 'schedule') {
               this.schedule(job.name, intervalOrSchedule, data);
             } else {
@@ -149,7 +157,7 @@ export module Services {
         }
        ]
        */
-      public defineJobs(jobs: any[]) {
+      public defineJobs(jobs: any[]) : void{
         _.each(jobs, (job) => {
           const serviceFn = _.get(sails.services, job.fnName);
           if (_.isUndefined(serviceFn)) {
@@ -177,6 +185,24 @@ export module Services {
             sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
 
       }
+
+      /**
+       * 
+       * There are significant slowdowns with Agenda when the jobs collection grows large. This function moves all completed jobs to a history collection so we still have the data but it doesn't affect the peformance of the job processor. 
+       * 
+       * @param job 
+       */
+      public async moveCompletedJobsToHistory(job:any) {
+        const dbManager = User.getDatastore().manager;
+        const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
+        await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc) => {
+          await dbManager.collection(`${collectionName}History`).insertOne(doc);
+          await dbManager.collection(collectionName).deleteOne({ _id: doc._id });
+        });
+
+        sails.log.verbose(`moveCompletedJobsToHistory:: Moved completed jobs to history`);
+      }
+
 
       private setOptionIfDefined(agendaOpts, optionName, optionVal) {
         if (!_.isEmpty(optionVal)) {

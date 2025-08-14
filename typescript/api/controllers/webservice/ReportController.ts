@@ -28,7 +28,7 @@ declare var UsersService;
 declare var User;
 declare var Record;
 declare var _;
-import { APIErrorResponse } from '@researchdatabox/redbox-core-types';
+import { APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
@@ -68,7 +68,7 @@ export module Controllers {
 
     public async executeNamedQuery(req, res) {
       try {
-        const brand = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let queryName = req.param('queryName');
         let namedQuery = await NamedQueryService.getNamedQueryConfig(brand,queryName);
         if (_.isEmpty(namedQuery)) {
@@ -87,19 +87,12 @@ export module Controllers {
           return this.apiFail(req, res, 400, new APIErrorResponse("Rows must not be greater than 100"));
         }
         let namedQueryConfig = sails.config.namedQuery[queryName];
-
-        let configMongoQuery = namedQueryConfig.mongoQuery;
-        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
-        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
-        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
-        let mongoQuery = _.clone(configMongoQuery);
-        let queryParams = namedQueryConfig.queryParams;
         let paramMap = _.clone(req.query);
-        let response = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery,queryParams,paramMap,brand,start,rows)
-        sails.log.error("NamedQueryService response")
-        sails.log.error(response)
+        let response = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        sails.log.verbose(`NamedQueryService response: ${JSON.stringify(response)}`);
         return this.apiRespond(req, res, response, 200)
       } catch (error) {
+        sails.log.error(`executeNamedQuery error: ${error}`);
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
       }
     }

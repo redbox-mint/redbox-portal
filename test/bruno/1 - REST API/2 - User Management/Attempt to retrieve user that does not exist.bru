@@ -1,0 +1,49 @@
+meta {
+  name: Attempt to retrieve user that does not exist
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/users/get?searchBy=email&query=fake@redboxresearchdata.com.au
+  body: none
+  auth: none
+}
+
+query {
+  searchBy: email
+  query: fake@redboxresearchdata.com.au
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 404", function () {
+      expect(res.getStatus()).to.equal(404);
+  });
+  
+  test("Error message is correct", function () {
+      var jsonData = res.getBody();
+      
+      var message = jsonData.message;
+      
+      expect(message).to.eql('No user found with given criteria');
+      
+          
+  });
+  
+  test("Details message is correct", function () {
+      var jsonData = res.getBody();
+      
+      var details = jsonData.details;
+      
+      expect(details).to.eql('Searchby: email and Query: fake@redboxresearchdata.com.au');
+      
+          
+  });
+  
+  
+}

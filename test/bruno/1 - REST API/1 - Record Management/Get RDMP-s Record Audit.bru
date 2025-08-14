@@ -1,0 +1,36 @@
+meta {
+  name: Get RDMP-s Record Audit
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/audit/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.eql(200)
+  });
+  
+  test("Number of found items is returned", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('summary')
+        .and.to.have.property('numFound')
+        .and.to.be.above(0);
+  });
+  
+  test("Data is returned", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('records')
+        .and.to.have.property(0)
+        .and.to.have.property('redboxOid')
+  });
+}

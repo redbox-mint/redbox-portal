@@ -89,6 +89,7 @@ module.exports.http = {
 
     order: [
       'cacheControl',
+      'redirectNoCacheHeaders',
       'startRequestTimer',
       'cookieParser',
       'redboxSession',
@@ -169,6 +170,22 @@ module.exports.http = {
       return next();
     },
 
+    redirectNoCacheHeaders: function (req, res, next) {
+      const originalRedirect = res.redirect;
+
+      // Patch the redirect function so that it sets the no-cache headers
+      res.redirect = function(location) {
+
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
+        return originalRedirect.call(this, location);
+      };
+
+      return next();
+    },
+
     cacheControl: function(req, res, next) {
       let sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000 );
       let cacheControlHeaderVal = null;
@@ -178,7 +195,7 @@ module.exports.http = {
           return _.endsWith(req.path, path);
         }));
         if (!_.isEmpty(isMatch)) {
-          cacheControlHeaderVal = 'no cache, no store';
+          cacheControlHeaderVal = 'no-cache, no-store';
           expiresHeaderVal = new Date(0).toUTCString();
         } else {
           cacheControlHeaderVal = 'max-age=' + sessionTimeoutSeconds + ', private';

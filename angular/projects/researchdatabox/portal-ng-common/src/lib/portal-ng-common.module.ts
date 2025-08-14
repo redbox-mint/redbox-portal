@@ -10,6 +10,7 @@ import { PaginationModule } from 'ngx-bootstrap/pagination';
 
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
+import { AppConfigService } from './appconfig.service';
 import { CsrfInterceptor } from './csrf.interceptor';
 import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
@@ -17,6 +18,7 @@ import { RecordService } from './record.service';
 import { TranslationService  } from './translation.service';
 import { RecordTableComponent } from './record-table.component';
 import { ReportService } from './report.service';
+import { HeaderSortComponent } from "./header-sort.component";
 
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -28,7 +30,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
 
 @NgModule({
   declarations: [
-    RecordTableComponent
+    RecordTableComponent,
+    HeaderSortComponent
   ],
   providers: [
     {
@@ -40,6 +43,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     TranslationService,
     LoggerService,
     UtilityService,
+    AppConfigService,
     {
       provide: HTTP_INTERCEPTORS,
       useClass: CsrfInterceptor,
@@ -59,7 +63,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   exports: [
     I18NextModule,
     PaginationModule,
-    RecordTableComponent
+    RecordTableComponent,
+    HeaderSortComponent,
   ]
 })
 export class RedboxPortalCoreModule { }

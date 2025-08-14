@@ -26,7 +26,10 @@ import {
 } from 'rxjs';
 
 import {
+  BrandingModel,
+  RoleModel,
   SearchService,
+  UserModel,
   Services as services
 } from '@researchdatabox/redbox-core-types';
 
@@ -68,7 +71,8 @@ export module Services {
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
       'getUsers',
-      'addUserAuditEvent'
+      'addUserAuditEvent',
+      'checkAuthorizedEmail',
     ];
 
     searchService: SearchService;
@@ -410,17 +414,12 @@ export module Services {
         const aafOpts = defAuthConfig.aaf.opts;
         aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
         sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
-          let brand = BrandingService.getBrandFromReq(req);
-          
-          
+          const brandName:string = BrandingService.getBrandFromReq(req);
 
-          if (_.isString(brand)) {
-            brand = BrandingService.getBrand(brand);
-          }
+          const brand:BrandingModel = BrandingService.getBrand(brandName);
+          
           const authConfig = ConfigService.getBrand(brand.name, 'auth');
           var aafAttributes = authConfig.aaf.attributesField;
-          let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
-          let authorizedEmailExceptions = _.get(authConfig.aaf, "authorizedEmailExceptions", []);
           sails.log.verbose("Configured roles: ")
           sails.log.verbose(sails.config.auth.roles);
           sails.log.verbose("AAF default roles ")
@@ -552,22 +551,11 @@ export module Services {
                 lastLogin: new Date()
               };
               sails.log.verbose(userToCreate);
-              if (authorizedEmailExceptions.length > 0 || authorizedEmailDomains > 0) {
-                let emailParts = userToCreate.email.split('@');
-                if (emailParts.length != 2) {
-                  sails.log.error(`Unexpected email format: ${userToCreate.email}`);
-                  return done(`Unexpected email format: ${userToCreate.email}`, false);
-                }
 
-                let emailDomain = emailParts[1];
-                if (authorizedEmailDomains.indexOf(emailDomain) == -1) {
-                  if (authorizedEmailExceptions.indexOf(userToCreate.email) == -1) {
-                    sails.log.error(`User is not authorized to login: ${userToCreate.email}`);
-                    return done(`User is not authorized to login: ${userToCreate.email}`, false);
-                  }
-                }
+              const emailAuthorizedCheck = that.checkAuthorizedEmail(userToCreate.email, brandName, 'aaf');
+              if (!emailAuthorizedCheck) {
+                return done("authorized-email-denied", false);
               }
-
 
               let configAAF = _.get(defAuthConfig, 'aaf');
               if(that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
@@ -714,6 +702,11 @@ export module Services {
       } else {
         req.session.logoutUrl = sails.config.auth.postLogoutRedir
       }
+      if(req.session.redirUrl != null) {
+        //the session url changes after login so we lose this value if we don't put it on the queru string
+        req.query.redirUrl = req.session.redirUrl;
+      }
+      
       sails.log.verbose(`OIDC login success, tokenset: `);
       sails.log.verbose(JSON.stringify(tokenSet));
       sails.log.verbose(`Claims:`);
@@ -734,7 +727,8 @@ export module Services {
         req.session.errorTextRaw = JSON.stringify(err, null, 2);
         return done(null, false);
       }
-      var brand = BrandingService.getBrand(req.session.branding);
+      const brandName = req.session.branding;
+      var brand:BrandingModel = BrandingService.getBrand(brandName);
       var claimsMappings = oidcConfig.claimMappings;
       let userName = '';
       let tmpUserName = _.get(userinfo, claimsMappings['username']);
@@ -874,6 +868,11 @@ export module Services {
           }
           sails.log.verbose(`Creating user: `);
           sails.log.verbose(userToCreate);
+
+          const emailAuthorizedCheck = that.checkAuthorizedEmail(userToCreate.email, brandName, 'oidc');
+          if (!emailAuthorizedCheck) {
+            return done("authorized-email-denied", false);
+          }
 
           if(that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
             that.triggerPreSaveTriggers(userToCreate, oidcConfig).then((userAdditionalInfo) => {
@@ -1032,7 +1031,12 @@ export module Services {
      *
      */
     public addUserAuditEvent = (user, action, additionalContext) => {
-      let auditEvent = {}
+      // ignore audit events for users with no user, which had crashed the app when user has already logged out
+      if (_.isEmpty(user)) {
+        sails.log.verbose('No user to audit, ignoring: ' + action);
+        return Observable.of(null).toPromise();
+      }
+      let auditEvent = {};
       if (!_.isEmpty(user.password)) {
         delete user.password;
       }
@@ -1059,7 +1063,7 @@ export module Services {
      * @return User: the newly created user
      *
      */
-    public addLocalUser = (username, name, email, password) => {
+    public addLocalUser = (username, name, email, password): Observable<UserModel> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var usernameField = authConfig.local.usernameField,
         passwordField = authConfig.local.passwordField;
@@ -1152,7 +1156,7 @@ export module Services {
       });
     }
 
-    public updateUserDetails = (userid, name, email, password) => {
+    public updateUserDetails = (userid, name, email, password): Observable<UserModel[]> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).flatMap(user => {
@@ -1185,7 +1189,7 @@ export module Services {
       });
     }
 
-    public updateUserRoles = (userid, newRoleIds) => {
+    public updateUserRoles = (userid, newRoleIds): Observable<UserModel> => {
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
@@ -1221,7 +1225,7 @@ export module Services {
       });
     }
 
-    public hasRole(user, targetRole) {
+    public hasRole(user, targetRole): RoleModel {
       return _.find(user.roles, (role) => {
         return role.id == targetRole.id;
       });
@@ -1246,7 +1250,7 @@ export module Services {
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
-    public findUsersWithQuery(query: any, brandId: string, source: any = null) {
+    public findUsersWithQuery(query: any, brandId: string, source: any = null): Observable<UserModel[]> {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         query['type'] = source;
       }
@@ -1271,7 +1275,7 @@ export module Services {
      * we're not able to reliably determine the username before they login to the system for the first time.
      *
      **/
-    public findAndAssignAccessToRecords(pendingValue, userid) {
+    public findAndAssignAccessToRecords(pendingValue, userid):void {
       
       Record.find({
         'or': [{
@@ -1297,7 +1301,80 @@ export module Services {
       });
     }
 
+    /**
+     * Check whether an email is authorized.
+     * @param email The email to check.
+     * @param branding The branding name.
+     * @param authType The auth type ('aaf' or 'oidc').
+     * @returns True if email is authorized or authorization check is disabled, otherwise false if email is not allowed.
+     * @private
+     */
+    public checkAuthorizedEmail(email: string, branding: string, authType: string): boolean {
+      // Must pass email.
+      if (!email) {
+        sails.log.error("No email address provided.");
+        return false;
+      }
+
+      // Assess email address.
+      const emailParts = email.includes('@') ? email.split('@') : [];
+      if (emailParts.length !== 2) {
+        sails.log.error(`Unexpected email format: ${email}.`);
+        return false;
+      }
+
+      // Get the configuration data.
+      const brandingAwareData = sails.config.brandingAware(branding);
+      const authorizedDomainsEmails = _.get(brandingAwareData, 'authorizedDomainsEmails', {});
+
+      if (authorizedDomainsEmails.enabled?.toString() !== 'true') {
+        sails.log.warn("Authorized email configuration is disabled.");
+        return true;
+      }
+
+      let domains = [];
+      let emails = [];
+      if (authType === 'aaf') {
+        domains.push(...(authorizedDomainsEmails.domainsAaf || []));
+        emails.push(...(authorizedDomainsEmails.emailsAaf || []));
+      } else if (authType === 'oidc') {
+        domains.push(...(authorizedDomainsEmails.domainsOidc || []));
+        emails.push(...(authorizedDomainsEmails.emailsOidc || []));
+      } else {
+        sails.log.error(`Authorized domains and emails config problem: unknown auth type '${authType}'`);
+        return false;
+      }
+
+      // Check configuration.
+      if (domains.length === 0) {
+        sails.log.verbose(`No authorized email domains configured for ${authType}.`);
+      }
+      if (emails.length === 0) {
+        sails.log.verbose(`No authorized email exceptions configured for ${authType}.`);
+      }
+      if (domains.length === 0 && emails.length === 0) {
+        return true;
+      }
+
+      // Assess domains and exceptions.
+      const emailDomain = emailParts[1];
+      const isAllowedDomain = domains.indexOf(emailDomain) !== -1;
+      if (isAllowedDomain) {
+        sails.log.verbose(`Authorized email domain: ${emailDomain}`);
+        return true;
+      }
+
+      const isAllowedException = emails.indexOf(email) !== -1;
+      if (isAllowedException) {
+        sails.log.verbose(`Authorized email exception: ${email}`);
+        return true;
+      }
+
+      // Checks did not pass, so email is not allowed.
+      sails.log.error(`Email is not authorized to login using ${authType}: ${email}.`);
+      return false;
     }
   }
+}
 
 module.exports = new Services.Users().exports();

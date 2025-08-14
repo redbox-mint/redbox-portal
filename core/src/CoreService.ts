@@ -67,11 +67,31 @@ export module Services.Core {
      * @returns {*}
      */
     public exports(): any {
+      let exportedMethods: any = {};
+      if(process.env["sails_redbox__mochaTesting"] === "true") {
+        const allProperties = [
+          ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
+          ...Object.getOwnPropertyNames(this), // Instance properties
+        ];
+        
+        
+        const uniqueProperties = Array.from(new Set(allProperties));
+        uniqueProperties.forEach((property) => {
+          const value = (this as any)[property];
+    
+          // Check if the property is a function
+          if (typeof value === "function" && property !== "constructor") {
+            exportedMethods[property] = value.bind(this); // Bind the method to maintain `this` context
+          }
+        
+        });
+        console.error("Exported Methods for Mocha Testing: ", exportedMethods);
+      } else {
       // Merge default array and custom array from child.
-      var methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
-      var exportedMethods: any = {};
+      let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
+      
 
-      for (var i = 0; i < methods.length; i++) {
+      for (let i = 0; i < methods.length; i++) {
         // Check if the method exists.
         if (typeof this[methods[i]] !== 'undefined') {
           // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
@@ -89,7 +109,7 @@ export module Services.Core {
           console.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
         }
       }
-
+      }
       return exportedMethods;
     }
 
@@ -97,20 +117,26 @@ export module Services.Core {
      * returns a string that is 'true' or 'false' (literal) depending on whether the 'options.triggerCondition' is met!
      *
      * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
-     * @param  oid
-     * @param  record
-     * @param  options
-     * @return
+     * @param  oid {string} The record oid.
+     * @param  record The record data.
+     * @param  options The options for the trigger.
+     * @param  user The user that triggered the hook, optional.
+     * @return {"true"|"false"} "true" if the condition passed, otherwise "false".
      */
-    protected metTriggerCondition(oid, record, options) {
+    protected metTriggerCondition(oid, record, options, user?) {
       const triggerCondition = _.get(options, "triggerCondition", "");
       const forceRun = _.get(options, "forceRun", false);
       const variables = {
         imports: {
           record: record,
-          oid: oid
+          oid: oid,
+          user: user || null,
         }
       };
+
+      if (!user) {
+        console.trace("No user in metTriggerCondition");
+      }
       if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
         const compiled = _.template(triggerCondition, variables);
         return compiled();

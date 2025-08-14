@@ -1,0 +1,42 @@
+meta {
+  name: Update API Researcher User
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/users
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "id": "{{apiUserId}}",
+      "name": "researcher created via API - modified",
+      "email": "apiresearcher@redboxresearchdata.com.au",
+      "password": "a12345672A!"
+  }
+}
+
+tests {
+  
+  test("Status code is 201", function () {
+      expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Test response", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('id');
+      expect(jsonData).to.have.property('username');
+      expect(jsonData).to.have.property('name');
+      expect(jsonData).to.have.property('email');
+      expect(jsonData).to.have.property('type');
+      expect(jsonData).to.have.property('lastLogin');
+  });
+}

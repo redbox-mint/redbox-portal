@@ -1,0 +1,70 @@
+meta {
+  name: Export RDMP Data
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/default/rdmp/export/record/download/csv?before=&after=&recType=rdmp
+  body: none
+  auth: none
+}
+
+query {
+  before: 
+  after: 
+  recType: rdmp
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: {{host}}/default/rdmp/export
+  
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  // const parse = require('csv-parse/lib/sync'),
+  //     parsedCSV = parse(responseBody, {relax_column_count: true});
+      
+  // test("Correct CSV response", function () {
+  //     // Check that we have at least 2 two (header + row)
+  //     expect(parsedCSV).to.have.length.above(1);
+      
+  // });
+  
+  // test("CSV contains Test record", function () {
+  //     var found = false;
+  //     const head = parsedCSV.shift(),
+  //         title = head.indexOf('redboxOid');
+  //    parsedCSV.forEach(function(row) {
+  //        if(row[title] == bru.getEnvVar('dmpOid')) {
+  //            found = true;
+  //        }
+  //    });
+     
+  //    expect(found).to.eq(true);
+    
+  // });
+}

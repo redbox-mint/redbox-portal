@@ -1,0 +1,29 @@
+meta {
+  name: Transition Workflow of Data publication
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/workflow/step/queued/{{tempDataPubOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Success is set and is equal to true", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('success');
+      expect(jsonData.success).to.eql(true);
+  });
+}

@@ -4,20 +4,37 @@
       <table class="table" *ngIf="columnConfig">
         <thead>
           <tr>
-            <!-- TODO: converted to sortable headers -->
             <ng-container *ngFor="let col of columnConfig">
               <th *ngIf="!col.hide">
-                  {{ col.label | i18next }}
+                <header-sort
+                  *ngIf="enableSort"
+                  [title]="col.label | i18next"
+                  [variable]="col.property"
+                  (headerSortChanged)="dataSource.headerSortChanged($event, col); headerSortChanged($event, col);">
+                </header-sort>
+                <span
+                  *ngIf="!enableSort"
+                  class="record-table-heading-no-sort">
+                  {{col.label | i18next}}
+                </span>
               </th>
             </ng-container>
+            <th *ngIf="enableActions && showActions.length > 0">{{'record-table-results-table-header-actions' | i18next}}</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let row of currentPage.records">
             <ng-container *ngFor="let col of columnConfig">
-              <td *ngIf="!col.hide" [innerHtml]="getColValue(row, col)">
-              </td>
+              <td *ngIf="!col.hide" [innerHtml]="getColValue(row, col)"></td>
             </ng-container>
+            <td *ngIf="enableActions && showActions.length > 0">
+              <ng-container *ngFor="let showAction of showActions">
+                <button
+                  type="button"
+                  class="btn {{showAction.classes}}"
+                  (click)="dataSource.recordTableAction($event, row, showAction.name)">{{showAction.label | i18next}}</button>&nbsp;
+              </ng-container>
+            </td>
           </tr>
         </tbody>
       </table>

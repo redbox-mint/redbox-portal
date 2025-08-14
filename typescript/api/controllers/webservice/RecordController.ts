@@ -38,14 +38,18 @@ import * as path from "path";
 import {
   APIErrorResponse,
   APIHarvestResponse,
+  BrandingModel,
   Controllers as controllers,
   Datastream,
   DatastreamService,
   DatastreamServiceResponse,
+  RecordModel,
   RecordsService,
-  SearchService
+  SearchService,
+  ListAPIResponse,
+  RecordTypeModel,
+  UserModel
 } from '@researchdatabox/redbox-core-types';
-import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
 
 
 
@@ -89,7 +93,8 @@ export module Controllers {
       'removeRoleEdit',
       'addRoleView',
       'removeRoleView',
-      'harvest'
+      'harvest',
+      'legacyHarvest'
     ];
 
     constructor() {
@@ -115,7 +120,7 @@ export module Controllers {
     }
 
     public async getPermissions(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
       try {
@@ -128,20 +133,20 @@ export module Controllers {
     }
 
     public async addUserEdit(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
       const pendingUsers = body["pendingUsers"];
 
-      let record;
+      let record:RecordModel;
       try {
         record = await this.RecordsService.getMeta(oid);
         if (users != null && users.length > 0) {
-          record["authorization"]["edit"] = _.union(record["authorization"]["edit"], users);
+          record.authorization.edit = _.union(record["authorization"]["edit"], users);
         }
         if (pendingUsers != null && pendingUsers.length > 0) {
-          record["authorization"]["editPending"] = _.union(record["authorization"]["editPending"], pendingUsers);
+          record.authorization.editPending = _.union(record["authorization"]["editPending"], pendingUsers);
         }
       } catch (err) {
         return this.apiFailWrapper(req, res, 500, null, err,
@@ -163,7 +168,7 @@ export module Controllers {
     }
 
     public async addUserView(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -198,7 +203,7 @@ export module Controllers {
     }
 
     public async removeUserEdit(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -233,7 +238,7 @@ export module Controllers {
     }
 
     public async removeUserView(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -268,7 +273,7 @@ export module Controllers {
     }
 
     public async getMeta(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
       try {
@@ -285,7 +290,7 @@ export module Controllers {
     }
 
     public async getRecordAudit(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       var dateFrom = req.param('dateFrom');
       var dateTo = req.param('dateTo');
@@ -312,7 +317,7 @@ export module Controllers {
     }
 
     public async getObjectMeta(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
       var oid = req.param('oid');
@@ -327,7 +332,7 @@ export module Controllers {
     }
 
     public async updateMeta(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const shouldMerge = req.param('merge', false);
       const shouldProcessDatastreams = req.param('datastreams', false);
@@ -375,7 +380,7 @@ export module Controllers {
     }
 
     public async updateObjectMeta(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
       let record;
@@ -397,10 +402,11 @@ export module Controllers {
     }
 
     public create(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('recordType');
       const user = req.user;
       const body = req.body;
+      let that = this;
       if (body != null) {
         var authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
         if (body["authorization"] != null) {
@@ -416,6 +422,13 @@ export module Controllers {
           authorizationEdit.push(req.user.username);
           authorizationView.push(req.user.username);
         }
+        const authorization = {
+          edit: authorizationEdit,
+          view: authorizationView,
+          editPending: authorizationEditPending,
+          viewPending: authorizationViewPending
+        }
+
         var recordTypeObservable = RecordTypesService.get(brand, recordType);
 
         recordTypeObservable.subscribe(recordTypeModel => {
@@ -423,69 +436,36 @@ export module Controllers {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
             var request = {};
-            var metaMetadata = {};
-            metaMetadata["brandId"] = brand.id;
-            metaMetadata["type"] = recordTypeModel.name;
-            metaMetadata["packageName"] = recordTypeModel.packageName;
-            metaMetadata["packageType"] = recordTypeModel.packageType;
-
-            // Resolves #723: removed hardcoded value
-            metaMetadata["createdBy"] = req.user.username;
-            request["metaMetadata"] = metaMetadata;
+            
             //if no metadata field, no authorization
             if (metadata == null) {
               request["metadata"] = body;
             } else {
               request["metadata"] = metadata;
-              // Adding custom metaMetadata values when specifying the metadata block
-              if (!_.isEmpty(body["metaMetadata"])) {
-                _.merge(metaMetadata, body["metaMetadata"]);
-              }
             }
+            request["authorization"] = authorization;
 
-            // FormsService
-            var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
+            let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
-            workflowStepsObs.subscribe(workflowSteps => {
-              _.each(workflowSteps, function (workflowStep) {
-                // If no workflowStage set, find the starting step
-                if (workflowStage == null) {
-                  if (workflowStep["starting"] == true) {
-                    request["workflow"] = workflowStep["config"]["workflow"];
-                    request["authorization"] = workflowStep["config"]["authorization"];
-                    request["authorization"]["view"] = authorizationView;
-                    request["authorization"]["edit"] = authorizationEdit;
-                    request["authorization"]["viewPending"] = authorizationViewPending;
-                    request["authorization"]["editPending"] = authorizationEditPending;
-                    metaMetadata["form"] = workflowStep["config"]["form"];
-                  }
-                } else {
-                  if (workflowStep["name"] == workflowStage) {
-                    request["workflow"] = workflowStep["config"]["workflow"];
-                    request["authorization"] = workflowStep["config"]["authorization"];
-                    request["authorization"]["view"] = authorizationView;
-                    request["authorization"]["edit"] = authorizationEdit;
-                    request["authorization"]["viewPending"] = authorizationViewPending;
-                    request["authorization"]["editPending"] = authorizationEditPending;
-                    metaMetadata["form"] = workflowStep["config"]["form"];
-                  }
+            var obs = Observable.fromPromise(createPromise);
+            obs.subscribe(response => {
+              if (response.isSuccessful()) {
+
+                if(workflowStage) {
+                  WorkflowStepsService.get(recordTypeModel, workflowStage).subscribe(wfStep  => {
+                    that.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
+                  });
                 }
 
-              });
-              let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user)
-              var obs = Observable.fromPromise(createPromise);
-              obs.subscribe(response => {
-                if (response.isSuccessful()) {
-                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
-                  this.apiRespond(req, res, response, 201);
-                } else {
-                  return this.apiFailWrapper(req, res, 500, null, null,
-                      "Create Record failed");
-                }
-              }, error => {
-                return this.apiFailWrapper(req, res, 500, null, error,
+                res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
+                this.apiRespond(req, res, response, 201);
+              } else {
+                return this.apiFailWrapper(req, res, 500, null, null,
                     "Create Record failed");
-              });
+              }
+            }, error => {
+              return this.apiFailWrapper(req, res, 500, null, error,
+                  "Create Record failed");
             });
 
           } else {
@@ -498,7 +478,7 @@ export module Controllers {
     }
 
     public async getDataStream(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
@@ -568,7 +548,7 @@ export module Controllers {
     }
 
     public async addDataStreams(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       const self = this;
       req.file('attachmentFields').upload({
@@ -777,7 +757,7 @@ export module Controllers {
 
     public listRecords(req, res) {
       //sails.log.debug('api-list-records');
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
       var roles = [];
@@ -846,7 +826,7 @@ export module Controllers {
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
       } else {
-        sails.log.verbose(`Delete attempt failed for OID: ${oid}`);
+        sails.log.verbose(`Restore attempt failed for OID: ${oid}`);
         sails.log.verbose(JSON.stringify(response));
         this.apiFailWrapper(req, res, 500, new APIErrorResponse(response.message, response.details));
       }
@@ -854,13 +834,24 @@ export module Controllers {
 
     public async deleteRecord(req, res) {
       const oid = req.param('oid');
-      const permanentlyDelete = req.param('permanent') === 'true' ? true : false ;
+      const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user;
       if (_.isEmpty(oid)) {
         return this.apiFailWrapper(req, res, 400, null, null,
             "Missing ID of record.");
       }
-      const response = await this.RecordsService.delete(oid, permanentlyDelete, user);
+      let record = await this.RecordsService.getMeta(oid);
+      if (_.isEmpty(record)) {
+        return this.apiFailWrapper(req, res, 400, null, null,
+            "Record not found!");
+      }
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      if (_.isEmpty(brand)) {
+        return this.apiFailWrapper(req, res, 400, null, null,
+            "Missing brand.");
+      }
+      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+      const response = await this.RecordsService.delete(oid, permanentlyDelete, record, recordType, user);
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
       } else {
@@ -897,7 +888,7 @@ export module Controllers {
           return this.apiFailWrapper(req, res, 400, null, null,
               "Missing ID of record.");
         }
-        const brand = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.apiFailWrapper(req, res, 500, null, null,
@@ -909,8 +900,7 @@ export module Controllers {
         }
         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
-        this.RecordsService.updateWorkflowStep(record, nextStep);
-        const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const response = await this.RecordsService.updateMeta(brand, oid, record, req.user, true, true, nextStep);
         this.apiRespond(req, res, response);
       } catch (err) {
         this.apiFailWrapper(req, res, 500, new APIErrorResponse("Failed to transition workflow, please check server logs."), err,
@@ -939,7 +929,7 @@ export module Controllers {
     }
 
     public async addRoleEdit(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -970,7 +960,7 @@ export module Controllers {
     }
 
     public async addRoleView(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -1001,7 +991,7 @@ export module Controllers {
     }
 
     public async removeRoleEdit(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid'); 
       const body = req.body;
       const roles = body["roles"];
@@ -1032,16 +1022,16 @@ export module Controllers {
     }
 
     public async removeRoleView(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
-      const users = body["roles"];
+      const users = body['roles'];
 
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
         if (users != null && users.length > 0) {
-          record["authorization"]["viewRoles"] = _.difference(record["authorization"]["viewRoles"], users);
+          record['authorization']['viewRoles'] = _.difference(record['authorization']['viewRoles'], users);
         }
       } catch (err) {
         return this.apiFailWrapper(req, res, 500, null, err,
@@ -1054,8 +1044,8 @@ export module Controllers {
           return this.apiFailWrapper(req, res, 500, null, null,
               `Failed to update record with oid ${oid}, check server logs.`);
         }
-        const resultRecord = await this.RecordsService.getMeta(result["oid"]);
-        return res.json(resultRecord["authorization"]);
+        const resultRecord = await this.RecordsService.getMeta(result['oid']);
+        return res.json(resultRecord['authorization']);
       } catch (err) {
         return this.apiFailWrapper(req, res, 500, null, err,
             'Failed getting record meta for removing a viewer role, check server logs.');
@@ -1063,36 +1053,33 @@ export module Controllers {
     }
 
     public async harvest(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
-      let updateModes = ["merge", "override", "create"]
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      let updateModes = ["merge", "override", "create"];
 
       let updateMode = req.param('updateMode')
       if (_.isEmpty(updateMode)) {
-        updateMode = "override"
+        updateMode = "override";
       }
 
       var recordType = req.param('recordType');
-      var recordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
-
+      var recordTypeModel:RecordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
 
       if (recordTypeModel == null) {
-        return this.apiFailWrapper(req, res, 400,null, null,
-            "Record Type provided is not valid");
+        return this.apiFailWrapper(req, res, 400,null, null, "Record Type provided is not valid");
       }
       var user = req.user;
       var body = req.body;
       if (body != null) {
 
         if (_.isEmpty(body["records"])) {
-          return this.apiFailWrapper(req, res, 400, null, null,
-              "Invalid request body");
+          return this.apiFailWrapper(req, res, 400, null, null, "Invalid request body");
         }
         let recordResponses = [];
         let records = body['records'];
         for (let record of records) {
           let harvestId = record["harvestId"]
           if (_.isEmpty(harvestId)) {
-            recordResponses.push(new APIHarvestResponse(harvestId, null, false, "HarvestId was not specified"))
+            recordResponses.push(new APIHarvestResponse(harvestId, null, false, "HarvestId was not specified"));
           } else {
             let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
             if (existingRecord.length == 0 || updateMode == "create") {
@@ -1109,17 +1096,86 @@ export module Controllers {
         }
         return res.json(recordResponses);
       }
-      return this.apiFailWrapper(req, res, 400, null, null,
-          "Invalid request");
+      return this.apiFailWrapper(req, res, 400, null, null, "Invalid request");
     }
 
-    private async updateHarvestRecord(brand: any, recordTypeModel: any, updateMode: any, body: any, oid: any, harvestId: any, user: any) {
+    private isMetadataEqual(meta1:any, meta2:any): boolean {
+
+      let keys = _.keys(meta1);
+
+      for(let key of keys) {
+        if(!_.isEqual(meta1?.[key],meta2?.[key])) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    public async legacyHarvest(req, res) {
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+
+      var recordType = req.param('recordType');
+      var recordTypeModel:RecordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
+
+      if (recordTypeModel == null) {
+        return this.apiFailWrapper(req, res, 400,null, null, 'Record Type provided is not valid');
+      }
+      var user = req.user;
+      var body = req.body;
+      if (body != null) {
+
+        if (_.isEmpty(body['records'])) {
+          return this.apiFailWrapper(req, res, 400, null, null, 'Invalid request body');
+        }
+        let recordResponses = [];
+        let records = body['records'];
+        for (let record of records) {
+          let harvestId = record['harvest_id'];
+          if (_.isEmpty(harvestId)) {
+            recordResponses.push(new APIHarvestResponse(harvestId, null, false, 'HarvestId was not specified'));
+          } else {
+            let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
+            if (existingRecord.length == 0) {
+              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'], harvestId, 'update', user));
+            } else {
+              const merge = req.query['merge'];
+              let updateMode = 'update';
+              if(merge == 'true') {
+                updateMode = 'merge';
+              }
+              let oid = existingRecord[0].redboxOid;
+              let oldMetadata = existingRecord[0].metadata;
+              let newMetadata = record['metadata']['data'];
+              
+              if(this.isMetadataEqual(newMetadata,oldMetadata)) {
+                const response =  {
+                  details: '',
+                  message: `skip update of harvestId ${harvestId} oid ${oid} metadata sent is equal to metadata in existing record`,
+                  harvestId: harvestId,
+                  oid: oid,
+                  status: true
+                }
+                recordResponses.push(response);
+              } else {
+                const response = await this.updateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid, harvestId, user);
+                recordResponses.push(response);
+              }
+            }
+          }
+        }
+        return res.json(recordResponses);
+      }
+      return this.apiFailWrapper(req, res, 400, null, null, 'Invalid request');
+    }
+
+    private async updateHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, updateMode: string, body: any, oid: string, harvestId: string, user: UserModel) {
 
       const shouldMerge = updateMode == "merge" ? true : false;
       try {
-        let record = await this.RecordsService.getMeta(oid)
+        let record:RecordModel = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return new APIHarvestResponse(harvestId, oid, false, `Failed to update meta, cannot find existing record with oid: ${oid}`)
+          return new APIHarvestResponse(harvestId, oid, false, `Failed to update meta, cannot find existing record with oid: ${oid}`);
         }
         try {
           if (shouldMerge) {
@@ -1139,7 +1195,11 @@ export module Controllers {
           }
           let result = await this.RecordsService.updateMeta(brand, oid, record, user);
 
-          return new APIHarvestResponse(harvestId, oid, true, `Record updated successfully`)
+          let updateMessage = "Record updated successfully";
+          if(shouldMerge) {
+            updateMessage = "Record merged successfully";
+          }
+          return new APIHarvestResponse(harvestId, oid, true, updateMessage)
 
         } catch (error) {
           const result = new APIHarvestResponse(harvestId, oid, false, "Failed to update meta");
@@ -1153,8 +1213,7 @@ export module Controllers {
       }
     }
 
-
-    private async findExistingHarvestRecord(harvestId: any, recordType: any) {
+    private async findExistingHarvestRecord(harvestId: string, recordType: string) {
       let results = await Record.find({
         'harvestId': harvestId,
         'metaMetadata.type': recordType
@@ -1164,86 +1223,44 @@ export module Controllers {
       return results;
     }
 
-    private async createHarvestRecord(brand, recordTypeModel, body, harvestId, updateMode, user) {
+    private async createHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, body: any, harvestId: string, updateMode: string, user: UserModel) {
       let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
-      if (body["authorization"] != null) {
-        authorizationEdit = body["authorization"]["edit"];
-        authorizationView = body["authorization"]["view"];
-        authorizationEditPending = body["authorization"]["editPending"];
-        authorizationViewPending = body["authorization"]["viewPending"];
+      if (body['authorization'] != null) {
+        authorizationEdit = body['authorization']['edit'];
+        authorizationView = body['authorization']['view'];
+        authorizationEditPending = body['authorization']['editPending'];
+        authorizationViewPending = body['authorization']['viewPending'];
       } else {
         // If no authorization block set to user
-        body["authorization"] = [];
+        body['authorization'] = [];
         authorizationEdit = [];
         authorizationView = [];
         authorizationEdit.push(user.username);
         authorizationView.push(user.username);
       }
 
-      let sourceMetadata = body["sourceMetadata"];
-
-      var metadata = body["metadata"];
-      var workflowStage = body["workflowStage"];
+      var metadata = body['metadata'];
+      var workflowStage = body['workflowStage'];
       var request = {};
-      if (updateMode != "create") {
+      if (updateMode != 'create') {
         // Only set harvestId if not in create mode
-        request["harvestId"] = harvestId;
+        request['harvestId'] = harvestId;
       }
-      var metaMetadata = {};
-      metaMetadata["brandId"] = brand.id;
-      metaMetadata["type"] = recordTypeModel.name;
-      metaMetadata["packageName"] = recordTypeModel.packageName;
-      metaMetadata["packageType"] = recordTypeModel.packageType;
-
-      if (!_.isEmpty(sourceMetadata)) {
-        //Force this to be stored as a string
-        metaMetadata["sourceMetadata"] = "" + sourceMetadata
-      }
-      // Resolves #723: removed hardcoded value
-      metaMetadata["createdBy"] = user.username;
-      request["metaMetadata"] = metaMetadata;
+      
       //if no metadata field, no authorization
       if (metadata == null) {
-        request["metadata"] = body;
+        request['metadata'] = body;
       } else {
-        request["metadata"] = metadata;
-        // Adding custom metaMetadata values when specifying the metadata block
-        if (!_.isEmpty(body["metaMetadata"])) {
-          _.merge(metaMetadata, body["metaMetadata"]);
-        }
-      }
-
-      // FormsService
-      let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordTypeModel).toPromise();
-
-
-      for (let workflowStep of workflowSteps) {
-        // If no workflowStage set, find the starting step
-        if (workflowStage == null) {
-          if (workflowStep["starting"] == true) {
-            request["workflow"] = workflowStep["config"]["workflow"];
-            request["authorization"] = workflowStep["config"]["authorization"];
-            request["authorization"]["view"] = authorizationView;
-            request["authorization"]["edit"] = authorizationEdit;
-            request["authorization"]["viewPending"] = authorizationViewPending;
-            request["authorization"]["editPending"] = authorizationEditPending;
-            metaMetadata["form"] = workflowStep["config"]["form"];
-          }
-        } else {
-          if (workflowStep["name"] == workflowStage) {
-            request["workflow"] = workflowStep["config"]["workflow"];
-            request["authorization"] = workflowStep["config"]["authorization"];
-            request["authorization"]["view"] = authorizationView;
-            request["authorization"]["edit"] = authorizationEdit;
-            request["authorization"]["viewPending"] = authorizationViewPending;
-            request["authorization"]["editPending"] = authorizationEditPending;
-            metaMetadata["form"] = workflowStep["config"]["form"];
-          }
-        }
+        request['metadata'] = metadata;
       }
 
       try {
-        let response = await this.RecordsService.create(brand, request, recordTypeModel, user)
+        let response = await this.RecordsService.create(brand, request, recordTypeModel, user);
+
+        if(workflowStage) {
+          let wfStep = await WorkflowStepsService.get(recordTypeModel, workflowStage).toPromise();
+          this.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
+        }
 
         if (response.isSuccessful()) {
           return new APIHarvestResponse(harvestId, response.oid, true, `Record created successfully`);
@@ -1262,7 +1279,7 @@ export module Controllers {
 
     public listDeletedRecords(req, res) {
       //sails.log.debug('api-list-records');
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
       var roles = [];

@@ -1,0 +1,42 @@
+meta {
+  name: Search Mint Internal Database
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/rdmp/query/vocab/rdmp?search=test&start=0&rows=10
+  body: none
+  auth: none
+}
+
+query {
+  search: test
+  start: 0
+  rows: 10
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Test response format", function () {
+        var jsonData = res.getBody();
+        expect(jsonData).to.have.property('summary');
+        expect(jsonData).to.have.property('records');
+        expect(jsonData.summary).to.have.property('numFound');
+  });
+  
+  test("Test num of records result and format", function () {
+        var jsonData = res.getBody();
+        expect(jsonData.summary.numFound).to.be.greaterThan(0);
+        expect(jsonData.records[0]).to.have.property('oid');
+        expect(jsonData.records[0]).to.have.property('title');
+  });
+}

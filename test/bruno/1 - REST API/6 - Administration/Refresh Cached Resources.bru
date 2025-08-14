@@ -1,0 +1,22 @@
+meta {
+  name: Refresh Cached Resources
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/admin/refreshCachedResources
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+}

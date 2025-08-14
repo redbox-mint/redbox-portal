@@ -7,9 +7,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="apple-touch-icon" sizes="180x180" "<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" "<%= BrandingService.getRootContext() %>/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" "<%= BrandingService.getRootContext() %>/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="<%= BrandingService.getRootContext() %>/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="<%= BrandingService.getRootContext() %>/favicon-16x16.png">
 
   <title>
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
@@ -114,12 +114,12 @@
   <!-- End mainmenu area -->
 <% if (typeof title!== 'undefined') { %>
 <% } %>
-
-<% if (TranslationService.t('system-message-enabled') == 'true') { %>
+ 
+<% if (sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.enabled === true) { %>
   <div id="system-message-area" class="container">
   <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
-    <h4><%- TranslationService.t('system-message-title') %></h4>
-    <div><%- TranslationService.t('system-message-description') %></div>
+    <h4><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.title %></h4>
+    <div><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.message %></div>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 </div>
@@ -142,7 +142,7 @@
 
   
   <script>
-  $(document).ready(function() {
+  jQuery(document).ready(function() {
     $('li.active').removeClass('active');
     var findFn = function(path) {
       return $('a[href="' + path + '"]');

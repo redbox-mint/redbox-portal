@@ -141,6 +141,9 @@ module.exports.routes = {
     action: 'openIdConnectLogin',
     csrf: false
   },
+  'HEAD /user/begin_oidc': {
+    policy: 'disallowedHeadRequestHandler'
+  },
   'get /user/begin_oidc': {
     controller: 'UserController',
     action: 'beginOidc',
@@ -182,6 +185,8 @@ module.exports.routes = {
     }
   },
   'delete /:branding/:portal/record/delete/:oid': 'RecordController.delete',
+  'put /:branding/:portal/record/delete/:oid': 'RecordController.restoreRecord',
+  'delete /:branding/:portal/record/destroy/:oid': 'RecordController.destroyDeletedRecord',
   '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
   '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
   //TODO: we're using an * here as sails slugs and req.param don't seem to like parameters with . in them without it.
@@ -197,9 +202,11 @@ module.exports.routes = {
   // 'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
+  'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
+  'get /:branding/:portal/query/vocab/:queryId': 'VocabController.getRecords',
   'post /:branding/:portal/external/vocab/:provider': {
     controller: 'VocabController',
     action: 'searchExternalService',
@@ -229,6 +236,13 @@ module.exports.routes = {
   'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'UserController.update',
   'post /:branding/:portal/action/:action': 'ActionController.callService',
+  'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
+  'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',
+  'get /:branding/:portal/admin/appconfig/edit/:appConfigId': {
+    controller: 'AppConfigController',
+    action: 'editAppConfig'
+  },
+  'get /:branding/:portal/admin/deletedRecords': 'RecordController.renderDeletedRecords',
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *
@@ -238,7 +252,6 @@ module.exports.routes = {
    *                                                                          *
    *                                                                          *
    ***************************************************************************/
-
   'post /:branding/:portal/api/records/metadata/:recordType': {
     controller: 'webservice/RecordController',
     action: 'create',
@@ -252,6 +265,11 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/harvest/:recordType': {
     controller: 'webservice/RecordController',
     action: 'harvest',
+    csrf: false
+  },
+  'post /:branding/:portal/api/mint/harvest/:recordType': {
+    controller: 'webservice/RecordController',
+    action: 'legacyHarvest',
     csrf: false
   },
   'put /:branding/:portal/api/records/objectmetadata/:oid': {
@@ -450,6 +468,21 @@ module.exports.routes = {
     action: 'refreshCachedResources',
     csrf: false
   },
+  'post /:branding/:portal/api/admin/config/:configKey': {
+    controller: 'webservice/AdminController',
+    action: 'setAppConfig',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/config/:configKey': {
+    controller: 'webservice/AdminController',
+    action: 'getAppConfig',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/config': {
+    controller: 'webservice/AdminController',
+    action: 'getAppConfig',
+    csrf: false
+  },
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',
     action: 'sendNotification',
@@ -468,6 +501,16 @@ module.exports.routes = {
   'get /:branding/:portal/api/export/record/download/:format': {
     controller: 'webservice/ExportController',
     action: 'downloadRecs',
+    csrf: false
+  },
+  'get /:branding/:portal/api/appconfig/:appConfigId': {
+    controller: 'webservice/AppConfigController',
+    action: 'getAppConfig',
+    csrf: false
+  },
+  'post /:branding/:portal/api/appconfig/:appConfigId': {
+    controller: 'webservice/AppConfigController',
+    action: 'saveAppConfig',
     csrf: false
   },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',

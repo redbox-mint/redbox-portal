@@ -30,7 +30,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
-import {APIErrorResponse, Controllers as controllers, ListAPIResponse, ListAPISummary}  from '@researchdatabox/redbox-core-types';
+import {APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary}  from '@researchdatabox/redbox-core-types';
 
 
 declare var RecordTypesService;
@@ -67,7 +67,7 @@ export module Controllers {
 
       try {
         let name = req.param('name');
-        const brand = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let recordType = await RecordTypesService.get(brand, name).toPromise();
 
         return this.apiRespond(req, res, recordType, 200)
@@ -78,7 +78,7 @@ export module Controllers {
 
     public async listRecordTypes(req, res) {
       try {
-        const brand = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let recordTypes = await RecordTypesService.getAll(brand).toPromise();
         let response: ListAPIResponse < any > = new ListAPIResponse();
         let summary: ListAPISummary = new ListAPISummary();

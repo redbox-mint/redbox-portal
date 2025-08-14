@@ -4,7 +4,8 @@
       "outDir": "./",
       "rootDir": "./typescript",
       "strict": false,
-      "inlineSourceMap": true
+      "inlineSourceMap": true,
+      "experimentalDecorators": true
     },
     "exclude": [
       "node_modules/**",
@@ -20,5 +21,6 @@
     "buildOnSave": false,
     "atom": {
         "rewriteTsconfig": false
-    }
+    },
+    
 }

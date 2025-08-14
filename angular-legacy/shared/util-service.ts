@@ -30,6 +30,7 @@ import numeral from 'numeral';
 @Injectable()
 export class UtilityService {
 
+  compiledTemplateMap: any = {};
   /**
    * returns concatenated string
    *
@@ -363,14 +364,19 @@ export class UtilityService {
 
   public runTemplate(data: any, config: any, field: any = undefined) {
     const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
-    const templateData = {imports: imports};
-    const template = _.template(config.template, templateData);
-    const templateRes = template();
+    const templateData = imports;
+    let template = this.compiledTemplateMap[config.template]
+    if(template === undefined) {
+      template = _.template(config.template);
+      this.compiledTemplateMap[config.template] = template;
+    }
+    const templateRes = template(templateData);
     // added ability to parse the string template result into JSON
     // requirement: template must return a valid JSON string object
     if (config.json == true && !_.isEmpty(templateRes)) {
       return JSON.parse(templateRes);
     }
-    return templateRes;
+    // Added to allow arbitrary execution of field functions that won't change the value of a field
+    return config.returnUndefinedOnEmpty && (_.isUndefined(templateRes) || _.isEmpty(templateRes)) ? undefined : templateRes;
   }
 }

@@ -20,17 +20,19 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import { Services as services } from '@researchdatabox/redbox-core-types';
+import { BrandingModel, FormModel, Services as services } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
 } from "sails";
+import { createSchema } from 'genson-js';
+import { config } from 'process';
 
 declare var sails: Sails;
 declare var Form: Model;
 declare var RecordType: Model;
 declare var WorkflowStep: Model;
-declare var _this;
+
 declare var _;
 
 export module Services {
@@ -48,7 +50,10 @@ export module Services {
       'flattenFields',
       'getFormByName',
       'filterFieldsHasEditAccess',
-      'listForms'
+      'listForms',
+      'inferSchemaFromMetadata',
+      'generateFormFromSchema',
+      'getFormByStartingWorkflowStep'
     ];
 
     public async bootstrap(workflowStep): Promise<any> {
@@ -140,12 +145,12 @@ export module Services {
       return null;
     }
 
-    public listForms = (): Observable<any> => {
+    public listForms = (): Observable<FormModel[]> => {
       return super.getObservable(Form.find({}));
     }
 
 
-    public getFormByName = (formName, editMode): Observable<any> => {
+    public getFormByName = (formName, editMode): Observable<FormModel> => {
       return super.getObservable(Form.findOne({
         name: formName
       })).flatMap(form => {
@@ -157,10 +162,25 @@ export module Services {
       });
     }
 
-    public getForm = (branding, recordType, editMode, starting: boolean): Observable<any> => {
+    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any) {
+
+      // allow client to set the form name to use
+      const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
+
+      if(formName == 'generated-view-only') {
+        return await this.generateFormFromSchema(branding, recordType, currentRec);
+      } else {
+
+        return await this.getFormByName(formName, editMode).toPromise();
+      }
+    }
+
+    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormModel> {
+
+      let starting = true;
 
       return super.getObservable(RecordType.findOne({
-        key: branding + "_" + recordType
+        key: branding.id + "_" + recordType
       }))
         .flatMap(recordType => {
 
@@ -188,7 +208,258 @@ export module Services {
         }).filter(result => result !== null).last();
     }
 
-    protected setFormEditMode(fields, editMode) {
+    public inferSchemaFromMetadata(record: any): any {
+      const schema = createSchema(record.metadata);
+      return schema;
+    }
+
+    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: any) {
+
+      if(recordType == '') {
+        recordType = _.get(record,'metaMetadata.type','');
+        if(recordType == '') {
+          return {};
+        }
+      }
+
+      let form: FormModel;
+
+      let schema = this.inferSchemaFromMetadata(record);
+
+      let fieldKeys = _.keys(schema.properties);
+
+      let buttonsList = [
+        {
+          class: 'AnchorOrButton',
+          roles: ['Admin', 'Librarians'],
+          viewOnly: true,
+          definition: {
+            label: '@view-record-audit-link',
+            value: '/@branding/@portal/record/viewAudit/@oid',
+            cssClasses: 'btn btn-large btn-info margin-15',
+            controlType: 'anchor'
+          },
+          variableSubstitutionFields: ['value']
+        },
+        {
+          class: 'SaveButton',
+          viewOnly: true,
+          roles: ['Admin', 'Librarians'],
+          definition: {
+            name: 'confirmDelete',
+            label: 'Delete this record',
+            closeOnSave: true,
+            redirectLocation: '/@branding/@portal/dashboard/'+recordType,
+            cssClasses: 'btn-danger',
+            confirmationMessage: '@dataPublication-confirmDelete',
+            confirmationTitle: '@dataPublication-confirmDeleteTitle',
+            cancelButtonMessage: '@dataPublication-cancelButtonMessage',
+            confirmButtonMessage: '@dataPublication-confirmButtonMessage',
+            isDelete: true,
+            isSubmissionButton: true
+          },
+          variableSubstitutionFields: ['redirectLocation']
+        }
+      ];
+
+      let textFieldTemplate = {
+        class: 'TextField',
+        viewOnly: true,
+        definition: {
+          name: '',
+          label: '',
+          help: '',
+          type: 'text',
+          subscribe: {
+            'form': {
+              onFormLoaded: [{
+              action: 'utilityService.runTemplate',
+              template: '',
+              includeFieldInFnCall: true
+            }]
+          }
+        }
+        }
+      };
+
+      let groupComponentTemplate = {
+        class: 'Container',
+        compClass: 'GenericGroupComponent',
+        definition: {
+          name: '',
+          cssClasses: 'form-inline',
+          fields: []
+        }
+      };
+
+      let groupTextFieldTemplate = {
+        class: 'TextField',
+        definition: {
+          name: '',
+          label: '',
+          type: 'text',
+          groupName: '',
+          groupClasses: 'width-30',
+          cssClasses : "width-80 form-control"
+        }
+      };
+
+      let repeatableGroupComponentTemplate = {
+        class: 'RepeatableContainer',
+        compClass: 'RepeatableGroupComponent',
+        definition: {
+          name: '',
+          label: '',
+          help: '',
+          forceClone: ['fields'],
+          fields: []
+        }
+      };
+
+      let objectFieldHeadingTemplate = {
+        class: 'Container',
+        compClass: 'TextBlockComponent',
+        definition: {
+          value: '',
+          type: 'h3'
+        }
+      };
+
+      let mainTitleFieldName = 'title';
+
+      let fieldList = [
+      ];
+
+      for(let fieldKey of fieldKeys) {
+        
+        let schemaProperty = schema.properties[fieldKey];
+
+        if(_.get(schemaProperty,'type','') == 'string') {
+          
+          let textField = _.cloneDeep(textFieldTemplate);
+          _.set(textField.definition,'name',fieldKey);
+          _.set(textField.definition,'label',fieldKey);
+          _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.trim(field.fieldMap["'+fieldKey+'"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["'+fieldKey+'"].field.value %>');
+          fieldList.push(textField);
+
+        } if(_.get(schemaProperty,'type','') == 'array') {
+
+          if(_.get(schemaProperty,'items.type','') == 'string') {
+
+            let textField = _.cloneDeep(textFieldTemplate);
+            _.set(textField.definition,'name',fieldKey);
+            _.set(textField.definition,'label',fieldKey);
+            _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.isEmpty(_.trim(field.fieldMap["'+fieldKey+'"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["'+fieldKey+'"].field.value %>');
+            fieldList.push(textField);
+
+          } else if(_.get(schemaProperty,'items.type','') == 'object') {
+
+            let objectFieldKeys = _.keys(schemaProperty.items.properties);
+            let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
+            let groupField = _.cloneDeep(groupComponentTemplate);
+            let groupFieldList = [];
+
+            for(let objectFieldKey of objectFieldKeys) {
+              let innerProperty = schemaProperty.items.properties[objectFieldKey];
+              if(_.get(innerProperty,'type','') == 'string') {
+                let textField = _.cloneDeep(groupTextFieldTemplate);
+                _.set(textField.definition,'name',objectFieldKey);
+                _.set(textField.definition,'label',objectFieldKey);
+                _.set(textField.definition,'groupName','item');
+                groupFieldList.push(textField);
+              }
+            }
+
+            _.set(groupField.definition,'name','item');
+            _.set(groupField.definition,'fields',groupFieldList);
+            _.set(repeatableGroupField.definition,'name',fieldKey);
+            _.set(repeatableGroupField.definition,'label',fieldKey);
+            _.set(repeatableGroupField.definition,'fields',[groupField]);
+            fieldList.push(repeatableGroupField);
+          }
+
+        } else if(_.get(schemaProperty,'type','') == 'object') {
+          
+          let objectFieldKeys = _.keys(schemaProperty.properties);
+          let groupField = _.cloneDeep(groupComponentTemplate);
+          let groupFieldList = [];
+          
+          for(let objectFieldKey of objectFieldKeys) {
+            let innerProperty = schemaProperty.properties[objectFieldKey];
+            if(_.get(innerProperty,'type','') == 'string') {
+              let textField = _.cloneDeep(groupTextFieldTemplate);
+              _.set(textField.definition,'name',objectFieldKey);
+              _.set(textField.definition,'label',objectFieldKey);
+              _.set(textField.definition,'groupName',fieldKey);
+              groupFieldList.push(textField);
+            }
+          }
+
+          let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+          _.set(objectFieldHeading.definition, 'value', fieldKey);
+          fieldList.push(objectFieldHeading);
+
+          _.set(groupField.definition,'name',fieldKey);
+          _.set(groupField.definition,'fields',groupFieldList);
+          fieldList.push(groupField);
+        }
+      }
+
+      let formObject = {
+        name: 'generated-view-only',
+        type: recordType,
+        skipValidationOnSave: false,
+        editCssClasses: 'row col-md-12',
+        viewCssClasses: 'row col-md-offset-1 col-md-10',
+        messages: {},
+        attachmentFields: [],
+        fields: [
+          {
+            class: 'Container',
+            compClass: 'TextBlockComponent',
+            viewOnly: true,
+            definition: {
+              name: mainTitleFieldName,
+              type: 'h1'
+            }
+          },
+          {
+            class: 'Container',
+            compClass: 'GenericGroupComponent',
+            definition: {
+              cssClasses: "form-inline",
+              fields: buttonsList
+            }
+          },
+          {
+          class: 'TabOrAccordionContainer',
+          compClass: 'TabOrAccordionContainerComponent',
+          definition: {
+            id: 'mainTab',
+            accContainerClass: 'view-accordion',
+            expandAccordionsOnOpen: true,
+            fields: [
+              {
+                class: 'Container',
+                editOnly: true,
+                definition: {
+                  id: 'main',
+                  label: '@lookup-record-details-'+recordType,
+                  active: true,
+                  fields: fieldList
+                }
+              }
+            ]
+          }
+        }]
+      };
+
+      form = formObject as any;
+
+      return form;
+    }
+
+    protected setFormEditMode(fields, editMode): void{
       _.remove(fields, field => {
         if (editMode) {
           return field.viewOnly == true;
@@ -204,7 +475,7 @@ export module Services {
       });
     }
 
-    public filterFieldsHasEditAccess(fields, hasEditAccess) {
+    public filterFieldsHasEditAccess(fields, hasEditAccess):void {
       _.remove(fields, field => {
         return field.needsEditAccess && hasEditAccess != true;
       });
@@ -215,7 +486,7 @@ export module Services {
       });
     }
 
-    public flattenFields(fields, fieldArr) {
+    public flattenFields(fields, fieldArr):void {
       _.map(fields, (f) => {
         fieldArr.push(f);
         if (f.fields) {
