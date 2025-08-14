@@ -22,7 +22,7 @@ import { mergeMap as flatMap } from 'rxjs/operators';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { default as NodeCache } from "node-cache";
-import { default as moment } from 'moment';
+import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
 declare var sails: Sails;
 declare var _;
@@ -66,7 +66,7 @@ export module Services {
             if (!_.isEmpty(dbData)) {
               sails.log.verbose(`Got DB cache entry`);
               // check if entry is expired...
-              if (moment().unix() - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
+              if (Math.floor(DateTime.local().toSeconds()) - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
                 sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
                 return of(null);
               } else {
@@ -91,10 +91,10 @@ export module Services {
       .pipe(flatMap(dbData => {
         if (!_.isEmpty(dbData)) {
           sails.log.verbose(`Updating entry name: ${name}`)
-          return super.getObservable(CacheEntry.update({name: name}, {name: name, data:data, ts_added: moment().unix()}));
+          return super.getObservable(CacheEntry.update({name: name}, {name: name, data:data, ts_added: Math.floor(DateTime.local().toSeconds())}));
         } else {
           sails.log.verbose(`Creating entry name: ${name}`);
-          return super.getObservable(CacheEntry.create({name: name, data:data, ts_added: moment().unix()}));
+          return super.getObservable(CacheEntry.create({name: name, data:data, ts_added: Math.floor(DateTime.local().toSeconds())}));
         }
       })
       ,flatMap(dbData => {

@@ -28,7 +28,7 @@ declare var sails: Sails;
 declare var Record: Model;
 declare var User: Model;
 declare var NamedQuery: Model;
-const moment = require('moment');
+import { DateTime } from 'luxon';
 declare var _this;
 declare var _;
 
@@ -261,17 +261,17 @@ export module Services {
             }
             if(queryParam.format == NamedQueryFormatOptions.days) {
               let days = _.toInteger(value);
-              let nowDateAddOrSubtract = moment();
+              let nowDateAddOrSubtract = DateTime.local();
               if (days > 0) {
                 //Going forward in time X number of days
-                nowDateAddOrSubtract = nowDateAddOrSubtract.add(days, 'days');
+                nowDateAddOrSubtract = nowDateAddOrSubtract.plus({ days: days });
               } else if(days < 0) {
                 //This "additional" step makes the code self explanatory
                 days = days * -1;
                 //Going backwards in time X number of days
-                nowDateAddOrSubtract = nowDateAddOrSubtract.subtract(days, 'days');
+                nowDateAddOrSubtract = nowDateAddOrSubtract.minus({ days: days });
               }
-              value = nowDateAddOrSubtract.toISOString();
+              value = nowDateAddOrSubtract.toISO();
             } 
 
             query[queryParam.queryType] = value;
