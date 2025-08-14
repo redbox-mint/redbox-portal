@@ -131,6 +131,7 @@ export class FormService extends HttpClientService {
    */
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
+    // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
     const formConfig = await this.getFormConfig(oid, recordType, editMode, formName);
     if (!formConfig){
       throw new Error("Form config from server was empty.");
@@ -147,12 +148,6 @@ export class FormService extends HttpClientService {
       }
     }
     this.loggerService.info(`${this.logName}: Applied validation functions to form config.`, formConfig.validatorDefinitions);
-
-    // Get the model data from the server.
-    const modelData = await this.getModelData(oid, recordType) ?? {};
-
-    // Integrate model data into form config for rendering the form.
-    this.populateFormConfigFromModelData(formConfig, modelData);
 
     // Resolve the field and component pairs
     return this.createFormComponentsMap(formConfig);
@@ -351,7 +346,7 @@ export class FormService extends HttpClientService {
             if (formControl && name) {
               groupWithFormControl[name] = formControl;
             }
-          } 
+          }
         }
       }
     }
@@ -546,57 +541,6 @@ export class FormService extends HttpClientService {
     const result = await this.http.get(url.href, this.requestOptions).toPromise() as Record<string, unknown>;
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result;
-  }
-
-
-  // TODO: do this on the server-side instead: if new record, use the form config defaults, if existing, use the record values
-  //       set the defaultValue or existing values to the model.config.value, remove model.config.defaultValue
-  /**
-   * Populate the `model.config.value` properties of components in the form config from the data model.
-   *
-   * @param formConfig The form config.
-   * @param modelData The model data for the form config.
-   */
-  public populateFormConfigFromModelData(formConfig: FormConfig, modelData: Record<string, unknown>): void {
-    const componentDefinitions = (formConfig.componentDefinitions ?? {}) as Record<string, unknown>[]
-    this.populateFormConfigFromModelDataWorker(componentDefinitions, modelData);
-  }
-
-  private populateFormConfigFromModelDataWorker(componentDefinitions: Record<string, unknown>[], currentModelData: Record<string, unknown>):void{
-    for (const componentDefinition of componentDefinitions) {
-
-      const componentClass = _get(componentDefinition, 'component.class')?.toString();
-      const name = _get(componentDefinition, 'name')?.toString();
-      if (name === undefined){
-        this.loggerService.debug(`${this.logName}: Cannot populate component '${componentClass}' from model data because there is no property '${name}'`);
-        continue;
-      }
-
-      const value = _get(currentModelData, name);
-      if (value === undefined){
-        this.loggerService.debug(`${this.logName}: Cannot populate component '${componentClass}' from model data because the property '${name}' has value 'undefined'`);
-        continue;
-      }
-
-      const model = _get(componentDefinition, 'model');
-      if (model === undefined){
-        this.loggerService.debug(`${this.logName}: No model in the component '${componentClass}' name '${name}'`);
-        continue;
-      }
-
-      // recurse into 'container' components that don't have a model
-      // Can set the model value for components that do have a model (e.g. RepeatableComponent, GroupFieldComponent)
-      switch(componentClass){
-        case 'TabComponent':
-          const tabs = _get(componentDefinition, 'component.config.tabs', []) as Record<string, unknown>[];
-          tabs.forEach(t => {
-            this.populateFormConfigFromModelDataWorker(t['componentDefinitions'] as Record<string, unknown>[], currentModelData);
-          });
-          break;
-        default:
-          break;
-      }
-    }
   }
 }
 

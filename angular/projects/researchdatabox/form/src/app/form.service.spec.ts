@@ -52,17 +52,4 @@ describe('The FormService', () => {
     expect(service).toBeTruthy();
     httpTesting.verify();
   });
-
-
-  describe('populateFormConfigFromModelData method', () => {
-    it('should populate a simple form config with the matching data model', async () => {
-      const formConfig: FormConfig = {};
-      const modelData = {};
-      const expected = {};
-      service.populateFormConfigFromModelData(formConfig, modelData);
-      expect(formConfig).toEqual(expected);
-      httpTesting.verify();
-    });
-  });
-
 });

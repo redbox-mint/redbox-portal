@@ -533,7 +533,7 @@ export module Services {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
 
       // Create a new context to avoid changing the provided context.
-      // Set defaults for the context.
+      // This also set defaults for the context.
       context = new ClientFormContext(context);
 
       // create the client form config
