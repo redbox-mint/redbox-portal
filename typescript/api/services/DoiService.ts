@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  of
+} from 'rxjs';
 import {
   Services as services,
   RBValidationError,
@@ -29,7 +29,6 @@ import {
   Sails,
   Model
 } from "sails";
-import 'rxjs/add/operator/toPromise';
 import { DateTime } from 'luxon';
 import moment from '../shims/momentShim';
 import axios from 'axios';
@@ -514,7 +513,7 @@ export module Services {
         }
       }
 
-      return Observable.of(null);
+      return of(null);
     }
 
     public async publishDoiTriggerSync(oid, record, options): Promise<any> {

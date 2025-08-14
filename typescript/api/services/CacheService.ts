@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, of } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { default as NodeCache } from "node-cache";
@@ -55,29 +56,29 @@ export module Services {
     }
 
     public get(name): Observable<any> {
-      const cacheGet = Observable.of(this.cache.get(name));
-      return cacheGet.flatMap(data => {
+      const cacheGet = of(this.cache.get(name));
+      return cacheGet.pipe(flatMap(data => {
         if (data) {
-          return Observable.of(data);
+          return of(data);
         } else {
           sails.log.verbose(`Getting DB cache entry for name: ${name}`);
-          return super.getObservable(CacheEntry.findOne({name: name})).flatMap(dbData => {
+          return super.getObservable(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
             if (!_.isEmpty(dbData)) {
               sails.log.verbose(`Got DB cache entry`);
               // check if entry is expired...
               if (Math.floor(DateTime.local().toSeconds()) - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
                 sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
-                return Observable.of(null);
+                return of(null);
               } else {
                 this.cache.set(name, dbData.data);
-                return Observable.of(dbData.data);
+                return of(dbData.data);
               }
             }
             sails.log.verbose(`No DB cache entry for: ${name}`);
-            return Observable.of(null);
-          });
+            return of(null);
+          }));
         }
-      });
+      }));
       
       
     }
@@ -87,7 +88,7 @@ export module Services {
       sails.log.verbose(`Setting cache for entry: ${name}...`);
       this.cache.set(name, data, expiry);
       super.getObservable(CacheEntry.findOne({name: name}))
-      .flatMap(dbData => {
+      .pipe(flatMap(dbData => {
         if (!_.isEmpty(dbData)) {
           sails.log.verbose(`Updating entry name: ${name}`)
           return super.getObservable(CacheEntry.update({name: name}, {name: name, data:data, ts_added: Math.floor(DateTime.local().toSeconds())}));
@@ -96,9 +97,9 @@ export module Services {
           return super.getObservable(CacheEntry.create({name: name, data:data, ts_added: Math.floor(DateTime.local().toSeconds())}));
         }
       })
-      .flatMap(dbData => {
-        return Observable.of(dbData);
-      })
+      ,flatMap(dbData => {
+        return of(dbData);
+      }))
       .subscribe(data => {
         sails.log.verbose(`Saved local and remote cache for entry:${name}`);
       }, error => {

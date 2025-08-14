@@ -18,8 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable, of, from, mergeMap as flatMap, firstValueFrom, throwError
+} from 'rxjs';
+import { concatMap, last, catchError } from 'rxjs/operators';
 
 import {
   DatastreamService,
@@ -185,7 +186,7 @@ export module Services {
      
 
       
-      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
+  let wfStep = await firstValueFrom(WorkflowStepsService.getFirst(recordType));
       let formName = _.get(wfStep, 'config.form');
 
   let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
@@ -196,7 +197,7 @@ export module Services {
        this.setWorkflowStepRelatedMetadata(record, wfStep);
 
       if (targetStep) {
-        wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
+        wfStep = await firstValueFrom(WorkflowStepsService.get(recordType.name, targetStep));
         record = await this.triggerPreSaveTransitionWorkflowTriggers(null, record, recordType, wfStep, user);
         this.setWorkflowStepRelatedMetadata(record, wfStep);
       }
@@ -254,7 +255,7 @@ export module Services {
             });
             // update the datastreams in RB, this is a terminal call
             sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
-            let resposeDatastream = await this.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata).toPromise();
+            let resposeDatastream = await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata));
           } catch (error) {
             throw new Error(`RecordsService - create - Failed to save record: ${error}`);
           }
@@ -348,7 +349,7 @@ export module Services {
 
       let recordType = null;
       if (!_.isEmpty(brand)) {
-        recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+        recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
       }
 
       if (!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
@@ -385,14 +386,14 @@ export module Services {
         }
       }
 
-      let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
+  let form: any = await firstValueFrom(FormsService.getFormByName(record.metaMetadata.form, true))
       record.metaMetadata.attachmentFields = form != undefined ? form.attachmentFields : [];
 
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
-          recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+          recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
           record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onUpdate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
@@ -409,7 +410,7 @@ export module Services {
 
       sails.log.verbose(`RecordService - updateMeta - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
       sails.log.verbose(`RecordService - updateMeta - record.metadata.dataLocations ` + JSON.stringify(record.metadata.dataLocations));
-      updateResponse = await this.handleUpdateDataStream(oid, origRecord, record.metadata).toPromise();
+  updateResponse = await firstValueFrom(this.handleUpdateDataStream(oid, origRecord, record.metadata));
       sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
       const fieldsToCheck = ['location', 'uploadUrl'];
@@ -446,7 +447,7 @@ export module Services {
         //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
         //therefore try to set recordType if triggerPostSaveTriggers is true
         if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
-          recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+          recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
         }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
@@ -877,8 +878,8 @@ export module Services {
       sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url, sails.config.record.api.search.method);
 
-      return Observable.fromPromise(axios(options))
-        .flatMap(resp => {
+  return firstValueFrom(from(axios(options))
+        .pipe(flatMap(resp => {
           let response: any = resp;
           const customResp = {
             records: []
@@ -913,8 +914,8 @@ export module Services {
               });
             });
           }
-          return Observable.of(customResp);
-        }).toPromise();
+          return of(customResp);
+        })));
     }
 
     protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {
@@ -1217,7 +1218,7 @@ export module Services {
     private resolveHookResponse(hookResponse) {
       let response = hookResponse;
       if (isObservable(hookResponse)) {
-        response = hookResponse.toPromise();
+        response = firstValueFrom(hookResponse);
       } else {
         response = Promise.resolve(hookResponse);
       }
@@ -1236,38 +1237,42 @@ export module Services {
 
     public handleUpdateDataStream(oid, origRecord, metadata) {
       const fileIdsAdded = [];
-
-      return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
-        .concatMap(reqs => {
-          if (reqs) {
-            sails.log.verbose(`Updating data streams...`);
-            return Observable.from(reqs);
-          } else {
-            sails.log.verbose(`No datastreams to update...`);
-            return Observable.of(null);
-          }
-        })
-        .concatMap((promise) => {
-          if (promise) {
-            sails.log.verbose(`Update datastream request is...`);
-            sails.log.verbose(JSON.stringify(promise));
-            return promise.catch(e => {
-              sails.log.verbose(`Error in updating stream::::`);
-              sails.log.verbose(JSON.stringify(e));
-              return Observable.throwError(new Error(TranslationService.t('attachment-upload-error')));
-            });
-          } else {
-            return Observable.of(null);
-          }
-        })
-        .concatMap(updateResp => {
-          if (updateResp) {
-            sails.log.verbose(`Got response from update datastream request...`);
-            sails.log.verbose(JSON.stringify(updateResp));
-          }
-          return Observable.of(updateResp);
-        })
-        .last();
+      return this.datastreamService
+        .updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+        .pipe(
+          concatMap((reqs: any) => {
+            if (reqs) {
+              sails.log.verbose(`Updating data streams...`);
+              return from(reqs as any[]);
+            } else {
+              sails.log.verbose(`No datastreams to update...`);
+              return of(null);
+            }
+          }),
+          concatMap((promise: any) => {
+            if (promise) {
+              sails.log.verbose(`Update datastream request is...`);
+              sails.log.verbose(JSON.stringify(promise));
+              return from(promise).pipe(
+                catchError((e: any) => {
+                  sails.log.verbose(`Error in updating stream::::`);
+                  sails.log.verbose(JSON.stringify(e));
+                  return throwError(new Error(TranslationService.t('attachment-upload-error')));
+                })
+              );
+            } else {
+              return of(null);
+            }
+          }),
+          concatMap(updateResp => {
+            if (updateResp) {
+              sails.log.verbose(`Got response from update datastream request...`);
+              sails.log.verbose(JSON.stringify(updateResp));
+            }
+            return of(updateResp);
+          }),
+          last()
+        );
     }
   }
 }

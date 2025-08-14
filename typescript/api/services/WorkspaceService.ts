@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable, from } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import axios from 'axios';
@@ -83,11 +83,11 @@ export module Services {
      */
     public async getWorkspaces(targetRecordOid: string, targetRecord:any = undefined) {
       if (_.isUndefined(targetRecord)) {
-        targetRecord = await RecordsService.getMeta(targetRecordOid).toPromise();
+        targetRecord = await RecordsService.getMeta(targetRecordOid);
       }
       const workspaces = [];
       _.each(_.get(targetRecord, 'metadata.workspaces'), async (workspaceInfo:any) => {
-        workspaces.push(await RecordsService.getMeta(workspaceInfo.id).toPromise());
+        workspaces.push(await RecordsService.getMeta(workspaceInfo.id));
       });
       return workspaces;
     }
@@ -111,7 +111,7 @@ export module Services {
         },
         headers: config.redboxHeaders
       };
-      return Observable.fromPromise(axios(post));
+  return from(axios(post));
     }
 
     getRecordMeta(config: any, rdmp: string) {
@@ -120,7 +120,7 @@ export module Services {
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + rdmp,
         headers: config.redboxHeaders
       };
-      return Observable.fromPromise(axios(get));
+  return from(axios(get));
     }
 
     updateRecordMeta(config: any, record: any, id: string) {
@@ -130,7 +130,7 @@ export module Services {
         data: record,
         headers: config.redboxHeaders
       };
-      return Observable.fromPromise(axios(post));
+  return from(axios(post));
     }
 
     userInfo(userId: string) {
