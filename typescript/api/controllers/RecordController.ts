@@ -21,8 +21,9 @@
 declare var module;
 declare var sails;
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable, of, from, throwError, firstValueFrom
+} from 'rxjs';
+import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
   StorageServiceResponse,
   RecordTypeResponseModel,
@@ -31,7 +32,7 @@ import {
   BrandingModel,
   DataResponseV2
 } from '@researchdatabox/redbox-core-types';
-import { default as moment } from 'moment';
+import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
@@ -128,7 +129,7 @@ export module Controllers {
         if(_.isEmpty(record)) {
           return res.notFound();
         }
-        let hasViewAccess = await this.hasViewAccess(brand, req.user, record).toPromise()
+  let hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record))
         if (hasViewAccess) {
           if (apiVersion === ApiVersion.VERSION_2_0) {
             return res.json(this.buildResponseSuccess(record.metadata, {oid: record.redboxOid}))
@@ -208,10 +209,10 @@ export module Controllers {
           return res.serverError();
         });
       } else {
-        Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(record => {
+        from(this.recordsService.getMeta(oid)).pipe(flatMap(record => {
           const formName = record.metaMetadata.form;
           return FormsService.getFormByName(formName, true);
-        }).subscribe(form => {
+        })).subscribe(form => {
           sails.log.debug(form);
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
@@ -242,13 +243,13 @@ export module Controllers {
     protected hasEditAccess(brand, user, currentRec): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return Observable.of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
+      return of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
     }
 
     protected hasViewAccess(brand, user, currentRec) {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return Observable.of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
+      return of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
     }
 
     public async getForm(req, res) {
@@ -261,7 +262,7 @@ export module Controllers {
       try {
         if (_.isEmpty(oid)) {
           //find form to create a record
-          let form = await FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode).toPromise();
+          let form: any = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
           if (_.isEmpty(form)) {
             return this.ajaxFail(req, res, null, {message: `Error, getting form for record type: ${recordType}`});
           }
@@ -286,7 +287,7 @@ export module Controllers {
 
           if (editMode) {
             //find form to edit a record
-            let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
+            let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
             if (!hasEditAccess) {
               return this.ajaxFail(req, res, null, {message: TranslationService.t('edit-error-no-permissions')});
             }
@@ -296,7 +297,7 @@ export module Controllers {
             }
           } else {
             //find form to view a record
-            let hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+            let hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
             if (!hasViewAccess) {
               return this.ajaxFail(req, res, null, {message: TranslationService.t('view-error-no-permissions')});
             }
@@ -304,7 +305,7 @@ export module Controllers {
             if (_.isEmpty(form)) {
               return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
             }
-            let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
+            let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
             FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
           }
           // TODO: process the form config to provide only the fields accessible by the current user
@@ -354,7 +355,7 @@ export module Controllers {
         };
         record.metadata = metadata;
 
-        let recordType = await RecordTypesService.get(brand, recType).toPromise();
+  let recordType = await firstValueFrom(RecordTypesService.get(brand, recType));
         const user = req.user;
 
         sails.log.verbose(`RecordController - createRecord - enter`);
@@ -389,14 +390,14 @@ export module Controllers {
       const oid = req.param('oid');
       const user = req.user;
       let message = null;
-      let currentRec = await this.getRecord(oid).toPromise();
+  let currentRec = await firstValueFrom(this.getRecord(oid));
       if(!_.isEmpty(brand)) {
 
-        let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
+  let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       
         if (hasEditAccess) {
 
-          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+          let recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
 
           let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
           
@@ -513,15 +514,15 @@ export module Controllers {
       let metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
-      let currentRec = await this.getRecord(oid).toPromise();
-      let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
+  let currentRec = await firstValueFrom(this.getRecord(oid));
+  let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
         return res.forbidden();
       }
-      let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+  let recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
       let nextStepResp = null;
       if (targetStep) {
-        nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
+  nextStepResp = await firstValueFrom(WorkflowStepsService.get(recordType, targetStep));
       }
 
       let response;
@@ -567,7 +568,7 @@ export module Controllers {
     protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
       let editAccessResp: Observable<boolean> = this.hasEditAccess(brand, user, currentRec);
       return editAccessResp
-        .map(hasEditAccess => {
+        .pipe(map(hasEditAccess => {
           if (hasEditAccess) {
             currentRec.authorization = authorization;
             return this.updateAuthorization(brand, oid, currentRec, user);
@@ -577,35 +578,35 @@ export module Controllers {
               message: "Not authorized to edit"
             };
           }
-        });
+        }));
     }
 
     protected getRecord(oid) {
-      return Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
+      return from(this.recordsService.getMeta(oid)).pipe(flatMap(currentRec => {
         if (_.isEmpty(currentRec)) {
-          return Observable.throw(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
+          return throwError(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
         }
-        return Observable.of(currentRec);
-      });
+        return of(currentRec);
+      }));
     }
 
     //TODO: check if this is deprecated?
     protected updateMetadata(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
-        return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+        return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
       currentRec.metaMetadata.lastSavedBy = user.username;
-      currentRec.metaMetadata.lastSaveDate = moment().format();
+  currentRec.metaMetadata.lastSaveDate = DateTime.local().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
     protected updateAuthorization(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
-        return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+        return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
-      return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
     public stepTo(req, res) {
@@ -614,18 +615,18 @@ export module Controllers {
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       let origRecord = null;
-      return this.getRecord(oid).flatMap(currentRec => {
+      return this.getRecord(oid).pipe(flatMap(currentRec => {
         origRecord = _.cloneDeep(currentRec);
         return this.hasEditAccess(brand, req.user, currentRec)
-          .flatMap(hasEditAccess => {
+          .pipe(flatMap(hasEditAccess => {
             if (!hasEditAccess) {
-              return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+              return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
             }
             return RecordTypesService.get(brand, origRecord.metaMetadata.type);
           })
-          .flatMap(recType => {
+          ,flatMap(recType => {
             return WorkflowStepsService.get(recType, targetStep)
-              .flatMap(nextStep => {
+              .pipe(flatMap(nextStep => {
                 currentRec.metadata = metadata;
                 sails.log.verbose("Current rec:");
                 sails.log.verbose(currentRec);
@@ -633,11 +634,11 @@ export module Controllers {
                 sails.log.verbose(nextStep);
                 this.recordsService.setWorkflowStepRelatedMetadata(currentRec, nextStep);
                 return this.updateMetadata(brand, oid, currentRec, req.user);
-              });
-          })
-      })
+              }));
+          }))
+      }))
         .subscribe(response => {
-          let responseValue: Observable<any> = response;
+          let responseValue: any= response;
           return responseValue.subscribe(response => {
             sails.log.error(response);
             if (response && response.isSuccessful()) {
@@ -656,8 +657,8 @@ export module Controllers {
 
     protected async mergeFields(req, res, fields, requiredFieldIndicator, type, currentRec) {
 
-      let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
-      let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
+  let recordType = await firstValueFrom(RecordTypesService.get(BrandingService.getBrand(req.session.branding), type));
+  let workflowSteps = await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType));
       this.mergeFieldsSync(req, res, fields, requiredFieldIndicator, currentRec, workflowSteps);
       return fields;
     }
@@ -857,7 +858,7 @@ export module Controllers {
 
       // If a record type is set, fetch from the configuration what core it's being sent from
       if(type != null) {
-        let recordType:RecordTypeModel = await RecordTypesService.get(brand, type).toPromise();
+  let recordType:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, type));
         core = recordType.searchCore;
       }
       if (_.isEmpty(rows)) {
@@ -1019,14 +1020,14 @@ export module Controllers {
         return;
       }
       const that = this;
-      const currentRec = await this.getRecord(oid).toPromise();
+  const currentRec = await firstValueFrom(this.getRecord(oid));
 
       if (method == 'get') {
-        const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+  const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
 
         if (!hasViewAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         // check if this attachId exists in the record
         let found = null;
@@ -1043,7 +1044,7 @@ export module Controllers {
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('attachment-not-found')));
+          return throwError(new Error(TranslationService.t('attachment-not-found')));
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {
@@ -1067,7 +1068,7 @@ export module Controllers {
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
+          return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
@@ -1080,10 +1081,10 @@ export module Controllers {
           }
         }
       } else {
-        const hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
+  const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         sails.log.verbose(req.headers);
         let uploadFileSize = req.headers['Upload-Length'];
@@ -1096,12 +1097,12 @@ export module Controllers {
           if (diskSpace.free <= thresholdAppliedFileSize) {
             let errorMessage = TranslationService.t('not-enough-disk-space');
             sails.log.error(errorMessage + ' Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
-            return Observable.throwError(new Error(errorMessage));
+            return throwError(new Error(errorMessage));
           }
         }
         // process the upload...
         this.tusServer.handle(req, res);
-        return Observable.of(oid);
+        return of(oid);
       }
     }
 
@@ -1135,7 +1136,7 @@ export module Controllers {
 
     public async getPermissionsInternal(req, res) {
       const oid = req.param('oid');
-      let record = await this.getRecord(oid).toPromise();
+  let record = await firstValueFrom(this.getRecord(oid));
 
       let response = {};
 
@@ -1144,7 +1145,7 @@ export module Controllers {
       if (editUsers != null && editUsers != undefined) {
         for (let i = 0; i < editUsers.length; i++) {
           let editUsername = editUsers[i];
-          let user = await UsersService.getUserWithUsername(editUsername).toPromise();
+          let user = await firstValueFrom(UsersService.getUserWithUsername(editUsername));
           editUserResponse.push({
             username: editUsername,
             name: _.get(user, "name", ""),
@@ -1157,7 +1158,7 @@ export module Controllers {
       if (viewUsers != null && viewUsers != undefined) {
         for (let i = 0; i < viewUsers.length; i++) {
           let viewUsername = viewUsers[i];
-          let user = await UsersService.getUserWithUsername(viewUsername).toPromise();
+          let user = await firstValueFrom(UsersService.getUserWithUsername(viewUsername));
 
           viewUserResponse.push({
             username: viewUsername,
@@ -1192,7 +1193,7 @@ export module Controllers {
     public getAttachments(req, res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      Observable.fromPromise(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
+      from(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
         return this.ajaxOk(req, res, null, attachments);
       });
     }
@@ -1201,11 +1202,11 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
-      const currentRec = await this.getRecord(oid).toPromise();
+  const currentRec = await firstValueFrom(this.getRecord(oid));
 
-      const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+  const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
       if (!hasViewAccess) {
-        return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
       } else {
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
@@ -1219,7 +1220,7 @@ export module Controllers {
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
+          return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);

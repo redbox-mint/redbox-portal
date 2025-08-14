@@ -26,6 +26,7 @@ import {Sails, Model} from "sails";
 declare var _;
 
 import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { firstValueFrom } from 'rxjs';
 
 declare var sails: Sails;
 declare var FormsService:formsService.Forms;
@@ -65,7 +66,7 @@ export module Controllers {
         if (editable == null) {
           editable = true;
         }
-        let form:FormModel = await FormsService.getFormByName(name, editable).toPromise();
+  let form:FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
 
         return this.apiRespond(req, res, form, 200)
       } catch (error) {
@@ -75,7 +76,7 @@ export module Controllers {
 
     public async listForms(req, res) {
       try {
-        let forms:FormModel[] = await FormsService.listForms().toPromise();
+  let forms:FormModel[] = await firstValueFrom(FormsService.listForms());
         let response: ListAPIResponse < any > = new ListAPIResponse();
         let summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
