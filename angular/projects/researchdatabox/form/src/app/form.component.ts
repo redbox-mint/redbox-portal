@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect, input, computed, model } from '@angular/core';
+import { Component, Inject, ElementRef, signal, HostBinding, ViewChild, ViewContainerRef, inject, effect, model } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
@@ -316,13 +316,14 @@ export class FormComponent extends BaseComponent {
     return foundComponentDef;
   }
   
-  public async saveForm(forceSave: boolean = false, targetStep: string = '') {
-    // Check if the form is touched
-    if (this.form && (this.form.dirty || forceSave)) {
-      if (this.form.valid) {
-        this.loggerService.info(`${this.logName}: Form is valid. Submitting...`);
+  public async saveForm(forceSave: boolean = false, targetStep: string = '', skipValidation: boolean = false) {
+    // Check if the form is ready, defined, modified OR forceSave is set
+    // Status check will ensure saves requests will not overlap within the Angular Form app context
+    if (this.status() === FormStatus.READY && this.form && (this.form.dirty || forceSave)) {
+      if (this.form.valid || skipValidation) {
+        this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, skipValidation: ${skipValidation}. Submitting...`);
         // Here you can handle the form submission, e.g., send it to the server
-        this.loggerService.info(`${this.logName}: Form value:`, this.form.value);
+        this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
         // set status to 'saving' 
         this.status.set(FormStatus.SAVING);
         try {
@@ -348,7 +349,7 @@ export class FormComponent extends BaseComponent {
         // Handle form errors, e.g., show a message to the user
       }
     } else {
-      this.loggerService.info(`${this.logName}: Form is not dirty or forceSave is false. No action taken.`);
+      this.loggerService.info(`${this.logName}: Form is not ready/defined, dirty or forceSave is false. No action taken.`);
     }
   }
 
