@@ -185,3 +185,5 @@ support/raido/*.tgz
 angular/.angular/cache/
 
 api/configmodels/*
+api/shims/*.js
+

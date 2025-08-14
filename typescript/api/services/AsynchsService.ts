@@ -17,14 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
 declare var sails: Sails;
 declare var _;
 declare var AsynchProgress: Model;
-import { default as moment } from 'moment';
+import { DateTime } from 'luxon';
 
 export module Services {
   /**
@@ -43,7 +43,8 @@ export module Services {
 
     public start(progressObj) {
       if (_.isEmpty(progressObj.date_started) || _.isUndefined(progressObj.date_completed)) {
-        progressObj.date_started = moment().format('YYYY-MM-DDTHH:mm:ss');
+  // Using ISO-like local timestamp without timezone
+  progressObj.date_started = DateTime.local().toFormat("yyyy-LL-dd'T'HH:mm:ss");
       }
       return super.getObservable(AsynchProgress.create(progressObj));
     }
@@ -54,9 +55,9 @@ export module Services {
 
     public finish(progressId, progressObj=null) {
       if (progressObj) {
-          progressObj.date_completed = moment().format('YYYY-MM-DD HH:mm:ss');
+          progressObj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
       } else {
-          progressObj = {date_completed: moment().format('YYYY-MM-DD HH:mm:ss')};
+          progressObj = {date_completed: DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss')};
       }
       progressObj.status = 'finished';
       return super.getObservable(AsynchProgress.update({id:progressId}, progressObj));

@@ -17,8 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import { Observable, zip, from, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
+import { Services as services } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;
@@ -83,7 +84,7 @@ export module Services {
                 if(form == '') {
                   _.set(workflowConf.config,'form','generated-view-only');
                 }
-                var obs = await this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']).toPromise();
+                var obs = await firstValueFrom(this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']));
                 workflowSteps.push(obs);
               };
             }
@@ -95,7 +96,7 @@ export module Services {
 
 
 
-    public create(recordType, name, workflowConf, starting, hidden:boolean = false) {
+    public create(recordType, name, workflowConf, starting, hidden: boolean = false) {
       return super.getObservable(WorkflowStep.create({
         name: name,
         config: workflowConf,
@@ -106,15 +107,15 @@ export module Services {
     }
 
     public get(recordType, name) {
-      return super.getObservable(WorkflowStep.findOne({recordType: recordType.id, name: name }));
+      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id, name: name }));
     }
 
     public getAllForRecordType(recordType) {
-      return super.getObservable(WorkflowStep.find({recordType: recordType.id, hidden: { '!=': true } }));
+      return super.getObservable(WorkflowStep.find({ recordType: recordType.id, hidden: { '!=': true } }));
     }
 
     public getFirst(recordType) {
-      return super.getObservable(WorkflowStep.findOne({recordType: recordType.id, starting: true }));
+      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id, starting: true }));
     }
   }
 }

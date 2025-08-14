@@ -20,7 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 /**
  * Package that contains all Controllers.
  */

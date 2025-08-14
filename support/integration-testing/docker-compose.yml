@@ -3,6 +3,7 @@ networks:
   main:
 services:
   redboxportal:
+    
     image: qcifengineering/redbox-portal:latest
     ports:
        - "1500:1500"
@@ -24,6 +25,7 @@ services:
      main:
        aliases:
          - rbportal
+    init: true
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
     image: mvertes/alpine-mongo:latest

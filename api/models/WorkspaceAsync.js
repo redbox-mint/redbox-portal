@@ -4,7 +4,7 @@
  * @description :: Tracks Asynchrounous workspace methods
  * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
  */
-var moment = require('moment');
+// moment removed: not used; dates stored as plain strings.
 
 module.exports = {
   attributes: {

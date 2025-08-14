@@ -70,10 +70,10 @@ describe('The Named Query Service', function () {
     expect(namedQueryConfig.mongoQuery.defaultIsoDatePath).to.deep.equal({ "=>": '2024-12-18T00:00:00.000Z'});
     expect(namedQueryConfig.mongoQuery.stringPath).to.deep.equal({contains: 'defaultString'});
 
-    const daysDateString = namedQueryConfig.mongoQuery.daysDatePath["<="]
-    expect(daysDateString).to.be.a('string');
-    let yesterdayIsoString = moment().subtract(1, 'days').format('YYYY-MM-DD');
-    expect(daysDateString).to.contain(yesterdayIsoString);
+  const daysDateString = namedQueryConfig.mongoQuery.daysDatePath["<="]
+  expect(daysDateString).to.be.a('string');
+  const yesterdayIsoString = DateTime.now().minus({ days: 1 }).toFormat('yyyy-LL-dd');
+  expect(daysDateString).to.contain(yesterdayIsoString);
     
     done()
   })
@@ -148,10 +148,10 @@ describe('The Named Query Service', function () {
     expect(namedQueryConfig.mongoQuery.defaultIsoDatePath).to.deep.equal({ "=>": defaultIsoDateParamValue});
     expect(namedQueryConfig.mongoQuery.stringPath).to.deep.equal({contains: stringParamValue});
 
-    const daysDateString = namedQueryConfig.mongoQuery.daysDatePath["<="]
-    expect(daysDateString).to.be.a('string');
-    let dayBeforeYesterdayIsoString = moment().subtract(2, 'days').format('YYYY-MM-DD');
-    expect(daysDateString).to.contain(dayBeforeYesterdayIsoString);
+  const daysDateString = namedQueryConfig.mongoQuery.daysDatePath["<="]
+  expect(daysDateString).to.be.a('string');
+  const dayBeforeYesterdayIsoString = DateTime.now().minus({ days: 2 }).toFormat('yyyy-LL-dd');
+  expect(daysDateString).to.contain(dayBeforeYesterdayIsoString);
     
     done()
   })

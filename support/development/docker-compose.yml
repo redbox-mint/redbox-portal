@@ -40,6 +40,7 @@ services:
       main:
         aliases:
           - rbportal
+    init: true
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
   mongodb:
     #image: mvertes/alpine-mongo:latest

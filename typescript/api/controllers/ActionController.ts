@@ -21,7 +21,7 @@
 declare var module;
 declare var sails;
 declare var _;
-import { Observable } from 'rxjs/Rx';
+
 declare function require(name:string);
 
 /**
