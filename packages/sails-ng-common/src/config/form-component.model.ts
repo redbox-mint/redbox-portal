@@ -62,8 +62,8 @@ export class FormConstraintConfig {
      * @param other
      */
     constructor(other: FormConstraintConfig) {
-        this.authorization = new FormConstraintAuthorizationConfig(other.authorization ?? {});
-        this.allowModes = [...other.allowModes ?? []];
+        this.authorization = new FormConstraintAuthorizationConfig(other?.authorization ?? {});
+        this.allowModes = [...other?.allowModes ?? []];
     }
 }
 
@@ -83,7 +83,7 @@ export class FormConstraintAuthorizationConfig {
      * @param other
      */
     constructor(other: FormConstraintAuthorizationConfig) {
-        this.allowRoles = [...other.allowRoles ?? []];
+        this.allowRoles = [...other?.allowRoles ?? []];
     }
 }
 

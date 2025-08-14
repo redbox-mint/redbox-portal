@@ -617,6 +617,8 @@ export module Services {
           throw new Error(`FormsService - 'value' in the base form field model definition config is for the client-side, use defaultValue instead ${JSON.stringify(item)}`);
       }
 
+      const result = structuredClone(item);
+
       // Populate model.config.value from either model.config.defaultValue or context.current.model.data.
       // Use the context to decide where to obtain any existing data model value.
       // If there is a model id, use the context current model data.
@@ -629,13 +631,14 @@ export module Services {
       if (hasContextModelId && hasContextModelData) {
         const path = context.pathFromBuildNames();
         const modelValue = _.get(context?.current?.model?.data, path, undefined);
-        _.set(item, 'config.value', modelValue);
+        _.set(result, 'config.value', modelValue);
       } else if (item?.config?.defaultValue !== undefined) {
         const defaultValue = _.get(item, 'config.defaultValue', undefined);
-        _.set(item, 'config.value', defaultValue);
+        _.set(result, 'config.value', defaultValue);
+        _.unset(result, 'config.defaultValue');
       }
 
-      return this.buildClientFormObject(item, context);
+      return this.buildClientFormObject(result, context);
     }
 
     private buildClientFormObject(item: Record<string, unknown>, context: ClientFormContext): Record<string, unknown> | null {
