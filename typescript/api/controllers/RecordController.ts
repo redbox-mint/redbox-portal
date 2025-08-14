@@ -18,7 +18,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-import {ClientFormContext} from "../services/FormsService";
 
 declare var module;
 declare var sails;
@@ -31,7 +30,8 @@ import {
   DashboardTypeResponseModel,
   RecordTypeModel,
   BrandingModel,
-  DataResponseV2
+  DataResponseV2,
+  Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
@@ -39,15 +39,13 @@ import * as fs from 'fs';
 import * as url from 'url';
 import { default as checkDiskSpace } from 'check-disk-space';
 import {Services as recordTypeService} from '../services/RecordTypesService';
-declare var _;
+import {ClientFormContext} from "../additional/ClientFormContext";
 
-declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService, FormRecordConsistencyService;
-declare var DashboardTypesService;
+declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService, FormRecordConsistencyService, DashboardTypesService;
+
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion } from '@researchdatabox/redbox-core-types';
-
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.
@@ -335,7 +333,7 @@ export module Controllers {
         }
 
         // process the form config to provide only the fields accessible by the current user
-        const currentContext = new ClientFormContext();
+        const currentContext = ClientFormContext.createView();
         currentContext.current.mode = editMode ? "edit" : "view";
         currentContext.current.user = {roles: []};
         currentContext.current.model = {id: oid, data: currentRec};

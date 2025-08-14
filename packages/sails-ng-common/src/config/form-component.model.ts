@@ -61,9 +61,11 @@ export class FormConstraintConfig {
      * Create a new instance from an existing instance to ensure no references are shared.
      * @param other
      */
-    constructor(other: FormConstraintConfig) {
-        this.authorization = new FormConstraintAuthorizationConfig(other?.authorization ?? {});
-        this.allowModes = [...other?.allowModes ?? []];
+    public static from(other?: FormConstraintConfig) {
+        const newInstance = new FormConstraintConfig();
+        newInstance.authorization = FormConstraintAuthorizationConfig.from(other?.authorization);
+        newInstance.allowModes = [...other?.allowModes ?? []];
+        return newInstance;
     }
 }
 
@@ -82,8 +84,10 @@ export class FormConstraintAuthorizationConfig {
      * Create a new instance from an existing instance to ensure no references are shared.
      * @param other
      */
-    constructor(other: FormConstraintAuthorizationConfig) {
-        this.allowRoles = [...other?.allowRoles ?? []];
+    public static from(other?: FormConstraintAuthorizationConfig) {
+        const newInstance = new FormConstraintAuthorizationConfig();
+        newInstance.allowRoles = [...other?.allowRoles ?? []];
+        return newInstance;
     }
 }
 

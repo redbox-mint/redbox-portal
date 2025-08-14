@@ -28,8 +28,8 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormConstraintConfig,
-  FormModesConfig
 } from "@researchdatabox/sails-ng-common";
+import {ClientFormContext} from "../additional/ClientFormContext";
 
 declare var sails: Sails;
 declare var Form: Model;
@@ -56,7 +56,8 @@ export module Services {
       'listForms',
       'inferSchemaFromMetadata',
       'generateFormFromSchema',
-      'getFormByStartingWorkflowStep'
+      'getFormByStartingWorkflowStep',
+      'buildClientFormConfig',
     ];
 
     public async bootstrap(workflowStep): Promise<any> {
@@ -531,10 +532,7 @@ export module Services {
      */
     public buildClientFormConfig(item: FormConfig, context?: ClientFormContext): Record<string, unknown> {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
-
-      // Create a new context to avoid changing the provided context.
-      // This also set defaults for the context.
-      context = new ClientFormContext(context);
+      context = context ?? ClientFormContext.createView();
 
       // create the client form config
       const result = this.buildClientFormObject(item as Record<string, unknown>, context);
@@ -551,12 +549,16 @@ export module Services {
      */
     public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}'`);
+      context = context ? ClientFormContext.from(context) : ClientFormContext.createView();
+
       // add the item constraints to the context build
       if (item?.name) {
-        context = new ClientFormContext(context);
-        context.build.push({
+        if (!context?.build){
+          context.build = [];
+        }
+        context?.build?.push({
           name: item?.name,
-          constraints: new FormConstraintConfig(item.constraints)
+          constraints: FormConstraintConfig.from(item.constraints)
         });
       }
 
@@ -586,6 +588,8 @@ export module Services {
      */
     public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field component definition with class '${item?.['class']}'`);
+      context = context ?? ClientFormContext.createView();
+
       // create the client form config
       if (!this.isFormFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field component definition ${JSON.stringify(item)}`);
@@ -600,6 +604,8 @@ export module Services {
      */
     public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field layout definition with class '${item?.['class']}'`);
+      context = context ?? ClientFormContext.createView();
+
       // create the client form config
       if (!this.isFormFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field layout definition ${JSON.stringify(item)}`);
@@ -609,6 +615,8 @@ export module Services {
 
     public buildClientFormFieldModelDefinition(item: BaseFormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field model definition with class '${item?.['class']}'`);
+      context = context ?? ClientFormContext.createView();
+
       // create the client form config
       if (!this.isFormFieldDefinition(item)) {
           throw new Error(`FormsService - item is not a form field model definition ${JSON.stringify(item)}`);
@@ -794,62 +802,3 @@ export module Services {
   }
 }
 module.exports = new Services.Forms().exports();
-
-/**
- * The client form context used to build the form config for the client.
- * The data include (all are optional)
- * - the current form mode
- * - the current user's roles
- * - the current model id
- * - the current model data
- */
-export class ClientFormContext {
-  current: ClientFormCurrentContext;
-  build: ClientFormBuildContext[];
-
-  /**
-   * Create a new instance from an existing instance to ensure no references are shared.
-   * @param other
-   */
-  constructor(other?: ClientFormContext) {
-    this.current = {
-      mode: other?.current?.mode ?? 'view',
-      user: {
-        roles: other?.current?.user?.roles ?? [],
-      },
-      model: {
-        id: other?.current?.model?.id ?? null,
-        data: other?.current?.model?.data ?? null,
-      }
-    };
-    this.build = (other?.build ?? [])?.map(b => {
-      return {name: b?.name, constraints: new FormConstraintConfig(b?.constraints)}
-    });
-  }
-
-  public pathFromBuildNames() {
-    return this.build?.map(i => i?.name)?.filter(i => !!i);
-  }
-}
-
-export type ClientFormCurrentContext = {
-  mode: FormModesConfig;
-  user?: ClientFormCurrentUserContext;
-  model?: ClientFormCurrentModelContext;
-};
-
-export type ClientFormCurrentUserContext = {
-  roles: string[];
-};
-
-export type ClientFormCurrentModelContext = {
-  id?: string;
-  data?: unknown;
-};
-
-
-export type ClientFormBuildContext = {
-  name: string;
-  constraints?: FormConstraintConfig;
-};
-
