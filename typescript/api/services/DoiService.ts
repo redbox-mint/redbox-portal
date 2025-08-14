@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable,of
+  of
 } from 'rxjs';
 import {
   Services as services,
@@ -29,7 +29,6 @@ import {
   Sails,
   Model
 } from "sails";
-import 'rxjs/add/operator/toPromise';
 import { DateTime } from 'luxon';
 import moment from '../shims/momentShim';
 import axios from 'axios';
