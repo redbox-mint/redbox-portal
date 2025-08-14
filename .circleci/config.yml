@@ -12,6 +12,19 @@ jobs:
           name: Install npm packages and compile for sails-ng-common
           command: npm run compile:sails-ng-common:prod
       - run:
+          name: Build generated api library for raido
+          command: |
+            mkdir /tmp/raido-gen
+            cd /tmp/raido-gen/
+            npm install @openapitools/openapi-generator-cli
+            sudo apt-get update
+            sudo apt-get install -y openjdk-17-jdk
+            cd -
+            cd support/raido
+            npm init -y
+            npm install
+            /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc   
+      - run:
           name: Install npm packages and compile for project
           command: npm run compile:sails:prod
       - run:
