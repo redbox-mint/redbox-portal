@@ -28,7 +28,7 @@ export async function createFormAndWaitForReady(formConfig: FormConfig) {
 
   // Set the form component to not download the form config on init.
   // Each test will provide a form config.
-  formComponent.downloadAndCreateOnInit = false;
+  formComponent.downloadAndCreateOnInit.set(false);
 
   // Turn on angular's automatic change detection.
   // This reduces the need to call fixture.detectChanges,

@@ -16,10 +16,10 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect } from '@angular/core';
+import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect, input, computed, model } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
@@ -53,11 +53,19 @@ import { FormComponentsMap, FormService } from './form.service';
 export class FormComponent extends BaseComponent {
   private logName = "FormComponent";
   appName: string;
-  @Input() oid:string;
-  @Input() recordType: string;
-  @Input() editMode: boolean;
-  @Input() formName: string;
-  @Input() downloadAndCreateOnInit: boolean = true;
+  oid = model<string>('');
+  // cache the previous oid to retrigger the load
+  currentOid: string = '';
+  recordType = model<string>('');
+  editMode = model<boolean>(true);
+  formName = model<string>('');
+  downloadAndCreateOnInit = model<boolean>(true);
+  // Convenience map of trimmed string params
+  trimmedParams = {
+    oid: this.utilityService.trimStringSignal(this.oid),
+    recordType: this.utilityService.trimStringSignal(this.recordType),
+    formName: this.utilityService.trimStringSignal(this.formName)
+  }
   /**
    * The FormGroup instance
    */
@@ -86,16 +94,38 @@ export class FormComponent extends BaseComponent {
   ) {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
-    this.oid = elementRef.nativeElement.getAttribute('oid');
-    this.recordType = elementRef.nativeElement.getAttribute('recordType');
-    this.editMode = elementRef.nativeElement.getAttribute('editMode') === "true";
-    this.formName = elementRef.nativeElement.getAttribute('formName') || "";
-    this.appName = `Form::${this.recordType}::${this.formName} ${ this.oid ? ' - ' + this.oid : ''}`.trim();
-    this.loggerService.debug(`'${this.logName}' waiting for '${this.formName}' deps to init...`);
+    // Params can be injected via HTML if the app is used outside of Angular
+    if (_isEmpty(this.trimmedParams.oid())) {
+      this.oid.set(elementRef.nativeElement.getAttribute('oid'));
+    }
+    if (_isEmpty(this.trimmedParams.recordType())) {
+      this.recordType.set(elementRef.nativeElement.getAttribute('recordType'));
+    }
+    if (_isEmpty(this.trimmedParams.formName())) {
+      this.formName.set(elementRef.nativeElement.getAttribute('formName'));
+    }
+    // HTML attribute overrides the defaults on init, but not when injected via Angular
+    if (!_isEmpty(_trim(elementRef.nativeElement.getAttribute('editMode')))) {
+      this.editMode.set(elementRef.nativeElement.getAttribute('editMode') === 'true');
+    }
+    if (!_isEmpty(_trim(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit')))) {
+      this.downloadAndCreateOnInit.set(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit') === 'true');
+    }
+    
+    this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${ this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
+    this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
     effect(() => {
       if (this.componentsLoaded()) {
         this.registerUpdateExpression();
+      }
+    });
+    // Set another effect for the OID update, will reinit if changed
+    effect(async () => {
+      if (!_isEmpty(this.trimmedParams.oid()) && this.currentOid !== this.trimmedParams.oid()) {
+        this.status.set(FormStatus.INIT);
+        this.componentsLoaded.set(false);
+        await this.initComponent();
       }
     });
   }
@@ -105,9 +135,9 @@ export class FormComponent extends BaseComponent {
   }
 
   protected async initComponent(): Promise<void> {
-    this.loggerService.debug(`${this.logName}: Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
+    this.loggerService.debug(`${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`);
     try {
-      if (this.downloadAndCreateOnInit) {
+      if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
       } else {
         this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
@@ -122,7 +152,7 @@ export class FormComponent extends BaseComponent {
   public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
     if (!formConfig) {
       this.loggerService.log(`${this.logName}: creating form definition by downloading config`);
-      this.formDefMap = await this.formService.downloadFormComponents(this.oid, this.recordType, this.editMode, this.formName, this.modulePaths);
+      this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
     } else {
       this.loggerService.log(`${this.logName}: creating form definition from provided config`);
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
@@ -146,6 +176,8 @@ export class FormComponent extends BaseComponent {
     // Set the status to READY if all components are loaded
     this.status.set(FormStatus.READY);
     this.componentsLoaded.set(true);
+    // set the cache that will trigger a form reinit when the OID is changed
+    this.currentOid = this.trimmedParams.oid();
   }
 
   /**
@@ -193,7 +225,7 @@ export class FormComponent extends BaseComponent {
   }
 
   @HostBinding('class.edit-mode') get isEditMode() {
-    return this.editMode;
+    return this.editMode();
   }
 
   @HostBinding('class') get hostClasses(): string {
@@ -201,7 +233,7 @@ export class FormComponent extends BaseComponent {
       return '';
     }
 
-    const cssClasses = this.editMode ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
+    const cssClasses = this.editMode() ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
 
     if (!cssClasses) {
       return '';
@@ -295,10 +327,10 @@ export class FormComponent extends BaseComponent {
         this.status.set(FormStatus.SAVING);
         try {
           let response: RecordActionResult;
-          if (_isEmpty(this.oid)) {
-            response = await this.recordService.create(this.form.value, this.recordType, targetStep);
+          if (_isEmpty(this.trimmedParams.oid())) {
+            response = await this.recordService.create(this.form.value, this.trimmedParams.recordType(), targetStep);
           } else {
-            response = await this.recordService.update(this.oid, this.form.value, targetStep);
+            response = await this.recordService.update(this.trimmedParams.oid(), this.form.value, targetStep);
           }
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);

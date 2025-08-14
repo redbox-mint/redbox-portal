@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Injectable} from '@angular/core';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find } from 'lodash-es';
+import {Injectable, computed, Signal} from '@angular/core';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find, trim as _trim } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 /**
@@ -409,5 +409,21 @@ export class UtilityService {
 
   public getNamesClasses(data?: any[] | null | undefined): string {
     return ((data ?? [])?.map(this.getNameClass) ?? []).join(', ');
+  }
+
+  /**
+   * Utility function to ensure a non-empty string value from signals. Allows for trimming of whitespace and arbitrary chars around strings, and default value when empty, i.e. zero length.
+   * 
+   * Can be potentially move to another service method
+   * @param source 
+   * @param defaultValue 
+   * @param charsToTrim 
+   * @returns 
+   */
+  trimStringSignal(source: Signal<string>, defaultValue: string = '', charsToTrim: string | undefined = undefined): Signal<string> {
+    return computed(() => {
+      const value = _trim(source(), charsToTrim);
+      return _isEmpty(value) ? defaultValue : value;
+    });
   }
 }
