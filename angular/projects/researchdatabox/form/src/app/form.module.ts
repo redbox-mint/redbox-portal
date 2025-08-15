@@ -31,6 +31,7 @@ import {GroupFieldComponent} from "./component/groupfield.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import { TextBlockComponent } from './component/textblock.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -38,6 +39,7 @@ import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
     FormBaseWrapperDirective,
     FormComponent,
     TextInputComponent,
+    TextBlockComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,
     ValidationSummaryFieldComponent,

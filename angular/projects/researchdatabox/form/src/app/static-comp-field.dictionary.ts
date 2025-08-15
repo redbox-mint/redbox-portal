@@ -5,6 +5,7 @@ import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
 import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
 import { TabComponent } from "./component/tab.component";
+import { TextBlockComponent, TextBlockModel } from "./component/textblock.component";
 
 
 /** Field related */
@@ -21,6 +22,10 @@ export const StaticModelCompClassMap = {
   'TextInput': {
     model: TextInputModel,
     component: TextInputComponent
+  },
+  'TextBlock': {
+    model: TextBlockModel,
+    component: TextBlockComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent
