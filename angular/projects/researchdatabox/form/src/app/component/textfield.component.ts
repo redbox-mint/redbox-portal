@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 
-export class TextFieldModel extends FormFieldModel<string> {
+export class TextInputModel extends FormFieldModel<string> {
 }
 
 @Component({
@@ -9,7 +9,7 @@ export class TextFieldModel extends FormFieldModel<string> {
     template: `
     @if (getBooleanProperty('visible')) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <input type='text' [formControl]="formControl"
+      <input [type]="inputType" [formControl]="formControl"
             class="form-control"
             [class.is-valid]="isValid"
             [class.is-invalid]="!isValid"
@@ -22,10 +22,11 @@ export class TextFieldModel extends FormFieldModel<string> {
   `,
     standalone: false
 })
-export class TextFieldComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "TextFieldComponent";
-  public tooltip = '';
-  public tooltipPlaceholder = 'placeholder';
+export class TextInputComponent extends FormFieldBaseComponent<string> {
+  protected override logName: string = "TextInputComponent";
+  public tooltip:string = '';
+  public tooltipPlaceholder:string = 'placeholder';
+  public inputType:string = 'text';
 
   /**
      * Override to set additional properties required by the wrapper component.
@@ -41,7 +42,7 @@ export class TextFieldComponent extends FormFieldBaseComponent<string> {
   /**
    * The model associated with this component.
    */
-  @Input() public override model?: TextFieldModel;
+  @Input() public override model?: TextInputModel;
 
 
 }

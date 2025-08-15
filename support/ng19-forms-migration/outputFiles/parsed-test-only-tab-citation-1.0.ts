@@ -80,7 +80,7 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       "config": {}
     },
     "model": {
-      "class": "TextfieldModel",
+      "class": "TextInputModel",
       "config": {
         "defaultValue": ""
       }

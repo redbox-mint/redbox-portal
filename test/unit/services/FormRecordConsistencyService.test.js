@@ -89,10 +89,10 @@ describe('The FormRecordConsistencyService', function () {
                                                     {
                                                         name: 'text_2',
                                                         model: {
-                                                            class: 'TextFieldModel',
+                                                            class: 'TextInputModel',
                                                             config: {value: 'hello world 2!'}
                                                         },
-                                                        component: {class: 'TextFieldComponent', config: {}},
+                                                        component: {class: 'TextInputComponent', config: {}},
                                                     },
                                                 ],
                                             },
@@ -198,8 +198,8 @@ describe('The FormRecordConsistencyService', function () {
                                     componentDefinitions: [
                                         {
                                             name: 'text_1',
-                                            model: {class: 'TextFieldModel', config: {value: 'hello world 1!'}},
-                                            component: {class: 'TextFieldComponent', config: {}},
+                                            model: {class: 'TextInputModel', config: {value: 'hello world 1!'}},
+                                            component: {class: 'TextInputComponent', config: {}},
                                         },
                                         {
                                             name: 'group_2',
@@ -211,10 +211,10 @@ describe('The FormRecordConsistencyService', function () {
                                                         {
                                                             name: 'text_2',
                                                             model: {
-                                                                class: 'TextFieldModel',
+                                                                class: 'TextInputModel',
                                                                 config: {}
                                                             },
-                                                            component: {class: 'TextFieldComponent', config: {}},
+                                                            component: {class: 'TextInputComponent', config: {}},
                                                         },
                                                     ]
                                                 }
@@ -235,8 +235,8 @@ describe('The FormRecordConsistencyService', function () {
                                 config: {
                                     elementTemplate: {
                                         name: 'text_rpt_1',
-                                        model: {class: 'TextFieldModel', config: {}},
-                                        component: {class: 'TextFieldComponent', config: {}},
+                                        model: {class: 'TextInputModel', config: {}},
+                                        component: {class: 'TextInputComponent', config: {}},
                                     },
                                 },
                             },
@@ -363,8 +363,8 @@ describe('The FormRecordConsistencyService', function () {
                                 componentDefinitions: [
                                     {
                                         name: 'text_1',
-                                        model: {class: 'TextFieldModel', config: {defaultValue: 'text_1 default'}},
-                                        component: {class: 'TextFieldComponent', config: {}},
+                                        model: {class: 'TextInputModel', config: {defaultValue: 'text_1 default'}},
+                                        component: {class: 'TextInputComponent', config: {}},
                                     },
                                     {
                                         name: 'group_2',
@@ -383,16 +383,16 @@ describe('The FormRecordConsistencyService', function () {
                                                 componentDefinitions: [
                                                     {
                                                         name: 'text_2',
-                                                        model: {class: 'TextFieldModel', config: {}},
-                                                        component: {class: 'TextFieldComponent', config: {}},
+                                                        model: {class: 'TextInputModel', config: {}},
+                                                        component: {class: 'TextInputComponent', config: {}},
                                                     },
                                                     {
                                                         name: 'text_3',
                                                         model: {
-                                                            class: 'TextFieldModel',
+                                                            class: 'TextInputModel',
                                                             config: {defaultValue: "text_3 default"}
                                                         },
-                                                        component: {class: 'TextFieldComponent', config: {}},
+                                                        component: {class: 'TextInputComponent', config: {}},
                                                     },
                                                     {
                                                         name: 'repeatable_2',
@@ -405,9 +405,9 @@ describe('The FormRecordConsistencyService', function () {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: 'text_rpt_2',
-                                                                    model: {class: 'TextFieldModel', config: {}},
+                                                                    model: {class: 'TextInputModel', config: {}},
                                                                     component: {
-                                                                        class: 'TextFieldComponent',
+                                                                        class: 'TextInputComponent',
                                                                         config: {}
                                                                     },
                                                                 },
@@ -432,13 +432,13 @@ describe('The FormRecordConsistencyService', function () {
                                 elementTemplate: {
                                     name: 'text_rpt_1',
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         // properties in this defaultValue will be added to the model.config.defaultValue
                                         // only if the properties are not present (or are present and have value 'undefined')
                                         // in model.config.defaultValue
                                         config: {defaultValue: "hello world from repeating groups"}
                                     },
-                                    component: {class: 'TextFieldComponent', config: {}},
+                                    component: {class: 'TextInputComponent', config: {}},
                                 },
                             },
                         },

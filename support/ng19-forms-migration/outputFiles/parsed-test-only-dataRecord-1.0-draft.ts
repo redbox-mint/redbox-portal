@@ -513,7 +513,7 @@ const formConfig: FormConfig = {
                   "config": {}
                 },
                 "model": {
-                  "class": "TextfieldModel",
+                  "class": "TextInputModel",
                   "config": {
                     "defaultValue": ""
                   }

@@ -52,7 +52,7 @@ const formConfig: FormConfig = {
                                 {
                                     name: 'text_1_event',
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         config: {
                                             defaultValue: 'hello world!',
                     validators: [
@@ -61,7 +61,7 @@ const formConfig: FormConfig = {
                 }
             },
             component: {
-                class: 'TextFieldComponent'
+                class: 'TextInputComponent'
             }
         },
         {
@@ -74,7 +74,7 @@ const formConfig: FormConfig = {
                 }
             },
             model: {
-                class: 'TextFieldModel',
+                class: 'TextInputModel',
                 config: {
                     defaultValue: 'hello world 2!',
                                             validators: [
@@ -84,7 +84,7 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'TextInputComponent'
                                     },
                                     expressions: {
                                         'model.value': {
@@ -96,7 +96,7 @@ const formConfig: FormConfig = {
         {
             name: 'text_2_event',
             model: {
-                class: 'TextFieldModel',
+                class: 'TextInputModel',
                 config: {
                                             defaultValue: 'hello world! component event',
                                             validators: [
@@ -105,7 +105,7 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent',
+                                        class: 'TextInputComponent',
                                         config: {
                                             tooltip: 'text_2_event tooltip'
                                         }
@@ -122,13 +122,13 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         config: {
                                             defaultValue: 'hello world 2! component expression'
                 }
             },
             component: {
-                class: 'TextFieldComponent',
+                class: 'TextInputComponent',
                 config: {
                     tooltip: 'text_2_component_event component tooltip 22222'
                 }
@@ -146,7 +146,7 @@ const formConfig: FormConfig = {
         {
             name: 'text_3_event',
             model: {
-                class: 'TextFieldModel',
+                class: 'TextInputModel',
                 config: {
                                             defaultValue: 'hello world! layout event',
                                             validators: [
@@ -155,7 +155,7 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'TextInputComponent'
                                     }
                                 },
                                 {
@@ -168,13 +168,13 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         config: {
                                             defaultValue: 'hello world 2! layout expression'
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'TextInputComponent'
                                     },
                                     expressions: {
                                         'layout.visible': {
@@ -223,25 +223,25 @@ const formConfig: FormConfig = {
                                                         }
                                                     },
                                                     model: {
-                                                        class: 'TextFieldModel',
+                                                        class: 'TextInputModel',
                                                         config: {
                                                             defaultValue: 'hello world 3!',
                                 }
                             },
                             component: {
-                                class: 'TextFieldComponent'
+                                class: 'TextInputComponent'
                             }
                         },
                         {
                             name: 'text_4',
                             model: {
-                                class: 'TextFieldModel',
+                                class: 'TextInputModel',
                                 config: {
                                                             defaultValue: 'hello world 4!'
                                                         }
                                                     },
                                                     component: {
-                                                        class: 'TextFieldComponent'
+                                                        class: 'TextInputComponent'
                                                     }
                                                 },
                                                 {
@@ -274,13 +274,13 @@ const formConfig: FormConfig = {
                                                                         }
                                                                     },
                                                                     model: {
-                                                                        class: 'TextFieldModel',
+                                                                        class: 'TextInputModel',
                                                                         config: {
                                                                             defaultValue: 'hello world 5!',
                                                 }
                                             },
                                             component: {
-                                                class: 'TextFieldComponent'
+                                                class: 'TextInputComponent'
                                             }
                                         }
                                     ]
@@ -314,7 +314,7 @@ const formConfig: FormConfig = {
                                             elementTemplate: {
                                                 name: 'example_repeatable',
                                                 model: {
-                                                    class: 'TextFieldModel',
+                                                    class: 'TextInputModel',
                                                     config: {
                                                         defaultValue: 'hello world from elementTemplate!',
                                                         validators: [
@@ -331,7 +331,7 @@ const formConfig: FormConfig = {
                                                     }
                                                 },
                                                 component: {
-                                                    class: 'TextFieldComponent',
+                                                    class: 'TextInputComponent',
                                                     config: {
                                                         wrapperCssClasses: 'col',
                                                     }
@@ -397,7 +397,7 @@ const formConfig: FormConfig = {
                                     {
                                         name: 'text_3',
                                         model: {
-                                            class: 'TextFieldModel',
+                                            class: 'TextInputModel',
                                             config: {
                                                 defaultValue: 'hello world 3!',
                                                 validators: [
@@ -410,7 +410,7 @@ const formConfig: FormConfig = {
                                             }
                                         },
                                         component: {
-                                            class: 'TextFieldComponent',
+                                            class: 'TextInputComponent',
                                             config: {
                                             }
                                         }
