@@ -81,7 +81,7 @@
     "typescript-json-schema": "^0.65.1",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
-    "webpack": "^5.101.1",
+    "webpack": "^5.101.2",
     "wkt-parser-helper": "^5.0.0",
     "zone.js": "^0.15.0"
   },
