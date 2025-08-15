@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Observable} from 'rxjs/Rx';
+import { Observable, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import {BrandingModel, FormModel, Services as services} from '@researchdatabox/redbox-core-types';
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
@@ -28,14 +29,13 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormConstraintConfig,
-  FormModesConfig
 } from "@researchdatabox/sails-ng-common";
+import {ClientFormContext} from "../additional/ClientFormContext";
 
 declare var sails: Sails;
 declare var Form: Model;
 declare var RecordType: Model;
 declare var WorkflowStep: Model;
-declare var RecordsService;
 
 declare var _;
 
@@ -57,7 +57,8 @@ export module Services {
       'listForms',
       'inferSchemaFromMetadata',
       'generateFormFromSchema',
-      'getFormByStartingWorkflowStep'
+      'getFormByStartingWorkflowStep',
+      'buildClientFormConfig',
     ];
 
     public async bootstrap(workflowStep): Promise<any> {
@@ -167,13 +168,13 @@ export module Services {
     public getFormByName = (formName, editMode): Observable<FormModel> => {
       return super.getObservable(Form.findOne({
         name: formName
-      })).flatMap(form => {
+      })).pipe(flatMap(form => {
         if (form) {
           this.setFormEditMode(form.fields, editMode);
-          return Observable.of(form);
+          return of(form);
         }
-        return Observable.of(null);
-      });
+        return of(null);
+      }));
     }
 
     public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any) {
@@ -185,7 +186,7 @@ export module Services {
         return await this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
-        return await this.getFormByName(formName, editMode).toPromise();
+  return await firstValueFrom(this.getFormByName(formName, editMode));
       }
     }
 
@@ -195,31 +196,31 @@ export module Services {
 
       return super.getObservable(RecordType.findOne({
         key: branding.id + "_" + recordType
-      }))
-        .flatMap(recordType => {
-
+      })).pipe(
+        flatMap(recordType => {
           return super.getObservable(WorkflowStep.findOne({
             recordType: recordType.id,
             starting: starting
           }));
-        }).flatMap(workflowStep => {
-
+        }),
+        flatMap(workflowStep => {
           if (workflowStep.starting == true) {
-
             return super.getObservable(Form.findOne({
               name: workflowStep.config.form
             }));
           }
-
-          return Observable.of(null);
-        }).flatMap(form => {
-
+          return of(null);
+        }),
+        flatMap(form => {
           if (form) {
             this.setFormEditMode(form.fields, editMode);
-            return Observable.of(form);
+            return of(form);
           }
-          return Observable.of(null);
-        }).filter(result => result !== null).last();
+          return of(null);
+        }),
+        filter(result => result !== null),
+        last()
+      );
     }
 
     public inferSchemaFromMetadata(record: any): any {
@@ -509,9 +510,6 @@ export module Services {
       });
     }
 
-    // TODO: Can the client form building be extracted to a separate class?
-    //    Does it needs access to some of the services?
-
     /*
      * Methods for building the client form config.
      *
@@ -519,27 +517,23 @@ export module Services {
      * Note that returning null means to remove the block from the config.
      * What that means differs between various kinds of config blocks.
      * Specifically null, undefined does *not* mean to remove the block, as some blocks have optional properties.
+     *
+     * TODO: Can the client form building be extracted to a separate class?
+     *  Does it needs access to some of the services?
      */
 
     /**
      * Convert a server-side form config to a client-side form config.
+     * This process includes:
+     * - removing fields the user does not have permissions to access
+     * - converting fields from the server-side config format to the client-side config format
+     *
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
     public buildClientFormConfig(item: FormConfig, context?: ClientFormContext): Record<string, unknown> {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
-
-      // Create a new context to avoid changing the provided context.
-      // Set defaults for the context.
-      context = {
-        current: {
-          mode: context?.current?.mode ?? 'view',
-          user: {
-            roles: context?.current?.user?.roles ?? [],
-          },
-        },
-        build: context?.build ?? [],
-      };
+      context = context ?? ClientFormContext.createView();
 
       // create the client form config
       const result = this.buildClientFormObject(item as Record<string, unknown>, context);
@@ -556,13 +550,17 @@ export module Services {
      */
     public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}'`);
+      context = context ? ClientFormContext.from(context) : ClientFormContext.createView();
+
       // add the item constraints to the context build
-      if (item?.constraints) {
-        context = new ClientFormContext(context);
-        context.build.push(new FormConstraintConfig({
-          authorization: item.constraints.authorization,
-          allowModes: item.constraints.allowModes,
-        }));
+      if (item?.name) {
+        if (!context?.build){
+          context.build = [];
+        }
+        context?.build?.push({
+          name: item?.name,
+          constraints: FormConstraintConfig.from(item.constraints)
+        });
       }
 
       // remove this component definition (by returning null) if the constraints are not met
@@ -591,6 +589,8 @@ export module Services {
      */
     public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field component definition with class '${item?.['class']}'`);
+      context = context ?? ClientFormContext.createView();
+
       // create the client form config
       if (!this.isFormFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field component definition ${JSON.stringify(item)}`);
@@ -605,6 +605,8 @@ export module Services {
      */
     public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field layout definition with class '${item?.['class']}'`);
+      context = context ?? ClientFormContext.createView();
+
       // create the client form config
       if (!this.isFormFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field layout definition ${JSON.stringify(item)}`);
@@ -614,6 +616,8 @@ export module Services {
 
     public buildClientFormFieldModelDefinition(item: BaseFormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field model definition with class '${item?.['class']}'`);
+      context = context ?? ClientFormContext.createView();
+
       // create the client form config
       if (!this.isFormFieldDefinition(item)) {
           throw new Error(`FormsService - item is not a form field model definition ${JSON.stringify(item)}`);
@@ -621,7 +625,29 @@ export module Services {
       if (item?.config?.value !== undefined) {
           throw new Error(`FormsService - 'value' in the base form field model definition config is for the client-side, use defaultValue instead ${JSON.stringify(item)}`);
       }
-      return this.buildClientFormObject(item, context);
+
+      const result = structuredClone(item);
+
+      // Populate model.config.value from either model.config.defaultValue or context.current.model.data.
+      // Use the context to decide where to obtain any existing data model value.
+      // If there is a model id, use the context current model data.
+      // If there isn't a model id, use the model.config.defaultValue.
+      const hasContextModelId = context?.current?.model?.id?.toString()?.trim()?.length > 0;
+      const hasContextModelData = context?.current?.model?.data && _.isPlainObject(context?.current?.model?.data);
+      if ((hasContextModelId && !hasContextModelData) || (!hasContextModelId && hasContextModelData)) {
+        throw new Error(`FormsService - cannot populate client form data model values due to inconsistent context current model id and data. Either provide both id and data, or neither.`);
+      }
+      if (hasContextModelId && hasContextModelData) {
+        const path = context.pathFromBuildNames();
+        const modelValue = _.get(context?.current?.model?.data, path, undefined);
+        _.set(result, 'config.value', modelValue);
+      } else if (item?.config?.defaultValue !== undefined) {
+        const defaultValue = _.get(item, 'config.defaultValue', undefined);
+        _.set(result, 'config.value', defaultValue);
+        _.unset(result, 'config.defaultValue');
+      }
+
+      return this.buildClientFormObject(result, context);
     }
 
     private buildClientFormObject(item: Record<string, unknown>, context: ClientFormContext): Record<string, unknown> | null {
@@ -716,7 +742,7 @@ export module Services {
       const currentUserRoles = context?.current?.user?.roles ?? [];
 
       const requiredRoles = context?.build
-          ?.map(b => b?.authorization?.allowRoles)
+          ?.map(b => b?.constraints?.authorization?.allowRoles)
           ?.filter(i => i !== null) ?? [];
 
       // The current user must have at least one of the roles required by each component.
@@ -738,7 +764,7 @@ export module Services {
       // Get the current context mode, default to no mode.
       const currentContextMode = context?.current?.mode ?? null;
 
-      const requiredModes = context?.build?.map(b => b?.allowModes);
+      const requiredModes = context?.build?.map(b => b?.constraints?.allowModes);
 
       // The current user must have at least one of the roles required by each component.
       const isAllowed = requiredModes?.every(i => {
@@ -777,29 +803,3 @@ export module Services {
   }
 }
 module.exports = new Services.Forms().exports();
-
-export class ClientFormContext {
-  current: {
-    mode: FormModesConfig;
-    user?: {
-      roles: string[];
-    };
-  };
-  build: FormConstraintConfig[];
-
-  /**
-   * Create a new instance from an existing instance to ensure no references are shared.
-   * @param other
-   */
-  constructor(other: ClientFormContext) {
-    this.current = {
-      mode: other?.current?.mode ?? 'view',
-      user: {
-        roles: other?.current?.user?.roles ?? [],
-      }
-    };
-    this.build = (other?.build ?? [])?.map(b => new FormConstraintConfig(b));
-  }
-}
-
-

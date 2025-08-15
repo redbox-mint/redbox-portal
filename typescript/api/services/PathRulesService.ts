@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, from, of } from 'rxjs';
+import { mergeMap as flatMap, last } from 'rxjs/operators';
 import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { default as UrlPattern } from 'url-pattern';
@@ -52,7 +53,7 @@ export module Services {
       sails.log.verbose("Bootstrapping path rules....");
       var defBrand:BrandingModel = BrandingService.getDefault();
       return this.loadRules()
-        .flatMap(rules => {
+        .pipe(flatMap(rules => {
           if (!rules || rules.length == 0) {
             sails.log.verbose("Rules, don't exist, seeding...");
             var seedRules = sails.config.auth.rules;
@@ -61,22 +62,22 @@ export module Services {
               rule.role = role.id;
               rule.branding = defBrand.id;
             });
-            return Observable.from(seedRules)
-                           .flatMap(rule => {
+            return from(seedRules)
+                           .pipe(flatMap(rule => {
                              return super.getObservable(PathRule.create(rule));
                            })
-                           .last()
-                           .flatMap(rule => {
+                           ,last()
+                           ,flatMap(rule => {
                              return this.loadRules();
                            })
-                           .flatMap(rules => {
-                             return Observable.of(rules);
-                           });
+                           ,flatMap(rules => {
+                             return of(rules);
+                           }));
           } else {
               sails.log.verbose("Rules exists.");
-              return Observable.of(rules);
+              return of(rules);
           }
-        });
+        }));
     }
 
     /**
@@ -84,14 +85,14 @@ export module Services {
     */
     public loadRules = () => {
       return super.getObservable(PathRule.find({}).populate('role').populate('branding'))
-                  .flatMap(rules => {
+                  .pipe(flatMap(rules => {
                     this.pathRules = rules;
                     this.rulePatterns = [];
                     _.forEach(rules, (rule) => {
                       this.rulePatterns.push({pattern: new UrlPattern(rule.path), rule: rule});
                     });
-                    return Observable.of(this.pathRules);
-                  });
+                    return of(this.pathRules);
+                  }));
     }
     /**
     * Check path using cached rules...

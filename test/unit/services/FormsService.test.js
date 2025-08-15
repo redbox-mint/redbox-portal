@@ -146,16 +146,43 @@ describe('The FormsService', function () {
                     }
                 ]
             };
+            const expected = {
+                name: "basic-form",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'text_2',
+                        layout: {
+                            class: 'DefaultLayoutComponent',
+                            config: {
+                                label: 'TextField with default wrapper defined',
+                                helpText: 'This is a help text',
+                            }
+                        },
+                        model: {
+                            class: 'TextFieldModel',
+                            config: {
+                                value: 'hello world 2!',
+                            }
+                        },
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                    }
+                ]
+            };
             const original = JSON.stringify(formConfig);
             const result = FormsService.buildClientFormConfig(formConfig);
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
-
-            // create the expected client form config
-            const expected = JSON.parse(original);
-            expected.componentDefinitions = [{...expected.componentDefinitions[0]}];
-            delete expected.componentDefinitions[0].constraints;
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
@@ -205,16 +232,30 @@ describe('The FormsService', function () {
                         },
                     }
                 ]
+            };const expected = {
+                name: "remove-item-constraint-roles",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                    }
+                ]
             };
             const original = JSON.stringify(formConfig);
             const result = FormsService.buildClientFormConfig(formConfig);
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
-
-            // create the expected client form config
-            const expected = JSON.parse(original);
-            expected.componentDefinitions = [expected.componentDefinitions[0]];
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
@@ -270,15 +311,31 @@ describe('The FormsService', function () {
                     }
                 ]
             };
+            const expected = {
+                name: "remove-item-constraint-mode",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                skipValidationOnSave: false,
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        component: {
+                            class: 'TextFieldComponent',
+                        },
+                    },
+
+                ]
+            };
             const original = JSON.stringify(formConfig);
             const result = FormsService.buildClientFormConfig(formConfig);
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
-
-            // create the expected client form config
-            const expected = JSON.parse(original);
-            expected.componentDefinitions = [expected.componentDefinitions[0]];
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
@@ -384,14 +441,14 @@ describe('The FormsService', function () {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableComponentModel',
-                            config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
+                            config: {value: [{text_1: "hello world from repeating groups"}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
                                     name: 'group_1_component',
-                                    model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
+                                    model: {class: 'GroupFieldModel', config: {value: {}}},
                                     component: {
                                         class: 'GroupFieldComponent',
                                         config: {

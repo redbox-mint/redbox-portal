@@ -99,7 +99,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
       this.componentFormMapEntries.push(fieldMapDefEntry);
       this.wrapperRefs.push(tabWrapperRef);
       // append the tab's content pane together
-      this.componentInstances.push(...fieldMapDefEntry.component?.getComponents() || []);
+      this.componentInstances.push(...fieldMapDefEntry.component?.formFieldBaseComponents || []);
       // Merge the tab content `formControlMap` into the main model map
       if (fieldMapDefEntry.formControlMap && this.formFieldCompMapEntry != null) {
         if (this.formFieldCompMapEntry?.formControlMap == null) {
@@ -143,11 +143,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     tab.selected = true;
   }
 
-  public override getComponents(): any[] {
+  public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.componentInstances;
   }
 
-  public get components(): FormFieldCompMapEntry[] {
+  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
     return this.componentFormMapEntries;
   }
 
@@ -220,11 +220,11 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
     return this.injector.get(FormComponent);
   }
 
-  public override getComponents(): any[] {
+  public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.componentInstances;
   }
 
-  public get components(): FormFieldCompMapEntry[] {
+  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[]  {
     return this.formDefMap?.components || [];
   }
 

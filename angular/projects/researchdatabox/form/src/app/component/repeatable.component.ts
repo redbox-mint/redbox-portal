@@ -31,7 +31,7 @@ import {FormFieldComponentDefinition} from "@researchdatabox/sails-ng-common";
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
   protected override logName: string | null = "RepeatableComponent";
-  public override model?: RepeatableComponentModel | undefined;
+  public override model?: RepeatableComponentModel;
 
   protected formService = inject(FormService);
   private injector = inject(Injector);
@@ -49,7 +49,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return this.injector.get(FormComponent);
   }
 
-  public get components(): FormFieldCompMapEntry[] {
+  public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
+    return this.formFieldCompMapEntries
+      .map(c => c.component)
+      .filter(c => c !== undefined && c !== null);
+  }
+
+  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[]  {
     return this.compDefMapEntries?.map(i => i?.defEntry) ?? [];
   }
 
@@ -162,7 +168,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       if (!_isUndefined(elemEntry.value)) {
         compInstance.model.setValue(elemEntry.value);
       }
-      this.model.formControl.push(compInstance.model.getFormGroupEntry());
+      this.model.addElement(compInstance.model);
     } else {
       this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
     }
@@ -191,12 +197,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public override checkUpdateExpressions() {
     this.loggerService.debug('repeatable checkUpdateExpressions');
-    let comps:FormFieldCompMapEntry[] = this.components ?? [];
+    let comps:FormFieldCompMapEntry[] = this.formFieldCompMapEntries ?? [];
     //Evaluate top level expressions
     super.checkUpdateExpressions();
     //Propagate top level expressions and evaluate in its children components
-    //this is required for the parent component to delegate responsability of
-    //behaiviour to the children i.e. each component will handle its visibility
+    //this is required for the parent component to delegate responsibility of
+    //behaviour to the children i.e. each component will handle its visibility
     //but has to be maintained in sync with the overarching state of the parent
     for(let entry of comps) {
       if(_isUndefined(entry.component?.formFieldCompMapEntry?.layout)) {
@@ -204,7 +210,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       } else {
         entry.component?.propagateExpressions(this.expressions);
       }
-      let components = entry.component?.getComponents();
+      let components = entry.component?.formFieldBaseComponents;
       if(!_isUndefined(components) && !_isNull(components) && !_isEmpty(components)) {
         for(let comp of components) {
           let temp:FormFieldBaseComponent<unknown> = comp as FormFieldBaseComponent<unknown>;
@@ -217,15 +223,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       entry.component?.checkUpdateExpressions();
     }
   }
-
-  public override getComponents(): any[] {
-    let components = [];
-    for(let comp of this.components) {
-      let component: FormFieldBaseComponent<unknown> | null | undefined = comp.component;
-      components.push(component);
-    }
-    return components;
-  }
 }
 
 
@@ -233,10 +230,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   private logName = "RepeatableComponentModel";
-  public override initValue?: Array<unknown> | undefined;
-  public override formControl!: FormArray;
-
-
+  public override formControl?: FormArray;
 
   public override postCreate(): void {
     // Don't call the super method, as this model needs a FormArray, and needs to populate it differently.
@@ -246,16 +240,25 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     if (!this.fieldConfig.config?.defaultValue) {
       _set(this.fieldConfig, 'config.defaultValue', []);
     }
-    // The default value if the initial value is not set
-    this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
+    // Store the init value. Use the default value if the value is not set.
+    this.initValue = _get(this.fieldConfig, 'config.value') ?? this.fieldConfig.config?.defaultValue;
+
     // not setting value yet, this will be done in the component for lazy init
     const modelElems: AbstractControl[] = [];
 
     this.formControl = new FormArray(modelElems);
-    console.log(`RepeatableComponentModel: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.log(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
   }
 
-  public removeElement(targetModel: FormFieldModel<unknown> | null | undefined): void {
+  public addElement(targetModel?: FormFieldModel<unknown>){
+    if (this.formControl && targetModel){
+      this.formControl.push(targetModel.getFormGroupEntry());
+    } else {
+      throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
+    }
+  }
+
+  public removeElement(targetModel?: FormFieldModel<unknown>): void {
     if (this.formControl && this.formControl instanceof FormArray) {
       const modelIdx = this.formControl?.controls.findIndex((control: unknown) => control === targetModel?.getFormGroupEntry());
       if (modelIdx === -1 || modelIdx === undefined) {

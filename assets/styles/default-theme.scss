@@ -1,5 +1,10 @@
-$fa-font-path: "../../node_modules/font-awesome-sass/assets/fonts/font-awesome/";
-@import "~font-awesome-sass/assets/stylesheets/_font-awesome";
+// Font Awesome 6 via npm (@fortawesome/fontawesome-free)
+// Ensure webpack/SASS resolves ~ to node_modules.
+$fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
+@import "~@fortawesome/fontawesome-free/scss/fontawesome";
+@import "~@fortawesome/fontawesome-free/scss/solid";
+@import "~@fortawesome/fontawesome-free/scss/regular";
+@import "~@fortawesome/fontawesome-free/scss/brands";
 @import "redbox-font";
 
 
