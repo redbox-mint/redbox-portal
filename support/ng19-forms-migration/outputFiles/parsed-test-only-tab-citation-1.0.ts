@@ -76,7 +76,7 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextfieldComponent",
+      "class": "TextInputComponent",
       "config": {}
     },
     "model": {

@@ -167,13 +167,13 @@ describe('The FormsService', function () {
                             }
                         },
                         model: {
-                            class: 'TextFieldModel',
+                            class: 'TextInputModel',
                             config: {
                                 value: 'hello world 2!',
                             }
                         },
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'TextInputComponent',
                         },
                     }
                 ]
@@ -246,7 +246,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'TextInputComponent',
                         },
                     }
                 ]
@@ -325,7 +325,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'TextInputComponent',
                         },
                     },
 
