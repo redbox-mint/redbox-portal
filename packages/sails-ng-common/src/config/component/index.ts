@@ -26,11 +26,13 @@ import {
 } from "./text.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
+import { TextBlockComponentConfig, TextBlockComponentDefinition, TextBlockModelConfig, TextBlockModelDefinition } from "./textblock.model";
 /**
  * Possible form field component definitions.
  */
 export type FormFieldComponentDefinition =
     TextFormFieldComponentDefinition |
+    TextBlockComponentDefinition |
     RepeatableFormFieldComponentDefinition |
     ValidationSummaryFormFieldComponentDefinition |
     GroupFormFieldComponentDefinition |
@@ -42,6 +44,7 @@ export type FormFieldComponentDefinition =
  */
 export type FormFieldComponentConfig =
     TextFormFieldComponentConfig |
+    TextBlockComponentConfig |
     RepeatableFormFieldComponentConfig |
     ValidationSummaryFormFieldComponentConfig |
     GroupFormFieldComponentConfig |
@@ -52,6 +55,7 @@ export type FormFieldComponentConfig =
  */
 export type FormFieldModelDefinition =
     TextFormFieldModelDefinition |
+    TextBlockModelDefinition |
     RepeatableFormFieldModelDefinition |
     ValidationSummaryFormFieldModelDefinition |
     GroupFormFieldModelDefinition;
@@ -62,6 +66,7 @@ export type FormFieldModelDefinition =
  */
 export type FormFieldModelConfig =
     TextFormFieldModelConfig |
+    TextBlockModelConfig |
     RepeatableFormFieldModelConfig |
     ValidationSummaryFormFieldModelConfig |
     GroupFormFieldModelConfig;

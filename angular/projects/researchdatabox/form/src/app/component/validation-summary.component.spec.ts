@@ -3,13 +3,13 @@ import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {formValidatorsSharedDefinitions} from "../validators";
-import {TextFieldComponent} from "./textfield.component";
+import {TextInputComponent} from "./textfield.component";
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
    await createTestbedModule([
       ValidationSummaryFieldComponent,
-      TextFieldComponent,
+      TextInputComponent,
     ]);
   });
   it('should create component', () => {
@@ -56,7 +56,7 @@ describe('ValidationSummaryFieldComponent', () => {
         {
           name: 'text_1_event',
           model: {
-            class: 'TextFieldModel',
+            class: 'TextInputModel',
             config: {
               value: '',
               defaultValue: 'default value',
@@ -66,7 +66,7 @@ describe('ValidationSummaryFieldComponent', () => {
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'TextInputComponent'
           }
         },
         {

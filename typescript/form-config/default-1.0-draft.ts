@@ -1,5 +1,5 @@
-import {FormConfig} from "@researchdatabox/sails-ng-common";
-import {formValidatorsSharedDefinitions} from "../config/validators";
+import { FormConfig } from "@researchdatabox/sails-ng-common";
+import { formValidatorsSharedDefinitions } from "../config/validators";
 
 const formConfig: FormConfig = {
     name: "default-1.0-draft",
@@ -28,7 +28,7 @@ const formConfig: FormConfig = {
 
     // Validators that operate on multiple fields.
     validators: [
-        {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+        { name: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
     ],
     // componentTemplates: [
     //     // TODO - server-side only, replaced in componentDefinitions
@@ -50,41 +50,53 @@ const formConfig: FormConfig = {
                             buttonLabel: 'Tab 1',
                             componentDefinitions: [
                                 {
+                                    name: 'text_block',
+                                    model: {
+                                        class: 'TextBlockModel',
+                                        config: {
+                                            defaultValue: 'My first text block component!!!'
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TextBlockComponent'
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         config: {
                                             defaultValue: 'hello world!',
-                    validators: [
-                        {name: 'required'},
-                    ]
-                }
-            },
-            component: {
-                class: 'TextFieldComponent'
-            }
-        },
-        {
-            name: 'text_2',
-            layout: {
-                class: 'DefaultLayoutComponent',
-                config: {
-                    label: 'TextField with default wrapper defined',
-                    helpText: 'This is a help text',
-                }
-            },
-            model: {
-                class: 'TextFieldModel',
-                config: {
-                    defaultValue: 'hello world 2!',
                                             validators: [
-                                                {name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
-                                                {name: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
+                                                { name: 'required' },
                                             ]
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'TextInputComponent'
+                                    }
+                                },
+                                {
+                                    name: 'text_2',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'TextField with default wrapper defined',
+                                            helpText: 'This is a help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TextInputModel',
+                                        config: {
+                                            defaultValue: 'hello world 2!',
+                                            validators: [
+                                                { name: 'pattern', config: { pattern: /prefix.*/, description: "must start with prefix" } },
+                                                { name: 'minLength', message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+                                            ]
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TextInputComponent'
                                     },
                                     expressions: {
                                         'model.value': {
@@ -92,20 +104,20 @@ const formConfig: FormConfig = {
                                         }
                                     }
 
-        },
-        {
-            name: 'text_2_event',
-            model: {
-                class: 'TextFieldModel',
-                config: {
+                                },
+                                {
+                                    name: 'text_2_event',
+                                    model: {
+                                        class: 'TextInputModel',
+                                        config: {
                                             defaultValue: 'hello world! component event',
                                             validators: [
-                                                {name: 'required'},
+                                                { name: 'required' },
                                             ]
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent',
+                                        class: 'TextInputComponent',
                                         config: {
                                             tooltip: 'text_2_event tooltip'
                                         }
@@ -122,40 +134,40 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         config: {
                                             defaultValue: 'hello world 2! component expression'
-                }
-            },
-            component: {
-                class: 'TextFieldComponent',
-                config: {
-                    tooltip: 'text_2_component_event component tooltip 22222'
-                }
-            },
-            expressions: {
-                'component.visible': {
-                    template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TextInputComponent',
+                                        config: {
+                                            tooltip: 'text_2_component_event component tooltip 22222'
+                                        }
+                                    },
+                                    expressions: {
+                                        'component.visible': {
+                                            template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
                             return false;
                           } else {
                             return true;
                           } %>`
-                }
-            }
-        },
-        {
-            name: 'text_3_event',
-            model: {
-                class: 'TextFieldModel',
-                config: {
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'text_3_event',
+                                    model: {
+                                        class: 'TextInputModel',
+                                        config: {
                                             defaultValue: 'hello world! layout event',
                                             validators: [
-                                                {name: 'required'},
+                                                { name: 'required' },
                                             ]
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'TextInputComponent'
                                     }
                                 },
                                 {
@@ -168,13 +180,13 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'TextInputModel',
                                         config: {
                                             defaultValue: 'hello world 2! layout expression'
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'TextInputComponent'
                                     },
                                     expressions: {
                                         'layout.visible': {
@@ -223,25 +235,25 @@ const formConfig: FormConfig = {
                                                         }
                                                     },
                                                     model: {
-                                                        class: 'TextFieldModel',
+                                                        class: 'TextInputModel',
                                                         config: {
                                                             defaultValue: 'hello world 3!',
-                                }
-                            },
-                            component: {
-                                class: 'TextFieldComponent'
-                            }
-                        },
-                        {
-                            name: 'text_4',
-                            model: {
-                                class: 'TextFieldModel',
-                                config: {
+                                                        }
+                                                    },
+                                                    component: {
+                                                        class: 'TextInputComponent'
+                                                    }
+                                                },
+                                                {
+                                                    name: 'text_4',
+                                                    model: {
+                                                        class: 'TextInputModel',
+                                                        config: {
                                                             defaultValue: 'hello world 4!'
                                                         }
                                                     },
                                                     component: {
-                                                        class: 'TextFieldComponent'
+                                                        class: 'TextInputComponent'
                                                     }
                                                 },
                                                 {
@@ -274,37 +286,37 @@ const formConfig: FormConfig = {
                                                                         }
                                                                     },
                                                                     model: {
-                                                                        class: 'TextFieldModel',
+                                                                        class: 'TextInputModel',
                                                                         config: {
                                                                             defaultValue: 'hello world 5!',
+                                                                        }
+                                                                    },
+                                                                    component: {
+                                                                        class: 'TextInputComponent'
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
                                                 }
-                                            },
-                                            component: {
-                                                class: 'TextFieldComponent'
-                                            }
+                                            ]
                                         }
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                }
-            },
-            expressions: {
-                'layout.visible': {
-                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                                    },
+                                    expressions: {
+                                        'layout.visible': {
+                                            template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
                             return false;
                           } else {
                             return true;
                           } %>`
-                }
-            }
-        },
-        {
-            name: 'repeatable_textfield_1',
-            model: {
-                class: 'RepeatableComponentModel',
-                config: {
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'repeatable_textfield_1',
+                                    model: {
+                                        class: 'RepeatableComponentModel',
+                                        config: {
                                             defaultValue: ['hello world from repeatable, default!']
                                         }
                                     },
@@ -314,24 +326,24 @@ const formConfig: FormConfig = {
                                             elementTemplate: {
                                                 name: 'example_repeatable',
                                                 model: {
-                                                    class: 'TextFieldModel',
+                                                    class: 'TextInputModel',
                                                     config: {
                                                         defaultValue: 'hello world from elementTemplate!',
                                                         validators: [
                                                             {
                                                                 name: 'pattern',
-                                                                config: {pattern: /prefix.*/, description: "must start with prefix"}
+                                                                config: { pattern: /prefix.*/, description: "must start with prefix" }
                                                             },
                                                             {
                                                                 name: 'minLength',
                                                                 message: "@validator-error-custom-text_2",
-                                                                config: {minLength: 3}
+                                                                config: { minLength: 3 }
                                                             },
                                                         ]
                                                     }
                                                 },
                                                 component: {
-                                                    class: 'TextFieldComponent',
+                                                    class: 'TextInputComponent',
                                                     config: {
                                                         wrapperCssClasses: 'col',
                                                     }
@@ -374,7 +386,7 @@ const formConfig: FormConfig = {
             model: {
                 class: 'RepeatableComponentModel',
                 config: {
-                    defaultValue: [{text_3: "hello world from repeating groups"}]
+                    defaultValue: [{ text_3: "hello world from repeating groups" }]
                 }
             },
             component: {
@@ -397,20 +409,20 @@ const formConfig: FormConfig = {
                                     {
                                         name: 'text_3',
                                         model: {
-                                            class: 'TextFieldModel',
+                                            class: 'TextInputModel',
                                             config: {
                                                 defaultValue: 'hello world 3!',
                                                 validators: [
                                                     {
                                                         name: 'minLength',
                                                         message: "@validator-error-custom-text_2",
-                                                        config: {minLength: 3}
+                                                        config: { minLength: 3 }
                                                     }
                                                 ]
                                             }
                                         },
                                         component: {
-                                            class: 'TextFieldComponent',
+                                            class: 'TextInputComponent',
                                             config: {
                                             }
                                         }
@@ -437,8 +449,8 @@ const formConfig: FormConfig = {
         },
         {
             name: 'validation_summary_1',
-            model: { class: 'ValidationSummaryFieldModel', config: {}},
-            component: {class: "ValidationSummaryFieldComponent"}
+            model: { class: 'ValidationSummaryFieldModel', config: {} },
+            component: { class: "ValidationSummaryFieldComponent" }
         },
         // {
         //   module: 'custom',

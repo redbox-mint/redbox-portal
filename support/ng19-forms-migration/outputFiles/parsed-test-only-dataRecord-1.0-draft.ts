@@ -509,11 +509,11 @@ const formConfig: FormConfig = {
                   }
                 },
                 "component": {
-                  "class": "TextfieldComponent",
+                  "class": "TextInputComponent",
                   "config": {}
                 },
                 "model": {
-                  "class": "TextfieldModel",
+                  "class": "TextInputModel",
                   "config": {
                     "defaultValue": ""
                   }

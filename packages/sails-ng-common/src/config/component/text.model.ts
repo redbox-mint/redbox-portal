@@ -6,7 +6,7 @@ import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "..
 export type TextFieldModelValueType = string;
 
 export interface TextFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "TextFieldComponent";
+    class: "TextInputComponent";
     config?: TextFormFieldComponentConfig;
 }
 
@@ -14,7 +14,7 @@ export class TextFormFieldComponentConfig extends BaseFormFieldComponentConfig {
 }
 
 export interface TextFormFieldModelDefinition extends BaseFormFieldModelDefinition<TextFieldModelValueType> {
-    class: "TextFieldModel";
+    class: "TextInputModel";
     config: TextFormFieldModelConfig;
 }
 
