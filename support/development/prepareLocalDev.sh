@@ -36,6 +36,9 @@ npm run compile:core
 show_step 'Build sails-ng-common.'
 npm run compile:sails-ng-common
 
+show_step 'Build raido.'
+npm run compile:raido
+
 show_step 'Build sails.'
 npm run compile:sails
 
