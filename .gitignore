@@ -185,6 +185,7 @@ support/raido/*.tgz
 angular/.angular/cache/
 
 api/configmodels/*
+api/additional/*
 
 # js files built from ts files
 

@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
+
 declare var module;
 declare var sails;
 import {
@@ -29,7 +30,8 @@ import {
   DashboardTypeResponseModel,
   RecordTypeModel,
   BrandingModel,
-  DataResponseV2
+  DataResponseV2,
+  Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
@@ -37,15 +39,13 @@ import * as fs from 'fs';
 import * as url from 'url';
 import { default as checkDiskSpace } from 'check-disk-space';
 import {Services as recordTypeService} from '../services/RecordTypesService';
-declare var _;
+import {ClientFormContext} from "../additional/ClientFormContext";
 
-declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService;
-declare var DashboardTypesService;
+declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService, FormRecordConsistencyService, DashboardTypesService;
+
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion } from '@researchdatabox/redbox-core-types';
-
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.
@@ -131,7 +131,7 @@ export module Controllers {
         let hasViewAccess = await this.hasViewAccess(brand, req.user, record).toPromise()
         if (hasViewAccess) {
           if (apiVersion === ApiVersion.VERSION_2_0) {
-            return res.json(this.buildResponseSuccess(record.metadata, {oid: record.redboxOid}))
+            return res.json(this.buildResponseSuccess(record.metadata, {oid: record.redboxOid}));
           } else {
             return res.json(record.metadata);
           }
@@ -149,14 +149,28 @@ export module Controllers {
       }
     }
 
-    public async getMetaDefault(req, res){
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const name = req.param('name') ?? '';
+    public async getMetaDefault(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const recordType = req.param('name') ?? '';
+      const editMode = req.query.edit == "true";
       const apiVersion = this.getApiVersion(req);
 
-      // TODO: get the default data model for the record type with 'name'.
+      // TODO: is there a permission check needed for the default form config values?
 
-      return res.json({});
+      // get the default data model for the form with 'name'
+      const form = await FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode).toPromise();
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form);
+
+      // return the matching format, return the model data as json
+      if (apiVersion === ApiVersion.VERSION_2_0) {
+        return res.json(this.buildResponseSuccess(modelDataDefault, {
+          formName: form.name,
+          recordType: recordType,
+          editMode: editMode
+        }));
+      } else {
+        return res.json(modelDataDefault);
+      }
     }
 
     public edit(req, res) {
@@ -254,83 +268,106 @@ export module Controllers {
     public async getForm(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('name');
-      const oid = req.param('oid');
+      const oid = req.param('oid')?.toString()?.trim() || null;
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
-      let mergedForm: any = {};
+      const apiVersion = this.getApiVersion(req);
+
       try {
-        if (_.isEmpty(oid)) {
+        let form: any = null;
+        let currentRec: any = null;
+        if (!oid) {
           //find form to create a record
-          let form = await FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode).toPromise();
+          form = await FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode).toPromise();
           if (_.isEmpty(form)) {
-            return this.ajaxFail(req, res, null, {message: `Error, getting form for record type: ${recordType}`});
+            const msg = `Error, getting form for record type: ${recordType}`;
+            if (apiVersion === ApiVersion.VERSION_2_0) {
+              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+            } else {
+              return this.ajaxFail(req, res, null, {message: msg});
+            }
           }
-          // TODO: process the form config to provide only the fields accessible by the current user
-          // let fields = await this.mergeFields(
-          //     req, res,
-          //     form.fields ?? form.componentDefinitions,
-          //     form.requiredFieldIndicator ?? '*',
-          //     recordType, {});
-          // form.fields = fields;
-          mergedForm = form;
-          
+
         } else {
-
-          // defaults to retrive the form of the current workflow state...
-          let currentRec = await this.recordsService.getMeta(oid);
+          // defaults to retrieve the form of the current workflow state...
+          currentRec = await this.recordsService.getMeta(oid);
           if (_.isEmpty(currentRec)) {
-            return this.ajaxFail(req, res, null, {message: `Error, empty metadata for OID: ${oid}`});
+            const msg = `Error, empty metadata for OID: ${oid}`;
+            if (apiVersion === ApiVersion.VERSION_2_0) {
+              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+            } else {
+              return this.ajaxFail(req, res, null, {message: msg});
+            }
           }
 
-          let form: any = {};
-
+          // Get current user's access to record
+          let hasAccess: boolean;
           if (editMode) {
             //find form to edit a record
-            let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
-            if (!hasEditAccess) {
-              return this.ajaxFail(req, res, null, {message: TranslationService.t('edit-error-no-permissions')});
-            }
-            form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
-            if (_.isEmpty(form)) {
-              return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
-            }
+            hasAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
           } else {
             //find form to view a record
-            let hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
-            if (!hasViewAccess) {
-              return this.ajaxFail(req, res, null, {message: TranslationService.t('view-error-no-permissions')});
-            }
-            form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
-            if (_.isEmpty(form)) {
-              return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
-            }
-            let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
-            FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
+            hasAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
           }
-          // TODO: process the form config to provide only the fields accessible by the current user
-          // let fields = await this.mergeFields(
-          //     req, res,
-          //     form.fields ?? form.componentDefinitions,
-          //     form.requiredFieldIndicator ?? '*',
-          //     currentRec.metaMetadata.type, currentRec);
-          // form.fields = fields;
-          mergedForm = form;
+
+          // Check user's record access
+          if (!hasAccess) {
+            const msg = TranslationService.t('view-error-no-permissions');
+            if (apiVersion === ApiVersion.VERSION_2_0) {
+              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+            } else {
+              return this.ajaxFail(req, res, null, {message: msg});
+            }
+          }
+
+          // get the form config
+          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
+          if (_.isEmpty(form)) {
+            const msg = `Error, getting form ${formParam} for OID: ${oid}`;
+            if (apiVersion === ApiVersion.VERSION_2_0) {
+              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+            } else {
+              return this.ajaxFail(req, res, null, {message: msg});
+            }
+          }
         }
 
+        // process the form config to provide only the fields accessible by the current user
+        const currentContext = ClientFormContext.createView();
+        currentContext.current.mode = editMode ? "edit" : "view";
+        currentContext.current.user = {roles: []};
+        currentContext.current.model = {id: oid, data: currentRec};
+        currentContext.build = [];
+
+        const mergedForm = FormsService.buildClientFormConfig(form, currentContext);
+
+        // return the form config
         if (!_.isEmpty(mergedForm)) {
-          return this.ajaxOk(req, res, null, mergedForm);
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            this.ajaxOk(req, res, null, this.buildResponseSuccess(mergedForm, {formName: formParam, recordType: recordType, oid: oid}));
+          } else {
+            this.ajaxOk(req, res, null, mergedForm);
+          }
         } else {
-          return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
+          const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;
+          if (apiVersion === ApiVersion.VERSION_2_0) {
+            return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+          } else {
+            return this.ajaxFail(req, res, null, {message: msg});
+          }
         }
 
       } catch(error) {
-        sails.log.error("Error getting form definition:");
-        sails.log.error(error);
+        sails.log.error("Error getting form definition:", error);
         let message = error.message;
         if (error.error && error.error.code == 500) {
           message = TranslationService.t('missing-record');
         }
-        return this.ajaxFail(req, res, message);
+        if (apiVersion === ApiVersion.VERSION_2_0) {
+          return this.ajaxFail(req, res, null, this.buildResponseError([{detail: message}], null));
+        } else {
+          return this.ajaxFail(req, res, message);
+        }
       }
     }
 
@@ -362,13 +399,13 @@ export module Controllers {
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
           if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, createResponse));
+            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, {...createResponse}));
           } else {
             this.ajaxOk(req, res, null, createResponse);
           }
         } else {
           if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxFail(req, res, null, await this.buildResponseError([{detail: createResponse.message}], createResponse));
+            this.ajaxFail(req, res, null, this.buildResponseError([{detail: createResponse.message}], {...createResponse}));
           } else {
             this.ajaxFail(req, res, createResponse.message);
           }
@@ -377,7 +414,7 @@ export module Controllers {
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
         if (apiVersion === ApiVersion.VERSION_2_0) {
-          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: msg}], {}));
+          this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], {}));
         } else {
           this.ajaxFail(req, res, msg);
         }
@@ -455,7 +492,7 @@ export module Controllers {
           message: response.message
         };
         if (apiVersion === ApiVersion.VERSION_2_0) {
-          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: response.message, title: msgFailed}], data));
+          this.ajaxFail(req, res, null, this.buildResponseError([{detail: response.message, title: msgFailed}], data));
         } else {
           this.ajaxFail(req, res, msgFailed, data);
         }
@@ -542,7 +579,7 @@ export module Controllers {
           return response;
         } else {
           if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxFail(req, res, null, await this.buildResponseError([], response));
+            this.ajaxFail(req, res, null, this.buildResponseError([], response));
           } else {
             this.ajaxFail(req, res, null, response);
           }
@@ -551,7 +588,7 @@ export module Controllers {
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
         sails.log.error(error);
         if (apiVersion === ApiVersion.VERSION_2_0){
-          this.ajaxFail(req, res, null, await this.buildResponseError([{detail: error.message}], response));
+          this.ajaxFail(req, res, null, this.buildResponseError([{detail: error.message}], response));
         } else {
           this.ajaxFail(req, res, error.message);
         }
@@ -654,6 +691,7 @@ export module Controllers {
         });
     }
 
+    /*
     protected async mergeFields(req, res, fields, requiredFieldIndicator, type, currentRec) {
 
       let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
@@ -782,7 +820,7 @@ export module Controllers {
         });
       }
     }
-
+    */
 
     /**
      *  Not currently used as transfer responsibility is configured.
@@ -1503,7 +1541,7 @@ export module Controllers {
       return validationName == err.name ? err.message : defaultMessage;
     }
 
-    private async buildResponseSuccessRecord(oid: string, response: unknown): Promise<DataResponseV2> {
+    private async buildResponseSuccessRecord(oid: string, response: { [key: string]: unknown }): Promise<DataResponseV2> {
       return this.buildResponseSuccess(
           await this.recordsService.getMeta(oid),
           response
