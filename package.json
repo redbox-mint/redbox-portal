@@ -7,7 +7,7 @@
     "@researchdatabox/oni-ocfl": "^1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "file:support/raido",
     "@researchdatabox/redbox-core-types": "file:core",
-    "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.9",
+    "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.5.2",
     "@researchdatabox/sails-ng-common": "^0.2.1",
     "@tsconfig/node18": "^18.2.4",
     "agenda": "github:redbox-mint-contrib/agenda#dist",
