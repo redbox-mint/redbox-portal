@@ -18,10 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
-import {ClientFormContext} from "./FormsService";
 import {FormComponentDefinition, FormConfig, FormValidatorSummaryErrors} from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
 import {default as moment} from 'moment';
+import {ClientFormContext} from "../additional/ClientFormContext";
+
 
 declare var sails: Sails;
 declare var _;

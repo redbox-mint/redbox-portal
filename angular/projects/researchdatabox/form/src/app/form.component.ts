@@ -172,6 +172,11 @@ export class FormComponent extends BaseComponent {
     }
   }
 
+  protected async getAndApplyUpdatedDataModel(){
+    const dataModel = await this.formService.getModelData(this.oid, this.recordType);
+    this.form?.patchValue(dataModel);
+  }
+
   protected registerUpdateExpression(){
     if(this.componentsLoaded()) {
       if(!_isUndefined(this.form)) {

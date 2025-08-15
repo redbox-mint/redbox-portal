@@ -378,11 +378,11 @@ export module Controllers.Core {
      * @param meta The metadata for the response.
      * @protected
      */
-    protected buildResponseSuccess(data: unknown, meta: unknown): DataResponseV2 {
+    protected buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
       // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
       return {
         data: data,
-        meta: {...Object.entries(meta)},
+        meta: {...Object.entries(meta ?? {})},
       }
     }
 
@@ -392,11 +392,11 @@ export module Controllers.Core {
      * @param meta The metadata for the response.
      * @protected
      */
-    protected buildResponseError(errors: { [key: string]: unknown }[], meta: unknown): ErrorResponseV2 {
+    protected buildResponseError(errors: { title?: string, detail?: string }[], meta: Record<string, unknown>): ErrorResponseV2 {
       // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
       return {
         errors: errors,
-        meta: {...Object.entries(meta)},
+        meta: {...Object.entries(meta ?? {})},
       }
     }
   }
