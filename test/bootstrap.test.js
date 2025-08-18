@@ -1,8 +1,9 @@
 var sails = require('sails');
 var _ = require('lodash');
+const { DateTime } = require('luxon');
 
-global.moment = require('moment');
-
+// Expose Luxon DateTime for tests needing date utilities
+global.DateTime = DateTime;
 
 
 before(function (done) {

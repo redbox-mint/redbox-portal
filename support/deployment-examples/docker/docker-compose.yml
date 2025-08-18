@@ -18,6 +18,7 @@ services:
         networks:
             main:
                 aliases: [rbportal]
+        init: true
         entrypoint: '/bin/bash -c "cd /opt/redbox-portal && node app.js"'
     redbox:
         image: 'qcifengineering/redbox:2.x'

@@ -503,7 +503,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     });
   }
 
-  public getComponents(): any[] {
+  public get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
+    return [];
+  }
+
+  public get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
     return [];
   }
 }

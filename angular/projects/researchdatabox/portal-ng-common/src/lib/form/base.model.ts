@@ -70,6 +70,14 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFiel
   }
 
   /**
+   * Set the value of the field if it is provided in value, otherwise keeps the existing value.
+   * @param value The new form field value.
+   */
+  public patchValue(value: ValueType): void {
+    this.formControl?.patchValue(value);
+  }
+
+  /**
    * Set the value of the field
    * @param value the value to set
    */

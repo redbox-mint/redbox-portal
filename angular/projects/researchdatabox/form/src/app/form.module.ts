@@ -32,6 +32,7 @@ import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 import { SaveButtonComponent } from './component/save-button.component';
+import {TabComponent, TabContentComponent} from "./component/tab.component";
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -44,6 +45,8 @@ import { SaveButtonComponent } from './component/save-button.component';
     ValidationSummaryFieldComponent,
     GroupFieldComponent,
     SaveButtonComponent
+    TabComponent,
+    TabContentComponent,
   ],
   imports: [
     CommonModule,
