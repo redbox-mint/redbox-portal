@@ -23,7 +23,7 @@ import { Sails } from "sails";
 import { find } from 'lodash';
 import { ConfigModels } from '../configmodels/ConfigModels'; // Import the ConfigModels module
 import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
-import { Services as Brandings} from './BrandingService'
+import { Services as Brandings } from './BrandingService'
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 import { config } from 'node:process';
@@ -44,7 +44,7 @@ export module Services {
   export class AppConfigs extends services.Core.Service {
     brandingAppConfigMap: {};
     modelSchemaMap: any = {};
-  private extraTsGlobs: Set<string> = new Set();
+    private extraTsGlobs: Set<string> = new Set();
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -72,7 +72,7 @@ export module Services {
       })
       let availableBrandings = BrandingService.getAvailable();
       for (let availableBranding of availableBrandings) {
-        let branding:BrandingModel = BrandingService.getBrand(availableBranding);
+        let branding: BrandingModel = BrandingService.getBrand(availableBranding);
         let appConfigObject = await this.loadAppConfigurationModel(branding.id);
         this.brandingAppConfigMap[availableBranding] = appConfigObject;
       }
@@ -83,12 +83,10 @@ export module Services {
       const configKeys: string[] = ConfigModels.getConfigKeys();
       for (const configKey of configKeys) {
         const modelDefinition: any = ConfigModels.getModelInfo(configKey);
-        // If schema is provided by the model definition, prefer it and cache
-        if (modelDefinition?.schema) {
-          this.modelSchemaMap[modelDefinition.modelName] = modelDefinition.schema;
-        } else {
-          this.modelSchemaMap[modelDefinition.modelName] = this.getJsonSchema(modelDefinition);
-        }
+       
+        // Init schema and put it in the cache
+        this.getJsonSchema(modelDefinition);
+        
         // Allow model definition to contribute additional TS globs for schema generation
         if (modelDefinition?.tsGlob) {
           const globs = Array.isArray(modelDefinition.tsGlob) ? modelDefinition.tsGlob : [modelDefinition.tsGlob];
@@ -112,8 +110,8 @@ export module Services {
 
     public async loadAppConfigurationModel(brandId: string): Promise<any> {
       let appConfiguration = {};
-  const modelNames = ConfigModels.getConfigKeys();
-  for (let modelName of modelNames) {
+      const modelNames = ConfigModels.getConfigKeys();
+      for (let modelName of modelNames) {
         const modelClass = ConfigModels.getModelInfo(modelName).class;
         let defaultModel = new modelClass();
         _.set(appConfiguration, modelName, defaultModel);
@@ -131,7 +129,7 @@ export module Services {
     }
 
     public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<any> {
-      let dbConfig = await AppConfig.findOne({branding: brandId, configKey});
+      let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
 
       // If no config exists in the DB return the default settings
       if (dbConfig != null) {
@@ -151,14 +149,14 @@ export module Services {
     }
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: string): Promise<any> {
-      const dbConfig = await AppConfig.findOne({branding: branding.id, configKey});
+      const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
       // Create if no config exists
       let record;
       if (dbConfig == null) {
-        record = await AppConfig.create({branding: branding.id, configKey: configKey, configData: configData});
+        record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
       } else {
-        record = await AppConfig.updateOne({branding: branding.id, configKey}).set({configData: configData});
+        record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: configData });
       }
 
       await this.refreshBrandingAppConfigMap(branding);
@@ -166,7 +164,7 @@ export module Services {
     }
 
     public async createConfig(brandName: string, configKey: string, configData: string): Promise<any> {
-      let branding:BrandingModel = BrandingService.getBrand(brandName);
+      let branding: BrandingModel = BrandingService.getBrand(brandName);
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
       // Create if no config exists
@@ -184,18 +182,27 @@ export module Services {
 
       let appConfig = await this.getAppConfigurationForBrand(branding.name);
 
-  let modelDefinition: any = ConfigModels.getModelInfo(configForm);
+      let modelDefinition: any = ConfigModels.getModelInfo(configForm);
       let model = _.get(appConfig, configForm, new modelDefinition.class());
-  const jsonSchema: any = modelDefinition?.schema ?? this.getJsonSchema(modelDefinition);
+      const jsonSchema: any = this.getJsonSchema(modelDefinition);
 
       let configData = { model: model, schema: jsonSchema, fieldOrder: modelDefinition.class.getFieldOrder() };
       return configData;
     }
 
     private getJsonSchema(modelDefinition: any): any {
+      // Check if schema is already cached
       if (this.modelSchemaMap[modelDefinition.modelName] != undefined) {
         return this.modelSchemaMap[modelDefinition.modelName];
       }
+
+      if (modelDefinition.schema) {
+        sails.log.verbose("A schema was provided for model, using it instead of generating it from the typescript model. Model name:", modelDefinition.modelName);
+        this.modelSchemaMap[modelDefinition.modelName] = modelDefinition.schema;
+        return modelDefinition.schema;
+      }
+
+      sails.log.verbose("No schema was provided for model, generating it from the typescript model. Model name:", modelDefinition.modelName);
       const wildcardPath = `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
       const extraGlobs = Array.from(this.extraTsGlobs.values());
       const filePaths = Array.from(new Set([
@@ -213,8 +220,9 @@ export module Services {
         // titles: true,
       };
 
-      // Generate the schema
+      // Generate the schema and cache it
       const schema = TJS.generateSchema(program, typeName, settings);
+      this.modelSchemaMap[modelDefinition.modelName] = schema;
       return schema;
     }
 
