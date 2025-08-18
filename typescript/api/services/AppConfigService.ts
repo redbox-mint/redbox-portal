@@ -241,7 +241,7 @@ export module Services {
       // collect any extra TS globs
       if (info.tsGlob) {
         const globs = Array.isArray(info.tsGlob) ? info.tsGlob : [info.tsGlob];
-        globs.filter(Boolean).forEach(g => this.extraTsGlobs.add(g));
+        globs.filter(g => g && typeof g === 'string' && g.trim().length > 0).forEach(g => this.extraTsGlobs.add(g));
       }
       // ensure existing branding app configs get a default instance if not present
       if (this.brandingAppConfigMap) {

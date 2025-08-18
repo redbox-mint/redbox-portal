@@ -185,6 +185,15 @@ describe('ConfigModels', function () {
     const retrievedInfo = ConfigModels.getModelInfo('preventNewTest');
     expect(retrievedInfo.modelName).to.equal('PreventNewModel');
     expect(retrievedInfo.class).to.equal(mockClass);
+
+    ConfigModels.register('preventNewTest', {
+      modelName: 'PreventNewModelDuplicate',
+      class: mockClass
+    }, { preventOverride: true });
+
+    const duplicateRetrievedInfo = ConfigModels.getModelInfo('preventNewTest');
+    expect(duplicateRetrievedInfo.modelName).to.equal('PreventNewModel');
+    expect(duplicateRetrievedInfo.class).to.equal(mockClass);
   });
 
   it('should handle preventOverride set to false explicitly', () => {
