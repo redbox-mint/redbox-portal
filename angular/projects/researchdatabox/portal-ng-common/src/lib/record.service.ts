@@ -250,7 +250,6 @@ export class RecordService extends HttpClientService {
     const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${ this.getTargetStepParam(targetStep, '?' )}`;
     const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
     let result:unknown = await firstValueFrom(result$);
-    console.log('Record created:', result);
     return result as RecordActionResult;
   }
 

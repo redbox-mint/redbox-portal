@@ -53,7 +53,6 @@ describe('SaveButtonComponent', () => {
   it('should create SaveButtonComponent', () => {    
     let fixture = TestBed.createComponent(SaveButtonComponent);
     let component = fixture.componentInstance;
-    console.log(`SaveButtonComponent created: ${component}`);
     expect(component).toBeDefined();
   });
 
