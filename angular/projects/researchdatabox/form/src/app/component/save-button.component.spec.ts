@@ -35,16 +35,16 @@ describe('SaveButtonComponent', () => {
           }
         },
         { 
-            name: 'save_button',
-            component: {
-                class: 'SaveButtonComponent',
-                config: {
-                    label: 'Save',
-                    targetStep: 'next_step',
-                    forceSave: true,
-                    skipValidation: true
-                }
+          name: 'save_button',
+          component: {
+            class: 'SaveButtonComponent',
+            config: {
+                label: 'Save',
+                targetStep: 'next_step',
+                forceSave: true,
+                skipValidation: true
             }
+          }
         }
       ]
     };

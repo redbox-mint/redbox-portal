@@ -83,6 +83,7 @@ export class FormComponent extends BaseComponent {
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
   recordService = inject(RecordService);
+  saveResponse = signal<RecordActionResult | undefined>(undefined);
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -339,8 +340,15 @@ export class FormComponent extends BaseComponent {
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
           }
-        } catch (error) {
+          this.saveResponse.set(response);
+        } catch (error: unknown) {
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
+          // Emit an response with the error message object as string
+          let errorMsg = 'Unknown error occurred';
+          if (error instanceof Error) {
+            errorMsg = error.message;
+          }
+          this.saveResponse.set({ success: false, oid: this.trimmedParams.oid(), message: errorMsg } as RecordActionResult);
         }
         // set back to ready when all processing is complete
         this.status.set(FormStatus.READY);
