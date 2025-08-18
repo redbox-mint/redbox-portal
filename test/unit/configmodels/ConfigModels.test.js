@@ -177,6 +177,12 @@ describe('ConfigModels', function () {
       }
     };
 
+    const mockClassDifferent = class PreventNewModel {
+      constructor() {
+        this.preventNew = true;
+      }
+    };
+
     ConfigModels.register('preventNewTest', {
       modelName: 'PreventNewModel',
       class: mockClass
@@ -188,7 +194,7 @@ describe('ConfigModels', function () {
 
     ConfigModels.register('preventNewTest', {
       modelName: 'PreventNewModelDuplicate',
-      class: mockClass
+      class: mockClassDifferent
     }, { preventOverride: true });
 
     const duplicateRetrievedInfo = ConfigModels.getModelInfo('preventNewTest');
