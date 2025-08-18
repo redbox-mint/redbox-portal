@@ -33,6 +33,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
 
   get disabled(): boolean { 
     // Check if the `formComponent.formGroup` is valid and dirty
-    return !this.formComponent?.dataStatus.valid || !this.formComponent?.dataStatus.dirty;   
+    // Disable if the form is invalid or pristine (unchanged)
+    return !this.formComponent?.dataStatus.valid || this.formComponent?.dataStatus.pristine;   
   }
 }
