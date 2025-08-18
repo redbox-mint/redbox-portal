@@ -7,6 +7,8 @@ export interface SaveButtonComponentDefinition extends BaseFormFieldComponentDef
 }
 
 export class SaveButtonComponentConfig extends BaseFormFieldComponentConfig {
-  
+    targetStep?: string; 
+    forceSave?: boolean;
+    skipValidation?: boolean;
 }
 

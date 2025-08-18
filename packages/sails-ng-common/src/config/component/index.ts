@@ -26,7 +26,7 @@ import {
 } from "./text.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
-import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./button.model";
+import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 /**
  * Possible form field component definitions.
  */
@@ -90,3 +90,4 @@ export * from './repeatable.model'
 export * from './text.model'
 export * from './validation-summary.model'
 export * from './tab.model'
+export * from './save-button.model'

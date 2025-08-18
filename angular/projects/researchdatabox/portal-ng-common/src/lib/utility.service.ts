@@ -413,8 +413,7 @@ export class UtilityService {
 
   /**
    * Utility function to ensure a non-empty string value from signals. Allows for trimming of whitespace and arbitrary chars around strings, and default value when empty, i.e. zero length.
-   * 
-   * Can be potentially move to another service method
+   *  
    * @param source 
    * @param defaultValue 
    * @param charsToTrim 

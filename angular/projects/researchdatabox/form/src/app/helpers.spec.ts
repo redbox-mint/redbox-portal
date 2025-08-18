@@ -53,7 +53,7 @@ export async function createFormAndWaitForReady(formConfig: FormConfig) {
   }
 }
 
-export async function createTestbedModule(moreDeclarations: any[] = []) {
+export async function createTestbedModule(moreDeclarations: any[] = [], moreProviders: any[] = []) {
   const configService = getStubConfigService();
   const translationService = getStubTranslationService();
   await TestBed.configureTestingModule({
@@ -89,6 +89,8 @@ export async function createTestbedModule(moreDeclarations: any[] = []) {
       Title,
       FormService,
       provideI18Next(),
+      FormComponent,
+      ...moreProviders
     ]
   }).compileComponents();
   return {
