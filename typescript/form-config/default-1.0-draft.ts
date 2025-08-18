@@ -368,74 +368,74 @@ const formConfig: FormConfig = {
                 }
             }
         },
-        // {
-        //     name: 'repeatable_group_1',
-        //     model: {
-        //         class: 'RepeatableComponentModel',
-        //         config: {
-        //             defaultValue: [{
-        //                 text_3: "hello world from repeating groups"
-        //             }]
-        //         }
-        //     },
-        //     component: {
-        //         class: 'RepeatableComponent',
-        //         config: {
-        //             elementTemplate: {
-        //                 // first group component
-        //                 name: 'group_1_component',
-        //                 model: {
-        //                     class: 'GroupFieldModel',
-        //                     config: {
-        //                         defaultValue: {},
-        //                     }
-        //                 },
-        //                 component: {
-        //                     class: 'GroupFieldComponent',
-        //                     config: {
-        //                         wrapperCssClasses: 'col',
-        //                         componentDefinitions: [
-        //                             {
-        //                                 name: 'text_3',
-        //                                 model: {
-        //                                     class: 'TextFieldModel',
-        //                                     config: {
-        //                                         defaultValue: 'hello world 3!',
-        //                                         validators: [
-        //                                             {
-        //                                                 name: 'minLength',
-        //                                                 message: "@validator-error-custom-text_2",
-        //                                                 config: {minLength: 3}
-        //                                             }
-        //                                         ]
-        //                                     }
-        //                                 },
-        //                                 component: {
-        //                                     class: 'TextFieldComponent',
-        //                                     config: {
-        //                                     }
-        //                                 }
-        //                             },
-        //                         ]
-        //                     }
-        //                 },
-        //                 layout: {
-        //                     class: 'RepeatableElementLayoutComponent',
-        //                     config: {
-        //                         hostCssClasses: 'row align-items-start'
-        //                     }
-        //                 },
-        //             }
-        //         },
-        //     },
-        //     layout: {
-        //         class: 'DefaultLayoutComponent',
-        //         config: {
-        //             label: 'Repeatable TextField not inside the tab with default wrapper defined',
-        //             helpText: 'Repeatable component help text',
-        //         }
-        //     },
-        // },
+        {
+            name: 'repeatable_group_1',
+            model: {
+                class: 'RepeatableComponentModel',
+                config: {
+                    defaultValue: [{
+                        text_3: "hello world from repeating groups"
+                    }]
+                }
+            },
+            component: {
+                class: 'RepeatableComponent',
+                config: {
+                    elementTemplate: {
+                        // first group component
+                        name: 'group_1_component',
+                        model: {
+                            class: 'GroupFieldModel',
+                            config: {
+                                defaultValue: {},
+                            }
+                        },
+                        component: {
+                            class: 'GroupFieldComponent',
+                            config: {
+                                wrapperCssClasses: 'col',
+                                componentDefinitions: [
+                                    {
+                                        name: 'text_3',
+                                        model: {
+                                            class: 'TextFieldModel',
+                                            config: {
+                                                defaultValue: 'hello world 3!',
+                                                validators: [
+                                                    {
+                                                        name: 'minLength',
+                                                        message: "@validator-error-custom-text_2",
+                                                        config: {minLength: 3}
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        component: {
+                                            class: 'TextFieldComponent',
+                                            config: {
+                                            }
+                                        }
+                                    },
+                                ]
+                            }
+                        },
+                        layout: {
+                            class: 'RepeatableElementLayoutComponent',
+                            config: {
+                                hostCssClasses: 'row align-items-start'
+                            }
+                        },
+                    }
+                },
+            },
+            layout: {
+                class: 'DefaultLayoutComponent',
+                config: {
+                    label: 'Repeatable TextField not inside the tab with default wrapper defined',
+                    helpText: 'Repeatable component help text',
+                }
+            },
+        },
         { 
             name: 'save_button',
             component: {
