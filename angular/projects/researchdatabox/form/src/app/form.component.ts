@@ -208,7 +208,7 @@ export class FormComponent extends BaseComponent {
   }
 
   protected async getAndApplyUpdatedDataModel(){
-    const dataModel = await this.formService.getModelData(this.oid, this.recordType);
+    const dataModel = await this.formService.getModelData(this.trimmedParams.oid(), this.trimmedParams.recordType());
     this.form?.patchValue(dataModel);
   }
 

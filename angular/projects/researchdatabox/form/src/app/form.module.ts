@@ -44,7 +44,7 @@ import {TabComponent, TabContentComponent} from "./component/tab.component";
     RepeatableElementLayoutComponent,
     ValidationSummaryFieldComponent,
     GroupFieldComponent,
-    SaveButtonComponent
+    SaveButtonComponent,
     TabComponent,
     TabContentComponent,
   ],
