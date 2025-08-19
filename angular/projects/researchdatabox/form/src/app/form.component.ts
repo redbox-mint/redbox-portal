@@ -121,9 +121,9 @@ export class FormComponent extends BaseComponent {
         this.registerUpdateExpression();
       }
     });
-    // Set another effect for the OID update, will reinit if changed
+    // Set another effect for the OID update, will reinit if changed if the form has been on the 'READY' state
     effect(async () => {
-      if (!_isEmpty(this.trimmedParams.oid()) && this.currentOid !== this.trimmedParams.oid()) {
+      if (!_isEmpty(this.trimmedParams.oid()) && this.currentOid !== this.trimmedParams.oid() && this.status() == FormStatus.READY) {
         this.status.set(FormStatus.INIT);
         this.componentsLoaded.set(false);
         await this.initComponent();
@@ -174,11 +174,11 @@ export class FormComponent extends BaseComponent {
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
     this.createFormGroup();
+    // set the cache that will trigger a form reinit when the OID is changed
+    this.currentOid = this.trimmedParams.oid();
     // Set the status to READY if all components are loaded
     this.status.set(FormStatus.READY);
     this.componentsLoaded.set(true);
-    // set the cache that will trigger a form reinit when the OID is changed
-    this.currentOid = this.trimmedParams.oid();
   }
 
   /**
