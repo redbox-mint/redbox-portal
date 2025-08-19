@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {formValidatorsSharedDefinitions} from "../validators";
+import {formValidatorsSharedDefinitions} from "../../../../../../../typescript/config/validators";
 import {TextFieldComponent} from "./textfield.component";
 
 describe('ValidationSummaryFieldComponent', () => {
@@ -51,6 +51,9 @@ describe('ValidationSummaryFieldComponent', () => {
         defaultComponentCssClasses: 'row',
       },
       editCssClasses: "redbox-form form",
+      // Note: in tests, the form validator definitions are directly referenced.
+      // In the live app, the validator definitions are compiled to js, and provided on the window global.
+      // In tests, the window global property is empty and these definitions are used directly.
       validatorDefinitions: formValidatorsSharedDefinitions,
       componentDefinitions: [
         {
