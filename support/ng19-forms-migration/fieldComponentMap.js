@@ -113,8 +113,8 @@ module.exports = {
 
     let componentDefinition = createBaseComponent({
         field,
-        componentClass: 'TextInputComponent',
-        modelClass: 'TextInputModel'
+        componentClass: 'SimpleInputComponent',
+        modelClass: 'SimpleInputModel'
     });
 
     if(fieldConfig.maxLength > 0) {
@@ -231,8 +231,8 @@ module.exports = {
   RepeatableTextfieldComponent: (field) => {
     let componentDefinition = createBaseComponent({
         field,
-        componentClass: 'TextInputComponent',
-        modelClass: 'TextInputModel'
+        componentClass: 'SimpleInputComponent',
+        modelClass: 'SimpleInputModel'
     });
 
     return componentDefinition;

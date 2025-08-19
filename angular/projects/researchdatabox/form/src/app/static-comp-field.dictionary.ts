@@ -1,4 +1,4 @@
-import { TextInputModel, TextInputComponent } from "./component/textfield.component";
+import { SimpleInputModel, SimpleInputComponent } from "./component/textfield.component";
 import { RepeatableComponent, RepeatableComponentModel, RepeatableElementLayoutComponent } from "./component/repeatable.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
@@ -19,9 +19,9 @@ export interface FormFieldModelClassMap {
  * Note that each model and component are optional
 */
 export const StaticModelCompClassMap = {
-  'TextInput': {
-    model: TextInputModel,
-    component: TextInputComponent
+  'SimpleInput': {
+    model: SimpleInputModel,
+    component: SimpleInputComponent
   },
   'TextBlock': {
     model: TextBlockModel,

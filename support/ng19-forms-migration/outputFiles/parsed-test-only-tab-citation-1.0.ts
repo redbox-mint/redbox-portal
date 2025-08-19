@@ -76,11 +76,11 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextInputComponent",
+      "class": "SimpleInputComponent",
       "config": {}
     },
     "model": {
-      "class": "TextInputModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": ""
       }

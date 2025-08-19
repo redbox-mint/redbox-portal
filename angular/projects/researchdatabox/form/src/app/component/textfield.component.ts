@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 
-export class TextInputModel extends FormFieldModel<string> {
+export class SimpleInputModel extends FormFieldModel<string> {
 }
 
 @Component({
@@ -22,8 +22,8 @@ export class TextInputModel extends FormFieldModel<string> {
   `,
     standalone: false
 })
-export class TextInputComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "TextInputComponent";
+export class SimpleInputComponent extends FormFieldBaseComponent<string> {
+  protected override logName: string = "SimpleInputComponent";
   public tooltip:string = '';
   public tooltipPlaceholder:string = 'placeholder';
   public inputType:string = 'text';
@@ -42,7 +42,7 @@ export class TextInputComponent extends FormFieldBaseComponent<string> {
   /**
    * The model associated with this component.
    */
-  @Input() public override model?: TextInputModel;
+  @Input() public override model?: SimpleInputModel;
 
 
 }

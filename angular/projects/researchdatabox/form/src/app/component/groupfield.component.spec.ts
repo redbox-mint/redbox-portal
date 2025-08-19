@@ -1,6 +1,6 @@
 
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextInputComponent} from './textfield.component';
+import {SimpleInputComponent} from './textfield.component';
 import {GroupFieldComponent} from "./groupfield.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -9,7 +9,7 @@ import {TestBed} from "@angular/core/testing";
 describe('GroupFieldComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextInputComponent,
+      SimpleInputComponent,
       GroupFieldComponent,
     ]);
   });
@@ -62,26 +62,26 @@ describe('GroupFieldComponent', () => {
                     }
                   },
                   model: {
-                    class: 'TextInputModel',
+                    class: 'SimpleInputModel',
                     config: {
                       value: 'hello world 3!',
                     }
                   },
                   component: {
-                    class: 'TextInputComponent'
+                    class: 'SimpleInputComponent'
                   }
                 },
                 {
                   name: 'text_4',
                   model: {
-                    class: 'TextInputModel',
+                    class: 'SimpleInputModel',
                     config: {
                       value: 'hello world 4!',
                       defaultValue: 'hello world 4!'
                     }
                   },
                   component: {
-                    class: 'TextInputComponent'
+                    class: 'SimpleInputComponent'
                   }
                 },
                 {
@@ -118,13 +118,13 @@ describe('GroupFieldComponent', () => {
                             }
                           },
                           model: {
-                            class: 'TextInputModel',
+                            class: 'SimpleInputModel',
                             config: {
                               value: 'hello world 5!',
                             }
                           },
                           component: {
-                            class: 'TextInputComponent'
+                            class: 'SimpleInputComponent'
                           }
                         }
                       ]

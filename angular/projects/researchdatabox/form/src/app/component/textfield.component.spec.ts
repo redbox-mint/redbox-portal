@@ -1,16 +1,16 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextInputComponent} from "./textfield.component";
+import {SimpleInputComponent} from "./textfield.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
-describe('TextInputComponent', () => {
+describe('SimpleInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextInputComponent,
+      SimpleInputComponent,
     ]);
   });
   it('should create component', () => {
-    let fixture = TestBed.createComponent(TextInputComponent);
+    let fixture = TestBed.createComponent(SimpleInputComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
@@ -26,14 +26,14 @@ describe('TextInputComponent', () => {
         {
           name: 'text_1_event',
           model: {
-            class: 'TextInputModel',
+            class: 'SimpleInputModel',
             config: {
               value: 'hello world saved!',
               defaultValue: 'hello world default!'
             }
           },
           component: {
-            class: 'TextInputComponent'
+            class: 'SimpleInputComponent'
           }
         }
       ]

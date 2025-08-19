@@ -1,5 +1,5 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextInputComponent} from './textfield.component';
+import {SimpleInputComponent} from './textfield.component';
 
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -12,7 +12,7 @@ let formConfig: FormConfig;
 describe('TabComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextInputComponent,
+      SimpleInputComponent,
       TabComponent
     ]);
 
@@ -42,14 +42,14 @@ describe('TabComponent', () => {
                     {
                       name: 'textfield_1',
                       model: {
-                        class: 'TextInputModel',
+                        class: 'SimpleInputModel',
                         config: {
                           value: 'Hello from Tab 1!',
                           defaultValue: 'Default value for Tab 1'
                         }
                       },
                       component: {
-                        class: 'TextInputComponent'
+                        class: 'SimpleInputComponent'
                       }
                     }
                   ]
@@ -62,14 +62,14 @@ describe('TabComponent', () => {
                     {
                       name: 'textfield_2',
                       model: {
-                        class: 'TextInputModel',
+                        class: 'SimpleInputModel',
                         config: {
                           value: 'Hello from Tab 2!',
                           defaultValue: 'Default value for Tab 2'
                         }
                       },
                       component: {
-                        class: 'TextInputComponent'
+                        class: 'SimpleInputComponent'
                       }
                     }
                   ]

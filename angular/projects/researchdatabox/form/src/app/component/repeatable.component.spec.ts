@@ -1,5 +1,5 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextInputComponent} from './textfield.component';
+import {SimpleInputComponent} from './textfield.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -8,7 +8,7 @@ import {TestBed} from "@angular/core/testing";
 describe('RepeatableComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextInputComponent,
+      SimpleInputComponent,
       RepeatableComponent,
       RepeatableElementLayoutComponent,
     ]);
@@ -42,13 +42,13 @@ describe('RepeatableComponent', () => {
               elementTemplate: {
                 name: "repeatable_component_1",
                 model: {
-                  class: 'TextInputModel',
+                  class: 'SimpleInputModel',
                   config: {
                     defaultValue: 'hello world from elementTemplate!',
                   }
                 },
                 component: {
-                  class: 'TextInputComponent'
+                  class: 'SimpleInputComponent'
                 }
               },
             },
