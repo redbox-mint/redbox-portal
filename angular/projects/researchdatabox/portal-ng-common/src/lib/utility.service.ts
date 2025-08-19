@@ -421,8 +421,10 @@ export class UtilityService {
    */
   trimStringSignal(source: Signal<string>, defaultValue: string = '', charsToTrim: string | undefined = undefined): Signal<string> {
     return computed(() => {
-      const value = _trim(source(), charsToTrim);
-      return _isEmpty(value) ? defaultValue : value;
+      // get the source and convert it to a string (use nullish coalescing to convert null & undefined to empty string)
+      const value = source()?.toString() ?? '';
+      // return the trimmed string, or the default if the resulting string is falsy (logical OR e.g. "", 0, false, etc)
+      return _trim(value, charsToTrim) || defaultValue;
     });
   }
 }
