@@ -516,9 +516,9 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await this.http.get<FormConfig>(url.href, this.requestOptions).toPromise();
+    const result = await this.http.get<{data: FormConfig}>(url.href, this.requestOptions).toPromise();
     this.loggerService.info(`Get form fields from url: ${url}`, result);
-    return result;
+    return result?.data;
   }
 
   /**
@@ -538,9 +538,9 @@ export class FormService extends HttpClientService {
       : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
-    const result = await this.http.get(url.href, this.requestOptions).toPromise() as Record<string, unknown>;
+    const result = await this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions).toPromise();
     this.loggerService.info(`Get model data from url: ${url}`, result);
-    return result;
+    return result?.['data'] ?? {};
   }
 }
 
