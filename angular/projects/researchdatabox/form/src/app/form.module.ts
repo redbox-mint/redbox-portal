@@ -31,7 +31,7 @@ import {GroupFieldComponent} from "./component/groupfield.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
-import { TextBlockComponent } from './component/textblock.component';
+import { ContentComponent } from './component/textblock.component';
 import {TabComponent, TabContentComponent} from "./component/tab.component";
 @NgModule({
   declarations: [
@@ -40,7 +40,7 @@ import {TabComponent, TabContentComponent} from "./component/tab.component";
     FormBaseWrapperDirective,
     FormComponent,
     SimpleInputComponent,
-    TextBlockComponent,
+    ContentComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,
     ValidationSummaryFieldComponent,

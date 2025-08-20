@@ -1,19 +1,24 @@
-import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
 
-export type TextBlockModelValueType = string;
-
-export interface TextBlockComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "TextBlockComponent";
-    config?: TextBlockComponentConfig;
+export interface ContentComponentDefinition extends BaseFormFieldComponentDefinition {
+    class: "ContentComponent";
+    config?: ContentComponentConfig;
 }
 
-export class TextBlockComponentConfig extends BaseFormFieldComponentConfig {}
-
-export interface TextBlockModelDefinition extends BaseFormFieldModelDefinition<TextBlockModelValueType> {
-    class: "TextBlockModel";
-    config: TextBlockModelConfig;
+export class ContentComponentConfig extends BaseFormFieldComponentConfig {
+    
+    /**
+     * The template that can be used for setting content in innerHtml.
+     */
+    public template?: string = '';
+    /**
+     * The template that can be used for setting content in innerHtml.
+     */
+    public content?: string = '';
+    /**
+     * The template that can be used for setting content in innerHtml.
+     */
+    public contentType?: string = '';
 }
 
-export class TextBlockModelConfig extends BaseFormFieldModelConfig<TextBlockModelValueType> {}

@@ -19,7 +19,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
             [attr.title]="tooltip ? tooltip : tooltipPlaceholder" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
-  `,
+    `,
     standalone: false
 })
 export class SimpleInputComponent extends FormFieldBaseComponent<string> {
@@ -29,15 +29,15 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   public inputType:string = 'text';
 
   /**
-     * Override to set additional properties required by the wrapper component.
-     *
-     * @param formFieldCompMapEntry
-     */
-    protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
-      super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-      this.tooltip = this.getTooltip();
-      this.tooltipPlaceholder = '';
-    }
+   * Override to set additional properties required by the wrapper component.
+   *
+   * @param formFieldCompMapEntry
+   */
+  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
+    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
+    this.tooltip = this.getTooltip();
+    this.tooltipPlaceholder = '';
+  }
 
   /**
    * The model associated with this component.

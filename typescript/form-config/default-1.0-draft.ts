@@ -51,14 +51,12 @@ const formConfig: FormConfig = {
                             componentDefinitions: [
                                 {
                                     name: 'text_block',
-                                    model: {
-                                        class: 'TextBlockModel',
-                                        config: {
-                                            defaultValue: 'My first text block component!!!'
-                                        }
-                                    },
                                     component: {
-                                        class: 'TextBlockComponent'
+                                        class: 'ContentComponent',
+                                        config: {
+                                            content: 'My first text block component!!!',
+                                            contentType: 'h1',
+                                        }
                                     }
                                 },
                                 {

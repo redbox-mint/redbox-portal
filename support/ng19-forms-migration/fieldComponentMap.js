@@ -126,11 +126,21 @@ module.exports = {
   TextBlockComponent: (field) => {
     let componentDefinition = createBaseComponent({
         field,
-        componentClass: 'TextBlockComponent',
-        modelClass: 'TextBlockModel'
+        componentClass: 'ContentComponent'
     });
 
+    let fieldConfig = {
+      contentType: field?.definition?.type ?? '',
+      content: field?.definition?.value ?? field?.definition?.name ?? ''
+    }
+
+    if(!_.isEmpty(fieldConfig.contentType)) {
+      _.set(componentDefinition,'component.config.contentType',fieldConfig.contentType);
+      _.set(componentDefinition,'component.config.content',fieldConfig.content);
+    }
+
     _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition,'component.config.type');
 
     return componentDefinition;
   },
