@@ -21,6 +21,7 @@ export class AppComponent implements OnInit {
 
   // Simple state
   languages = signal<string[]>([]);
+  availableLanguages = signal<string[]>([]); // Languages that can be shown
   selectedLang: string = '';
   namespace = 'translation';
 
@@ -34,25 +35,47 @@ export class AppComponent implements OnInit {
   sortBy: 'key' | 'value' | 'category' = 'key';
   sortAsc = true;
 
-  // Modal state
+  // Modal state for editing entries
   modalOpen = signal(false);
   editKey = '';
   editValue: any = '';
   editDescription: string | undefined;
+
+  // Modal state for language management
+  languageModalOpen = signal(false);
+  newLanguageCode = '';
+  newLanguageDisplayName = '';
+  sourceLanguage = 'en';
 
   // Save status signals
   saving = signal(false);
   saveSuccess = signal(false);
   saveError = signal(false);
 
+  // Language creation status
+  creatingLanguage = signal(false);
+  languageCreateSuccess = signal(false);
+  languageCreateError = signal(false);
+
+  // Modal state for display name editing
+  displayNameModalOpen = signal(false);
+  editDisplayName = '';
+
+  // Display name update status
+  updatingDisplayName = signal(false);
+  displayNameUpdateSuccess = signal(false);
+  displayNameUpdateError = signal(false);
+
   async ngOnInit() {
-  await this.svc.waitForInit();
-  await this.loadLanguages();
+    await this.svc.waitForInit();
+    await this.loadLanguages();
+    // Initialize available languages to show all by default
+    this.availableLanguages.set([...this.languages()]);
   }
 
   private async loadLanguages() {
     try {
-  const list = await this.svc.listLanguages();
+      const list = await this.svc.listLanguages();
       this.languages.set(Array.isArray(list) ? list : []);
       if (!this.selectedLang && this.languages().length > 0) {
         this.selectedLang = this.languages()[0];
@@ -62,9 +85,7 @@ export class AppComponent implements OnInit {
       console.error('Failed to load languages', e);
       this.languages.set([]);
     }
-  }
-
-  async onLangChange() {
+  }  async onLangChange() {
     if (!this.selectedLang) return;
     await this.loadEntries();
   }
@@ -170,6 +191,151 @@ export class AppComponent implements OnInit {
   }
 
   closeModal() { this.modalOpen.set(false); }
+
+  // Language management methods
+  openLanguageModal() {
+    this.languageModalOpen.set(true);
+    this.newLanguageCode = '';
+    this.sourceLanguage = 'en';
+    this.languageCreateSuccess.set(false);
+    this.languageCreateError.set(false);
+  }
+
+  closeLanguageModal() {
+    this.languageModalOpen.set(false);
+    // Reset form fields
+    this.newLanguageCode = '';
+    this.newLanguageDisplayName = '';
+    this.sourceLanguage = 'en';
+    // Reset status signals
+    this.creatingLanguage.set(false);
+    this.languageCreateSuccess.set(false);
+    this.languageCreateError.set(false);
+  }
+
+  async createNewLanguage() {
+    if (!this.newLanguageCode.trim()) {
+      return;
+    }
+
+    try {
+      this.creatingLanguage.set(true);
+      this.languageCreateSuccess.set(false);
+      this.languageCreateError.set(false);
+
+      // Create the new language by copying from source, with optional display name
+      const displayName = this.newLanguageDisplayName.trim() || undefined;
+      await this.svc.createLanguage(this.newLanguageCode.trim(), this.sourceLanguage, this.namespace, displayName);
+      
+      // Refresh the language list
+      await this.loadLanguages();
+      
+      // Update available languages to include the new one
+      const currentAvailable = this.availableLanguages();
+      if (!currentAvailable.includes(this.newLanguageCode.trim())) {
+        this.availableLanguages.set([...currentAvailable, this.newLanguageCode.trim()]);
+      }
+
+      this.creatingLanguage.set(false);
+      this.languageCreateSuccess.set(true);
+      
+      // Auto-hide success after delay
+      setTimeout(() => {
+        this.languageCreateSuccess.set(false);
+        this.closeLanguageModal();
+      }, 3000);
+      
+    } catch (e) {
+      console.error('Failed to create language', e);
+      this.creatingLanguage.set(false);
+      this.languageCreateError.set(true);
+      setTimeout(() => this.languageCreateError.set(false), 8000);
+    }
+  }
+
+  openDisplayNameModal() {
+    if (!this.selectedLang) return;
+    
+    // Load current display name for the language
+    this.editDisplayName = this.selectedLang; // Default to language code
+    this.displayNameModalOpen.set(true);
+    
+    // Try to get the current display name from the bundle
+    this.loadCurrentDisplayName();
+  }
+
+  closeDisplayNameModal() {
+    this.displayNameModalOpen.set(false);
+    // Reset form fields
+    this.editDisplayName = '';
+    // Reset status signals
+    this.updatingDisplayName.set(false);
+    this.displayNameUpdateSuccess.set(false);
+    this.displayNameUpdateError.set(false);
+  }
+
+  async loadCurrentDisplayName() {
+    try {
+      const bundle = await this.svc.getBundle(this.selectedLang, this.namespace);
+      if (bundle?.displayName) {
+        this.editDisplayName = bundle.displayName;
+      }
+    } catch (e) {
+      console.warn('Could not load current display name:', e);
+      // Keep the default (language code)
+    }
+  }
+
+  async updateDisplayName() {
+    if (!this.editDisplayName.trim() || !this.selectedLang) {
+      return;
+    }
+
+    try {
+      this.updatingDisplayName.set(true);
+      this.displayNameUpdateSuccess.set(false);
+      this.displayNameUpdateError.set(false);
+
+      // Update the display name
+      await this.svc.updateLanguageDisplayName(this.selectedLang, this.namespace, this.editDisplayName.trim());
+      
+      this.updatingDisplayName.set(false);
+      this.displayNameUpdateSuccess.set(true);
+      
+      // Auto-hide success after delay
+      setTimeout(() => {
+        this.displayNameUpdateSuccess.set(false);
+        this.closeDisplayNameModal();
+      }, 3000);
+      
+    } catch (e) {
+      console.error('Failed to update display name', e);
+      this.updatingDisplayName.set(false);
+      this.displayNameUpdateError.set(true);
+      setTimeout(() => this.displayNameUpdateError.set(false), 8000);
+    }
+  }
+
+  onAvailableLanguagesChange() {
+    // Filter the language dropdown to only show selected available languages
+    // If current selected language is not in available list, reset selection
+    if (this.selectedLang && !this.availableLanguages().includes(this.selectedLang)) {
+      this.selectedLang = this.availableLanguages().length > 0 ? this.availableLanguages()[0] : '';
+      if (this.selectedLang) {
+        this.onLangChange();
+      }
+    }
+  }
+
+  // Check if a language is available for display
+  isLanguageAvailable(lang: string): boolean {
+    return this.availableLanguages().includes(lang);
+  }
+
+  // Get filtered languages for dropdown
+  getFilteredLanguages(): string[] {
+    return this.languages().filter(lang => this.isLanguageAvailable(lang));
+  }
 
   // URL builder not needed; handled in service
 

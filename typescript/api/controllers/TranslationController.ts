@@ -185,6 +185,40 @@ export module Controllers {
         return res.serverError(err);
       }
     }
+
+    public async getBundleApp(req, res) {
+      try {
+        const brandingName = req.params.branding;
+        const branding = BrandingService.getBrand(brandingName);
+        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const locale = req.param('locale');
+        const namespace = req.param('namespace') || 'translation';
+        const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
+        if (!bundle) return res.notFound({ message: 'Bundle not found' });
+        return res.json(bundle);
+      } catch (err) {
+        sails.log.error('Error in TranslationController.getBundleApp:', err);
+        return res.serverError(err);
+      }
+    }
+
+    public async setBundleApp(req, res) {
+      try {
+        const brandingName = req.params.branding;
+        const branding = BrandingService.getBrand(brandingName);
+        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const locale = req.param('locale');
+        const namespace = req.param('namespace') || 'translation';
+        const data = req.body?.data || req.body;
+        const displayName = req.body?.displayName;
+        const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, displayName);
+        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e?.message || e); }
+        return res.json(bundle);
+      } catch (err) {
+        sails.log.error('Error in TranslationController.setBundleApp:', err);
+        return res.serverError(err);
+      }
+    }
   }
 }
 

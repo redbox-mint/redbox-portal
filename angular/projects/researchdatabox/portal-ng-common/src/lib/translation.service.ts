@@ -114,6 +114,15 @@ export class TranslationService extends HttpClientService implements Service {
       _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
     }
     this.loggerService.log(`Using language loadpath: ${this.loadPath}`);
+    
+    // Check if a specific language is configured from the server
+    const configLang = _get(this.config, 'lang');
+    if (configLang && configLang !== 'en') {
+      this.loggerService.info(`Language service using server-configured language: ${configLang}`);
+      // Override the language detection to use the server-specified language
+      _set(this.i18NextOpts, 'lng', configLang);
+    }
+    
     try {
     	await this.i18NextService
 	              .use(HttpApi)
@@ -138,6 +147,20 @@ export class TranslationService extends HttpClientService implements Service {
 
   t(key: string) {
     return this.i18NextService.t(key);
+  }
+
+  /** Change the current language and reload resources */
+  public async changeLanguage(langCode: string): Promise<void> {
+    await this.waitForInit();
+    return this.i18NextService.changeLanguage(langCode);
+  }
+
+  /** Get the current language */
+  public getCurrentLanguage(): string {
+    if (!this.translatorReady) {
+      return 'en'; // fallback
+    }
+    return this.i18NextService.language;
   }
 
   public override getInitSubject(): Subject<any> {
@@ -187,5 +210,143 @@ export class TranslationService extends HttpClientService implements Service {
     const url = `${this.brandingAndPortalUrl}/locales`;
     const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
     return firstValueFrom(req$);
+  }
+
+  /** Get bundle data for a specific language/namespace */
+  public async getBundle(locale: string, namespace = 'translation'): Promise<any> {
+    await this.waitForInit();
+    const url = `${this.brandingAndPortalUrl}/app/i18n/bundles/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}`;
+    const req$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
+    return firstValueFrom(req$);
+  }
+
+  /** Create/update bundle data for a specific language/namespace */
+  public async setBundle(locale: string, namespace: string, data: any): Promise<any> {
+    await this.waitForInit();
+    const url = `${this.brandingAndPortalUrl}/app/i18n/bundles/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}`;
+    const req$ = this.http.post(url, { data }, this.requestOptions).pipe(map(res => res));
+    return firstValueFrom(req$);
+  }
+
+  /** Create a new language by copying from English (or specified source language) */
+  public async createLanguage(newLocale: string, sourceLocale = 'en', namespace = 'translation', displayName?: string): Promise<any> {
+    try {
+      // Get the source bundle (English by default)
+      const sourceBundle = await this.getBundle(sourceLocale, namespace);
+      if (!sourceBundle || !sourceBundle.data) {
+        throw new Error(`Source language ${sourceLocale} not found or has no data`);
+      }
+      
+      // Copy the source data to the new language
+      const result = await this.setBundle(newLocale, namespace, sourceBundle.data);
+      
+      // If display name is provided, update the bundle with it
+      if (displayName) {
+        await this.updateLanguageDisplayName(newLocale, namespace, displayName);
+      }
+      
+      // Now ensure all languages (including the new one) have lang-<langcode> entries for the language selector
+      await this.ensureLanguageLabels(newLocale, namespace);
+      
+      return result;
+    } catch (error) {
+      console.error(`Failed to create language ${newLocale} from ${sourceLocale}:`, error);
+      throw error;
+    }
+  }
+
+  /** Update the display name for a language */
+  public async updateLanguageDisplayName(locale: string, namespace = 'translation', displayName: string): Promise<any> {
+    await this.waitForInit();
+    
+    try {
+      // Get current bundle
+      const bundle = await this.getBundle(locale, namespace);
+      if (!bundle) {
+        throw new Error(`Bundle not found for ${locale}:${namespace}`);
+      }
+
+      // Update with new display name using POST (same endpoint as setBundle)
+      const url = `${this.brandingAndPortalUrl}/app/i18n/bundles/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}`;
+      const body = { data: bundle.data, displayName };
+      const req$ = this.http.post<any>(url, body, this.requestOptions).pipe(map(res => res));
+      return firstValueFrom(req$);
+    } catch (error) {
+      console.error(`Failed to update display name for ${locale}:`, error);
+      throw error;
+    }
+  }
+
+  /** Ensure all languages have lang-<langcode> entries for the language selector */
+  private async ensureLanguageLabels(newLocale: string, namespace = 'translation'): Promise<void> {
+    try {
+      // Get all available languages
+      const allLanguages = await this.listLanguages();
+      
+      // For each language, ensure it has lang-<langcode> entries for all other languages
+      for (const currentLang of allLanguages) {
+        try {
+          const currentBundle = await this.getBundle(currentLang, namespace);
+          if (!currentBundle || !currentBundle.data) {
+            console.warn(`Skipping language label update for ${currentLang}: no bundle found`);
+            continue;
+          }
+
+          let bundleData = { ...currentBundle.data };
+          let needsUpdate = false;
+
+          // Ensure this language has lang-<langcode> entries for all languages
+          for (const targetLang of allLanguages) {
+            const langKey = `lang-${targetLang}`;
+            if (!bundleData[langKey]) {
+              // Add a default language label (using the language code as fallback)
+              bundleData[langKey] = this.getDefaultLanguageLabel(targetLang);
+              needsUpdate = true;
+            }
+          }
+
+          // Update the bundle if we added any new language labels
+          if (needsUpdate) {
+            await this.setBundle(currentLang, namespace, bundleData);
+          }
+        } catch (e) {
+          console.warn(`Failed to update language labels for ${currentLang}:`, e);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to ensure language labels:', error);
+    }
+  }
+
+  /** Get a default language label for a language code */
+  private getDefaultLanguageLabel(langCode: string): string {
+    // Common language mappings - you can extend this
+    const languageLabels: Record<string, string> = {
+      'en': 'English',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'es': 'Español',
+      'it': 'Italiano',
+      'pt': 'Português',
+      'ru': 'Русский',
+      'ja': '日本語',
+      'ko': '한국어',
+      'zh': '中文',
+      'ar': 'العربية',
+      'hi': 'हिन्दी',
+      'nl': 'Nederlands',
+      'sv': 'Svenska',
+      'da': 'Dansk',
+      'no': 'Norsk',
+      'fi': 'Suomi',
+      'pl': 'Polski',
+      'cs': 'Čeština',
+      'hu': 'Magyar',
+      'tr': 'Türkçe',
+      'th': 'ไทย',
+      'vi': 'Tiếng Việt'
+    };
+
+    return languageLabels[langCode] || langCode.toUpperCase();
   }
 }

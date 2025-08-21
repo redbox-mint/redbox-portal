@@ -46,7 +46,7 @@ describe('I18nEntriesService', function () {
   });
 
   it('setBundle creates bundle and (optionally) splits to entries', async function () {
-    const bundle = await I18nEntriesService.setBundle(branding, locale, ns, dataV1, { splitToEntries: true, overwriteEntries: true });
+    const bundle = await I18nEntriesService.setBundle(branding, locale, ns, dataV1, undefined, { splitToEntries: true, overwriteEntries: true });
   expect(bundle).to.be.ok;
   expect(bundle).to.have.property('data');
   expect(bundle && bundle.data && bundle.data.section && bundle.data.section.title).to.equal('Hello');

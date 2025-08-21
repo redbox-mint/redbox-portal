@@ -139,7 +139,7 @@ export module Controllers {
         const splitToEntries = req.param('splitToEntries') === 'true' || req.body?.splitToEntries === true;
         const overwriteEntries = req.param('overwriteEntries') === 'true' || req.body?.overwriteEntries === true;
 
-  const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, { splitToEntries, overwriteEntries });
+  const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, { splitToEntries, overwriteEntries });
   // Refresh i18n cache after bundle update
   try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setBundle] reload failed', e?.message || e); }
         return this.apiRespond(req, res, bundle, 200);

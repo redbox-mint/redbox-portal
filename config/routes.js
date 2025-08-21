@@ -583,5 +583,13 @@ module.exports.routes = {
   'post /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*': {
     controller: 'TranslationController',
     action: 'setEntryApp'
+  },
+  'get /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
+    controller: 'TranslationController',
+    action: 'getBundleApp'
+  },
+  'post /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
+    controller: 'TranslationController',
+    action: 'setBundleApp'
   }
 };

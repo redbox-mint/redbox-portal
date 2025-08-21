@@ -13,6 +13,12 @@ module.exports = {
       required: true
     },
 
+    // Human-readable display name for the language in its native form
+    displayName: {
+      type: 'string',
+      required: false
+    },
+
     // i18next namespace; default is 'translation'
     namespace: {
       type: 'string',

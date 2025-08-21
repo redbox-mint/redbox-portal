@@ -44,7 +44,12 @@ export module Services {
       'setBundle',
       'composeNamespace',
       'syncEntriesFromBundle',
-      'bootstrap'
+      'bootstrap',
+      'getAvailableLanguages',
+      'getAvailableLanguagesAsync',
+      'loadCentralizedMeta',
+      'loadLanguageNames',
+      'getLanguageDisplayName'
     ];
     
   /**
@@ -55,7 +60,21 @@ export module Services {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        const supported: string[] = (sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en'];
+        
+        // Discover supported languages by scanning language-defaults directory
+        const localesDir = path.join(sails.config.appPath, 'language-defaults');
+        const supported: string[] = [];
+        
+        if (fs.existsSync(localesDir)) {
+          const entries = fs.readdirSync(localesDir, { withFileTypes: true });
+          supported.push(...entries.filter(d => d.isDirectory()).map(d => d.name));
+        }
+        
+        // Fallback to config if no directories found
+        if (supported.length === 0) {
+          supported.push(...((sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en']));
+        }
+        
         const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
         // Default brand
@@ -65,7 +84,6 @@ export module Services {
           return;
         }
 
-  const localesDir = path.join(sails.config.appPath, 'language-defaults');
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
@@ -79,7 +97,7 @@ export module Services {
 
               if (!existing) {
                 // First-time seed: create bundle and split to entries (no overwrite)
-                await this.setBundle(defaultBrand, lng, ns, json, { splitToEntries: true, overwriteEntries: false });
+                await this.setBundle(defaultBrand, lng, ns, json, undefined, { splitToEntries: true, overwriteEntries: false });
                 sails.log.verbose(`[I18nEntriesService.bootstrap] Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
               } else {
                 // Incremental: add any new keys found in defaults into entries; do not touch bundle data
@@ -262,15 +280,32 @@ export module Services {
       locale: string,
       namespace: string,
       data: any,
+      displayName?: string,
       options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
     ): Promise<any> {
       const brandingId = this.resolveBrandingId(branding);
+      
+      // Use provided display name or get default for the language
+      const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
+      
       const existing = await this.getBundle(branding, locale, namespace);
       let bundle;
       if (existing) {
-        bundle = await I18nBundle.updateOne({ id: existing.id }).set({ data, branding: brandingId, locale, namespace });
+        bundle = await I18nBundle.updateOne({ id: existing.id }).set({ 
+          data, 
+          branding: brandingId, 
+          locale, 
+          namespace,
+          displayName: finalDisplayName 
+        });
       } else {
-        bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace });
+        bundle = await I18nBundle.create({ 
+          data, 
+          branding: brandingId, 
+          locale, 
+          namespace,
+          displayName: finalDisplayName 
+        });
       }
       // Always synchronise entries with the saved bundle (force overwrite & prune) to avoid desync.
       try {
@@ -297,8 +332,16 @@ export module Services {
 
       const { branding, locale, namespace, id: bundleId } = bundle;
       const data = bundle.data || {};
+      
+      // Load centralized metadata
+      const centralizedMeta = await this.loadCentralizedMeta();
+      
       // Extract optional metadata map at root level: { [keyPath]: { category?, description? } }
-      const meta: Record<string, { category?: string; description?: string }> = (data && typeof data._meta === 'object') ? data._meta : {};
+      // File-specific _meta overrides centralized meta
+      const fileMeta: Record<string, { category?: string; description?: string }> = (data && typeof data._meta === 'object') ? data._meta : {};
+      
+      // Merge centralized meta with file-specific meta (file-specific takes precedence)
+      const meta = { ...centralizedMeta, ...fileMeta };
 
       // Flatten the data then strip any _meta entries
       const flatAll = this.flatten(data || {});
@@ -334,6 +377,107 @@ export module Services {
           sails.log.warn('[I18nEntriesService.syncEntriesFromBundle] Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
       }
+    }
+
+    /**
+     * Get available languages for a branding (synchronous for template use)
+     */
+    public getAvailableLanguages(branding: BrandingModel): string[] {
+      try {
+        const brandingId = this.resolveBrandingId(branding);
+        const langs = new Set<string>();
+        
+        // Add configured languages as fallback
+        const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
+        if (Array.isArray(configured)) {
+          configured.forEach((l: string) => {
+            if (l && l !== 'cimode') langs.add(l);
+          });
+        }
+
+        // For synchronous template use, we return configured languages
+        // The async version getAvailableLanguagesAsync should be used for dynamic DB queries
+        const list = Array.from(langs);
+        list.sort();
+        return list;
+      } catch (e) {
+        sails.log.warn('[I18nEntriesService.getAvailableLanguages] Error:', (e as Error)?.message || e);
+        return ['en']; // fallback
+      }
+    }
+
+    /**
+     * Get available languages for a branding (async version with DB query)
+     */
+    public async getAvailableLanguagesAsync(branding: BrandingModel): Promise<string[]> {
+      try {
+        const brandingId = this.resolveBrandingId(branding);
+        const langs = new Set<string>();
+
+        try {
+          const bundles = await I18nBundle.find({ branding: brandingId });
+          bundles.forEach((b: any) => {
+            if (b?.locale) langs.add(b.locale);
+          });
+        } catch (e) {
+          sails.log.verbose('[I18nEntriesService.getAvailableLanguagesAsync] DB query failed:', (e as Error)?.message || e);
+        }
+
+        const list = Array.from(langs);
+        list.sort();
+        return list;
+      } catch (e) {
+        sails.log.warn('[I18nEntriesService.getAvailableLanguagesAsync] Error:', (e as Error)?.message || e);
+        return ['en']; // fallback
+      }
+    }
+
+    /**
+     * Load centralized metadata from language-defaults/meta.json
+     */
+    public async loadCentralizedMeta(): Promise<Record<string, any>> {
+      try {
+        const fs = await import('node:fs');
+        const path = await import('node:path');
+        
+        const metaPath = path.join(sails.config.appPath, 'language-defaults', 'meta.json');
+        if (fs.existsSync(metaPath)) {
+          const metaContent = fs.readFileSync(metaPath, 'utf8');
+          return JSON.parse(metaContent);
+        }
+        return {};
+      } catch (e) {
+        sails.log.warn('[I18nEntriesService.loadCentralizedMeta] Error loading meta.json:', (e as Error)?.message || e);
+        return {};
+      }
+    }
+
+    /**
+     * Load language display names from language-defaults/language-names.json
+     */
+    public async loadLanguageNames(): Promise<Record<string, string>> {
+      try {
+        const fs = await import('node:fs');
+        const path = await import('node:path');
+        
+        const namesPath = path.join(sails.config.appPath, 'language-defaults', 'language-names.json');
+        if (fs.existsSync(namesPath)) {
+          const namesContent = fs.readFileSync(namesPath, 'utf8');
+          return JSON.parse(namesContent);
+        }
+        return {};
+      } catch (e) {
+        sails.log.warn('[I18nEntriesService.loadLanguageNames] Error loading language-names.json:', (e as Error)?.message || e);
+        return {};
+      }
+    }
+
+    /**
+     * Get display name for a language locale
+     */
+    public async getLanguageDisplayName(locale: string): Promise<string> {
+      const languageNames = await this.loadLanguageNames();
+      return languageNames[locale] || locale; // fallback to locale code if name not found
     }
   }
 }

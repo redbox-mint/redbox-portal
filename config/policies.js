@@ -21,6 +21,7 @@ const defaultPolicies = [
   'checkBrandingValid',
   'setLang',
   'prepWs',
+  'i18nLanguages',
   'isWebServiceAuthenticated',
   'checkAuth'
 ];
