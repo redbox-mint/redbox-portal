@@ -479,10 +479,21 @@ export module Services {
          * Validate a record's structure using the form config associated with the recordtype.
          *
          * @param record The record data, including the record type.
+         * @param context The context for the user providing the record.
          */
-        public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
-            // TODO
-            return [];
+        public async validateRecordSchema(record: BasicRedboxRecord, context?: ClientFormContext): Promise<FormRecordConsistencyChange[]> {
+          // get the record's form name
+          const formName = record?.metaMetadata?.['form'];
+          // The validation will be done on all values present in the data model, so use the form config with all fields included.
+          const isEditMode = true;
+          // get the record's form config
+          const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
+          // get the client form config
+          const clientFormConfig = FormsService.buildClientFormConfig(formConfig, context);
+          // get the data model schema from the form config
+          const dataModelSchema = this.buildSchemaForFormConfig(clientFormConfig);
+          // TODO: compare the record to the data model
+          return [];
         }
 
         /**
@@ -491,6 +502,17 @@ export module Services {
          * @param record The record data, including the record type.
          */
         public async validateRecordValues(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
+          // get the record's form name
+          const formName = record?.metaMetadata?.['form'];
+          // The validation will be done on all values present in the data model, so use the form config with all fields included.
+          const isEditMode = true;
+          // get the record's form config
+          const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
+          // the validators stored in the database are the JSON.stringified functions
+          // TODO: should the validator functions be loaded from the database, or the same way the client validations are done?
+
+
+
             // TODO
             return [];
         }

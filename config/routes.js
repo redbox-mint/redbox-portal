@@ -130,6 +130,7 @@ module.exports.routes = {
   // 'get /dynamic/': 'UserController.info',
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
+  'get /:branding/:portal/dynamic/form/:name/:oid/:item': 'DynamicAssetController.getItem',
   'post /user/login_local': 'UserController.localLogin',
   'post /user/login_aaf': {
     controller: 'UserController',

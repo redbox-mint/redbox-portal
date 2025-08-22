@@ -519,7 +519,7 @@ export module Services {
      * Specifically null, undefined does *not* mean to remove the block, as some blocks have optional properties.
      *
      * TODO: Can the client form building be extracted to a separate class?
-     *  Does it needs access to some of the services?
+     *  Does it need access to some of the services?
      */
 
     /**
