@@ -1,9 +1,9 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 const util = require('util');
-const moment = require('moment');
+import { DateTime } from 'luxon';
 
 declare var sails: Sails;
 declare var _this;
@@ -49,7 +49,7 @@ export module Services {
 
     public update(id, obj) {
       if(obj.status === 'finished'){
-        obj.date_completed = moment().format('YYYY-MM-DD HH:mm:ss');
+        obj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
       }
       return super.getObservable(
         WorkspaceAsync.update({id: id}, obj)

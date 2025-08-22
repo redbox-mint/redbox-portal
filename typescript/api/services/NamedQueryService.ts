@@ -28,12 +28,12 @@ declare var sails: Sails;
 declare var Record: Model;
 declare var User: Model;
 declare var NamedQuery: Model;
-const moment = require('moment');
+import { DateTime } from 'luxon';
 declare var _this;
 declare var _;
 
 import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 
 export module Services {
   /**
@@ -52,10 +52,10 @@ export module Services {
       "performNamedQueryFromConfigResults",
     ];
 
-     public async bootstrap (defBrand) {
-      let namedQueries = await super.getObservable(NamedQuery.find({
+  public async bootstrap (defBrand) {
+      const namedQueries = await firstValueFrom(super.getObservable(NamedQuery.find({
         branding: defBrand.id
-      })).toPromise()
+   })));
       
         if (!_.isEmpty(namedQueries)) {
           if (sails.config.appmode.bootstrapAlways) {
@@ -67,13 +67,13 @@ export module Services {
           }
         } 
         sails.log.verbose("Bootstrapping named query definitions... ");
-        await this.createNamedQueriesForBrand(defBrand);
+  await this.createNamedQueriesForBrand(defBrand);
     }
 
     private async createNamedQueriesForBrand(defBrand: any) {
       for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
         const namedQueryConfig: any = config;
-        await this.create(defBrand, namedQuery, namedQueryConfig).toPromise();
+  await firstValueFrom(this.create(defBrand, namedQuery, namedQueryConfig));
       }
     }
 
@@ -261,17 +261,17 @@ export module Services {
             }
             if(queryParam.format == NamedQueryFormatOptions.days) {
               let days = _.toInteger(value);
-              let nowDateAddOrSubtract = moment();
+              let nowDateAddOrSubtract = DateTime.local();
               if (days > 0) {
                 //Going forward in time X number of days
-                nowDateAddOrSubtract = nowDateAddOrSubtract.add(days, 'days');
+                nowDateAddOrSubtract = nowDateAddOrSubtract.plus({ days: days });
               } else if(days < 0) {
                 //This "additional" step makes the code self explanatory
                 days = days * -1;
                 //Going backwards in time X number of days
-                nowDateAddOrSubtract = nowDateAddOrSubtract.subtract(days, 'days');
+                nowDateAddOrSubtract = nowDateAddOrSubtract.minus({ days: days });
               }
-              value = nowDateAddOrSubtract.toISOString();
+              value = nowDateAddOrSubtract.toISO();
             } 
 
             query[queryParam.queryType] = value;
