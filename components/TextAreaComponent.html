@@ -187,11 +187,12 @@
 import { FieldType } from &#x27;@ngx-formly/core&#x27;;
 
 @Component({
-  selector: &#x27;formly-textarea-type&#x27;,
-  template: &#x60;
+    selector: &#x27;formly-textarea-type&#x27;,
+    template: &#x60;
   &lt;textarea [id]&#x3D;&quot;id&quot; [class.is-invalid]&#x3D;&quot;showError&quot; 
               [formlyAttributes]&#x3D;&quot;field&quot; class&#x3D;&quot;form-control&quot;&gt;&lt;/textarea&gt;
   &#x60;,
+    standalone: false
 })
 export class TextAreaComponent extends FieldType {}</code></pre>
     </div>

@@ -1278,7 +1278,7 @@ Used by RecordTableComponent.</p>
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:71</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:72</a></code>
 </div>
                         </td>
                     </tr>
@@ -1324,7 +1324,7 @@ Used by RecordTableComponent.</p>
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:95</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:96</a></code>
 </div>
                         </td>
                     </tr>
@@ -1369,7 +1369,7 @@ Used by RecordTableComponent.</p>
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:50</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:51</a></code>
 </div>
                         </td>
                     </tr>
@@ -1416,7 +1416,7 @@ Used by RecordTableComponent.</p>
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:78</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:79</a></code>
 </div>
                         </td>
                     </tr>
@@ -1463,7 +1463,7 @@ Used by RecordTableComponent.</p>
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:89</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:90</a></code>
 </div>
                         </td>
                     </tr>
@@ -2085,7 +2085,7 @@ Used by RecordTableComponent.</p>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:42</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:43</a></code>
 </div>
                         </td>
                     </tr>
@@ -2118,7 +2118,7 @@ Used by RecordTableComponent.</p>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:40</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:41</a></code>
 </div>
                         </td>
                     </tr>
@@ -2157,7 +2157,7 @@ Used by RecordTableComponent.</p>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:39</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:40</a></code>
 </div>
                         </td>
                     </tr>
@@ -2196,7 +2196,7 @@ Used by RecordTableComponent.</p>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:38</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:39</a></code>
 </div>
                         </td>
                     </tr>
@@ -2235,7 +2235,7 @@ Used by RecordTableComponent.</p>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:37</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:38</a></code>
 </div>
                         </td>
                     </tr>
@@ -2250,20 +2250,20 @@ Used by RecordTableComponent.</p>
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Inject, ElementRef, ViewChild } from &#x27;@angular/core&#x27;;
-import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable } from &#x27;@researchdatabox/portal-ng-common&#x27;;
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto } from &#x27;@researchdatabox/sails-ng-common&#x27;;
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from &#x27;lodash-es&#x27;;
 import { ReportFilterDto } from &quot;@researchdatabox/sails-ng-common/dist/report.model&quot;;
-import { RecordResponseTable } from &quot;../../../portal-ng-common/src/lib/dashboard-models&quot;;
 import { ModalDirective } from &quot;ngx-bootstrap/modal&quot;;
 
 /**
  * Restore deleted records Component
  */
 @Component({
-  selector: &#x27;deleted-records&#x27;,
-  templateUrl: &#x27;./deleted-records.component.html&#x27;,
-  styleUrls: [&#x27;./deleted-records.component.scss&#x27;]
+    selector: &#x27;deleted-records&#x27;,
+    templateUrl: &#x27;./deleted-records.component.html&#x27;,
+    styleUrls: [&#x27;./deleted-records.component.scss&#x27;],
+    standalone: false
 })
 export class DeletedRecordsComponent extends BaseComponent implements RecordSource {
   appName: string &#x3D; &#x27;deleted-records&#x27;;

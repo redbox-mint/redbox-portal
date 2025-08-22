@@ -3058,7 +3058,7 @@
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:71</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:72</a></code>
 </div>
                         </td>
                     </tr>
@@ -3104,7 +3104,7 @@
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:95</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:96</a></code>
 </div>
                         </td>
                     </tr>
@@ -3149,7 +3149,7 @@
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:50</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:51</a></code>
 </div>
                         </td>
                     </tr>
@@ -3196,7 +3196,7 @@
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:78</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:79</a></code>
 </div>
                         </td>
                     </tr>
@@ -3243,7 +3243,7 @@
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:89</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:90</a></code>
 </div>
                         </td>
                     </tr>
@@ -4528,7 +4528,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:42</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:43</a></code>
 </div>
                         </td>
                     </tr>
@@ -4561,7 +4561,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:40</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:41</a></code>
 </div>
                         </td>
                     </tr>
@@ -4600,7 +4600,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:39</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:40</a></code>
 </div>
                         </td>
                     </tr>
@@ -4639,7 +4639,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:38</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:39</a></code>
 </div>
                         </td>
                     </tr>
@@ -4678,7 +4678,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:37</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:38</a></code>
 </div>
                         </td>
                     </tr>
@@ -4694,13 +4694,13 @@
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Inject, ElementRef } from &#x27;@angular/core&#x27;;
 import { PageChangedEvent } from &#x27;ngx-bootstrap/pagination&#x27;;
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, LoDashTemplateUtilityService } from &#x27;@researchdatabox/portal-ng-common&#x27;;
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, has as _has } from &#x27;lodash-es&#x27;;
-import { LoDashTemplateUtilityService } from &#x27;projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service&#x27;;
 
 @Component({
-  selector: &#x27;dashboard&#x27;,
-  templateUrl: &#x27;./dashboard.component.html&#x27;
+    selector: &#x27;dashboard&#x27;,
+    templateUrl: &#x27;./dashboard.component.html&#x27;,
+    standalone: false
 })
 export class DashboardComponent extends BaseComponent {
   config: any &#x3D; {};

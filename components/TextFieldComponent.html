@@ -195,11 +195,12 @@ export class TextField extends ModelBase&lt;string&gt; {
 }
 
 @Component({
-  selector: &#x27;textfield&#x27;,
-  template: &#x60;
+    selector: &#x27;textfield&#x27;,
+    template: &#x60;
   &lt;span&gt;Text Label&lt;/span&gt;
   &lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
   &#x60;,
+    standalone: false
 })
 export class TextFieldComponent extends FormBaseComponent {
 

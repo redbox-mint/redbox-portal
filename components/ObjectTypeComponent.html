@@ -191,8 +191,8 @@
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component } from &#x27;@angular/core&#x27;; 
 import { FieldType } from &#x27;@ngx-formly/core&#x27;; 
-@Component({ 
-    selector: &#x27;formly-object-type&#x27;, 
+@Component({
+    selector: &#x27;formly-object-type&#x27;,
     template: &#x60;
     &lt;div class&#x3D;&quot;mb-3&quot;&gt;
       &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
@@ -202,7 +202,9 @@ import { FieldType } from &#x27;@ngx-formly/core&#x27;;
       &lt;/div&gt;
       &lt;formly-field *ngFor&#x3D;&quot;let f of field.fieldGroup&quot; [field]&#x3D;&quot;f&quot;&gt;&lt;/formly-field&gt;
     &lt;/div&gt;
-  &#x60;, }) 
+  &#x60;,
+    standalone: false
+}) 
 export class ObjectTypeComponent extends FieldType { }</code></pre>
     </div>
 
