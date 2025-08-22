@@ -2,8 +2,12 @@
 <div class='container'>
 <%- superPartial("/user/aaf.ejs", branding, portal) %>
 <%- superPartial("/user/openidconnect.ejs", branding, portal) %>
-<div style="text-align: center;"><a id="adminLoginLink" href="#" onclick="jQuery('#adminLogin').show();jQuery('#adminLoginLink').hide();return false;">Login as an administrator</a></div>
-<div id="adminLogin" class="d-none">
+<div id="adminLoginShow">
+    <a data-bs-toggle="collapse" href="#adminLogin" role="button" aria-expanded="false" aria-controls="adminLogin">
+    Login as an administrator
+    </a>
+</div>
+<div id="adminLogin" class="collapse">
   <%- superPartial("/user/local.ejs", branding, portal) %>
 </div>
 </div>

@@ -141,7 +141,7 @@
   </div>
 
   
-  <script>
+  <script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
   jQuery(document).ready(function() {
     $('li.active').removeClass('active');
     var findFn = function(path) {
