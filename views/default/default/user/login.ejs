@@ -3,7 +3,7 @@
 <%- superPartial("/user/aaf.ejs", branding, portal) %>
 <%- superPartial("/user/openidconnect.ejs", branding, portal) %>
 <div style="text-align: center;"><a id="adminLoginLink" href="#" onclick="jQuery('#adminLogin').show();jQuery('#adminLoginLink').hide();return false;">Login as an administrator</a></div>
-<div id="adminLogin" style="display:none">
+<div id="adminLogin" class="d-none">
   <%- superPartial("/user/local.ejs", branding, portal) %>
 </div>
 </div>
