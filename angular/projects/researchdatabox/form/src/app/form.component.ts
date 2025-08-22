@@ -16,7 +16,22 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Component, Inject, Input, ElementRef, signal, HostBinding, ViewChild, viewChild, ViewContainerRef, ComponentRef, inject, Signal, effect } from '@angular/core';
+import {
+  Component,
+  Inject,
+  Input,
+  ElementRef,
+  signal,
+  HostBinding,
+  ViewChild,
+  viewChild,
+  ViewContainerRef,
+  ComponentRef,
+  inject,
+  Signal,
+  effect,
+  computed
+} from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get } from 'lodash-es';
@@ -71,6 +86,13 @@ export class FormComponent extends BaseComponent {
 
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
+
+  debugFormComponents = computed<Record<string, unknown>>(() => {
+    if (!this.formDefMap?.formConfig?.debugValue){
+      return {};
+    }
+    return this.getDebugInfo();
+  });
 
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
@@ -252,9 +274,9 @@ export class FormComponent extends BaseComponent {
     };
 
     // If the component has children components, recursively get their debug info. This used to be hardcoded for specific component types, but now it is generic.
-    const component = formFieldCompMapEntry?.component as any;
-    if (!_isEmpty(component?.components)) {
-      componentResult.children = component?.components?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
+    const component = formFieldCompMapEntry?.component;
+    if (Array.isArray(component?.formFieldCompMapEntries)) {
+      componentResult.children = component?.formFieldCompMapEntries?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
     }
 
     if (componentEntry?.layout) {
