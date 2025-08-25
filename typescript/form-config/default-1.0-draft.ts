@@ -36,14 +36,20 @@ const formConfig: FormConfig = {
     componentDefinitions: [
         {
             name: 'main_tab',
+            layout: {
+                class: 'TabComponentLayout',
+                config: {
+                    // layout-specific config goes here
+                    hostCssClasses: 'd-flex align-items-start',
+                    buttonSectionCssClass: 'nav flex-column nav-pills me-5',
+                    tabPaneCssClass: 'tab-pane fade',
+                    tabPaneActiveCssClass: 'active show',
+                }
+            },
             component: {
                 class: 'TabComponent',
                 config: {
-                    mainCssClass: 'd-flex align-items-start',
-                    buttonSectionCssClass: 'nav flex-column nav-pills me-5',
-                    tabContentSectionCssClass: 'tab-content',
-                    tabPaneCssClass: 'tab-pane fade',
-                    tabPaneActiveCssClass: 'active show',
+                    hostCssClasses: 'tab-content',
                     tabs: [
                         {
                             id: 'tab_1',

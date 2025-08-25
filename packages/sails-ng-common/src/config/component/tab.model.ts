@@ -1,6 +1,6 @@
 import {FormComponentDefinition} from "../form-component.model";
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
-
+import {BaseFormFieldLayoutConfig, BaseFormFieldLayoutDefinition} from "../form-field-layout.model";
 
 export interface TabFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "TabComponent";
@@ -15,11 +15,6 @@ export interface TabComponentEntryDefinition {
 }
 
 export class TabComponentConfig extends BaseFormFieldComponentConfig {
-    mainCssClass?: string; // Main CSS class for the tab component
-    buttonSectionCssClass?: string; // CSS class for the tab buttons
-    tabContentSectionCssClass?: string; // CSS class for the tab content
-    tabPaneCssClass?: string; // CSS class for the tab pane
-    tabPaneActiveCssClass?: string; // CSS class for the active tab pane
     tabs?: TabComponentEntryDefinition[];
 }
 
@@ -30,4 +25,16 @@ export interface TabContentComponentDefinition extends BaseFormFieldComponentDef
 
 export class TabContentComponentConfig extends BaseFormFieldComponentConfig {
     tab?: TabComponentEntryDefinition;
+}
+
+export interface TabComponentFormFieldLayoutDefinition extends BaseFormFieldLayoutDefinition {
+    class: "TabComponentLayout";
+    config: TabComponentFormFieldLayoutConfig;
+}
+
+export class TabComponentFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
+    buttonSectionCssClass?: string; // CSS class for the tab buttons
+    tabPaneCssClass?: string; // CSS class for the tab pane
+    tabPaneActiveCssClass?: string; // CSS class for the active tab pane
+    buttonSectionAriaOrientation?: "horizontal" | "vertical" = "vertical";
 }

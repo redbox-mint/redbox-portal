@@ -1,41 +1,78 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
-import { FormConfig, TabComponentEntryDefinition, TabComponentConfig, TabContentComponentConfig } from '@researchdatabox/sails-ng-common';
+import { FormConfig, TabComponentEntryDefinition, TabComponentConfig, TabContentComponentConfig, TabComponentFormFieldLayoutDefinition } from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull, find as _find, merge as _merge } from 'lodash-es';
 import { FormComponent } from "../form.component";
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormComponentsMap, FormService } from '../form.service';
-/**
- * Repeatable Form Field Component
- *
- * The layout-specific section is meant to be minimal.
- *
- *
+import { DefaultLayoutComponent } from './default-layout.component';
+
+/** 
+ * TabLayout Component.
+ * 
+ * Note: Tab and related components will always be visible.
  */
 @Component({
-  selector: 'redbox-form-tab',
-  template:` 
-  <div [class]="mainCssClass" [id]="name">
+  selector: 'redbox-form-tab-layout',
+  template: `
     <!-- Button Section -->
-    <div [class]="buttonSectionCssClass" role="tablist" aria-orientation="vertical">
+    <div [class]="getStringProperty('buttonSectionCssClass')" role="tablist" [attr.aria-orientation]="getStringProperty('buttonSectionAriaOrientation')">
       <!-- Loop through tabs and create buttons -->
-      @for (tab of tabs; track $index) {
+      @for (tab of tabConfig.tabs; track $index) {
         <button class="nav-link"
-                [class.active]="tab.id == selectedTabId"
+                [class.active]="tabInstance && tab.id == tabInstance.selectedTabId"
                 [attr.id]="tab.id + '-tab-button'"
                 type="button"
                 role="tab" 
-                [attr.aria-selected]="tab.id == selectedTabId" 
+                [attr.aria-selected]="tabInstance && tab.id == tabInstance.selectedTabId" 
                 [attr.aria-controls]="tab.id + '-tab-content'"  
                 [innerHTML]="tab.buttonLabel" (click)="selectTab(tab.id)"> 
         </button>
       } 
     </div>
-    <!-- Content Section -->
-    <div [class]="tabContentSectionCssClass" [id]="name + '_tabContent'">
-      <ng-container #tabsContainer />
-    </div>
-  </div>
+    <ng-container #componentContainer ></ng-container>
+  `,
+  standalone: false
+}) 
+export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
+  protected override logName = "TabComponentLayout";
+  public override componentDefinition?: TabComponentFormFieldLayoutDefinition;
+  
+  protected get tabConfig(): TabComponentConfig {
+    return (this.formFieldCompMapEntry?.compConfigJson?.component?.config as TabComponentConfig) || {};
+  }
+
+  protected get tabInstance(): TabComponent {
+    return this.formFieldCompMapEntry?.componentRef?.instance as TabComponent;
+  }
+  
+  @HostBinding('id') get hostId(): string {
+    return this.formFieldCompMapEntry?.compConfigJson?.name || '';
+  }
+
+  public selectTab(tabId: string) {
+    const selectionResult = this.tabInstance.selectTab(tabId);
+    if (selectionResult && selectionResult.changed) {
+      this.loggerService.info(`${this.logName}: Tab selection changed`, selectionResult);
+          // remove the 'show active' classes from all tabs
+      selectionResult.tabContentWrappers.forEach((instance: FormBaseWrapperComponent<unknown>) => {
+        instance.hostBindingCssClasses = this.componentDefinition?.config?.tabPaneCssClass;
+      });
+      if (selectionResult.selectedWrapper != null && selectionResult.selectedWrapper !== undefined) {
+        selectionResult.selectedWrapper.hostBindingCssClasses = `${this.componentDefinition?.config?.tabPaneCssClass} ${this.componentDefinition?.config?.tabPaneActiveCssClass}`;
+      }
+    }
+  }
+}
+
+/**
+ * Tab Component
+ *
+ */
+@Component({
+  selector: 'redbox-form-tab',
+  template:` 
+    <ng-container #tabsContainer />
 `,
   standalone: false
 })
@@ -50,18 +87,6 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 
   protected get tabConfig(): TabComponentConfig {
     return (this.componentDefinition?.config as TabComponentConfig);
-  }
-
-  protected get mainCssClass(): string | undefined {
-    return this.tabConfig.mainCssClass;
-  }
-
-  protected get buttonSectionCssClass(): string | undefined{
-    return this.tabConfig.buttonSectionCssClass;
-  }
-
-  protected get tabContentSectionCssClass(): string | undefined {
-    return this.tabConfig.tabContentSectionCssClass;
   }
 
   protected override async initData() {
@@ -114,33 +139,40 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     await super.setComponentReady();
   }
 
-  public selectTab(tabId: string) {
+  public selectTab(tabId: string): { changed: boolean, selectedWrapper: FormBaseWrapperComponent<unknown> | null, tabContentWrappers: FormBaseWrapperComponent<unknown>[] } {
     this.loggerService.info(`${this.logName}: Selecting tab with ID: ${tabId}`);
     if (tabId === this.selectedTabId) {
       this.loggerService.warn(`${this.logName}: Tab with ID ${tabId} is already selected.`);
-      return;
+      const alreadySelected = this.wrapperRefs.find(ref =>
+        ref.instance.formFieldCompMapEntry?.compConfigJson?.name === tabId
+      );
+      return {
+        changed: false,
+        selectedWrapper: alreadySelected ? alreadySelected.instance : null,
+        tabContentWrappers: this.wrapperRefs.map(ref => ref.instance)
+      };
     }
     const tab = this.tabs.find(t => t.id === tabId);
     if (!tab) {
       this.loggerService.error(`${this.logName}: Tab with ID ${tabId} not found.`);
-      return;
+      return { changed: false, selectedWrapper: null, tabContentWrappers: this.wrapperRefs.map(ref => ref.instance) };
     }
-    // Peek ahead if the tab exists
     const wrapperInst = _find(this.wrapperRefs, (ref: ComponentRef<FormBaseWrapperComponent<unknown>>) => {
       return ref.instance.formFieldCompMapEntry?.compConfigJson?.name === tabId;
     });
     if (!wrapperInst) {
       this.loggerService.warn(`${this.logName}: Wrapper instance not found for tab ID: ${tabId}`);
-      return;
+      return { changed: false, selectedWrapper: null, tabContentWrappers: this.wrapperRefs.map(ref => ref.instance) };
     }
-    // remove the 'show active' classes from all tabs
-    this.wrapperRefs.forEach((ref: ComponentRef<FormBaseWrapperComponent<unknown>>) => {
-      const instance = ref.instance;
-      instance.hostBindingCssClasses = this.tabConfig.tabPaneCssClass;
-    });
-    wrapperInst.instance.hostBindingCssClasses = `${this.tabConfig.tabPaneCssClass} ${this.tabConfig.tabPaneActiveCssClass}`;
+
     this.selectedTabId = tabId;
     tab.selected = true;
+
+    return {
+      changed: true,
+      selectedWrapper: wrapperInst.instance,
+      tabContentWrappers: this.wrapperRefs.map(ref => ref.instance)
+    };
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
@@ -153,6 +185,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 
   public get activeTabId(): string | null {
     return this.selectedTabId;
+  }
+
+  @HostBinding('id') get hostId(): string {
+    return `${this.name}_tab-content`;
   }
   
 }
