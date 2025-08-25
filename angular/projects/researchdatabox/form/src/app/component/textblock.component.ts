@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import { ContentComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/textblock.model';
-import { get as _get, isUndefined as _isUndefined } from 'lodash-es';
+import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
+import * as Handlebars from 'handlebars';
+import _ from 'lodash';
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
@@ -49,41 +51,18 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       // <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
       // <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
       //
-      switch(contentConfig.contentType) {
-        case 'h1':
-          this.content = `<h1>${contentConfig.content}</h1>`;
-        break;
-        case 'h2':
-          this.content = `<h2>${contentConfig.content}</h2>`;
-        break;
-        case 'h3':
-          this.content = `<h3>${contentConfig.content}</h3>`;
-        break;
-        case 'h4':
-          this.content = `<h4>${contentConfig.content}</h4>`;
-        break;
-        case 'h5':
-          this.content = `<h5>${contentConfig.content}</h5>`;
-        break;
-        case 'h6':
-          this.content = `<h6>${contentConfig.content}</h6>`;
-        break;
-        case 'hr':
-          this.content = `<hr>${contentConfig.content}</hr>`;
-        break;
-        case 'p':
-          this.content = `<p>${contentConfig.content}</p>`;
-        break;
-        case 'span':
-          this.content = `<span>${contentConfig.content}</span>`;
-        break;
-        default:
-          if (_get(contentConfig, 'template', '').indexOf('<%') != -1) {
-            this.content = this.lodashTemplateUtilityService.runTemplate(contentConfig.template, this.componentDefinition.config, {}, this, this.getFormGroupFromAppRef()?.value);
-          } else {
-            this.content = contentConfig.content ?? '';
-          }
-        break;
+      this.content = contentConfig.content ?? '';
+      if(!_isEmpty(this.content)) {
+        if (_get(contentConfig, 'template', '').indexOf('<%') != -1) {
+          this.content = this.lodashTemplateUtilityService.runTemplate(contentConfig.template, this.componentDefinition.config, {}, this, this.getFormGroupFromAppRef()?.value);
+        } else {
+          let template = contentConfig.template;
+          let context = { content: this.content };
+          // Compile the handlebars template
+          const compiled = Handlebars.compile(template);
+          // Generate HTML with context
+          this.content = compiled(context);
+        }
       }
     }
   }

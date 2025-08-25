@@ -16,9 +16,5 @@ export class ContentComponentConfig extends BaseFormFieldComponentConfig {
      * The template that can be used for setting content in innerHtml.
      */
     public content?: string = '';
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    public contentType?: string = '';
 }
 
