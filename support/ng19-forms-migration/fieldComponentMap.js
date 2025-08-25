@@ -130,13 +130,57 @@ module.exports = {
     });
 
     let fieldConfig = {
-      contentType: field?.definition?.type ?? '',
+      type: field?.definition?.type ?? '',
       content: field?.definition?.value ?? field?.definition?.name ?? ''
     }
 
-    if(!_.isEmpty(fieldConfig.contentType)) {
-      _.set(componentDefinition,'component.config.contentType',fieldConfig.contentType);
-      _.set(componentDefinition,'component.config.content',fieldConfig.content);
+    if(!_.isEmpty(fieldConfig.type)) {
+      // The below template is a reference that needs to be taken into account for legacy compatibility
+      //
+      // <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+      // <span *ngSwitchCase="'h2'" role="heading" aria-level="2" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+      // <span *ngSwitchCase="'h3'" role="heading" aria-level="3" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+      // <span *ngSwitchCase="'h4'" role="heading" aria-level="4" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+      // <span *ngSwitchCase="'h5'" role="heading" aria-level="5" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+      // <span *ngSwitchCase="'h6'" role="heading" aria-level="6" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+      // <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
+      // <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
+      // <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
+      //
+      switch(fieldConfig.type) {
+        case 'h1':
+          _.set(componentDefinition,'component.config.template','<h1>{{content}}</h1>');
+        break;
+        case 'h2':
+          _.set(componentDefinition,'component.config.template','<h2>{{content}}</h2>');
+        break;
+        case 'h3':
+          _.set(componentDefinition,'component.config.template','<h3>{{content}}</h3>');
+        break;
+        case 'h4':
+          _.set(componentDefinition,'component.config.template','<h4>{{content}}</h4>');
+        break;
+        case 'h5':
+          _.set(componentDefinition,'component.config.template','<h5>{{content}}</h5>');
+        break;
+        case 'h6':
+          _.set(componentDefinition,'component.config.template','<h6>{{content}}</h6>');
+        break;
+        case 'hr':
+          _.set(componentDefinition,'component.config.template','<hr>{{content}}</hr>');
+        break;
+        case 'p':
+          _.set(componentDefinition,'component.config.template','<p>{{content}}</p>');
+        break;
+        case 'span':
+          _.set(componentDefinition,'component.config.template','<span>{{content}}</span>');
+        break;
+        default:
+          _.set(componentDefinition,'component.config.template','<h1>{{content}}</h1>');
+        break;
+    }
+
+    _.set(componentDefinition,'component.config.content',fieldConfig.content);
     }
 
     _.unset(componentDefinition,'layout');

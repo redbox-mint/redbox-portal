@@ -55,7 +55,7 @@ const formConfig: FormConfig = {
                                         class: 'ContentComponent',
                                         config: {
                                             content: 'My first text block component!!!',
-                                            template: '<h1>{{content}}</h1>'
+                                            template: '<h3>{{content}}</h3>'
                                         }
                                     }
                                 },

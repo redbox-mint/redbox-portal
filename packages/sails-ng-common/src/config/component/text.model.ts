@@ -11,6 +11,7 @@ export interface TextFormFieldComponentDefinition extends BaseFormFieldComponent
 }
 
 export class TextFormFieldComponentConfig extends BaseFormFieldComponentConfig {
+    override type?: "email" | "text" | "tel" | "number" | "password" | "url" = "text";
 }
 
 export interface TextFormFieldModelDefinition extends BaseFormFieldModelDefinition<TextFieldModelValueType> {

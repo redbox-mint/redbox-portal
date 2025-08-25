@@ -1,5 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { TextFormFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class SimpleInputModel extends FormFieldModel<string> {
 }
@@ -26,7 +28,9 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "SimpleInputComponent";
   public tooltip:string = '';
   public tooltipPlaceholder:string = 'placeholder';
-  public inputType:string = 'text';
+  //get default value from TextFormFieldComponentConfig model class
+  private defaultInputType:string = new TextFormFieldComponentConfig().type ?? 'text';
+  public inputType:string = this.defaultInputType;
 
   /**
    * Override to set additional properties required by the wrapper component.
@@ -37,6 +41,11 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getTooltip();
     this.tooltipPlaceholder = '';
+
+    if(!_isUndefined(this.componentDefinition?.config?.type) && !_isEmpty(this.componentDefinition?.config?.type)) {
+      let simpleInputConfig:TextFormFieldComponentConfig = this.componentDefinition.config as TextFormFieldComponentConfig;
+      this.inputType = _get(simpleInputConfig,'type',this.defaultInputType);
+    }
   }
 
   /**

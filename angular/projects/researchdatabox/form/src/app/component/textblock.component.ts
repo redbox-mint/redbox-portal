@@ -3,7 +3,6 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/
 import { ContentComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/textblock.model';
 import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 import * as Handlebars from 'handlebars';
-import _ from 'lodash';
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
