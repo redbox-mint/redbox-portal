@@ -33,13 +33,14 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
       @if (getBooleanProperty('visible')) {
         <label class="form-label">
           <span [innerHtml]="getStringProperty('label')" [attr.title]="getTooltip()"></span>
-          <span
-            *ngIf="isRequired"
-            class="form-field-required-indicator"
+          @if (isRequired) {
+            <span
+              class="form-field-required-indicator"
             [innerHTML]="getStringProperty('labelRequiredStr')"></span>
+          }
           @if (getStringProperty('helpText')) {
             <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
           }
         </label>
@@ -47,35 +48,35 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
           <span class="help-block" [innerHtml]="getStringProperty('helpText')"></span>
         }
         <br>
-      }
-    }
-    <ng-container #componentContainer  ></ng-container>
-    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
-    <ng-template #beforeComponentTemplate>
-      @if (getBooleanProperty('visible')) {
-        Before {{ componentName }}
-        <br>
-      }
-    </ng-template>
-    <ng-template #afterComponentTemplate>
-      @if (getBooleanProperty('visible')) {
-        After {{ componentName }}
-        @let componentValidationList = getFormValidatorComponentErrors;
-        @if (componentValidationList.length > 0) {
-          <div class="invalid-feedback">
-            Field validation errors:
-            <ul>
-              @for (error of componentValidationList; track $index) {
-                <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
-              }
-            </ul>
-          </div>
         }
-        <div class="valid-feedback">The field is valid.</div>
-        <br>
       }
-    </ng-template>
-  }
+      <ng-container #componentContainer  ></ng-container>
+      <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+      <ng-template #beforeComponentTemplate>
+        @if (getBooleanProperty('visible')) {
+          Before {{ componentName }}
+          <br>
+          }
+        </ng-template>
+        <ng-template #afterComponentTemplate>
+          @if (getBooleanProperty('visible')) {
+            After {{ componentName }}
+            @let componentValidationList = getFormValidatorComponentErrors;
+            @if (componentValidationList.length > 0) {
+              <div class="invalid-feedback">
+                Field validation errors:
+                <ul>
+                  @for (error of componentValidationList; track $index) {
+                    <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+                  }
+                </ul>
+              </div>
+            }
+            <div class="valid-feedback">The field is valid.</div>
+            <br>
+            }
+          </ng-template>
+        }
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding

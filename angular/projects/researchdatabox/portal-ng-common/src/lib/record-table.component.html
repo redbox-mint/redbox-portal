@@ -1,49 +1,65 @@
-<ng-container *ngIf="isReady && dataSource">
-  <ng-container *ngIf="dataSource.getCurrentPage() as currentPage">
+@if (isReady && dataSource) {
+  @if (dataSource.getCurrentPage(); as currentPage) {
     <div class="row">
-      <table class="table" *ngIf="columnConfig">
-        <thead>
-          <tr>
-            <ng-container *ngFor="let col of columnConfig">
-              <th *ngIf="!col.hide">
-                <header-sort
-                  *ngIf="enableSort"
-                  [title]="col.label | i18next"
-                  [variable]="col.property"
-                  (headerSortChanged)="dataSource.headerSortChanged($event, col); headerSortChanged($event, col);">
-                </header-sort>
-                <span
-                  *ngIf="!enableSort"
-                  class="record-table-heading-no-sort">
-                  {{col.label | i18next}}
-                </span>
-              </th>
-            </ng-container>
-            <th *ngIf="enableActions && showActions.length > 0">{{'record-table-results-table-header-actions' | i18next}}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of currentPage.records">
-            <ng-container *ngFor="let col of columnConfig">
-              <td *ngIf="!col.hide" [innerHtml]="getColValue(row, col)"></td>
-            </ng-container>
-            <td *ngIf="enableActions && showActions.length > 0">
-              <ng-container *ngFor="let showAction of showActions">
-                <button
-                  type="button"
-                  class="btn {{showAction.classes}}"
-                  (click)="dataSource.recordTableAction($event, row, showAction.name)">{{showAction.label | i18next}}</button>&nbsp;
-              </ng-container>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      @if (columnConfig) {
+        <table class="table">
+          <thead>
+            <tr>
+              @for (col of columnConfig; track col) {
+                @if (!col.hide) {
+                  <th>
+                    @if (enableSort) {
+                      <header-sort
+                        [title]="col.label | i18next"
+                        [variable]="col.property"
+                        (headerSortChanged)="dataSource.headerSortChanged($event, col); headerSortChanged($event, col);">
+                      </header-sort>
+                    }
+                    @if (!enableSort) {
+                      <span
+                        class="record-table-heading-no-sort">
+                        {{col.label | i18next}}
+                      </span>
+                    }
+                  </th>
+                }
+              }
+              @if (enableActions && showActions.length > 0) {
+                <th>{{'record-table-results-table-header-actions' | i18next}}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of currentPage.records; track row) {
+              <tr>
+                @for (col of columnConfig; track col) {
+                  @if (!col.hide) {
+                    <td [innerHtml]="getColValue(row, col)"></td>
+                  }
+                }
+                @if (enableActions && showActions.length > 0) {
+                  <td>
+                    @for (showAction of showActions; track showAction) {
+                      <button
+                        type="button"
+                        class="btn {{showAction.classes}}"
+                      (click)="dataSource.recordTableAction($event, row, showAction.name)">{{showAction.label | i18next}}</button>&nbsp;
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     </div>
     <!-- Pagination -->
-    <div *ngIf="currentPage.total > 0" class="row">
-      <pagination [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
-        [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [(ngModel)]="currentPage.pageNum"
+    @if (currentPage.total > 0) {
+      <div class="row">
+        <pagination [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
+          [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [(ngModel)]="currentPage.pageNum"
         (pageChanged)="gotoPage($event)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
-    </div>
-  </ng-container>
-</ng-container>
+      </div>
+    }
+  }
+}

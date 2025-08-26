@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, DOCUMENT } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
-import { DOCUMENT } from "@angular/common"
+
 import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 /**
  * Local Authentication  Component

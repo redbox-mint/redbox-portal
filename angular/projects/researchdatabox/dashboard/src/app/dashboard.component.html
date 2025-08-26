@@ -1,52 +1,79 @@
-<div *ngIf="isReady">
+@if (isReady) {
+  <div>
     <ng-container>
-        <div *ngFor="let workflowStep of workflowSteps">
-            <div class="d-flex flex-row">
-              <div *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" class="col-md-4">
+      @for (workflowStep of workflowSteps; track workflowStep) {
+        <div>
+          <div class="d-flex flex-row">
+            @if (workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')) {
+              <div class="col-md-4">
                 <h2>{{ 'dashboard-heading' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel} }}</h2>
               </div>
-              <div *ngIf="workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" class="col-md-4">
+            }
+            @if (workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')) {
+              <div class="col-md-4">
                 <h2>{{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}</h2>
               </div>
-              <ng-container *ngIf="(dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && (records[workflowStep.config.workflow.stage].totalItems > 0 || (records[workflowStep.config.workflow.stage].totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))">
-                <div class="col-md-8">
-                  <div class="d-flex flex-row mt-4">
-                    <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
-                    <ul class="dropdown-menu">
-                      <li *ngFor="let filter of getTextFilters()"><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event)">{{ 'record-search-reset' | i18next }}</a></li>
-                    </ul>
-                    <input type="text" class="form-control" [(ngModel)]="filterSearchString[workflowStep.config.workflow.stage]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
-                    <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(workflowStep.config.workflow.stage) || getFilterSearchString(workflowStep.config.workflow.stage) == ''" (click)="filterChanged(workflowStep.config.workflow.stage)">{{ 'record-search-basic-search' | i18next }}</button>
-                  </div>
+            }
+            @if ((dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && (records[workflowStep.config.workflow.stage].totalItems > 0 || (records[workflowStep.config.workflow.stage].totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))) {
+              <div class="col-md-8">
+                <div class="d-flex flex-row mt-4">
+                  <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
+                  <ul class="dropdown-menu">
+                    @for (filter of getTextFilters(); track filter) {
+                      <li><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a></li>
+                    }
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event)">{{ 'record-search-reset' | i18next }}</a></li>
+                  </ul>
+                  <input type="text" class="form-control" [(ngModel)]="filterSearchString[workflowStep.config.workflow.stage]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
+                  <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(workflowStep.config.workflow.stage) || getFilterSearchString(workflowStep.config.workflow.stage) == ''" (click)="filterChanged(workflowStep.config.workflow.stage)">{{ 'record-search-basic-search' | i18next }}</button>
                 </div>
-                <div class="col-md-4"></div>
-              </ng-container>
-            </div>
-            <div *ngIf="records[workflowStep.config.workflow.stage] != null">
-                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" >
-                    {{ 'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}
+              </div>
+              <div class="col-md-4"></div>
+            }
+          </div>
+          @if (records[workflowStep.config.workflow.stage] != null) {
+            <div>
+              @if (records[workflowStep.config.workflow.stage].totalItems <= 0) {
+                <div class="padding-bottom-10" >
+                  {{ 'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}
                 </div>
-                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0">
-                <table class="table">
+              }
+              @if (records[workflowStep.config.workflow.stage].totalItems > 0) {
+                <div>
+                  <table class="table">
                     <thead>
-                    <tr>
-                    <th *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]"> 
-                        <sort *ngIf="enableSort" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
-                        <span *ngIf="!enableSort" class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
-                    </th>
-                    </tr>
+                      <tr>
+                        @for (rowConfig of tableConfig[workflowStep.config.workflow.stage]; track rowConfig) {
+                          <th>
+                            @if (enableSort) {
+                              <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
+                            }
+                            @if (!enableSort) {
+                              <span class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
+                            }
+                          </th>
+                        }
+                      </tr>
                     </thead>
-                    <tbody *ngFor="let plan of records[workflowStep.config.workflow.stage].items">
-                    <tr><td *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]" [innerHtml]="plan[rowConfig.variable]"></td></tr>
-                    </tbody>
-                </table>
-
-                 <pagination *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStep.config.workflow.stage].totalItems"
-                            [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm" [maxSize]="10"></pagination>
+                    @for (plan of records[workflowStep.config.workflow.stage].items; track plan) {
+                      <tbody>
+                        <tr>@for (rowConfig of tableConfig[workflowStep.config.workflow.stage]; track rowConfig) {
+                          <td [innerHtml]="plan[rowConfig.variable]"></td>
+                        }</tr>
+                      </tbody>
+                    }
+                  </table>
+                  @if (records[workflowStep.config.workflow.stage].totalItems > 0) {
+                    <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStep.config.workflow.stage].totalItems"
+                    [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm" [maxSize]="10"></pagination>
+                  }
                 </div>
+              }
             </div>
+          }
         </div>
+      }
     </ng-container>
-</div>
+  </div>
+}

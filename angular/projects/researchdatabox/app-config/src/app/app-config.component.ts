@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, DOCUMENT } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
-import { DOCUMENT } from "@angular/common"
+
 import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
