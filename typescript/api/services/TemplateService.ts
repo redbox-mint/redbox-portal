@@ -29,11 +29,17 @@ export module Services {
     const templateCompileKind = ["jsonata", "handlebars"] as const;
     export type TemplateCompileKind = typeof templateCompileKind[number];
 
+    /**
+     * One compile mapping builder input or output.
+     */
     export interface TemplateCompileItem {
         /**
-         * The kind indicates the format of the value.
+         * The key to access the compiled value in the output mapping.
+         *
+         * Must be unique across all inputs for one call to the compiled mapping builder.
          */
-        kind: TemplateCompileKind;
+        key: string;
+
         /**
          * The value string in either the raw form or the compiled form.
          */
@@ -45,12 +51,9 @@ export module Services {
      */
     export interface TemplateCompileInput extends TemplateCompileItem {
         /**
-         * The key to access the compiled value in the output mapping.
-         *
-         * Must be unique across all inputs for one call to the compiled mapping builder.
+         * The kind indicates the format of the value.
          */
-        key: string;
-
+        kind: TemplateCompileKind;
     }
 
     @PopulateExportedMethods
@@ -63,7 +66,7 @@ export module Services {
          * Provide the key for the template, and the context to apply to the template.
          * @param inputs
          */
-        public buildClientMapping(inputs: TemplateCompileInput[]): string {
+        public buildClientMapping(inputs: TemplateCompileInput[]): TemplateCompileItem[] {
             const keys = inputs.map(i => i.key);
             const keysUnique = new Set(keys);
             if (keysUnique.size != keys.length) {
@@ -76,24 +79,22 @@ export module Services {
             for (const input of inputs) {
                 switch (input.kind) {
                     case "jsonata":
-                        result.push(`case "${input.key?.toString()}":
-                          return ${this.buildClientJsonata(input.value)?.toString()}.evaluate(context);`);
+                        result.push({
+                            key: input.key?.toString(),
+                            value: `${this.buildClientJsonata(input.value)?.toString()}.evaluate(context)`,
+                        })
                         break;
                     case "handlebars":
-                        result.push(`case "${input.key?.toString()}":
-                          return Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context);`);
+                        result.push({
+                            key: input.key?.toString(),
+                            value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
+                        });
                         break;
                     default:
                         throw new Error(`Unknown input kind '${input.kind}' expected one of: '${templateCompileKind.join(', ')}'`);
                 }
             }
-            return `export function evaluate(key, context) {
-                switch(key) {
-                    ${result.join('\n')}
-                    default:
-                        throw new Error("Unknown key: " + key);
-                }
-            };`;
+            return result;
         }
 
         /**
@@ -139,9 +140,7 @@ export module Services {
          */
         public buildClientHandlebars(template: string): string {
             template = this.buildSharedHandlebars(template);
-
             sails.log.verbose(`Building client Handlebars template '${template}'`);
-
             // handlebars pre-compiled output is already a string
             return Handlebars.precompile(template)?.toString();
         }
@@ -155,7 +154,6 @@ export module Services {
          */
         public buildServerHandlebars(template: string): HandlebarsTemplateDelegate {
             template = this.buildSharedHandlebars(template);
-
             sails.log.verbose(`Building server Handlebars template '${template}'`);
             return Handlebars.compile(template);
         }
@@ -168,10 +166,9 @@ export module Services {
             compiled.registerFunction("eval", () => undefined);
 
             // TODO: register a function for obtaining translations
-
             // TODO: register a function for formatting date time values
-
             // TODO: register a function / context state holder that provides model data
+            // TODO: replace regex with google's re2?
 
             return compiled;
         }

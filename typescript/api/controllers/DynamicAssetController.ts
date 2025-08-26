@@ -18,10 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {ApiVersion, Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {TemplateCompileInput} from "../services/TemplateService";
 
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+declare var TemplateService;
 
 /**
  * Package that contains all Controllers.
@@ -41,6 +43,8 @@ export module Controllers {
         'get',
         'getItem',
     ];
+
+    private readonly _recordTypeAuto = "auto";
 
     /**
      **************************************************************************************************
@@ -62,56 +66,74 @@ export module Controllers {
       return res.view(sails.config.dynamicasset[assetId].view, {layout:false});
     }
 
-      /**
-       * Generate the dynamic form config item for the given
-       * recordtype (:name), record (:oid), and dynamic form item (:item).
-       * @param req Sails request.
-       * @param res Sails response.
-       */
-      public async getItem(req, res) {
-          const recordTypeAuto = "auto";
-          const itemsKnown = ["form-config-expressions", "form-config-templates", "data-model-validations"] as const;
-          type ItemsKnown = typeof itemsKnown[number];
+    public getFormStructureValidations(req, res) {
+      const recordType = req.param("name") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
 
-          const recordType = req.param("name") || recordTypeAuto;
-          const oid = req.param("oid") || "";
-          const item: ItemsKnown = req.param("item") || "";
-          const apiVersion = this.getApiVersion(req);
+    public getFormDataValidations(req, res) {
+      const recordType = req.param("name") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
 
-          const validItem = itemsKnown.includes(item);
-          const isNewRecord = !oid && recordType && recordType !== recordTypeAuto;
-          const isExistingRecord = oid && (recordType === recordTypeAuto || recordType);
+    public getFormExpressions(req, res) {
+      const recordType = req.param("name") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
 
-          const msgError = "Invalid dynamic form config request, provide a valid item and either an existing oid or a recordtype.";
-          if (validItem && (isNewRecord || isExistingRecord)) {
-              sails.log.verbose(`Generating dynamic form config item for recordtype '${recordType}' record oid '${oid}' item '${item}'.`);
-          } else {
-              sails.log.warn(`Invalid dynamic form config request for recordtype '${recordType}' record oid '${oid}' item '${item}'.`);
-              if (apiVersion === ApiVersion.VERSION_2_0) {
-                  return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msgError}], null));
-              } else {
-                  return this.ajaxFail(req, res, null, {message: msgError});
-              }
-          }
+    public getAdminReportTemplates(req, res) {
+      const reportName = req.param("reportName") || "";
+      const apiVersion = this.getApiVersion(req);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
 
-          switch (item) {
-              case "form-config-expressions":
-                  // TODO: return compiled expressions for the form config matching the record type or record oid.
-                  break;
-              case "form-config-templates":
-                  // TODO: return compiled templates for the form config matching the record type or record oid.
-                  break;
-              case "data-model-validations":
-                  // TODO: return compiled validations for the data model matching the record's form config.
-                  break;
-              default:
-                  if (apiVersion === ApiVersion.VERSION_2_0) {
-                      return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msgError}], null));
-                  } else {
-                      return this.ajaxFail(req, res, null, {message: msgError});
-                  }
-          }
-      }
+    public getRecordDashboardTemplates(req, res) {
+      const recordType = req.param("name") || "";
+      const workflowStage = req.param("workflowStage") || "";
+      const apiVersion = this.getApiVersion(req);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    private isNewRecord(recordType: string, oid: string): boolean {
+      return !oid && recordType && recordType !== this._recordTypeAuto;
+    }
+
+    private isExistingRecord(recordType: string, oid: string): boolean {
+      return !!oid && (recordType === this._recordTypeAuto || !!recordType);
+    }
+
+    private sendClientMappingJavascript(res, inputs: TemplateCompileInput[]) {
+      inputs = inputs || [];
+      const entries = TemplateService.buildClientMapping(inputs);
+      const entryKeys = inputs.map(i => i.key).sort();
+      const assetId = "dynamicAsset";
+      sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
+      res.set('Content-Type', sails.config.dynamicasset[assetId].type);
+      return res.view(sails.config.dynamicasset[assetId].view, {entries: entries, layout: false});
+    }
+
     /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************
