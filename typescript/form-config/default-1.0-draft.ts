@@ -1,5 +1,4 @@
 import {FormConfig} from "@researchdatabox/sails-ng-common";
-import {formValidatorsSharedDefinitions} from "../config/validators";
 
 const formConfig: FormConfig = {
     name: "default-1.0-draft",
