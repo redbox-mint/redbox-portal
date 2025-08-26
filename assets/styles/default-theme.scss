@@ -210,6 +210,14 @@ z-index: 999;
   color: $site-branding-area-heading-color;
 }
 
+.site-branding-area > .container > .row {
+  position:relative;
+}
+.site-branding-area > .container > .row .logo {
+  display:inline;
+}
+
+
 
 input[type="text"], input[type="password"], input[type="email"], textarea {
     border: 1px solid #ddd;
@@ -7655,3 +7663,7 @@ button.close {
     }
 }
 @import "glyphicon";
+
+#adminLoginShow {
+  text-align: center;
+}

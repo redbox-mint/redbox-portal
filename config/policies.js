@@ -22,9 +22,11 @@ const defaultPolicies = [
   'setLang',
   'prepWs',
   'isWebServiceAuthenticated',
-  'checkAuth'
+  'checkAuth',
+  'contentSecurityPolicy',
 ];
 const noCachePlusDefaultPolicies = ['noCache', ...defaultPolicies];
+const noCachePlusCspNoncePolicy = ['noCache', 'contentSecurityPolicy']
 module.exports.policies = {
 
   /***************************************************************************
@@ -58,14 +60,11 @@ module.exports.policies = {
 	// }
   UserController: {
     '*': noCachePlusDefaultPolicies,
-    'localLogin': 'noCache',
-    'aafLogin': 'noCache',
-    'openidConnectLogin': 'noCache',
-    'beginOidc': 'noCache',
-    'info': [
-      'noCache',
-      'isAuthenticated'
-    ]
+    'localLogin': noCachePlusCspNoncePolicy,
+    'aafLogin': noCachePlusCspNoncePolicy,
+    'openidConnectLogin': noCachePlusCspNoncePolicy,
+    'beginOidc': noCachePlusCspNoncePolicy,
+    'info': ['noCache', 'isAuthenticated', 'contentSecurityPolicy',],
   },
   RenderViewController: {
     'render': noCachePlusDefaultPolicies

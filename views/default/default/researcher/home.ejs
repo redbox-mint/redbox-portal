@@ -68,7 +68,7 @@
 </div>
 
 <!-- simple jquery script to make all the panels equal height -->
-<script>
+<script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
   $( document ).ready(function() {
    const panels = document.querySelectorAll('.homepanel .panel-default .panel-body');
    let maxHeight = 0;

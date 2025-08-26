@@ -3,7 +3,7 @@
 <div class="main container clearfix">
   <h2><%= formTitle %></h2>
   
-  <app-config configKey="<%= configKey %>">
+  <app-config configKey="<%= configKey %>" <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
     <div class="col-xs-1">
     </div>
     <div class="col-xs-10">

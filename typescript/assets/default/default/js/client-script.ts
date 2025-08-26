@@ -20,6 +20,10 @@ for (const item of formValidatorsSharedDefinitions) {
     validatorFunctionMap[key] = item.create;
 }
 
+/**
+ * This is the property available to the client.
+ * It allows the client to replace the function placeholders in the form config with the actual functions.
+ */
 export const providedToClientFromServer = {
     validatorFunctionMap: validatorFunctionMap,
 };

@@ -542,6 +542,41 @@ export class FormService extends HttpClientService {
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
   }
+
+  public async getDynamicImport(urlPath: string[]) {
+    const url = new URL(`${this.brandingAndPortalUrl}/${urlPath}`);
+
+    const ts = new Date().getTime().toString();
+    url.searchParams.set('ts', ts);
+
+    return await import(url.toString());
+  }
+
+  public async getDynamicImportFormStructureValidations(recordType: string, oid: string){
+    const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
+    const result = await this.getDynamicImport(path);
+    return result;
+  }
+  public async getDynamicImportFormDataValidations(recordType: string, oid: string){
+    const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
+    const result = await this.getDynamicImport(path);
+    return result;
+  }
+  public async getDynamicImportFormExpressions(recordType: string, oid: string){
+    const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
+    const result = await this.getDynamicImport(path);
+    return result;
+  }
+  public async getDynamicImportAdminReportTemplates(reportName: string){
+    const path = ['dynamicAsset', 'adminReportTemplates', reportName?.toString()];
+    const result = await this.getDynamicImport(path);
+    return result;
+  }
+  public async getDynamicImportRecordDashboardTemplates(recordType: string, workflowStage: string){
+    const path = ['dynamicAsset', 'recordDashboardTemplates', recordType?.toString(), workflowStage?.toString()];
+    const result = await this.getDynamicImport(path);
+    return result;
+  }
 }
 
 /**

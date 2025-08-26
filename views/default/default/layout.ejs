@@ -31,7 +31,7 @@
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js"></script>
 
 
-    <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>
+    <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>" ></angular-bootstrap>
 </head>
 
 <body>
@@ -93,7 +93,7 @@
 
   <div class="site-branding-area">
     <div class="container">
-      <div class="row" style="position:relative">
+      <div class="row">
         <% if(locals.branding != null && locals.portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
         <% } else { %>
@@ -141,7 +141,7 @@
   </div>
 
   
-  <script>
+  <script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
   jQuery(document).ready(function() {
     $('li.active').removeClass('active');
     var findFn = function(path) {
