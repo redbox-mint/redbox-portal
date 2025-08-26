@@ -192,8 +192,6 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
     const compFormConfig: FormConfig = {
       componentDefinitions: this.tab?.componentDefinitions || [],
       defaultComponentConfig: formConfig?.defaultComponentConfig,
-      // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
     
     this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig);

@@ -427,4 +427,19 @@ export class UtilityService {
       return _trim(value, charsToTrim) || defaultValue;
     });
   }
+
+  /**
+   * Dynamically import the javascript file at the url build from the branding, portal, and path parts.
+   * @param brandingAndPortalUrl The branding and portal url.
+   * @param urlPath The path parts.
+   */
+  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[]) {
+    const path = (urlPath || []).join('/')
+    const url = new URL(`${brandingAndPortalUrl}/${path}`);
+
+    const ts = new Date().getTime().toString();
+    url.searchParams.set('ts', ts);
+
+    return await import(url.toString());
+  }
 }

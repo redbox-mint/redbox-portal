@@ -21,40 +21,12 @@ import {PopulateExportedMethods, Services as services} from '@researchdatabox/re
 import {Sails} from "sails";
 import jsonata, {Expression} from "jsonata";
 import Handlebars from "handlebars";
+import {TemplateCompileItem} from "@researchdatabox/sails-ng-common";
+import {TemplateCompileInput, templateCompileKind} from "../additional/TemplateCompile";
 
 declare var sails: Sails;
 
 export module Services {
-
-    const templateCompileKind = ["jsonata", "handlebars"] as const;
-    export type TemplateCompileKind = typeof templateCompileKind[number];
-
-    /**
-     * One compile mapping builder input or output.
-     */
-    export interface TemplateCompileItem {
-        /**
-         * The key to access the compiled value in the output mapping.
-         *
-         * Must be unique across all inputs for one call to the compiled mapping builder.
-         */
-        key: string;
-
-        /**
-         * The value string in either the raw form or the compiled form.
-         */
-        value: string;
-    }
-
-    /**
-     * One input to the compile mapping builder.
-     */
-    export interface TemplateCompileInput extends TemplateCompileItem {
-        /**
-         * The kind indicates the format of the value.
-         */
-        kind: TemplateCompileKind;
-    }
 
     @PopulateExportedMethods
     export class Template extends services.Core.Service {

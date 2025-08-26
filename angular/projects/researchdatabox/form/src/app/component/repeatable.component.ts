@@ -74,8 +74,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       componentDefinitions: [elementTemplate],
       // Get the default config.
       // defaultComponentConfig: formConfig?.defaultComponentConfig,
-      // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
     let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig);
 
@@ -142,7 +140,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       _set(elemEntry, 'compConfigJson.layout.name', `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-layout-${localUniqueId}`);
     }
     // Create new form field.
-    const model = this.formService.createFormFieldModelInstance(elemEntry, this.newElementFormConfig?.validatorDefinitions);
+    const model = this.formService.createFormFieldModelInstance(elemEntry);
     if (model !== null) {
       elemEntry.model = model;
     }

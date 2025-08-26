@@ -1,5 +1,5 @@
 import { KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
-import {FormValidatorConfig, FormValidatorDefinition} from "../validation";
+import {FormValidatorConfig} from "../validation";
 import {FormComponentDefinition} from "./form-component.model";
 
 // TODO: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions
@@ -64,10 +64,6 @@ export class FormConfig {
      * Default false.
      */
     skipValidationOnSave?: boolean = false;
-    /**
-     * The definitions of the available validators.
-     */
-    validatorDefinitions?: FormValidatorDefinition[] = [];
     /**
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */

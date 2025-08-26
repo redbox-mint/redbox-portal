@@ -9,8 +9,8 @@ module.exports.dynamicasset = {
     view: "apiClientConfig",
     type: "application/json"
   },
-  "dynamicAsset.ejs": {
-    view: "dynamicAsset.ejs",
+  "dynamicScriptAsset": {
+    view: "dynamicScriptAsset",
     type: "text/javascript",
   },
   // Public node modules... only important when developing locally

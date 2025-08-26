@@ -107,8 +107,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       componentDefinitions: groupComponentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
-      // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
 
     // Construct the components.
