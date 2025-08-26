@@ -1,21 +1,16 @@
 import { FormConfig } from "@researchdatabox/sails-ng-common";
-import { formValidatorsSharedDefinitions } from "../config/validators";
+    import { formValidatorsSharedDefinitions } from "../config/validators";
 
-const formConfig: FormConfig = {
-  name: "dataRecord-1.0-draft",
-  componentDefinitions: [
+    const formConfig: FormConfig = {
+        name: "dataRecord-1.0-draft",
+        componentDefinitions: [
   {
     "name": "title",
     "component": {
-      "class": "TextBlockComponent",
+      "class": "ContentComponent",
       "config": {
-        "type": "h1"
-      }
-    },
-    "model": {
-      "class": "TextBlockModel",
-      "config": {
-        "defaultValue": ""
+        "contentType": "h1",
+        "content": "title"
       }
     }
   },
@@ -162,15 +157,10 @@ const formConfig: FormConfig = {
       {
         "name": "",
         "component": {
-          "class": "TextBlockComponent",
+          "class": "ContentComponent",
           "config": {
-            "type": "span"
-          }
-        },
-        "model": {
-          "class": "TextBlockModel",
-          "config": {
-            "defaultValue": "will be empty"
+            "contentType": "span",
+            "content": "will be empty"
           }
         }
       }
@@ -203,15 +193,10 @@ const formConfig: FormConfig = {
               {
                 "name": "",
                 "component": {
-                  "class": "TextBlockComponent",
+                  "class": "ContentComponent",
                   "config": {
-                    "type": "h3"
-                  }
-                },
-                "model": {
-                  "class": "TextBlockModel",
-                  "config": {
-                    "defaultValue": "@dataRecord-aim-heading"
+                    "contentType": "h3",
+                    "content": "@dataRecord-aim-heading"
                   }
                 }
               },
@@ -243,13 +228,13 @@ const formConfig: FormConfig = {
                   }
                 },
                 "component": {
-                  "class": "TextComponent",
+                  "class": "SimpleInputComponent",
                   "config": {
                     "type": "text"
                   }
                 },
                 "model": {
-                  "class": "TextModel",
+                  "class": "SimpleInputModel",
                   "config": {
                     "defaultValue": ""
                   }
@@ -440,15 +425,10 @@ const formConfig: FormConfig = {
               {
                 "name": "",
                 "component": {
-                  "class": "TextBlockComponent",
+                  "class": "ContentComponent",
                   "config": {
-                    "type": "h3"
-                  }
-                },
-                "model": {
-                  "class": "TextBlockModel",
-                  "config": {
-                    "defaultValue": "@dataRecord-about-heading"
+                    "contentType": "h3",
+                    "content": "@dataRecord-about-heading"
                   }
                 }
               },
@@ -462,13 +442,13 @@ const formConfig: FormConfig = {
                   }
                 },
                 "component": {
-                  "class": "TextComponent",
+                  "class": "SimpleInputComponent",
                   "config": {
                     "type": "text"
                   }
                 },
                 "model": {
-                  "class": "TextModel",
+                  "class": "SimpleInputModel",
                   "config": {
                     "defaultValue": ""
                   }
@@ -509,11 +489,11 @@ const formConfig: FormConfig = {
                   }
                 },
                 "component": {
-                  "class": "TextfieldComponent",
+                  "class": "SimpleInputComponent",
                   "config": {}
                 },
                 "model": {
-                  "class": "TextfieldModel",
+                  "class": "SimpleInputModel",
                   "config": {
                     "defaultValue": ""
                   }
@@ -541,13 +521,13 @@ const formConfig: FormConfig = {
                       }
                     },
                     "component": {
-                      "class": "TextComponent",
+                      "class": "SimpleInputComponent",
                       "config": {
                         "type": "text"
                       }
                     },
                     "model": {
-                      "class": "TextModel",
+                      "class": "SimpleInputModel",
                       "config": {
                         "defaultValue": ""
                       }
@@ -565,13 +545,13 @@ const formConfig: FormConfig = {
                   }
                 },
                 "component": {
-                  "class": "TextComponent",
+                  "class": "SimpleInputComponent",
                   "config": {
                     "type": "text"
                   }
                 },
                 "model": {
-                  "class": "TextModel",
+                  "class": "SimpleInputModel",
                   "config": {
                     "defaultValue": "",
                     "validators": [
@@ -595,15 +575,10 @@ const formConfig: FormConfig = {
               {
                 "name": "",
                 "component": {
-                  "class": "TextBlockComponent",
+                  "class": "ContentComponent",
                   "config": {
-                    "type": "h3"
-                  }
-                },
-                "model": {
-                  "class": "TextBlockModel",
-                  "config": {
-                    "defaultValue": "@dataRecord-people-heading"
+                    "contentType": "h3",
+                    "content": "@dataRecord-people-heading"
                   }
                 }
               },
@@ -845,15 +820,10 @@ const formConfig: FormConfig = {
               {
                 "name": "",
                 "component": {
-                  "class": "TextBlockComponent",
+                  "class": "ContentComponent",
                   "config": {
-                    "type": "h3"
-                  }
-                },
-                "model": {
-                  "class": "TextBlockModel",
-                  "config": {
-                    "defaultValue": "@dataRecord-relationships-heading"
+                    "contentType": "h3",
+                    "content": "@dataRecord-relationships-heading"
                   }
                 }
               },
@@ -917,14 +887,14 @@ const formConfig: FormConfig = {
                           }
                         },
                         "component": {
-                          "class": "TextComponent",
+                          "class": "SimpleInputComponent",
                           "config": {
                             "type": "text",
                             "cssClasses": "width-80 form-control"
                           }
                         },
                         "model": {
-                          "class": "TextModel",
+                          "class": "SimpleInputModel",
                           "config": {
                             "defaultValue": ""
                           }
@@ -940,14 +910,14 @@ const formConfig: FormConfig = {
                           }
                         },
                         "component": {
-                          "class": "TextComponent",
+                          "class": "SimpleInputComponent",
                           "config": {
                             "type": "text",
                             "cssClasses": "width-80 form-control"
                           }
                         },
                         "model": {
-                          "class": "TextModel",
+                          "class": "SimpleInputModel",
                           "config": {
                             "defaultValue": ""
                           }
@@ -989,15 +959,10 @@ const formConfig: FormConfig = {
               {
                 "name": "",
                 "component": {
-                  "class": "TextBlockComponent",
+                  "class": "ContentComponent",
                   "config": {
-                    "type": "h3"
-                  }
-                },
-                "model": {
-                  "class": "TextBlockModel",
-                  "config": {
-                    "defaultValue": "@dataRecord-data-heading"
+                    "contentType": "h3",
+                    "content": "@dataRecord-data-heading"
                   }
                 }
               },
@@ -1035,15 +1000,10 @@ const formConfig: FormConfig = {
               {
                 "name": "",
                 "component": {
-                  "class": "TextBlockComponent",
+                  "class": "ContentComponent",
                   "config": {
-                    "type": "h3"
-                  }
-                },
-                "model": {
-                  "class": "TextBlockModel",
-                  "config": {
-                    "defaultValue": "@record-permissions-tab-heading"
+                    "contentType": "h3",
+                    "content": "@record-permissions-tab-heading"
                   }
                 }
               },
@@ -1055,7 +1015,9 @@ const formConfig: FormConfig = {
         ]
       }
     }
-  }]
-};
-module.exports = formConfig;
+  }
+]
+    };
+
+    module.exports = formConfig;
     

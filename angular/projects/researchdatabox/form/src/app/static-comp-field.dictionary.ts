@@ -1,10 +1,11 @@
-import { TextFieldModel, TextFieldComponent } from "./component/textfield.component";
+import { SimpleInputModel, SimpleInputComponent } from "./component/textfield.component";
 import { RepeatableComponent, RepeatableComponentModel, RepeatableElementLayoutComponent } from "./component/repeatable.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
 import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
 import { TabComponent } from "./component/tab.component";
+import { ContentComponent } from "./component/textblock.component";
 import { SaveButtonComponent } from "./component/save-button.component";
 
 /** Field related */
@@ -18,9 +19,12 @@ export interface FormFieldModelClassMap {
  * Note that each model and component are optional
 */
 export const StaticModelCompClassMap = {
-  'TextField': {
-    model: TextFieldModel,
-    component: TextFieldComponent
+  'SimpleInputComponent': {
+    model: SimpleInputModel,
+    component: SimpleInputComponent
+  },
+  'ContentComponent': {
+    component: ContentComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent

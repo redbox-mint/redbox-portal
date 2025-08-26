@@ -2,20 +2,15 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
     import { formValidatorsSharedDefinitions } from "../config/validators";
 
     const formConfig: FormConfig = {
-        name: "modularFormConfigFileWithNoName",
+        name: "modularFormConfigFile",
         componentDefinitions: [
   {
     "name": "",
     "component": {
-      "class": "TextBlockComponent",
+      "class": "ContentComponent",
       "config": {
-        "type": "h3"
-      }
-    },
-    "model": {
-      "class": "TextBlockModel",
-      "config": {
-        "defaultValue": "@dataPublication-citation-tab-heading"
+        "contentType": "h3",
+        "content": "@dataPublication-citation-tab-heading"
       }
     }
   },
@@ -29,13 +24,13 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextComponent",
+      "class": "SimpleInputComponent",
       "config": {
         "type": "text"
       }
     },
     "model": {
-      "class": "TextModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": ""
       }
@@ -51,13 +46,13 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextComponent",
+      "class": "SimpleInputComponent",
       "config": {
         "type": "text"
       }
     },
     "model": {
-      "class": "TextModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": ""
       }
@@ -76,11 +71,11 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextfieldComponent",
+      "class": "SimpleInputComponent",
       "config": {}
     },
     "model": {
-      "class": "TextfieldModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": ""
       }
@@ -108,13 +103,13 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
           }
         },
         "component": {
-          "class": "TextComponent",
+          "class": "SimpleInputComponent",
           "config": {
             "type": "text"
           }
         },
         "model": {
-          "class": "TextModel",
+          "class": "SimpleInputModel",
           "config": {
             "defaultValue": ""
           }
@@ -132,13 +127,13 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextComponent",
+      "class": "SimpleInputComponent",
       "config": {
         "type": "text"
       }
     },
     "model": {
-      "class": "TextModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": ""
       }
@@ -216,13 +211,13 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextComponent",
+      "class": "SimpleInputComponent",
       "config": {
         "type": "text"
       }
     },
     "model": {
-      "class": "TextModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": "@dataPublication-citation-publisher-default"
       }
@@ -261,13 +256,13 @@ import { FormConfig } from "@researchdatabox/sails-ng-common";
       }
     },
     "component": {
-      "class": "TextComponent",
+      "class": "SimpleInputComponent",
       "config": {
         "type": "text"
       }
     },
     "model": {
-      "class": "TextModel",
+      "class": "SimpleInputModel",
       "config": {
         "defaultValue": ""
       }
