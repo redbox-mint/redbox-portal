@@ -192,8 +192,6 @@ describe('TabComponent', () => {
     if (mainTabDef === undefined) {
       throw new Error("Main tab component is not defined");
     }
-
-    console.log("Main tab component:", JSON.stringify(mainTabDef.compConfigJson, null, 2));
     const mainTab = (mainTabDef.component as TabComponent);
     const selectionResult = mainTab?.selectTab('tab1');
     expect(selectionResult).toBeDefined();
@@ -216,6 +214,36 @@ describe('TabComponent', () => {
 
     // check if aria-selected is set to true
     expect(firstTabButton?.getAttribute('aria-selected')).toBe('true');
+
+    // Check response if reselection is attempted
+    const reselectionResult = mainTab?.selectTab('tab1');
+    expect(reselectionResult).toBeDefined();
+    expect(reselectionResult?.changed).toBe(false);
+    expect(reselectionResult?.errorType).toBe(TabSelectionErrorType.ALREADY_SELECTED);
+    expect(reselectionResult?.selectedWrapper).toBeDefined();
+  });
+
+  it('should not allow tab switching with invalid tab IDs', async () => {
+    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tabConfig: TabComponentConfig | undefined =  componentDefinitions?.component?.config as TabComponentConfig;
+    expect(tabConfig).toBeDefined();
+
+    const mainTabDef = formComponent.getComponentDefByName('main_tab');
+    expect(mainTabDef).toBeDefined();
+    if (mainTabDef === undefined) {
+      throw new Error("Main tab component is not defined");
+    }
+    
+    const mainTab = (mainTabDef.component as TabComponent);
+    const selectionResult = mainTab?.selectTab('tab-invalid-id');
+    expect(selectionResult).toBeDefined();
+    expect(selectionResult?.changed).toBe(false);
+    expect(selectionResult?.errorType).toBe(TabSelectionErrorType.INVALID_TAB);
+    expect(selectionResult?.selectedWrapper).toBeNull();
 
   });
 
