@@ -74,8 +74,10 @@ export class VocabField extends FieldBase<any> {
   public inputClass: string;
   storedEventData: null;
   public storeFreeTextAsString: boolean;
+  completerLabelField: string;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
+  
   
 
   constructor(options: any, injector: any) {
@@ -108,6 +110,7 @@ export class VocabField extends FieldBase<any> {
     this.groupClasses = _.isUndefined(options['groupClasses']) ? '' : options['groupClasses'];
     this.cssClasses = _.isUndefined(options['cssClasses']) ? '' : options['cssClasses'];
     this.storeFreeTextAsString = _.isUndefined(options['storeFreeTextAsString']) ? false : options['storeFreeTextAsString'];
+    this.completerLabelField = _.isUndefined(options['completerLabelField']) ? null : options['completerLabelField'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
@@ -234,7 +237,8 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldDelim,
         this.vocabQueryResultMaxRows,
         this.queryDelayTimeMs,
-        this.storeFreeTextAsString
+        this.storeFreeTextAsString,
+        this.completerLabelField
       );
     }
   }
@@ -457,7 +461,8 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     private titleFieldDelim: string,
     private maxRows: string,
     private queryDelayTimeMs: number = 300,
-    private storeFreeTextAsString: boolean = false) {
+    private storeFreeTextAsString: boolean = false,
+    private completerLabelField:string) {
     super();
     this.searchSubscription = this.searchTerms.pipe(
       debounceTime(this.queryDelayTimeMs), // Wait for a default 300ms of inactivity
@@ -482,9 +487,12 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
         itemArray = _.get(data, arrayPath);
       }
       // Convert the result to CompleterItem[]
-      let matches: CompleterItem[] = [];
+      let matches: (CompleterItem)[] = [];
       _.each(itemArray, item => {
-        matches.push(this.convertToItem(item));
+        const completerItem = this.convertToItem(item)
+        if(completerItem != null) {
+          matches.push(completerItem);
+        }
       });
 
       this.next(matches);
@@ -501,6 +509,7 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     }
     let completerItem = {};
     completerItem[this.compositeTitleName] = this.getTitle(data);
+    completerItem['description'] = _.get(data, this.completerLabelField, this.getTitle(data)) ;
     completerItem['originalObject'] = data;
     return completerItem as CompleterItem;
   }
