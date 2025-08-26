@@ -231,10 +231,6 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   @HostBinding('id') get hostId(): string {
     return this.tab?.id + '-tab-content';
   }
-
-  public get tabs(): TabComponentEntryDefinition[] {
-    return this.tabs;
-  }
 }
 
 
