@@ -8,7 +8,7 @@ import { FormComponentsMap, FormService } from '../form.service';
 import { DefaultLayoutComponent } from './default-layout.component';
 
 /** 
- * TabLayout Component.
+ * TabLayout Component. Responsible for UI management.
  * 
  * Note: Tab and related components will always be visible.
  */
@@ -53,11 +53,12 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   public selectTab(tabId: string) {
     const selectionResult = this.tabInstance.selectTab(tabId);
     if (selectionResult && selectionResult.changed) {
-      this.loggerService.info(`${this.logName}: Tab selection changed`, selectionResult);
-          // remove the 'show active' classes from all tabs
-      selectionResult.tabContentWrappers.forEach((instance: FormBaseWrapperComponent<unknown>) => {
+      this.loggerService.debug(`${this.logName}: Tab selection changed`, selectionResult);
+      // remove the 'show active' classes from all tabs
+      selectionResult.wrappers?.forEach((instance: FormBaseWrapperComponent<unknown>) => {
         instance.hostBindingCssClasses = this.componentDefinition?.config?.tabPaneCssClass;
       });
+      // add the 'show active' class to the selected tab
       if (selectionResult.selectedWrapper != null && selectionResult.selectedWrapper !== undefined) {
         selectionResult.selectedWrapper.hostBindingCssClasses = `${this.componentDefinition?.config?.tabPaneCssClass} ${this.componentDefinition?.config?.tabPaneActiveCssClass}`;
       }
@@ -67,6 +68,8 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
 
 /**
  * Tab Component
+ *
+ * Manages the individual tab content/panes within the tab.
  *
  */
 @Component({
@@ -95,7 +98,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 
   protected override async setComponentReady(): Promise<void> {
     await this.untilViewIsInitialised();
-    this.loggerService.info(`${this.logName}: Initializing TabComponent with ${this.tabs.length} tabs.`);
+    this.loggerService.debug(`${this.logName}: Initializing TabComponent with ${this.tabs.length} tabs.`);
     this.tabsContainer.clear();
 
     for (let i = 0; i < this.tabs.length; i++) {
@@ -139,40 +142,43 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     await super.setComponentReady();
   }
 
-  public selectTab(tabId: string): { changed: boolean, selectedWrapper: FormBaseWrapperComponent<unknown> | null, tabContentWrappers: FormBaseWrapperComponent<unknown>[] } {
-    this.loggerService.info(`${this.logName}: Selecting tab with ID: ${tabId}`);
+  public selectTab(tabId: string): TabSelectionResult {
+    this.loggerService.debug(`${this.logName}: Selecting tab with ID: ${tabId}`);
+    const selectionResult: TabSelectionResult = {
+      changed: false,
+      errorType: TabSelectionErrorType.NONE,
+      selectedWrapper: null,
+      wrappers: this.wrapperRefs.map(ref => ref.instance)
+    };
     if (tabId === this.selectedTabId) {
       this.loggerService.warn(`${this.logName}: Tab with ID ${tabId} is already selected.`);
       const alreadySelected = this.wrapperRefs.find(ref =>
         ref.instance.formFieldCompMapEntry?.compConfigJson?.name === tabId
       );
-      return {
-        changed: false,
-        selectedWrapper: alreadySelected ? alreadySelected.instance : null,
-        tabContentWrappers: this.wrapperRefs.map(ref => ref.instance)
-      };
+      selectionResult.errorType = TabSelectionErrorType.ALREADY_SELECTED;
+      selectionResult.selectedWrapper = alreadySelected ? alreadySelected.instance : null;
+      return selectionResult;
     }
     const tab = this.tabs.find(t => t.id === tabId);
     if (!tab) {
       this.loggerService.error(`${this.logName}: Tab with ID ${tabId} not found.`);
-      return { changed: false, selectedWrapper: null, tabContentWrappers: this.wrapperRefs.map(ref => ref.instance) };
+      selectionResult.errorType = TabSelectionErrorType.INVALID_TAB;
+      return selectionResult;
     }
     const wrapperInst = _find(this.wrapperRefs, (ref: ComponentRef<FormBaseWrapperComponent<unknown>>) => {
       return ref.instance.formFieldCompMapEntry?.compConfigJson?.name === tabId;
     });
     if (!wrapperInst) {
       this.loggerService.warn(`${this.logName}: Wrapper instance not found for tab ID: ${tabId}`);
-      return { changed: false, selectedWrapper: null, tabContentWrappers: this.wrapperRefs.map(ref => ref.instance) };
+      selectionResult.errorType = TabSelectionErrorType.INVALID_TAB;
+      return selectionResult;
     }
 
     this.selectedTabId = tabId;
     tab.selected = true;
-
-    return {
-      changed: true,
-      selectedWrapper: wrapperInst.instance,
-      tabContentWrappers: this.wrapperRefs.map(ref => ref.instance)
-    };
+    selectionResult.changed = true;
+    selectionResult.selectedWrapper = wrapperInst.instance;
+    return selectionResult;
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
@@ -193,6 +199,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   
 }
 
+/**
+ * TabContent Component.
+ *
+ * Manages the content area of a tab.
+ */
 @Component({
   selector: 'redbox-form-tab-content',
   template: `<ng-container #componentContainer></ng-container>`,
@@ -248,7 +259,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       }
     }
         
-    this.loggerService.info(`${this.logName}: TabContentComponent is ready for tab: ${this.tab?.id}.`);
+    this.loggerService.debug(`${this.logName}: TabContentComponent is ready for tab: ${this.tab?.id}.`);
     await super.setComponentReady();
   }
 
@@ -269,6 +280,23 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   }
 }
 
+/**
+ * Represents the error types that can occur during tab selection.
+ */
+export enum TabSelectionErrorType {
+  NONE,
+  INVALID_TAB,
+  ALREADY_SELECTED
+}
 
+/**
+ * Represents the result of a tab selection change.
+ */
+export interface TabSelectionResult {
+  changed: boolean;
+  selectedWrapper: FormBaseWrapperComponent<unknown> | null;
+  wrappers: FormBaseWrapperComponent<unknown>[] | null;
+  errorType: TabSelectionErrorType;
+}
 
 

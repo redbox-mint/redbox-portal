@@ -3,7 +3,7 @@ import {TextFieldComponent} from './textfield.component';
 
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { TabComponent } from './tab.component';
+import { TabComponent, TabSelectionErrorType } from './tab.component';
 // Import TabComponentConfig type
 import type { TabComponentConfig, TabComponentFormFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
 
@@ -195,7 +195,11 @@ describe('TabComponent', () => {
 
     console.log("Main tab component:", JSON.stringify(mainTabDef.compConfigJson, null, 2));
     const mainTab = (mainTabDef.component as TabComponent);
-    mainTab?.selectTab('tab1');
+    const selectionResult = mainTab?.selectTab('tab1');
+    expect(selectionResult).toBeDefined();
+    expect(selectionResult?.changed).toBe(true);
+    expect(selectionResult?.errorType).toBe(TabSelectionErrorType.NONE);
+    expect(selectionResult?.selectedWrapper).toBeDefined();
 
     const tabSelected = mainTab?.tabs?.find(tab => tab.selected);
     expect(tabSelected).toBeDefined();
