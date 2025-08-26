@@ -48,6 +48,7 @@ const formConfig: FormConfig = {
                         {
                             id: 'tab_1',
                             buttonLabel: 'Tab 1',
+                            selected: true,
                             componentDefinitions: [
                                 {
                                     name: 'text_block',
@@ -66,7 +67,30 @@ const formConfig: FormConfig = {
                                         config: {
                                             defaultValue: 'hello world!',
                                             validators: [
-                                                { name: 'required' },
+                                                {name: 'required'},
+                                            ]
+                                        }
+                                    },
+                                    component: {
+                                        class: 'SimpleInputComponent'
+                                    }
+                                },
+                                {
+                                    name: 'text_2',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'TextField with default wrapper defined',
+                                            helpText: 'This is a help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'SimpleInputModel',
+                                        config: {
+                                            defaultValue: 'hello world 2!',
+                                            validators: [
+                                                // {name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                                                // {name: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
                                             ]
                                         }
                                     },
@@ -101,7 +125,6 @@ const formConfig: FormConfig = {
                                             template: `<%= _.get(model,'text_1_event','') %>`
                                         }
                                     }
-
                                 },
                                 {
                                     name: 'text_2_event',
@@ -201,7 +224,6 @@ const formConfig: FormConfig = {
                         {
                             id: 'tab_2',
                             buttonLabel: 'Tab 2',
-                            selected: true,
                             componentDefinitions: [
                                 {
                                     // first group component
@@ -372,7 +394,7 @@ const formConfig: FormConfig = {
                                         }
                                     }
                                 },
-
+                                
                             ]
                         }
                     ]
@@ -444,6 +466,15 @@ const formConfig: FormConfig = {
                     helpText: 'Repeatable component help text',
                 }
             },
+        },
+        { 
+            name: 'save_button',
+            component: {
+                class: 'SaveButtonComponent',
+                config: {
+                    label: 'Save',
+                }
+            }
         },
         {
             name: 'validation_summary_1',

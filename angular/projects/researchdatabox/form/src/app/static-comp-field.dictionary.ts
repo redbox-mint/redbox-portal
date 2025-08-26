@@ -6,7 +6,7 @@ import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./co
 import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
 import { TabComponent } from "./component/tab.component";
 import { ContentComponent } from "./component/textblock.component";
-
+import { SaveButtonComponent } from "./component/save-button.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -46,6 +46,9 @@ export const StaticModelCompClassMap = {
   },
   'TabComponent': {
     component: TabComponent
+  },
+  'SaveButtonComponent': {
+    component: SaveButtonComponent
   }
 };
 
