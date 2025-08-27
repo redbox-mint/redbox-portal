@@ -12,10 +12,6 @@ const formConfig: FormConfig = {
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
 
-    // validatorDefinitions is the combination of redbox core validator definitions and
-    // the validator definitions from the client hook form config.
-    validatorDefinitions: formValidatorsSharedDefinitions,
-
     // TODO: a way to crate groups of validators
     // This is not implemented yet.
     // each group has a name, plus either which validators to 'exclude' or 'include', but not both.

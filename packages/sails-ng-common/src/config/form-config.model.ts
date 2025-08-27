@@ -65,10 +65,6 @@ export class FormConfig {
      */
     skipValidationOnSave?: boolean = false;
     /**
-     * The definitions of the available validators.
-     */
-    validatorDefinitions?: FormValidatorDefinition[] = [];
-    /**
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */
     validators?: FormValidatorConfig[] = [];
