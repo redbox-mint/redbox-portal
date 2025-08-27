@@ -19,6 +19,12 @@ module.exports = {
       required: false
     },
 
+    // Whether this language is available to end-users in language selectors
+    enabled: {
+      type: 'boolean',
+      defaultsTo: true
+    },
+
     // i18next namespace; default is 'translation'
     namespace: {
       type: 'string',
