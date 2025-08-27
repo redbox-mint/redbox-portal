@@ -33,7 +33,7 @@ import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 import { ContentComponent } from './component/textblock.component';
 import { SaveButtonComponent } from './component/save-button.component';
-import {TabComponent, TabContentComponent} from "./component/tab.component";
+import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -49,6 +49,7 @@ import {TabComponent, TabContentComponent} from "./component/tab.component";
     SaveButtonComponent,
     TabComponent,
     TabContentComponent,
+    TabComponentLayout
   ],
   imports: [
     CommonModule,

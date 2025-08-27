@@ -4,8 +4,8 @@ import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
 import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
-import { TabComponent } from "./component/tab.component";
 import { ContentComponent } from "./component/textblock.component";
+import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
 
 /** Field related */
@@ -46,6 +46,9 @@ export const StaticModelCompClassMap = {
   },
   'TabComponent': {
     component: TabComponent
+  },
+  'TabComponentLayout': {
+    component: TabComponentLayout
   },
   'SaveButtonComponent': {
     component: SaveButtonComponent

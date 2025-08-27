@@ -28,6 +28,7 @@ import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
 import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.model";
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
+import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
 /**
  * Possible form field component definitions.
  */
@@ -78,14 +79,16 @@ export type FormFieldModelConfig =
  */
 export type FormFieldLayoutDefinition =
     DefaultFormFieldLayoutDefinition |
-    RepeatableElementFormFieldLayoutDefinition
+    RepeatableElementFormFieldLayoutDefinition |
+    TabComponentFormFieldLayoutDefinition;
 
 /**
  * Possible form field layout configs.
  */
 export type FormFieldLayoutConfig =
     DefaultFormFieldLayoutConfig |
-    RepeatableElementFormFieldLayoutConfig
+    RepeatableElementFormFieldLayoutConfig |
+    TabComponentFormFieldLayoutConfig;
 
 export * from './default-layout.model'
 export * from './group.model'
