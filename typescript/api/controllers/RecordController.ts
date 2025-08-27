@@ -29,8 +29,6 @@ import {
   StorageServiceResponse,
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
-  RecordTypeModel,
-  BrandingModel,
   DataResponseV2,
   Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion
 } from '@researchdatabox/redbox-core-types';
@@ -47,6 +45,8 @@ declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsServi
 /**
  * Package that contains all Controllers.
  */
+import { Controllers as controllers, DatastreamService, RecordsService, SearchService, BrandingModel, RecordTypeModel } from '@researchdatabox/redbox-core-types';
+
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.
@@ -279,7 +279,7 @@ export module Controllers {
         let currentRec: any = null;
         if (!oid) {
           //find form to create a record
-          form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form: any = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
           if (_.isEmpty(form)) {
             const msg = `Error, getting form for record type: ${recordType}`;
             if (apiVersion === ApiVersion.VERSION_2_0) {
@@ -301,24 +301,24 @@ export module Controllers {
             }
           }
 
-          // Get current user's access to record
-          let hasAccess: boolean;
-          if (editMode) {
-            //find form to edit a record
-            hasAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-          } else {
-            //find form to view a record
-            hasAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
-          }
-
-          // Check user's record access
-          if (!hasAccess) {
-            const msg = TranslationService.t('view-error-no-permissions');
-            if (apiVersion === ApiVersion.VERSION_2_0) {
-              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+            // Get current user's access to record
+            let hasAccess: boolean;
+            if (editMode) {
+                //find form to edit a record
+                hasAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
             } else {
-              return this.ajaxFail(req, res, null, {message: msg});
+                //find form to view a record
+                hasAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
             }
+
+            // Check user's record access
+            if (!hasAccess) {
+                const msg = TranslationService.t('view-error-no-permissions');
+                if (apiVersion === ApiVersion.VERSION_2_0) {
+                    return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+                } else {
+                    return this.ajaxFail(req, res, null, {message: msg});
+                }
           }
 
           // get the form config
@@ -330,6 +330,8 @@ export module Controllers {
             } else {
               return this.ajaxFail(req, res, null, {message: msg});
             }
+            let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+            FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
           }
         }
 
