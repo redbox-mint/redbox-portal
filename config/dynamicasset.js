@@ -9,6 +9,10 @@ module.exports.dynamicasset = {
     view: "apiClientConfig",
     type: "application/json"
   },
+  "dynamicScriptAsset": {
+    view: "dynamicScriptAsset",
+    type: "text/javascript",
+  },
   // Public node modules... only important when developing locally
   // Not relevant in PROD deployments
   node_modules: {
