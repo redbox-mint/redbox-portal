@@ -1,0 +1,12 @@
+export function evaluate(key, context) {
+    key = key?.toString()?.normalize("NFKC");
+    // TODO: more validation / normalisation of key or context?
+    switch (key) {
+    <% for (const entry of entries) { %>
+        case "<%= entry.key?.toString() %>":
+            return <%= entry.value?.toString() %>;
+    <% } %>
+        default:
+            throw new Error("Unknown key: " + key);
+    }
+};

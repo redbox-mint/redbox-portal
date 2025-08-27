@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {formValidatorsSharedDefinitions} from "../validators";
+import {formValidatorsSharedDefinitions} from "../../../../../../../typescript/config/validators";
 import {TextFieldComponent} from "./textfield.component";
 
 describe('ValidationSummaryFieldComponent', () => {
@@ -51,7 +51,6 @@ describe('ValidationSummaryFieldComponent', () => {
         defaultComponentCssClasses: 'row',
       },
       editCssClasses: "redbox-form form",
-      validatorDefinitions: formValidatorsSharedDefinitions,
       componentDefinitions: [
         {
           name: 'text_1_event',

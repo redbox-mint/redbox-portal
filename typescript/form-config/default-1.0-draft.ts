@@ -1,5 +1,4 @@
 import {FormConfig} from "@researchdatabox/sails-ng-common";
-import {formValidatorsSharedDefinitions} from "../config/validators";
 
 const formConfig: FormConfig = {
     name: "default-1.0-draft",
@@ -12,9 +11,6 @@ const formConfig: FormConfig = {
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
 
-    // validatorDefinitions is the combination of redbox core validator definitions and
-    // the validator definitions from the client hook form config.
-    validatorDefinitions: formValidatorsSharedDefinitions,
 
     // TODO: a way to crate groups of validators
     // This is not implemented yet.

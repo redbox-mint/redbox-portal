@@ -17,14 +17,18 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {TemplateCompileInput, templateCompileKind} from "../additional/TemplateCompile";
+
+
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-import { Observable } from 'rxjs';
+declare var TemplateService;
+
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
@@ -37,8 +41,11 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'get'
+        'get',
+        'getItem',
     ];
+
+    private readonly _recordTypeAuto = "auto";
 
     /**
      **************************************************************************************************
@@ -56,10 +63,103 @@ export module Controllers {
       let assetId = req.param("asset");
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
-      res.set('Content-Type',sails.config.dynamicasset[assetId].type);
-      return res.view(sails.config.dynamicasset[assetId].view, {layout:false});
+      this.sendAssetView(res, assetId, {layout: false});
     }
-    /**
+
+    public getFormStructureValidations(req, res) {
+      const recordType = req.param("recordType") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    public getFormDataValidations(req, res) {
+      const recordType = req.param("recordType") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    public getFormExpressions(req, res) {
+      const recordType = req.param("recordType") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    public getFormValidationDefinitions(req, res) {
+      // const recordType = req.param("recordType") || this._recordTypeAuto;
+      // const oid = req.param("oid") || "";
+      // const apiVersion = this.getApiVersion(req);
+      // const isNewRecord = this.isNewRecord(recordType, oid);
+      // const isExistingRecord = this.isExistingRecord(recordType, oid);
+
+      const defs = sails.config.validators.definitions;
+      const result = JSON.stringify(defs, function (key, value) {
+          if (typeof value === 'function') {
+              return value.toString()
+          }
+          return value
+      }, 0);
+      return result?.toString();
+      const entries = [
+          {key: "form-validator-definitions", kind: templateCompileKind["formValidatorDefinitions"], value: result},
+      ];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    public getAdminReportTemplates(req, res) {
+      const reportName = req.param("reportName") || "";
+      const apiVersion = this.getApiVersion(req);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    public getRecordDashboardTemplates(req, res) {
+      const recordType = req.param("name") || "";
+      const workflowStage = req.param("workflowStage") || "";
+      const apiVersion = this.getApiVersion(req);
+      // TODO
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
+    }
+
+    private isNewRecord(recordType: string, oid: string): boolean {
+      return !oid && recordType && recordType !== this._recordTypeAuto;
+    }
+
+    private isExistingRecord(recordType: string, oid: string): boolean {
+      return !!oid && (recordType === this._recordTypeAuto || !!recordType);
+    }
+
+    private sendClientMappingJavascript(res, inputs: TemplateCompileInput[]) {
+      inputs = inputs || [];
+      const entries = TemplateService.buildClientMapping(inputs);
+      const entryKeys = inputs.map(i => i.key).sort();
+      const assetId = "dynamicScriptAsset";
+      sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
+      return this.sendAssetView(res, assetId, {entries: entries, layout: false})
+    }
+
+    private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {
+      res.set('Content-Type', sails.config.dynamicasset[assetId].type);
+      return res.view(sails.config.dynamicasset[assetId].view, viewContext);
+    }
+
+      /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************
      **************************************************************************************************

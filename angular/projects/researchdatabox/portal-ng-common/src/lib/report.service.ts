@@ -88,4 +88,10 @@ export class ReportService extends HttpClientService {
     );
     return await firstValueFrom(req);
   }
+
+  public async getDynamicImportAdminReportTemplates(reportName: string){
+    const path = ['dynamicAsset', 'adminReportTemplates', reportName?.toString()];
+    const result = await this.utilService.getDynamicImport(this.brandingAndPortalUrl, path);
+    return result;
+  }
 }
