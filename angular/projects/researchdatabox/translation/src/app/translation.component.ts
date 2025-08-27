@@ -20,8 +20,8 @@ export class AppComponent implements OnInit {
   private svc = inject(PortalTranslationService);
 
   // Simple state
-  languages = signal<string[]>([]);
-  availableLanguages = signal<string[]>([]); // Languages that can be shown
+  languages = signal<any[]>([]);
+  availableLanguages = signal<string[]>([]); // Language codes that can be shown
   selectedLang: string = '';
   namespace = 'translation';
 
@@ -70,15 +70,15 @@ export class AppComponent implements OnInit {
     await this.svc.waitForInit();
     await this.loadLanguages();
     // Initialize available languages to show all by default
-    this.availableLanguages.set([...this.languages()]);
+    this.availableLanguages.set(this.languages().map(l => l.code));
   }
 
   private async loadLanguages() {
     try {
-      const list = await this.svc.listLanguages();
+      const list: any[] = await this.svc.listLanguages();
       this.languages.set(Array.isArray(list) ? list : []);
       if (!this.selectedLang && this.languages().length > 0) {
-        this.selectedLang = this.languages()[0];
+        this.selectedLang = this.languages()[0].code;
         await this.onLangChange();
       }
     } catch (e) {
@@ -232,8 +232,9 @@ export class AppComponent implements OnInit {
       
       // Update available languages to include the new one
       const currentAvailable = this.availableLanguages();
-      if (!currentAvailable.includes(this.newLanguageCode.trim())) {
-        this.availableLanguages.set([...currentAvailable, this.newLanguageCode.trim()]);
+      const newLangCode = this.newLanguageCode.trim();
+      if (!currentAvailable.includes(newLangCode)) {
+        this.availableLanguages.set([...currentAvailable, newLangCode]);
       }
 
       this.creatingLanguage.set(false);
@@ -328,13 +329,13 @@ export class AppComponent implements OnInit {
   }
 
   // Check if a language is available for display
-  isLanguageAvailable(lang: string): boolean {
-    return this.availableLanguages().includes(lang);
+  isLanguageAvailable(langCode: string): boolean {
+    return this.availableLanguages().includes(langCode);
   }
 
   // Get filtered languages for dropdown
-  getFilteredLanguages(): string[] {
-    return this.languages().filter(lang => this.isLanguageAvailable(lang));
+  getFilteredLanguages(): { code: string; displayName: string; }[] {
+    return this.languages().filter(lang => this.isLanguageAvailable(lang.code));
   }
 
   // URL builder not needed; handled in service

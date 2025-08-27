@@ -8,7 +8,7 @@
     <div class="col-md-3">
       <label class="form-label">Language</label>
       <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
-        <option *ngFor="let lang of getFilteredLanguages()" [value]="lang">{{ lang }}</option>
+        <option *ngFor="let lang of getFilteredLanguages()" [value]="lang.code">{{ lang.displayName }}</option>
       </select>
       <div class="mt-2" *ngIf="selectedLang">
         <button type="button" class="btn btn-sm btn-outline-primary" (click)="openDisplayNameModal()">
@@ -19,7 +19,7 @@
     <div class="col-md-3">
       <label class="form-label">Available Languages</label>
       <select class="form-select" multiple [(ngModel)]="availableLanguages" (change)="onAvailableLanguagesChange()" size="4" style="min-height: 100px;">
-        <option *ngFor="let lang of languages()" [value]="lang">{{ lang }}</option>
+        <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
       </select>
       <small class="form-text text-muted">Select which languages to show in the dropdown</small>
     </div>
@@ -177,7 +177,7 @@
           <div class="mb-3">
             <label class="form-label">Copy from Language</label>
             <select class="form-select" [(ngModel)]="sourceLanguage" [disabled]="creatingLanguage()">
-              <option *ngFor="let lang of languages()" [value]="lang">{{ lang }}</option>
+              <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
             </select>
             <small class="form-text text-muted">The new language will be created by copying all translations from this source language</small>
           </div>

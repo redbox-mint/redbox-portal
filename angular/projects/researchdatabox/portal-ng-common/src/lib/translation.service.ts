@@ -204,8 +204,8 @@ export class TranslationService extends HttpClientService implements Service {
     return firstValueFrom(req$);
   }
 
-  /** List supported languages for current branding */
-  public async listLanguages(): Promise<string[]> {
+    /** List supported languages for current branding */
+  public async listLanguages(): Promise<{ code: string; displayName: string; }[]> {
     await this.waitForInit();
     const url = `${this.brandingAndPortalUrl}/locales`;
     const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
@@ -286,9 +286,9 @@ export class TranslationService extends HttpClientService implements Service {
       // For each language, ensure it has lang-<langcode> entries for all other languages
       for (const currentLang of allLanguages) {
         try {
-          const currentBundle = await this.getBundle(currentLang, namespace);
+          const currentBundle = await this.getBundle(currentLang.code, namespace);
           if (!currentBundle || !currentBundle.data) {
-            console.warn(`Skipping language label update for ${currentLang}: no bundle found`);
+            console.warn(`Skipping language label update for ${currentLang.code}: no bundle found`);
             continue;
           }
 
@@ -297,20 +297,20 @@ export class TranslationService extends HttpClientService implements Service {
 
           // Ensure this language has lang-<langcode> entries for all languages
           for (const targetLang of allLanguages) {
-            const langKey = `lang-${targetLang}`;
+            const langKey = `lang-${targetLang.code}`;
             if (!bundleData[langKey]) {
               // Add a default language label (using the language code as fallback)
-              bundleData[langKey] = this.getDefaultLanguageLabel(targetLang);
+              bundleData[langKey] = this.getDefaultLanguageLabel(targetLang.code);
               needsUpdate = true;
             }
           }
 
           // Update the bundle if we added any new language labels
           if (needsUpdate) {
-            await this.setBundle(currentLang, namespace, bundleData);
+            await this.setBundle(currentLang.code, namespace, bundleData);
           }
         } catch (e) {
-          console.warn(`Failed to update language labels for ${currentLang}:`, e);
+          console.warn(`Failed to update language labels for ${currentLang.code}:`, e);
         }
       }
     } catch (error) {

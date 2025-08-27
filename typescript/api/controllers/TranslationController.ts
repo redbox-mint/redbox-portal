@@ -88,6 +88,7 @@ export module Controllers {
     /**
      * Return the list of supported languages for the current branding/portal.
      * Combines configured languages with any detected from DB bundles and assets/locales.
+     * Returns a list of objects with code and displayName.
      */
     public async getLanguages(req, res) {
       try {
@@ -97,31 +98,37 @@ export module Controllers {
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
-        const langs = new Set<string>();
+        const langCodes = new Set<string>();
         const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
-        if (Array.isArray(configured)) configured.forEach((l: string) => l && langs.add(l));
+        if (Array.isArray(configured)) configured.forEach((l: string) => l && langCodes.add(l));
 
         // From DB bundles
-        try {
-          const bundles = await I18nBundle.find({ branding: branding.id });
-          bundles.forEach((b: any) => b?.locale && langs.add(b.locale));
-        } catch (e) {
-          sails.log.verbose('getLanguages: skipping DB scan due to error:', e?.message || e);
-        }
+        const bundles: any[] = await I18nBundle.find({ where: { branding: branding.id } });
+        bundles.forEach((b: any) => b?.locale && langCodes.add(b.locale));
 
         // From language-defaults directory
         try {
           const localesDir = path.join(sails.config.appPath, 'language-defaults');
           if (fs.existsSync(localesDir)) {
             const entries = fs.readdirSync(localesDir, { withFileTypes: true });
-            entries.filter(d => d.isDirectory()).forEach(d => langs.add(d.name));
+            entries.filter(d => d.isDirectory()).forEach(d => langCodes.add(d.name));
           }
         } catch (e) {
           sails.log.verbose('getLanguages: skipping filesystem scan due to error:', e?.message || e);
         }
 
-        const list = Array.from(langs);
-        list.sort();
+        const codes = Array.from(langCodes);
+        const bundleMap = new Map(bundles.map(b => [b.locale, b]));
+
+        const list = codes.map(code => {
+          const bundle = bundleMap.get(code);
+          return {
+            code: code,
+            displayName: bundle?.displayName || code
+          };
+        });
+
+        list.sort((a, b) => a.displayName.localeCompare(b.displayName));
         return res.json(list);
       } catch (err) {
         sails.log.error('Error in TranslationController.getLanguages:', err);
