@@ -7,7 +7,7 @@
   <div class="col-xs-1">
   </div>
 </div>
-<record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>" full_url="<%= req.url %>"></record-search>
+<record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>" full_url="<%= req.url %>" <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></record-search>
 
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>

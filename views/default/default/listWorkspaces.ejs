@@ -17,7 +17,7 @@
     </div>
   </div>
   <div class="main container clearfix">
-    <workspace-list branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" packageType="workspace"></workspace-list>
+    <workspace-list branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" packageType="workspace" <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></workspace-list>
 
     <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
