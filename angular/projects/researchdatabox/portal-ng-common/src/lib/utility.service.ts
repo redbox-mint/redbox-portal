@@ -413,11 +413,11 @@ export class UtilityService {
 
   /**
    * Utility function to ensure a non-empty string value from signals. Allows for trimming of whitespace and arbitrary chars around strings, and default value when empty, i.e. zero length.
-   *  
-   * @param source 
-   * @param defaultValue 
-   * @param charsToTrim 
-   * @returns 
+   *
+   * @param source
+   * @param defaultValue
+   * @param charsToTrim
+   * @returns
    */
   trimStringSignal(source: Signal<string>, defaultValue: string = '', charsToTrim: string | undefined = undefined): Signal<string> {
     return computed(() => {
@@ -426,5 +426,20 @@ export class UtilityService {
       // return the trimmed string, or the default if the resulting string is falsy (logical OR e.g. "", 0, false, etc)
       return _trim(value, charsToTrim) || defaultValue;
     });
+  }
+
+  /**
+   * Dynamically import the javascript file at the url build from the branding, portal, and path parts.
+   * @param brandingAndPortalUrl The branding and portal url.
+   * @param urlPath The path parts.
+   */
+  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[]) {
+    const path = (urlPath || []).join('/')
+    const url = new URL(`${brandingAndPortalUrl}/${path}`);
+
+    const ts = new Date().getTime().toString();
+    url.searchParams.set('ts', ts);
+
+    return await import(url.toString());
   }
 }
