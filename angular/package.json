@@ -35,8 +35,10 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^20.2.0",
+    "@angular-devkit/core": "^20.2.0",
+    "@angular-devkit/schematics": "^20.2.0",
     "@angular/compiler-cli": "^20.2.1",
-    "@schematics/angular": "^19.2.7",
+    "@schematics/angular": "^20.2.0",
     "@types/jasmine": "~5.1.7",
     "@types/lodash": "^4.17.13",
     "@types/lodash-es": "^4.17.10",

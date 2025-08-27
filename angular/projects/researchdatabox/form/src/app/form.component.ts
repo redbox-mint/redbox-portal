@@ -145,11 +145,13 @@ export class FormComponent extends BaseComponent {
       }
     });
     // Set another effect for the OID update, will reinit if changed if the form has been on the 'READY' state
-    effect(async () => {
+    effect(() => {
       if (!_isEmpty(this.trimmedParams.oid()) && this.currentOid !== this.trimmedParams.oid() && this.status() == FormStatus.READY) {
         this.status.set(FormStatus.INIT);
         this.componentsLoaded.set(false);
-        await this.initComponent();
+        this.initComponent().then(() => {
+          this.loggerService.info(`${this.logName}: OID changed, form re-initialised.`);
+        });
       }
     });
   }
