@@ -18,6 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
+import {TemplateCompileInput} from "../additional/TemplateCompile";
+
 declare var module;
 declare var sails;
 declare var TemplateService;
