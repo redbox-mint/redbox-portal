@@ -196,7 +196,7 @@ export class FormComponent extends BaseComponent {
       this.loggerService.info(`FormComponent: downloadAndCreateFormComponents: `, componentDefEntry.component);
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
-    this.createFormGroup();
+    await this.createFormGroup();
     // set the cache that will trigger a form reinit when the OID is changed
     this.currentOid = this.trimmedParams.oid();
     // Set the status to READY if all components are loaded
@@ -207,7 +207,7 @@ export class FormComponent extends BaseComponent {
   /**
    * Create the form group based on the form definition map.
    */
-  private createFormGroup(): void {
+  private async createFormGroup(): Promise<void> {
     if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
       // set up the form group
@@ -218,10 +218,9 @@ export class FormComponent extends BaseComponent {
         this.form = new FormGroup(formGroupMap.withFormControl);
 
         // set up validators
-        const validatorDefinitions = this.formDefMap.formConfig.validatorDefinitions;
         const validatorConfig = this.formDefMap.formConfig.validators;
-        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
-        this.formService.setValidators(this.form, validators);        
+        const validators = this.formService.createFormValidatorInstances(validatorConfig);
+        this.formService.setValidators(this.form, validators);
       } else {
         const msg = `No form controls found in the form definition. Form cannot be rendered.`;
         this.loggerService.error(`${this.logName}: ${msg}`);
