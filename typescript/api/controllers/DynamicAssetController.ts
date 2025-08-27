@@ -20,7 +20,8 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-import { Observable } from 'rxjs';
+declare var TemplateService;
+
 /**
  * Package that contains all Controllers.
  */
@@ -45,6 +46,8 @@ export module Controllers {
         'getAdminReportTemplates',
         'getRecordDashboardTemplates',
     ];
+
+    private _recordTypeAuto = "auto";
 
     /**
      **************************************************************************************************
