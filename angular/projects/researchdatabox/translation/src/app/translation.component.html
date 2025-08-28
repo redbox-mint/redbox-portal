@@ -1,244 +1,247 @@
 <div class="container p-3">
   <div class="panel panel-default">
-    <div class="panel-heading">Translation Manager</div>
+    <div class="panel-heading">Manage Languages</div>
     <div class="panel-body">
-  
-
-  <div class="row g-3 mb-3">
-    <div class="col-md-3">
-      <label class="form-label">Language</label>
-      <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
-        <option *ngFor="let lang of getFilteredLanguages()" [value]="lang.code">{{ lang.displayName }}</option>
-      </select>
-      <div class="mt-2" *ngIf="selectedLang">
-        <button type="button" class="btn btn-sm btn-outline-primary" (click)="openDisplayNameModal()">
-          <i class="fa fa-edit"></i> Edit Display Name
-        </button>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Available Languages</label>
-      <select class="form-select" multiple [(ngModel)]="availableLanguages" (change)="onAvailableLanguagesChange()" size="4" style="min-height: 100px;">
-        <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
-      </select>
-      <small class="form-text text-muted">Select which languages to show in the dropdown</small>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Language Management</label>
-      <div>
-        <button type="button" class="btn btn-success" (click)="openLanguageModal()">
-          <i class="fa fa-plus"></i> Create New Language
-        </button>
-      </div>
-    </div>
-    <div class="col-md-3" *ngIf="selectedLang">
-      <label class="form-label">Filter by category</label>
-      <select class="form-select" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
-        <option value="">All categories</option>
-        <option *ngFor="let c of categories()" [value]="c">{{ c }}</option>
-      </select>
-    </div>
-  </div>
-  <!-- Status Alerts -->
-  <p class="alert-info text-16 padding-10 mt-2" *ngIf="saving()">Saving translation <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
-  <p class="alert-success text-16 padding-10 mt-2" *ngIf="saveSuccess()">Translation saved successfully</p>
-  <p class="alert-danger text-16 padding-10 mt-2" *ngIf="saveError()">Failed to save translation. Please try again.</p> 
-  <div *ngIf="selectedLang">
-    <div class="table-responsive">
-      <table class="table table-sm table-striped table-hover align-middle">
-        <thead>
-          <tr>
-            <th>
-              <a href="#" role="button"
-                 (click)="setSort('category'); $event.preventDefault()"
-                 [attr.aria-sort]="sortBy==='category' ? (sortAsc ? 'ascending' : 'descending') : null">
-                Category
-                <span class="ms-1" *ngIf="sortBy==='category'">
-                  <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
-                </span>
-              </a>
-            </th>
-            <th>
-              <a href="#" role="button"
-                 (click)="setSort('key'); $event.preventDefault()"
-                 [attr.aria-sort]="sortBy==='key' ? (sortAsc ? 'ascending' : 'descending') : null">
-                Key
-                <span class="ms-1" *ngIf="sortBy==='key'">
-                  <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
-                </span>
-              </a>
-            </th>
-            <th>
-              <a href="#" role="button"
-                 (click)="setSort('value'); $event.preventDefault()"
-                 [attr.aria-sort]="sortBy==='value' ? (sortAsc ? 'ascending' : 'descending') : null">
-                Value
-                <span class="ms-1" *ngIf="sortBy==='value'">
-                  <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
-                </span>
-              </a>
-            </th>
-            <th style="width: 100px;">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let e of viewEntries()">
-            <td>
-              <span class="text-truncate d-inline-block" style="max-width: 220px;" [title]="e.category || 'Uncategorized'">{{ e.category || '—' }}</span>
-            </td>
-            <td>
-          <span class="text-truncate d-inline-block" style="max-width: 560px;" [title]="e.key">{{ e.key }}</span>
-          <a href="#" role="button" tabindex="0"
-            class="badge bg-light text-dark rounded-circle border ms-1 key-help"
-            [ngClass]="{ 'opacity-50': !e.description }"
-            [attr.title]="e.description || 'No description'"
-            [attr.aria-label]="e.description || 'No description'"
-            data-toggle="tooltip"
-            data-bs-toggle="tooltip"
-            [attr.data-bs-title]="e.description || 'No description'"
-            (click)="$event.preventDefault()">?</a>
-            </td>
-            <td>
-              <span class="text-break" [title]="e.value">{{ e.value }}</span>
-            </td>
-            <td>
-              <button class="btn btn-large btn-primary" (click)="openEdit(e)">Edit</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Bootstrap-styled modal (no JS) -->
-  <div *ngIf="modalOpen()" class="modal fade show" tabindex="-1" style="display:block;" (click)="closeModal()">
-    <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Translation</h5>
-          <button type="button" class="btn-close" aria-label="Close" (click)="closeModal()"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Key</label>
-            <input class="form-control" [value]="editKey" disabled />
+      <div class="row">
+        <div class="col-md-5">
+          
+          <div>
+            <button type="button" class="btn btn-primary" (click)="openLanguageModal()">
+              <i class="fa fa-plus"></i> Create New Language
+            </button>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Value</label>
-            <textarea class="form-control" rows="4" [(ngModel)]="editValue"></textarea>
-          </div>
-          <div class="text-muted small" *ngIf="editDescription">{{ editDescription }}</div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
-          <button class="btn btn-primary" (click)="saveEdit()">Save</button>
+      </div>
+      <div class="row">
+       <div class="col-md-3">
+          <label class="form-label">Available Languages</label>
+          <select class="form-select" multiple [(ngModel)]="availableLanguages" (change)="onAvailableLanguagesChange()"
+            size="4" style="min-height: 100px;">
+            <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
+          </select>
+          <small class="form-text text-muted">Select which languages to show in the dropdown</small>
         </div>
       </div>
     </div>
   </div>
-  <div *ngIf="modalOpen()" class="modal-backdrop fade show"></div>
+</div>
+<div class="container p-3">
+  <div class="panel panel-default">
+    <div class="panel-heading">Manage Translations</div>
+    <div class="panel-body">
 
-  <!-- Language Creation Modal -->
-  <div *ngIf="languageModalOpen()" class="modal fade show" tabindex="-1" style="display:block;" (click)="closeLanguageModal()">
-    <div class="modal-dialog" (click)="$event.stopPropagation()">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Create New Language</h5>
-          <button type="button" class="btn-close" aria-label="Close" (click)="closeLanguageModal()"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Language Creation Status Alerts -->
-          <p class="alert-info text-16 padding-10 mb-3" *ngIf="creatingLanguage()">Creating language <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
-          <p class="alert-success text-16 padding-10 mb-3" *ngIf="languageCreateSuccess()">Language created successfully!</p>
-          <p class="alert-danger text-16 padding-10 mb-3" *ngIf="languageCreateError()">Failed to create language. Please try again.</p>
 
-          <div class="mb-3">
-            <label class="form-label">New Language Code</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              [(ngModel)]="newLanguageCode" 
-              placeholder="e.g., fr, de, es, ja"
-              [disabled]="creatingLanguage()"
-            />
-            <small class="form-text text-muted">Enter a language code (e.g., 'fr' for French, 'de' for German)</small>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Display Name</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              [(ngModel)]="newLanguageDisplayName" 
-              placeholder="e.g., Français, Deutsch, Español, 日本語"
-              [disabled]="creatingLanguage()"
-            />
-            <small class="form-text text-muted">Enter the display name for this language (preferably in its native script)</small>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Copy from Language</label>
-            <select class="form-select" [(ngModel)]="sourceLanguage" [disabled]="creatingLanguage()">
-              <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
-            </select>
-            <small class="form-text text-muted">The new language will be created by copying all translations from this source language</small>
+      <div class="row g-3 mb-3">
+        <div class="col-md-3">
+          <label class="form-label">Language</label>
+          <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
+            <option *ngFor="let lang of getFilteredLanguages()" [value]="lang.code">{{ lang.displayName }}</option>
+          </select>
+          <div class="mt-2" *ngIf="selectedLang">
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="openDisplayNameModal()">
+              <i class="fa fa-edit"></i> Edit Display Name
+            </button>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeLanguageModal()" [disabled]="creatingLanguage()">Cancel</button>
-          <button 
-            class="btn btn-primary" 
-            (click)="createNewLanguage()" 
-            [disabled]="!newLanguageCode.trim() || creatingLanguage()"
-          >
-            <span *ngIf="creatingLanguage()"><i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i> Creating...</span>
-            <span *ngIf="!creatingLanguage()">Create Language</span>
-          </button>
+        <div class="col-md-3" *ngIf="selectedLang">
+          <label class="form-label">Filter by category</label>
+          <select class="form-select" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
+            <option value="">All categories</option>
+            <option *ngFor="let c of categories()" [value]="c">{{ c }}</option>
+          </select>
         </div>
       </div>
-    </div>
-  </div>
-  <div *ngIf="languageModalOpen()" class="modal-backdrop fade show"></div>
-
-  <!-- Display Name Edit Modal -->
-  <div *ngIf="displayNameModalOpen()" class="modal fade show" tabindex="-1" style="display:block;" (click)="closeDisplayNameModal()">
-    <div class="modal-dialog" (click)="$event.stopPropagation()">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Display Name for {{ selectedLang }}</h5>
-          <button type="button" class="btn-close" aria-label="Close" (click)="closeDisplayNameModal()"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Display Name Edit Status Alerts -->
-          <p class="alert-info text-16 padding-10 mb-3" *ngIf="updatingDisplayName()">Updating display name <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
-          <p class="alert-success text-16 padding-10 mb-3" *ngIf="displayNameUpdateSuccess()">Display name updated successfully!</p>
-          <p class="alert-danger text-16 padding-10 mb-3" *ngIf="displayNameUpdateError()">Failed to update display name. Please try again.</p>
-
-          <div class="mb-3">
-            <label class="form-label">Current Display Name</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              [(ngModel)]="editDisplayName" 
-              placeholder="e.g., Français, Deutsch, Español, 日本語"
-              [disabled]="updatingDisplayName()"
-            />
-            <small class="form-text text-muted">Enter the display name for this language (preferably in its native script)</small>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDisplayNameModal()" [disabled]="updatingDisplayName()">Cancel</button>
-          <button 
-            class="btn btn-primary" 
-            (click)="updateDisplayName()" 
-            [disabled]="!editDisplayName.trim() || updatingDisplayName()"
-          >
-            <span *ngIf="updatingDisplayName()"><i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i> Updating...</span>
-            <span *ngIf="!updatingDisplayName()">Update Display Name</span>
-          </button>
+      <!-- Status Alerts -->
+      <p class="alert-info text-16 padding-10 mt-2" *ngIf="saving()">Saving translation <i
+          class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
+      <p class="alert-success text-16 padding-10 mt-2" *ngIf="saveSuccess()">Translation saved successfully</p>
+      <p class="alert-danger text-16 padding-10 mt-2" *ngIf="saveError()">Failed to save translation. Please try again.
+      </p>
+      <div *ngIf="selectedLang">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover align-middle">
+            <thead>
+              <tr>
+                <th>
+                  <a href="#" role="button" (click)="setSort('category'); $event.preventDefault()"
+                    [attr.aria-sort]="sortBy==='category' ? (sortAsc ? 'ascending' : 'descending') : null">
+                    Category
+                    <span class="ms-1" *ngIf="sortBy==='category'">
+                      <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
+                    </span>
+                  </a>
+                </th>
+                <th>
+                  <a href="#" role="button" (click)="setSort('key'); $event.preventDefault()"
+                    [attr.aria-sort]="sortBy==='key' ? (sortAsc ? 'ascending' : 'descending') : null">
+                    Key
+                    <span class="ms-1" *ngIf="sortBy==='key'">
+                      <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
+                    </span>
+                  </a>
+                </th>
+                <th>
+                  <a href="#" role="button" (click)="setSort('value'); $event.preventDefault()"
+                    [attr.aria-sort]="sortBy==='value' ? (sortAsc ? 'ascending' : 'descending') : null">
+                    Value
+                    <span class="ms-1" *ngIf="sortBy==='value'">
+                      <i class="fa" [ngClass]="sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'"></i>
+                    </span>
+                  </a>
+                </th>
+                <th style="width: 100px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of viewEntries()">
+                <td>
+                  <span class="text-truncate d-inline-block" style="max-width: 220px;"
+                    [title]="e.category || 'Uncategorized'">{{ e.category || '—' }}</span>
+                </td>
+                <td>
+                  <span class="text-truncate d-inline-block" style="max-width: 560px;" [title]="e.key">{{ e.key
+                    }}</span>
+                  <a href="#" role="button" tabindex="0"
+                    class="badge bg-light text-dark rounded-circle border ms-1 key-help"
+                    [ngClass]="{ 'opacity-50': !e.description }" [attr.title]="e.description || 'No description'"
+                    [attr.aria-label]="e.description || 'No description'" data-toggle="tooltip" data-bs-toggle="tooltip"
+                    [attr.data-bs-title]="e.description || 'No description'" (click)="$event.preventDefault()">?</a>
+                </td>
+                <td>
+                  <span class="text-break" [title]="e.value">{{ e.value }}</span>
+                </td>
+                <td>
+                  <button class="btn btn-large btn-primary" (click)="openEdit(e)">Edit</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
-  </div>
-  <div *ngIf="displayNameModalOpen()" class="modal-backdrop fade show"></div>
+
+      <!-- Bootstrap-styled modal (no JS) -->
+      <div *ngIf="modalOpen()" class="modal fade show" tabindex="-1" style="display:block;" (click)="closeModal()">
+        <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Edit Translation</h5>
+              <button type="button" class="btn-close" aria-label="Close" (click)="closeModal()"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Key</label>
+                <input class="form-control" [value]="editKey" disabled />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Value</label>
+                <textarea class="form-control" rows="4" [(ngModel)]="editValue"></textarea>
+              </div>
+              <div class="text-muted small" *ngIf="editDescription">{{ editDescription }}</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+              <button class="btn btn-primary" (click)="saveEdit()">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="modalOpen()" class="modal-backdrop fade show"></div>
+
+      <!-- Language Creation Modal -->
+      <div *ngIf="languageModalOpen()" class="modal fade show" tabindex="-1" style="display:block;"
+        (click)="closeLanguageModal()">
+        <div class="modal-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Create New Language</h5>
+              <button type="button" class="btn-close" aria-label="Close" (click)="closeLanguageModal()"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Language Creation Status Alerts -->
+              <p class="alert-info text-16 padding-10 mb-3" *ngIf="creatingLanguage()">Creating language <i
+                  class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
+              <p class="alert-success text-16 padding-10 mb-3" *ngIf="languageCreateSuccess()">Language created
+                successfully!</p>
+              <p class="alert-danger text-16 padding-10 mb-3" *ngIf="languageCreateError()">Failed to create language.
+                Please try again.</p>
+
+              <div class="mb-3">
+                <label class="form-label">New Language Code</label>
+                <input type="text" class="form-control" [(ngModel)]="newLanguageCode" placeholder="e.g., fr, de, es, ja"
+                  [disabled]="creatingLanguage()" />
+                <small class="form-text text-muted">Enter a language code (e.g., 'fr' for French, 'de' for
+                  German)</small>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Display Name</label>
+                <input type="text" class="form-control" [(ngModel)]="newLanguageDisplayName"
+                  placeholder="e.g., Français, Deutsch, Español, 日本語" [disabled]="creatingLanguage()" />
+                <small class="form-text text-muted">Enter the display name for this language (preferably in its native
+                  script)</small>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Copy from Language</label>
+                <select class="form-select" [(ngModel)]="sourceLanguage" [disabled]="creatingLanguage()">
+                  <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
+                </select>
+                <small class="form-text text-muted">The new language will be created by copying all translations from
+                  this source language</small>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeLanguageModal()"
+                [disabled]="creatingLanguage()">Cancel</button>
+              <button class="btn btn-primary" (click)="createNewLanguage()"
+                [disabled]="!newLanguageCode.trim() || creatingLanguage()">
+                <span *ngIf="creatingLanguage()"><i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i> Creating...</span>
+                <span *ngIf="!creatingLanguage()">Create Language</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="languageModalOpen()" class="modal-backdrop fade show"></div>
+
+      <!-- Display Name Edit Modal -->
+      <div *ngIf="displayNameModalOpen()" class="modal fade show" tabindex="-1" style="display:block;"
+        (click)="closeDisplayNameModal()">
+        <div class="modal-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Edit Display Name for {{ selectedLang }}</h5>
+              <button type="button" class="btn-close" aria-label="Close" (click)="closeDisplayNameModal()"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Display Name Edit Status Alerts -->
+              <p class="alert-info text-16 padding-10 mb-3" *ngIf="updatingDisplayName()">Updating display name <i
+                  class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
+              <p class="alert-success text-16 padding-10 mb-3" *ngIf="displayNameUpdateSuccess()">Display name updated
+                successfully!</p>
+              <p class="alert-danger text-16 padding-10 mb-3" *ngIf="displayNameUpdateError()">Failed to update display
+                name. Please try again.</p>
+
+              <div class="mb-3">
+                <label class="form-label">Current Display Name</label>
+                <input type="text" class="form-control" [(ngModel)]="editDisplayName"
+                  placeholder="e.g., Français, Deutsch, Español, 日本語" [disabled]="updatingDisplayName()" />
+                <small class="form-text text-muted">Enter the display name for this language (preferably in its native
+                  script)</small>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeDisplayNameModal()"
+                [disabled]="updatingDisplayName()">Cancel</button>
+              <button class="btn btn-primary" (click)="updateDisplayName()"
+                [disabled]="!editDisplayName.trim() || updatingDisplayName()">
+                <span *ngIf="updatingDisplayName()"><i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i>
+                  Updating...</span>
+                <span *ngIf="!updatingDisplayName()">Update Display Name</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="displayNameModalOpen()" class="modal-backdrop fade show"></div>
 
     </div>
   </div>
