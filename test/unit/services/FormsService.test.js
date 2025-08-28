@@ -129,13 +129,13 @@ describe('The FormsService', function () {
                             }
                         },
                         model: {
-                            class: 'TextFieldModel',
+                            class: 'SimpleInputModel',
                             config: {
                                 defaultValue: 'hello world 2!',
                             }
                         },
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                         constraints: {
                             authorization: {
@@ -167,13 +167,13 @@ describe('The FormsService', function () {
                             }
                         },
                         model: {
-                            class: 'TextFieldModel',
+                            class: 'SimpleInputModel',
                             config: {
                                 value: 'hello world 2!',
                             }
                         },
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                     }
                 ]
@@ -203,7 +203,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                     },
                     {
@@ -216,13 +216,13 @@ describe('The FormsService', function () {
                             }
                         },
                         model: {
-                            class: 'TextFieldModel',
+                            class: 'SimpleInputModel',
                             config: {
                                 defaultValue: 'hello world 2!',
                             }
                         },
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                         constraints: {
                             authorization: {
@@ -246,7 +246,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                     }
                 ]
@@ -276,7 +276,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                     },
                     {
@@ -289,13 +289,13 @@ describe('The FormsService', function () {
                             }
                         },
                         model: {
-                            class: 'TextFieldModel',
+                            class: 'SimpleInputModel',
                             config: {
                                 defaultValue: 'hello world 2!',
                             }
                         },
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                         expressions: {
                             'model.value': {
@@ -325,7 +325,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'TextFieldComponent',
+                            class: 'SimpleInputComponent',
                         },
                     },
 
@@ -374,16 +374,16 @@ describe('The FormsService', function () {
                                                     // requires mode edit, so expect to be removed
                                                     name: 'text_1',
                                                     model: {
-                                                        class: 'TextFieldModel',
+                                                        class: 'SimpleInputModel',
                                                         config: {defaultValue: 'hello world 1!',}
                                                     },
-                                                    component: {class: 'TextFieldComponent', config: {}},
+                                                    component: {class: 'SimpleInputComponent', config: {}},
                                                     constraints: {allowModes: ['edit']},
                                                 },
                                                 {
                                                     name: 'text_2',
-                                                    model: {class: 'TextFieldModel', config: {defaultValue: 'hello world 2!'}},
-                                                    component: {class: 'TextFieldComponent', config: {}},
+                                                    model: {class: 'SimpleInputModel', config: {defaultValue: 'hello world 2!'}},
+                                                    component: {class: 'SimpleInputComponent', config: {}},
                                                 },
                                                 {
                                                     // requires role 'Admin', so is removed
@@ -395,10 +395,10 @@ describe('The FormsService', function () {
                                                             elementTemplate: {
                                                                 name: 'text_for_repeatable_for_admin',
                                                                 model: {
-                                                                    class: 'TextFieldModel',
+                                                                    class: 'SimpleInputModel',
                                                                     config: {defaultValue: 'hello world from repeatable for admin'}
                                                                 },
-                                                                component: {class: 'TextFieldComponent', config: {}},
+                                                                component: {class: 'SimpleInputComponent', config: {}},
                                                                 constraints: {authorization: {allowRoles: ['Admin']}},
                                                             }
                                                         }
@@ -457,8 +457,8 @@ describe('The FormsService', function () {
                                                 // <-- requires mode edit, so expect to be removed
                                                 {
                                                     name: 'text_2',
-                                                    model: {class: 'TextFieldModel', config: {value: 'hello world 2!'}},
-                                                    component: {class: 'TextFieldComponent', config: {}},
+                                                    model: {class: 'SimpleInputModel', config: {value: 'hello world 2!'}},
+                                                    component: {class: 'SimpleInputComponent', config: {}},
                                                 },
                                                 // <-- requires role 'Admin', so is removed
                                             ]

@@ -1,6 +1,5 @@
 import {FormConfig, KeyValueStringNested, KeyValueStringProperty} from '@researchdatabox/sails-ng-common';
-import {TextFieldComponent} from './textfield.component';
-
+import {SimpleInputComponent} from './simpleinput.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { TabComponent, TabSelectionErrorType } from './tab.component';
@@ -12,7 +11,7 @@ let formConfig: FormConfig;
 describe('TabComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextFieldComponent,
+      SimpleInputComponent,
       TabComponent
     ]);
 
@@ -48,14 +47,14 @@ describe('TabComponent', () => {
                     {
                       name: 'textfield_1',
                       model: {
-                        class: 'TextFieldModel',
+                        class: 'SimpleInputModel',
                         config: {
                           value: 'Hello from Tab 1!',
                           defaultValue: 'Default value for Tab 1'
                         }
                       },
                       component: {
-                        class: 'TextFieldComponent'
+                        class: 'SimpleInputComponent'
                       }
                     }
                   ]
@@ -68,14 +67,14 @@ describe('TabComponent', () => {
                     {
                       name: 'textfield_2',
                       model: {
-                        class: 'TextFieldModel',
+                        class: 'SimpleInputModel',
                         config: {
                           value: 'Hello from Tab 2!',
                           defaultValue: 'Default value for Tab 2'
                         }
                       },
                       component: {
-                        class: 'TextFieldComponent'
+                        class: 'SimpleInputComponent'
                       }
                     }
                   ]
