@@ -14,7 +14,7 @@ import * as Handlebars from 'handlebars';
 // - set on load / init, if needs to be changed, that's what expressions are for
 // 
 @Component({
-    selector: 'redbox-textblock',
+    selector: 'redbox-content',
     template: `
     @if (getBooleanProperty('visible')) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />

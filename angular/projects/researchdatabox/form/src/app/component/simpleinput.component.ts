@@ -7,7 +7,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
 }
 
 @Component({
-    selector: 'redbox-textfield',
+    selector: 'redbox-simpleinput',
     template: `
     @if (getBooleanProperty('visible')) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
