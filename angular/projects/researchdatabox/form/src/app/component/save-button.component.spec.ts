@@ -1,6 +1,6 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {SaveButtonComponent} from './save-button.component';
-import {TextFieldComponent} from './textfield.component';
+import {SimpleInputComponent} from './textfield.component';
 
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -10,7 +10,7 @@ let formConfig: FormConfig;
 describe('SaveButtonComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextFieldComponent,
+      SimpleInputComponent,
       SaveButtonComponent
     ]);
     formConfig = {
@@ -24,14 +24,14 @@ describe('SaveButtonComponent', () => {
         {
           name: 'text_1_event',
           model: {
-            class: 'TextFieldModel',
+            class: 'SimpleInputModel',
             config: {
               value: 'hello world saved!',
               defaultValue: 'hello world default!'
             }
           },
           component: {
-            class: 'TextFieldComponent'
+            class: 'SimpleInputComponent'
           }
         },
         { 
