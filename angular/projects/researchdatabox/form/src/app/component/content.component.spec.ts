@@ -1,5 +1,5 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {ContentComponent} from "./textfield.component";
+import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 

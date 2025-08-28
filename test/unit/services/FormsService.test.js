@@ -457,7 +457,7 @@ describe('The FormsService', function () {
                                                 // <-- requires mode edit, so expect to be removed
                                                 {
                                                     name: 'text_2',
-                                                    model: {class: 'SimpleInputModel', config: {defaultValue: 'hello world 2!'}},
+                                                    model: {class: 'SimpleInputModel', config: {value: 'hello world 2!'}},
                                                     component: {class: 'SimpleInputComponent', config: {}},
                                                 },
                                                 // <-- requires role 'Admin', so is removed
