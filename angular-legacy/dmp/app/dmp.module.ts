@@ -23,7 +23,6 @@ import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { DmpFormComponent } from './dmp-form.component';
 import { SharedModule } from './shared/shared.module';
-import * as $ from 'jquery';
 
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, SharedModule ],
