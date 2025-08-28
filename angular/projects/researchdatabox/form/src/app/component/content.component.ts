@@ -1,18 +1,18 @@
 import { Component } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
-import { ContentComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/textblock.model';
+import { ContentComponentConfig } from '@researchdatabox/sails-ng-common';
 import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 import * as Handlebars from 'handlebars';
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
-// 
+//
 // Use Cases:
 // - show value of SimpleInputComponent in view mode
 // - show value of generated data from server-side in a HTML span
 // - show value of static text/content that is not saved to the server side metadata
 // - set on load / init, if needs to be changed, that's what expressions are for
-// 
+//
 @Component({
     selector: 'redbox-content',
     template: `
@@ -37,7 +37,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     if(!_isUndefined(this.componentDefinition?.config)) {
       let contentConfig:ContentComponentConfig = this.componentDefinition.config as ContentComponentConfig;
-      
+
       // The below template is a reference that needs to be taken into account for legacy compatibility
       //
       // <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>

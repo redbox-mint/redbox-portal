@@ -42,7 +42,7 @@ describe('ContentComponent', () => {
     // Now run your expectations
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('h3');
-    expect((inputElement as HTMLInputElement).value).toEqual('My first text block component!!!');
+    expect((inputElement as HTMLHeadingElement).textContent).toEqual('My first text block component!!!');
   });
 
 });

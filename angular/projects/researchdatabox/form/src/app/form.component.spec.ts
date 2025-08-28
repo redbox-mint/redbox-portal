@@ -30,7 +30,6 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              value: 'hello world!',
               defaultValue: 'hello world!'
             }
           },
