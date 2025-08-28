@@ -1,5 +1,5 @@
 import {FormConfig, KeyValueStringNested, KeyValueStringProperty} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './textfield.component';
+import {SimpleInputComponent} from './simpleinput.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { TabComponent, TabSelectionErrorType } from './tab.component';

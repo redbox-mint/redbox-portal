@@ -1,10 +1,10 @@
-import { SimpleInputModel, SimpleInputComponent } from "./component/textfield.component";
+import { SimpleInputModel, SimpleInputComponent } from "./component/simpleinput.component";
 import { RepeatableComponent, RepeatableComponentModel, RepeatableElementLayoutComponent } from "./component/repeatable.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
 import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
-import { ContentComponent } from "./component/textblock.component";
+import { ContentComponent } from "./component/content.component";
 import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
 

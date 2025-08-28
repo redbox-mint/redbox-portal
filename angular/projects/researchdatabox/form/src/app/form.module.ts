@@ -22,7 +22,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
-import { SimpleInputComponent } from './component/textfield.component';
+import { SimpleInputComponent } from './component/simpleinput.component';
 import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
@@ -31,7 +31,7 @@ import {GroupFieldComponent} from "./component/groupfield.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
-import { ContentComponent } from './component/textblock.component';
+import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
 @NgModule({
