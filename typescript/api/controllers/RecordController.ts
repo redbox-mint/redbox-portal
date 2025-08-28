@@ -26,26 +26,31 @@ import {
 } from 'rxjs';
 import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
-  StorageServiceResponse,
-  RecordTypeResponseModel,
-  DashboardTypeResponseModel,
-  DataResponseV2,
-  Controllers as controllers, DatastreamService, RecordsService, SearchService, ApiVersion
+    RecordTypeResponseModel,
+    DashboardTypeResponseModel,
+    DataResponseV2,
+    Controllers as controllers,
+    DatastreamService,
+    RecordsService,
+    SearchService,
+    ApiVersion,
+    BrandingModel,
+    RecordTypeModel,
 } from '@researchdatabox/redbox-core-types';
 import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
-import * as url from 'url';
 import { default as checkDiskSpace } from 'check-disk-space';
 import {Services as recordTypeService} from '../services/RecordTypesService';
 import {ClientFormContext} from "../additional/ClientFormContext";
 
-declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService, FormRecordConsistencyService, DashboardTypesService;
+declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService,
+    RecordTypesService:recordTypeService.RecordTypes, TranslationService, UsersService,
+    RolesService, FormRecordConsistencyService, DashboardTypesService;
 
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService, BrandingModel, RecordTypeModel } from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -279,7 +284,7 @@ export module Controllers {
         let currentRec: any = null;
         if (!oid) {
           //find form to create a record
-          form: any = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
           if (_.isEmpty(form)) {
             const msg = `Error, getting form for record type: ${recordType}`;
             if (apiVersion === ApiVersion.VERSION_2_0) {
