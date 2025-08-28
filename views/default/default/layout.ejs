@@ -58,21 +58,24 @@
             <div class="dropdown pull-right">
                 <% 
                   // Use available languages from the i18nLanguages policy
-                  const langCodes = availableLanguages || ['en'];
-                  if (langCodes.length > 1) { %>
+                  const languages = availableLanguages || [{ code: 'en', displayName: 'English' }];
+                  if (languages.length > 1) { 
+                    // Find current language display name
+                    const currentLang = languages.find(l => l.code === lang) || languages[0];
+                  %>
                   <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
-                    <%= TranslationService.t('lang-' + lang) %>
+                    <%= currentLang.displayName %>
                   </a>
                   <ul class="dropdown-menu">
                     <%
-                    for (const langCode of langCodes) {
-                      if (langCode != lang) {
+                    for (const language of languages) {
+                      if (language.code !== lang) {
                         const langUrl = new URL(`${req.protocol}://${req.get('host')}${req.originalUrl}`);
                         const params = new URLSearchParams(langUrl.search);
-                        params.set('lng', langCode);
+                        params.set('lng', language.code);
                         langUrl.search = params;
                         %>
-                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= TranslationService.t('lang-' + langCode) %></a></li>
+                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= language.displayName %></a></li>
                         <%
                       }
                     } 

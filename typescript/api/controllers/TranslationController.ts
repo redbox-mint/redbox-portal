@@ -87,8 +87,8 @@ export module Controllers {
 
     /**
      * Return the list of supported languages for the current branding/portal.
-     * Combines configured languages with any detected from DB bundles and assets/locales.
-     * Returns a list of objects with code and displayName.
+     * Combines configured languages with any detected from DB bundles.
+     * Returns a list of objects with code, displayName, and enabled.
      */
     public async getLanguages(req, res) {
       try {
@@ -102,20 +102,9 @@ export module Controllers {
         const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
         if (Array.isArray(configured)) configured.forEach((l: string) => l && langCodes.add(l));
 
-        // From DB bundles
-        const bundles: any[] = await I18nBundle.find({ where: { branding: branding.id } });
+        // From DB bundles using I18nEntriesService
+        const bundles: any[] = await I18nEntriesService.listBundles(branding);
         bundles.forEach((b: any) => b?.locale && langCodes.add(b.locale));
-
-        // From language-defaults directory
-        try {
-          const localesDir = path.join(sails.config.appPath, 'language-defaults');
-          if (fs.existsSync(localesDir)) {
-            const entries = fs.readdirSync(localesDir, { withFileTypes: true });
-            entries.filter(d => d.isDirectory()).forEach(d => langCodes.add(d.name));
-          }
-        } catch (e) {
-          sails.log.verbose('getLanguages: skipping filesystem scan due to error:', e?.message || e);
-        }
 
         const codes = Array.from(langCodes);
         const bundleMap = new Map(bundles.map(b => [b.locale, b]));
@@ -124,7 +113,8 @@ export module Controllers {
           const bundle = bundleMap.get(code);
           return {
             code: code,
-            displayName: bundle?.displayName || code
+            displayName: bundle?.displayName || code,
+            enabled: bundle?.enabled !== false // defaults to true if not set
           };
         });
 

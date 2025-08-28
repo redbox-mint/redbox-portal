@@ -42,6 +42,7 @@ export module Services {
       'listEntries',
       'getBundle',
       'setBundle',
+      'listBundles',
       'composeNamespace',
       'syncEntriesFromBundle',
       'bootstrap',
@@ -273,6 +274,11 @@ export module Services {
       const brandingId = this.resolveBrandingId(branding);
       const uid = `${brandingId}:${locale}:${namespace || 'translation'}`;
       return await I18nBundle.findOne({ uid });
+    }
+
+    public async listBundles(branding: BrandingModel): Promise<any[]> {
+      const brandingId = this.resolveBrandingId(branding);
+      return await I18nBundle.find({ branding: brandingId });
     }
 
     public async setBundle(
