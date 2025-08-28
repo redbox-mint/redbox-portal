@@ -19,7 +19,7 @@ export interface FormFieldModelClassMap {
  * Note that each model and component are optional
 */
 export const StaticModelCompClassMap = {
-  'SimpleInputComponent': {
+  'SimpleInput': {
     model: SimpleInputModel,
     component: SimpleInputComponent
   },
@@ -55,18 +55,22 @@ export const StaticModelCompClassMap = {
   }
 };
 
+const modelKeyName = function (key: string): string {
+  return `${key}${_endsWith(key, 'Model') ? '' : 'Model'}`;
+}
+const componentKeyName = function (key: string): string {
+  return `${key}${_endsWith(key, 'Component') ? '' : 'Component'}`;
+}
 
 // The following maps are used to detach the component from the model
 export const StaticModelClassMap: FormFieldModelClassMap = {};
 _each(StaticModelCompClassMap, (value:any, key:any) => {
   if (value.model) {
-    const modelKeyName = _endsWith(key, 'Model') ? key : key + 'Model';
     StaticModelClassMap[key] = value.model;
-    StaticModelClassMap[modelKeyName] = value.model;
+    StaticModelClassMap[modelKeyName(key)] = value.model;
     // add an entry for the model name to make it easier to find the corresponding component's model
     if (value.component) {
-      const componentKeyName = _endsWith(key, 'Component') ? key : key + 'Component';
-      StaticModelClassMap[componentKeyName] = value.model;
+      StaticModelClassMap[componentKeyName(key)] = value.model;
     }
   }
 });
@@ -80,13 +84,11 @@ export const StaticComponentClassMap: FormComponentClassMap = {};
 
 _each(StaticModelCompClassMap, (value:any, key:any) => {
   if (value.component) {
-    const componentKeyName = _endsWith(key, 'Component') ? key : key + 'Component';
     StaticComponentClassMap[key] = value.component;
-    StaticComponentClassMap[componentKeyName] = value.component;
+    StaticComponentClassMap[componentKeyName(key)] = value.component;
     // add an entry for the component name to make it easier to find the corresponding model's component
     if (value.model) {
-      const modelKeyName = _endsWith(key, 'Model') ? key : key + 'Model';
-      StaticComponentClassMap[modelKeyName] = value.component;
+      StaticComponentClassMap[modelKeyName(key)] = value.component;
     }
   }
 });

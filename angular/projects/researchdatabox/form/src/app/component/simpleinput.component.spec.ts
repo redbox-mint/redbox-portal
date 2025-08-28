@@ -28,8 +28,7 @@ describe('SimpleInputComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              value: 'hello world saved!',
-              defaultValue: 'hello world default!'
+              defaultValue: 'hello world saved!'
             }
           },
           component: {
