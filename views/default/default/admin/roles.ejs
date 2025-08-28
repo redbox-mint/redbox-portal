@@ -1,6 +1,6 @@
 <% let appName = 'manage-roles'; %>
 <div class="row">
-  <manage-roles>
+  <manage-roles <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
     <div class="col-xs-1">
     </div>
     <div class="col-xs-10">
