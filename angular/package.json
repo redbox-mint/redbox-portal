@@ -23,6 +23,7 @@
     "@ngx-formly/core": "^6.3.6",
     "@researchdatabox/sails-ng-common": "../packages/sails-ng-common",
     "angular-i18next": "^19.1.0",
+    "handlebars": "^4.7.8",
     "i18next-browser-languagedetector": "^8.0.0",
     "i18next-http-backend": "^3.0.2",
     "lodash-es": "^4.17.21",

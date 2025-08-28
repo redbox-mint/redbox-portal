@@ -135,7 +135,7 @@ export class FormComponent extends BaseComponent {
     if (!_isEmpty(_trim(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit')))) {
       this.downloadAndCreateOnInit.set(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit') === 'true');
     }
-    
+
     this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${ this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
@@ -221,7 +221,9 @@ export class FormComponent extends BaseComponent {
         const validatorConfig = this.formDefMap.formConfig.validators;
         const validators = this.formService.createFormValidatorInstances(validatorConfig);
         this.formService.setValidators(this.form, validators);
-      } else {
+      } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
+        // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
+        // That is ok. But a form must have at least one component.
         const msg = `No form controls found in the form definition. Form cannot be rendered.`;
         this.loggerService.error(`${this.logName}: ${msg}`);
         throw new Error(msg);
@@ -329,7 +331,7 @@ export class FormComponent extends BaseComponent {
 
   // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
   public getComponentDefByName(name: string, componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr): FormFieldCompMapEntry | undefined {
-    let foundComponentDef = componentDefArr.find(comp => {  
+    let foundComponentDef = componentDefArr.find(comp => {
       return comp.compConfigJson?.name === name;
     });
     // If not found, continue to search in the component's children
@@ -343,7 +345,7 @@ export class FormComponent extends BaseComponent {
     }
     return foundComponentDef;
   }
-  
+
   public async saveForm(forceSave: boolean = false, targetStep: string = '', skipValidation: boolean = false) {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
@@ -352,7 +354,7 @@ export class FormComponent extends BaseComponent {
         this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, skipValidation: ${skipValidation}. Submitting...`);
         // Here you can handle the form submission, e.g., send it to the server
         this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
-        // set status to 'saving' 
+        // set status to 'saving'
         this.status.set(FormStatus.SAVING);
         try {
           let response: RecordActionResult;
@@ -388,7 +390,7 @@ export class FormComponent extends BaseComponent {
     }
   }
 
-  // Expose the `form` status 
+  // Expose the `form` status
   public get dataStatus(): { valid: boolean; dirty: boolean, pristine: boolean } {
     return {
       valid: this.form?.valid || false,
