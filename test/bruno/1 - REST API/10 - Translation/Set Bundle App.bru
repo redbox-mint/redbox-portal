@@ -1,0 +1,39 @@
+meta {
+  name: Set Bundle App
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/app/i18n/bundles/en/translation
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "data": {
+      "test": {
+        "message": "Test bundle message"
+      }
+    },
+    "displayName": "Test Bundle"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Bundle saved successfully", function () {
+      var data = res.getBody();
+      expect(data).to.have.property("data");
+      expect(data.data).to.have.property("test");
+      expect(data.data.test.message).to.equal("Test bundle message");
+  });
+}
