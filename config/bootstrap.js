@@ -8,28 +8,27 @@
  * For more information on bootstrapping your app, check out:
  * http://sailsjs.org/#!/documentation/reference/sails.config/sails.config.bootstrap.html
  */
- var Observable = require('rxjs/Observable').Observable;
+ const { lastValueFrom } = require('rxjs');
  const schedule = require('node-schedule');
  
  const actualBootstrap = async function() {
-   
-   
-   let defaultBrand = await sails.services.brandingservice.bootstrap().toPromise()
+  
+   let defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap())
    sails.log.verbose("Branding service, bootstrapped.");
-   let rolesBootstrapResult = await sails.services.rolesservice.bootstrap(defaultBrand).toPromise();
+   let rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand));
    sails.log.verbose("Roles service, bootstrapped.");
-   let reportsBootstrapResult = await sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()));
    sails.log.verbose("Reports service, bootstrapped.");
    let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("Named Query service, bootstrapped.");
    // sails doesn't support 'populating' of nested associations
    // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
-   let defRoles = await sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()).toPromise();
+   let defRoles = await lastValueFrom(sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()));
    sails.log.verbose("Roles service, bootstrapped.");
    sails.log.verbose(defRoles);
-   let defUserAndDefRoles = await sails.services.usersservice.bootstrap(defRoles).toPromise();
+   let defUserAndDefRoles = await lastValueFrom(sails.services.usersservice.bootstrap(defRoles));
    sails.log.verbose("Pathrules service, bootstrapped.");
-   let pathRulesBootstrapResult = await sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles).toPromise();
+   let pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles));
    sails.log.verbose("Record types service, bootstrapped.");
    let recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("Workflowsteps service, bootstrapped.");
@@ -48,7 +47,7 @@
  
  
    sails.log.verbose("Forms service, bootstrapped.");
-   await sails.services.vocabservice.bootstrap().toPromise();
+   await lastValueFrom(sails.services.vocabservice.bootstrap());
    sails.log.verbose("Vocab service, bootstrapped.");
    // Schedule cronjobs
    if (sails.config.crontab.enabled) {
@@ -73,7 +72,7 @@
     
   sails.log.verbose("Cron service, bootstrapped.");
   // After last, because it was being triggered twice
-  await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+  await lastValueFrom(sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()));
 
  
    sails.log.verbose("WorkspaceTypes service, bootstrapped.");

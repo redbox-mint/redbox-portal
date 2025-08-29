@@ -17,9 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { Observable, of, from, zip, throwError, isObservable, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import {
   QueueService,
   Services as services,
@@ -30,12 +29,10 @@ import {
   Sails,
   Model
 } from "sails";
-import { default as moment } from 'moment';
+import moment from '../shims/momentShim';
 import numeral from 'numeral';
 
-import {
-  isObservable
-} from 'rxjs';
+// removed duplicate isObservable import
 
 declare var sails: Sails;
 declare var RecordType, Counter: Model;
@@ -65,7 +62,6 @@ export module Services {
       'addWorkspaceToRecord',
       'queuedTriggerSubscriptionHandler',
       'queueTriggerCall',
-      'processQueuedFileUploadToFigshare',
       'checkTotalSizeOfFilesInRecord',
       'removeWorkspaceFromRecord'
     ];
@@ -129,14 +125,14 @@ export module Services {
           sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
           sails.log[processRecordCountersLogLevel](counter);
 
-          const promiseCounter = await this.getObservable(Counter.findOrCreate({
+          const promiseCounter = await firstValueFrom(this.getObservable(Counter.findOrCreate({
             name: counter.field_name,
             branding: brandId
           }, {
             name: counter.field_name,
             branding: brandId,
             value: 0
-          })).toPromise();
+          })));
 
           if (_.isEmpty(promiseCounter)) {
             sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter isEmpty');
@@ -155,11 +151,11 @@ export module Services {
             this.incrementCounter(record, counter, newVal);
 
             //Update global counter
-            const updateOnePromise = await this.getObservable(Counter.updateOne({
+            const updateOnePromise = await firstValueFrom(this.getObservable(Counter.updateOne({
               id: promiseCounter[0].id
             }, {
               value: newVal
-            })).toPromise();
+            })));
             sails.log[processRecordCountersLogLevel]('processRecordCounters - updateOnePromise:');
             sails.log[processRecordCountersLogLevel](updateOnePromise);
           }
@@ -396,7 +392,7 @@ export module Services {
         sails.log.verbose(queueMessage);
         this.queueService.now(jobName, queueMessage);
       }
-      return Observable.of(record);
+      return of(record);
     }
 
     public queuedTriggerSubscriptionHandler(job: any) {
@@ -416,36 +412,11 @@ export module Services {
           sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
           let hookResponse = hookFunction(oid, record, options, user);
           let response = this.convertToObservable(hookResponse);
-          return response.toPromise();
+          return firstValueFrom(response);
 
         } else {
           sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
           sails.log.error(hookFunction);
-        }
-      }
-    }
-
-    public processQueuedFileUploadToFigshare(job: any) {
-      let data = job.attrs.data;
-      let oid = _.get(data, "oid", null);
-      let attachId = _.get(data, "attachId", null);
-      let articleId = _.get(data, "articleId", null);
-      let dataPublicationRecord = _.get(data, "dataPublicationRecord", null);
-      let fileName = _.get(data, "fileName", null);
-      let fileSize = _.get(data, "fileSize", null);
-      let figshareUploadHookFunctionString = _.get(data, "function", null);
-      sails.log.verbose(`Found hook function string ${figshareUploadHookFunctionString}`);
-      if (figshareUploadHookFunctionString != null) {
-        let figshareUploadHookFunction = eval(figshareUploadHookFunctionString);
-        if (_.isFunction(figshareUploadHookFunction)) {
-          sails.log.debug(`Triggering queuedtrigger: ${figshareUploadHookFunctionString}`)
-          let hookResponse = figshareUploadHookFunction(oid, attachId, articleId, dataPublicationRecord, fileName, fileSize);
-          let response = this.convertToObservable(hookResponse);
-          return response.toPromise();
-
-        } else {
-          sails.log.error(`queued trigger function: '${figshareUploadHookFunctionString}' did not resolve to a valid function, what I got:`);
-          sails.log.error(figshareUploadHookFunction);
         }
       }
     }
@@ -455,7 +426,7 @@ export module Services {
       if (isObservable(hookResponse)) {
         return hookResponse;
       } else {
-        response = Observable.fromPromise(hookResponse);
+        response = from(hookResponse);
       }
       return response;
     }
@@ -496,7 +467,7 @@ export module Services {
           viewContributorEmails, viewContributorObs
         );
       }
-      return Observable.of(record);
+  return of(record);
     }
 
     /**
@@ -532,8 +503,8 @@ export module Services {
           editContributorEmails, editContributorObs,
           viewContributorEmails, viewContributorObs
         );
-      }
-      return Observable.of(record);
+  }
+  return of(record);
     }
 
     /**
@@ -559,7 +530,7 @@ export module Services {
       }
       // when both are empty, simpy return the record
       if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
-        return Observable.of(record);
+        return of(record);
       }
       _.each(editContributorEmails, editorEmail => {
         editContributorObs.push(this.getObservable(User.findOne({
@@ -573,10 +544,10 @@ export module Services {
       });
       let zippedViewContributorUsers;
       if (editContributorObs.length == 0) {
-        zippedViewContributorUsers = Observable.zip(...viewContributorObs);
+        zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
-        zippedViewContributorUsers = Observable.zip(...editContributorObs)
-          .flatMap(editContributorUsers => {
+        zippedViewContributorUsers = zip(...editContributorObs)
+          .pipe(flatMap(editContributorUsers => {
             let newEditList = [];
             this.filterPending(editContributorUsers, editContributorEmails, newEditList);
             if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
@@ -585,16 +556,16 @@ export module Services {
             record.authorization.edit = newEditList;
             record.authorization.editPending = editContributorEmails;
             if (viewContributorObs.length === 0) {
-              return Observable.of(record);
+              return of(record);
             } else {
-              return Observable.zip(...viewContributorObs);
+              return zip(...viewContributorObs);
             }
-          });
+          }));
       }
       if (zippedViewContributorUsers.length == 0) {
         return zippedViewContributorUsers;
       } else {
-        return zippedViewContributorUsers.flatMap(viewContributorUsers => {
+        return zippedViewContributorUsers.pipe(flatMap(viewContributorUsers => {
           let newViewList = [];
           this.filterPending(viewContributorUsers, viewContributorEmails, newViewList);
           if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
@@ -602,8 +573,8 @@ export module Services {
           }
           record.authorization.view = newViewList;
           record.authorization.viewPending = viewContributorEmails;
-          return Observable.of(record);
-        });
+          return of(record);
+        }));
       }
     }
 
@@ -646,7 +617,7 @@ export module Services {
           }
         }
       }
-      return Observable.of(record);
+      return of(record);
     }
 
     public restoreUserBasedPermissions(oid, record, options, user) {
@@ -663,7 +634,7 @@ export module Services {
           delete record.authorization.stored
         }
       }
-      return Observable.of(record);
+      return of(record);
     }
 
     public runTemplates(oid, record, options, user, response: StorageServiceResponse = null) {
@@ -708,10 +679,10 @@ export module Services {
         const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
         sails.log.error(errLog);
         sails.log.error(e);
-        return Observable.throw(new Error(errLog));
+        return throwError(new Error(errLog));
       }
 
-      return Observable.of(record);
+  return of(record);
 
     }
 
