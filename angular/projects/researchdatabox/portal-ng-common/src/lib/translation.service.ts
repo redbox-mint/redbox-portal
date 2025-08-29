@@ -303,12 +303,10 @@ export class TranslationService extends HttpClientService implements Service {
           let bundleData = { ...currentBundle.data };
           let needsUpdate = false;
 
-          // Ensure this language has lang-<langcode> entries for all languages
           for (const targetLang of allLanguages) {
             const langKey = `lang-${targetLang.code}`;
             if (!bundleData[langKey]) {
-              // Add a default language label (using the language code as fallback)
-              bundleData[langKey] = this.getDefaultLanguageLabel(targetLang.code);
+              bundleData[langKey] =langKey;
               needsUpdate = true;
             }
           }
@@ -326,35 +324,4 @@ export class TranslationService extends HttpClientService implements Service {
     }
   }
 
-  /** Get a default language label for a language code */
-  private getDefaultLanguageLabel(langCode: string): string {
-    // Common language mappings - you can extend this
-    const languageLabels: Record<string, string> = {
-      'en': 'English',
-      'fr': 'Français',
-      'de': 'Deutsch',
-      'es': 'Español',
-      'it': 'Italiano',
-      'pt': 'Português',
-      'ru': 'Русский',
-      'ja': '日本語',
-      'ko': '한국어',
-      'zh': '中文',
-      'ar': 'العربية',
-      'hi': 'हिन्दी',
-      'nl': 'Nederlands',
-      'sv': 'Svenska',
-      'da': 'Dansk',
-      'no': 'Norsk',
-      'fi': 'Suomi',
-      'pl': 'Polski',
-      'cs': 'Čeština',
-      'hu': 'Magyar',
-      'tr': 'Türkçe',
-      'th': 'ไทย',
-      'vi': 'Tiếng Việt'
-    };
-
-    return languageLabels[langCode] || langCode.toUpperCase();
-  }
 }

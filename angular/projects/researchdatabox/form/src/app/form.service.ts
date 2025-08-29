@@ -21,7 +21,7 @@ import { Injectable, Inject } from '@angular/core';
 import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge } from 'lodash-es';
 import { ComponentFieldMap, StaticComponentFieldMap } from './static-comp-field.dictionary';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
-// import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
+import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 /**
  *
  * FormService
@@ -40,7 +40,7 @@ export class FormService {
   protected formFieldTypeMap:ComponentFieldMap = {};
 
   constructor(
-    @Inject(Object) private customModuleFormCmpResolverService: Object,
+    @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
     @Inject(LoggerService) private loggerService: LoggerService,
     ) {
     // start with the static version
@@ -109,7 +109,7 @@ export class FormService {
         // 2. deal with genuine lazy-loading enabled components
         if (field.module == 'custom') {
           try {
-            componentInfo = new Object();//await this.customModuleFormCmpResolverService.getComponentClass(field.component);
+            componentInfo = await this.customModuleFormCmpResolverService.getComponentClass(field.component);
             console.log(componentInfo);
             this.formFieldTypeMap[field.component] = componentInfo;
           } catch (e) {

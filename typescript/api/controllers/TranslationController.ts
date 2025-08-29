@@ -35,7 +35,7 @@ export module Controllers {
    */
   @PopulateExportedMethods
   export class Translation extends controllers.Core.Controller {
-  
+
 
     public async getNamespace(req, res) {
       try {
