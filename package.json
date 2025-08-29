@@ -14,7 +14,7 @@
     "agenda": "github:redbox-mint-contrib/agenda#dist",
     "async": "3.2.6",
     "bcryptjs": "^3.0.2",
-    "bootstrap": "^5.3.7",
+    "bootstrap": "^5.3.8",
     "captains-log": "^2.0.5",
     "check-disk-space": "^3.4.0",
     "chokidar": "~4.0.3",
