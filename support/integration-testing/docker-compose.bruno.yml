@@ -67,6 +67,7 @@ services:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
+    init: true
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&

@@ -49,6 +49,7 @@ export class TreeSelectorField extends FieldBase<any> {
   public expandChildrenWhenParentSeclected:boolean;
   public selectParentWhenChildSelected: boolean;
   public enforceAvoidDuplicates: boolean;
+  public deselectChildrenWhenParentUnselected: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -63,6 +64,7 @@ export class TreeSelectorField extends FieldBase<any> {
     this.ccsClassName = options['cssClassName'] || 'tree-node-checkbox';
     this.expandChildrenWhenParentSeclected = options['expandChildrenWhenParentSeclected'] || false;
     this.selectParentWhenChildSelected = options['selectParentWhenChildSelected'] || true;
+    this.deselectChildrenWhenParentUnselected = options['deselectChildrenWhenParentUnselected'] || true;
     this.enforceAvoidDuplicates = options['enforceAvoidDuplicates'] || true;
   }
 
@@ -83,7 +85,7 @@ export class TreeSelectorField extends FieldBase<any> {
 
       if(!_.isEmpty(curVal) && this.enforceAvoidDuplicates) {
         let i = _.findIndex(curVal, ['id', item.id]);
-        if(i < 0) {
+        if(i < 0 && !_.isUndefined(item.name) && item.name != 'undefined') {
           curVal.push(item);
         }
       } else {
@@ -92,7 +94,7 @@ export class TreeSelectorField extends FieldBase<any> {
 
     } else {
       _.remove(curVal, (entry:any) => {
-        return entry.name == item.name;
+        return entry.name === item.name;
       });
     }
     this.setValue(curVal);
@@ -290,10 +292,25 @@ export class TreeSelectorComponent extends SimpleComponent {
         if(this.field.expandChildrenWhenParentSeclected) {
           if(!_.isEmpty(event.node.children)) {
             event.node.collapse();
+            if(this.field.deselectChildrenWhenParentUnselected) {
+              try {
+                for(let child of event.node.data.children) {
+                  this.field.setSelected(child, false);
+                  let foundNode = this.findChildNodeById(event.node,child.id);
+                  if(!_.isUndefined(foundNode)) {
+                    this.updateSingleNodeSelectedState(foundNode, false);
+                  }
+                }
+              } catch(err) { }
+            }
           }
         }
         break;
     }
+  }
+
+  private findChildNodeById(node: TreeNode, childId: string): any {
+    return _.find(node.children, { id: childId });
   }
 
   protected handleNodeEvent(eventArr) {

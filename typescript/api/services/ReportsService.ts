@@ -17,9 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { Observable, from, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { ListAPIResponse, ReportConfig, ReportModel, ReportFilterType, ReportSource, ReportResult, SearchService, Services as services } from '@researchdatabox/redbox-core-types';
 import { DateTime } from 'luxon';
 import {
@@ -64,7 +63,7 @@ export module Services {
     public bootstrap = (defBrand) => {
       return super.getObservable(Report.find({
         branding: defBrand.id
-      })).flatMap(reports => {
+      })).pipe(flatMap(reports => {
         if (_.isEmpty(reports)) {
           var rTypes = [];
           sails.log.verbose("Bootstrapping report definitions... ");
@@ -73,19 +72,18 @@ export module Services {
             obs.subscribe(repProcessed => { })
             rTypes.push(obs);
           });
-          return Observable.from(rTypes);
+          return from(rTypes);
 
         } else {
 
           var rTypes = [];
           _.each(reports, function (report) {
-            rTypes.push(Observable.of(report));
+            rTypes.push(of(report));
           });
           sails.log.verbose("Default reports definition(s) exist.");
-          return Observable.from(rTypes);
+          return from(rTypes);
         }
-      })
-        .last();
+      }),last());
     }
 
     public findAllReportsForBrand(brand) {
@@ -152,7 +150,7 @@ export module Services {
         key: brand.id + "_" + name
       }));
 
-      let reportObject = await reportObs.toPromise()
+  let reportObject = await firstValueFrom(reportObs)
 
 
       reportObject = this.convertLegacyReport(reportObject);
@@ -160,16 +158,8 @@ export module Services {
       if (report.reportSource == ReportSource.database) {
 
         let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
-
-        let configMongoQuery = namedQueryConfig.mongoQuery;
-        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
-        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
-        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
-        let mongoQuery = _.clone(configMongoQuery);
-        let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(req, report)
-
-        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
+        let dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         return this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         let url = this.buildSolrParams(brand, req, report, start, rows, 'json');
@@ -271,9 +261,9 @@ export module Services {
 
     public async getCSVResult(brand, name = '', req, start = 0, rows = 1000000000) {
 
-      var report:ReportModel = await super.getObservable(Report.findOne({
+      var report:ReportModel = await firstValueFrom(super.getObservable(Report.findOne({
         key: brand.id + "_" + name
-      })).toPromise();
+      })));
 
       report = this.convertLegacyReport(report);
 
@@ -282,17 +272,9 @@ export module Services {
       let result: ReportResult = null
       if (report.reportSource == ReportSource.database) {
 
-        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
-
-        let configMongoQuery = namedQueryConfig.mongoQuery;
-        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
-        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
-        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
-        let mongoQuery = _.clone(configMongoQuery);
-        let queryParams = namedQueryConfig.queryParams;
-        let paramMap = this.buildNamedQueryParamMap(req, report)
-
-        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
+        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName);
+        let paramMap = this.buildNamedQueryParamMap(req, report);
+        let dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');

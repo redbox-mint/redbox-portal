@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import * as fs from 'fs-extra';
@@ -242,7 +242,7 @@ sails.log.verbose(`${hook_log_header}::Merging branded app configuration...compl
         return filelist;
       }
       try {
-        var files = fs.readdirSync(dir);
+        var files = fs.readdirSync(dir).sort();
         _.each(files, (file) => {
           const resolved = resolve(dir, file);
           if (fs.statSync(resolved).isDirectory()) {
