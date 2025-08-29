@@ -89,8 +89,8 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
-    const name = this.utilityService.getNameClass(formFieldCompMapEntry);
-    this.loggerService.debug(`${this.logName}: starting initialise component for '${name}'.`);
+    const name = this.formFieldConfigName();
+    this.loggerService.debug(`${this.logName}: Starting initialise component for '${name}'.`, this.formFieldCompMapEntry);
     this.className = name;
     try {
       // Create a method that children can override to set their own properties
@@ -249,14 +249,14 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
           }
         }
       } catch (err) {
-        this.loggerService.error('checkUpdateExpressions failed', err);
+        this.loggerService.error(`${this.logName}: checkUpdateExpressions failed`, err);
       }
     }
   }
 
   ngAfterViewInit() {
     this.componentViewReady = true;
-    this.loggerService.debug(`FieldComponent ngAfterViewInit: componentViewReady:`, this.componentViewReady);
+    this.loggerService.debug(`${this.logName}: View has initialised`, this.formFieldCompMapEntry);
     this.viewInitialised.set(true);
   }
 
@@ -439,8 +439,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     const control = this.model?.formControl;
     if (!control) {
       // Return a dummy control or throw, depending on desired behavior
-      const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
-      throw new Error(`${this.logName}: could not get form control from model for '${name}'.`);
+      throw new Error(`${this.logName}: could not get form control from model for '${this.formFieldConfigName()}'.`);
     }
     return control as FormControl<ValueType>;
   }
@@ -479,8 +478,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * Set the component status to READY.
    */
   protected async setComponentReady() {
-    const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
-    this.loggerService.debug(`${this.logName}: in setComponentReady component '${name}' is ready.`);
+    this.loggerService.debug(`${this.logName}: At setComponentReady for component '${this.formFieldConfigName()}'`, this.formFieldCompMapEntry);
     this.status.set(FormFieldComponentStatus.READY);
   }
 
@@ -509,6 +507,10 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   public get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
     return [];
+  }
+
+  public formFieldConfigName(defaultName?: string){
+    return this.formFieldCompMapEntry?.compConfigJson?.name || this.formFieldCompMapEntry?.name || defaultName || '(not set)';
   }
 }
 

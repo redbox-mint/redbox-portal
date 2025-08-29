@@ -8,8 +8,7 @@ import { FormValidatorCreateConfig } from "./form.model";
  * @param value Either an array, set or undefined.
  */
 export function formValidatorLengthOrSize(value: null | string | unknown[] | Set<unknown> | unknown): number | null {
-  // non-strict comparison is intentional, to check for both `null` and `undefined` values
-  if (value == null) {
+  if (value === null || value === undefined) {
     return null;
   } else if (Array.isArray(value) || typeof value === "string") {
     return value.length;

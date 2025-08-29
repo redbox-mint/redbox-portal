@@ -15,10 +15,13 @@ import {APP_BASE_HREF, CommonModule} from "@angular/common";
 import {BrowserModule, Title} from "@angular/platform-browser";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
 import {FormService} from "./form.service";
-import {FormStatus, FormConfig} from "@researchdatabox/sails-ng-common";
+import {FormConfig, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+
+// provide to test the same way as provided to browser
+(window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
 
 export async function createFormAndWaitForReady(formConfig: FormConfig) {
   console.log('createFormAndWaitForReady - starting');

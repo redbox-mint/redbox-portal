@@ -11,6 +11,7 @@ import {
  *
  */
 export abstract class FormModel<ValueType, DefinitionType extends BaseFormFieldModelDefinition<ValueType>> {
+  protected logName = "FormModel";
   // The configuration when the field is created
   public initConfig: DefinitionType;
   // The "live" config
@@ -33,6 +34,7 @@ export abstract class FormModel<ValueType, DefinitionType extends BaseFormFieldM
  *
  */
 export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFieldModelDefinition<ValueType>> {
+  protected override logName = "FormFieldModel";
   // The value when the field is created
   public initValue?: ValueType;
 
@@ -51,7 +53,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFiel
 
     // create the form model
     this.formControl = this.initValue === undefined ? new FormControl() : new FormControl<ValueType>(this.initValue);
-    console.log(`FormFieldModel: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
   }
 
   /**
@@ -94,7 +96,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFiel
     if (this.formControl) {
       return this.formControl;
     } else {
-      throw new Error('Form control is not defined');
+      throw new Error(`${this.logName}: Form control is not defined`);
     }
   }
 
@@ -106,7 +108,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFiel
     // TODO: This method is duplicated in FormService.setValidators, see if they can be collapsed to one place.
     // set validators to the form control
     const validatorFns = this.validators?.filter(v => !!v) ?? [];
-    console.log("FormFieldModel: setting validators to formControl", {
+    console.debug(`${this.logName}: setting validators to formControl`, {
       validators: this.validators,
       formControl: this.formControl
     });

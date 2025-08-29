@@ -137,7 +137,6 @@ export module Services {
           debugValue: formConfig.debugValue,
           domElementType: formConfig.domElementType,
           defaultComponentConfig: formConfig.defaultComponentConfig,
-          validatorDefinitions: formConfig.validatorDefinitions,
           validators: formConfig.validators,
           componentDefinitions: formConfig.componentDefinitions,
         };

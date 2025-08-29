@@ -30,7 +30,7 @@ import {FormBaseWrapperComponent} from "./base-wrapper.component";
  * The model for the Group Component.
  */
 export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
-  private logName = "GroupFieldModel";
+  protected override logName = "GroupFieldModel";
   public override formControl?: FormGroup;
 
   override postCreate(): void {
@@ -49,7 +49,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // This is different from FormComponent, which has no model.
     // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
     this.formControl = new FormGroup({});
-    console.log(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
   }
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>){
@@ -107,8 +107,6 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       componentDefinitions: groupComponentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
-      // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
 
     // Construct the components.

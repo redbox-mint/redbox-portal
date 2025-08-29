@@ -26,7 +26,6 @@ describe('SaveButtonComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              value: 'hello world saved!',
               defaultValue: 'hello world default!'
             }
           },
