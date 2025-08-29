@@ -66,11 +66,16 @@ export class AppComponent implements OnInit {
   displayNameUpdateSuccess = signal(false);
   displayNameUpdateError = signal(false);
 
+  // Language availability save status
+  savingLanguages = signal(false);
+  saveLanguagesSuccess = signal(false);
+  saveLanguagesError = signal(false);
+
   async ngOnInit() {
     await this.svc.waitForInit();
     await this.loadLanguages();
-    // Initialize available languages to show all by default
-    this.availableLanguages.set(this.languages().map(l => l.code));
+    // Load the enabled state from bundles instead of showing all by default
+    await this.loadAvailableLanguagesFromBundles();
   }
 
   private async loadLanguages() {
@@ -84,6 +89,32 @@ export class AppComponent implements OnInit {
     } catch (e) {
       console.error('Failed to load languages', e);
       this.languages.set([]);
+    }
+  }
+
+  private async loadAvailableLanguagesFromBundles() {
+    try {
+      const enabledLanguages: string[] = [];
+      
+      // Load bundle information for each language to check enabled status
+      for (const lang of this.languages()) {
+        try {
+          const bundle = await this.svc.getBundle(lang.code, this.namespace);
+          if (bundle && bundle.enabled !== false) { // Default to enabled if not specified
+            enabledLanguages.push(lang.code);
+          }
+        } catch (e) {
+          console.warn(`Could not load bundle for ${lang.code}, assuming enabled:`, e);
+          // If we can't load the bundle, assume it's enabled (backward compatibility)
+          enabledLanguages.push(lang.code);
+        }
+      }
+      
+      this.availableLanguages.set(enabledLanguages);
+    } catch (e) {
+      console.error('Failed to load available languages from bundles', e);
+      // Fallback: show all languages if we can't load bundle info
+      this.availableLanguages.set(this.languages().map(l => l.code));
     }
   }  async onLangChange() {
     if (!this.selectedLang) return;
@@ -230,7 +261,7 @@ export class AppComponent implements OnInit {
       // Refresh the language list
       await this.loadLanguages();
       
-      // Update available languages to include the new one
+      // Update available languages to include the new one (new languages are enabled by default)
       const currentAvailable = this.availableLanguages();
       const newLangCode = this.newLanguageCode.trim();
       if (!currentAvailable.includes(newLangCode)) {
@@ -325,6 +356,52 @@ export class AppComponent implements OnInit {
       if (this.selectedLang) {
         this.onLangChange();
       }
+    }
+  }
+
+  toggleAvailableLanguage(code: string, checked: boolean) {
+    const current = this.availableLanguages();
+    if (checked) {
+      if (!current.includes(code)) {
+        this.availableLanguages.set([...current, code]);
+      }
+    } else {
+      this.availableLanguages.set(current.filter(c => c !== code));
+    }
+    this.onAvailableLanguagesChange();
+  }
+
+  async saveLanguages() {
+    if (this.savingLanguages()) return;
+    
+    try {
+      this.savingLanguages.set(true);
+      this.saveLanguagesSuccess.set(false);
+      this.saveLanguagesError.set(false);
+      
+      // Update enabled status for each language bundle
+      const updatePromises = this.languages().map(lang => {
+        const enabled = this.isLanguageAvailable(lang.code);
+        return this.svc.updateBundleEnabled(lang.code, 'translation', enabled);
+      });
+      
+      await Promise.all(updatePromises);
+      
+      this.savingLanguages.set(false);
+      this.saveLanguagesSuccess.set(true);
+      // Auto-hide success after a short delay
+      setTimeout(() => this.saveLanguagesSuccess.set(false), 5000);
+      
+      // Refresh the languages list and available languages to get updated data
+      await this.loadLanguages();
+      await this.loadAvailableLanguagesFromBundles();
+      
+    } catch (e) {
+      console.error('Failed to save language settings', e);
+      this.savingLanguages.set(false);
+      this.saveLanguagesError.set(true);
+      // Auto-hide error after delay
+      setTimeout(() => this.saveLanguagesError.set(false), 8000);
     }
   }
 

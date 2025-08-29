@@ -4,22 +4,42 @@
     <div class="panel-body">
       <div class="row">
         <div class="col-md-5">
-          
+
           <div>
-            <button type="button" class="btn btn-primary" (click)="openLanguageModal()">
+            <button type="button" class="btn btn-large btn-primary" (click)="openLanguageModal()">
               <i class="fa fa-plus"></i> Create New Language
             </button>
           </div>
         </div>
       </div>
       <div class="row">
-       <div class="col-md-3">
+        <div class="col-md-3">
           <label class="form-label">Available Languages</label>
-          <select class="form-select" multiple [(ngModel)]="availableLanguages" (change)="onAvailableLanguagesChange()"
-            size="4" style="min-height: 100px;">
-            <option *ngFor="let lang of languages()" [value]="lang.code">{{ lang.displayName }}</option>
-          </select>
-          <small class="form-text text-muted">Select which languages to show in the dropdown</small>
+          <div style="min-height: 100px;">
+            <div *ngFor="let lang of languages()" class="form-check">
+              <input class="form-check-input" type="checkbox" [id]="'lang-' + lang.code" [value]="lang.code"
+                [checked]="availableLanguages().includes(lang.code)"
+                (change)="toggleAvailableLanguage(lang.code, $any($event.target).checked)" />
+              <label class="form-check-label" [for]="'lang-' + lang.code">{{ lang.displayName }}</label>
+            </div>
+          </div>
+          <small class="form-text text-muted">Select which languages you'd like to have available to users</small>
+        </div>
+      </div>
+         <div class="row">
+        <div class="col-md-3">
+         <button type="button" class="btn btn-large btn-primary" (click)="saveLanguages()" [disabled]="savingLanguages()">
+               <span *ngIf="!savingLanguages()">Save</span>
+               <span *ngIf="savingLanguages()"><i class="fa fa-spinner fa-spin"></i> Saving...</span>
+         </button>
+        </div>
+        <div class="col-md-9">
+          <div *ngIf="saveLanguagesSuccess()" class="alert alert-success">
+            <i class="fa fa-check"></i> Language settings saved successfully!
+          </div>
+          <div *ngIf="saveLanguagesError()" class="alert alert-danger">
+            <i class="fa fa-exclamation-triangle"></i> Failed to save language settings. Please try again.
+          </div>
         </div>
       </div>
     </div>
@@ -30,27 +50,33 @@
     <div class="panel-heading">Manage Translations</div>
     <div class="panel-body">
 
-
       <div class="row g-3 mb-3">
-        <div class="col-md-3">
-          <label class="form-label">Language</label>
-          <select class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
-            <option *ngFor="let lang of getFilteredLanguages()" [value]="lang.code">{{ lang.displayName }}</option>
-          </select>
-          <div class="mt-2" *ngIf="selectedLang">
-            <button type="button" class="btn btn-sm btn-outline-primary" (click)="openDisplayNameModal()">
-              <i class="fa fa-edit"></i> Edit Display Name
-            </button>
+        <div class="col-md-6">
+          <div class="d-flex align-items-center">
+            <label class="form-label me-2 mb-0">Language</label>
+            <select class="form-select flex-grow-1" [(ngModel)]="selectedLang" (change)="onLangChange()">
+              <option *ngFor="let lang of getFilteredLanguages()" [value]="lang.code">{{ lang.displayName }}</option>
+            </select>
           </div>
         </div>
-        <div class="col-md-3" *ngIf="selectedLang">
-          <label class="form-label">Filter by category</label>
-          <select class="form-select" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
+
+        <div class="col-md-5">
+          <button type="button" class="btn btn-large btn-primary" (click)="openDisplayNameModal()">Edit Language Display Name
+          </button>
+        </div>
+      </div>
+    
+    <div class="row g-3 mb-3">
+      <div class="col-md-6" *ngIf="selectedLang">
+        <div class="d-flex align-items-center">
+          <label class="form-label me-2 mb-0">Filter by category</label>
+          <select class="form-select flex-grow-1" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
             <option value="">All categories</option>
             <option *ngFor="let c of categories()" [value]="c">{{ c }}</option>
           </select>
         </div>
       </div>
+
       <!-- Status Alerts -->
       <p class="alert-info text-16 padding-10 mt-2" *ngIf="saving()">Saving translation <i
           class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>

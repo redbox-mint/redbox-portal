@@ -591,5 +591,9 @@ module.exports.routes = {
   'post /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
     controller: 'TranslationController',
     action: 'setBundleApp'
+  },
+  'post /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled': {
+    controller: 'webservice/TranslationController',
+    action: 'updateBundleEnabled'
   }
 };

@@ -42,6 +42,7 @@ export module Services {
       'listEntries',
       'getBundle',
       'setBundle',
+      'updateBundleEnabled',
       'listBundles',
       'composeNamespace',
       'syncEntriesFromBundle',
@@ -319,6 +320,27 @@ export module Services {
       } catch (e) {
         sails.log.warn('[I18nEntriesService.setBundle] Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
+      return bundle;
+    }
+
+    public async updateBundleEnabled(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      enabled: boolean
+    ): Promise<any> {
+      const brandingId = this.resolveBrandingId(branding);
+      
+      const bundle = await I18nBundle.updateOne({ 
+        branding: brandingId, 
+        locale, 
+        namespace 
+      }).set({ enabled });
+      
+      if (!bundle) {
+        throw new Error(`Bundle not found for branding: ${brandingId}, locale: ${locale}, namespace: ${namespace}`);
+      }
+      
       return bundle;
     }
 

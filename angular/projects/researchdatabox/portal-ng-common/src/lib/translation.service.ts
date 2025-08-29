@@ -228,6 +228,14 @@ export class TranslationService extends HttpClientService implements Service {
     return firstValueFrom(req$);
   }
 
+  /** Update the enabled status of a language bundle */
+  public async updateBundleEnabled(locale: string, namespace: string, enabled: boolean): Promise<any> {
+    await this.waitForInit();
+    const url = `${this.brandingAndPortalUrl}/app/i18n/bundles/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/enabled`;
+    const req$ = this.http.post(url, { enabled }, this.requestOptions).pipe(map(res => res));
+    return firstValueFrom(req$);
+  }
+
   /** Create a new language by copying from English (or specified source language) */
   public async createLanguage(newLocale: string, sourceLocale = 'en', namespace = 'translation', displayName?: string): Promise<any> {
     try {

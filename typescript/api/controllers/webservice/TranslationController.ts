@@ -41,7 +41,8 @@ export module Controllers {
       'setEntry',
       'deleteEntry',
       'getBundle',
-      'setBundle'
+      'setBundle',
+      'updateBundleEnabled'
     ];
 
     public async listEntries(req, res) {
@@ -145,6 +146,23 @@ export module Controllers {
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      }
+    }
+
+    public async updateBundleEnabled(req, res) {
+      try {
+        const brandName: string = BrandingService.getBrandFromReq(req);
+        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const locale = req.param('locale');
+        const namespace = req.param('namespace') || 'translation';
+        const enabled = req.param('enabled') === 'true' || req.body?.enabled === true;
+
+        const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
+        // Refresh i18n cache after bundle update
+        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', e?.message || e); }
+        return this.ajaxRespond(req, res, bundle, 200);
+      } catch (error) {
+        return this.ajaxFail(req, res, error.message, null, false);
       }
     }
   }
