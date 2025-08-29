@@ -26,6 +26,13 @@ const defaultPolicies = [
   'checkAuth'
 ];
 const noCachePlusDefaultPolicies = ['noCache', ...defaultPolicies];
+const publicTranslationPolicies = [
+  'noCache',
+  'brandingAndPortal',
+  'checkBrandingValid',
+  'setLang',
+  'prepWs'
+];
 module.exports.policies = {
 
   /***************************************************************************
@@ -77,17 +84,11 @@ module.exports.policies = {
   'DynamicAssetController': {
     '*': noCachePlusDefaultPolicies
   },
-  // Allow public access to i18n resources served by TranslationController
-  // Keep branding/context setup, but skip authentication policies so the
-  // frontend can load translations before login.
+  // Ensure checkAuth runs on translation endpoints that modify data
+  // Keep read-only translation endpoints public for frontend access
   'TranslationController': {
-    '*': [
-      'noCache',
-      'brandingAndPortal',
-      'checkBrandingValid',
-      'setLang',
-      'prepWs'
-    ]
+    '*': noCachePlusDefaultPolicies,
+    'getNamespace': publicTranslationPolicies
   },
   '*': defaultPolicies
 };
