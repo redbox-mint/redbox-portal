@@ -238,13 +238,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       let regexStr: string;
       if (typeof pattern === "string") {
         regexStr = "";
-
-        if (pattern.charAt(0) !== "^") regexStr += "^";
-
+        if (pattern.charAt(0) !== "^") regexStr = ("^" + regexStr);
         regexStr += pattern;
-
-        if (pattern.charAt(pattern.length - 1) !== "$") regexStr += "$";
-
+        if (pattern.charAt(pattern.length - 1) !== "$") regexStr = (regexStr + "$");
         regex = new RegExp(regexStr);
       } else if (pattern instanceof RegExp) {
         regexStr = pattern.toString();

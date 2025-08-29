@@ -2,7 +2,6 @@ import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {formValidatorsSharedDefinitions} from "../../../../../../../typescript/config/validators";
 import {SimpleInputComponent} from "./simpleinput.component";
 
 describe('ValidationSummaryFieldComponent', () => {

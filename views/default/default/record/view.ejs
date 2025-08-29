@@ -25,5 +25,5 @@ var currentMinute = sails.config.startupMinute;
 <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/dmp/styles.bundle.css?ts=<%= currentMinute %>">
 <% } %>
-<!-- validation and expression functions -->
+<!-- app js and css bundle -->
 <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>

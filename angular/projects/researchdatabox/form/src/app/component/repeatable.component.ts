@@ -134,10 +134,11 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // set the names of the components
     // logic: if the name is not set, use the component name from the template, or a default name (appending 'layout', where applicable), and append the localUniqueId to ensure uniqueness.
     if (_isEmpty(elemEntry.compConfigJson.name)) {
-      elemEntry.compConfigJson.name = `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-${localUniqueId}`;
+
+      elemEntry.compConfigJson.name = `${this.formFieldConfigName('repeatable')}-${localUniqueId}`;
     }
     if (_isEmpty(elemEntry.compConfigJson.layout?.name)) {
-      _set(elemEntry, 'compConfigJson.layout.name', `${this.formFieldCompMapEntry?.compConfigJson?.name || 'repeatable'}-layout-${localUniqueId}`);
+      _set(elemEntry, 'compConfigJson.layout.name', `${this.formFieldConfigName('repeatable')}-layout-${localUniqueId}`);
     }
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry);
@@ -227,7 +228,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
-  private logName = "RepeatableComponentModel";
+  protected override logName = "RepeatableComponentModel";
   public override formControl?: FormArray;
 
   public override postCreate(): void {
@@ -245,7 +246,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const modelElems: AbstractControl[] = [];
 
     this.formControl = new FormArray(modelElems);
-    console.log(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value '${this.initValue}'`);
+    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
   }
 
   public addElement(targetModel?: FormFieldModel<unknown>){
