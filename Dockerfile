@@ -1,5 +1,5 @@
 FROM node:24.2.0
-ENV node_env production
+ENV node_env=production
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin
 ENV NODE_ENV=$node_env
