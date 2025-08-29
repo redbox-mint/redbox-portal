@@ -4,7 +4,7 @@ networks:
 
 services:
   bruno:
-    image: node:20.13.1-buster
+    image: node:24.2.0-bullseye
     pull_policy: 'always'
     volumes:
       - "../..:/opt/redbox-portal"
@@ -19,16 +19,16 @@ services:
          - bruno
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal/test/bruno && 
-      npm install -g @usebruno/cli@1.34.1 &&
       npm install && 
-      bru run 
+      npx @usebruno/cli@1.34.1 run 
       --env int-test 
       --format junit 
       --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno.xml 
       --bail"
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
+    image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'always'
+    user: root
     ports:
        - "1500:1500"
       # Debugging port
@@ -36,6 +36,7 @@ services:
     volumes:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
+       - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'
@@ -68,17 +69,17 @@ services:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
     init: true
-    entrypoint: >-
-      /bin/bash -c "cd /opt/redbox-portal &&
-      ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
+    entrypoint: |
+      /bin/bash -c "
+      cd /opt/redbox-portal &&
+      # Fix permissions for mounted files - make them world-writable temporarily
+      chmod 666 package-lock.json 2>/dev/null || true &&
+      chmod -R 777 node_modules/ 2>/dev/null || true &&
+      chmod -R 777 .tmp/ 2>/dev/null || true &&
       npm install -g nyc &&
       npm install &&
-      nyc
-      --no-clean
-      --report-dir coverage/bruno
-      --reporter=lcov
-      --exclude-after-remap=false
-      node app.js"
+      nyc --no-clean --report-dir coverage/bruno --reporter=lcov --exclude-after-remap=false node app.js
+      "
   mongodb:
     image: mongo:latest
     pull_policy: 'always'
