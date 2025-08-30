@@ -19,9 +19,10 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Returns array including 'en'", function () {
+  test("Returns array containing object with code 'en'", function () {
       var data = res.getBody();
       expect(Array.isArray(data)).to.equal(true);
-      expect(data).to.include("en");
+      var hasEn = data.some(function(item){ return item && item.code === 'en'; });
+      expect(hasEn).to.equal(true);
   });
 }
