@@ -19,8 +19,8 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("hello.world reflects updated value", function () {
+  test("hello-world reflects updated value", function () {
       var data = res.getBody();
-      expect(data.hello.world).to.equal("Hello World!!");
+      expect(data.hello-world).to.equal("Hello World!!");
   });
 }

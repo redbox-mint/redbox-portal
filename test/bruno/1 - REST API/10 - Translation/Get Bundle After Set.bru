@@ -19,11 +19,11 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Bundle has data and _meta for hello.world", function () {
+  test("Bundle has data and _meta for hello-world", function () {
       var data = res.getBody();
       expect(data).to.have.property("data");
       expect(data.data).to.have.property("_meta");
-      expect(data.data._meta).to.have.property("hello.world");
-      expect(data.data._meta["hello.world"].category).to.equal("test");
+      expect(data.data._meta).to.have.property("hello-world");
+      expect(data.data._meta["hello-world"].category).to.equal("test");
   });
 }
