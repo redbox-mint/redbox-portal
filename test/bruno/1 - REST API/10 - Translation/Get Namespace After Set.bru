@@ -21,6 +21,6 @@ tests {
   
   test("hello-world reflects updated value", function () {
       var data = res.getBody();
-      expect(data.hello-world).to.equal("Hello World!!");
+      expect(data["hello-world"]).to.equal("Hello World!!");
   });
 }

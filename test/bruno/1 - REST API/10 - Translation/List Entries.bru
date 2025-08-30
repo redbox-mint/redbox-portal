@@ -19,9 +19,9 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Includes hello.world entry", function () {
+  test("Includes hello.world2 entry", function () {
       var data = res.getBody();
       var keys = data.map(function (e) { return e.key; });
-      expect(keys).to.include("hello.world");
+      expect(keys).to.include("hello.world2");
   });
 }
