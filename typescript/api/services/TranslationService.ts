@@ -232,10 +232,13 @@ export module Services {
       return resources;
     }
 
-    public t(key, context = undefined, langCode:string = 'en', brandingId: string = 'default') {
-      const i18nextInstance = this.i18nextInstances[brandingId] || this.i18nextInstances['default'];
+    public t(key, context = undefined, langCode: string = 'en', brandingName: string = 'default') {
+      const brand = BrandingService.getBrand(brandingName);
+
+      const i18nextInstance = this.i18nextInstances[brand.id];
+
       if (!i18nextInstance) {
-        sails.log.warn(`No i18next instance found for branding: ${brandingId}, falling back to key`);
+        sails.log.warn(`No i18next instance found for brand name: ${brandingName}, branding id: ${brand.id}, falling back to key`);
         return key;
       }
       return i18nextInstance.getFixedT(langCode)(key, context);
