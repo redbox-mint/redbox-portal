@@ -393,58 +393,6 @@ export module Services {
       }
     }
 
-    /**
-     * Get available languages for a branding (synchronous for template use)
-     */
-    public getAvailableLanguages(branding: BrandingModel): string[] {
-      try {
-        const brandingId = this.resolveBrandingId(branding);
-        const langs = new Set<string>();
-        
-        // Add configured languages as fallback
-        const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
-        if (Array.isArray(configured)) {
-          configured.forEach((l: string) => {
-            if (l && l !== 'cimode') langs.add(l);
-          });
-        }
-
-        // For synchronous template use, we return configured languages
-        // The async version getAvailableLanguagesAsync should be used for dynamic DB queries
-        const list = Array.from(langs);
-        list.sort();
-        return list;
-      } catch (e) {
-        this.logger.warn('Error:', (e as Error)?.message || e);
-        return ['en']; // fallback
-      }
-    }
-
-    /**
-     * Get available languages for a branding (async version with DB query)
-     */
-    public async getAvailableLanguagesAsync(branding: BrandingModel): Promise<string[]> {
-      try {
-        const brandingId = this.resolveBrandingId(branding);
-        const langs = new Set<string>();
-
-        try {
-          const bundles = await I18nBundle.find({ branding: brandingId });
-          bundles.forEach((b: any) => {
-            if (b?.locale) langs.add(b.locale);
-          });
-        } catch (e) {
-          this.logger.debug('DB query failed:', (e as Error)?.message || e);
-        }
-
-        const list = Array.from(langs);
-        list.sort();
-        return list;
-      } catch (e) {
-        this.logger.warn('Error:', (e as Error)?.message || e);
-        return ['en']; // fallback
-      }
-    }
 
     /**
      * Load centralized metadata from language-defaults/meta.json
