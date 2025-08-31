@@ -163,4 +163,45 @@ describe('I18nEntriesService', function () {
   it('bootstrap runs without throwing (skips if defaults missing)', async function () {
     await I18nEntriesService.bootstrap();
   });
+
+  it('updateBundleEnabled enables and disables bundles correctly', async function () {
+    // First create a bundle to test with
+    const testBundle = await I18nEntriesService.setBundle(branding, locale, ns + '-enabled-test', dataV1);
+    expect(testBundle).to.be.ok;
+    expect(testBundle).to.have.property('enabled', true); // Bundles are enabled by default
+
+    // Disable the bundle
+    const disabledBundle = await I18nEntriesService.updateBundleEnabled(branding, locale, ns + '-enabled-test', false);
+    expect(disabledBundle).to.be.ok;
+    expect(disabledBundle).to.have.property('enabled', false);
+    expect(disabledBundle).to.have.property('locale', locale);
+    expect(disabledBundle).to.have.property('namespace', ns + '-enabled-test');
+
+    // Verify the change persisted by fetching the bundle again
+    const fetchedDisabled = await I18nEntriesService.getBundle(branding, locale, ns + '-enabled-test');
+    expect(fetchedDisabled).to.have.property('enabled', false);
+
+    // Re-enable the bundle
+    const enabledBundle = await I18nEntriesService.updateBundleEnabled(branding, locale, ns + '-enabled-test', true);
+    expect(enabledBundle).to.be.ok;
+    expect(enabledBundle).to.have.property('enabled', true);
+
+    // Verify the change persisted
+    const fetchedEnabled = await I18nEntriesService.getBundle(branding, locale, ns + '-enabled-test');
+    expect(fetchedEnabled).to.have.property('enabled', true);
+  });
+
+  it('updateBundleEnabled throws error for non-existent bundle', async function () {
+    try {
+      await I18nEntriesService.updateBundleEnabled(branding, 'nonexistent', 'locale', true);
+      expect.fail('Should have thrown an error for non-existent bundle');
+    } catch (error) {
+      expect(error).to.be.an('error');
+      expect(error.message).to.include('Bundle not found');
+      expect(error.message).to.include('nonexistent');
+      expect(error.message).to.include('locale');
+    }
+  });
+
+  
 });
