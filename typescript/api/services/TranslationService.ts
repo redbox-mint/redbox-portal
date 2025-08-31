@@ -55,7 +55,10 @@ export module Services {
      * Get or create an i18next instance for a specific branding
      */
     private async getI18nextForBranding(branding: BrandingModel): Promise<any> {
-      const brandingId = branding?.id || 'default';
+      if (!branding) {
+        branding = BrandingService.getBrand('default');
+      }
+      const brandingId = branding?.id;
       
       if (this.i18nextInstances[brandingId]) {
         return this.i18nextInstances[brandingId];
