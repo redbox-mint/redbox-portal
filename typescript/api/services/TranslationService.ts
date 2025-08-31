@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs';
-import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
+import {BrandingModel, PopulateExportedMethods, Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import i18next from "i18next"
 
@@ -36,17 +36,8 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
+  @PopulateExportedMethods
   export class Translation extends services.Core.Service {
-
-    protected _exportedMethods: any = [
-      'bootstrap',
-      't',
-      'reloadResources',
-      'tInter',
-      'handle',
-      'getAvailableLanguagesForBranding',
-      'clearInstances'
-    ];
 
     // Map of i18next instances per branding
     private i18nextInstances: any = {};

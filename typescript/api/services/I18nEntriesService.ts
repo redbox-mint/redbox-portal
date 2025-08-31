@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Services as services, BrandingModel } from '@researchdatabox/redbox-core-types';
+import { Services as services, BrandingModel, PopulateExportedMethods } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from 'sails';
 
 declare var sails: Sails;
@@ -34,30 +34,11 @@ export module Services {
    * - Per-key entries in I18nTranslation
    * - Whole-namespace bundles in I18nBundle
    */
+  @PopulateExportedMethods
   export class I18nEntries extends services.Core.Service {
     constructor() {
       super();
-      // Logger is now inherited from CoreService
     }
-
-    protected _exportedMethods: any = [
-      'getEntry',
-      'setEntry',
-      'deleteEntry',
-      'listEntries',
-      'getBundle',
-      'setBundle',
-      'updateBundleEnabled',
-      'listBundles',
-      'composeNamespace',
-      'syncEntriesFromBundle',
-      'bootstrap',
-      'getAvailableLanguages',
-      'getAvailableLanguagesAsync',
-      'loadCentralizedMeta',
-      'loadLanguageNames',
-      'getLanguageDisplayName'
-    ];
     
   /**
    * Seed default i18n bundles into DB from language-defaults for the default brand.

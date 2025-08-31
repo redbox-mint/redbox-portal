@@ -5,6 +5,7 @@ declare var sails;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as  _ from 'lodash';
+import { ILogger } from './Logger';
 
 export module Services.Core {
   export class Service {
@@ -25,7 +26,7 @@ export module Services.Core {
     protected logHeader: string;
     
     // Namespaced logger for services
-    private _logger: any;
+    private _logger: ILogger;
     
     /**
      * Get a namespaced logger for this service class.
@@ -37,7 +38,7 @@ export module Services.Core {
         const serviceName = this.constructor.name + 'Service';
         this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
       }
-      return this._logger || sails.log; // Fallback to sails.log if pino not available
+      return this._logger || sails.log || console; // Fallback to sails.log or console if pino not available
     }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
@@ -58,7 +59,7 @@ export module Services.Core {
 
     constructor() {
       this.processDynamicImports().then(result => {
-        sails.log.verbose("Dynamic imports imported");
+        this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
       })
     }
@@ -103,7 +104,7 @@ export module Services.Core {
           }
         
         });
-        console.error("Exported Methods for Mocha Testing: ", exportedMethods);
+        this.logger.error("Exported Methods for Mocha Testing: ", exportedMethods);
       } else {
       // Merge default array and custom array from child.
       let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
@@ -121,10 +122,10 @@ export module Services.Core {
               exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            console.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
           }
         } else {
-          console.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
         }
       }
       }
@@ -153,7 +154,7 @@ export module Services.Core {
       };
 
       if (!user) {
-        console.trace("No user in metTriggerCondition");
+        this.logger.trace("No user in metTriggerCondition");
       }
       if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
         const compiled = _.template(triggerCondition, variables);
