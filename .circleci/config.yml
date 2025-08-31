@@ -81,7 +81,7 @@ jobs:
   test:
     machine:
       image: ubuntu-2004:current
-    resource_class: xlarge
+    resource_class: large
     steps:
       - attach_workspace:
           at: /home/circleci/project
@@ -106,10 +106,19 @@ jobs:
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
             cd support/integration-testing
-            npm run test:bruno
-            npm run test:bruno:clean
+            echo "Starting Bruno tests..."
+            timeout 1800s npm run test:bruno &
+            BRUNO_PID=$!
+            echo "Waiting for Bruno tests to complete..."
+            wait $BRUNO_PID
+            BRUNO_EXIT_CODE=$?
+            echo "Bruno tests finished with exit code: $BRUNO_EXIT_CODE"
+            echo "Cleaning up containers..."
+            timeout 120s npm run test:bruno:clean || (echo "Force stopping containers..." && docker compose -f ./docker-compose.bruno.yml down --timeout 30 --remove-orphans)
+            echo "Starting Mocha tests..."
             npm run test:mocha
-            npm run test:mocha:clean
+            echo "Mocha tests completed, cleaning up..."
+            timeout 60s npm run test:mocha:clean || (echo "Force stopping containers..." && docker compose -f ./docker-compose.mocha.yml down --timeout 30 --remove-orphans)
       - run:
           name: Upload Bruno and mocha code coverage
           command: |
