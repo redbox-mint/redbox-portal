@@ -35,6 +35,11 @@ export module Services {
    * - Whole-namespace bundles in I18nBundle
    */
   export class I18nEntries extends services.Core.Service {
+    constructor() {
+      super();
+      // Logger is now inherited from CoreService
+    }
+
     protected _exportedMethods: any = [
       'getEntry',
       'setEntry',
@@ -82,7 +87,7 @@ export module Services {
         // Default brand
         const defaultBrand: BrandingModel | null = BrandingService.getBrand('default');
         if (!defaultBrand) {
-          sails.log.warn('[I18nEntriesService.bootstrap] Default brand not found, skipping seeding');
+          this.logger.warn('Default brand not found, skipping seeding');
           return;
         }
 
@@ -100,19 +105,19 @@ export module Services {
               if (!existing) {
                 // First-time seed: create bundle and split to entries (no overwrite)
                 await this.setBundle(defaultBrand, lng, ns, json, undefined, { splitToEntries: true, overwriteEntries: false });
-                sails.log.verbose(`[I18nEntriesService.bootstrap] Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
+                this.logger.debug(`Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
               } else {
                 // Incremental: add any new keys found in defaults into entries; do not touch bundle data
                 await this.syncEntriesFromBundle({ branding: defaultBrand, locale: lng, namespace: ns, id: existing.id, data: json }, false);
-                sails.log.verbose(`[I18nEntriesService.bootstrap] Synced new keys for ${defaultBrand.id}:${lng}:${ns}`);
+                this.logger.debug(`Synced new keys for ${defaultBrand.id}:${lng}:${ns}`);
               }
             } catch (e) {
-              sails.log.verbose('[I18nEntriesService.bootstrap] Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
+              this.logger.debug('Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
             }
           }
         }
       } catch (err) {
-        sails.log.warn('I18nEntriesService.bootstrap failed:', (err as Error)?.message || err);
+        this.logger.warn('I18nEntriesService.bootstrap failed:', (err as Error)?.message || err);
       }
     }
 
@@ -236,7 +241,7 @@ export module Services {
           await I18nBundle.updateOne({ id: bundle.id }).set({ data });
         }
       } catch (e) {
-        sails.log.warn('[I18nEntriesService.setEntry] Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
+        this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
 
       return saved;
@@ -255,7 +260,7 @@ export module Services {
             await I18nBundle.updateOne({ id: bundle.id }).set({ data: bundle.data });
           }
         } catch (e) {
-          sails.log.warn('[I18nEntriesService.deleteEntry] Bundle sync (remove) failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
+          this.logger.warn('Bundle sync (remove) failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
         }
       }
       return !!deleted;
@@ -318,7 +323,7 @@ export module Services {
       try {
         await this.syncEntriesFromBundle(bundle, true /* overwrite */);
       } catch (e) {
-        sails.log.warn('[I18nEntriesService.setBundle] Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
+        this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
       return bundle;
     }
@@ -402,7 +407,7 @@ export module Services {
         try {
       await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
         } catch (e) {
-          sails.log.warn('[I18nEntriesService.syncEntriesFromBundle] Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
+          this.logger.warn('Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
       }
     }
@@ -429,7 +434,7 @@ export module Services {
         list.sort();
         return list;
       } catch (e) {
-        sails.log.warn('[I18nEntriesService.getAvailableLanguages] Error:', (e as Error)?.message || e);
+        this.logger.warn('Error:', (e as Error)?.message || e);
         return ['en']; // fallback
       }
     }
@@ -448,14 +453,14 @@ export module Services {
             if (b?.locale) langs.add(b.locale);
           });
         } catch (e) {
-          sails.log.verbose('[I18nEntriesService.getAvailableLanguagesAsync] DB query failed:', (e as Error)?.message || e);
+          this.logger.debug('DB query failed:', (e as Error)?.message || e);
         }
 
         const list = Array.from(langs);
         list.sort();
         return list;
       } catch (e) {
-        sails.log.warn('[I18nEntriesService.getAvailableLanguagesAsync] Error:', (e as Error)?.message || e);
+        this.logger.warn('Error:', (e as Error)?.message || e);
         return ['en']; // fallback
       }
     }
@@ -475,7 +480,7 @@ export module Services {
         }
         return {};
       } catch (e) {
-        sails.log.warn('[I18nEntriesService.loadCentralizedMeta] Error loading meta.json:', (e as Error)?.message || e);
+        this.logger.warn('Error loading meta.json:', (e as Error)?.message || e);
         return {};
       }
     }
@@ -495,7 +500,7 @@ export module Services {
         }
         return {};
       } catch (e) {
-        sails.log.warn('[I18nEntriesService.loadLanguageNames] Error loading language-names.json:', (e as Error)?.message || e);
+        this.logger.warn('Error loading language-names.json:', (e as Error)?.message || e);
         return {};
       }
     }

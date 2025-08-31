@@ -23,6 +23,22 @@ export module Services.Core {
     ];
 
     protected logHeader: string;
+    
+    // Namespaced logger for services
+    private _logger: any;
+    
+    /**
+     * Get a namespaced logger for this service class.
+     * Uses the class constructor name as the namespace.
+     * Falls back to sails.log if pino namespaced logging is not available.
+     */
+    protected get logger() {
+      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+        const serviceName = this.constructor.name + 'Service';
+        this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
+      }
+      return this._logger || sails.log; // Fallback to sails.log if pino not available
+    }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
     */
