@@ -41,6 +41,10 @@ export interface FormComponentDefinition {
      * Constraints / prerequisites for this component to be included in the form definition.
      */
     constraints?: FormConstraintConfig;
+    /**
+     * Overrides for the default form component definitions for each form mode.
+     */
+    modeOverrides?:{ [key in FormModesConfig]: FormComponentDefinition };
 }
 
 export type ExpressionsConfig = Record<string, { template: string; condition?: any }>;
