@@ -150,3 +150,35 @@ export interface FormValidatorSummaryErrors {
    */
   parents: string[] | null;
 }
+
+/**
+ * Form validator profiles, where the key is the identifier, and the value is the definition.
+ */
+export interface FormValidatorProfiles {
+    [key: string] : FormValidatorProfile
+}
+
+/**
+ * A form validator profile, which specifies which fields to validate (include) or not validate (exclude),
+ * and describes the purpose or usage of the profile.
+ */
+export interface FormValidatorProfile {
+    /**
+     * A short description of the purpose or usage of the validation profile.
+     */
+    description?: string;
+    /**
+     * A list of the field names to validate.
+     * This list defines the maximum possible list of fields.
+     * Processed before the exclude list, which means some fields might be filtered out by the exclude list.
+     * Use 'include: []' by itself to validate none of the fields.
+     */
+    include?: string[];
+    /**
+     * A list of the field names to not validate.
+     * This list defines the minimum fields to remove.
+     * Processed after the include list, which means some fields might be validated due to the include list.
+     * Use 'exclude: []' by itself to validate all fields.
+     */
+    exclude?: string[];
+}
