@@ -139,8 +139,12 @@ export module Controllers {
     }
 
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {
-      res.set('Content-Type', sails.config.dynamicasset[assetId].type);
-      return res.view(sails.config.dynamicasset[assetId].view, viewContext);
+      const dynamicAssetInfo = sails.config.dynamicasset[assetId];
+      if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
+        return res.notFound();
+      }
+      res.set('Content-Type', dynamicAssetInfo.type);
+      return res.view(dynamicAssetInfo.view, viewContext);
     }
     /**
      **************************************************************************************************
