@@ -317,7 +317,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
               return null; // don't validate empty values to allow optional controls
           }
           const value = control.value?.toString();
-          const success = evaluator(control)
+          let success: boolean;
+          try {
+              success = evaluator(control)
+          } catch (err) {
+              success = false;
+              console.error(`Validator 'jsonata-expression' could not run due to error: ${err}`);
+          }
           return success
               ? null
               : {
