@@ -54,6 +54,12 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      angular-major:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+        update-types:
+          - "major"
   - package-ecosystem: "npm"
     directory: "/angular-legacy"
     schedule:
@@ -67,3 +73,9 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      angular-legacy-major:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+        update-types:
+          - "major"
