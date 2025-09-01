@@ -1,6 +1,6 @@
 import {TemplateCompileItem} from "@researchdatabox/sails-ng-common";
 
-export const templateCompileKind = ["jsonata", "handlebars", "formValidatorDefinitions"] as const;
+export const templateCompileKind = ["jsonata", "handlebars"] as const;
 
 export type TemplateCompileKind = typeof templateCompileKind[number];
 

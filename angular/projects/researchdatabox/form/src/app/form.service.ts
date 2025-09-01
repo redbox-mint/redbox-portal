@@ -49,6 +49,7 @@ import {
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 
+// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
 
 /**
@@ -530,26 +531,24 @@ export class FormService extends HttpClientService {
   }
 
   public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
+    // TODO: Use this script to validate the form data model structure matches the form config.
     const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
   public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
+    // TODO: Use this script to validate the form data model values match the form config.
     const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
   public async getDynamicImportFormExpressions(recordType: string, oid: string) {
+    // TODO: Use this script to run the form data model expressions.
     const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
-  }
-  public async getDynamicImportFormValidationDefinitions(recordType: string, oid: string): Promise<FormValidatorDefinition[]> {
-    const path = ['js', 'client-script.js'];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-    return result.formValidatorDefinitions;
   }
 }
 

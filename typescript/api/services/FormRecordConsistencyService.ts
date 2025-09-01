@@ -471,7 +471,8 @@ export module Services {
             original: { redboxOid: string, [key: string]: unknown },
             changes: FormRecordConsistencyChange[],
         ): Promise<FormConfig> {
-            // TODO
+            // TODO: Use the record and form config and/or changes between the record and form config
+            //  to build a new form config that displays only the changes.
             return {};
         }
 
@@ -481,7 +482,7 @@ export module Services {
          * @param record The record data, including the record type.
          */
         public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
-            // TODO
+            // TODO: Validate that the record structure matches the form config.
             return [];
         }
 
@@ -491,7 +492,7 @@ export module Services {
          * @param record The record data, including the record type.
          */
         public async validateRecordValues(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
-            // TODO
+            // TODO: Validate that the record values match the form config.
             return [];
         }
 

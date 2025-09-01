@@ -75,7 +75,8 @@ export module Controllers {
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO
+      // TODO: Provide the client script that can validate the form data model matches the form config.
+      //  Similar to FormRecordConsistency.validateRecordSchema.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -86,7 +87,8 @@ export module Controllers {
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO
+      // TODO: Provide the client script that can validate the form data model values match the form config types.
+      //  Similar to FormRecordConsistency.validateRecordValues.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -97,7 +99,7 @@ export module Controllers {
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO
+      // TODO: Provide the client script that can run the form expressions as jsonata expressions.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -105,7 +107,7 @@ export module Controllers {
     public getAdminReportTemplates(req, res) {
       const reportName = req.param("reportName") || "";
       const apiVersion = this.getApiVersion(req);
-      // TODO
+      // TODO: Provide the client script that can run the report expressions as jsonata expressions.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -114,7 +116,7 @@ export module Controllers {
       const recordType = req.param("name") || "";
       const workflowStage = req.param("workflowStage") || "";
       const apiVersion = this.getApiVersion(req);
-      // TODO
+      // TODO: Provide the client script that can run the dashboard expressions as jsonata expressions.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
