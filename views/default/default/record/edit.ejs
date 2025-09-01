@@ -29,17 +29,14 @@
     </div>
   </div>
   <<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>" ></<%= appSelector %>>
-  <!-- DateTime Picker Deps -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-datepicker.js"></script>
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-timepicker.js"></script>
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js"></script>
-  <script src='<%= BrandingService.getBrandAndPortalPath(req) %>/js/v0_3_1-leaflet-omnivore.min.js'></script>
   <%
+
   var currentMinute = sails.config.startupMinute;
   %>
   
   <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
   <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/scripts.bundle.js?ts=<%= currentMinute %>"></script>
   <% if (sails.config.angularDev) { %>
   <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
   <% } %>
@@ -49,9 +46,6 @@
   <% } else { %>
     <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.css?ts=<%= currentMinute %>">
   <% } %>
-<% } %>  
-<!-- DateTime Picker Deps -->
-<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-datepicker.js"></script>
-<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-timepicker.js"></script>
-<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js"></script>
-<script src='<%= BrandingService.getBrandAndPortalPath(req) %>/js/v0_3_1-leaflet-omnivore.min.js'></script>
+<% } %>
+<!-- app js and css bundle -->
+<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>

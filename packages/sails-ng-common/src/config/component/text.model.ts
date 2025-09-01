@@ -6,15 +6,16 @@ import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "..
 export type TextFieldModelValueType = string;
 
 export interface TextFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "TextFieldComponent";
+    class: "SimpleInputComponent";
     config?: TextFormFieldComponentConfig;
 }
 
 export class TextFormFieldComponentConfig extends BaseFormFieldComponentConfig {
+    override type?: "email" | "text" | "tel" | "number" | "password" | "url" = "text";
 }
 
 export interface TextFormFieldModelDefinition extends BaseFormFieldModelDefinition<TextFieldModelValueType> {
-    class: "TextFieldModel";
+    class: "SimpleInputModel";
     config: TextFormFieldModelConfig;
 }
 

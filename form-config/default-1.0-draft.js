@@ -10,7 +10,8 @@ const formConfig = {
     },
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
-    // TODO: a way to crate groups of validators. This is not implemented yet.
+    // TODO: a way to crate groups of validators
+    // This is not implemented yet.
     // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
     // validatorProfiles: {
     //     // all: All validators (exclude none).
@@ -41,19 +42,26 @@ const formConfig = {
     validators: [
         { name: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
     ],
-    // TODO: re-usable server-side only, component templates, which replace placeholders in componentDefinitions. This is not implemented yet.
-    // componentTemplates: [ ],
+    // componentTemplates: [
+    //     // TODO - server-side only, replaced in componentDefinitions
+    // ],
     componentDefinitions: [
         {
             name: 'main_tab',
+            layout: {
+                class: 'TabComponentLayout',
+                config: {
+                    // layout-specific config goes here
+                    hostCssClasses: 'd-flex align-items-start',
+                    buttonSectionCssClass: 'nav flex-column nav-pills me-5',
+                    tabPaneCssClass: 'tab-pane fade',
+                    tabPaneActiveCssClass: 'active show',
+                }
+            },
             component: {
                 class: 'TabComponent',
                 config: {
-                    mainCssClass: 'd-flex align-items-start',
-                    buttonSectionCssClass: 'nav flex-column nav-pills me-5',
-                    tabContentSectionCssClass: 'tab-content',
-                    tabPaneCssClass: 'tab-pane fade',
-                    tabPaneActiveCssClass: 'active show',
+                    hostCssClasses: 'tab-content',
                     tabs: [
                         {
                             id: 'tab_1',
@@ -61,9 +69,19 @@ const formConfig = {
                             selected: true,
                             componentDefinitions: [
                                 {
+                                    name: 'text_block',
+                                    component: {
+                                        class: 'ContentComponent',
+                                        config: {
+                                            content: 'My first text block component!!!',
+                                            template: '<h3>{{content}}</h3>'
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'SimpleInputModel',
                                         config: {
                                             defaultValue: 'hello world!',
                                             validators: [
@@ -72,7 +90,7 @@ const formConfig = {
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'SimpleInputComponent'
                                     }
                                 },
                                 {
@@ -85,24 +103,40 @@ const formConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'SimpleInputModel',
                                         config: {
                                             defaultValue: 'hello world 2!',
                                             validators: [
-                                                {
-                                                    name: 'pattern',
-                                                    config: { pattern: /prefix.*/, description: "must start with prefix" }
-                                                },
-                                                {
-                                                    name: 'minLength',
-                                                    message: "@validator-error-custom-text_2",
-                                                    config: { minLength: 3 }
-                                                },
+                                            // {name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                                            // {name: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
                                             ]
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'SimpleInputComponent'
+                                    }
+                                },
+                                {
+                                    name: 'text_2',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'TextField with default wrapper defined',
+                                            helpText: 'This is a help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'SimpleInputModel',
+                                        config: {
+                                            defaultValue: 'hello world 2!',
+                                            validators: [
+                                                { name: 'pattern', config: { pattern: /prefix.*/, description: "must start with prefix" } },
+                                                { name: 'minLength', message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+                                            ]
+                                        }
+                                    },
+                                    component: {
+                                        class: 'SimpleInputComponent'
                                     },
                                     expressions: {
                                         'model.value': {
@@ -113,7 +147,7 @@ const formConfig = {
                                 {
                                     name: 'text_2_event',
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'SimpleInputModel',
                                         config: {
                                             defaultValue: 'hello world! component event',
                                             validators: [
@@ -122,7 +156,7 @@ const formConfig = {
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent',
+                                        class: 'SimpleInputComponent',
                                         config: {
                                             tooltip: 'text_2_event tooltip'
                                         }
@@ -139,13 +173,13 @@ const formConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'SimpleInputModel',
                                         config: {
                                             defaultValue: 'hello world 2! component expression'
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent',
+                                        class: 'SimpleInputComponent',
                                         config: {
                                             tooltip: 'text_2_component_event component tooltip 22222'
                                         }
@@ -153,17 +187,17 @@ const formConfig = {
                                     expressions: {
                                         'component.visible': {
                                             template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
-                                              return false;
-                                            } else {
-                                              return true;
-                                            } %>`
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
                                         }
                                     }
                                 },
                                 {
                                     name: 'text_3_event',
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'SimpleInputModel',
                                         config: {
                                             defaultValue: 'hello world! layout event',
                                             validators: [
@@ -172,7 +206,7 @@ const formConfig = {
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'SimpleInputComponent'
                                     }
                                 },
                                 {
@@ -185,13 +219,13 @@ const formConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextFieldModel',
+                                        class: 'SimpleInputModel',
                                         config: {
                                             defaultValue: 'hello world 2! layout expression'
                                         }
                                     },
                                     component: {
-                                        class: 'TextFieldComponent'
+                                        class: 'SimpleInputComponent'
                                     },
                                     expressions: {
                                         'layout.visible': {
@@ -239,25 +273,25 @@ const formConfig = {
                                                         }
                                                     },
                                                     model: {
-                                                        class: 'TextFieldModel',
+                                                        class: 'SimpleInputModel',
                                                         config: {
                                                             defaultValue: 'hello world 3!',
                                                         }
                                                     },
                                                     component: {
-                                                        class: 'TextFieldComponent'
+                                                        class: 'SimpleInputComponent'
                                                     }
                                                 },
                                                 {
                                                     name: 'text_4',
                                                     model: {
-                                                        class: 'TextFieldModel',
+                                                        class: 'SimpleInputModel',
                                                         config: {
-                                                            defaultValue: 'hello world 4!',
+                                                            defaultValue: 'hello world 4!'
                                                         }
                                                     },
                                                     component: {
-                                                        class: 'TextFieldComponent'
+                                                        class: 'SimpleInputComponent'
                                                     }
                                                 },
                                                 {
@@ -290,13 +324,13 @@ const formConfig = {
                                                                         }
                                                                     },
                                                                     model: {
-                                                                        class: 'TextFieldModel',
+                                                                        class: 'SimpleInputModel',
                                                                         config: {
                                                                             defaultValue: 'hello world 5!',
                                                                         }
                                                                     },
                                                                     component: {
-                                                                        class: 'TextFieldComponent'
+                                                                        class: 'SimpleInputComponent'
                                                                     }
                                                                 }
                                                             ]
@@ -309,10 +343,10 @@ const formConfig = {
                                     expressions: {
                                         'layout.visible': {
                                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                                    return false;
-                                                } else {
-                                                    return true;
-                                                } %>`
+                            return false;
+                          } else {
+                            return true;
+                          } %>`
                                         }
                                     }
                                 },
@@ -330,16 +364,13 @@ const formConfig = {
                                             elementTemplate: {
                                                 name: 'example_repeatable',
                                                 model: {
-                                                    class: 'TextFieldModel',
+                                                    class: 'SimpleInputModel',
                                                     config: {
                                                         defaultValue: 'hello world from elementTemplate!',
                                                         validators: [
                                                             {
                                                                 name: 'pattern',
-                                                                config: {
-                                                                    pattern: /prefix.*/,
-                                                                    description: "must start with prefix"
-                                                                }
+                                                                config: { pattern: /prefix.*/, description: "must start with prefix" }
                                                             },
                                                             {
                                                                 name: 'minLength',
@@ -350,7 +381,7 @@ const formConfig = {
                                                     }
                                                 },
                                                 component: {
-                                                    class: 'TextFieldComponent',
+                                                    class: 'SimpleInputComponent',
                                                     config: {
                                                         wrapperCssClasses: 'col',
                                                     }
@@ -392,9 +423,7 @@ const formConfig = {
             model: {
                 class: 'RepeatableComponentModel',
                 config: {
-                    defaultValue: [{
-                            text_3: "hello world from repeating groups"
-                        }]
+                    defaultValue: [{ text_3: "hello world from repeating groups" }]
                 }
             },
             component: {
@@ -417,7 +446,7 @@ const formConfig = {
                                     {
                                         name: 'text_3',
                                         model: {
-                                            class: 'TextFieldModel',
+                                            class: 'SimpleInputModel',
                                             config: {
                                                 defaultValue: 'hello world 3!',
                                                 validators: [
@@ -430,7 +459,7 @@ const formConfig = {
                                             }
                                         },
                                         component: {
-                                            class: 'TextFieldComponent',
+                                            class: 'SimpleInputComponent',
                                             config: {}
                                         }
                                     },
@@ -486,4 +515,4 @@ const formConfig = {
     ]
 };
 module.exports = formConfig;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZGVmYXVsdC0xLjAtZHJhZnQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90eXBlc2NyaXB0L2Zvcm0tY29uZmlnL2RlZmF1bHQtMS4wLWRyYWZ0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7O0FBRUEsTUFBTSxVQUFVLEdBQWU7SUFDM0IsSUFBSSxFQUFFLG1CQUFtQjtJQUN6QixJQUFJLEVBQUUsTUFBTTtJQUNaLFVBQVUsRUFBRSxJQUFJO0lBQ2hCLGNBQWMsRUFBRSxNQUFNO0lBQ3RCLHNCQUFzQixFQUFFO1FBQ3BCLDBCQUEwQixFQUFFLEtBQUs7S0FDcEM7SUFDRCxjQUFjLEVBQUUsa0JBQWtCO0lBQ2xDLG9CQUFvQixFQUFFLEtBQUs7SUFFM0IsMEVBQTBFO0lBQzFFLCtGQUErRjtJQUMvRix1QkFBdUI7SUFDdkIsNkNBQTZDO0lBQzdDLDBCQUEwQjtJQUMxQiwwR0FBMEc7SUFDMUcsaURBQWlEO0lBQ2pELHlIQUF5SDtJQUN6SCxtRkFBbUY7SUFDbkYsS0FBSztJQUVMLHlDQUF5QztJQUN6QyxxQkFBcUI7SUFDckIsV0FBVztJQUNYLGNBQWM7SUFDZCx3QkFBd0I7SUFDeEIsdURBQXVEO0lBQ3ZELDRCQUE0QjtJQUM1Qix1RUFBdUU7SUFDdkUsdURBQXVEO0lBQ3ZELG9CQUFvQjtJQUNwQixpQkFBaUI7SUFDakIsRUFBRTtJQUNGLDJCQUEyQjtJQUMzQixnREFBZ0Q7SUFDaEQsaUJBQWlCO0lBQ2pCLFFBQVE7SUFDUixLQUFLO0lBRUwsOENBQThDO0lBQzlDLFVBQVUsRUFBRTtRQUNSLEVBQUMsSUFBSSxFQUFFLGtCQUFrQixFQUFFLE1BQU0sRUFBRSxFQUFDLFlBQVksRUFBRSxDQUFDLGNBQWMsRUFBRSxRQUFRLENBQUMsRUFBQyxFQUFDO0tBQ2pGO0lBQ0QsMElBQTBJO0lBQzFJLDJCQUEyQjtJQUMzQixvQkFBb0IsRUFBRTtRQUNsQjtZQUNJLElBQUksRUFBRSxVQUFVO1lBQ2hCLFNBQVMsRUFBRTtnQkFDUCxLQUFLLEVBQUUsY0FBYztnQkFDckIsTUFBTSxFQUFFO29CQUNKLFlBQVksRUFBRSwwQkFBMEI7b0JBQ3hDLHFCQUFxQixFQUFFLGdDQUFnQztvQkFDdkQseUJBQXlCLEVBQUUsYUFBYTtvQkFDeEMsZUFBZSxFQUFFLGVBQWU7b0JBQ2hDLHFCQUFxQixFQUFFLGFBQWE7b0JBQ3BDLElBQUksRUFBRTt3QkFDRjs0QkFDSSxFQUFFLEVBQUUsT0FBTzs0QkFDWCxXQUFXLEVBQUUsT0FBTzs0QkFDcEIsUUFBUSxFQUFFLElBQUk7NEJBQ2Qsb0JBQW9CLEVBQUU7Z0NBQ2xCO29DQUNJLElBQUksRUFBRSxjQUFjO29DQUNwQixLQUFLLEVBQUU7d0NBQ0gsS0FBSyxFQUFFLGdCQUFnQjt3Q0FDdkIsTUFBTSxFQUFFOzRDQUNKLFlBQVksRUFBRSxjQUFjOzRDQUM1QixVQUFVLEVBQUU7Z0RBQ1IsRUFBQyxJQUFJLEVBQUUsVUFBVSxFQUFDOzZDQUNyQjt5Q0FDSjtxQ0FDSjtvQ0FDRCxTQUFTLEVBQUU7d0NBQ1AsS0FBSyxFQUFFLG9CQUFvQjtxQ0FDOUI7aUNBQ0o7Z0NBQ0Q7b0NBQ0ksSUFBSSxFQUFFLFFBQVE7b0NBQ2QsTUFBTSxFQUFFO3dDQUNKLEtBQUssRUFBRSx3QkFBd0I7d0NBQy9CLE1BQU0sRUFBRTs0Q0FDSixLQUFLLEVBQUUsd0NBQXdDOzRDQUMvQyxRQUFRLEVBQUUscUJBQXFCO3lDQUNsQztxQ0FDSjtvQ0FDRCxLQUFLLEVBQUU7d0NBQ0gsS0FBSyxFQUFFLGdCQUFnQjt3Q0FDdkIsTUFBTSxFQUFFOzRDQUNKLFlBQVksRUFBRSxnQkFBZ0I7NENBQzlCLFVBQVUsRUFBRTtnREFDUjtvREFDSSxJQUFJLEVBQUUsU0FBUztvREFDZixNQUFNLEVBQUUsRUFBQyxPQUFPLEVBQUUsVUFBVSxFQUFFLFdBQVcsRUFBRSx3QkFBd0IsRUFBQztpREFDdkU7Z0RBQ0Q7b0RBQ0ksSUFBSSxFQUFFLFdBQVc7b0RBQ2pCLE9BQU8sRUFBRSxnQ0FBZ0M7b0RBQ3pDLE1BQU0sRUFBRSxFQUFDLFNBQVMsRUFBRSxDQUFDLEVBQUM7aURBQ3pCOzZDQUNKO3lDQUNKO3FDQUNKO29DQUNELFNBQVMsRUFBRTt3Q0FDUCxLQUFLLEVBQUUsb0JBQW9CO3FDQUM5QjtvQ0FDRCxXQUFXLEVBQUU7d0NBQ1QsYUFBYSxFQUFFOzRDQUNYLFFBQVEsRUFBRSx1Q0FBdUM7eUNBQ3BEO3FDQUNKO2lDQUVKO2dDQUNEO29DQUNJLElBQUksRUFBRSxjQUFjO29DQUNwQixLQUFLLEVBQUU7d0NBQ0gsS0FBSyxFQUFFLGdCQUFnQjt3Q0FDdkIsTUFBTSxFQUFFOzRDQUNKLFlBQVksRUFBRSw4QkFBOEI7NENBQzVDLFVBQVUsRUFBRTtnREFDUixFQUFDLElBQUksRUFBRSxVQUFVLEVBQUM7NkNBQ3JCO3lDQUNKO3FDQUNKO29DQUNELFNBQVMsRUFBRTt3Q0FDUCxLQUFLLEVBQUUsb0JBQW9CO3dDQUMzQixNQUFNLEVBQUU7NENBQ0osT0FBTyxFQUFFLHNCQUFzQjt5Q0FDbEM7cUNBQ0o7aUNBQ0o7Z0NBQ0Q7b0NBQ0ksSUFBSSxFQUFFLHdCQUF3QjtvQ0FDOUIsTUFBTSxFQUFFO3dDQUNKLEtBQUssRUFBRSx3QkFBd0I7d0NBQy9CLE1BQU0sRUFBRTs0Q0FDSixLQUFLLEVBQUUsd0NBQXdDOzRDQUMvQyxRQUFRLEVBQUUscUJBQXFCOzRDQUMvQixPQUFPLEVBQUUsdUNBQXVDO3lDQUNuRDtxQ0FDSjtvQ0FDRCxLQUFLLEVBQUU7d0NBQ0gsS0FBSyxFQUFFLGdCQUFnQjt3Q0FDdkIsTUFBTSxFQUFFOzRDQUNKLFlBQVksRUFBRSxxQ0FBcUM7eUNBQ3REO3FDQUNKO29DQUNELFNBQVMsRUFBRTt3Q0FDUCxLQUFLLEVBQUUsb0JBQW9CO3dDQUMzQixNQUFNLEVBQUU7NENBQ0osT0FBTyxFQUFFLGdEQUFnRDt5Q0FDNUQ7cUNBQ0o7b0NBQ0QsV0FBVyxFQUFFO3dDQUNULG1CQUFtQixFQUFFOzRDQUNqQixRQUFRLEVBQUU7Ozs7aURBSUw7eUNBQ1I7cUNBQ0o7aUNBQ0o7Z0NBQ0Q7b0NBQ0ksSUFBSSxFQUFFLGNBQWM7b0NBQ3BCLEtBQUssRUFBRTt3Q0FDSCxLQUFLLEVBQUUsZ0JBQWdCO3dDQUN2QixNQUFNLEVBQUU7NENBQ0osWUFBWSxFQUFFLDJCQUEyQjs0Q0FDekMsVUFBVSxFQUFFO2dEQUNSLEVBQUMsSUFBSSxFQUFFLFVBQVUsRUFBQzs2Q0FDckI7eUNBQ0o7cUNBQ0o7b0NBQ0QsU0FBUyxFQUFFO3dDQUNQLEtBQUssRUFBRSxvQkFBb0I7cUNBQzlCO2lDQUNKO2dDQUNEO29DQUNJLElBQUksRUFBRSxxQkFBcUI7b0NBQzNCLE1BQU0sRUFBRTt3Q0FDSixLQUFLLEVBQUUsd0JBQXdCO3dDQUMvQixNQUFNLEVBQUU7NENBQ0osS0FBSyxFQUFFLHdDQUF3Qzs0Q0FDL0MsUUFBUSxFQUFFLHFCQUFxQjt5Q0FDbEM7cUNBQ0o7b0NBQ0QsS0FBSyxFQUFFO3dDQUNILEtBQUssRUFBRSxnQkFBZ0I7d0NBQ3ZCLE1BQU0sRUFBRTs0Q0FDSixZQUFZLEVBQUUsa0NBQWtDO3lDQUNuRDtxQ0FDSjtvQ0FDRCxTQUFTLEVBQUU7d0NBQ1AsS0FBSyxFQUFFLG9CQUFvQjtxQ0FDOUI7b0NBQ0QsV0FBVyxFQUFFO3dDQUNULGdCQUFnQixFQUFFOzRDQUNkLFFBQVEsRUFBRTs7OztxREFJRDt5Q0FDWjtxQ0FDSjtpQ0FDSjs2QkFDSjt5QkFDSjt3QkFDRDs0QkFDSSxFQUFFLEVBQUUsT0FBTzs0QkFDWCxXQUFXLEVBQUUsT0FBTzs0QkFDcEIsb0JBQW9CLEVBQUU7Z0NBQ2xCO29DQUNJLHdCQUF3QjtvQ0FDeEIsSUFBSSxFQUFFLG1CQUFtQjtvQ0FDekIsTUFBTSxFQUFFO3dDQUNKLEtBQUssRUFBRSx3QkFBd0I7d0NBQy9CLE1BQU0sRUFBRTs0Q0FDSixLQUFLLEVBQUUsa0JBQWtCOzRDQUN6QixRQUFRLEVBQUUsaUJBQWlCO3lDQUM5QjtxQ0FDSjtvQ0FDRCxLQUFLLEVBQUU7d0NBQ0gsS0FBSyxFQUFFLGlCQUFpQjt3Q0FDeEIsTUFBTSxFQUFFOzRDQUNKLFlBQVksRUFBRSxFQUFFO3lDQUNuQjtxQ0FDSjtvQ0FDRCxTQUFTLEVBQUU7d0NBQ1AsS0FBSyxFQUFFLHFCQUFxQjt3Q0FDNUIsTUFBTSxFQUFFOzRDQUNKLG9CQUFvQixFQUFFO2dEQUNsQjtvREFDSSxJQUFJLEVBQUUsUUFBUTtvREFDZCxNQUFNLEVBQUU7d0RBQ0osS0FBSyxFQUFFLHdCQUF3Qjt3REFDL0IsTUFBTSxFQUFFOzREQUNKLEtBQUssRUFBRSx3Q0FBd0M7NERBQy9DLFFBQVEsRUFBRSxxQkFBcUI7eURBQ2xDO3FEQUNKO29EQUNELEtBQUssRUFBRTt3REFDSCxLQUFLLEVBQUUsZ0JBQWdCO3dEQUN2QixNQUFNLEVBQUU7NERBQ0osWUFBWSxFQUFFLGdCQUFnQjt5REFDakM7cURBQ0o7b0RBQ0QsU0FBUyxFQUFFO3dEQUNQLEtBQUssRUFBRSxvQkFBb0I7cURBQzlCO2lEQUNKO2dEQUNEO29EQUNJLElBQUksRUFBRSxRQUFRO29EQUNkLEtBQUssRUFBRTt3REFDSCxLQUFLLEVBQUUsZ0JBQWdCO3dEQUN2QixNQUFNLEVBQUU7NERBQ0osWUFBWSxFQUFFLGdCQUFnQjt5REFDakM7cURBQ0o7b0RBQ0QsU0FBUyxFQUFFO3dEQUNQLEtBQUssRUFBRSxvQkFBb0I7cURBQzlCO2lEQUNKO2dEQUNEO29EQUNJLDBEQUEwRDtvREFDMUQsSUFBSSxFQUFFLG1CQUFtQjtvREFDekIsTUFBTSxFQUFFO3dEQUNKLEtBQUssRUFBRSx3QkFBd0I7d0RBQy9CLE1BQU0sRUFBRTs0REFDSixLQUFLLEVBQUUsb0JBQW9COzREQUMzQixRQUFRLEVBQUUsbUJBQW1CO3lEQUNoQztxREFDSjtvREFDRCxLQUFLLEVBQUU7d0RBQ0gsS0FBSyxFQUFFLGlCQUFpQjt3REFDeEIsTUFBTSxFQUFFOzREQUNKLFlBQVksRUFBRSxFQUFFO3lEQUNuQjtxREFDSjtvREFDRCxTQUFTLEVBQUU7d0RBQ1AsS0FBSyxFQUFFLHFCQUFxQjt3REFDNUIsTUFBTSxFQUFFOzREQUNKLG9CQUFvQixFQUFFO2dFQUNsQjtvRUFDSSxJQUFJLEVBQUUsUUFBUTtvRUFDZCxNQUFNLEVBQUU7d0VBQ0osS0FBSyxFQUFFLHdCQUF3Qjt3RUFDL0IsTUFBTSxFQUFFOzRFQUNKLEtBQUssRUFBRSx3Q0FBd0M7NEVBQy9DLFFBQVEsRUFBRSxxQkFBcUI7eUVBQ2xDO3FFQUNKO29FQUNELEtBQUssRUFBRTt3RUFDSCxLQUFLLEVBQUUsZ0JBQWdCO3dFQUN2QixNQUFNLEVBQUU7NEVBQ0osWUFBWSxFQUFFLGdCQUFnQjt5RUFDakM7cUVBQ0o7b0VBQ0QsU0FBUyxFQUFFO3dFQUNQLEtBQUssRUFBRSxvQkFBb0I7cUVBQzlCO2lFQUNKOzZEQUNKO3lEQUNKO3FEQUNKO2lEQUNKOzZDQUNKO3lDQUNKO3FDQUNKO29DQUNELFdBQVcsRUFBRTt3Q0FDVCxnQkFBZ0IsRUFBRTs0Q0FDZCxRQUFRLEVBQUU7Ozs7cURBSUQ7eUNBQ1o7cUNBQ0o7aUNBQ0o7Z0NBQ0Q7b0NBQ0ksSUFBSSxFQUFFLHdCQUF3QjtvQ0FDOUIsS0FBSyxFQUFFO3dDQUNILEtBQUssRUFBRSwwQkFBMEI7d0NBQ2pDLE1BQU0sRUFBRTs0Q0FDSixZQUFZLEVBQUUsQ0FBQyx1Q0FBdUMsQ0FBQzt5Q0FDMUQ7cUNBQ0o7b0NBQ0QsU0FBUyxFQUFFO3dDQUNQLEtBQUssRUFBRSxxQkFBcUI7d0NBQzVCLE1BQU0sRUFBRTs0Q0FDSixlQUFlLEVBQUU7Z0RBQ2IsSUFBSSxFQUFFLG9CQUFvQjtnREFDMUIsS0FBSyxFQUFFO29EQUNILEtBQUssRUFBRSxnQkFBZ0I7b0RBQ3ZCLE1BQU0sRUFBRTt3REFDSixZQUFZLEVBQUUsbUNBQW1DO3dEQUNqRCxVQUFVLEVBQUU7NERBQ1I7Z0VBQ0ksSUFBSSxFQUFFLFNBQVM7Z0VBQ2YsTUFBTSxFQUFFO29FQUNKLE9BQU8sRUFBRSxVQUFVO29FQUNuQixXQUFXLEVBQUUsd0JBQXdCO2lFQUN4Qzs2REFDSjs0REFDRDtnRUFDSSxJQUFJLEVBQUUsV0FBVztnRUFDakIsT0FBTyxFQUFFLGdDQUFnQztnRUFDekMsTUFBTSxFQUFFLEVBQUMsU0FBUyxFQUFFLENBQUMsRUFBQzs2REFDekI7eURBQ0o7cURBQ0o7aURBQ0o7Z0RBQ0QsU0FBUyxFQUFFO29EQUNQLEtBQUssRUFBRSxvQkFBb0I7b0RBQzNCLE1BQU0sRUFBRTt3REFDSixpQkFBaUIsRUFBRSxLQUFLO3FEQUMzQjtpREFDSjtnREFDRCxNQUFNLEVBQUU7b0RBQ0osS0FBSyxFQUFFLGtDQUFrQztvREFDekMsTUFBTSxFQUFFO3dEQUNKLGNBQWMsRUFBRSx1QkFBdUI7cURBQzFDO2lEQUNKOzZDQUNKO3lDQUNKO3FDQUNKO29DQUNELE1BQU0sRUFBRTt3Q0FDSixLQUFLLEVBQUUsd0JBQXdCO3dDQUMvQixNQUFNLEVBQUU7NENBQ0osS0FBSyxFQUFFLG1EQUFtRDs0Q0FDMUQsUUFBUSxFQUFFLGdDQUFnQzt5Q0FDN0M7cUNBQ0o7b0NBQ0QsV0FBVyxFQUFFO3dDQUNULGdCQUFnQixFQUFFOzRDQUNkLFFBQVEsRUFBRTs7OztxREFJRDt5Q0FDWjtxQ0FDSjtpQ0FDSjs2QkFFSjt5QkFDSjtxQkFDSjtpQkFDSjthQUNKO1NBQ0o7UUFDRDtZQUNJLElBQUksRUFBRSxvQkFBb0I7WUFDMUIsS0FBSyxFQUFFO2dCQUNILEtBQUssRUFBRSwwQkFBMEI7Z0JBQ2pDLE1BQU0sRUFBRTtvQkFDSixZQUFZLEVBQUUsQ0FBQzs0QkFDWCxNQUFNLEVBQUUsbUNBQW1DO3lCQUM5QyxDQUFDO2lCQUNMO2FBQ0o7WUFDRCxTQUFTLEVBQUU7Z0JBQ1AsS0FBSyxFQUFFLHFCQUFxQjtnQkFDNUIsTUFBTSxFQUFFO29CQUNKLGVBQWUsRUFBRTt3QkFDYix3QkFBd0I7d0JBQ3hCLElBQUksRUFBRSxtQkFBbUI7d0JBQ3pCLEtBQUssRUFBRTs0QkFDSCxLQUFLLEVBQUUsaUJBQWlCOzRCQUN4QixNQUFNLEVBQUU7Z0NBQ0osWUFBWSxFQUFFLEVBQUU7NkJBQ25CO3lCQUNKO3dCQUNELFNBQVMsRUFBRTs0QkFDUCxLQUFLLEVBQUUscUJBQXFCOzRCQUM1QixNQUFNLEVBQUU7Z0NBQ0osaUJBQWlCLEVBQUUsS0FBSztnQ0FDeEIsb0JBQW9CLEVBQUU7b0NBQ2xCO3dDQUNJLElBQUksRUFBRSxRQUFRO3dDQUNkLEtBQUssRUFBRTs0Q0FDSCxLQUFLLEVBQUUsZ0JBQWdCOzRDQUN2QixNQUFNLEVBQUU7Z0RBQ0osWUFBWSxFQUFFLGdCQUFnQjtnREFDOUIsVUFBVSxFQUFFO29EQUNSO3dEQUNJLElBQUksRUFBRSxXQUFXO3dEQUNqQixPQUFPLEVBQUUsZ0NBQWdDO3dEQUN6QyxNQUFNLEVBQUUsRUFBQyxTQUFTLEVBQUUsQ0FBQyxFQUFDO3FEQUN6QjtpREFDSjs2Q0FDSjt5Q0FDSjt3Q0FDRCxTQUFTLEVBQUU7NENBQ1AsS0FBSyxFQUFFLG9CQUFvQjs0Q0FDM0IsTUFBTSxFQUFFLEVBQUU7eUNBQ2I7cUNBQ0o7aUNBQ0o7NkJBQ0o7eUJBQ0o7d0JBQ0QsTUFBTSxFQUFFOzRCQUNKLEtBQUssRUFBRSxrQ0FBa0M7NEJBQ3pDLE1BQU0sRUFBRTtnQ0FDSixjQUFjLEVBQUUsdUJBQXVCOzZCQUMxQzt5QkFDSjtxQkFDSjtpQkFDSjthQUNKO1lBQ0QsTUFBTSxFQUFFO2dCQUNKLEtBQUssRUFBRSx3QkFBd0I7Z0JBQy9CLE1BQU0sRUFBRTtvQkFDSixLQUFLLEVBQUUsc0VBQXNFO29CQUM3RSxRQUFRLEVBQUUsZ0NBQWdDO2lCQUM3QzthQUNKO1NBQ0o7UUFDRDtZQUNJLElBQUksRUFBRSxhQUFhO1lBQ25CLFNBQVMsRUFBRTtnQkFDUCxLQUFLLEVBQUUscUJBQXFCO2dCQUM1QixNQUFNLEVBQUU7b0JBQ0osS0FBSyxFQUFFLE1BQU07aUJBQ2hCO2FBQ0o7U0FDSjtRQUNEO1lBQ0ksSUFBSSxFQUFFLHNCQUFzQjtZQUM1QixLQUFLLEVBQUUsRUFBQyxLQUFLLEVBQUUsNkJBQTZCLEVBQUUsTUFBTSxFQUFFLEVBQUUsRUFBQztZQUN6RCxTQUFTLEVBQUUsRUFBQyxLQUFLLEVBQUUsaUNBQWlDLEVBQUM7U0FDeEQ7UUFDRCxJQUFJO1FBQ0osc0JBQXNCO1FBQ3RCLGlCQUFpQjtRQUNqQixvQ0FBb0M7UUFDcEMsT0FBTztRQUNQLGFBQWE7UUFDYixxQ0FBcUM7UUFDckMsZ0JBQWdCO1FBQ2hCLDhCQUE4QjtRQUM5QiwrQkFBK0I7UUFDL0Isc0JBQXNCO1FBQ3RCLHFDQUFxQztRQUNyQyxRQUFRO1FBQ1IsTUFBTTtRQUNOLElBQUk7S0FDUDtDQUNKLENBQUM7QUFDRixNQUFNLENBQUMsT0FBTyxHQUFHLFVBQVUsQ0FBQyJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZGVmYXVsdC0xLjAtZHJhZnQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90eXBlc2NyaXB0L2Zvcm0tY29uZmlnL2RlZmF1bHQtMS4wLWRyYWZ0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7O0FBQ0EscURBQXVFO0FBRXZFLE1BQU0sVUFBVSxHQUFlO0lBQzNCLElBQUksRUFBRSxtQkFBbUI7SUFDekIsSUFBSSxFQUFFLE1BQU07SUFDWixVQUFVLEVBQUUsSUFBSTtJQUNoQixjQUFjLEVBQUUsTUFBTTtJQUN0QixzQkFBc0IsRUFBRTtRQUNwQiwwQkFBMEIsRUFBRSxLQUFLO0tBQ3BDO0lBQ0QsY0FBYyxFQUFFLGtCQUFrQjtJQUNsQyxvQkFBb0IsRUFBRSxLQUFLO0lBRTNCLG1GQUFtRjtJQUNuRiw4REFBOEQ7SUFDOUQsb0JBQW9CLEVBQUUsNENBQStCO0lBRXJELDRDQUE0QztJQUM1QywrQkFBK0I7SUFDL0IsK0ZBQStGO0lBQy9GLHVCQUF1QjtJQUN2Qiw2Q0FBNkM7SUFDN0MsMEJBQTBCO0lBQzFCLDBHQUEwRztJQUMxRyxpREFBaUQ7SUFDakQsS0FBSztJQUVMLDhDQUE4QztJQUM5QyxVQUFVLEVBQUU7UUFDUixFQUFFLElBQUksRUFBRSxrQkFBa0IsRUFBRSxNQUFNLEVBQUUsRUFBRSxZQUFZLEVBQUUsQ0FBQyxjQUFjLEVBQUUsUUFBUSxDQUFDLEVBQUUsRUFBRTtLQUNyRjtJQUNELHdCQUF3QjtJQUN4QixtRUFBbUU7SUFDbkUsS0FBSztJQUNMLG9CQUFvQixFQUFFO1FBQ2xCO1lBQ0ksSUFBSSxFQUFFLFVBQVU7WUFDaEIsTUFBTSxFQUFFO2dCQUNKLEtBQUssRUFBRSxvQkFBb0I7Z0JBQzNCLE1BQU0sRUFBRTtvQkFDSixtQ0FBbUM7b0JBQ25DLGNBQWMsRUFBRSwwQkFBMEI7b0JBQzFDLHFCQUFxQixFQUFFLGdDQUFnQztvQkFDdkQsZUFBZSxFQUFFLGVBQWU7b0JBQ2hDLHFCQUFxQixFQUFFLGFBQWE7aUJBQ3ZDO2FB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

@@ -1,16 +1,16 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextFieldComponent} from "./textfield.component";
+import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
-describe('TextFieldComponent', () => {
+describe('ContentComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextFieldComponent,
+      ContentComponent,
     ]);
   });
   it('should create component', () => {
-    let fixture = TestBed.createComponent(TextFieldComponent);
+    let fixture = TestBed.createComponent(ContentComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
@@ -25,15 +25,12 @@ describe('TextFieldComponent', () => {
       componentDefinitions: [
         {
           name: 'text_1_event',
-          model: {
-            class: 'TextFieldModel',
-            config: {
-              value: 'hello world saved!',
-              defaultValue: 'hello world default!'
-            }
-          },
           component: {
-            class: 'TextFieldComponent'
+            class: 'ContentComponent',
+            config: {
+              content: 'My first text block component!!!',
+              template: '<h3>{{content}}</h3>'
+            }
           }
         }
       ]
@@ -44,8 +41,8 @@ describe('TextFieldComponent', () => {
 
     // Now run your expectations
     const compiled = fixture.nativeElement as HTMLElement;
-    const inputElement = compiled.querySelector('input[type="text"]');
-    expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
+    const inputElement = compiled.querySelector('h3');
+    expect((inputElement as HTMLHeadingElement).textContent).toEqual('My first text block component!!!');
   });
 
 });

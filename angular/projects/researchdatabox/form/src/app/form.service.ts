@@ -206,7 +206,7 @@ export class FormService extends HttpClientService {
         _merge(fieldDef, {
           modelClass: modelClass,
         });
-      } else {
+      } else if (modelClassName) {
         this.logNotAvailable(modelClassName, "model class", this.modelClassMap);
       }
       if (componentClass) {
@@ -215,7 +215,7 @@ export class FormService extends HttpClientService {
           compConfigJson: componentConfig,
           layoutClass: layoutClass,
         });
-      } else {
+      } else if (componentClassName) {
         this.logNotAvailable(componentClassName, "component class", this.compClassMap);
         // Dont' add to the array if the component class is not available
         fieldDef = {};
