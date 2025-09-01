@@ -11,13 +11,17 @@ export interface FormComponentDefinition {
      */
     name: string;
     /**
+     * The component template to use as defaults for properties not defined in this definition.
+     */
+    templateName?: string;
+    /**
      * The definition of the model that backs the form field.
      */
     model?: FormFieldModelDefinition;
     /**
      * The definition of the client-side component for the form field.
      */
-    component: FormFieldComponentDefinition;
+    component?: FormFieldComponentDefinition;
     /**
      * The definition of the client-side layout for this form field.
      */
