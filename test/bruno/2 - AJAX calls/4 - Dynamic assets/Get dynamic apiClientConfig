@@ -20,7 +20,7 @@ tests {
   });
   test("Has expected content", function () {
     var body = res.getBody();
-    console.log(body);
+    // console.log(body);
     expect(body).to.have.property("enabled");
   });
 }

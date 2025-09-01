@@ -20,7 +20,7 @@ tests {
   });
   test("Has expected content", function () {
     const body = res.getBody();
-    console.log(body);
+    // console.log(body);
     expect(body).to.contain("default:");
     expect(body).to.not.contain(" case ");
   });
