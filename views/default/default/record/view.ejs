@@ -15,6 +15,7 @@ var currentMinute = sails.config.startupMinute;
 
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/scripts.bundle.js?ts=<%= currentMinute %>"></script>
 <% if (sails.config.angularDev) { %>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
 <% } %>

@@ -26,6 +26,7 @@ import {
 } from "./text.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
+import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.model";
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
 /**
@@ -33,6 +34,7 @@ import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfi
  */
 export type FormFieldComponentDefinition =
     TextFormFieldComponentDefinition |
+    ContentComponentDefinition |
     RepeatableFormFieldComponentDefinition |
     ValidationSummaryFormFieldComponentDefinition |
     GroupFormFieldComponentDefinition |
@@ -45,6 +47,7 @@ export type FormFieldComponentDefinition =
  */
 export type FormFieldComponentConfig =
     TextFormFieldComponentConfig |
+    ContentComponentConfig |
     RepeatableFormFieldComponentConfig |
     ValidationSummaryFormFieldComponentConfig |
     GroupFormFieldComponentConfig |
@@ -94,3 +97,4 @@ export * from './text.model'
 export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'
+export * from './textblock.model'
