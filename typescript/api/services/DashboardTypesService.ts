@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, zip, of, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
@@ -58,7 +59,7 @@ export module Services {
           for(let dashboardType in sails.config.dashboardtype) {
             dashboardTypes.push(dashboardType);
             let config = sails.config.dashboardtype[dashboardType];
-            var createdDashboardType = await this.create(defBrand, dashboardType, config).toPromise();
+            var createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
             dashTypes.push(createdDashboardType);
           };
           this.dashboardTypes = dashboardTypes;

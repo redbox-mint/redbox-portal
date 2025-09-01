@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, of, from } from 'rxjs';
+import { concatMap, last } from 'rxjs/operators';
 import {
   RBValidationError,
   BrandingModel,
@@ -25,7 +26,7 @@ import {
   PopulateExportedMethods,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import { default as moment } from 'moment';
+import moment from '../shims/momentShim';
 import numeral from 'numeral';
 
 declare var sails: Sails;
@@ -75,7 +76,7 @@ export module Services {
         _.set(record, "metaMetadata.form", _.get(options, "targetForm", record.metaMetadata.form));
       }
 
-      return Observable.of(record);
+      return of(record);
     }
 
     /**
@@ -116,14 +117,14 @@ export module Services {
       });
       if (!_.isEmpty(hookFnDefArray)) {
         sails.log.debug(`runHooksSync, running..`);
-        return Observable.from(hookFnDefArray)
-          .concatMap(hookDef => {
+        return from(hookFnDefArray)
+          .pipe(concatMap(hookDef => {
             return hookDef.hookFn(oid, record, hookDef.hookOpt, user);
           })
-          .last();
+          ,last());
       } else {
         sails.log.debug(`runHooksSync, no observables to run`);
-        return Observable.of(record);
+        return of(record);
       }
     }
 
@@ -175,22 +176,15 @@ export module Services {
       // then it will modify the value in the record if the regex validation is passed therefore handle with care
       let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
 
-      let caseSensitive = _.get(options, 'caseSensitive');
-      if (caseSensitive !== false && caseSensitive !== true) {
-        // default to true
-        caseSensitive = true;
-      }
-
-      let allowNulls = _.get(options, 'allowNulls');
-      if (allowNulls !== false && allowNulls !== true) {
-        // default to true for backwards compatibility
-        allowNulls = true;
-      }
+      // default to true - is only false when set to bool false or string 'false'
+      let caseSensitive = _.get(options, 'caseSensitive',true)?.toString() !== 'false';
+      // default to true for backwards compatibility - is only false when set to bool false or string 'false'
+      let allowNulls = _.get(options, 'allowNulls', true)?.toString() !== 'false';
 
       // re-usable functions
       const textRegex = function (value) {
         let flags = '';
-        if (caseSensitive) {
+        if (!caseSensitive) {
           flags += 'i';
         }
         const re = new RegExp(regexPattern, flags);
@@ -367,7 +361,7 @@ export module Services {
             return true;
           } else {
             let flags = '';
-            if (caseSensitive) {
+            if (!caseSensitive) {
               flags += 'i';
             }
             const re = new RegExp(regexPattern, flags);
@@ -425,7 +419,8 @@ export module Services {
         for(let field of fieldObjectList) {
           // get the data
           const data = _.get(record, 'metadata.'+field.name);
-          let caseSensitive = _.get(field,'caseSensitive',true) ;
+          // caseSensitive default is true - is only false when set to bool false or string 'false'
+          let caseSensitive = _.get(field, 'caseSensitive', true)?.toString() !== 'false';
           sails.log.debug('validateFieldMapUsingRegex field.allowNulls '+field.allowNulls);
           let allowNulls = _.get(field,'allowNulls',true);
           sails.log.debug('validateFieldMapUsingRegex allowNulls '+allowNulls);

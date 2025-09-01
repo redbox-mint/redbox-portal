@@ -72,6 +72,31 @@ function createPinoLogger(level, destination) {
         // Set the pino log level. This must be kept in sync with the sails log level.
         // Initially set to 'verbose', then set to the sails.log.level in bootstrap.js.
         level: level ?? 'verbose',
+        hooks: {
+            logMethod(inputArgs, method, level) {
+                // See: https://getpino.io/#/docs/api?id=hooks-object
+                // Cater for the existing usages of the log methods in sails, so everything is included in the log output
+                // console.log('translateSailsToPino', arguments);
+                if (inputArgs.length === 1) {
+                    // A message string can optionally be supplied as the first parameter
+                    // An object can optionally be supplied as the first parameter.
+                    return method.apply(this, inputArgs);
+                } else if (inputArgs.length >= 2 && _.isString(inputArgs[0]) && !_.isString(inputArgs[1])) {
+                    // A message string can optionally be supplied as the second parameter after supplying a mergingObject.
+                    const arg1 = inputArgs.shift();
+                    const arg2 = inputArgs.shift();
+                    return method.apply(this, [arg2, arg1, ...inputArgs]);
+                } else if (inputArgs.length > 1 && _.isString(inputArgs[0])) {
+                    // If the first argument is a string, assume it is the message, and put the rest of the arguments into the object.
+                    const arg1 = inputArgs.shift();
+                    const arg2 = inputArgs.shift();
+                    return method.apply(this, [arg2, arg1, ...inputArgs]);
+                } else {
+                    // Ensure all the arguments are logged
+                    return method.apply(this, inputArgs);
+                }
+            }
+        }
     };
 
     if (destination) {

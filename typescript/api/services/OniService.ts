@@ -19,7 +19,7 @@
 
 import { Services as services, DatastreamService, RBValidationError } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
-import 'rxjs/add/operator/toPromise';
+import { firstValueFrom } from 'rxjs';
 import { promises as fs } from 'fs';
 import path from 'node:path'; 
 import {Collector, generateArcpId} from "oni-ocfl";
@@ -30,8 +30,8 @@ const finished = promisify(stream.finished);
 import {languageProfileURI} from "language-data-commons-vocabs";
 import * as mime from 'mime-types';
 import {ROCrate} from "ro-crate";
-import { convertToWK } from 'wkt-parser-helper';
 
+let wktParserHelper; 
 declare var sails: Sails;
 declare var RecordsService, UsersService;
 declare var _;
@@ -63,6 +63,10 @@ export module Services {
 				that.getDatastreamService();
 			});
 		}
+
+		protected async processDynamicImports() {
+      	  	wktParserHelper = await import("wkt-parser-helper");
+    	}
 
 		getDatastreamService() {
 			this.datastreamService = sails.services[sails.config.record.datastreamService];
@@ -146,7 +150,7 @@ export module Services {
 					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error loading root collection ${site.rootCollectionId}: ${err}`);
 				}
 				
-				let creator = await UsersService.getUserWithUsername(record['metaMetadata']['createdBy']).toPromise();
+				let creator = await firstValueFrom(UsersService.getUserWithUsername(record['metaMetadata']['createdBy']));
 
 				if (_.isEmpty(creator)) {
 					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error getting creator for record ${oid} :: ${record['metaMetadata']['createdBy']}`);
@@ -467,7 +471,7 @@ export module Services {
 		private convertToWkt(id: string, geoJsonSrc:any) {
 			let geoJson = _.cloneDeep(geoJsonSrc);
 			_.unset(geoJson, '@type');
-			const wkt = convertToWK(geoJson);
+			const wkt = wktParserHelper.convertToWK(geoJson);
 			sails.log.verbose(`Converted WKT -> ${wkt}`);
 			return {
 				"@id": id,
