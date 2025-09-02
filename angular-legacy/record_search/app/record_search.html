@@ -6,7 +6,7 @@
           {{ 'record-search-heading' | translate }}
         </h3>
       </div>
-      <div class="panel-body" style="overflow:scroll" >
+      <div class="panel-body overflow-scroll">
         <div class="input-group">
           <span class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | translate }}</span>
           <input type="text" [disabled]="isSearching" [(ngModel)]="params.basicSearch" class="form-control" placeholder="{{ 'record-search-basic-search-placeholder' | translate}}" (keyup.enter)="search()" aria-describedby="basic-search-addon">

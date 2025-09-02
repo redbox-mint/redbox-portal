@@ -5,7 +5,7 @@
           {{ 'manage-roles-title' | i18next }}
         </span>
       </div>
-      <div class="panel-body" style="overflow:scroll" >
+      <div class="panel-body overflow-scroll">
         <div class="input-group">
           <span class="input-group-addon" id="name-addon">{{ 'manage-roles-filter-name' | i18next }}</span>
           <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-roles-filter-name-placeholder' | i18next }}" [attr.aria-label]="'manage-roles-filter-name' | i18next ">
@@ -102,4 +102,3 @@
       </div>
     </div>
   </div>
-  
