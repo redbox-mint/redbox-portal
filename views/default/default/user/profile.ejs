@@ -8,6 +8,6 @@
         </div>
       </div>
       <div class="row">
-        <user-profile></user-profile>
+        <user-profile <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></user-profile>
       </div>
     <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/inline.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/polyfills.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/scripts.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/styles.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/vendor.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/main.bundle.js"></script>
