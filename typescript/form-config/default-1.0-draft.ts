@@ -16,15 +16,12 @@ const formConfig: FormConfig = {
     // the validator definitions from the client hook form config.
     validatorDefinitions: formValidatorsSharedDefinitions,
 
-    // TODO: a way to crate groups of validators
-    // This is not implemented yet.
-    // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
-    // validatorProfiles: {
-    //     // all: All validators (exclude none).
-    //     all: {exclude: []},
-    //     // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
-    //     minimumSave: {include: ['project_title']},
-    // },
+    // A validator profile is a list of the field names that will be validated (all other fields won't be validated).
+    validatorProfiles: {
+        all: {description: "Validate all fields with validators.", exclude: []},
+        none: {description: "Validate none of the fields.", include: []},
+        minimumCreate: {description: "Fields that must be valid to create a new record.", include: ['text_1_event']},
+    },
 
     // Validators that operate on multiple fields.
     validators: [

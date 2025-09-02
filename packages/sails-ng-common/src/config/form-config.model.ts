@@ -1,5 +1,5 @@
 import { KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
-import {FormValidatorConfig, FormValidatorDefinition} from "../validation";
+import {FormValidatorConfig, FormValidatorDefinition, FormValidatorProfiles} from "../validation";
 import {FormComponentDefinition} from "./form-component.model";
 
 // TODO: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions
@@ -72,16 +72,13 @@ export class FormConfig {
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */
     validators?: FormValidatorConfig[] = [];
-
-    // TODO: a way to crate groups of validators
-    // This is not implemented yet.
-    // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
-    // validatorProfiles: {
-    //     // all: All validators (exclude none).
-    //     all: {exclude: []},
-    //     // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
-    //     minimumSave: {include: ['project_title']},
-    // },
+    /**
+     * Validator profiles are a defined group of field names that will be validated.
+     */
+    validatorProfiles?: FormValidatorProfiles = {
+        all: {description: "Validate all fields with validators.", exclude: []},
+        none: {description: "Validate none of the fields.", include: []},
+    };
 
     // -- Component-related config --
 
