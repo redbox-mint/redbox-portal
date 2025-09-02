@@ -1,2 +1,9 @@
-<a href="#" role="button"  [attr.aria-sort]="sort === 'asc'? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="sortClicked()">{{title}} <i *ngIf="sort == 'asc'"class="fa fa-sort-asc"></i><i *ngIf="sort == 'desc'"class="fa fa-sort-desc"></i></a>
-
+<a href="#" role="button" [attr.aria-sort]="sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="sortClicked()">
+  {{ title }}
+  @if (sort == 'asc') {
+    <i class="fa fa-sort-asc"></i>
+  }
+  @if (sort == 'desc') {
+    <i class="fa fa-sort-desc"></i>
+  }
+</a>
