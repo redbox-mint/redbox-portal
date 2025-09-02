@@ -1,6 +1,6 @@
-import { KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
+import {KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
 import {FormValidatorConfig, FormValidatorDefinition} from "../validation";
-import {FormComponentDefinition} from "./form-component.model";
+import {FormComponentDefinition, FormComponentDefinitionTemplate} from "./form-component.model";
 
 // TODO: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions
 
@@ -92,7 +92,7 @@ export class FormConfig {
     /**
      * the components of this form
      */
-    componentDefinitions?: FormComponentDefinition[] = [];
+    componentDefinitions?: (FormComponentDefinition | FormComponentDefinitionTemplate)[] = [];
     /**
      * debug: show the form JSON
      * Default false.

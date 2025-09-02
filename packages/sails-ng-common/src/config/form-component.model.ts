@@ -11,17 +11,13 @@ export interface FormComponentDefinition {
      */
     name: string;
     /**
-     * The component template to use as defaults for properties not defined in this definition.
-     */
-    templateName?: string;
-    /**
      * The definition of the model that backs the form field.
      */
     model?: FormFieldModelDefinition;
     /**
      * The definition of the client-side component for the form field.
      */
-    component?: FormFieldComponentDefinition;
+    component: FormFieldComponentDefinition;
     /**
      * The definition of the client-side layout for this form field.
      */
@@ -103,3 +99,19 @@ export class FormConstraintAuthorizationConfig {
  * The available form modes.
  */
 export type FormModesConfig  = "edit" | "view";
+
+/**
+ *
+ */
+export interface FormComponentDefinitionTemplate {
+    /**
+     * The component template to use as defaults for properties not defined in the definitions.
+     */
+    templateName: string;
+    /**
+     * Override any properties from the component template.
+     * Overrides are done by matching the 'name' property in
+     * the component template and the components defined here.
+     */
+    componentDefinitions?: FormComponentDefinition[];
+}

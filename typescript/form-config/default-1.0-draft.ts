@@ -67,6 +67,28 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    templateName: "standard-contributor-field",
+                                    componentDefinitions: [
+                                        {
+                                            componentName: "contributor",
+                                            overrideName: "contributor_ci",
+                                        }
+                                    ],
+                                },
+                                {
+                                    templateName: "standard-contributor-field",
+                                    componentDefinitions: [
+                                        {
+                                            componentName: "contributor",
+                                            overrideName: "contributor_data_manager",
+                                        }
+                                    ],
+                                },
+                                {
+                                    templateName: "standard-project-info-fields",
+                                    componentDefinitions: [],
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',
