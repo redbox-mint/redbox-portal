@@ -1,0 +1,34 @@
+<div class="branding-admin" *ngIf="initialized">
+  <h2>Branding Configuration</h2>
+
+  <section class="published">
+    <h3>Published</h3>
+    <pre>{{ publishedConfig | json }}</pre>
+  </section>
+
+  <section class="draft">
+    <h3>Draft</h3>
+    <!-- Placeholder: read-only JSON until form-based editor implemented -->
+    <textarea rows="10" cols="80" [value]="draftConfig | json" readonly></textarea>
+    <p>Edit controls TBD - structured form fields for variables will replace this.</p>
+  </section>
+
+  <div class="actions">
+    <button (click)="saveDraft()" [disabled]="savingDraft">Save Draft</button>
+    <button (click)="createPreview()" [disabled]="generatingPreview">Generate Preview</button>
+    <button (click)="publish()" [disabled]="publishing">Publish</button>
+    <button (click)="resetDraft()">Reset Draft</button>
+    <label class="logo-upload">Logo: <input type="file" (change)="uploadLogo($event)" /></label>
+  </div>
+
+  <div class="status" *ngIf="message || error">
+    <p class="message" *ngIf="message">{{ message }}</p>
+    <p class="error" *ngIf="error">{{ error }}</p>
+  </div>
+
+  <div class="preview" *ngIf="previewToken">
+    <h3>Preview Token</h3>
+    <code>{{ previewToken }}</code>
+  </div>
+</div>
+<div *ngIf="!initialized">Loading...</div>

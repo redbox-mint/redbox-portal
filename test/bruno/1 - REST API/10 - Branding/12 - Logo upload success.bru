@@ -1,0 +1,31 @@
+meta {
+  name: Logo upload success
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/logo
+  body: multipartForm
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+body:multipart-form {
+  logo: @file(attachment.png)
+}
+
+tests {
+  test("Status 200", function(){
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Hash returned", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body).to.have.property('hash');
+  });
+}

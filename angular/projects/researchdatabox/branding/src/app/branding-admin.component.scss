@@ -1,0 +1,8 @@
+.branding-admin {
+  h2 { margin-top: 0; }
+  section { margin-bottom: 1.5rem; }
+  pre { background: #f6f8fa; padding: .75rem; border: 1px solid #ddd; max-height: 240px; overflow:auto; }
+  .actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
+  button { cursor:pointer; }
+  .status { .error { color:#b00020; } .message { color:#006400; } }
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Preview create (webservice)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/preview
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Preview variables returned", function(){
+    var raw = res.getBody();
+    console.log("&*^*&^*()^*&*^*^*&*^*^*^*&*^raw")
+    console.log(raw)
+    console.log("&*^*&^*()^*&*^*^*&*^*^*^*&*^raw")
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.branding.variables['site-branding-area-background']).to.equal('#123123');
+  });
+  test("Preview token + url stored", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    bru.setVar('branding_preview_token', body.previewToken);
+    bru.setVar('branding_preview_url', body.previewUrl);
+    bru.setVar('branding_version1', body.version);
+    bru.setVar('branding_hash1', body.hash);
+  });
+}

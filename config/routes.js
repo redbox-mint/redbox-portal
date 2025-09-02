@@ -74,6 +74,21 @@ module.exports.routes = {
     controller: 'BrandingController',
     action: 'renderCss'
   },
+  '/:branding/:portal/preview/:token([a-z0-9]+).css': {
+    controller: 'BrandingController',
+    action: 'renderPreviewCss',
+    skipAssets: false
+  },
+  // Fallback route without explicit .css in case the above pattern is not matched by Sails' asset middleware
+  'get /:branding/:portal/preview/:token.css': {
+    controller: 'BrandingController',
+    action: 'renderPreviewCss',
+    skipAssets: false
+  },
+  'post /:branding/:portal/preview': {
+    controller: 'BrandingController',
+    action: 'createPreview'
+  },
   '/:branding/:portal/images/logo': {
     controller: 'BrandingController',
     action: 'renderImage'
@@ -159,6 +174,27 @@ module.exports.routes = {
   'get /:branding/:portal/user/login': 'UserController.login',
   'get /:branding/:portal/user/logout': 'UserController.logout',
   'get /:branding/:portal/user/find': 'UserController.find',
+  // App Branding (Task 9)
+  'get /:branding/:portal/app/branding/config': {
+    controller: 'AppBrandingController',
+    action: 'config'
+  },
+  'post /:branding/:portal/app/branding/draft': {
+    controller: 'AppBrandingController',
+    action: 'draft'
+  },
+  'post /:branding/:portal/app/branding/preview': {
+    controller: 'AppBrandingController',
+    action: 'preview'
+  },
+  'post /:branding/:portal/app/branding/publish': {
+    controller: 'AppBrandingController',
+    action: 'publish'
+  },
+  'post /:branding/:portal/app/branding/logo': {
+    controller: 'AppBrandingController',
+    action: 'logo'
+  },
   'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
   'post /:branding/:portal/admin/users/update': 'AdminController.updateUserDetails',
   'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
@@ -243,6 +279,11 @@ module.exports.routes = {
     action: 'editAppConfig'
   },
   'get /:branding/:portal/admin/deletedRecords': 'RecordController.renderDeletedRecords',
+  'get /:branding/:portal/admin/branding': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { 'view': 'admin/branding' }
+  },
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *
@@ -513,6 +554,13 @@ module.exports.routes = {
     action: 'saveAppConfig',
     csrf: false
   },
+  // Branding webservice endpoints (Task 8)
+  'post /:branding/:portal/api/branding/draft': { controller: 'webservice/BrandingController', action: 'draft', csrf: false },
+  'post /:branding/:portal/api/branding/preview': { controller: 'webservice/BrandingController', action: 'preview', csrf: false },
+  'post /:branding/:portal/api/branding/publish': { controller: 'webservice/BrandingController', action: 'publish', csrf: false },
+  'post /:branding/:portal/api/branding/rollback/:versionId': { controller: 'webservice/BrandingController', action: 'rollback', csrf: false },
+  'post /:branding/:portal/api/branding/logo': { controller: 'webservice/BrandingController', action: 'logo', csrf: false },
+  'get /:branding/:portal/api/branding/history': { controller: 'webservice/BrandingController', action: 'history', csrf: false },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };

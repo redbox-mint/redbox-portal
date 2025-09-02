@@ -1,0 +1,24 @@
+meta {
+  name: Draft update before second publish
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/draft
+  body: json
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+body:json {
+  {"variables": {"site-branding-area-background": "#456456"}}
+}
+
+tests {
+  test("Draft updated", function(){ expect(res.getStatus()).to.equal(200); });
+}

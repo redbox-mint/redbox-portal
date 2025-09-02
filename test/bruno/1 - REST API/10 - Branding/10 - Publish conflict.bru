@@ -1,0 +1,26 @@
+meta {
+  name: Publish conflict
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/publish
+  body: json
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+body:json {
+  {"expectedVersion": 0 }
+}
+
+tests {
+  test("Conflict 409", function(){
+    expect(res.getStatus()).to.equal(409);
+  });
+}

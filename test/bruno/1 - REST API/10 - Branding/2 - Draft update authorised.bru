@@ -1,0 +1,35 @@
+meta {
+  name: Draft update authorised
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/draft
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~Content-Type: application/json
+}
+
+body:json {
+  {
+    "variables": {
+      "site-branding-area-background": "#123123"
+    }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Variable echoed back", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.branding.variables['site-branding-area-background']).to.equal('#123123');
+  });
+}

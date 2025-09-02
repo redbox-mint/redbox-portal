@@ -108,6 +108,6 @@ export class HttpClientService implements Service {
    * Call from extending class to enable CSRF in the header
    */
   protected enableCsrfHeader() {
-    this.httpContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
+    this.httpContext = this.httpContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
   }
 }
