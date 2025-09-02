@@ -248,28 +248,18 @@ export module Services {
     }
 
     public async reloadResources(brandingId?: string) {
+      // Re-create i18next instances so deletions / prunes are reflected (addResourceBundle can't remove keys)
       const brandingsToReload = brandingId ? [brandingId] : Object.keys(this.i18nextInstances);
-      
       for (const bId of brandingsToReload) {
-        const i18nextInstance = this.i18nextInstances[bId];
-        if (!i18nextInstance) continue;
-        
-        const branding = BrandingService.getBrand(bId);
-        if (!branding) continue;
-        
-      // Reload from DB and replace resource bundles
-        const resources = await this._fetchResourcesFromDb(branding);
-      const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
-        
-      for (const lng of Object.keys(resources)) {
-        for (const ns of namespaces) {
-          const data = resources[lng][ns] || {};
-          // addResourceBundle(lng, ns, resources, deep, overwrite)
-            i18nextInstance.addResourceBundle(lng, ns, data, true, true);
+        try {
+          await this.clearInstances(bId);
+          const branding = BrandingService.getBrand(bId);
+          if (!branding) continue;
+          await this.getI18nextForBranding(branding);
+          this.logger.debug(`Re-created i18next instance for branding: ${bId}`);
+        } catch (e) {
+          this.logger.warn(`Failed to re-create i18next for branding ${bId}:`, (e as Error)?.message || e);
         }
-      }
-        
-        this.logger.debug(`Reloaded resources for branding: ${bId}`);
       }
     }
 

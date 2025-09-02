@@ -186,7 +186,7 @@ export module Services {
       namespace: string,
       key: string,
       value: any,
-      options?: { bundleId?: string; category?: string; description?: string }
+      options?: { bundleId?: string; category?: string; description?: string; noReload?: boolean }
     ): Promise<any> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
@@ -225,6 +225,10 @@ export module Services {
         this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
 
+      // Trigger i18next cache refresh (best-effort) unless suppressed (e.g., batch operations)
+      if (!options?.noReload) {
+        try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+      }
       return saved;
     }
 
@@ -268,7 +272,7 @@ export module Services {
       return await I18nBundle.find({ branding: brandingId });
     }
 
-    public async setBundle(
+  public async setBundle(
       branding: BrandingModel,
       locale: string,
       namespace: string,
@@ -306,6 +310,8 @@ export module Services {
       } catch (e) {
         this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
+      // After full bundle update & sync, refresh translations
+      try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
       return bundle;
     }
 
@@ -380,17 +386,19 @@ export module Services {
         existingKeysSet.delete(key); // still present
         const existing = await this.getEntry(brandingModel, locale, namespace, key);
         if (existing && !overwrite) continue;
-        await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description });
+  await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
       }
 
       // Any keys left in existingKeysSet are no longer present in the bundle -> remove to avoid desync
-    for (const obsoleteKey of existingKeysSet) {
+  for (const obsoleteKey of existingKeysSet) {
         try {
-      await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
+  await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
         } catch (e) {
           this.logger.warn('Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
       }
+  // Bulk operation complete; reload once
+  try { (global as any).TranslationService?.reloadResources?.(brandingModel.id || brandingModel); } catch (_e) { /* ignore */ }
     }
 
 
