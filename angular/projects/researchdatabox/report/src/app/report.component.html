@@ -25,7 +25,7 @@
               <div class="row">
                 <div class="col-md-2"></div>
                 <div class="col-xs-2">
-                  <label [for]="filter.paramName">{{filter.message}}</label>
+                  <label [attr.for]="filter.paramName">{{filter.message}}</label>
                 </div>
                 <div class="col-xs-6">
                   <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
@@ -38,7 +38,7 @@
               <div class="row">
                 <div class="col-md-2"></div>
                 <div class="col-12 col-sm-2 col-md-2">
-                  <label [for]="filter.paramName" class="report-filter-date-range-label">{{filter.message}}</label>
+                  <label [attr.for]="filter.paramName" class="report-filter-date-range-label">{{filter.message}}</label>
                 </div>
                 <div class="col-12 col-sm-3 col-md-3">
                   <div class="form-group">
@@ -78,7 +78,7 @@
     </div>
   }
   <!-- Result overview  -->
-  @if (initTracker && initTracker.resultsReturned) {
+  @if (initTracker) {
     <div class="row">
       <div class="col-xs-2">
         @if (initTracker.resultsReturned == false) {
@@ -95,7 +95,7 @@
       </div>
       <div class="col-xs-8"></div>
       <div class="col-xs-2">
-        <a class="btn btn-large btn-primary" [attr.href]='getDownloadCSVUrl()'>
+        <a class="btn btn-large btn-primary" [href]="getDownloadCSVUrl()">
           <span class="glyphicon glyphicon-download"></span>
           {{ 'report-csv-download' | i18next }}
         </a>

@@ -24,7 +24,7 @@
                   </th>
                 }
               }
-              @if (enableActions && showActions.length > 0) {
+              @if (enableActions && showActions && showActions.length > 0) {
                 <th>{{'record-table-results-table-header-actions' | i18next}}</th>
               }
             </tr>
@@ -34,10 +34,10 @@
               <tr>
                 @for (col of columnConfig; track col) {
                   @if (!col.hide) {
-                    <td [innerHtml]="getColValue(row, col)"></td>
+                    <td [innerHTML]="getColValue(row, col)"></td> <!-- If getColValue returns unsafe HTML, sanitize it with DomSanitizer in the component -->
                   }
                 }
-                @if (enableActions && showActions.length > 0) {
+                @if (enableActions && showActions && showActions.length > 0) {
                   <td>
                     @for (showAction of showActions; track showAction) {
                       <button

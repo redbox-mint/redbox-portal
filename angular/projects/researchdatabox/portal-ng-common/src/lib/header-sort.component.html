@@ -1,4 +1,4 @@
-<a href="#" role="button" [attr.aria-sort]="sort === 'asc'? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="headerSortClicked()" class="record-table-heading-sort">
+<button type="button" [attr.aria-sort]="sort === 'asc'? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="headerSortClicked()" class="record-table-heading-sort">
   {{title}}
   @if (sort == 'asc') {
     <i
@@ -10,5 +10,5 @@
     <span
     >&nbsp;</span>
   }
-</a>
+</button>
 

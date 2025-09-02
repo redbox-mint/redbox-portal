@@ -14,7 +14,7 @@
                 <h2>{{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}</h2>
               </div>
             }
-            @if ((dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && (records[workflowStep.config.workflow.stage].totalItems > 0 || (records[workflowStep.config.workflow.stage].totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))) {
+            @if ((dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && ((records[workflowStep.config.workflow.stage]?.totalItems > 0) || (records[workflowStep.config.workflow.stage]?.totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))) {
               <div class="col-md-8">
                 <div class="d-flex flex-row mt-4">
                   <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>

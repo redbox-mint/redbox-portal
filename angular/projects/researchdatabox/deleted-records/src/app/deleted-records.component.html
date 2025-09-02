@@ -22,7 +22,7 @@
               <div class="row">
                 <div class="col-md-2"></div>
                 <div class="col-xs-2">
-                  <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
+                  <label [attr.for]="filter.paramName" class="form-label">{{ filter.message }}</label>
                 </div>
                 <div class="col-xs-6">
                   <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
@@ -64,18 +64,18 @@
     </div>
   }
   <!-- Result overview  -->
-  @if (initTracker && initTracker.resultsReturned) {
+  @if (initTracker) {
     <div class="row">
       <div class="col-xs-2">
-        @if (initTracker.resultsReturned == false) {
+        @if (initTracker.resultsReturned === false) {
           <span>
             <span class="fa fa-spinner fa-spin fa-fw"></span>
             {{ 'deleted-records-retrieving-results' | i18next }}
           </span>
         }
-        @if (initTracker.resultsReturned == true) {
+        @else {
           <span
-            [innerHTML]='"deleted-records-results-returned" | i18next: {count: deletedRecordsResult.total }'>
+            [innerHTML]='"deleted-records-results-returned" | i18next: { count: deletedRecordsResult.total }'>
           </span>
         }
       </div>
