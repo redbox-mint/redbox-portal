@@ -221,8 +221,8 @@ module.exports = {
   TextArea: (field) => {
     let componentDefinition = createBaseComponent({
         field,
-        componentClass: 'TextAreaComponent',
-        modelClass: 'TextAreaModel'
+        componentClass: 'TextareaComponent',
+        modelClass: 'TextareaModel'
     });
 
     return componentDefinition;

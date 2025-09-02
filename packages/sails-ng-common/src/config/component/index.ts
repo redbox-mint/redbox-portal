@@ -29,6 +29,7 @@ import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponent
 import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.model";
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
+import { TextareaComponentConfig, TextareaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
 /**
  * Possible form field component definitions.
  */
@@ -40,7 +41,8 @@ export type FormFieldComponentDefinition =
     GroupFormFieldComponentDefinition |
     TabFormFieldComponentDefinition | 
     TabContentComponentDefinition |
-    SaveButtonComponentDefinition;
+    SaveButtonComponentDefinition |
+    TextareaComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -52,7 +54,8 @@ export type FormFieldComponentConfig =
     ValidationSummaryFormFieldComponentConfig |
     GroupFormFieldComponentConfig |
     TabComponentConfig |
-    SaveButtonComponentConfig;
+    SaveButtonComponentConfig |
+    TextareaComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -61,7 +64,8 @@ export type FormFieldModelDefinition =
     TextFormFieldModelDefinition |
     RepeatableFormFieldModelDefinition |
     ValidationSummaryFormFieldModelDefinition |
-    GroupFormFieldModelDefinition;
+    GroupFormFieldModelDefinition | 
+    TextareaModelDefinition;
 
 
 /**
@@ -71,7 +75,8 @@ export type FormFieldModelConfig =
     TextFormFieldModelConfig |
     RepeatableFormFieldModelConfig |
     ValidationSummaryFormFieldModelConfig |
-    GroupFormFieldModelConfig;
+    GroupFormFieldModelConfig | 
+    TextareaModelConfig;
 
 
 /**
