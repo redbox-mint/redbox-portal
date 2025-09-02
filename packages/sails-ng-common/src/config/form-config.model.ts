@@ -98,12 +98,5 @@ export class FormConfig {
      * Default false.
      */
     debugValue?: boolean = false;
-    /**
-     * Re-usable, server-side only, component templates.
-     * These replace placeholders in componentDefinitions.
-     * The 'name' property for these templates can be used as the reference
-     * in the 'template' property in form component definitions.
-     */
-    componentTemplates?: FormComponentDefinition[] = [];
 }
 
