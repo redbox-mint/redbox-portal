@@ -40,7 +40,9 @@ updates:
   #  with one PR having minor & patch changes,
   #  and separate PR for major version changes
   - package-ecosystem: "npm"
-    directory: "/angular"
+    directories:
+      - "/angular"
+      - "/angular/projects/researchdatabox/portal-ng-common"
     schedule:
       interval: "daily"
     target-branch: "develop"
@@ -49,6 +51,9 @@ updates:
         applies-to: "version-updates"
         patterns:
           - "@angular*"
+          - "ngx-bootstrap"
+          - "angular-i18next"
+          - "@schematics/angular"
         update-types:
           - "minor"
           - "patch"
@@ -56,6 +61,9 @@ updates:
         applies-to: "version-updates"
         patterns:
           - "@angular*"
+          - "ngx-bootstrap"
+          - "angular-i18next"
+          - "@schematics/angular"
         update-types:
           - "major"
 
@@ -73,26 +81,6 @@ updates:
           - "minor"
           - "patch"
       angular-legacy-major:
-        applies-to: "version-updates"
-        patterns:
-          - "@angular*"
-        update-types:
-          - "major"
-
-  - package-ecosystem: "npm"
-    directory: "/angular/projects/researchdatabox/portal-ng-common"
-    schedule:
-      interval: "daily"
-    target-branch: "develop"
-    groups:
-      angular-common:
-        applies-to: "version-updates"
-        patterns:
-          - "@angular*"
-        update-types:
-          - "minor"
-          - "patch"
-      angular-common-major:
         applies-to: "version-updates"
         patterns:
           - "@angular*"
