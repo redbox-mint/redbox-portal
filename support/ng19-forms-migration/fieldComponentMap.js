@@ -219,11 +219,26 @@ module.exports = {
     return componentDefinition;
   },
   TextArea: (field) => {
+
+    //component specific mapping
+    let fieldConfig = {
+      cols: field?.definition?.cols ?? field?.definition?.columns ?? '',
+      rows: field?.definition?.rows ?? ''
+    }
+
     let componentDefinition = createBaseComponent({
         field,
         componentClass: 'TextareaComponent',
         modelClass: 'TextareaModel'
     });
+
+    if(!_.isEmpty(fieldConfig.cols)) {
+      _.set(componentDefinition,'cols',fieldConfig.cols);
+    }
+
+    if(!_.isEmpty(fieldConfig.rows)) {
+      _.set(componentDefinition,'rows',fieldConfig.rows);
+    }
 
     return componentDefinition;
   },
