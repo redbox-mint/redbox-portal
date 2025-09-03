@@ -9,46 +9,23 @@
   </div>
 
   <div class="row">
-    <!-- Published Configuration Card -->
-    <div class="col-lg-6 mb-4">
-      <div class="card h-100">
-        <div class="card-header bg-success text-white">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-check-circle me-2"></i>
-            Published Configuration
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="mb-2">
-            <strong>Version:</strong> {{ publishedConfig?.version || 0 }} |
-            <strong>Hash:</strong> <code class="small">{{ publishedConfig?.hash || 'none' }}</code>
-          </div>
-          <div class="mb-3" *ngIf="publishedConfig?.logo">
-            <strong>Logo:</strong> <span class="badge bg-info">Uploaded</span>
-          </div>
-          <label class="form-label">Current Variables:</label>
-          <pre class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">{{ publishedConfig?.variables | json }}</pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- Draft Configuration Card -->
-    <div class="col-lg-6 mb-4">
-      <div class="card h-100">
+    <!-- Draft Configuration Card - Full Width -->
+    <div class="col-12 mb-4">
+      <div class="card">
         <div class="card-header bg-warning text-dark">
           <h5 class="card-title mb-0">
             <i class="fas fa-edit me-2"></i>
-            Draft Variables
+            Branding Variables
           </h5>
         </div>
-        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+        <div class="card-body">
           <!-- Color Variables -->
           <div class="mb-4">
             <h6 class="text-primary mb-3">
               <i class="fas fa-palette me-2"></i>Colors
             </h6>
             <div class="row g-3">
-              <div class="col-md-6" *ngFor="let colorVar of colorVariables">
+              <div class="col-lg-3 col-md-4 col-sm-6" *ngFor="let colorVar of colorVariables">
                 <div class="mb-3">
                   <label [for]="colorVar.key" class="form-label small">
                     {{ colorVar.label }}
@@ -79,7 +56,7 @@
               <i class="fas fa-font me-2"></i>Typography
             </h6>
             <div class="row g-3">
-              <div class="col-md-6" *ngFor="let fontVar of fontVariables">
+              <div class="col-lg-3 col-md-4 col-sm-6" *ngFor="let fontVar of fontVariables">
                 <div class="mb-3">
                   <label [for]="fontVar.key" class="form-label small">
                     {{ fontVar.label }}
@@ -105,7 +82,7 @@
               <i class="fas fa-expand-arrows-alt me-2"></i>Sizes
             </h6>
             <div class="row g-3">
-              <div class="col-md-6" *ngFor="let sizeVar of sizeVariables">
+              <div class="col-lg-3 col-md-4 col-sm-6" *ngFor="let sizeVar of sizeVariables">
                 <div class="mb-3">
                   <label [for]="sizeVar.key" class="form-label small">
                     {{ sizeVar.label }}
