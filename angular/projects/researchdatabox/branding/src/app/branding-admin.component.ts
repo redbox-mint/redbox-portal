@@ -43,8 +43,10 @@ export class BrandingAdminComponent extends BaseComponent {
 
   async loadConfig() {
     try {
-      this.publishedConfig = await this.brandingService.loadConfig();
-      this.draftConfig = { ...this.publishedConfig };
+      const response = await this.brandingService.loadConfig();
+      this.publishedConfig = response?.branding || {};
+      // Initialize draft with current variables or empty object
+      this.draftConfig = { ...(this.publishedConfig.variables || {}) };
     } catch (e: any) {
       this.error = `Failed to load config: ${e?.message || e}`;
       this.logger.error(this.error);
@@ -57,6 +59,10 @@ export class BrandingAdminComponent extends BaseComponent {
       const res: any = await this.brandingService.saveDraft(this.draftConfig);
       this.message = 'Draft saved';
       this.logger.debug(`Draft saved ${JSON.stringify(res)}`);
+      // Update published config if response contains branding data
+      if (res?.branding) {
+        this.publishedConfig = res.branding;
+      }
     } catch (e: any) {
       this.error = `Failed to save draft: ${e?.message || e}`;
       this.logger.error(this.error);
@@ -67,7 +73,7 @@ export class BrandingAdminComponent extends BaseComponent {
     this.generatingPreview = true; this.message = this.error = undefined;
     try {
       const res: any = await this.brandingService.createPreview(this.draftConfig);
-      this.previewToken = res?.token;
+      this.previewToken = res?.token || res?.previewToken;
       this.message = 'Preview generated';
     } catch (e: any) {
       this.error = `Failed to generate preview: ${e?.message || e}`;
@@ -79,8 +85,9 @@ export class BrandingAdminComponent extends BaseComponent {
     this.publishing = true; this.message = this.error = undefined;
     try {
       const res: any = await this.brandingService.publish(this.draftConfig);
-      this.publishedConfig = res?.config || this.draftConfig;
       this.message = 'Branding published';
+      // Reload the full configuration after publish
+      await this.loadConfig();
     } catch (e: any) {
       this.error = `Failed to publish: ${e?.message || e}`;
       this.logger.error(this.error);
@@ -102,8 +109,16 @@ export class BrandingAdminComponent extends BaseComponent {
     } finally { this.logoUploading = false; }
   }
 
+  copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      this.message = 'Preview token copied to clipboard';
+    }).catch(() => {
+      this.error = 'Failed to copy to clipboard';
+    });
+  }
+
   resetDraft() {
-    this.draftConfig = { ...this.publishedConfig };
+    this.draftConfig = { ...(this.publishedConfig.variables || {}) };
     this.message = 'Draft reset to published config';
   }
 

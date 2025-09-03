@@ -1,34 +1,169 @@
-<div class="branding-admin" *ngIf="initialized">
-  <h2>Branding Configuration</h2>
-
-  <section class="published">
-    <h3>Published</h3>
-    <pre>{{ publishedConfig | json }}</pre>
-  </section>
-
-  <section class="draft">
-    <h3>Draft</h3>
-    <!-- Placeholder: read-only JSON until form-based editor implemented -->
-    <textarea rows="10" cols="80" [value]="draftConfig | json" readonly></textarea>
-    <p>Edit controls TBD - structured form fields for variables will replace this.</p>
-  </section>
-
-  <div class="actions">
-    <button (click)="saveDraft()" [disabled]="savingDraft">Save Draft</button>
-    <button (click)="createPreview()" [disabled]="generatingPreview">Generate Preview</button>
-    <button (click)="publish()" [disabled]="publishing">Publish</button>
-    <button (click)="resetDraft()">Reset Draft</button>
-    <label class="logo-upload">Logo: <input type="file" (change)="uploadLogo($event)" /></label>
+<div class="container-fluid" *ngIf="initialized">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-4 text-primary">
+        <i class="fas fa-palette me-2"></i>
+        Branding Configuration
+      </h2>
+    </div>
   </div>
 
-  <div class="status" *ngIf="message || error">
-    <p class="message" *ngIf="message">{{ message }}</p>
-    <p class="error" *ngIf="error">{{ error }}</p>
+  <div class="row">
+    <!-- Published Configuration Card -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-check-circle me-2"></i>
+            Published Configuration
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <strong>Version:</strong> {{ publishedConfig?.version || 0 }} |
+            <strong>Hash:</strong> <code class="small">{{ publishedConfig?.hash || 'none' }}</code>
+          </div>
+          <div class="mb-3" *ngIf="publishedConfig?.logo">
+            <strong>Logo:</strong> <span class="badge bg-info">Uploaded</span>
+          </div>
+          <label class="form-label">Current Variables:</label>
+          <pre class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">{{ publishedConfig?.variables | json }}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Draft Configuration Card -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-edit me-2"></i>
+            Draft Variables
+          </h5>
+        </div>
+        <div class="card-body">
+          <textarea class="form-control mb-3" rows="10" [value]="draftConfig | json" readonly 
+                    style="font-family: monospace; font-size: 0.9em;"></textarea>
+          <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <small>Structured form fields for editing variables will be added in the next phase.</small>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="preview" *ngIf="previewToken">
-    <h3>Preview Token</h3>
-    <code>{{ previewToken }}</code>
+  <!-- Actions Row -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-cogs me-2"></i>
+            Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <button class="btn btn-primary w-100" (click)="saveDraft()" [disabled]="savingDraft">
+                <i class="fas fa-save me-2"></i>
+                <span *ngIf="!savingDraft">Save Draft</span>
+                <span *ngIf="savingDraft">
+                  <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  Saving...
+                </span>
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-info w-100" (click)="createPreview()" [disabled]="generatingPreview">
+                <i class="fas fa-eye me-2"></i>
+                <span *ngIf="!generatingPreview">Generate Preview</span>
+                <span *ngIf="generatingPreview">
+                  <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  Generating...
+                </span>
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-success w-100" (click)="publish()" [disabled]="publishing">
+                <i class="fas fa-rocket me-2"></i>
+                <span *ngIf="!publishing">Publish</span>
+                <span *ngIf="publishing">
+                  <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  Publishing...
+                </span>
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-outline-secondary w-100" (click)="resetDraft()">
+                <i class="fas fa-undo me-2"></i>
+                Reset Draft
+              </button>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="logoUpload" class="form-label">
+                  <i class="fas fa-image me-2"></i>
+                  Logo Upload
+                </label>
+                <input type="file" class="form-control" id="logoUpload" (change)="uploadLogo($event)" accept="image/*" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Messages -->
+  <div class="row" *ngIf="message || error">
+    <div class="col-12">
+      <div class="alert alert-success alert-dismissible fade show" *ngIf="message" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      <div class="alert alert-danger alert-dismissible fade show" *ngIf="error" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Token -->
+  <div class="row" *ngIf="previewToken">
+    <div class="col-12">
+      <div class="card border-info">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-key me-2"></i>
+            Preview Token
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-code"></i></span>
+            <input type="text" class="form-control" [value]="previewToken" readonly />
+            <button class="btn btn-outline-secondary" type="button" (click)="copyToClipboard(previewToken)">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-<div *ngIf="!initialized">Loading...</div>
+
+<!-- Loading State -->
+<div class="d-flex justify-content-center align-items-center" style="min-height: 400px;" *ngIf="!initialized">
+  <div class="text-center">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading branding configuration...</p>
+  </div>
+</div>

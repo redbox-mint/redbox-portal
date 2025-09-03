@@ -42,7 +42,7 @@ export class BrandingAdminService extends HttpClientService {
    */
   public async saveDraft(config: any): Promise<any> {
     const url = `${this.brandingAndPortalUrl}/app/branding/draft`;
-    const result$ = this.http.post(url, { config }, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }).pipe(map(res => res));
+    const result$ = this.http.post(url, { variables: config }, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
@@ -51,7 +51,7 @@ export class BrandingAdminService extends HttpClientService {
    */
   public async createPreview(config: any): Promise<any> {
     const url = `${this.brandingAndPortalUrl}/app/branding/preview`;
-    const result$ = this.http.post(url, { config }, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }).pipe(map(res => res));
+    const result$ = this.http.post(url, {}, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
@@ -60,7 +60,8 @@ export class BrandingAdminService extends HttpClientService {
    */
   public async publish(config: any): Promise<any> {
     const url = `${this.brandingAndPortalUrl}/app/branding/publish`;
-    const result$ = this.http.post(url, { config }, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }).pipe(map(res => res));
+    // TODO: Add version tracking for optimistic concurrency control
+    const result$ = this.http.post(url, {}, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
