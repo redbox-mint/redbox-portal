@@ -41,12 +41,95 @@
             Draft Variables
           </h5>
         </div>
-        <div class="card-body">
-          <textarea class="form-control mb-3" rows="10" [value]="draftConfig | json" readonly 
-                    style="font-family: monospace; font-size: 0.9em;"></textarea>
-          <div class="alert alert-info" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            <small>Structured form fields for editing variables will be added in the next phase.</small>
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+          <!-- Color Variables -->
+          <div class="mb-4">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-palette me-2"></i>Colors
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6" *ngFor="let colorVar of colorVariables">
+                <div class="mb-3">
+                  <label [for]="colorVar.key" class="form-label small">
+                    {{ colorVar.label }}
+                  </label>
+                  <div class="input-group input-group-sm">
+                    <input 
+                      type="color" 
+                      class="form-control form-control-color" 
+                      [id]="colorVar.key"
+                      [value]="draftConfig[colorVar.key] || colorVar.default"
+                      (input)="updateVariable(colorVar.key, $event)"
+                      style="max-width: 50px;">
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      [value]="draftConfig[colorVar.key] || colorVar.default"
+                      (input)="updateVariable(colorVar.key, $event)"
+                      placeholder="#000000">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Font Variables -->
+          <div class="mb-4">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-font me-2"></i>Typography
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6" *ngFor="let fontVar of fontVariables">
+                <div class="mb-3">
+                  <label [for]="fontVar.key" class="form-label small">
+                    {{ fontVar.label }}
+                  </label>
+                  <select 
+                    class="form-select form-select-sm" 
+                    [id]="fontVar.key"
+                    [value]="draftConfig[fontVar.key] || fontVar.default"
+                    (change)="updateVariable(fontVar.key, $event)">
+                    <option value="">Default</option>
+                    <option *ngFor="let font of fontOptions" [value]="font.value">
+                      {{ font.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Size Variables -->
+          <div class="mb-4">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-expand-arrows-alt me-2"></i>Sizes
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6" *ngFor="let sizeVar of sizeVariables">
+                <div class="mb-3">
+                  <label [for]="sizeVar.key" class="form-label small">
+                    {{ sizeVar.label }}
+                  </label>
+                  <div class="input-group input-group-sm">
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      [id]="sizeVar.key"
+                      [value]="draftConfig[sizeVar.key] || sizeVar.default"
+                      (input)="updateVariable(sizeVar.key, $event)"
+                      [placeholder]="sizeVar.placeholder">
+                    <span class="input-group-text">{{ sizeVar.unit }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reset to Defaults -->
+          <div class="mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="resetToDefaults()">
+              <i class="fas fa-undo me-2"></i>Reset All to Defaults
+            </button>
           </div>
         </div>
       </div>
@@ -110,6 +193,41 @@
                   Logo Upload
                 </label>
                 <input type="file" class="form-control" id="logoUpload" (change)="uploadLogo($event)" accept="image/*" />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check mt-4">
+                <input class="form-check-input" type="checkbox" id="showJsonView" [(ngModel)]="showJsonView">
+                <label class="form-check-label" for="showJsonView">
+                  Show Advanced JSON View
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced JSON View -->
+          <div class="row mt-3" *ngIf="showJsonView">
+            <div class="col-12">
+              <div class="card border-secondary">
+                <div class="card-header bg-secondary text-white">
+                  <h6 class="card-title mb-0">
+                    <i class="fas fa-code me-2"></i>
+                    Advanced JSON Editor
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <textarea 
+                    class="form-control" 
+                    rows="8" 
+                    [value]="draftConfig | json" 
+                    (input)="updateFromJson($event)"
+                    style="font-family: monospace; font-size: 0.9em;"
+                    placeholder="Enter JSON configuration..."></textarea>
+                  <small class="text-muted mt-2 d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Direct JSON editing for advanced users. Changes will be reflected in the form fields above.
+                  </small>
+                </div>
               </div>
             </div>
           </div>

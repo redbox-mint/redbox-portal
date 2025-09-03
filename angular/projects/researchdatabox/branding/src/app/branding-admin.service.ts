@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpContext } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClientService, ConfigService, UtilityService } from '@researchdatabox/portal-ng-common';
+import { HttpClientService, ConfigService, UtilityService, RB_HTTP_INTERCEPTOR_AUTH_CSRF, RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE } from '@researchdatabox/portal-ng-common';
 import { firstValueFrom, map } from 'rxjs';
 
 /**
@@ -70,7 +70,17 @@ export class BrandingAdminService extends HttpClientService {
    */
   public async uploadLogo(formData: FormData): Promise<any> {
     const url = `${this.brandingAndPortalUrl}/app/branding/logo`;
-    const result$ = this.http.post(url, formData, { context: this.httpContext }).pipe(map(res => res));
+    
+    // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
+    const fileUploadContext = new HttpContext();
+    fileUploadContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
+    fileUploadContext.set(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE, true);
+    
+    const uploadOptions = { 
+      context: fileUploadContext
+    };
+    
+    const result$ = this.http.post(url, formData, uploadOptions).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 }

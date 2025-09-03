@@ -1,3 +1,4 @@
+/* Branding Admin Component Styles */
 .branding-admin {
   h2 { margin-top: 0; }
   section { margin-bottom: 1.5rem; }
@@ -5,4 +6,85 @@
   .actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
   button { cursor:pointer; }
   .status { .error { color:#b00020; } .message { color:#006400; } }
+
+  // Enhanced form styling
+  .form-control-color {
+    border-radius: 0.375rem 0 0 0.375rem;
+    border-right: none;
+    width: 50px;
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.125rem;
+    cursor: pointer;
+  }
+
+  .input-group .form-control-color + .form-control {
+    border-left: none;
+    padding-left: 0.5rem;
+  }
+
+  .form-label.small {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-body h6 {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+  }
+
+  .input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+
+  // Color picker specific styling
+  input[type="color"] {
+    &::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    &::-webkit-color-swatch {
+      border: none;
+      border-radius: 0.25rem;
+    }
+    &::-moz-color-swatch {
+      border: none;
+      border-radius: 0.25rem;
+    }
+  }
+
+  // Enhanced visual feedback
+  .variable-group {
+    transition: all 0.2s ease-in-out;
+    &:hover {
+      background-color: #f8f9fa;
+      border-radius: 0.375rem;
+      padding: 0.5rem;
+      margin: -0.5rem;
+    }
+  }
+
+  // Loading states
+  .btn[disabled] {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  // Alert customizations
+  .alert {
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    &.alert-info {
+      background-color: #e7f3ff;
+      border-color: #b3d9ff;
+      color: #0c5460;
+    }
+  }
 }
