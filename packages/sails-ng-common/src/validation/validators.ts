@@ -1,24 +1,21 @@
 import {
-  FormValidatorDefinition,
-  formValidatorGetDefinitionArray,
-  formValidatorGetDefinitionBoolean,
-  formValidatorGetDefinitionItem,
-  formValidatorGetDefinitionNumber,
-  formValidatorGetDefinitionRegexp,
-  formValidatorGetDefinitionString,
-  formValidatorLengthOrSize,
-} from '@researchdatabox/sails-ng-common';
-
-// The validators are based on:
-// angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
-// formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
-
-// TODO: these validation definitions need to be on the server-side, and provided to the client-side from the server.
-// There are two sets of validator definitions - 1) shared / common definitions in the core; 2) definitions specific to a client.
-//    These two set of definitions need to be merged and provided by the server to the client.
+    formValidatorGetDefinitionArray, formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
+    formValidatorGetDefinitionNumber,
+    formValidatorGetDefinitionRegexp, formValidatorGetDefinitionString, formValidatorLengthOrSize
+} from "./helpers";
+import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
 
 export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
+/**
+ * The validators are based on:
+ * angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
+ * formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
+ *
+ * These validation definitions need to be on the server-side, and provided to the client-side from the server.
+ * There are two sets of validator definitions - 1) shared / common definitions in the core; 2) definitions specific to a client.
+ *    These two set of definitions need to be merged and provided by the server to the client.
+ */
 export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
     name: "min",
@@ -241,13 +238,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       let regexStr: string;
       if (typeof pattern === "string") {
         regexStr = "";
-
-        if (pattern.charAt(0) !== "^") regexStr += "^";
-
+        if (pattern.charAt(0) !== "^") regexStr = ("^" + regexStr);
         regexStr += pattern;
-
-        if (pattern.charAt(pattern.length - 1) !== "$") regexStr += "$";
-
+        if (pattern.charAt(pattern.length - 1) !== "$") regexStr = (regexStr + "$");
         regex = new RegExp(regexStr);
       } else if (pattern instanceof RegExp) {
         regexStr = pattern.toString();
@@ -302,6 +295,47 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           };
         }
         return null;
+      };
+    },
+  },
+  {
+    name: "jsonata-expression",
+    message: "@validator-error-jsonata-expression",
+    create: (config) => {
+      const optionNameKey = "name";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");
+      const optionDescriptionKey = "description";
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
+      const optionExpressionKey = "expression";
+      const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
+      const optionEvaluatorKey = "evaluator";
+      const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as (control: FormValidatorControl) => boolean;
+      return (control) => {
+          if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+              return null; // don't validate empty values to allow optional controls
+          }
+          const value = control.value?.toString();
+          let success: boolean;
+          try {
+              success = evaluator(control)
+          } catch (err) {
+              success = false;
+              console.error(`Validator 'jsonata-expression' could not run due to error: ${err}`);
+          }
+          return success
+              ? null
+              : {
+                  [optionNameValue]: {
+                      [optionMessageKey]: optionMessageValue,
+                      params: {
+                          expression: expression,
+                          description: optionDescriptionValue,
+                          actual: value,
+                      },
+                  },
+              };
       };
     },
   },

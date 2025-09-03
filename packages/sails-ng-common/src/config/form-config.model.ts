@@ -65,15 +65,11 @@ export class FormConfig {
      */
     skipValidationOnSave?: boolean = false;
     /**
-     * The definitions of the available validators.
-     */
-    validatorDefinitions?: FormValidatorDefinition[] = [];
-    /**
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */
     validators?: FormValidatorConfig[] = [];
 
-    // TODO: a way to crate groups of validators
+    // TODO: a way to create groups of validators
     // This is not implemented yet.
     // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
     // validatorProfiles: {

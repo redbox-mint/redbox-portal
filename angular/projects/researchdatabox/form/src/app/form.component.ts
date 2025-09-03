@@ -173,7 +173,7 @@ export class FormComponent extends BaseComponent {
   }
 
   protected async initComponent(): Promise<void> {
-    this.loggerService.debug(`${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`);
+    this.loggerService.info(`${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`);
     try {
       if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
@@ -189,16 +189,15 @@ export class FormComponent extends BaseComponent {
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
     if (!formConfig) {
-      this.loggerService.log(`${this.logName}: creating form definition by downloading config`);
+      this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
     } else {
-      this.loggerService.log(`${this.logName}: creating form definition from provided config`);
+      this.loggerService.info(`${this.logName}: creating form definition from provided config`);
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
     }
     this.componentDefArr = this.formDefMap.components;
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     if (!compContainerRef) {
-      this.loggerService.error(`${this.logName}: No component container found. Cannot load components.`);
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
     for (const componentDefEntry of this.componentDefArr){
@@ -207,10 +206,9 @@ export class FormComponent extends BaseComponent {
       componentRef.changeDetectorRef.detectChanges();
 
       await componentRef.instance.initWrapperComponent(componentDefEntry);
-      this.loggerService.info(`FormComponent: downloadAndCreateFormComponents: `, componentDefEntry.component);
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
-    this.createFormGroup();
+    await this.createFormGroup();
     // set the cache that will trigger a form reinit when the OID is changed
     this.currentOid = this.trimmedParams.oid();
     // Set the status to READY if all components are loaded
@@ -221,7 +219,7 @@ export class FormComponent extends BaseComponent {
   /**
    * Create the form group based on the form definition map.
    */
-  private createFormGroup(): void {
+  private async createFormGroup(): Promise<void> {
     if (this.formDefMap && this.formDefMap.formConfig) {
       const components = this.formDefMap.components;
       // set up the form group
@@ -232,9 +230,8 @@ export class FormComponent extends BaseComponent {
         this.form = new FormGroup(formGroupMap.withFormControl);
 
         // set up validators
-        const validatorDefinitions = this.formDefMap.formConfig.validatorDefinitions;
         const validatorConfig = this.formDefMap.formConfig.validators;
-        const validators = this.formService.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
+        const validators = this.formService.createFormValidatorInstances(validatorConfig);
         this.formService.setValidators(this.form, validators);
       } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
         // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
@@ -314,9 +311,9 @@ export class FormComponent extends BaseComponent {
 
   private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
-    this.loggerService.info('getComponentDebugInfo', formFieldCompMapEntry);
+    this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
-    const name = this.utilityService.getNameClass(componentEntry)
+    const name = formFieldCompMapEntry?.compConfigJson?.name || formFieldCompMapEntry?.name || "(not set)";
 
     const componentResult: DebugInfo = {
       name: name,

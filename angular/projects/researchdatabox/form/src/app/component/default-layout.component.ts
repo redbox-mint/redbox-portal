@@ -115,7 +115,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
 
     if (_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name) && this.formFieldCompMapEntry) {
-      _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${this.formFieldCompMapEntry?.compConfigJson?.name || this.formFieldCompMapEntry?.name || 'default'}-layout`);
+      const compConfigName = this.formFieldConfigName('default');
+      _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${compConfigName}-layout`);
     }
 
     if(!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
@@ -176,6 +177,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   protected get componentName(){
-    return this.utilityService.getNameClass(this.formFieldCompMapEntry);
+    return this.formFieldConfigName();
   }
 }

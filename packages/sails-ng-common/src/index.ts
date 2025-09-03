@@ -3,3 +3,4 @@ export * from "./report.model";
 export * from "./validation/index";
 export * from "./config/index";
 export * from "./status.model";
+export * from "./template.model";
