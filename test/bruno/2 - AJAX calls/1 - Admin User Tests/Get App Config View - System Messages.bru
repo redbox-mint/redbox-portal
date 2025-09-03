@@ -41,6 +41,6 @@ tests {
   
   test("HTML returned correctly sets the configKey in the app-config tag", function () {
        var responseBody = res.getBody();
-      expect(responseBody).to.include('<app-config configKey="systemMessage">');
+      expect(responseBody).to.include('<app-config configKey="systemMessage"');
   });
 }

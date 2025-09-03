@@ -240,7 +240,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       componentDefinitions: this.tab?.componentDefinitions || [],
       defaultComponentConfig: formConfig?.defaultComponentConfig,
     };
-    
+
     this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig);
     if (this.formDefMap != null && this.formDefMap != undefined) {
       for (const formFieldDef of this.formDefMap.components) {

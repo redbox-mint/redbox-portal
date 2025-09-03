@@ -1,11 +1,11 @@
 meta {
-  name: Get App Config
+  name: Get dynamic apiClientConfig
   type: http
   seq: 1
 }
 
 get {
-  url: {{host}}/default/rdmp/api/appconfig/systemMessage
+  url: {{host}}/dynamic/apiClientConfig
   body: none
   auth: none
 }
@@ -18,9 +18,9 @@ tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
-  test("Has enabled property", function () {
-      var jsonData = res.getBody();
-       expect(jsonData).to.have.property("enabled");
+  test("Has expected content", function () {
+    var body = res.getBody();
+    // console.log(body);
+    expect(body).to.have.property("enabled");
   });
 }

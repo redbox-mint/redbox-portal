@@ -11,7 +11,6 @@ const formConfig: FormConfig = {
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
 
-
     // TODO: a way to crate groups of validators
     // This is not implemented yet.
     // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
@@ -101,7 +100,7 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
-                                    name: 'text_2',
+                                    name: 'text_7',
                                     layout: {
                                         class: 'DefaultLayoutComponent',
                                         config: {
@@ -115,7 +114,7 @@ const formConfig: FormConfig = {
                                             defaultValue: 'hello world 2!',
                                             validators: [
                                                 { name: 'pattern', config: { pattern: /prefix.*/, description: "must start with prefix" } },
-                                                { name: 'minLength', message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+                                                { name: 'minLength', message: "@validator-error-custom-text_7", config: { minLength: 3 } },
                                             ]
                                         }
                                     },
@@ -358,7 +357,7 @@ const formConfig: FormConfig = {
                                                             },
                                                             {
                                                                 name: 'minLength',
-                                                                message: "@validator-error-custom-text_2",
+                                                                message: "@validator-error-custom-example_repeatable",
                                                                 config: { minLength: 3 }
                                                             },
                                                         ]
@@ -437,7 +436,7 @@ const formConfig: FormConfig = {
                                                 validators: [
                                                     {
                                                         name: 'minLength',
-                                                        message: "@validator-error-custom-text_2",
+                                                        message: "@validator-error-custom-text_3",
                                                         config: { minLength: 3 }
                                                     }
                                                 ]

@@ -30,19 +30,24 @@ module.exports = function (req, res, next) {
 
     // build the CSP header value
     const headerValues = [
-        // fetch directives
+        // == fetch directives ==
         // default-src sets a fallback policy for all resources whose directives are not explicitly listed
         "default-src 'self'",
         `script-src 'nonce-${generatedNonce}' 'self'`,
+        "worker-src 'self'",
+        // elements controlled by object-src are legacy, so set this to none
+        // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/object-src
+        "object-src 'none'",
+        "manifest-src 'self'",
         // allow Google Fonts
         `style-src 'nonce-${generatedNonce}' 'self' https://fonts.googleapis.com https://fonts.gstatic.com`,
         "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com",
-        // navigation directives
+        // == navigation directives ==
         "frame-ancestors 'none'",
         "form-action 'self'",
-        // document directives
+        // == document directives ==
         "base-uri 'self'",
-        // other directives
+        // == other directives ==
         "upgrade-insecure-requests",
     ]
     const headerValue = headerValues.join('; ');

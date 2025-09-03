@@ -69,7 +69,7 @@ export class FormConfig {
      */
     validators?: FormValidatorConfig[] = [];
 
-    // TODO: a way to crate groups of validators
+    // TODO: a way to create groups of validators
     // This is not implemented yet.
     // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
     // validatorProfiles: {

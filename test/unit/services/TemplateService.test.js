@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
+const ejs = require('ejs');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -122,7 +123,10 @@ describe('The TemplateService', function () {
         cases.forEach(({args, expected}) => {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // client
-                const clientString = TemplateService.buildClientMapping(args.inputs);
+                const clientMapping = TemplateService.buildClientMapping(args.inputs);
+                // render the view template
+                const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
+                const clientString = ejs.render(templateContent, {entries: clientMapping});
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
                     for (let i = 0; i < args.contexts; i++) {

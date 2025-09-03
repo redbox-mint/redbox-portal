@@ -471,7 +471,8 @@ export module Services {
             original: { redboxOid: string, [key: string]: unknown },
             changes: FormRecordConsistencyChange[],
         ): Promise<FormConfig> {
-            // TODO
+            // TODO: Use the record and form config and/or changes between the record and form config
+            //  to build a new form config that displays only the changes.
             return {};
         }
 
@@ -481,19 +482,9 @@ export module Services {
          * @param record The record data, including the record type.
          * @param context The context for the user providing the record.
          */
-        public async validateRecordSchema(record: BasicRedboxRecord, context?: ClientFormContext): Promise<FormRecordConsistencyChange[]> {
-          // get the record's form name
-          const formName = record?.metaMetadata?.['form'];
-          // The validation will be done on all values present in the data model, so use the form config with all fields included.
-          const isEditMode = true;
-          // get the record's form config
-          const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
-          // get the client form config
-          const clientFormConfig = FormsService.buildClientFormConfig(formConfig, context);
-          // get the data model schema from the form config
-          const dataModelSchema = this.buildSchemaForFormConfig(clientFormConfig);
-          // TODO: compare the record to the data model
-          return [];
+        public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
+            // TODO: Validate that the record structure matches the form config.
+            return [];
         }
 
         /**
@@ -513,7 +504,7 @@ export module Services {
 
 
 
-            // TODO
+            // TODO: Validate that the record values match the form config.
             return [];
         }
 

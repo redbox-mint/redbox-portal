@@ -22,6 +22,8 @@ import {TemplateCompileInput, templateCompileKind} from "../additional/TemplateC
 
 
 //<reference path='./../../typings/loader.d.ts'/>
+import {TemplateCompileInput} from "../additional/TemplateCompile";
+
 declare var module;
 declare var sails;
 declare var TemplateService;
@@ -42,10 +44,14 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'get',
-        'getItem',
+        'getFormStructureValidations',
+        'getFormDataValidations',
+        'getFormExpressions',
+        'getAdminReportTemplates',
+        'getRecordDashboardTemplates',
     ];
 
-    private readonly _recordTypeAuto = "auto";
+    private _recordTypeAuto = "auto";
 
     /**
      **************************************************************************************************
@@ -72,7 +78,8 @@ export module Controllers {
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO
+      // TODO: Provide the client script that can validate the form data model matches the form config.
+      //  Similar to FormRecordConsistency.validateRecordSchema.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -83,7 +90,8 @@ export module Controllers {
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO
+      // TODO: Provide the client script that can validate the form data model values match the form config types.
+      //  Similar to FormRecordConsistency.validateRecordValues.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -94,36 +102,15 @@ export module Controllers {
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO
+      // TODO: Provide the client script that can run the form expressions as jsonata expressions.
       const entries = [];
-      return this.sendClientMappingJavascript(res, entries);
-    }
-
-    public getFormValidationDefinitions(req, res) {
-      // const recordType = req.param("recordType") || this._recordTypeAuto;
-      // const oid = req.param("oid") || "";
-      // const apiVersion = this.getApiVersion(req);
-      // const isNewRecord = this.isNewRecord(recordType, oid);
-      // const isExistingRecord = this.isExistingRecord(recordType, oid);
-
-      const defs = sails.config.validators.definitions;
-      const result = JSON.stringify(defs, function (key, value) {
-          if (typeof value === 'function') {
-              return value.toString()
-          }
-          return value
-      }, 0);
-      return result?.toString();
-      const entries = [
-          {key: "form-validator-definitions", kind: templateCompileKind["formValidatorDefinitions"], value: result},
-      ];
       return this.sendClientMappingJavascript(res, entries);
     }
 
     public getAdminReportTemplates(req, res) {
       const reportName = req.param("reportName") || "";
       const apiVersion = this.getApiVersion(req);
-      // TODO
+      // TODO: Provide the client script that can run the report expressions as jsonata expressions.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -132,7 +119,7 @@ export module Controllers {
       const recordType = req.param("name") || "";
       const workflowStage = req.param("workflowStage") || "";
       const apiVersion = this.getApiVersion(req);
-      // TODO
+      // TODO: Provide the client script that can run the dashboard expressions as jsonata expressions.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -155,8 +142,12 @@ export module Controllers {
     }
 
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {
-      res.set('Content-Type', sails.config.dynamicasset[assetId].type);
-      return res.view(sails.config.dynamicasset[assetId].view, viewContext);
+      const dynamicAssetInfo = sails.config.dynamicasset[assetId];
+      if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
+        return res.notFound();
+      }
+      res.set('Content-Type', dynamicAssetInfo.type);
+      return res.view(dynamicAssetInfo.view, viewContext);
     }
 
       /**
