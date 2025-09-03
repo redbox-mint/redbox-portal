@@ -24,13 +24,13 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _
 
 import { Service } from './service.interface';
 
-import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18NextModule } from 'angular-i18next';
+import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18NextModule, ITranslationOptions } from 'angular-i18next';
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService  } from './logger.service';
-import {ITranslationOptions} from "angular-i18next/lib/services/translation.service";
+
 import {Namespace, TFunctionReturn} from "i18next";
 
 /**

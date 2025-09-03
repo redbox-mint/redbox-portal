@@ -1,4 +1,4 @@
-<ng-container *ngIf="isReady">
+@if (isReady) {
   <div class="row">
     <div class="col-xs-12">
       <h1 class="text-center" >
@@ -6,73 +6,83 @@
       </h1>
     </div>
   </div>
-
   <!-- Render the filter UI elements -->
-  <div class="row" *ngIf="filters != null">
-    <div class="panel panel-default">
-      <div class="panel-body">
-        <div class="row">
-          <div class="text-center h4-header mb-2">
-            {{ 'deleted-records-filters-heading' | i18next }}
+  @if (filters != null) {
+    <div class="row">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          <div class="row">
+            <div class="text-center h4-header mb-2">
+              {{ 'deleted-records-filters-heading' | i18next }}
+            </div>
           </div>
-        </div>
-        <ng-container *ngFor="let filter of filters">
-
-          <!-- Text filter -->
-          <div *ngIf="filter.type == 'text'" class="row">
-            <div class="col-md-2"></div>
-            <div class="col-xs-2">
-              <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
+          @for (filter of filters; track filter) {
+            <!-- Text filter -->
+            @if (filter.type == 'text') {
+              <div class="row">
+                <div class="col-md-2"></div>
+                <div class="col-xs-2">
+                  <label [attr.for]="filter.paramName" class="form-label">{{ filter.message }}</label>
+                </div>
+                <div class="col-xs-6">
+                  <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
+                </div>
+                <div class="col-md-2"></div>
+              </div>
+            }
+            <!-- Dropdown filter -->
+            @if (filter.type == 'drop-down') {
+              <div class="row mt-2">
+                <div class="col-md-2"></div>
+                <div class="col-xs-2">
+                  <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
+                </div>
+                <div class="col-xs-6">
+                  <select [id]="filter.paramName" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
+                    @for (item of dropDownProperties[filter['paramName']]; track item; let isFirst = $first) {
+                      <option [value]="item.value" [defaultSelected]="isFirst">
+                        {{ item.title }}
+                      </option>
+                    }
+                  </select>
+                </div>
+                <div class="col-md-2"></div>
+              </div>
+            }
+          }
+          <div class="row">
+            <div class="col-xs-2"></div>
+            <div class="col-xs-8 pt-2 text-end">
+              <a class="btn btn-large btn-primary" (click)="filter()">
+                <span class="glyphicon glyphicon-search"></span>
+                {{ 'deleted-records-filter-button' | i18next }}
+              </a>
             </div>
-            <div class="col-xs-6">
-              <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
-            </div>
-            <div class="col-md-2"></div>
-          </div>
-
-          <!-- Dropdown filter -->
-          <div *ngIf="filter.type == 'drop-down'" class="row mt-2">
-            <div class="col-md-2"></div>
-            <div class="col-xs-2">
-              <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
-            </div>
-            <div class="col-xs-6">
-              <select [id]="filter.paramName" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
-                <option *ngFor="let item of dropDownProperties[filter['paramName']]; first as isFirst" [value]="item.value" [defaultSelected]="isFirst">
-                  {{ item.title }}
-                </option>
-              </select>
-            </div>
-            <div class="col-md-2"></div>
-          </div>
-
-        </ng-container>
-        <div class="row">
-          <div class="col-xs-2"></div>
-          <div class="col-xs-8 pt-2 text-end">
-            <a class="btn btn-large btn-primary" (click)="filter()">
-              <span class="glyphicon glyphicon-search"></span>
-              {{ 'deleted-records-filter-button' | i18next }}
-            </a>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  }
   <!-- Result overview  -->
-  <div class="row" *ngIf="initTracker && initTracker.resultsReturned">
-    <div class="col-xs-2">
-      <span *ngIf="initTracker.resultsReturned == false">
-        <span class="fa fa-spinner fa-spin fa-fw"></span>
-          {{ 'deleted-records-retrieving-results' | i18next }}
-      </span>
-      <span *ngIf="initTracker.resultsReturned == true"
-        [innerHTML]='"deleted-records-results-returned" | i18next: {count: deletedRecordsResult.total }'>
-      </span>
+  @if (initTracker) {
+    <div class="row">
+      <div class="col-xs-2">
+        @if (initTracker.resultsReturned === false) {
+          <span>
+            <span class="fa fa-spinner fa-spin fa-fw"></span>
+            {{ 'deleted-records-retrieving-results' | i18next }}
+          </span>
+        }
+        @else {
+          <span
+            [innerHTML]='"deleted-records-results-returned" | i18next: { count: deletedRecordsResult.total }'>
+          </span>
+        }
+      </div>
+      <div class="col-xs-8"></div>
+      <div class="col-xs-2"></div>
     </div>
-    <div class="col-xs-8"></div>
-    <div class="col-xs-2"></div>
-  </div>
+  }
   <!-- Result details -->
   <record-table
     [columnConfig]="tableHeaders"
@@ -84,36 +94,37 @@
     [enableSort]="true"
     [enableActions]="true">
   </record-table>
-
   <!-- Modal -->
-  <div *ngIf="isDestroyRecordModalShown"
-       [config]="{backdrop: 'static', show: true}"
-       (onHidden)="onDestroyRecordModalHidden()"
-       bsModal
-       #destroyRecordModal="bs-modal"
-       class="modal fade"
-       tabindex="-1"
-       role="dialog"
-       aria-labelledby="deleted-records-confirm-modal-label">
-    <div class="modal-dialog modal-md">
-      <div class="modal-content">
-        <div class="modal-header">
-          <span class="modal-title h4-header" id="deleted-records-confirm-modal-label">
-            {{ 'deleted-records-item-confirm-delete-title' | i18next }}
-          </span>
-        </div>
-        <div class="modal-body">
-          {{ 'deleted-records-item-confirm-delete-message' | i18next }}
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default"
-                  (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
-          </button>
-          <button type="button" class="btn btn-primary"
-                  (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
-          </button>
+  @if (isDestroyRecordModalShown) {
+    <div
+      [config]="{backdrop: 'static', show: true}"
+      (onHidden)="onDestroyRecordModalHidden()"
+      bsModal
+      #destroyRecordModal="bs-modal"
+      class="modal fade"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="deleted-records-confirm-modal-label">
+      <div class="modal-dialog modal-md">
+        <div class="modal-content">
+          <div class="modal-header">
+            <span class="modal-title h4-header" id="deleted-records-confirm-modal-label">
+              {{ 'deleted-records-item-confirm-delete-title' | i18next }}
+            </span>
+          </div>
+          <div class="modal-body">
+            {{ 'deleted-records-item-confirm-delete-message' | i18next }}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default"
+              (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
+            </button>
+            <button type="button" class="btn btn-primary"
+              (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</ng-container>
+  }
+}

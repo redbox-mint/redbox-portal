@@ -78,10 +78,19 @@ module.exports.webpack = {
             include: [path.resolve(topDir, './assets/styles'), path.resolve(topDir, './assets/default/default/styles')]
           },
           {
-            // Compile referenced font files referenced in entry file to inline with script.
+            // Compile referenced font files referenced in entry file to a separate file and exports the URL
             test: /\.(woff2?|ttf|otf|eot|svg)$/,
-            type: 'asset/inline',
+            type: 'asset/resource',
             exclude: /\.\.\/angular/
+          },
+          {
+            // extract inline svg files to separate resources (needed for bootstrap and the redbox loading svg)
+            mimetype: 'image/svg+xml',
+            scheme: 'data',
+            type: 'asset/resource',
+            generator: {
+              filename: 'icons/[hash].svg'
+            }
           },
         ]
       },

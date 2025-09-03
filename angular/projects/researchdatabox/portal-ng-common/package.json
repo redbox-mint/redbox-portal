@@ -2,9 +2,9 @@
   "name": "@researchdatabox/portal-ng-common",
   "version": "0.0.1",
   "peerDependencies": {
-    "@angular/common": "^19.2.6",
-    "@angular/core": "^19.2.6",
-    "angular-i18next": "^19.1.0",
+    "@angular/common": "^20.2.2",
+    "@angular/core": "^20.2.2",
+    "angular-i18next": "^20.0.0",
     "i18next-browser-languagedetector": "^8.0.0",
     "i18next-http-backend": "^3.0.2",
     "numeral": "^2.0.6",

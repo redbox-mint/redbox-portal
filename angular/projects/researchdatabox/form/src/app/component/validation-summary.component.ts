@@ -13,32 +13,36 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = allValidationErrorsDisplay;
-    <div class="alert alert-danger mt-3" role="alert" *ngIf="validationList.length > 0">
-      <ul>
-        @for (item of validationList; track item.id) {
-          @if (item.errors.length > 0) {
-            <li>
-              @if (item.id) {
-                <a href="#{{ item.id }}">{{ item.message ?? "(no label)" | i18next }}</a>
-              } @else {
-                {{ item.message ?? "(no label)" | i18next }}
-              }
-              <ul>
-                @for (error of item.errors; track $index) {
-                  <li>{{ error.message ?? "(no message)" | i18next: error.params }}
-                  </li>
+    @if (validationList.length > 0) {
+      <div class="alert alert-danger mt-3" role="alert">
+        <ul>
+          @for (item of validationList; track item.id) {
+            @if (item.errors.length > 0) {
+              <li>
+                @if (item.id) {
+                  <a href="#{{ item.id }}">{{ item.message ?? "(no label)" | i18next }}</a>
+                } @else {
+                  {{ item.message ?? "(no label)" | i18next }}
                 }
-              </ul>
-            </li>
+                <ul>
+                  @for (error of item.errors; track $index) {
+                    <li>{{ error.message ?? "(no message)" | i18next: error.params }}
+                    </li>
+                  }
+                </ul>
+              </li>
+            }
           }
-        }
-      </ul>
-    </div>
-    <div class="alert alert-info" role="alert" *ngIf="validationList.length === 0">
-      The form is valid.
-    </div>
-
-  `,
+        </ul>
+      </div>
+    }
+    @if (validationList.length === 0) {
+      <div class="alert alert-info" role="alert">
+        The form is valid.
+      </div>
+    }
+    
+    `,
   standalone: false
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
