@@ -115,7 +115,7 @@
     "@types/node": "^22.5.5",
     "chai": "^6.0.1",
     "ejs-cli": "^2.2.3",
-    "mocha": "^11.7.1",
+    "mocha": "^11.7.2",
     "mocha-junit-reporter": "^2.2.1",
     "pino-test": "^1.1.0",
     "supertest": "^7.1.4"
