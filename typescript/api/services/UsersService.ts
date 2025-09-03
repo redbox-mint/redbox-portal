@@ -17,9 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { Observable, of, from, throwError, lastValueFrom, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
 import {
   isObservable
@@ -390,13 +389,11 @@ export module Services {
     }
 
     private resolveHookResponse(hookResponse) {
-      let response = hookResponse;
       if (isObservable(hookResponse)) {
-        response = hookResponse.toPromise();
+        return firstValueFrom(hookResponse);
       } else {
-        response = Promise.resolve(hookResponse);
+        return Promise.resolve(hookResponse);
       }
-      return response;
     }
 
     protected aafAuthInit = () => {
@@ -983,7 +980,7 @@ export module Services {
         }
         sails.log.verbose("Default user missing, creating...");
         return super.getObservable(User.create(defaultUser))
-          .flatMap(defUser => {
+          .pipe(flatMap(defUser => {
             // START Sails 1.0 upgrade
             const defRoleIds = _.map(defRoles, (o) => {
               return o.id;
@@ -991,27 +988,27 @@ export module Services {
             let q = User.addToCollection(defUser.id, 'roles').members(defRoleIds);
             // END Sails 1.0 upgrade
             return super.getObservable(q, 'exec', 'simplecb')
-              .flatMap(dUser => {
-                return Observable.from(defRoles)
-                  .map(roleObserved => {
+              .pipe(flatMap(dUser => {
+                return from(defRoles)
+                  .pipe(map(roleObserved => {
                     let role: any = roleObserved;
                     // START Sails 1.0 upgrade
                     // role.users.add(defUser.id)
                     q = Role.addToCollection(role.id, 'users').members([defUser.id]);
                     // END Sails 1.0 upgrade
                     return super.getObservable(q, 'exec', 'simplecb');
-                  });
+                  }));
               })
-              .last()
-              .flatMap(lastRole => {
-                return Observable.of({
+              ,last()
+              ,flatMap(lastRole => {
+                return of({
                   defUser: defUser,
                   defRoles: defRoles
                 });
-              });
-          });
+              }));
+          }));
       } else {
-        return Observable.of({
+        return of({
           defUser: defaultUser,
           defRoles: defRoles
         });
@@ -1034,7 +1031,7 @@ export module Services {
       // ignore audit events for users with no user, which had crashed the app when user has already logged out
       if (_.isEmpty(user)) {
         sails.log.verbose('No user to audit, ignoring: ' + action);
-        return Observable.of(null).toPromise();
+        return firstValueFrom(of(null));
       }
       let auditEvent = {};
       if (!_.isEmpty(user.password)) {
@@ -1046,7 +1043,7 @@ export module Services {
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
-      return super.getObservable(UserAudit.create(auditEvent)).toPromise();
+  return firstValueFrom(super.getObservable(UserAudit.create(auditEvent)));
     }
 
     stringifyObject(object: any): any {
@@ -1068,13 +1065,13 @@ export module Services {
       var usernameField = authConfig.local.usernameField,
         passwordField = authConfig.local.passwordField;
 
-      return this.getUserWithUsername(username).flatMap(user => {
+      return this.getUserWithUsername(username).pipe(flatMap(user => {
         if (user) {
-          return Observable.throw(new Error(`Username already exists`));
+          return throwError(new Error(`Username already exists`));
         } else {
-          return this.findUsersWithEmail(email, null, null).flatMap(emailCheck => {
+          return this.findUsersWithEmail(email, null, null).pipe(flatMap(emailCheck => {
             if (_.size(emailCheck) > 0) {
-              return Observable.throw(new Error(`Email already exists, it must be unique`));
+              return throwError(new Error(`Email already exists, it must be unique`));
             } else {
               var newUser = {
                 type: 'local',
@@ -1087,9 +1084,9 @@ export module Services {
               newUser[passwordField] = password;
               return super.getObservable(User.create(newUser));
             }
-          });
+          }));
         }
-      });
+      }));
 
     }
 
@@ -1111,14 +1108,14 @@ export module Services {
       var usernameField = defAuthConfig.local.usernameField,
         passwordField = defAuthConfig.local.passwordField;
       var defAdminRole = RolesService.getAdminFromRoles(defRoles);
-      return Observable.of(defAdminRole)
-        .flatMap(defAdminRole => {
+      return of(defAdminRole)
+        .pipe(flatMap(defAdminRole => {
           this.localAuthInit();
           this.aafAuthInit();
           this.openIdConnectAuth();
           this.bearerTokenAuthInit();
           return this.initDefAdmin(defRoles, defAdminRole);
-        });
+        }));
     }
 
     public getUserWithUsername = (username) => {
@@ -1142,7 +1139,7 @@ export module Services {
 
     public setUserKey = (userid, uuid) => {
       const uuidHash = _.isEmpty(uuid) ? uuid : crypto.createHash('sha256').update(uuid).digest('base64');
-      return this.getUserWithId(userid).flatMap(user => {
+      return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           const q = User.update({
             id: userid
@@ -1151,15 +1148,15 @@ export module Services {
           });
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
-          return Observable.throw(new Error('No such user with id:' + userid));
+          return throwError(new Error('No such user with id:' + userid));
         }
-      });
+      }));
     }
 
     public updateUserDetails = (userid, name, email, password): Observable<UserModel[]> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
-      return this.getUserWithId(userid).flatMap(user => {
+      return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           const update = {
             name: name
@@ -1184,25 +1181,25 @@ export module Services {
           }, update);
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
-          return Observable.throw(new Error('No such user with id:' + userid));
+          return throwError(new Error('No such user with id:' + userid));
         }
-      });
+      }));
     }
 
     public updateUserRoles = (userid, newRoleIds): Observable<UserModel> => {
-      return this.getUserWithId(userid).flatMap(user => {
+      return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
-            return Observable.throw(new Error('Please assign at least one role'));
+            return throwError(new Error('Please assign at least one role'));
           }
           // START Sails 1.0 upgrade
           const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
           // END Sails 1.0 upgrade
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
-          return Observable.throw(new Error('No such user with id:' + userid));
+          return throwError(new Error('No such user with id:' + userid));
         }
-      });
+      }));
     }
 
     private updateUserAfterLogin(user,done){
@@ -1255,7 +1252,7 @@ export module Services {
         query['type'] = source;
       }
       return this.getObservable(User.find(query).populate('roles'))
-        .flatMap(users => {
+        .pipe(flatMap(users => {
           if (brandId) {
             _.remove(users, (user) => {
               const isInBrand = _.find(user.roles, (role) => {
@@ -1264,8 +1261,8 @@ export module Services {
               return !isInBrand;
             });
           }
-          return Observable.of(users);
-        });
+          return of(users);
+        }));
     }
 
     /**

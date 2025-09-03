@@ -31,6 +31,7 @@ declare var _;
  * Package that contains all Controllers.
  */
  import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+ import { firstValueFrom } from 'rxjs';
 
 export module Controllers {
   /**
@@ -131,7 +132,7 @@ export module Controllers {
 
       // If a record type is set, fetch from the configuration what core it's being sent from
       if(type != null) {
-        let recordType:RecordTypeModel = await RecordTypesService.get(brand, type).toPromise();
+  let recordType:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, type));
         core = recordType.searchCore;
       }
 

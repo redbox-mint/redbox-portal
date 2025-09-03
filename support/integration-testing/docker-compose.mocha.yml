@@ -4,8 +4,9 @@ networks:
 
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
+    image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'always'
+    user: root
     ports:
        - "1500:1500"
       # Debugging port
@@ -43,6 +44,7 @@ services:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
+    init: true
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&

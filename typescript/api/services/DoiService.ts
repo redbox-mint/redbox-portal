@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  of
+} from 'rxjs';
 import {
   Services as services,
   RBValidationError,
@@ -29,8 +29,8 @@ import {
   Sails,
   Model
 } from "sails";
-import 'rxjs/add/operator/toPromise';
-import {default as moment} from 'moment';
+import { DateTime } from 'luxon';
+import moment from '../shims/momentShim';
 import axios from 'axios';
 import { isArray } from 'lodash';
 
@@ -450,8 +450,8 @@ export module Services {
       if (!_.isEmpty(postBody.data.attributes.dates)) {
         let dates = postBody.data.attributes.dates
         for (var i = 0; i < _.size(dates); i++) {
-          let date = moment(new Date(dates[i].date)).format('YYYY-MM-DD')
-          if (!moment(date, 'YYYY-MM-DD', true).isValid()) {
+          let date = DateTime.fromJSDate(new Date(dates[i].date)).toFormat('yyyy-LL-dd')
+          if (!DateTime.fromFormat(date, 'yyyy-LL-dd', { zone: 'utc' }).isValid) {
             postBodyValidateError.push('date-invalid')
           }
         }
@@ -513,7 +513,7 @@ export module Services {
         }
       }
 
-      return Observable.of(null);
+      return of(null);
     }
 
     public async publishDoiTriggerSync(oid, record, options): Promise<any> {
