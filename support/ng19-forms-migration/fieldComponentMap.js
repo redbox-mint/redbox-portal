@@ -222,8 +222,8 @@ module.exports = {
 
     //component specific mapping
     let fieldConfig = {
-      cols: field?.definition?.cols ?? field?.definition?.columns ?? '',
-      rows: field?.definition?.rows ?? ''
+      cols: field?.definition?.cols ?? field?.definition?.columns ?? 0,
+      rows: field?.definition?.rows ?? 0
     }
 
     let componentDefinition = createBaseComponent({
@@ -232,11 +232,11 @@ module.exports = {
         modelClass: 'TextareaModel'
     });
 
-    if(!_.isEmpty(fieldConfig.cols)) {
+    if(fieldConfig.cols != 0) {
       _.set(componentDefinition,'cols',fieldConfig.cols);
     }
 
-    if(!_.isEmpty(fieldConfig.rows)) {
+    if(fieldConfig.rows != 0) {
       _.set(componentDefinition,'rows',fieldConfig.rows);
     }
 
