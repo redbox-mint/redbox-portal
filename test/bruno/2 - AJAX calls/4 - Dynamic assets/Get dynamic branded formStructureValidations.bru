@@ -1,0 +1,27 @@
+meta {
+  name: Get dynamic branded formStructureValidations
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/dynamicAsset/formStructureValidations/auto/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  test("Has expected content", function () {
+    var body = res.getBody();
+    // console.log(body);
+    expect(body).to.contain("default:");
+    expect(body).to.not.contain(" case ");
+  });
+}

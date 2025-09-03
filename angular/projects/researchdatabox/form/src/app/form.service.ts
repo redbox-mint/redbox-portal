@@ -41,8 +41,7 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormFieldComponentStatus,
-  FormStatus,
-  FormValidatorDefinition,
+  FormStatus, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
@@ -50,15 +49,8 @@ import {
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 
-/**
- * Declare the redboxClientScript as a property on the window global.
- * This allows the client-side angular code to reference the property.
- */
-declare global {
-  interface Window { redboxClientScript: any; }
-}
-window.redboxClientScript = window.redboxClientScript || {};
-
+// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
+declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
 
 /**
  *
@@ -81,6 +73,7 @@ export class FormService extends HttpClientService {
   protected validatorsSupport: ValidatorsSupport;
 
   private requestOptions: Record<string, unknown> = {};
+  private loadedValidatorDefinitions?: FormValidatorDefinition[];
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
@@ -115,10 +108,6 @@ export class FormService extends HttpClientService {
     return this;
   }
 
-  public get getValidatorsSupport(){
-    return this.validatorsSupport;
-  }
-
   /** *
    * Download and consequently loads the form config.
    *
@@ -137,18 +126,6 @@ export class FormService extends HttpClientService {
       throw new Error("Form config from server was empty.");
     }
 
-    // Replace the function placeholders in the form config with the functions.
-    const validatorFunctionMap = window.redboxClientScript?.providedToClientFromServer?.validatorFunctionMap || {};
-    this.loggerService.info(`${this.logName}: Validation functions to be applied to form config.`, validatorFunctionMap);
-    for (const validatorDefinition of formConfig.validatorDefinitions || []) {
-      const name = validatorDefinition.name;
-      const createFunction = validatorFunctionMap[name];
-      if (createFunction){
-        validatorDefinition['create'] = createFunction;
-      }
-    }
-    this.loggerService.info(`${this.logName}: Applied validation functions to form config.`, formConfig.validatorDefinitions);
-
     // Resolve the field and component pairs
     return this.createFormComponentsMap(formConfig);
   }
@@ -160,6 +137,12 @@ export class FormService extends HttpClientService {
    * @returns The config and the components built from the config.
    */
   public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
+    if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
+      // load the validator definitions to be used when constructing the form controls
+      this.loadedValidatorDefinitions = redboxClientScript.formValidatorDefinitions;
+      this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
+    }
+
     const components = await this.resolveFormComponentClasses(formConfig?.componentDefinitions);
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components, formConfig);
@@ -176,7 +159,8 @@ export class FormService extends HttpClientService {
    */
   public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
-    this.loggerService.debug(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${this.utilityService.getNamesClasses(componentDefinitions)}`);
+    const names = componentDefinitions?.map(i => i?.name) ?? [];
+    this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${names.join(',')}`);
     const components = componentDefinitions || [];
     for (let componentConfig of components) {
       let modelClass: typeof FormFieldModel | undefined = undefined;
@@ -288,22 +272,19 @@ export class FormService extends HttpClientService {
   }
 
   public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): void {
-    this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${this.utilityService.getNamesClasses(components)}.`);
-    const validatorDefinitions = formConfig.validatorDefinitions;
+    const names = components?.map(i => i?.compConfigJson?.name) ?? [];
+    this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${names.join(',')}.`);
     for (let compEntry of components) {
-      this.createFormFieldModelInstance(compEntry, validatorDefinitions);
+      this.createFormFieldModelInstance(compEntry);
     }
   }
 
-  public createFormFieldModelInstance(
-    compMapEntry: FormFieldCompMapEntry,
-    validatorDefinitions: FormValidatorDefinition[] | null | undefined
-  ): FormFieldModel<unknown> | null {
+  public createFormFieldModelInstance(compMapEntry: FormFieldCompMapEntry): FormFieldModel<unknown> | null {
     const ModelType = compMapEntry.modelClass;
     const modelConfig = compMapEntry.compConfigJson.model;
     if (ModelType && modelConfig) {
       const validatorConfig = modelConfig?.config?.validators ?? [];
-      const validators = this.getValidatorsSupport.createFormValidatorInstances(validatorDefinitions, validatorConfig);
+      const validators = this.createFormValidatorInstances(validatorConfig);
       compMapEntry.model = new ModelType(modelConfig, validators);
       return compMapEntry.model;
     } else {
@@ -311,6 +292,10 @@ export class FormService extends HttpClientService {
       this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component. If this is unexpected, check your form configuration.`, compMapEntry);
     }
     return null;
+  }
+
+  public createFormValidatorInstances(config: FormValidatorConfig[] | null | undefined): FormValidatorFn[] {
+    return this.validatorsSupport.createFormValidatorInstances(this.loadedValidatorDefinitions, config)
   }
 
   /**
@@ -329,7 +314,7 @@ export class FormService extends HttpClientService {
       }
       if (groupMap[fieldName]) {
         throw new Error(`${this.logName}: Field name '${fieldName}' is already used. Names must be unique, please change the names to be unique. ` +
-          `The components are: ${JSON.stringify([groupMap[fieldName], compEntry])}`);
+          `The existing grouped component names are: ${Object.keys(groupMap).join(',')}`);
       }
       groupMap[fieldName] = compEntry;
       if (compEntry.model) {
@@ -461,12 +446,14 @@ export class FormService extends HttpClientService {
       );
       componentsLoaded.set(componentsReady.length === componentsCount);
 
-      const readyMsg = `${componentsReady.length} child components are ready '${this.utilityService.getNamesClasses(componentsReady)}'.`
+      const namesReady = componentsReady?.map(i => i?.compConfigJson?.name) ?? [];
+      const readyMsg = `${componentsReady.length} child components are ready '${namesReady.join(',')}'.`
       if (componentsLoaded()) {
         status.set(FormStatus.READY);
         this.loggerService.debug(`${this.logName}: All components for ${name} are ready. Form is ready to be used. ${readyMsg}`);
       } else{
-        const waitingMsg = `Component '${name}' is waiting for ${componentsNotReady.length} child components ${this.utilityService.getNamesClasses(componentsNotReady)}.to be ready.`;
+        const namesNotReady = componentsNotReady?.map(i => i?.compConfigJson?.name) ?? [];
+        const waitingMsg = `Component '${name}' is waiting for ${componentsNotReady.length} child components ${namesNotReady.join(',')} to be ready.`;
         this.loggerService.debug(`${this.logName}: ${waitingMsg} ${readyMsg}`);
       }
     }
@@ -541,6 +528,27 @@ export class FormService extends HttpClientService {
     const result = await this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions).toPromise();
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
+  }
+
+  public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
+    // TODO: Use this script to validate the form data model structure matches the form config.
+    const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
+    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+    return result;
+  }
+
+  public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
+    // TODO: Use this script to validate the form data model values match the form config.
+    const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
+    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+    return result;
+  }
+
+  public async getDynamicImportFormExpressions(recordType: string, oid: string) {
+    // TODO: Use this script to run the form data model expressions.
+    const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
+    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+    return result;
   }
 }
 

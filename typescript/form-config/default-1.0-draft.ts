@@ -1,5 +1,4 @@
-import { FormConfig } from "@researchdatabox/sails-ng-common";
-import { formValidatorsSharedDefinitions } from "../config/validators";
+import {FormConfig} from "@researchdatabox/sails-ng-common";
 
 const formConfig: FormConfig = {
     name: "default-1.0-draft",
@@ -11,10 +10,6 @@ const formConfig: FormConfig = {
     },
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
-
-    // validatorDefinitions is the combination of redbox core validator definitions and
-    // the validator definitions from the client hook form config.
-    validatorDefinitions: formValidatorsSharedDefinitions,
 
     // TODO: a way to crate groups of validators
     // This is not implemented yet.
@@ -105,26 +100,7 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
-                                    name: 'textarea_1',
-                                    layout: {
-                                        class: 'DefaultLayoutComponent',
-                                        config: {
-                                            label: 'Textarea some label',
-                                            helpText: 'Textarea some help text',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'TextareaModel',
-                                        config: {
-                                            defaultValue: 'Textarea hello world!!!',
-                                        }
-                                    },
-                                    component: {
-                                        class: 'TextareaComponent'
-                                    }
-                                },
-                                {
-                                    name: 'text_2',
+                                    name: 'text_7',
                                     layout: {
                                         class: 'DefaultLayoutComponent',
                                         config: {
@@ -138,7 +114,7 @@ const formConfig: FormConfig = {
                                             defaultValue: 'hello world 2!',
                                             validators: [
                                                 { name: 'pattern', config: { pattern: /prefix.*/, description: "must start with prefix" } },
-                                                { name: 'minLength', message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+                                                { name: 'minLength', message: "@validator-error-custom-text_7", config: { minLength: 3 } },
                                             ]
                                         }
                                     },
@@ -381,7 +357,7 @@ const formConfig: FormConfig = {
                                                             },
                                                             {
                                                                 name: 'minLength',
-                                                                message: "@validator-error-custom-text_2",
+                                                                message: "@validator-error-custom-example_repeatable",
                                                                 config: { minLength: 3 }
                                                             },
                                                         ]
@@ -460,7 +436,7 @@ const formConfig: FormConfig = {
                                                 validators: [
                                                     {
                                                         name: 'minLength',
-                                                        message: "@validator-error-custom-text_2",
+                                                        message: "@validator-error-custom-text_3",
                                                         config: { minLength: 3 }
                                                     }
                                                 ]
