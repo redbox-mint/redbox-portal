@@ -15,7 +15,7 @@ describe('TextareaComponent', () => {
     expect(component).toBeDefined();
   });
   it('should render Textarea component', async () => {
-    // arrange
+
     const formConfig: FormConfig = {
       debugValue: true,
       defaultComponentConfig: {
@@ -38,10 +38,8 @@ describe('TextareaComponent', () => {
       ]
     };
 
-    // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
-    // Now run your expectations
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('textarea');
     expect((inputElement as HTMLTextAreaElement).value).toEqual('Text area hello world test text');
