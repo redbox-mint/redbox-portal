@@ -62,6 +62,25 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    name: 'textarea_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Textarea some label',
+                                            helpText: 'Textarea some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TextareaModel',
+                                        config: {
+                                            defaultValue: 'Textarea hello world!!!',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TextareaComponent'
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',

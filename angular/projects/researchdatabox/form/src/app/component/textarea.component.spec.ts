@@ -1,23 +1,50 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { TextareaComponent } from './textarea.component';
+import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {TextareaComponent} from "./textarea.component";
+import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import {TestBed} from "@angular/core/testing";
 
 describe('TextareaComponent', () => {
-  let component: TextareaComponent;
-  let fixture: ComponentFixture<TextareaComponent>;
-
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [TextareaComponent]
-    })
-    .compileComponents();
+    await createTestbedModule([
+      TextareaComponent,
+    ]);
+  });
+  it('should create component', () => {
+    let fixture = TestBed.createComponent(TextareaComponent);
+    let component = fixture.componentInstance;
+    expect(component).toBeDefined();
+  });
+  it('should render Textarea component', async () => {
+    // arrange
+    const formConfig: FormConfig = {
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'textarea_test',
+          model: {
+            class: 'TextareaModel',
+            config: {
+              defaultValue: 'Text area hello world test text'
+            }
+          },
+          component: {
+            class: 'TextareaComponent'
+          }
+        }
+      ]
+    };
 
-    fixture = TestBed.createComponent(TextareaComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    // act
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+
+    // Now run your expectations
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement = compiled.querySelector('textarea');
+    expect((inputElement as HTMLTextAreaElement).value).toEqual('Text area hello world test text');
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
 });
