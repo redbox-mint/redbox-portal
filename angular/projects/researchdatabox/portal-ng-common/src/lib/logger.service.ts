@@ -36,20 +36,44 @@ export class LoggerService {
 
   }
 
-  log(text: string, data: any = undefined) {
-    console.log(text, data);
+  log(textOrData: string | any, data?: any): void {
+    if (typeof textOrData === 'string' && data !== undefined) {
+      console.log(textOrData, data);
+    } else {
+      console.log(textOrData);
+    }
   }
 
-  debug(text: string, data: any = undefined) {
-    console.debug(text, data);
+  debug(textOrData: string | any, data?: any): void {
+    if (typeof textOrData === 'string' && data !== undefined) {
+      console.debug(textOrData, data);
+    } else {
+      console.debug(textOrData);
+    }
   }
 
-  info(text: string, data: any = undefined) {
-    console.info(text, data);
+  info(textOrData: string | any, data?: any): void {
+    if (typeof textOrData === 'string' && data !== undefined) {
+      console.info(textOrData, data);
+    } else {
+      console.info(textOrData);
+    }
   }
 
-  error(text: string, data: any = undefined) {
-    console.error(text, data);
+  warn(textOrData: string | any, data?: any): void {
+    if (typeof textOrData === 'string' && data !== undefined) {
+      console.warn(textOrData, data);
+    } else {
+      console.warn(textOrData);
+    }
+  }
+
+  error(textOrData: string | any, data?: any): void {
+    if (typeof textOrData === 'string' && data !== undefined) {
+      console.error(textOrData, data);
+    } else {
+      console.error(textOrData);
+    }
   }
 
 }

@@ -4,7 +4,7 @@ sails = {
   config: {
     webpack: {
       config: config.webpack.config
-    } 
+    }
   },
   log: {
     info: function(msg, data = null) {

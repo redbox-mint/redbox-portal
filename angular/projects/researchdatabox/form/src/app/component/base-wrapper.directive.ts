@@ -1,15 +1,15 @@
 import { Directive, ViewContainerRef } from '@angular/core';
 
 /**
- * Field directive for retrieving the VC
+ * Directive for retrieving the ViewContainerRef
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Directive({
-    selector: '[formFieldComp]',
+    selector: '[redboxFormBaseWrapper]',
     standalone: false
 })
-export class FormFieldWrapperDirective {
+export class FormBaseWrapperDirective {
   constructor(public viewContainerRef: ViewContainerRef) { }
 }
