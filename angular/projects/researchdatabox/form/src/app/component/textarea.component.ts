@@ -48,9 +48,11 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
     this.tooltip = this.getTooltip();
     this.tooltipPlaceholder = '';
     let textareaConfig:TextareaComponentConfig = this.componentDefinition?.config as TextareaComponentConfig;
-    this.rows = textareaConfig.rows ?? this.defaultRows;
-    this.cols = textareaConfig.cols ?? this.defaultCols;
-    this.placeholder = textareaConfig.placeholder ?? this.defaultPlaceholder;
+    if(!_isUndefined(textareaConfig) && _isEmpty(textareaConfig)) {
+      this.rows = textareaConfig.rows ?? this.defaultRows;
+      this.cols = textareaConfig.cols ?? this.defaultCols;
+      this.placeholder = textareaConfig.placeholder ?? this.defaultPlaceholder;
+    }
   }
   
   /**
