@@ -32,7 +32,8 @@ describe('BrandingController Task 7 endpoints', () => {
   it('returns preview css and then 404 after ttl expiry simulation', async () => {
     const { token, url } = await BrandingService.preview('default', 'rdmp', { isAdmin: true });
     const res = await request.get(url).expect(200);
-    expect(res.text).to.match(/\{\s*\/\* Using the default theme \*\//).to.be.false; // should be compiled
+  // Ensure the returned CSS is the compiled theme (should NOT contain the default placeholder comment)
+  expect(res.text).to.not.match(/\{\s*\/\* Using the default theme \*\//);
     // Force expire cache entry
     const name = `branding-preview:${token}`;
     await CacheEntry.update({ name }).set({ ts_added: 0 });
