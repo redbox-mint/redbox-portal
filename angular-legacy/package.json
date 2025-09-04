@@ -40,7 +40,7 @@
     "lucene-escape-query": "^1.0.1",
     "mobx-angular": "2.1.1",
     "moment": "^2.29.4",
-    "ng2-completer": "^1.6.3",
+    "ng2-completer": "^2.0.4",
     "ng2-datetime": "^1.4.0",
     "ngx-bootstrap": "^2.0.3",
     "ngx-i18next": "^1.1.8",
