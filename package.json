@@ -50,7 +50,7 @@
     "mongodb": "^6.19.0",
     "node-cache": "^5.1.2",
     "node-schedule": "^2.1.1",
-    "nodemailer": "^7.0.5",
+    "nodemailer": "^7.0.6",
     "numeral": "^2.0.6",
     "nyc": "^17.1.0",
     "openid-client": "^5.7.0",
@@ -117,7 +117,7 @@
     "bower": "^1.8.14",
     "chai": "^5.2.1",
     "ejs-cli": "^2.2.3",
-    "mocha": "^11.7.1",
+    "mocha": "^11.7.2",
     "mocha-junit-reporter": "^2.2.1",
     "pino-test": "^1.1.0",
     "supertest": "^7.1.4"
