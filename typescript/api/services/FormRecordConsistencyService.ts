@@ -18,10 +18,20 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
-import {FormComponentDefinition, FormConfig, FormValidatorSummaryErrors} from "@researchdatabox/sails-ng-common";
+import {
+    FormComponentDefinition,
+    FormConfig,
+    FormValidatorDefinition,
+    formValidatorsSharedDefinitions,
+    FormValidatorSummaryErrors,
+    SimpleServerFormValidatorControl,
+    ValidatorsSupport
+} from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
 import {default as moment} from 'moment';
 import {ClientFormContext} from "../additional/ClientFormContext";
+import {firstValueFrom} from "rxjs";
+
 
 
 declare var sails: Sails;
@@ -33,10 +43,9 @@ export module Services {
 
     export type BasicRedboxRecord = {
         redboxOid: string,
-        metaMetadata?: { [key: string]: unknown },
-        metadata: { [key: string]: unknown },
-        [key: string]: unknown
-    };
+        metaMetadata?: Record<string, unknown>,
+        metadata: Record<string, unknown>,
+    } & Record<string, unknown>;
 
     /**
      * The path from the root of the item to the key in the original, which has a change.
@@ -86,6 +95,7 @@ export module Services {
      */
     @PopulateExportedMethods
     export class FormRecordConsistency extends services.Core.Service {
+        private validatorSupport = new ValidatorsSupport();
         /**
          * Update a stored record by merging the stored record and the new record,
          * using knowledge of the current user's access to the record properties.
@@ -348,7 +358,7 @@ export module Services {
         public buildSchemaForFormConfig(item: FormConfig): Record<string, unknown> {
             const formCompDef: FormComponentDefinition = {
                 name: item?.name,
-                model: {class: "GroupFieldModel", config: {}},
+                model: {class: "GroupFieldModel", config: {validators: item?.validators ?? []}},
                 component: {class: 'GroupFieldComponent', config: {componentDefinitions: item?.componentDefinitions}}
             }
             const def = this.buildSchemaForFormComponentDefinition(formCompDef);
@@ -477,13 +487,21 @@ export module Services {
         }
 
         /**
-         * Validate a record's structure using the form config associated with the recordtype.
+         * Validate a record's structure matches the form config associated with the recordtype.
          *
          * @param record The record data, including the record type.
          * @param context The context for the user providing the record.
          */
         public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
-            // TODO: Validate that the record structure matches the form config.
+            // get the record's form name
+            const formName = record?.metaMetadata?.['form'];
+            // the validation will be done on all values present in the data model, so use the form config with all fields included
+            const isEditMode = true;
+            // get the record's form config
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode));
+            // get the schema from the form config
+            const schema = this.buildSchemaForFormConfig(formConfig);
+            // TODO: Match the schema to the record and return any differences.
             return [];
         }
 
@@ -492,23 +510,88 @@ export module Services {
          *
          * @param record The record data, including the record type.
          */
-        public async validateRecordValues(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
-          // get the record's form name
-          const formName = record?.metaMetadata?.['form'];
-          // The validation will be done on all values present in the data model, so use the form config with all fields included.
-          const isEditMode = true;
-          // get the record's form config
-          const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
-          // the validators stored in the database are the JSON.stringified functions
-          // TODO: should the validator functions be loaded from the database, or the same way the client validations are done?
-
-
-
-            // TODO: Validate that the record values match the form config.
-            return [];
+        public async validateRecordValuesForFormConfig(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
+            // get the record's form name
+            const formName = record?.metaMetadata?.['form'];
+            // the validation will be done on all values present in the data model, so use the form config with all fields included
+            const isEditMode = true;
+            // get the record's form config
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfig;
+            // the validator definitions are in the sails-ng-common package
+            const validatorDefinitions = formValidatorsSharedDefinitions;
+            const validatorDefs = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions);
+            // provide the form config as a top-level group component
+            const formConfigAsFormCompDef: FormComponentDefinition = {
+                name: formConfig?.name,
+                model: {class: "GroupFieldModel", config: {validators: formConfig?.validators ?? []}},
+                component: {
+                    class: 'GroupFieldComponent',
+                    config: {componentDefinitions: formConfig?.componentDefinitions}
+                }
+            }
+            // validate the record against the form components
+            return this.validateRecordValueForComponentDefinition(record.metadata, formConfigAsFormCompDef, validatorDefs);
         }
 
-        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition) {
+        /**
+         * Validate a record value using the validators specified in the matching form component definition.
+         * @param record The record metadata.
+         * @param item The form component definition.
+         * @param validatorDefinitions The form validator definition mapping.
+         */
+        public async validateRecordValueForComponentDefinition(
+            record: unknown,
+            item: FormComponentDefinition,
+            validatorDefinitions: Map<string, FormValidatorDefinition>
+        ): Promise<FormValidatorSummaryErrors[]> {
+            const validatorSupport = new ValidatorsSupport();
+            const result = [];
+            const itemName = item?.name;
+            const componentClass = item?.component?.class;
+            const componentDefinitions = (item?.component?.config?.['componentDefinitions'] ?? []) as FormComponentDefinition[];
+            const elementTemplate = (item?.component?.config?.['elementTemplate'] ?? {}) as FormComponentDefinition;
+            const validators = item?.model?.config?.['validators'] ?? [];
+
+            sails.log.verbose(`Validating key '${itemName}' with value '${JSON.stringify(record)}' and component class '${componentClass}'.`);
+
+            if (Array.isArray(validators) && validators.length > 0) {
+                const validatorFuncs = validatorSupport.createFormValidatorInstancesFromMapping(validatorDefinitions, validators);
+                for (const validatorFunc of validatorFuncs) {
+                    const funcResult = validatorFunc(new SimpleServerFormValidatorControl(record));
+                    if (funcResult!==null){
+                        result.push(funcResult);
+                    }
+                }
+            }
+
+            // Validate any subcomponents
+            for (const componentDefinition of componentDefinitions) {
+                const itemErrors = (await this.validateRecordValueForComponentDefinition(
+                    record?.[componentDefinition.name], componentDefinition, validatorDefinitions)
+                ) ?? [];
+                itemErrors.forEach(i => result.push(i));
+            }
+
+            // Validate any array elements
+            if (elementTemplate && Array.isArray(record)) {
+                for (const element of record) {
+                    const itemErrors = (await this.validateRecordValueForComponentDefinition(
+                        element, elementTemplate, validatorDefinitions)
+                    ) ?? [];
+                    itemErrors.forEach(i => result.push(i));
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * Build the default value using the default from the form config and the form component definition.
+         * @param current The form config item.
+         * @param item The matching form component definition.
+         * @private
+         */
+        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition): unknown {
             const itemName = item?.name;
             const itemDefaultValue = item?.model?.config?.defaultValue;
             return _.mergeWith(
@@ -531,6 +614,11 @@ export module Services {
             );
         }
 
+        /**
+         * Guess the type of the value.
+         * @param value Guess the type of this value.
+         * @private
+         */
         private guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "unknown" {
             if (value === null) {
                 return "null";
@@ -570,6 +658,11 @@ export module Services {
             return "unknown";
         }
 
+        /**
+         * Extract the keys and entries from an object or array.
+         * @param item Extract keys and values from this item.
+         * @private
+         */
         private toKeysEntries(item: unknown): {
             entries: [string | number, unknown][],
             keys: (string | number)[]
@@ -585,6 +678,12 @@ export module Services {
             }
         }
 
+        /**
+         * Check whether a 'check' array starts with a 'base' array.
+         * @param base The shorter array.
+         * @param check The longer array.
+         * @private
+         */
         private arrayStartsWithArray(base: unknown[], check: unknown[]) {
             return base?.every((value, index) => check?.length > index && check?.[index] == value);
         }
