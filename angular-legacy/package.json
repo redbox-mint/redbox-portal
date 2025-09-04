@@ -39,7 +39,7 @@
     "lodash": "4.17.21",
     "lucene-escape-query": "^1.0.1",
     "mobx-angular": "2.1.1",
-    "moment": "^2.29.4",
+    "moment": "^2.30.1",
     "ng2-completer": "^1.6.3",
     "ng2-datetime": "^1.4.0",
     "ngx-bootstrap": "^2.0.3",
