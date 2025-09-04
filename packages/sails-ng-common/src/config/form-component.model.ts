@@ -37,6 +37,10 @@ export interface FormComponentDefinition {
      * Constraints / prerequisites for this component to be included in the form definition.
      */
     constraints?: FormConstraintConfig;
+    /**
+     * Overrides for the default form component definitions for each form mode.
+     */
+    modeOverrides?:{ [key in FormModesConfig]: FormComponentDefinition };
 }
 
 export type ExpressionsConfig = Record<string, { template: string; condition?: any }>;
@@ -95,3 +99,19 @@ export class FormConstraintAuthorizationConfig {
  * The available form modes.
  */
 export type FormModesConfig  = "edit" | "view";
+
+/**
+ *
+ */
+export interface FormComponentDefinitionTemplate {
+    /**
+     * The component template to use as defaults for properties not defined in the definitions.
+     */
+    templateName: string;
+    /**
+     * Override any properties from the component template.
+     * Overrides are done by matching the 'name' property in
+     * the component template and the components defined here.
+     */
+    componentDefinitions?: FormComponentDefinition[];
+}
