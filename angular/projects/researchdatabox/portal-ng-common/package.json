@@ -13,6 +13,6 @@
     "numeral": "^2.0.6"
   },
   "devDependencies": {
-    "@types/numeral": "^2.0.2"
+    "@types/numeral": "^2.0.5"
   }
 }
