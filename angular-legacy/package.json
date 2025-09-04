@@ -62,7 +62,7 @@
     "@types/node": "~6.0.60",
     "codelyzer": "~3.0.1",
     "https-proxy-agent": "^5.0.0",
-    "jasmine-core": "~2.6.2",
+    "jasmine-core": "~5.10.0",
     "jasmine-spec-reporter": "~4.1.0",
     "karma": "~6.4.2",
     "karma-chrome-launcher": "~2.1.1",
