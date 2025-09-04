@@ -37,6 +37,29 @@
         }
       }
     },
+    "@researchdatabox/portal-ng-form-custom": {
+      "projectType": "library",
+      "root": "projects/researchdatabox/portal-ng-form-custom",
+      "sourceRoot": "projects/researchdatabox/portal-ng-form-custom/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/researchdatabox/portal-ng-form-custom/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
     "@researchdatabox/local-auth": {
       "projectType": "application",
       "schematics": {
@@ -697,6 +720,7 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
+            "karmaConfig": "projects/researchdatabox/form/karma.conf.js",
             "polyfills": [
               "zone.js",
               "zone.js/testing"
@@ -803,29 +827,6 @@
             ],
             "scripts": []
           }
-        }
-      }
-    },
-    "@researchdatabox/portal-ng-form-custom": {
-      "projectType": "library",
-      "root": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom",
-      "sourceRoot": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/src",
-      "prefix": "lib",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:ng-packagr",
-          "options": {
-            "project": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/ng-package.json"
-          },
-          "configurations": {
-            "production": {
-              "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.prod.json"
-            },
-            "development": {
-              "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.json"
-            }
-          },
-          "defaultConfiguration": "production"
         }
       }
     },
@@ -1023,5 +1024,31 @@
   },
   "cli": {
     "analytics": false
+  },
+  "schematics": {
+    "@schematics/angular:component": {
+      "type": "component"
+    },
+    "@schematics/angular:directive": {
+      "type": "directive"
+    },
+    "@schematics/angular:service": {
+      "type": "service"
+    },
+    "@schematics/angular:guard": {
+      "typeSeparator": "."
+    },
+    "@schematics/angular:interceptor": {
+      "typeSeparator": "."
+    },
+    "@schematics/angular:module": {
+      "typeSeparator": "."
+    },
+    "@schematics/angular:pipe": {
+      "typeSeparator": "."
+    },
+    "@schematics/angular:resolver": {
+      "typeSeparator": "."
+    }
   }
 }

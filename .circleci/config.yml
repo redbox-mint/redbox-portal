@@ -7,10 +7,10 @@ jobs:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: |
-            cd core
-            npm install
-            node_modules/.bin/tsc
+          command: npm run compile:core:prod
+      - run:
+          name: Install npm packages and compile for sails-ng-common
+          command: npm run compile:sails-ng-common:prod
       - run:
           name: Build generated api library for raido
           command: |
@@ -23,12 +23,10 @@ jobs:
             cd support/raido
             npm init -y
             npm install
-            /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc
+            /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc   
       - run:
           name: Install npm packages and compile for project
-          command: |
-            npm install --production
-            node_modules/.bin/tsc
+          command: npm run compile:sails:prod
       - run:
           name: Install nvm
           command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -62,15 +60,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: |
-            cd core
-            npm install
-            node_modules/.bin/tsc
+          command: npm run compile:core:prod
+      - run:
+          name: Install npm packages and compile for sails-ng-common
+          command: npm run compile:sails-ng-common:prod
       - run:
           name: Install npm packages and compile for project
-          command: |
-            npm install --production
-            node_modules/.bin/tsc
+          command: npm run compile:sails:prod
       - run:
           name: Compile sails app using webpack
           command: npm run webpack

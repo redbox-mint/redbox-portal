@@ -50,8 +50,8 @@ describe('CsrfInterceptor', () => {
       ]
     });
     httpTestingController = TestBed.inject(HttpTestingController);
-    interceptor = TestBed.get(CsrfInterceptor);
-    httpClient = TestBed.get(HttpClient);
+    interceptor = TestBed.inject(CsrfInterceptor);
+    httpClient = TestBed.inject(HttpClient);
   });
 
   it('should construct', () => {

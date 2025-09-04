@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Injectable} from '@angular/core';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find } from 'lodash-es';
+import {Injectable, computed, Signal} from '@angular/core';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find, trim as _trim } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 /**
@@ -63,7 +63,7 @@ export class UtilityService {
 
   /**
    * check that all the values to match have values for a given object
-   * 
+   *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} valueObject
    * @param  {any} fieldsToMatch
@@ -82,7 +82,7 @@ export class UtilityService {
 
   /**
    * check a given object is not already present in the container list
-   * 
+   *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} valueObject
    * @param  {any} fieldsToMatch
@@ -93,7 +93,7 @@ export class UtilityService {
     let concatReq = true;
     for (let fieldValue of fieldValues) {
       for (let fieldToMatch of fieldsToMatch) {
-        let fieldValueToMatch = _get(fieldValue, fieldToMatch); 
+        let fieldValueToMatch = _get(fieldValue, fieldToMatch);
         let emittedValueToMatch = _get(valueObject, fieldToMatch);
         if(_isEqual(fieldValueToMatch,emittedValueToMatch)) {
           concatReq = false;
@@ -159,24 +159,24 @@ export class UtilityService {
     if(!_isArray(data)) {
       wrappedData = [data];
     }
-    
+
     for (let emittedDataValue of wrappedData) {
-      //There are cases where the emitter may send null values just after the field  
-      //gets cleared therefore need to checkDataOk if any of the fields to match are  
-      //undefined not enter the if block and the same value will be sent back to the 
-      //subscriber field 
+      //There are cases where the emitter may send null values just after the field
+      //gets cleared therefore need to checkDataOk if any of the fields to match are
+      //undefined not enter the if block and the same value will be sent back to the
+      //subscriber field
       let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch);
       if(checkDataOk){
         let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
         if(concatReq) {
           let value = _clone(templateObject);
           for (let fieldToSet of fieldsToSet) {
-              let val = _get(emittedDataValue, fieldToSet); 
+              let val = _get(emittedDataValue, fieldToSet);
               _set(value, fieldToSet, val);
           }
-          //If there is only one item in fieldValues array it may be empty and must be re-used 
-          //if there is more than one item in the array it's too cumbersome to manage all  
-          //scenarios and edge cases therefore it's better to add a new item to the array 
+          //If there is only one item in fieldValues array it may be empty and must be re-used
+          //if there is more than one item in the array it's too cumbersome to manage all
+          //scenarios and edge cases therefore it's better to add a new item to the array
           if(fieldValues.length == 1) {
             let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch);
             if(checkFieldValuesDataOk) {
@@ -383,5 +383,37 @@ export class UtilityService {
     for (let dep of deps) {
       await dep.waitForInit();
     }
+  }
+
+  /**
+   * Utility function to ensure a non-empty string value from signals. Allows for trimming of whitespace and arbitrary chars around strings, and default value when empty, i.e. zero length.
+   *
+   * @param source
+   * @param defaultValue
+   * @param charsToTrim
+   * @returns
+   */
+  trimStringSignal(source: Signal<string>, defaultValue: string = '', charsToTrim: string | undefined = undefined): Signal<string> {
+    return computed(() => {
+      // get the source and convert it to a string (use nullish coalescing to convert null & undefined to empty string)
+      const value = source()?.toString() ?? '';
+      // return the trimmed string, or the default if the resulting string is falsy (logical OR e.g. "", 0, false, etc)
+      return _trim(value, charsToTrim) || defaultValue;
+    });
+  }
+
+  /**
+   * Dynamically import the javascript file at the url build from the branding, portal, and path parts.
+   * @param brandingAndPortalUrl The branding and portal url.
+   * @param urlPath The path parts.
+   */
+  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[]) {
+    const path = (urlPath || []).join('/')
+    const url = new URL(`${brandingAndPortalUrl}/${path}`);
+
+    const ts = new Date().getTime().toString();
+    url.searchParams.set('ts', ts);
+
+    return await import(url.toString());
   }
 }

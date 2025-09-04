@@ -21,8 +21,7 @@ testAngular "portal-ng-common" "frontend-core-lib"
 ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
 for ng2app in "${ng2apps[@]}"
 do
-  # Disable the form app test for now...
-  if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "form" ]; then
+  if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
     testAngular "${ng2app}" "frontend-${ng2app}"
   fi
 done

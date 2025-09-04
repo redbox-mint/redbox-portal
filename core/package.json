@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.17",
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.3.0",
     "lodash": "^4.17.21",
     "rxjs": "^7.8.1",
     "luxon": "^3.7.1",

@@ -5,15 +5,15 @@ import {LoggerService} from "./logger.service";
 describe('HeaderSortComponent', () => {
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
+    const testModule = TestBed.configureTestingModule({
       declarations: [
         HeaderSortComponent ,
       ],
       providers: [
         LoggerService,
       ]
-    })
-      .compileComponents();
+    });
+    await testModule.compileComponents();
   });
 
   it('should create', () => {
