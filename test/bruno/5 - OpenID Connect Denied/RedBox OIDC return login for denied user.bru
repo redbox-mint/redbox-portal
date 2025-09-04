@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: {{rb_login_url}}
+  url: {{rb_login_url}}?lang=en
   body: none
   auth: none
+}
+
+params:query {
+  lang: en
 }
 
 headers {
@@ -38,7 +42,7 @@ tests {
     expect(res.getStatus()).to.equal(403);
     bru.setVar("cookie", res.headers['set-cookie']);
   });
-
+  
   test("Page contains expected error", function () {
         var responseBody = res.getBody();
         expect(responseBody).to.include('issue with your user credentials');
