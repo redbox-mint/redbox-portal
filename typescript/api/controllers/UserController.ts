@@ -53,8 +53,7 @@ export module Controllers {
       'profile',
       'generateUserKey',
       'revokeUserKey',
-      'find',
-      'beginOidc'
+      'find'
     ];
 
     /**
@@ -341,15 +340,6 @@ export module Controllers {
           return sails.getActions()['user/redirpostlogin'](req, res);
         });
       })(req, res);
-    }
-
-    public beginOidc(req, res) {
-      sails.log.verbose(`At OIDC begin flow, redirecting...`);
-      let passportIdentifier = 'oidc'
-      if (!_.isEmpty(req.param('id'))) {
-        passportIdentifier = `oidc-${req.param('id')}`
-      }
-      sails.config.passport.authenticate(passportIdentifier)(req, res);
     }
 
     private decodeErrorMappings(options, errorMessage) {

@@ -37,9 +37,16 @@ body:json {
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
-      let cookie = res.headers['set-cookie']
-      console.log(`Cookie is ${cookie}`)
-      bru.setVar("cookie",cookie );
+    let cookie = res.headers['set-cookie'];
+    // Bruno v2 returns set-cookie as an array; convert to a single header-friendly string
+    if (Array.isArray(cookie)) {
+      // Keep only the name=value part of each cookie
+      cookie = cookie.map(c => (typeof c === 'string' ? c.split(';')[0] : '')).filter(Boolean).join('; ');
+    }
+    if (cookie) {
+      console.log(`Cookie is ${cookie}`);
+      bru.setVar("cookie", cookie);
+    }
   });
   
   test("Check that user returned is admin", function () {

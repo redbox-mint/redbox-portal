@@ -29,15 +29,25 @@ headers {
 }
 
 script:post-response {
-  bru.setVar("kc_cookie",res.headers['set-cookie']);
+  let raw = (res.getHeader && res.getHeader('set-cookie')) || res.headers['set-cookie'];
+  if (Array.isArray(raw)) {
+    raw = raw.map(c => typeof c === 'string' ? c.split(';')[0] : c).join('; ');
+  } else if (typeof raw === 'string') {
+    raw = raw.split(';')[0];
+  }
+  if (raw) bru.setVar('kc_cookie', raw);
 }
 
 tests {
   const cheerio = require('cheerio')
   test("Status code is 200", function () {
-      expect(res.getStatus()).to.equal(200);
-      const $ = cheerio.load(res.getBody());
-  
-      bru.setVar("kc_login_url", $("#kc-form-login").attr('action'));
+    expect(res.getStatus()).to.equal(200);
+    const $ = cheerio.load(res.getBody());
+    const action = $("#kc-form-login").attr('action');
+    if (!action) {
+      throw new Error('Could not determine Keycloak login form action');
+    }
+    bru.setVar("kc_login_url", action);
   });
 }
+

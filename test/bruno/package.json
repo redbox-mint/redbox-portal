@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12"
+    "assert": "^2.1.0",
+    "buffer": "^6.0.3",
+    "cheerio": "^1.0.0-rc.12",
+    "parse5": "^7.1.2"
   }
 }

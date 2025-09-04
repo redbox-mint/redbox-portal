@@ -91,7 +91,7 @@ module.exports = {
         },
         userInfoSource: 'tokenset_claims',
         opts: {
-          issuer: 'http://keycloak:8080/realms/redbox/',
+          issuer: 'http://keycloak:8080/realms/redbox',
           client: {
             client_id: 'redbox',
             client_secret: 'w2snramgGaqehPiujV695iUfKmZAJ147',

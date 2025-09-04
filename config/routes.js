@@ -144,16 +144,6 @@ module.exports.routes = {
   'HEAD /user/begin_oidc': {
     policy: 'disallowedHeadRequestHandler'
   },
-  'get /user/begin_oidc': {
-    controller: 'UserController',
-    action: 'beginOidc',
-    csrf: false
-  },
-  // 'post /user/begin_oidc': {
-  //   controller: 'UserController',
-  //   action: 'beginOidc',
-  //   csrf: false
-  // },
   'get /user/info': 'UserController.info',
   'get /:branding/:portal/user/info': 'UserController.info',
   'get /:branding/:portal/user/login': 'UserController.login',

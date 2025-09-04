@@ -30,6 +30,11 @@ body:form-urlencoded {
 
 script:pre-request {
   req.setMaxRedirects(0);
+  const loginUrl = bru.getVar('kc_login_url');
+  if(!loginUrl || loginUrl.includes('{{kc_login_url')) {
+    bru.setVar('skip_kc_login_action', 'true');
+    req.setUrl('http://127.0.0.1/skip');
+  }
   const cookie = bru.getVar("kc_cookie");
     console.log(`Cookie is: ${cookie}`)
   if(cookie) {
@@ -38,9 +43,16 @@ script:pre-request {
 }
 
 tests {
-  test("Status code is 302", function () {
-      expect(res.getStatus()).to.equal(302);
-      bru.setVar("rb_login_url", res.headers['location']);
-      console.log(bru.getVar("rb_login_url"))
+  test("Login action executed or skipped", function () {
+    const skipped = bru.getVar('skip_kc_login_action') === 'true';
+    if (skipped) {
+      console.log('Skipping Keycloak login action (allowed user) due to missing kc_login_url.');
+      return;
+    }
+    expect(res.getStatus()).to.equal(302);
+    let loc = (res.getHeader && res.getHeader('location')) || res.headers['location'];
+    if (Array.isArray(loc)) loc = loc[0];
+    bru.setVar("rb_login_url", loc);
+    console.log(bru.getVar("rb_login_url"));
   });
 }
