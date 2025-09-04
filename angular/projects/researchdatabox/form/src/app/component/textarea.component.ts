@@ -33,7 +33,7 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
   public tooltipPlaceholder:string = 'placeholder';
   private defaultRows:number = new TextareaComponentConfig().rows;
   private defaultCols:number = new TextareaComponentConfig().cols;
-  private defaultPlaceholder:string = new TextareaComponentConfig().placeholder;
+  private defaultPlaceholder:string = new TextareaComponentConfig().placeholder ?? '';
   public rows:number = this.defaultRows;
   public cols:number = this.defaultCols;
   public placeholder:string = this.defaultPlaceholder;
@@ -50,9 +50,9 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
 
     if(!_isUndefined(this.componentDefinition?.config?.type) && !_isEmpty(this.componentDefinition?.config?.type)) {
       let textareaConfig:TextareaComponentConfig = this.componentDefinition.config as TextareaComponentConfig;
-      this.rows = _get(textareaConfig,'rows',this.defaultRows);
-      this.cols = _get(textareaConfig,'cols',this.defaultCols);
-      this.placeholder = _get(textareaConfig,'placeholder',this.defaultPlaceholder);
+      this.rows = textareaConfig.rows;
+      this.cols = textareaConfig.cols;
+      this.placeholder = textareaConfig.placeholder ?? this.defaultPlaceholder;
     }
   }
   
