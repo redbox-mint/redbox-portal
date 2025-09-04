@@ -36,7 +36,10 @@ import {
   Sails,
   Model
 } from "sails";
+
 import * as crypto from 'crypto';
+
+
 
 
 declare var sails: Sails;
@@ -76,6 +79,11 @@ export module Services {
 
     searchService: SearchService;
 
+
+    protected async processDynamicImports(): Promise<void> {
+      const passport  = await import('openid-client/passport')
+      console.log(passport)
+    }
     protected localAuthInit () {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
@@ -632,47 +640,59 @@ export module Services {
           }
           for (let oidcConfig of oidcConfigArray) {
             const oidcOpts = oidcConfig.opts;
-            const {
-              Issuer,
-              Strategy,
-              custom
-            } = require('openid-client');
+            const openidClient = await import('openid-client');
+            const openidPassport  = await import('openid-client/passport')
             let configured = false;
             let discoverAttemptsCtr = 0;
             while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
               discoverAttemptsCtr++;
               try {
-                let issuer;
+                let oidcConfiguration;
                 if (_.isString(oidcOpts.issuer)) {
                   sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
-                  issuer = await Issuer.discover(oidcOpts.issuer);
+                  const issuerUrl = new URL(oidcOpts.issuer);
+                  oidcConfiguration = await (openidClient as any).discovery(
+                    issuerUrl, 
+                    oidcOpts.client.client_id, 
+                    oidcOpts.client.client_secret,
+                    undefined,
+                    {
+                      execute: [(openidClient as any).allowInsecureRequests],
+                    }
+                  );
                 } else {
                   sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
                   sails.log.verbose(JSON.stringify(oidcOpts.issuer));
-                  issuer = new Issuer(oidcOpts.issuer);
+                  // For hardcoded configuration, create Configuration directly
+                  oidcConfiguration = new (openidClient as any).Configuration(oidcOpts.issuer, oidcOpts.client.client_id, oidcOpts.client.client_secret);
                 }
                 configured = true;
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-                sails.log.verbose(issuer);
-                const oidcClient = new issuer.Client(oidcOpts.client);
-                let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
-                  that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
+                sails.log.verbose(oidcConfiguration);
+                const scope = _.get(oidcOpts, 'params.scope', 'openid profile email');
+                const redirectUri = _.get(oidcOpts.opts, 'client.redirect_uris[0]', '');
+
+                // Create strategy options matching the example pattern
+                let options: any = {
+                    config: oidcConfiguration,
+                    scope: scope,
+                    callbackURL: redirectUri
                 };
-                if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req, tokenSet, done) => {
-                    that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
-                  };
-                }
+
+                // Create verify function matching the example pattern
+                let verifyCallbackFn = (req: any, tokenSet: any, userinfo: any, done: any) => {
+                  this.openIdConnectAuthVerifyCallback(oidcConfig, oidcConfiguration, req, tokenSet, userinfo, done);
+                };
+
                 let passportIdentifier = 'oidc';
                 if (!_.isEmpty(oidcConfig.identifier)) {
                   passportIdentifier = `oidc-${oidcConfig.identifier}`
                 }
 
-                sails.config.passport.use(passportIdentifier, new Strategy({
-                  client: oidcClient,
-                  passReqToCallback: true,
-                  params: oidcOpts.params
-                }, verifyCallbackFn));
+                sails.config.passport.use(passportIdentifier, new (openidPassport as any).Strategy(
+                  options,
+                  verifyCallbackFn
+                ));
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
 
 
@@ -687,14 +707,15 @@ export module Services {
       });
     }
 
-    protected openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo = undefined, done) {
+    protected openIdConnectAuthVerifyCallback(oidcConfig, client, req, tokenSet, userinfo = undefined, done) {
       const that = this;
       const logoutFromAuthServer = _.get(oidcConfig,'logoutFromAuthServer', true);
       if(logoutFromAuthServer) {
-       req.session.logoutUrl = issuer.end_session_endpoint;
+        // Use client.buildEndSessionUrl() instead of issuer.end_session_endpoint
+        req.session.logoutUrl = client.buildEndSessionUrl();
         const postLogoutUris = _.get(oidcConfig.opts, 'client.post_logout_redirect_uris');
         if (!_.isEmpty(postLogoutUris)) {
-          req.session.logoutUrl = `${req.session.logoutUrl}?post_logout_redirect_uri=${postLogoutUris[0]}`;
+          req.session.logoutUrl = `${req.session.logoutUrl}&post_logout_redirect_uri=${postLogoutUris[0]}`;
         }
       } else {
         req.session.logoutUrl = sails.config.auth.postLogoutRedir
@@ -985,7 +1006,7 @@ export module Services {
             const defRoleIds = _.map(defRoles, (o) => {
               return o.id;
             });
-            let q = User.addToCollection(defUser.id, 'roles').members(defRoleIds);
+            let q = User.addToCollection((defUser as any).id, 'roles').members(defRoleIds);
             // END Sails 1.0 upgrade
             return super.getObservable(q, 'exec', 'simplecb')
               .pipe(flatMap(dUser => {
@@ -994,7 +1015,7 @@ export module Services {
                     let role: any = roleObserved;
                     // START Sails 1.0 upgrade
                     // role.users.add(defUser.id)
-                    q = Role.addToCollection(role.id, 'users').members([defUser.id]);
+                    q = Role.addToCollection(role.id, 'users').members([(defUser as any).id]);
                     // END Sails 1.0 upgrade
                     return super.getObservable(q, 'exec', 'simplecb');
                   }));
@@ -1193,7 +1214,7 @@ export module Services {
             return throwError(new Error('Please assign at least one role'));
           }
           // START Sails 1.0 upgrade
-          const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
+          const q = User.replaceCollection((user as any).id, 'roles').members(newRoleIds);
           // END Sails 1.0 upgrade
           return this.getObservable(q, 'exec', 'simplecb');
         } else {

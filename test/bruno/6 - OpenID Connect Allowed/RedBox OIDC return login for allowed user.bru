@@ -35,8 +35,14 @@ script:pre-request {
 
 tests {
   test("Status code is 302", function () {
-      expect(res.getStatus()).to.equal(302);
-      bru.setVar("cookie", res.headers['set-cookie'])
+    expect(res.getStatus()).to.equal(302);
+    let raw = (res.getHeader && res.getHeader('set-cookie')) || res.headers['set-cookie'];
+    if (Array.isArray(raw)) {
+      raw = raw.map(c => typeof c === 'string' ? c.split(';')[0] : c).join('; ');
+    } else if (typeof raw === 'string') {
+      raw = raw.split(';')[0];
+    }
+    if (raw) bru.setVar('cookie', raw);
   });
   
 }

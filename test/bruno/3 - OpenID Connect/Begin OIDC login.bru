@@ -39,8 +39,17 @@ script:pre-request {
 
 tests {
   test("Status code is 302", function () {
-      expect(res.getStatus()).to.equal(302);
-     bru.setVar("kc_redir_url", res.headers['location']);
-    console.log(bru.getVar("kc_redir_url"))
+    expect(res.getStatus()).to.equal(302);
+    // Bruno v2 may surface multi-valued headers (e.g. Location) as arrays; normalise to first string
+    let loc = (res.getHeader && res.getHeader('location')) || res.headers['location'];
+  try { console.log('Begin OIDC login raw headers:', JSON.stringify(res.headers)); } catch(e) {}
+    if (Array.isArray(loc)) {
+      loc = loc[0];
+    }
+    if (typeof loc !== 'string') {
+      throw new Error("Location header not found or invalid: " + JSON.stringify(loc));
+    }
+    bru.setVar("kc_redir_url", loc);
+    console.log("kc_redir_url:", bru.getVar("kc_redir_url"));
   });
 }

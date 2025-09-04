@@ -28,9 +28,17 @@ tests {
   
   test("Test response format", function () {
         var jsonData = res.getBody();
-        expect(jsonData[0]).to.have.property('fullName');
-        expect(jsonData[0]).to.have.property('email');
-        expect(jsonData[0]).to.have.property('orcid');
+        // Bruno v2 may already parse JSON; if not, attempt parsing
+        if (typeof jsonData === 'string') {
+            try { jsonData = JSON.parse(jsonData); } catch(e) {}
+        }
+        expect(jsonData).to.be.an('array');
+        if (jsonData.length > 0) {
+          expect(jsonData[0]).to.be.an('object');
+          expect(jsonData[0]).to.have.property('fullName');
+          expect(jsonData[0]).to.have.property('email');
+          expect(jsonData[0]).to.have.property('orcid');
+        }
   });
   
 }

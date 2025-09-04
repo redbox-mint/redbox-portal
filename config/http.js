@@ -87,6 +87,26 @@ module.exports.http = {
       next();
     },
 
+    oidcMiddleware: function(req, res, next) {
+      // Check if this is an OIDC initiation request
+      if (req.path === '/user/begin_oidc' || req.path.startsWith('/user/begin_oidc/')) {
+        sails.log.verbose(`OIDC middleware: At OIDC begin flow, redirecting...`);
+        
+        let passportIdentifier = 'oidc';
+        // Extract ID from path if present (e.g., /user/begin_oidc/123)
+        const pathParts = req.path.split('/');
+        if (pathParts.length >= 4 && pathParts[3]) {
+          passportIdentifier = `oidc-${pathParts[3]}`;
+        }
+        
+        // Use passport.authenticate as middleware with next function
+        sails.config.passport.authenticate(passportIdentifier)(req, res, next);
+      } else {
+        // Not an OIDC request, continue to next middleware
+        next();
+      }
+    },
+
     order: [
       'cacheControl',
       'redirectNoCacheHeaders',
@@ -100,6 +120,7 @@ module.exports.http = {
       'compress',
       'methodOverride',
       'poweredBy',
+      'oidcMiddleware',
       'router',
       'translate',
       'brandingAndPortalAwareStaticRouter',
