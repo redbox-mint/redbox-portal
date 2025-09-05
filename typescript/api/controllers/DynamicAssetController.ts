@@ -18,6 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
+
+import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import {TemplateCompileInput} from "../additional/TemplateCompile";
 
 declare var module;
@@ -27,7 +29,6 @@ declare var TemplateService;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
@@ -146,7 +147,8 @@ export module Controllers {
       res.set('Content-Type', dynamicAssetInfo.type);
       return res.view(dynamicAssetInfo.view, viewContext);
     }
-    /**
+
+      /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************
      **************************************************************************************************

@@ -48,6 +48,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
+import {firstValueFrom} from "rxjs";
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -503,7 +504,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await this.http.get<{data: FormConfig}>(url.href, this.requestOptions).toPromise();
+    const result = await firstValueFrom(this.http.get<{data: FormConfig}>(url.href, this.requestOptions));
     this.loggerService.info(`Get form fields from url: ${url}`, result);
     return result?.data;
   }
@@ -525,7 +526,7 @@ export class FormService extends HttpClientService {
       : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
-    const result = await this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions).toPromise();
+    const result = await firstValueFrom(this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions));
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
   }

@@ -1,3 +1,5 @@
+import { get as _get } from 'lodash';
+
 /**
  * The map of validation errors.
  *
@@ -38,6 +40,34 @@ export type FormValidatorControl = {
    */
   setErrors(errors: FormValidatorErrors | null): void;
 };
+
+/**
+ * A simple form validator control that can be used on the server-side to mimic client-side controls.
+ *
+ * Do not use this on the client-side.
+ */
+export class SimpleServerFormValidatorControl implements FormValidatorControl {
+    value: unknown;
+    private _setErrors: (FormValidatorErrors | null)[] = [];
+
+    constructor(value: unknown) {
+        this.value = value;
+    }
+
+    get<P extends string>(path: P): FormValidatorControl | null {
+        const result = _get(this.value, path) ?? null;
+        console.debug(`SimpleServerFormValidatorControl.get path '${path}' with result '${JSON.stringify(result)}' from value '${JSON.stringify(this.value)}'`);
+        return result;
+    }
+    setErrors(errors: FormValidatorErrors | null): void {
+        console.debug(`SimpleServerFormValidatorControl.setErrors adding '${JSON.stringify(errors)}'`);
+        this._setErrors.push(errors);
+    }
+
+    get storedErrors(): any[] {
+        return this._setErrors;
+    }
+}
 
 /**
  * The validator function.

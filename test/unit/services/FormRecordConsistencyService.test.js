@@ -1,3 +1,5 @@
+import {of} from "rxjs";
+
 describe('The FormRecordConsistencyService', function () {
     it('should detect changes using compareRecords', function () {
         const original = {
@@ -463,6 +465,93 @@ describe('The FormRecordConsistencyService', function () {
             };
             const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig);
             expect(result).to.eql(expected);
+        });
+    });
+
+    describe('validateRecordValues methods', async function () {
+        const formConfigStandard = {
+            name: "default-1.0-draft",
+            type: "rdmp",
+            debugValue: true,
+            domElementType: 'form',
+            defaultComponentConfig: {
+                defaultComponentCssClasses: 'row',
+            },
+            editCssClasses: "redbox-form form",
+            skipValidationOnSave: false,
+        };
+        it("passes when the record values are valid", async function () {
+            const formConfig = {
+                ...formConfigStandard,
+                validators: [
+                    {name: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
+                ],
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: 'hello world!',
+                                validators: [
+                                    {name: 'required'},
+                                ]
+                            }
+                        },
+                        component: {class: 'SimpleInputComponent'}
+                    },
+                    {
+                        name: 'text_2',
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: '',
+                                validators: [
+                                    {name: 'required'},
+                                ]
+                            }
+                        },
+                        component: {class: 'SimpleInputComponent'}
+                    },
+                ],
+            };
+            const record = {metadata: {text_1: "text_1_value", text_2: "text_2_value"}};
+            const expected = [];
+
+            let actual = null;
+            const oldFormServiceGetFormByName = FormsService.getFormByName;
+            try {
+                FormsService.getFormByName = function (formName, editMode) {
+                    return of(formConfig)
+                }
+                actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
+            } finally {
+                FormsService.getFormByName = oldFormServiceGetFormByName;
+            }
+
+            expect(actual).to.eql(expected);
+        });
+        it("fails when the record values are not valid", async function () {
+            const formConfig = {
+                ...formConfigStandard,
+                validators: [],
+                componentDefinitions: [],
+            };
+            const record = {metadata: {}};
+            const expected = [];
+
+            let actual = null;
+            const oldFormServiceGetFormByName = FormsService.getFormByName;
+            try {
+                FormsService.getFormByName = function (formName, editMode) {
+                    return of(formConfig)
+                }
+                actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
+            } finally {
+                FormsService.getFormByName = oldFormServiceGetFormByName;
+            }
+
+            expect(actual).to.eql(expected);
         });
     });
 });
