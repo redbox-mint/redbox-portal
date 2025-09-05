@@ -1,0 +1,30 @@
+meta {
+  name: List Entries App
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/app/i18n/entries?locale=ar&namespace=translation
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Returns array of entries", function () {
+      var data = res.getBody();
+      expect(Array.isArray(data)).to.equal(true);
+      if (data.length > 0) {
+        expect(data[0]).to.have.property("key");
+        expect(data[0]).to.have.property("value");
+      }
+  });
+}

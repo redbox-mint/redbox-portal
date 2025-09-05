@@ -53,25 +53,25 @@ export module Services {
         workflows = null;
       }
       
-          sails.log.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
+          this.logger.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
           let wfSteps = workflows;
           if (_.isEmpty(workflows)) {
-            sails.log.verbose("Bootstrapping workflow definitions... ");
+            this.logger.verbose("Bootstrapping workflow definitions... ");
             const wfSteps = {};
             _.forEach(recordTypes, recordType => {
-              sails.log.verbose("Processing recordType: " + recordType.name);
+              this.logger.verbose("Processing recordType: " + recordType.name);
               wfSteps[recordType.name] = []
               _.forOwn(sails.config.workflow[recordType.name], (workflowConf, workflowName) => {
                 if (workflowName != null) {
-                  sails.log.verbose("workflow step added to list: " + workflowName)
+                  this.logger.verbose("workflow step added to list: " + workflowName)
                   wfSteps[recordType.name].push({ "recordType": recordType, "workflow": workflowName });
                 }
               });
             });
             
         
-          sails.log.verbose(`wfSteps: `);
-          sails.log.verbose(JSON.stringify(wfSteps));
+          this.logger.verbose(`wfSteps: `);
+          this.logger.verbose(JSON.stringify(wfSteps));
           if (_.isArray(wfSteps) && wfSteps[0]["config"] != null) {
             
           } else {

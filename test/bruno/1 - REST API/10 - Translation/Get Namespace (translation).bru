@@ -1,0 +1,27 @@
+meta {
+  name: Get Namespace (translation)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/locales/en/translation.json
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Returns object and strips _meta", function () {
+      var data = res.getBody();
+      expect(typeof data).to.equal("object");
+      expect(data).to.not.have.property("_meta");
+  });
+}

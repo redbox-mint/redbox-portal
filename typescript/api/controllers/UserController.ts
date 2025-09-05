@@ -295,10 +295,20 @@ export module Controllers {
           let oidcConfig = _.get(sails.config, 'auth.default.oidc');
           let errorMessage = _.get(err, 'message', err?.toString() ?? '');
 
+          // Handle specific OIDC errors that should return 403 instead of 500
           if (errorMessage === "authorized-email-denied") {
             req.session['data'] = {
               message: "error-auth",
               detailedMessage: "authorized-email-denied",
+            }
+            return res.forbidden();
+          }
+
+          // Handle OPError from openid-client (like invalid_grant, session not found, etc.)
+          if (err && (err.name === 'OPError' || errorMessage.includes('invalid_grant') || errorMessage.includes('session not found'))) {
+            req.session['data'] = {
+              message: "error-auth",
+              detailedMessage: "There was an issue with your user credentials, please try again.",
             }
             return res.forbidden();
           }

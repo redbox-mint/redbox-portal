@@ -67,7 +67,7 @@ export class TranslationService {
           // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
           lng: this.config.lang,
           fallbackLng: 'en',
-          backend: { loadPath: `${rootContext}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
+          backend: { loadPath: `${rootContext}/${this.config.branding}/${this.config.portal}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
         }).then(() => {
           console.log(`Translator loaded...`);
           this.translatorReady = true;

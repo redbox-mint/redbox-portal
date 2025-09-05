@@ -1,0 +1,31 @@
+meta {
+  name: Set Bundle (split)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/default/rdmp/api/i18n/bundles/ar/translation?splitToEntries=true&overwriteEntries=true
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "_meta": {
+      "hello-world": { "category": "test", "description": "Greeting" }
+    },
+    "hello-world": "Hello World",
+    "hello": { "world2": "Hello World" }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+}

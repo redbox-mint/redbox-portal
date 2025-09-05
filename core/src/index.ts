@@ -47,6 +47,10 @@ export {
     RecordAuditParams
 }
 from "./RecordAuditParams";
+export {
+    ILogger
+}
+from "./Logger";
 
 export * from './model'
 export * from './decorator'

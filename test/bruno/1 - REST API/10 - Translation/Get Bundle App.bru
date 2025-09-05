@@ -1,0 +1,27 @@
+meta {
+  name: Get Bundle App
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/default/rdmp/app/i18n/bundles/ar/translation
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Returns bundle object", function () {
+      var data = res.getBody();
+      expect(typeof data).to.equal("object");
+      expect(data).to.have.property("data");
+  });
+}

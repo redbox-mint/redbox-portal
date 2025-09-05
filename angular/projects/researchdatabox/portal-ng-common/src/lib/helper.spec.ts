@@ -18,6 +18,10 @@ export function getStubConfigService(configBlock: any = null) {
     configBlock = {
       csrfToken: 'testCsrfValue',
       rootContext: 'base',
+      // added defaults so services depending on branding/portal resolve proper URLs without 'undefined'
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
       i18NextOpts: {
         load: 'languageOnly',
         lng: 'en',
@@ -28,6 +32,14 @@ export function getStubConfigService(configBlock: any = null) {
         ns: [
           'translation'
         ],
+        // provide inline resources to avoid relying on XHR backend in unit tests
+        resources: {
+          en: {
+            translation: {
+              key1: 'value1'
+            }
+          }
+        },
         // lang detection plugin options
         detection: {
           // order and from where user language should be detected

@@ -1,0 +1,37 @@
+meta {
+  name: Set Entry App
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/default/rdmp/app/i18n/entries/ar/translation/test.key
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "value": "Test Value",
+    "category": "test",
+    "description": "Test description"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Entry saved successfully", function () {
+      var data = res.getBody();
+      expect(data).to.have.property("key");
+      expect(data).to.have.property("value");
+      expect(data.key).to.equal("test.key");
+      expect(data.value).to.equal("Test Value");
+  });
+}

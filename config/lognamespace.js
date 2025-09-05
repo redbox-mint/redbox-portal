@@ -11,4 +11,13 @@
  * or set via env var e.g. `'sails_lognamespace__EmailService=info'`
  */
 
-module.exports.lognamespace = {};
+module.exports.lognamespace = {
+  // Set TranslationService to only show warn or error messages
+  TranslationService: 'warn',
+  // Set I18nEntriesService to only show warn or error messages
+  I18nEntriesService: 'warn',
+  // Set WorkflowStepsService to only show warn or error messages
+  WorkflowStepsService: 'warn',
+  // Set FormsService to only show warn or error messages
+  FormsService: 'warn',
+};

@@ -1,0 +1,4024 @@
+{
+	"_meta": {
+		"dashboard-heading": {
+			"category": "dashboard",
+			"description": "Heading on dashboard"
+		},
+		"dashboard-heading-one-step": {
+			"category": "dashboard",
+			"description": "Translation for dashboard-heading-one-step"
+		},
+		"create-plan": {
+			"category": "create",
+			"description": "Translation for create-plan"
+		},
+		"create-rdmp": {
+			"category": "create",
+			"description": "Translation for create-rdmp"
+		},
+		"dataRecord-name-plural": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-name-plural"
+		},
+		"dataRecord-name": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-name"
+		},
+		"dataPublication-name-plural": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-name-plural"
+		},
+		"dataPublication-name": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-name"
+		},
+		"workspace-name-plural": {
+			"category": "workspace",
+			"description": "Translation for workspace-name-plural"
+		},
+		"workspace-name": {
+			"category": "workspace",
+			"description": "Translation for workspace-name"
+		},
+		"rdmp-name-plural": {
+			"category": "rdmp",
+			"description": "Translation for rdmp-name-plural"
+		},
+		"rdmp-name": {
+			"category": "rdmp",
+			"description": "Translation for rdmp-name"
+		},
+		"rdmp-title-label": {
+			"category": "rdmp",
+			"description": "Translation for rdmp-title-label"
+		},
+		"rdmp-title": {
+			"category": "rdmp",
+			"description": "Translation for rdmp-title"
+		},
+		"datarecord-title-label": {
+			"category": "datarecord",
+			"description": "Translation for datarecord-title-label"
+		},
+		"publication-title-label": {
+			"category": "publication",
+			"description": "Translation for publication-title-label"
+		},
+		"edit-dashboard": {
+			"category": "edit",
+			"description": "Translation for edit-dashboard"
+		},
+		"version-history": {
+			"category": "version",
+			"description": "Translation for version-history"
+		},
+		"get-advice": {
+			"category": "get",
+			"description": "Translation for get-advice"
+		},
+		"create-datarecord": {
+			"category": "create",
+			"description": "Translation for create-datarecord"
+		},
+		"create-data-publication": {
+			"category": "create",
+			"description": "Translation for create-data-publication"
+		},
+		"toggle-dropdown": {
+			"category": "toggle",
+			"description": "Translation for toggle-dropdown"
+		},
+		"dataRecord-title-label": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-title-label"
+		},
+		"dataRecord-title": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-title"
+		},
+		"dataPublication-title-label": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-title-label"
+		},
+		"dataPublication-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-title"
+		},
+		"transfer-ownership": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership"
+		},
+		"transfer-ownership-title": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-title"
+		},
+		"transfer-ownership-step-1": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-step-1"
+		},
+		"transfer-ownership-step-2": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-step-2"
+		},
+		"transfer-ownership-step-3": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-step-3"
+		},
+		"transfer-ownership-researcher-name": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-researcher-name"
+		},
+		"transfer-ownership-filter-plan-name": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-filter-plan-name"
+		},
+		"transfer-ownership-filter-plan-name-placeholder": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-filter-plan-name-placeholder"
+		},
+		"transfer-ownership-select": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-select"
+		},
+		"transfer-ownership-plan-name": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-plan-name"
+		},
+		"transfer-ownership-execute": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-execute"
+		},
+		"transfer-ownership-confirm-title": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-confirm-title"
+		},
+		"transfer-ownership-confirm-body": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-confirm-body"
+		},
+		"transfer-ownership-confirm-yes": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-confirm-yes"
+		},
+		"transfer-ownership-confirm-no": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-confirm-no"
+		},
+		"transfer-ownership-transferring": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-transferring"
+		},
+		"transfer-ownership-transfer-ok": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-transfer-ok"
+		},
+		"transfer-ownership-step-2-update": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-step-2-update"
+		},
+		"transfer-ownership-reset": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-reset"
+		},
+		"transfer-ownership-rdmp": {
+			"category": "transfer",
+			"description": "Translation for transfer-ownership-rdmp"
+		},
+		"record-search-link": {
+			"category": "search",
+			"description": "Translation for record-search-link"
+		},
+		"record-search-heading": {
+			"category": "search",
+			"description": "Translation for record-search-heading"
+		},
+		"record-search-basic-search": {
+			"category": "search",
+			"description": "Translation for record-search-basic-search"
+		},
+		"record-search-basic-search-placeholder": {
+			"category": "search",
+			"description": "Translation for record-search-basic-search-placeholder"
+		},
+		"record-search-plan-name": {
+			"category": "search",
+			"description": "Translation for record-search-plan-name"
+		},
+		"record-search-advanced-show": {
+			"category": "search",
+			"description": "Translation for record-search-advanced-show"
+		},
+		"record-search-advanced-hide": {
+			"category": "search",
+			"description": "Translation for record-search-advanced-hide"
+		},
+		"record-search-rdmp-submit": {
+			"category": "search",
+			"description": "Translation for record-search-rdmp-submit"
+		},
+		"record-search-dataRecord-submit": {
+			"category": "search",
+			"description": "Translation for record-search-dataRecord-submit"
+		},
+		"record-search-dataPublication-submit": {
+			"category": "search",
+			"description": "Translation for record-search-dataPublication-submit"
+		},
+		"record-search-reset": {
+			"category": "search",
+			"description": "Translation for record-search-reset"
+		},
+		"record-search-title": {
+			"category": "search",
+			"description": "Translation for record-search-title"
+		},
+		"record-search-title-search-placeholder": {
+			"category": "search",
+			"description": "Translation for record-search-title-search-placeholder"
+		},
+		"record-search-searching": {
+			"category": "search",
+			"description": "Translation for record-search-searching"
+		},
+		"record-search-results": {
+			"category": "search",
+			"description": "Translation for record-search-results"
+		},
+		"plan-with-no-title": {
+			"category": "plan",
+			"description": "Translation for plan-with-no-title"
+		},
+		"my-draft-plans": {
+			"category": "my",
+			"description": "Translation for my-draft-plans"
+		},
+		"my-active-plans": {
+			"category": "my",
+			"description": "Translation for my-active-plans"
+		},
+		"header-plan": {
+			"category": "header",
+			"description": "Translation for header-plan"
+		},
+		"header-created": {
+			"category": "header",
+			"description": "Translation for header-created"
+		},
+		"header-modified": {
+			"category": "header",
+			"description": "Translation for header-modified"
+		},
+		"header-ci": {
+			"category": "header",
+			"description": "Translation for header-ci"
+		},
+		"header-data-manager": {
+			"category": "header",
+			"description": "Translation for header-data-manager"
+		},
+		"no-draft-plans": {
+			"category": "no",
+			"description": "Translation for no-draft-plans"
+		},
+		"no-active-plans": {
+			"category": "no",
+			"description": "Translation for no-active-plans"
+		},
+		"no-records": {
+			"category": "no",
+			"description": "Translation for no-records"
+		},
+		"local-creds-header": {
+			"category": "auth",
+			"description": "Translation for local-creds-header"
+		},
+		"export-modified-after": {
+			"category": "export",
+			"description": "Translation for export-modified-after"
+		},
+		"export-modified-before": {
+			"category": "export",
+			"description": "Translation for export-modified-before"
+		},
+		"export-download": {
+			"category": "export",
+			"description": "Translation for export-download"
+		},
+		"export-format": {
+			"category": "export",
+			"description": "Translation for export-format"
+		},
+		"manage-roles-title": {
+			"category": "users",
+			"description": "Translation for manage-roles-title"
+		},
+		"manage-roles-filter-name": {
+			"category": "users",
+			"description": "Translation for manage-roles-filter-name"
+		},
+		"manage-roles-filter-name-placeholder": {
+			"category": "users",
+			"description": "Translation for manage-roles-filter-name-placeholder"
+		},
+		"manage-roles-filter-label": {
+			"category": "users",
+			"description": "Translation for manage-roles-filter-label"
+		},
+		"manage-roles-name": {
+			"category": "users",
+			"description": "Translation for manage-roles-name"
+		},
+		"manage-roles-email": {
+			"category": "users",
+			"description": "Translation for manage-roles-email"
+		},
+		"manage-roles-role": {
+			"category": "users",
+			"description": "Translation for manage-roles-role"
+		},
+		"manage-roles-action": {
+			"category": "users",
+			"description": "Translation for manage-roles-action"
+		},
+		"manage-roles-edit": {
+			"category": "users",
+			"description": "Translation for manage-roles-edit"
+		},
+		"manage-roles-save": {
+			"category": "users",
+			"description": "Translation for manage-roles-save"
+		},
+		"manage-roles-cancel": {
+			"category": "users",
+			"description": "Translation for manage-roles-cancel"
+		},
+		"manage-users-title": {
+			"category": "users",
+			"description": "Translation for manage-users-title"
+		},
+		"manage-users-filter-name": {
+			"category": "users",
+			"description": "Translation for manage-users-filter-name"
+		},
+		"manage-users-filter-name-placeholder": {
+			"category": "users",
+			"description": "Translation for manage-users-filter-name-placeholder"
+		},
+		"manage-users-username": {
+			"category": "users",
+			"description": "Translation for manage-users-username"
+		},
+		"manage-users-name": {
+			"category": "users",
+			"description": "Translation for manage-users-name"
+		},
+		"manage-users-email": {
+			"category": "users",
+			"description": "Translation for manage-users-email"
+		},
+		"manage-users-role": {
+			"category": "users",
+			"description": "Translation for manage-users-role"
+		},
+		"manage-users-action": {
+			"category": "users",
+			"description": "Translation for manage-users-action"
+		},
+		"manage-users-edit": {
+			"category": "users",
+			"description": "Translation for manage-users-edit"
+		},
+		"manage-users-new": {
+			"category": "users",
+			"description": "Translation for manage-users-new"
+		},
+		"manage-users-save": {
+			"category": "users",
+			"description": "Translation for manage-users-save"
+		},
+		"manage-users-cancel": {
+			"category": "users",
+			"description": "Translation for manage-users-cancel"
+		},
+		"manage-users-api": {
+			"category": "users",
+			"description": "Translation for manage-users-api"
+		},
+		"manage-users-api-generate": {
+			"category": "users",
+			"description": "Translation for manage-users-api-generate"
+		},
+		"manage-users-api-revoke": {
+			"category": "users",
+			"description": "Translation for manage-users-api-revoke"
+		},
+		"manage-users-api-confirm": {
+			"category": "users",
+			"description": "Translation for manage-users-api-confirm"
+		},
+		"manage-users-add-local": {
+			"category": "users",
+			"description": "Translation for manage-users-add-local"
+		},
+		"manage-users-password": {
+			"category": "users",
+			"description": "Translation for manage-users-password"
+		},
+		"manage-users-aaf-password": {
+			"category": "users",
+			"description": "Translation for manage-users-aaf-password"
+		},
+		"manage-users-confirm-password": {
+			"category": "users",
+			"description": "Translation for manage-users-confirm-password"
+		},
+		"manage-users-validation-name": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-name"
+		},
+		"manage-users-validation-email": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-email"
+		},
+		"manage-users-validation-username": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-username"
+		},
+		"manage-users-validation-password": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-password"
+		},
+		"manage-users-validation-confirmpassword": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-confirmpassword"
+		},
+		"manage-users-validation-role": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-role"
+		},
+		"manage-users-validation-submit": {
+			"category": "users",
+			"description": "Translation for manage-users-validation-submit"
+		},
+		"manage-users-update-password": {
+			"category": "users",
+			"description": "Translation for manage-users-update-password"
+		},
+		"welcome-title": {
+			"category": "welcome",
+			"description": "Translation for welcome-title"
+		},
+		"welcome-homepage-text": {
+			"category": "welcome",
+			"description": "Translation for welcome-homepage-text"
+		},
+		"welcome-dashboard-link-text": {
+			"category": "welcome",
+			"description": "Translation for welcome-dashboard-link-text"
+		},
+		"default-title": {
+			"category": "default",
+			"description": "Translation for default-title"
+		},
+		"menu-welcome-text": {
+			"category": "menu",
+			"description": "Translation for menu-welcome-text"
+		},
+		"menu-login": {
+			"category": "menu",
+			"description": "Translation for menu-login"
+		},
+		"menu-logout": {
+			"category": "menu",
+			"description": "Translation for menu-logout"
+		},
+		"menu-toggle": {
+			"category": "menu",
+			"description": "Translation for menu-toggle"
+		},
+		"menu-dashboard": {
+			"category": "menu",
+			"description": "Translation for menu-dashboard"
+		},
+		"menu-rolemgmt": {
+			"category": "menu",
+			"description": "Translation for menu-rolemgmt"
+		},
+		"menu-usermgmt": {
+			"category": "menu",
+			"description": "Translation for menu-usermgmt"
+		},
+		"menu-export": {
+			"category": "menu",
+			"description": "Translation for menu-export"
+		},
+		"menu-home": {
+			"category": "menu",
+			"description": "Translation for menu-home"
+		},
+		"menu-analyze": {
+			"category": "menu",
+			"description": "Translation for menu-analyze"
+		},
+		"menu-syssettings": {
+			"category": "menu",
+			"description": "Translation for menu-syssettings"
+		},
+		"menu-admin": {
+			"category": "menu",
+			"description": "Translation for menu-admin"
+		},
+		"menu-plan": {
+			"category": "menu",
+			"description": "Translation for menu-plan"
+		},
+		"menu-manage": {
+			"category": "menu",
+			"description": "Translation for menu-manage"
+		},
+		"menu-publish": {
+			"category": "menu",
+			"description": "Translation for menu-publish"
+		},
+		"menu-plan-nav": {
+			"category": "menu",
+			"description": "Translation for menu-plan-nav"
+		},
+		"menu-manage-nav": {
+			"category": "menu",
+			"description": "Translation for menu-manage-nav"
+		},
+		"menu-publish-nav": {
+			"category": "menu",
+			"description": "Translation for menu-publish-nav"
+		},
+		"menu-organisation-nav": {
+			"category": "menu",
+			"description": "Translation for menu-organisation-nav"
+		},
+		"menu-search": {
+			"category": "menu",
+			"description": "Translation for menu-search"
+		},
+		"menu-organise-worspace": {
+			"category": "menu",
+			"description": "Translation for menu-organise-worspace"
+		},
+		"menu-systemmessages": {
+			"category": "menu",
+			"description": "Translation for menu-systemmessages"
+		},
+		"aaf-title": {
+			"category": "aaf",
+			"description": "Translation for aaf-title"
+		},
+		"openidconnect-title": {
+			"category": "openidconnect",
+			"description": "Translation for openidconnect-title"
+		},
+		"admin-title": {
+			"category": "admin",
+			"description": "Translation for admin-title"
+		},
+		"search-refine-title": {
+			"category": "search",
+			"description": "Translation for search-refine-title"
+		},
+		"search-refine-description": {
+			"category": "search",
+			"description": "Translation for search-refine-description"
+		},
+		"search-refine-apply-filter": {
+			"category": "search",
+			"description": "Translation for search-refine-apply-filter"
+		},
+		"search-refine-contains": {
+			"category": "search",
+			"description": "Translation for search-refine-contains"
+		},
+		"search-refine-keywords": {
+			"category": "search",
+			"description": "Translation for search-refine-keywords"
+		},
+		"search-refine-workflow_stageLabel": {
+			"category": "search",
+			"description": "Translation for search-refine-workflow_stageLabel"
+		},
+		"search-refine-grant_number_name": {
+			"category": "search",
+			"description": "Translation for search-refine-grant_number_name"
+		},
+		"@dmpt-welcome-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-welcome-tab"
+		},
+		"@dmpt-welcome-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-welcome-heading"
+		},
+		"@dmpt-welcome-par1": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-welcome-par1"
+		},
+		"@dmpt-welcome-par2": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-welcome-par2"
+		},
+		"@dmpt-welcome-par3": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-welcome-par3"
+		},
+		"@dmpt-welcome-par4": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-welcome-par4"
+		},
+		"@dmpt-project-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-tab"
+		},
+		"@dmpt-project-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-heading"
+		},
+		"@dmpt-project-title": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-title"
+		},
+		"@dmpt-project-title-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-title-help"
+		},
+		"@dmpt-project-id": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-id"
+		},
+		"@dmpt-project-id-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-id-help"
+		},
+		"@dmpt-project-desc": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-desc"
+		},
+		"@dmpt-project-desc-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-desc-help"
+		},
+		"@dmpt-finalKeywords": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-finalKeywords"
+		},
+		"@dmpt-finalKeywords-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-finalKeywords-help"
+		},
+		"@dmpt-project-website": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-website"
+		},
+		"@dmpt-project-website-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-website-help"
+		},
+		"@dmpt-project-startdate": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-startdate"
+		},
+		"@dmpt-project-startdate-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-startdate-help"
+		},
+		"@dmpt-project-enddate": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-enddate"
+		},
+		"@dmpt-project-enddate-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-enddate-help"
+		},
+		"@dmpt-project-activity-type": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-activity-type"
+		},
+		"@dmpt-project-activity-type-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-activity-type-help"
+		},
+		"@dmpt-project-anzsrcFor": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-anzsrcFor"
+		},
+		"@dmpt-project-anzsrcFor-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-anzsrcFor-help"
+		},
+		"@dmpt-project-anzsrcSeo": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-anzsrcSeo"
+		},
+		"@dmpt-project-anzsrcSeo-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-project-anzsrcSeo-help"
+		},
+		"@dmpt-activity-type-pure": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-activity-type-pure"
+		},
+		"@dmpt-activity-type-strategic": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-activity-type-strategic"
+		},
+		"@dmpt-activity-type-applied": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-activity-type-applied"
+		},
+		"@dmpt-activity-type-experimental": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-activity-type-experimental"
+		},
+		"@dmpt-data-collection-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-data-collection-tab"
+		},
+		"@dmpt-data-collection-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-data-collection-heading"
+		},
+		"@dmpt-data-collection-methodology": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-data-collection-methodology"
+		},
+		"@dmpt-data-collection-methodology-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-data-collection-methodology-help"
+		},
+		"@dmpt-data-collection-methodology-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-data-collection-methodology-required"
+		},
+		"@dmpt-vivo:Dataset_dc_format": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc_format"
+		},
+		"@dmpt-vivo:Dataset_dc_format-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc_format-help"
+		},
+		"@dmpt-vivo:Dataset_dc_format-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc_format-required"
+		},
+		"@dmpt-vivo:Dataset_redbox:DataCollectionResources": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:DataCollectionResources"
+		},
+		"@dmpt-vivo:Dataset_redbox:DataCollectionResources-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:DataCollectionResources-help"
+		},
+		"@dmpt-vivo:Dataset_redbox:DataAnalysisResources": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:DataAnalysisResources"
+		},
+		"@dmpt-vivo:Dataset_redbox:DataAnalysisResources-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:DataAnalysisResources-help"
+		},
+		"@dmpt-vivo:Dataset_redbox:MetadataStandard": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:MetadataStandard"
+		},
+		"@dmpt-vivo:Dataset_redbox:MetadataStandard-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:MetadataStandard-help"
+		},
+		"@dmpt-vivo:Dataset_redbox:DataStructureStandard": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:DataStructureStandard"
+		},
+		"@dmpt-vivo:Dataset_redbox:DataStructureStandard-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_redbox:DataStructureStandard-help"
+		},
+		"@dmpt-people-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab"
+		},
+		"@dmpt-people-tab-ci": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-ci"
+		},
+		"@dmpt-people-tab-ci-role": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-ci-role"
+		},
+		"@dmpt-people-tab-data-manager": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-data-manager"
+		},
+		"@dmpt-people-tab-supervisor": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-supervisor"
+		},
+		"@dmpt-people-tab-data-manager-role": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-data-manager-role"
+		},
+		"@dmpt-people-tab-data-owner": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-data-owner"
+		},
+		"@dmpt-people-tab-contributors": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-contributors"
+		},
+		"@dmpt-people-tab-contributors-role": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-contributors-role"
+		},
+		"@dmpt-people-tab-supervisor-role": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-supervisor-role"
+		},
+		"@dmpt-people-tab-name-hdr": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-name-hdr"
+		},
+		"@dmpt-people-tab-email-hdr": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-email-hdr"
+		},
+		"@dmpt-people-tab-orcid-hdr": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-orcid-hdr"
+		},
+		"@dmpt-people-tab-validation-name-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-validation-name-required"
+		},
+		"@dmpt-people-tab-validation-email-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-validation-email-required"
+		},
+		"@dmpt-people-tab-validation-email-invalid": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-validation-email-invalid"
+		},
+		"@dmpt-storage-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-storage-tab"
+		},
+		"@dmpt-storage-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-storage-heading"
+		},
+		"@dmpt-vivo:Dataset_dc:extent": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-help"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-required"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-less-than-10GB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-less-than-10GB"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-10-20GB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-10-20GB"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-20-100GB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-20-100GB"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-more-than-100GB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-more-than-100GB"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-less-than-100GB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-less-than-100GB"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-100GB-to-2TB"
+		},
+		"@dmpt-vivo:Dataset_dc:extent-more-than-2TB": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:extent-more-than-2TB"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-required"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform"
+		},
+		"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space"
+		},
+		"@dmpt-vivo:Dataset_dc:location_skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:location_skos:note"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-required"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other"
+		},
+		"@dmpt-vivo:Dataset.dc:location.skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset.dc:location.skos:note"
+		},
+		"@dmpt-retention-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-retention-tab"
+		},
+		"@dmpt-retention-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-retention-heading"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-help"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-required"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-1year": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-1year"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-5years": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-5years"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-7years": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-7years"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-15years": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-15years"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-20years": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-20years"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date-permanent": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date-permanent"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date_skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date_skos:note"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible"
+		},
+		"@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial"
+		},
+		"@dmpt-redbox:disposalDate": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:disposalDate"
+		},
+		"@dmpt-redbox:disposalDate-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:disposalDate-help"
+		},
+		"@dmpt-access-rights-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-access-rights-tab"
+		},
+		"@dmpt-access-rights-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-access-rights-heading"
+		},
+		"@dmpt-ownership-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-ownership-tab"
+		},
+		"@dmpt-ownership-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-ownership-heading"
+		},
+		"@dmpt-dc:rightsHolder_dc:name": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:name"
+		},
+		"@dmpt-dc:rightsHolder_dc:name-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:name-help"
+		},
+		"@dmpt-dc:rightsHolder_dc:name-required": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:name-required"
+		},
+		"@dmpt-dc:rightsHolder_dc:name-myUni": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:name-myUni"
+		},
+		"@dmpt-dc:rightsHolder_dc:name-myUnjount": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:name-myUnjount"
+		},
+		"@dmpt-dc:rightsHolder_dc:name-student": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:name-student"
+		},
+		"@dmpt-dc:rightsHolder_dc:description": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:description"
+		},
+		"@dmpt-dc:rightsHolder_dc:description-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rightsHolder_dc:description-help"
+		},
+		"@dmpt-redbox:ContractualObligations": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:ContractualObligations"
+		},
+		"@dmpt-redbox:ContractualObligations-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-redbox:ContractualObligations-help"
+		},
+		"@dmpt-licensing-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-licensing-tab"
+		},
+		"@dmpt-licensing-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-licensing-heading"
+		},
+		"@dmpt-licensing-access": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-licensing-access"
+		},
+		"@dmpt-dc:accessRights": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:accessRights"
+		},
+		"@dmpt-dc:accessRights-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:accessRights-help"
+		},
+		"@dmpt-dc:accessRights-manager": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:accessRights-manager"
+		},
+		"@dmpt-dc:accessRights-open": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:accessRights-open"
+		},
+		"@dmpt-dc:accessRights-none": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:accessRights-none"
+		},
+		"@dmpt-dc:accessRights-none-val": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:accessRights-none-val"
+		},
+		"@dmpt-dataLicensingAccess_manager": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dataLicensingAccess_manager"
+		},
+		"@dmpt-dataRetention_data_owner": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dataRetention_data_owner"
+		},
+		"@dmpt-licensing-licensing": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-licensing-licensing"
+		},
+		"@dmpt-dc:license_dc:identifier": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier"
+		},
+		"@dmpt-dc:license_dc:identifier-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-help"
+		},
+		"@dmpt-dc:license_dc:identifier-1": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-1"
+		},
+		"@dmpt-dc:license_dc:identifier-2": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-2"
+		},
+		"@dmpt-dc:license_dc:identifier-3": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-3"
+		},
+		"@dmpt-dc:license_dc:identifier-4": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-4"
+		},
+		"@dmpt-dc:license_dc:identifier-5": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-5"
+		},
+		"@dmpt-dc:license_dc:identifier-6": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-6"
+		},
+		"@dmpt-dc:license_dc:identifier-7": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-7"
+		},
+		"@dmpt-dc:license_dc:identifier-8": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-8"
+		},
+		"@dmpt-dc:license_dc:identifier-9": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-9"
+		},
+		"@dmpt-dc:license_dc:identifier-10": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-10"
+		},
+		"@dmpt-dc:license_dc:identifier-11": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-11"
+		},
+		"@dmpt-dc:license_dc:identifier-12": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-12"
+		},
+		"@dmpt-dc:license_dc:identifier-13": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-13"
+		},
+		"@dmpt-dc:license_dc:identifier-14": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-14"
+		},
+		"@dmpt-dc:license_dc:identifier-15": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier-15"
+		},
+		"@dmpt-dc:license_dc:identifier_other": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier_other"
+		},
+		"@dmpt-dc:license_dc:identifier_url": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:license_dc:identifier_url"
+		},
+		"@dmpt-licensing-rights": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-licensing-rights"
+		},
+		"@dmpt-dc:RightsStatement": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:RightsStatement"
+		},
+		"@dmpt-dc:RightsStatement-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:RightsStatement-help"
+		},
+		"@dmpt-dc:rights_skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rights_skos:note"
+		},
+		"@dmpt-dc:rights_skos:note-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:rights_skos:note-help"
+		},
+		"@dmpt-dc:coverage_dc:identifier": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:coverage_dc:identifier"
+		},
+		"@dmpt-dc:coverage_dc:identifier-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-dc:coverage_dc:identifier-help"
+		},
+		"@dmpt-ethics-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-ethics-tab"
+		},
+		"@dmpt-ethics-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-ethics-heading"
+		},
+		"@dmpt-agls:policy_dc:identifier": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:policy_dc:identifier"
+		},
+		"@dmpt-agls:policy_dc:identifier-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:policy_dc:identifier-help"
+		},
+		"@dmpt-agls:policy_skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:policy_skos:note"
+		},
+		"@dmpt-agls:policy_skos:note-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:policy_skos:note-help"
+		},
+		"@dmpt-etchics-sensitivities-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-etchics-sensitivities-heading"
+		},
+		"@dmpt-agls:protectiveMarking_dc:type": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_dc:type"
+		},
+		"@dmpt-agls:protectiveMarking_dc:type-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_dc:type-help"
+		},
+		"@dmpt-agls:protectiveMarking_dc:type-commercial": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_dc:type-commercial"
+		},
+		"@dmpt-agls:protectiveMarking_dc:type-cultural": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_dc:type-cultural"
+		},
+		"@dmpt-agls:protectiveMarking_dc:type-security": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_dc:type-security"
+		},
+		"@dmpt-agls:protectiveMarking_dc:type-nonPublic": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_dc:type-nonPublic"
+		},
+		"@dmpt-agls:protectiveMarking_skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_skos:note"
+		},
+		"@dmpt-agls:protectiveMarking_skos:note-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-agls:protectiveMarking_skos:note-help"
+		},
+		"@dmpt-vivo:Dataset_dc:source_dc:location_skos:note": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-vivo:Dataset_dc:source_dc:location_skos:note"
+		},
+		"@dmpt-foaf:fundedBy_vivo:Grant": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-foaf:fundedBy_vivo:Grant"
+		},
+		"@dmpt-foaf:fundedBy_vivo:Grant-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-foaf:fundedBy_vivo:Grant-help"
+		},
+		"@dmpt-foaf:fundedBy_foaf:Agent": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-foaf:fundedBy_foaf:Agent"
+		},
+		"@dmpt-foaf:fundedBy_foaf:Agent-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-foaf:fundedBy_foaf:Agent-help"
+		},
+		"@dmpt-workspaces-tab": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspaces-tab"
+		},
+		"@dmpt-workspaces-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspaces-heading"
+		},
+		"@dmpt-workspaces-associated-heading": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspaces-associated-heading"
+		},
+		"@dmpt-workspaces-create-title": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspaces-create-title"
+		},
+		"@dmpt-workspaces-description": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspaces-description"
+		},
+		"@dmpt-workspace-select-type": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspace-select-type"
+		},
+		"@dmpt-workspace-select-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspace-select-help"
+		},
+		"@dmpt-workspace-open": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspace-open"
+		},
+		"@dmpt-workspace-saveFirst": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-workspace-saveFirst"
+		},
+		"@dmpt-description": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-description"
+		},
+		"@dmpt-pdf-list-label": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-pdf-list-label"
+		},
+		"@dmpt-create-datarecord-link": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-create-datarecord-link"
+		},
+		"@dataRecord-about-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-about-tab"
+		},
+		"@dataRecord-about-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-about-heading"
+		},
+		"@dataRecord-title": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-title"
+		},
+		"@dataRecord-title-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-title-help"
+		},
+		"@dataRecord-description": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-description"
+		},
+		"@dataRecord-what-tab-description": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-what-tab-description"
+		},
+		"@dataRecord-what-tab-description-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-what-tab-description-help"
+		},
+		"@dataRecord-keywords": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-keywords"
+		},
+		"@dataRecord-keywords-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-keywords-help"
+		},
+		"@dataRecord-datatype": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-datatype"
+		},
+		"@dataRecord-datatype-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-datatype-help"
+		},
+		"@dataRecord-dataype-select:Empty": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataype-select:Empty"
+		},
+		"@dataRecord-dataype-select:catalogueOrIndex": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataype-select:catalogueOrIndex"
+		},
+		"@dataRecord-dataype-select:collection": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataype-select:collection"
+		},
+		"@dataRecord-dataype-select:dataset": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataype-select:dataset"
+		},
+		"@dataRecord-dataype-select:registry": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataype-select:registry"
+		},
+		"@dataRecord-dataype-select:repository": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataype-select:repository"
+		},
+		"@dataRecord-aim-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-aim-tab"
+		},
+		"@dataRecord-aim-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-aim-heading"
+		},
+		"@dataRecord-data-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-data-tab"
+		},
+		"@dataRecord-data-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-data-heading"
+		},
+		"@dataRecord-dataSize": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataSize"
+		},
+		"@dataRecord-dataSize-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dataSize-help"
+		},
+		"@dataRecord:retentionPeriod_dc:date_skos:note": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord:retentionPeriod_dc:date_skos:note"
+		},
+		"@dataRecord-disposalDate": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-disposalDate"
+		},
+		"@dataRecord-disposalDate-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-disposalDate-help"
+		},
+		"@dataRecord-relationships-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-relationships-tab"
+		},
+		"@dataRecord-relationships-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-relationships-heading"
+		},
+		"@dataRecord-coverage-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-coverage-tab"
+		},
+		"@dataRecord-coverage-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-coverage-heading"
+		},
+		"@dataRecord-temporalcoverage-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-temporalcoverage-heading"
+		},
+		"@dataRecord-startDate": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-startDate"
+		},
+		"@dataRecord-endDate": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-endDate"
+		},
+		"@dataRecord-timePeriod": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-timePeriod"
+		},
+		"@dataRecord-management-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-management-tab"
+		},
+		"@dataRecord-management-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-management-heading"
+		},
+		"@dataRecord-licensing-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licensing-heading"
+		},
+		"@dataRecord-publication-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-publication-tab"
+		},
+		"@dataRecord-publication-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-publication-heading"
+		},
+		"@dataRecord-licence": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence"
+		},
+		"@dataRecord-licence-by30au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-by30au"
+		},
+		"@dataRecord-licence-bysa30au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-bysa30au"
+		},
+		"@dataRecord-licence-bynd30au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-bynd30au"
+		},
+		"@dataRecord-licence-bync30au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-bync30au"
+		},
+		"@dataRecord-licence-byncsa30au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-byncsa30au"
+		},
+		"@dataRecord-licence-by40au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-by40au"
+		},
+		"@dataRecord-licence-bysa40au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-bysa40au"
+		},
+		"@dataRecord-licence-bync40au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-bync40au"
+		},
+		"@dataRecord-licence-byncsa40au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-byncsa40au"
+		},
+		"@dataRecord-licence-byncnd40au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-byncnd40au"
+		},
+		"@dataRecord-licence-bynd40au": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-bynd40au"
+		},
+		"@dataRecord-licence-pddl10": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-pddl10"
+		},
+		"@dataRecord-licence-odbl10": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-licence-odbl10"
+		},
+		"@dataRecord-otherLicence": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-otherLicence"
+		},
+		"@dataRecord-otherLicence-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-otherLicence-help"
+		},
+		"@dataRecord-otherLicenceUrl": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-otherLicenceUrl"
+		},
+		"@dataRecord-rights-statement": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-rights-statement"
+		},
+		"@dataRecord-rights": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-rights"
+		},
+		"@dataRecord-rights-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-rights-help"
+		},
+		"@dataRecord-rightsUrl": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-rightsUrl"
+		},
+		"@dataRecord-rightsUrl-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-rightsUrl-help"
+		},
+		"@dataRecord-accessConditions": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-accessConditions"
+		},
+		"@dataRecord-accessConditions-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-accessConditions-help"
+		},
+		"@dataRecord-accessConditionsUrl": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-accessConditionsUrl"
+		},
+		"@dataRecord-accessConditionsUrl-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-accessConditionsUrl-help"
+		},
+		"@dataRecord-embargo-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-embargo-heading"
+		},
+		"@dataRecord-embargoEnabled": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-embargoEnabled"
+		},
+		"@dataRecord-embargoUntil": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-embargoUntil"
+		},
+		"@dataRecord-embargoUntil-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-embargoUntil-help"
+		},
+		"@dataRecord-embargoNote": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-embargoNote"
+		},
+		"@dataRecord-geospatial": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-geospatial"
+		},
+		"@dataRecord-geospatial-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-geospatial-help"
+		},
+		"@dataRecord-selector-label": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-selector-label"
+		},
+		"@dataPublication-geolocation": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-geolocation"
+		},
+		"@dataPublication-geolocation-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-geolocation-help"
+		},
+		"@dataPublication-selector-label": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-selector-label"
+		},
+		"@dmp-create-datapublication-link": {
+			"category": "dmp",
+			"description": "Translation for dmp-create-datapublication-link"
+		},
+		"report-results-returned_one": {
+			"category": "reports",
+			"description": "Translation for report-results-returned_one"
+		},
+		"report-results-returned_other": {
+			"category": "reports",
+			"description": "Translation for report-results-returned_other"
+		},
+		"report-csv-download": {
+			"category": "reports",
+			"description": "Translation for report-csv-download"
+		},
+		"report-retrieving-results": {
+			"category": "reports",
+			"description": "Translation for report-retrieving-results"
+		},
+		"report-return-to-reports-list": {
+			"category": "reports",
+			"description": "Translation for report-return-to-reports-list"
+		},
+		"report-filter-date-from": {
+			"category": "reports",
+			"description": "Translation for report-filter-date-from"
+		},
+		"report-filter-date-to": {
+			"category": "reports",
+			"description": "Translation for report-filter-date-to"
+		},
+		"report-filter-button": {
+			"category": "reports",
+			"description": "Translation for report-filter-button"
+		},
+		"report-filters-heading": {
+			"category": "reports",
+			"description": "Translation for report-filters-heading"
+		},
+		"reports-heading": {
+			"category": "reports",
+			"description": "Translation for reports-heading"
+		},
+		"reports-description": {
+			"category": "reports",
+			"description": "Translation for reports-description"
+		},
+		"orcid-given-names": {
+			"category": "orcid",
+			"description": "Translation for orcid-given-names"
+		},
+		"orcid-family-name": {
+			"category": "orcid",
+			"description": "Translation for orcid-family-name"
+		},
+		"orcid-other-names": {
+			"category": "orcid",
+			"description": "Translation for orcid-other-names"
+		},
+		"orcid-researcher-urls": {
+			"category": "orcid",
+			"description": "Translation for orcid-researcher-urls"
+		},
+		"orcid-keywords": {
+			"category": "orcid",
+			"description": "Translation for orcid-keywords"
+		},
+		"orcid-biography": {
+			"category": "orcid",
+			"description": "Translation for orcid-biography"
+		},
+		"user-profile-link": {
+			"category": "user",
+			"description": "Translation for user-profile-link"
+		},
+		"user-profile-return": {
+			"category": "user",
+			"description": "Translation for user-profile-return"
+		},
+		"user-profile-success": {
+			"category": "user",
+			"description": "Translation for user-profile-success"
+		},
+		"user-profile-edit": {
+			"category": "user",
+			"description": "Translation for user-profile-edit"
+		},
+		"@dmpt-select:Empty": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-select:Empty"
+		},
+		"@dmpt-form-validation-fail-prefix": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-form-validation-fail-prefix"
+		},
+		"@dmpt-form-validation-fail-suffix": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-form-validation-fail-suffix"
+		},
+		"@dmpt-form-saving": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-form-saving"
+		},
+		"@dmpt-form-save-success": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-form-save-success"
+		},
+		"@dmpt-form-save-error": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-form-save-error"
+		},
+		"auth-update-error": {
+			"category": "auth",
+			"description": "Translation for auth-update-error"
+		},
+		"edit-error-no-permissions": {
+			"category": "edit",
+			"description": "Translation for edit-error-no-permissions"
+		},
+		"view-error-no-permissions": {
+			"category": "view",
+			"description": "Translation for view-error-no-permissions"
+		},
+		"missing-record": {
+			"category": "missing",
+			"description": "Translation for missing-record"
+		},
+		"failed-delete": {
+			"category": "failed",
+			"description": "Translation for failed-delete"
+		},
+		"failed-restore": {
+			"category": "failed",
+			"description": "Translation for failed-restore"
+		},
+		"failed-destroy": {
+			"category": "failed",
+			"description": "Translation for failed-destroy"
+		},
+		"action-destroy": {
+			"category": "action",
+			"description": "Translation for action-destroy"
+		},
+		"action-restore": {
+			"category": "action",
+			"description": "Translation for action-restore"
+		},
+		"@dmpt-related-website": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-website"
+		},
+		"@dmpt-related-website-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-website-help"
+		},
+		"@dmpt-related-website-url": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-website-url"
+		},
+		"@dmpt-related-website-title": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-website-title"
+		},
+		"@dmpt-related-website-notes": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-website-notes"
+		},
+		"@dmpt-related-publication": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-publication"
+		},
+		"@dmpt-related-publication-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-publication-help"
+		},
+		"@dmpt-related-publication-url": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-publication-url"
+		},
+		"@dmpt-related-publication-title": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-publication-title"
+		},
+		"@dmpt-related-publication-notes": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-publication-notes"
+		},
+		"@dmpt-related-data": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data"
+		},
+		"@dmpt-related-data-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-help"
+		},
+		"@dmpt-related-data-url": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-url"
+		},
+		"@dmpt-related-data-title": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-title"
+		},
+		"@dmpt-related-data-notes": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-notes"
+		},
+		"@dmpt-related-data-local": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-local"
+		},
+		"@dmpt-related-data-local-val": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-local-val"
+		},
+		"@dmpt-related-data-relationship": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-relationship"
+		},
+		"@dmpt-related-data-relationship-association-with": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-relationship-association-with"
+		},
+		"@dmpt-related-data-relationship-association-with-val": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-relationship-association-with-val"
+		},
+		"@dmpt-related-data-rda": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-rda"
+		},
+		"@dmpt-related-data-rda-val": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-related-data-rda-val"
+		},
+		"@dmpt-licences-agreements": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-licences-agreements"
+		},
+		"@dataPublication-about-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-about-tab"
+		},
+		"@dataPublication-about-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-about-heading"
+		},
+		"@dataPublication-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-title"
+		},
+		"@dataPublication-description": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-description"
+		},
+		"@dataPublication-datatype": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-datatype"
+		},
+		"@dataPublication-keywords": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-keywords"
+		},
+		"@dataPublication-dataype-select:Empty": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataype-select:Empty"
+		},
+		"@dataPublication-dataype-select:catalogueOrIndex": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataype-select:catalogueOrIndex"
+		},
+		"@dataPublication-dataype-select:collection": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataype-select:collection"
+		},
+		"@dataPublication-dataype-select:dataset": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataype-select:dataset"
+		},
+		"@dataPublication-dataype-select:registry": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataype-select:registry"
+		},
+		"@dataPublication-dataype-select:repository": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataype-select:repository"
+		},
+		"@dataPublication-coverage-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-coverage-tab"
+		},
+		"@dataPublication-coverage-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-coverage-heading"
+		},
+		"@dataPublication-temporalcoverage-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-temporalcoverage-heading"
+		},
+		"@dataPublication-temporalcoverage-heading-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-temporalcoverage-heading-help"
+		},
+		"@dataPublication-spatialcoverage-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-spatialcoverage-heading"
+		},
+		"@dataPublication-spatialcoverage-heading-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-spatialcoverage-heading-help"
+		},
+		"@dataPublication-startDate": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-startDate"
+		},
+		"@dataPublication-startDate-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-startDate-help"
+		},
+		"@dataPublication-endDate": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-endDate"
+		},
+		"@dataPublication-endDate-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-endDate-help"
+		},
+		"@dataPublication-timePeriod": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-timePeriod"
+		},
+		"@dataPublication-timePeriod-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-timePeriod-help"
+		},
+		"@dataPublication-geospatial": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-geospatial"
+		},
+		"@dataPublication-geospatial-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-geospatial-help"
+		},
+		"@dataPublication-geospatial-coordinates-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-geospatial-coordinates-help"
+		},
+		"@dataPublication-publish-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-publish-tab"
+		},
+		"@dataPublication-data-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-data-tab"
+		},
+		"@dataPublication-data-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-data-heading"
+		},
+		"@dataPublication-license-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-license-tab"
+		},
+		"@dataPublication-license-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-license-heading"
+		},
+		"@dataPublication-relationships-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-relationships-tab"
+		},
+		"@dataPublication-relationships-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-relationships-heading"
+		},
+		"@dataPublication-related-services": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-services"
+		},
+		"@dataPublication-related-services-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-services-help"
+		},
+		"@dataPublication-service-identifier": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-service-identifier"
+		},
+		"@dataPublication-publication-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-publication-tab"
+		},
+		"@dataPublication-publication-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-publication-heading"
+		},
+		"@dataPublication-embargo-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargo-heading"
+		},
+		"@dataPublication-embargoEnabled": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargoEnabled"
+		},
+		"@dataPublication-embargoUntil": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargoUntil"
+		},
+		"@dataPublication-embargoUntil-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargoUntil-help"
+		},
+		"@dataPublication-embargoNote": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargoNote"
+		},
+		"@dataPublication-publish-metadata-only": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-publish-metadata-only"
+		},
+		"@dataPublication-publish-metadata-only-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-publish-metadata-only-help"
+		},
+		"attachment-not-found": {
+			"category": "attachment",
+			"description": "Translation for attachment-not-found"
+		},
+		"@dataRecord-aim-project-name": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-aim-project-name"
+		},
+		"@dataRecord-keywords-required": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-keywords-required"
+		},
+		"@dataRecord-data-software": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-data-software"
+		},
+		"@dataRecord-about-language": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-about-language"
+		},
+		"@dataRecord-people-tab": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-people-tab"
+		},
+		"@dataRecord-people-heading": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-people-heading"
+		},
+		"@tab-nav-previous": {
+			"category": "tab",
+			"description": "Translation for tab-nav-previous"
+		},
+		"@tab-nav-next": {
+			"category": "tab",
+			"description": "Translation for tab-nav-next"
+		},
+		"@dmp-edit-record-link": {
+			"category": "dmp",
+			"description": "Translation for dmp-edit-record-link"
+		},
+		"@data-record-edit-record-link": {
+			"category": "data",
+			"description": "Translation for data-record-edit-record-link"
+		},
+		"workspace-request": {
+			"category": "workspace",
+			"description": "Translation for workspace-request"
+		},
+		"workspace-services-list": {
+			"category": "workspace",
+			"description": "Translation for workspace-services-list"
+		},
+		"workspace-export-data": {
+			"category": "workspace",
+			"description": "Translation for workspace-export-data"
+		},
+		"get-help-subject": {
+			"category": "get",
+			"description": "Translation for get-help-subject"
+		},
+		"edit-dashboard-rdmp": {
+			"category": "edit",
+			"description": "Translation for edit-dashboard-rdmp"
+		},
+		"edit-dashboard-datarecord": {
+			"category": "edit",
+			"description": "Translation for edit-dashboard-datarecord"
+		},
+		"edit-dashboard-publication": {
+			"category": "edit",
+			"description": "Translation for edit-dashboard-publication"
+		},
+		"@dmpt-people-tab-ci-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-ci-help"
+		},
+		"@dmpt-people-tab-data-manager-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-data-manager-help"
+		},
+		"@dmpt-people-tab-contributors-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-contributors-help"
+		},
+		"@dmpt-people-tab-supervisor-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-tab-supervisor-help"
+		},
+		"@dataPublication-title-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-title-help"
+		},
+		"@dataPublication-description-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-description-help"
+		},
+		"@dataPublication-datatype-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-datatype-help"
+		},
+		"@dataPublication-keywords-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-keywords-help"
+		},
+		"@asynch-label": {
+			"category": "asynch",
+			"description": "Translation for asynch-label"
+		},
+		"@asynch-name": {
+			"category": "asynch",
+			"description": "Translation for asynch-name"
+		},
+		"@asynch-status": {
+			"category": "asynch",
+			"description": "Translation for asynch-status"
+		},
+		"@asynch-dateStarted": {
+			"category": "asynch",
+			"description": "Translation for asynch-dateStarted"
+		},
+		"@asynch-dateCompleted": {
+			"category": "asynch",
+			"description": "Translation for asynch-dateCompleted"
+		},
+		"@asynch-startedBy": {
+			"category": "asynch",
+			"description": "Translation for asynch-startedBy"
+		},
+		"@asynch-message": {
+			"category": "asynch",
+			"description": "Translation for asynch-message"
+		},
+		"@asynch-completion": {
+			"category": "asynch",
+			"description": "Translation for asynch-completion"
+		},
+		"@asynch-lastUpdate": {
+			"category": "asynch",
+			"description": "Translation for asynch-lastUpdate"
+		},
+		"@asynch-status-starting": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-starting"
+		},
+		"@asynch-status-started": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-started"
+		},
+		"@asynch-status-inprogress": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-inprogress"
+		},
+		"@asynch-status-paused": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-paused"
+		},
+		"@asynch-status-aborted": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-aborted"
+		},
+		"@asynch-status-errored": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-errored"
+		},
+		"@asynch-status-finished": {
+			"category": "asynch",
+			"description": "Translation for asynch-status-finished"
+		},
+		"@dataPublication-dc:accessRights": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights"
+		},
+		"@dataPublication-dc:accessRights-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights-help"
+		},
+		"@dataPublication-dc:accessRights-open": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights-open"
+		},
+		"@dataPublication-dc:accessRights-restricted": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights-restricted"
+		},
+		"@dataPublication-dc:accessRights-restricted-val": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights-restricted-val"
+		},
+		"@dataPublication-dataLicensingAccess_manager": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dataLicensingAccess_manager"
+		},
+		"@dataPublication-data-manager": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-data-manager"
+		},
+		"@dataPublication-data_manager-transferResponsibility": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-data_manager-transferResponsibility"
+		},
+		"@dataPublication-accessRights_url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-accessRights_url"
+		},
+		"@dataPublication-accessRights_url-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-accessRights_url-help"
+		},
+		"@dataPublication-related-metadata": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-metadata"
+		},
+		"@dataPublication-related-metadata-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-metadata-help"
+		},
+		"@dataPublication-related-metadata-url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-metadata-url"
+		},
+		"@dataPublication-related-metadata-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-metadata-title"
+		},
+		"@dataPublication-related-publication-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-publication-title"
+		},
+		"@dataPublication-related-publication-url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-publication-url"
+		},
+		"@dataPublication-related-publication-notes": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-publication-notes"
+		},
+		"@dataPublication-related-data-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-data-title"
+		},
+		"@dataPublication-related-data-url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-data-url"
+		},
+		"@dataPublication-related-data-notes": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-data-notes"
+		},
+		"@dataPublication-related-metadata-notes": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-metadata-notes"
+		},
+		"@dataPublication-related-service-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-service-title"
+		},
+		"@dataPublication-related-service-url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-service-url"
+		},
+		"@dataPublication-related-service-notes": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-service-notes"
+		},
+		"@dataPublication-related-website-notes": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-website-notes"
+		},
+		"@dataPublication-related-website-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-website-title"
+		},
+		"@dataPublication-related-website-url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-related-website-url"
+		},
+		"@dataPublication-license-sub-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-license-sub-heading"
+		},
+		"@dataPublication-dc:license.dc:identifier": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:license.dc:identifier"
+		},
+		"@dataPublication-dc:license.dc:identifier-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:license.dc:identifier-help"
+		},
+		"@dataPublication-dc:license.rdf:Alt.skos:prefLabel": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:license.rdf:Alt.skos:prefLabel"
+		},
+		"@dataPublication-dc:license.rdf:Alt.dc:identifier": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:license.rdf:Alt.dc:identifier"
+		},
+		"@dataPublication-dc:license.rdf:Alt.dc:identifier-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:license.rdf:Alt.dc:identifier-help"
+		},
+		"@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel"
+		},
+		"@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-help"
+		},
+		"@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-default": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-default"
+		},
+		"@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier"
+		},
+		"@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help"
+		},
+		"@dataPublication-citation-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-tab"
+		},
+		"@dataPublication-citation-tab-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-tab-heading"
+		},
+		"@dataPublication-citation-request-identifier": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-request-identifier"
+		},
+		"@dataPublication-citation-identifier": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-identifier"
+		},
+		"@dataPublication-citation-title": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-title"
+		},
+		"@dataPublication-citation-title-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-title-help"
+		},
+		"@dataPublication-citation-publisher": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-publisher"
+		},
+		"@dataPublication-citation-publisher-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-publisher-help"
+		},
+		"@dataPublication-citation-publisher-default": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-publisher-default"
+		},
+		"@dataPublication-citation-url": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-url"
+		},
+		"@dataPublication-citation-url-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-url-help"
+		},
+		"@dataPublication-citation-publication-date": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-publication-date"
+		},
+		"@dataPublication-citation-publication-date-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-publication-date-help"
+		},
+		"@dataPublication-creators": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-creators"
+		},
+		"@dataPublication-creators-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-creators-help"
+		},
+		"@dataPublication-embargoEnabled-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargoEnabled-help"
+		},
+		"@dataPublication-embargoNote-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-embargoNote-help"
+		},
+		"@dataPublication-reviewerNote": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-reviewerNote"
+		},
+		"@dataPublication-reviewerNote-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-reviewerNote-help"
+		},
+		"@dataPublication-reviewer-tab": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-reviewer-tab"
+		},
+		"@dataPublication-reviewer-tab-heading": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-reviewer-tab-heading"
+		},
+		"@dataPublication-withdraw": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-withdraw"
+		},
+		"@dataPublication-delete": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-delete"
+		},
+		"@dataPublication-confirmDelete": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-confirmDelete"
+		},
+		"@dataPublication-confirmDeleteTitle": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-confirmDeleteTitle"
+		},
+		"@dataPublication-cancelButtonMessage": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-cancelButtonMessage"
+		},
+		"@dataPublication-confirmButtonMessage": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-confirmButtonMessage"
+		},
+		"@dataPublication-collectionCapacity": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-collectionCapacity"
+		},
+		"@dataPublication-identifiers": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-identifiers"
+		},
+		"@dataPublication-identifiers-help": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-identifiers-help"
+		},
+		"@dmpt-people-family-hdr": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-family-hdr"
+		},
+		"@dmpt-people-given-hdr": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-people-given-hdr"
+		},
+		"search-by-name": {
+			"category": "search",
+			"description": "Translation for search-by-name"
+		},
+		"change-text": {
+			"category": "change",
+			"description": "Translation for change-text"
+		},
+		"workspaces": {
+			"category": "workspace",
+			"description": "Translation for workspaces"
+		},
+		"create-workspace": {
+			"category": "create",
+			"description": "Translation for create-workspace"
+		},
+		"workspaces-dashboard": {
+			"category": "workspace",
+			"description": "Translation for workspaces-dashboard"
+		},
+		"@dataLocations-help": {
+			"category": "dataLocations",
+			"description": "Translation for dataLocations-help"
+		},
+		"@dataLocations-label": {
+			"category": "dataLocations",
+			"description": "Translation for dataLocations-label"
+		},
+		"@dataLocations-notes": {
+			"category": "dataLocations",
+			"description": "Translation for dataLocations-notes"
+		},
+		"@dataLocations-uploader-note": {
+			"category": "dataLocations",
+			"description": "Translation for dataLocations-uploader-note"
+		},
+		"@dataLocations-addText": {
+			"category": "dataLocations",
+			"description": "Translation for dataLocations-addText"
+		},
+		"@dataLocations-enter-assistance-text": {
+			"category": "dataLocations",
+			"description": "Translation for dataLocations-enter-assistance-text"
+		},
+		"logo-alt-text": {
+			"category": "logo",
+			"description": "Translation for logo-alt-text"
+		},
+		"aaf-logo-alt-text": {
+			"category": "aaf",
+			"description": "Translation for aaf-logo-alt-text"
+		},
+		"openidconnect-logo-alt-text": {
+			"category": "openidconnect",
+			"description": "Translation for openidconnect-logo-alt-text"
+		},
+		"loading-alt-text": {
+			"category": "loading",
+			"description": "Translation for loading-alt-text"
+		},
+		"local-creds-input-username-label": {
+			"category": "auth",
+			"description": "Translation for local-creds-input-username-label"
+		},
+		"local-creds-input-password-label": {
+			"category": "auth",
+			"description": "Translation for local-creds-input-password-label"
+		},
+		"edit-link-label": {
+			"category": "edit",
+			"description": "Translation for edit-link-label"
+		},
+		"pdf-history-modal-label": {
+			"category": "pdf",
+			"description": "Translation for pdf-history-modal-label"
+		},
+		"help": {
+			"category": "help",
+			"description": "Translation for help"
+		},
+		"add-button-label": {
+			"category": "add",
+			"description": "Translation for add-button-label"
+		},
+		"remove-button-label": {
+			"category": "remove",
+			"description": "Translation for remove-button-label"
+		},
+		"select-all-items": {
+			"category": "select",
+			"description": "Translation for select-all-items"
+		},
+		"select-item": {
+			"category": "select",
+			"description": "Translation for select-item"
+		},
+		"move-up-button": {
+			"category": "move",
+			"description": "Translation for move-up-button"
+		},
+		"move-down-button": {
+			"category": "move",
+			"description": "Translation for move-down-button"
+		},
+		"@save-button": {
+			"category": "save",
+			"description": "Translation for save-button"
+		},
+		"@save-and-close-button": {
+			"category": "save",
+			"description": "Translation for save-and-close-button"
+		},
+		"@cancel-button": {
+			"category": "cancel",
+			"description": "Translation for cancel-button"
+		},
+		"@close-button": {
+			"category": "close",
+			"description": "Translation for close-button"
+		},
+		"export-csv-rdmp": {
+			"category": "export",
+			"description": "Translation for export-csv-rdmp"
+		},
+		"export-csv-dataRecord": {
+			"category": "export",
+			"description": "Translation for export-csv-dataRecord"
+		},
+		"export-csv-dataPublication": {
+			"category": "export",
+			"description": "Translation for export-csv-dataPublication"
+		},
+		"export-rdmp": {
+			"category": "export",
+			"description": "Translation for export-rdmp"
+		},
+		"export-dataRecord": {
+			"category": "export",
+			"description": "Translation for export-dataRecord"
+		},
+		"export-dataPublication": {
+			"category": "export",
+			"description": "Translation for export-dataPublication"
+		},
+		"@dataPublication-publish": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-publish"
+		},
+		"@dataPublication-citation-generated-label": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-citation-generated-label"
+		},
+		"manage-users-token-message": {
+			"category": "users",
+			"description": "Translation for manage-users-token-message"
+		},
+		"@refresh-attachments-text": {
+			"category": "refresh",
+			"description": "Translation for refresh-attachments-text"
+		},
+		"form-record-permissions-usereditheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-usereditheading"
+		},
+		"form-record-permissions-userviewheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-userviewheading"
+		},
+		"form-record-permissions-userpendingeditheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-userpendingeditheading"
+		},
+		"form-record-permissions-userpendingviewheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-userpendingviewheading"
+		},
+		"form-record-permissions-roleeditheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-roleeditheading"
+		},
+		"form-record-permissions-roleviewheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-roleviewheading"
+		},
+		"form-record-permissions-usernametableheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-usernametableheading"
+		},
+		"form-record-permissions-nametableheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-nametableheading"
+		},
+		"form-record-permissions-emailtableheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-emailtableheading"
+		},
+		"form-record-permissions-rolenametableheading": {
+			"category": "form",
+			"description": "Translation for form-record-permissions-rolenametableheading"
+		},
+		"@pdf-column-version": {
+			"category": "pdf",
+			"description": "Translation for pdf-column-version"
+		},
+		"@pdf-column-date-created": {
+			"category": "pdf",
+			"description": "Translation for pdf-column-date-created"
+		},
+		"@pdf-column-download": {
+			"category": "pdf",
+			"description": "Translation for pdf-column-download"
+		},
+		"@pdf-close": {
+			"category": "pdf",
+			"description": "Translation for pdf-close"
+		},
+		"@pdf-download": {
+			"category": "pdf",
+			"description": "Translation for pdf-download"
+		},
+		"@pdf-download-previous": {
+			"category": "pdf",
+			"description": "Translation for pdf-download-previous"
+		},
+		"error-header": {
+			"category": "errors",
+			"description": "Translation for error-header"
+		},
+		"error-auth": {
+			"category": "errors",
+			"description": "Translation for error-auth"
+		},
+		"error-403-heading": {
+			"category": "errors",
+			"description": "Translation for error-403-heading"
+		},
+		"error-404-heading": {
+			"category": "errors",
+			"description": "Translation for error-404-heading"
+		},
+		"error-500-heading": {
+			"category": "errors",
+			"description": "Translation for error-500-heading"
+		},
+		"error-please-login": {
+			"category": "errors",
+			"description": "Translation for error-please-login"
+		},
+		"@ckan-record-published-prefix": {
+			"category": "ckan",
+			"description": "Translation for ckan-record-published-prefix"
+		},
+		"@ckan-record-submitting-label": {
+			"category": "ckan",
+			"description": "Translation for ckan-record-submitting-label"
+		},
+		"@ckan-record-unsubmitted-label": {
+			"category": "ckan",
+			"description": "Translation for ckan-record-unsubmitted-label"
+		},
+		"@existing-locations-label": {
+			"category": "existing",
+			"description": "Translation for existing-locations-label"
+		},
+		"@existing-locations-description": {
+			"category": "existing",
+			"description": "Translation for existing-locations-description"
+		},
+		"@workspace-header": {
+			"category": "workspace",
+			"description": "Translation for workspace-header"
+		},
+		"@workspace-name": {
+			"category": "workspace",
+			"description": "Translation for workspace-name"
+		},
+		"@workspace-type": {
+			"category": "workspace",
+			"description": "Translation for workspace-type"
+		},
+		"@workspace-description": {
+			"category": "workspace",
+			"description": "Translation for workspace-description"
+		},
+		"@workspace-location-url": {
+			"category": "workspace",
+			"description": "Translation for workspace-location-url"
+		},
+		"@workspace-type_required": {
+			"category": "workspace",
+			"description": "Translation for workspace-type_required"
+		},
+		"@workspace-type-shared": {
+			"category": "workspace",
+			"description": "Translation for workspace-type-shared"
+		},
+		"@workspace-type-cloud": {
+			"category": "workspace",
+			"description": "Translation for workspace-type-cloud"
+		},
+		"@workspace-type-survey": {
+			"category": "workspace",
+			"description": "Translation for workspace-type-survey"
+		},
+		"@workspace-type-repo": {
+			"category": "workspace",
+			"description": "Translation for workspace-type-repo"
+		},
+		"@workspace-type-notebook": {
+			"category": "workspace",
+			"description": "Translation for workspace-type-notebook"
+		},
+		"@workspace-type-other": {
+			"category": "workspace",
+			"description": "Translation for workspace-type-other"
+		},
+		"@workspace-edit": {
+			"category": "workspace",
+			"description": "Translation for workspace-edit"
+		},
+		"@dataRecord-dc_extent": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dc_extent"
+		},
+		"@dataRecord-dc_extent-help": {
+			"category": "dataRecord",
+			"description": "Translation for dataRecord-dc_extent-help"
+		},
+		"@related-rdmp-title": {
+			"category": "related",
+			"description": "Translation for related-rdmp-title"
+		},
+		"@dataPublication-dc:accessRights-conditional": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights-conditional"
+		},
+		"@dataPublication-dc:accessRights-conditional-val": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-dc:accessRights-conditional-val"
+		},
+		"@record-permissions-tab-heading": {
+			"category": "record",
+			"description": "Translation for record-permissions-tab-heading"
+		},
+		"@record-permissions-tab": {
+			"category": "record",
+			"description": "Translation for record-permissions-tab"
+		},
+		"@dataPublication-retire": {
+			"category": "dataPublication",
+			"description": "Translation for dataPublication-retire"
+		},
+		"workspace.no-records-found": {
+			"category": "workspace",
+			"description": "Translation for workspace.no-records-found"
+		},
+		"@header-view-only-description": {
+			"category": "header",
+			"description": "Translation for header-view-only-description"
+		},
+		"@header-view-only-edit-label": {
+			"category": "header",
+			"description": "Translation for header-view-only-edit-label"
+		},
+		"@header-view-only-view-data-label": {
+			"category": "header",
+			"description": "Translation for header-view-only-view-data-label"
+		},
+		"oidc-login-session-destroyed": {
+			"category": "auth",
+			"description": "Translation for oidc-login-session-destroyed"
+		},
+		"@status-label": {
+			"category": "status",
+			"description": "Translation for status-label"
+		},
+		"@dmp-associated-rdmp-link": {
+			"category": "dmp",
+			"description": "Translation for dmp-associated-rdmp-link"
+		},
+		"@view-record-audit-link": {
+			"category": "view",
+			"description": "Translation for view-record-audit-link"
+		},
+		"@view-record-audit-heading": {
+			"category": "view",
+			"description": "Translation for view-record-audit-heading"
+		},
+		"@view-record-audit-updatedBy": {
+			"category": "view",
+			"description": "Translation for view-record-audit-updatedBy"
+		},
+		"@view-record-audit-email": {
+			"category": "view",
+			"description": "Translation for view-record-audit-email"
+		},
+		"@view-record-audit-username": {
+			"category": "view",
+			"description": "Translation for view-record-audit-username"
+		},
+		"@view-record-audit-raw-link": {
+			"category": "view",
+			"description": "Translation for view-record-audit-raw-link"
+		},
+		"@view-record-audit-updatedAt": {
+			"category": "view",
+			"description": "Translation for view-record-audit-updatedAt"
+		},
+		"@view-record-audit-workflow-state": {
+			"category": "view",
+			"description": "Translation for view-record-audit-workflow-state"
+		},
+		"not-enough-disk-space": {
+			"category": "not",
+			"description": "Translation for not-enough-disk-space"
+		},
+		"attachment-upload-error": {
+			"category": "attachment",
+			"description": "Translation for attachment-upload-error"
+		},
+		"max-total-files-upload-size-validation-error": {
+			"category": "max",
+			"description": "Translation for max-total-files-upload-size-validation-error"
+		},
+		"max-total-files-upload-size-alternative-validation-error": {
+			"category": "max",
+			"description": "Translation for max-total-files-upload-size-alternative-validation-error"
+		},
+		"datacite-validation-error": {
+			"category": "datacite",
+			"description": "Translation for datacite-validation-error"
+		},
+		"title-required": {
+			"category": "title",
+			"description": "Translation for title-required"
+		},
+		"publisher-required": {
+			"category": "publisher",
+			"description": "Translation for publisher-required"
+		},
+		"creators-required": {
+			"category": "creators",
+			"description": "Translation for creators-required"
+		},
+		"publication-year-required": {
+			"category": "publication",
+			"description": "Translation for publication-year-required"
+		},
+		"url-required": {
+			"category": "url",
+			"description": "Translation for url-required"
+		},
+		"url-invalid": {
+			"category": "url",
+			"description": "Translation for url-invalid"
+		},
+		"doi-required": {
+			"category": "doi",
+			"description": "Translation for doi-required"
+		},
+		"date-invalid": {
+			"category": "date",
+			"description": "Translation for date-invalid"
+		},
+		"not-authorised": {
+			"category": "not",
+			"description": "Translation for not-authorised"
+		},
+		"not-found": {
+			"category": "not",
+			"description": "Translation for not-found"
+		},
+		"invalid-format": {
+			"category": "invalid",
+			"description": "Translation for invalid-format"
+		},
+		"server-error": {
+			"category": "server",
+			"description": "Translation for server-error"
+		},
+		"unknown-error": {
+			"category": "unknown",
+			"description": "Translation for unknown-error"
+		},
+		"@dmpt-raid": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-raid"
+		},
+		"@dmpt-raid-help": {
+			"category": "rdmp",
+			"description": "Translation for dmpt-raid-help"
+		},
+		"raid-mint-transform-validation-error": {
+			"category": "raid",
+			"description": "Translation for raid-mint-transform-validation-error"
+		},
+		"raid-mint-server-error": {
+			"category": "raid",
+			"description": "Translation for raid-mint-server-error"
+		},
+		"raid-mint-transform-missing-contributorid-error": {
+			"category": "raid",
+			"description": "Translation for raid-mint-transform-missing-contributorid-error"
+		},
+		"local-auth-login": {
+			"category": "auth",
+			"description": "Translation for local-auth-login"
+		},
+		"oidc-default-unknown-error": {
+			"category": "auth",
+			"description": "Translation for oidc-default-unknown-error"
+		},
+		"oidc-user-doesnt-exist-in-tenant": {
+			"category": "auth",
+			"description": "Translation for oidc-user-doesnt-exist-in-tenant"
+		},
+		"oidc-user-doesnt-exist-in-tenant-detail": {
+			"category": "auth",
+			"description": "Translation for oidc-user-doesnt-exist-in-tenant-detail"
+		},
+		"lang-en": {
+			"category": "lang",
+			"description": "Translation for lang-en"
+		},
+		"lang-mri": {
+			"category": "lang",
+			"description": "Translation for lang-mri"
+		},
+		"system-message-enabled": {
+			"category": "system",
+			"description": "Translation for system-message-enabled"
+		},
+		"system-message-title": {
+			"category": "system",
+			"description": "Translation for system-message-title"
+		},
+		"system-message-description": {
+			"category": "system",
+			"description": "Translation for system-message-description"
+		},
+		"system-lookup-records": {
+			"category": "system",
+			"description": "Translation for system-lookup-records"
+		},
+		"system-lookup-record-item1": {
+			"category": "system",
+			"description": "Translation for system-lookup-record-item1"
+		},
+		"menu-authorizeddomainsemails": {
+			"category": "menu",
+			"description": "Translation for menu-authorizeddomainsemails"
+		},
+		"authorized-email-denied": {
+			"category": "authorized",
+			"description": "Translation for authorized-email-denied"
+		},
+		"record-table-results-table-header-actions": {
+			"category": "record",
+			"description": "Translation for record-table-results-table-header-actions"
+		},
+		"deleted-records-results-returned_one": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-results-returned_one"
+		},
+		"deleted-records-results-returned_other": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-results-returned_other"
+		},
+		"deleted-records-retrieving-results": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-retrieving-results"
+		},
+		"deleted-records-filter-date-from": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-filter-date-from"
+		},
+		"deleted-records-filter-date-to": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-filter-date-to"
+		},
+		"deleted-records-filter-button": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-filter-button"
+		},
+		"deleted-records-filters-heading": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-filters-heading"
+		},
+		"deleted-records-heading": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-heading"
+		},
+		"deleted-records-results-table-header-title": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-results-table-header-title"
+		},
+		"deleted-records-results-table-header-created-date": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-results-table-header-created-date"
+		},
+		"deleted-records-results-table-header-modified-date": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-results-table-header-modified-date"
+		},
+		"deleted-records-results-table-header-deleted-date": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-results-table-header-deleted-date"
+		},
+		"deleted-records-item-confirm-delete-title": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-item-confirm-delete-title"
+		},
+		"deleted-records-item-confirm-delete-message": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-item-confirm-delete-message"
+		},
+		"deleted-records-item-confirm-delete-confirm": {
+			"category": "deleted",
+			"description": "Translation for deleted-records-item-confirm-delete-confirm"
+		},
+		"deleting": {
+			"category": "deleting",
+			"description": "Translation for deleting"
+		},
+		"deleteSuccess": {
+			"category": "deleteSuccess",
+			"description": "Translation for deleteSuccess"
+		}
+	},
+	"dashboard-heading": "My {{stage}} {{recordTypeName}}",
+	"dashboard-heading-one-step": "My {{recordTypeName}}",
+	"create-plan": "Create a plan",
+	"create-rdmp": "Create RDMP",
+	"dataRecord-name-plural": "Data Records",
+	"dataRecord-name": "Data Record",
+	"dataPublication-name-plural": "Data Publications",
+	"dataPublication-name": "Data Publication",
+	"workspace-name-plural": "Workspaces",
+	"workspace-name": "Workspace",
+	"rdmp-name-plural": "Plans",
+	"rdmp-name": "Plan",
+	"rdmp-title-label": "RDMP",
+	"rdmp-title": "Plan",
+	"datarecord-title-label": "Data Record",
+	"publication-title-label": "Data Publication",
+	"edit-dashboard": "Update",
+	"version-history": "version history",
+	"get-advice": "Get advice",
+	"create-datarecord": "Create archival Data Record",
+	"create-data-publication": "Create Data Publication",
+	"toggle-dropdown": "Toggle Dropdown",
+	"dataRecord-title-label": "Data Record",
+	"dataRecord-title": "Data Record",
+	"dataPublication-title-label": "Data Publication",
+	"dataPublication-title": "Publication",
+	"transfer-ownership": "Transfer responsibility",
+	"transfer-ownership-title": "Transfer responsibility",
+	"transfer-ownership-step-1": "1. I wish to update",
+	"transfer-ownership-step-2": "2. Select the plan(s) or data record(s) you would like to transfer responsibility of",
+	"transfer-ownership-step-3": "3. Lookup a user to transfer responsibility to",
+	"transfer-ownership-researcher-name": "Lookup name",
+	"transfer-ownership-filter-plan-name": "Filter by name",
+	"transfer-ownership-filter-plan-name-placeholder": "Name or title",
+	"transfer-ownership-select": "Select",
+	"transfer-ownership-plan-name": "Name or title",
+	"transfer-ownership-execute": "Transfer responsibility",
+	"transfer-ownership-confirm-title": "Confirm responsibility transfer",
+	"transfer-ownership-confirm-body": "Are you sure you want to transfer responsibility?",
+	"transfer-ownership-confirm-yes": "Yes",
+	"transfer-ownership-confirm-no": "No",
+	"transfer-ownership-transferring": "Transferring...",
+	"transfer-ownership-transfer-ok": "Saved, reloading...",
+	"transfer-ownership-step-2-update": "Note: Please allow some time for the transfer of responsibility to complete.",
+	"transfer-ownership-reset": "Reset",
+	"transfer-ownership-rdmp": "Transfer responsibility",
+	"record-search-link": "Search for plan(s)",
+	"record-search-heading": "Search",
+	"record-search-basic-search": "Search",
+	"record-search-basic-search-placeholder": "keyword(s)",
+	"record-search-plan-name": "Plan name",
+	"record-search-advanced-show": "Show advanced search",
+	"record-search-advanced-hide": "Hide advanced search",
+	"record-search-rdmp-submit": "Search Plans",
+	"record-search-dataRecord-submit": "Search Data Records",
+	"record-search-dataPublication-submit": "Search Data Publications",
+	"record-search-reset": "Reset",
+	"record-search-title": "Search by Title",
+	"record-search-title-search-placeholder": "Title",
+	"record-search-searching": "Searching...",
+	"record-search-results": "Found results: ",
+	"plan-with-no-title": "Untitled",
+	"my-draft-plans": "My draft plans",
+	"my-active-plans": "My active plans",
+	"header-plan": "Plan",
+	"header-created": "Created",
+	"header-modified": "Modified",
+	"header-ci": "Chief Investigator",
+	"header-data-manager": "Data manager",
+	"no-draft-plans": "You currently don't have any draft plans.",
+	"no-active-plans": "You currently don't have any active plans.",
+	"no-records": "You currently don't have any {{stage}} {{recordTypeName}}.",
+	"local-creds-header": "Local Credentials",
+	"export-modified-after": "Modified after:",
+	"export-modified-before": "Modified before:",
+	"export-download": "Download CSV",
+	"export-format": "Export format:",
+	"manage-roles-title": "Manage Roles",
+	"manage-roles-filter-name": "Search for name",
+	"manage-roles-filter-name-placeholder": "Name",
+	"manage-roles-filter-label": "Show users with role:",
+	"manage-roles-name": "Name",
+	"manage-roles-email": "Email Address",
+	"manage-roles-role": "Roles",
+	"manage-roles-action": "Action",
+	"manage-roles-edit": "Edit User Roles",
+	"manage-roles-save": "Save",
+	"manage-roles-cancel": "Cancel",
+	"manage-users-title": "User management",
+	"manage-users-filter-name": "Search for name",
+	"manage-users-filter-name-placeholder": "Name",
+	"manage-users-username": "Username",
+	"manage-users-name": "Name",
+	"manage-users-email": "Email Address",
+	"manage-users-role": "Roles",
+	"manage-users-action": "Action",
+	"manage-users-edit": "Edit User",
+	"manage-users-new": "New User",
+	"manage-users-save": "Save",
+	"manage-users-cancel": "Cancel",
+	"manage-users-api": "API Key",
+	"manage-users-api-generate": "Generate API Key",
+	"manage-users-api-revoke": "Revoke API Key",
+	"manage-users-api-confirm": "This will replace the existing API key. Are you sure you want to continue?",
+	"manage-users-add-local": "Add a new local user",
+	"manage-users-password": "Password",
+	"manage-users-aaf-password": "Login managed by Single Sign On",
+	"manage-users-confirm-password": "Confirm password",
+	"manage-users-validation-name": "Name is required",
+	"manage-users-validation-email": "Invalid email address",
+	"manage-users-validation-username": "Username is required",
+	"manage-users-validation-password": "Password is required",
+	"manage-users-validation-confirmpassword": "Passwords do not match",
+	"manage-users-validation-role": "At least one role is required",
+	"manage-users-validation-submit": "Invalid form. Please check fields.",
+	"manage-users-update-password": "Enter new password to change",
+	"welcome-title": "Welcome to ReDBox",
+	"welcome-homepage-text": "This is the homepage of the DMP Tool. Some content needs to go here as well as a link to the researcher dashboard (still to be implemented).",
+	"welcome-dashboard-link-text": "Proceed to the dashboard",
+	"default-title": "ReDBox",
+	"menu-welcome-text": "Welcome",
+	"menu-login": "Login",
+	"menu-logout": "Logout",
+	"menu-toggle": "Toggle navigation",
+	"menu-dashboard": "Dashboard",
+	"menu-rolemgmt": "Role management",
+	"menu-usermgmt": "User management",
+	"menu-export": "Export",
+	"menu-home": "Home",
+	"menu-analyze": "Analyze",
+	"menu-syssettings": "System settings",
+	"menu-admin": "Admin",
+	"menu-plan": "Plan a Research Project",
+	"menu-manage": "Manage data",
+	"menu-publish": "Publish and share",
+	"menu-plan-nav": "Plan",
+	"menu-manage-nav": "Manage",
+	"menu-publish-nav": "Publish and share",
+	"menu-organisation-nav": "Workspaces",
+	"menu-search": "Search",
+	"menu-organise-worspace": "Organise Workspaces",
+	"menu-systemmessages": "System Messages",
+	"aaf-title": "AAF Credentials",
+	"openidconnect-title": "Openid Connect Credentials",
+	"admin-title": "Admin Home",
+	"search-refine-title": "Title",
+	"search-refine-description": "Description",
+	"search-refine-apply-filter": "Go",
+	"search-refine-contains": "Contains",
+	"search-refine-keywords": "Keywords",
+	"search-refine-workflow_stageLabel": "Workflow status",
+	"search-refine-grant_number_name": "Grant",
+	"@dmpt-welcome-tab": "Welcome",
+	"@dmpt-welcome-heading": "Data management plan",
+	"@dmpt-welcome-par1": "Thank you for registering a research data management plan. If you've submitted a research project proposal in Research Master, we should have pre-filled parts of this form for you, where possible. However, research evolves, so it is a good idea to make sure that the pre-fills are correct.",
+	"@dmpt-welcome-par2": "Providing this information will help put you in touch with services that can help you store or analyse your research data and allow you to collaborate online with colleagues. Your data management plan, if kept up to date, will satisfy the requirements of ReDBox policy and most research funder requirements. If your funder has specific requirements beyond the scope of this plan, please contact the eResearch Data Librarian on support@redboxresearchdata.com.au for help.",
+	"@dmpt-welcome-par3": "Your plan will also lay the foundation for a catalogue of your research data, ensuring that you (and ReDBox) can meet the data governance responsibilities as required by the Code for the Responsible Conduct of Research, by being able to locate and access the data as required.",
+	"@dmpt-welcome-par4": "If you require any assistance completing your plan, please contact us via support@redboxresearchdata.com.au.",
+	"@dmpt-project-tab": "Project",
+	"@dmpt-project-heading": "Project overview",
+	"@dmpt-project-title": "Project name",
+	"@dmpt-project-title-help": "Enter the title of the research project associated with the creation of this data.",
+	"@dmpt-project-id": "Project ID",
+	"@dmpt-project-id-help": "Enter the Research Master Project ID of your research project if you have one, or any other project identifier by which your project is known. HDR students may enter their student number.",
+	"@dmpt-project-desc": "Project description",
+	"@dmpt-project-desc-help": "Enter a description of your research project. This description should outline the purpose and intent of the project.",
+	"@dmpt-finalKeywords": "Keywords",
+	"@dmpt-finalKeywords-help": "Enter a word or phrase that characterises your research data.",
+	"@dmpt-project-website": "Project website",
+	"@dmpt-project-website-help": "If there is a website associated with the research project that you will be collecting data for, enter details of this website here.",
+	"@dmpt-project-startdate": "Start date",
+	"@dmpt-project-startdate-help": "Enter the date that the project started.",
+	"@dmpt-project-enddate": "End date",
+	"@dmpt-project-enddate-help": "Enter the date that the project is expected to end.",
+	"@dmpt-project-activity-type": "Activity type",
+	"@dmpt-project-activity-type-help": "Select the Type of Research Activity associated with the research that you are undertaking. The Research Activity Type is in line with the Australian and New Zealand Standard Research Classification (ANZSRC) 2008. <ul><li>Pure basic research is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge. </li><li>Strategic basic research is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems. </li><li>Applied research is original work undertaken primarily to acquire new knowledge with a specific application in view. It is undertaken either to determine possible uses for the findings of basic research or to determine new ways of achieving some specific and predetermined objectives. </li><li>Experimental development is systematic work, using existing knowledge gained from research or practical experience, that is directed to producing new materials, products or devices, to installing new processes, systems and services, or to improving substantially those already produced or installed. </li></ul>",
+	"@dmpt-project-anzsrcFor": "FoR codes",
+	"@dmpt-project-anzsrcFor-help": "Select the Field of Research code associated with your research project. Information on the Fields of Research classification codes can be found at <a href=\"http://www.arc.gov.au/applicants/codes.htm#FOR\" target=\"_blank\">http://www.arc.gov.au/applicants/codes.htm#FOR</a>.",
+	"@dmpt-project-anzsrcSeo": "SEO codes",
+	"@dmpt-project-anzsrcSeo-help": "Select the Socio-Economic Objective associated with your research project. Information on the Socio-Economic Objective classification codes can be found at <a href=\"http://www.arc.gov.au/applicants/codes.htm#SEO\" target=\"_blank\">http://www.arc.gov.au/applicants/codes.htm#SEO</a>.",
+	"@dmpt-activity-type-pure": "Pure basic research",
+	"@dmpt-activity-type-strategic": "Strategic basic research",
+	"@dmpt-activity-type-applied": "Applied research",
+	"@dmpt-activity-type-experimental": "Experimental development",
+	"@dmpt-data-collection-tab": "Data collection and analysis",
+	"@dmpt-data-collection-heading": "Data collection and analysis",
+	"@dmpt-data-collection-methodology": "Please provide a brief description of your data collection methodology",
+	"@dmpt-data-collection-methodology-help": "What methods do you intend to use to collect your data? For example, will you be using quantitative data collection methods whereby you will collect and analyse data samples? Will you use qualitative collection methods such as interviews and focus groups? Will you stage the collection of your data? Will your data collection methods follow a repeatable and verifiable process? Will an external service or group be used for your data collection activities?",
+	"@dmpt-data-collection-methodology-required": "Brief description of your data collection methodology is required",
+	"@dmpt-vivo:Dataset_dc_format": "Predominant file format(s), e.g. xls, txt",
+	"@dmpt-vivo:Dataset_dc_format-help": "Define the predominant file format that will be associated with your research data. This can include general file formats such as CSV or TXT as well as any proprietary file formats in which the data is collected and stored, for example, SPSS, PDF, Microsoft Office.",
+	"@dmpt-vivo:Dataset_dc_format-required": "Predominant file format is required!",
+	"@dmpt-vivo:Dataset_redbox:DataCollectionResources": "Software/equipment used to create/collect the data",
+	"@dmpt-vivo:Dataset_redbox:DataCollectionResources-help": "List the software or equipment that you intend to use to create and collect your research data. If a service has been used to collect data, please provide details. For software, please list the software title, version number, operating system, and any other parameters needed to operate the software. For equipment, please list the equipment brand, model number, and any parameters or settings required.",
+	"@dmpt-vivo:Dataset_redbox:DataAnalysisResources": "Software/equipment used to manipulate/analyse the data",
+	"@dmpt-vivo:Dataset_redbox:DataAnalysisResources-help": "List the software or equipment that you intend to use to analyse or manipulate your research data. If a service has been used to analyse data, please provide details. For software, please list the software title, version number, operating system, and any other parameters needed to operate the software. For equipment, please list the equipment brand, model number, and any parameters or settings required.",
+	"@dmpt-vivo:Dataset_redbox:MetadataStandard": "List any metadata standards or schemas to be used  (e.g. Dublin Core, Darwin Core, etc)",
+	"@dmpt-vivo:Dataset_redbox:MetadataStandard-help": "Provide details of the metadata standard that will be applied to your research data. Metadata standards are requirements which are intended to establish a common understanding of the meaning or semantics of the data, to ensure correct and proper use and interpretation of the data by its owners and users. For example, the ANZLIC Metadata guidelines provide researchers with core metadata elements for geographic data in Australia and New Zealand. ",
+	"@dmpt-vivo:Dataset_redbox:DataStructureStandard": "List any vocabularies to be used (e.g. ANZLIC, ISO, LCSH, ANZSCO etc)",
+	"@dmpt-vivo:Dataset_redbox:DataStructureStandard-help": "Provide details of any standards, schema or data structure approaches applied to your research data to ensure that it is stored in a well organised and logical manner.",
+	"@dmpt-people-tab": "People",
+	"@dmpt-people-tab-ci": "First-named chief investigator",
+	"@dmpt-people-tab-ci-role": "Chief Investigator",
+	"@dmpt-people-tab-data-manager": "Data manager",
+	"@dmpt-people-tab-supervisor": "Supervisor",
+	"@dmpt-people-tab-data-manager-role": "Data manager",
+	"@dmpt-people-tab-data-owner": "Data owner",
+	"@dmpt-people-tab-contributors": "Other contributors",
+	"@dmpt-people-tab-contributors-role": "Contributors",
+	"@dmpt-people-tab-supervisor-role": "Supervisor",
+	"@dmpt-people-tab-name-hdr": "Name",
+	"@dmpt-people-tab-email-hdr": "Email",
+	"@dmpt-people-tab-orcid-hdr": "ORCID",
+	"@dmpt-people-tab-validation-name-required": "Name is required",
+	"@dmpt-people-tab-validation-email-required": "Email is required",
+	"@dmpt-people-tab-validation-email-invalid": "Email format is incorrect",
+	"@dmpt-storage-tab": "Data storage",
+	"@dmpt-storage-heading": "Data storage",
+	"@dmpt-vivo:Dataset_dc:extent": "Expected size of the data collected",
+	"@dmpt-vivo:Dataset_dc:extent-help": "Estimate the expected size of the data that you will collect throughout this research project. As a guide, if you are working with basic files such as Word or Excel documents it is unlikely that you will exceed the minimum selection. If you are working with multimedia, spatial datasets, or technical research equipment or analysis tools that provide large file size outputs, it is wise to estimate a larger data collection size.",
+	"@dmpt-vivo:Dataset_dc:extent-required": "Expected size is required",
+	"@dmpt-vivo:Dataset_dc:extent-less-than-10GB": "Less than 10 GB",
+	"@dmpt-vivo:Dataset_dc:extent-10-20GB": "10GB-20GB",
+	"@dmpt-vivo:Dataset_dc:extent-20-100GB": "20GB – 100GB",
+	"@dmpt-vivo:Dataset_dc:extent-more-than-100GB": "100GB+",
+	"@dmpt-vivo:Dataset_dc:extent-less-than-100GB": "less than 100GB",
+	"@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB": "100GB - 2TB",
+	"@dmpt-vivo:Dataset_dc:extent-more-than-2TB": "more than 2TB",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral": "Storage location during project",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help": "Nominate where you will store your data. If you intend to store your data in an alternative location please provide details in the field below.",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-required": "Storage location during project is required",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal": "Personal equipment",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared": "Shared university network drive",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni": "University provided collaboration space",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other": "other",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment": "personal equipment (e.g. external drive, own laptop, etc)",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms": "eResearch storage platforms (e.g Omero, Gitlab, etc)",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store": "eResearch Store network drive",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive": "shared university network drive (e.g. G, H, etc)",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform": "institution provided survey platform (e.g LimeSurvey, REDCap, etc)",
+	"@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space": "institution provided collaboration space (e.g. CloudStor, OneDrive etc)",
+	"@dmpt-vivo:Dataset_dc:location_skos:note": "If other, please provide further details:",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral": "Location of the master version",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help": "Nominate where the master version of your research data will be stored. If you intend to store your master version in an alternative location please provide details in the field below.",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-required": "Location of the master version is required",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal": "Personal equipment",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared": "Shared university network drive",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni": "University provided collaboration space",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other": "Other",
+	"@dmpt-vivo:Dataset.dc:location.skos:note": "If other, please provide further details, including information about backups:",
+	"@dmpt-retention-tab": "Data retention and disposal",
+	"@dmpt-retention-heading": "Data retention and disposal",
+	"@dmpt-redbox:retentionPeriod_dc:date": "Applicable minimum retention period",
+	"@dmpt-redbox:retentionPeriod_dc:date-help": "Record the period of time that the data must be kept in line with institutional and/or funding body retention policies. If you believe the data should be retained beyond the minimum requirements, please select the most relevant justification from the list.",
+	"@dmpt-redbox:retentionPeriod_dc:date-required": "Retention Period must be specified",
+	"@dmpt-redbox:retentionPeriod_dc:date-1year": "1 year (short term projects for assessment purposes only)",
+	"@dmpt-redbox:retentionPeriod_dc:date-5years": "5 years (general research)",
+	"@dmpt-redbox:retentionPeriod_dc:date-7years": "7 years (contract/consultancy related)",
+	"@dmpt-redbox:retentionPeriod_dc:date-15years": "15 years (clinical research on human subjects)",
+	"@dmpt-redbox:retentionPeriod_dc:date-20years": "20 years (potential long term effects on human subjects / environment)",
+	"@dmpt-redbox:retentionPeriod_dc:date-permanent": "Permanent (gene therapy and data of major national/international significance)",
+	"@dmpt-redbox:retentionPeriod_dc:date_skos:note": "Do any reasons for extending the minimum retention period apply to your data?",
+	"@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage": "It has community or heritage value",
+	"@dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial": "It is controversial",
+	"@dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest": "It is of wide public interest",
+	"@dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible": "It would be costly or impossible to reproduce",
+	"@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial": "There is a commercial obligation to do so",
+	"@dmpt-redbox:disposalDate": "Earliest disposal date",
+	"@dmpt-redbox:disposalDate-help": "Select the earliest possible disposal date for the data (i.e. based on the minimum period).",
+	"@dmpt-access-rights-tab": "Access and rights",
+	"@dmpt-access-rights-heading": "Access and rights",
+	"@dmpt-ownership-tab": "Ownership and IP",
+	"@dmpt-ownership-heading": "Ownership, licensing and IP",
+	"@dmpt-dc:rightsHolder_dc:name": "Copyright and intellectual property owners",
+	"@dmpt-dc:rightsHolder_dc:name-help": "Identify all copyright and intellectual property owners related to the data you will be collecting or creating during your research project. NB. STAFF: In most, but not all cases, the answer will be ReDBox Research Data. Ownership of IP by ReDBox does not impinge upon your moral rights, nor does it necessarily prevent you from keeping a copy of the data for continuing research. HDR STUDENTS: if your research is carried out as a student, you hold copyright over your research data.",
+	"@dmpt-dc:rightsHolder_dc:name-required": "Copyright and intellectual property owners is required",
+	"@dmpt-dc:rightsHolder_dc:name-myUni": "My University",
+	"@dmpt-dc:rightsHolder_dc:name-myUnjount": "My University (joint ownership)",
+	"@dmpt-dc:rightsHolder_dc:name-student": "Higher Degree Research Student",
+	"@dmpt-dc:rightsHolder_dc:description": "Please list any other owners: ",
+	"@dmpt-dc:rightsHolder_dc:description-help": "Please identify any third parties who may have a copyright or intellectual property ownership consideration for your research data. ",
+	"@dmpt-redbox:ContractualObligations": "Information about contractual obligations or third party licenses that apply to this data",
+	"@dmpt-redbox:ContractualObligations-help": "If there are any other contractual agreements which may affect copyright ownership (e.g. does your research funding agreement require some or all of the copyright rights or other rights to be invested in the funding organisation) note them in this field.",
+	"@dmpt-licensing-tab": "Data licensing and access",
+	"@dmpt-licensing-heading": "Data licensing and access",
+	"@dmpt-licensing-access": "Access",
+	"@dmpt-dc:accessRights": "Access after the project will be managed by",
+	"@dmpt-dc:accessRights-help": "Will permission to access the data be mediated by the data manager or will open access be provided to the data? Select the relevant option that applies to this research data. Record the name of the person who is responsible for managing the research data.",
+	"@dmpt-dc:accessRights-manager": "permission from the data manager",
+	"@dmpt-dc:accessRights-open": "open, free access under license",
+	"@dmpt-dc:accessRights-none": "no access due to sensitivities (as indicated on next tab)",
+	"@dmpt-dc:accessRights-none-val": "no access due to sensitivities",
+	"@dmpt-dataLicensingAccess_manager": "The data manager is recorded as:",
+	"@dmpt-dataRetention_data_owner": "The data owner is:",
+	"@dmpt-licensing-licensing": "Licensing",
+	"@dmpt-dc:license_dc:identifier": "The data will be licensed under:",
+	"@dmpt-dc:license_dc:identifier-help": "If you intend to make the data openly accessible, select one of the licence options. Further information about the licence options can be viewed at <a href=\"http://creativecommons.org.au/learn-more/licences\" target=\"_blank\">http://creativecommons.org.au/learn-more/licences</a>. If you are using a licence that is not included in the drop-down list please provide the name of the licence in the Other license field. If your selected licence is also available via a website, please add this to the URL box.",
+	"@dmpt-dc:license_dc:identifier-1": "CC BY: Attribution 3.0 AU",
+	"@dmpt-dc:license_dc:identifier-2": "CC BY-SA: Attribution-Share Alike 3.0 AU",
+	"@dmpt-dc:license_dc:identifier-3": "CC BY-ND: Attribution-No Derivative Works 3.0 AU",
+	"@dmpt-dc:license_dc:identifier-4": "CC BY-NC: Attribution-Noncommercial 3.0 AU",
+	"@dmpt-dc:license_dc:identifier-5": "CC BY-NC-SA: Attribution-Noncommercial-Share Alike 3.0 AU",
+	"@dmpt-dc:license_dc:identifier-6": "CC BY-NC-ND: Attribution-Noncommercial-No Derivatives 3.0 AU",
+	"@dmpt-dc:license_dc:identifier-7": "CC BY 4.0: Attribution 4.0 International",
+	"@dmpt-dc:license_dc:identifier-8": "CC BY-SA 4.0: Attribution-Share Alike 4.0 International",
+	"@dmpt-dc:license_dc:identifier-9": "CC BY-ND 4.0: Attribution-No Derivative Works 4.0 International",
+	"@dmpt-dc:license_dc:identifier-10": "CC BY-NC 4.0: Attribution-Noncommercial 4.0 International",
+	"@dmpt-dc:license_dc:identifier-11": "CC BY-NC-SA 4.0: Attribution-Noncommercial-Share Alike 4.0 International",
+	"@dmpt-dc:license_dc:identifier-12": "CC BY-NC-ND 4.0: Attribution-Noncommercial-No Derivatives 4.0 International",
+	"@dmpt-dc:license_dc:identifier-13": "PDDL - Public Domain Dedication and License 1.0",
+	"@dmpt-dc:license_dc:identifier-14": "ODC-By - Attribution License 1.0",
+	"@dmpt-dc:license_dc:identifier-15": "ODC-ODbL - Attribution Share-Alike for data/databases 1.0",
+	"@dmpt-dc:license_dc:identifier_other": "Other license:",
+	"@dmpt-dc:license_dc:identifier_url": "Other license URL:",
+	"@dmpt-licensing-rights": "Rights",
+	"@dmpt-dc:RightsStatement": "Statement of rights (e.g. Copyright ReDBox Research Data)",
+	"@dmpt-dc:RightsStatement-help": "Statement of intellectual property rights held in over the data, including copyrights, licences, patents or other intellectual property rights relating to use of third party data. Example: Copyright, John M. Smith, 2011",
+	"@dmpt-dc:rights_skos:note": "Other relevant information (e.g. \"Contact the researcher to negotiate access\")",
+	"@dmpt-dc:rights_skos:note-help": "Provide any additional information that someone wishing to access your data may require. For example, instructions on how to negotiate access to the data, any relevant access restrictions, embargoes, security or institutional policies. For example (if the data is not directly accessible by URL), \"Please contact the Principal Investigator to negotiate access\" ",
+	"@dmpt-dc:coverage_dc:identifier": "In which country will your data be collected",
+	"@dmpt-dc:coverage_dc:identifier-help": "Select the country in which your research data will be collected. Use the 'Add more' function if your data will be collected in more than one country. If your data is going to be collected in Australia then copyright protection under Australian law is likely to apply. If not collected in Australia, copyright protection may be accorded under the law of another jurisdiction.",
+	"@dmpt-ethics-tab": "Ethics and sensitivities",
+	"@dmpt-ethics-heading": "Ethics and Sensitivities",
+	"@dmpt-agls:policy_dc:identifier": "Ethics approval number (if available)",
+	"@dmpt-agls:policy_dc:identifier-help": "If you have received ethics approval to conduct this research please include the ethics approval number here.",
+	"@dmpt-agls:policy_skos:note": "Information about ethical considerations relevant to this project and how they will be managed",
+	"@dmpt-agls:policy_skos:note-help": "Where there are specific ethical considerations relevant to this research project provide details of them in this field. Ethical considerations may impact the storage of and access to your research data. For your own convenience, you may also wish to record the location of any supporting ethics documents.",
+	"@dmpt-etchics-sensitivities-heading": "Sensitivities",
+	"@dmpt-agls:protectiveMarking_dc:type": "Type of sensitivity:",
+	"@dmpt-agls:protectiveMarking_dc:type-help": "If there are specific sensitivities relevant to this research, select these here. Specific sensitivities may impact the storage of and access to your research data.",
+	"@dmpt-agls:protectiveMarking_dc:type-commercial": "Commercially sensitive",
+	"@dmpt-agls:protectiveMarking_dc:type-cultural": "Culturally sensitive",
+	"@dmpt-agls:protectiveMarking_dc:type-security": "Security classified",
+	"@dmpt-agls:protectiveMarking_dc:type-nonPublic": "Non-public",
+	"@dmpt-agls:protectiveMarking_skos:note": "Information about privacy, confidentiality or sensitivity to the data and how it will be managed ",
+	"@dmpt-agls:protectiveMarking_skos:note-help": "Where there are privacy, confidentiality or sensitivity factors relevant to this research data provide details about the measures that will be put in place to ensure that the data or information is kept private.",
+	"@dmpt-vivo:Dataset_dc:source_dc:location_skos:note": "If other, please provide further details, including information about backups:",
+	"@dmpt-foaf:fundedBy_vivo:Grant": "Grant number(s)",
+	"@dmpt-foaf:fundedBy_vivo:Grant-help": "Enter the grant number or a partial name to evoke a list of possible matches from Research Master.",
+	"@dmpt-foaf:fundedBy_foaf:Agent": "Funding source",
+	"@dmpt-foaf:fundedBy_foaf:Agent-help": "Enter the funding agency name. N.B. entering part of the name will evoke a list of possible matches. Either select one, or keep typing to override.",
+	"@dmpt-workspaces-tab": "Workspaces",
+	"@dmpt-workspaces-heading": "Workspaces",
+	"@dmpt-workspaces-associated-heading": "Associated workspaces",
+	"@dmpt-workspaces-create-title": "Create or link a workspace",
+	"@dmpt-workspaces-description": "Description",
+	"@dmpt-workspace-select-type": "Select from the list the desired app",
+	"@dmpt-workspace-select-help": "The next list allows the Redbox-Portal to link your RDMP to your workspaces (Add more help here...)",
+	"@dmpt-workspace-open": "OPEN",
+	"@dmpt-workspace-saveFirst": "Save your plan to access workspaces",
+	"@dmpt-description": "Description",
+	"@dmpt-pdf-list-label": "pdf",
+	"@dmpt-create-datarecord-link": "Create a data record from this plan",
+	"@dataRecord-about-tab": "What?",
+	"@dataRecord-about-heading": "What is the data about?",
+	"@dataRecord-title": "Data record Title",
+	"@dataRecord-title-help": "Data record title help text",
+	"@dataRecord-description": "Description",
+	"@dataRecord-what-tab-description": "Description",
+	"@dataRecord-what-tab-description-help": "Data description help text",
+	"@dataRecord-keywords": "Keywords",
+	"@dataRecord-keywords-help": "Enter a word or phrase that characterises your research data.",
+	"@dataRecord-datatype": "Data type",
+	"@dataRecord-datatype-help": "Data type help text",
+	"@dataRecord-dataype-select:Empty": "Please select",
+	"@dataRecord-dataype-select:catalogueOrIndex": "Catalogue or Index",
+	"@dataRecord-dataype-select:collection": "Collection",
+	"@dataRecord-dataype-select:dataset": "Dataset",
+	"@dataRecord-dataype-select:registry": "Registry",
+	"@dataRecord-dataype-select:repository": "Repository",
+	"@dataRecord-aim-tab": "Why?",
+	"@dataRecord-aim-heading": "Why was the data collected?",
+	"@dataRecord-data-tab": "Where?",
+	"@dataRecord-data-heading": "Where is the data?",
+	"@dataRecord-dataSize": "Total data size and number of files",
+	"@dataRecord-dataSize-help": "",
+	"@dataRecord:retentionPeriod_dc:date_skos:note": "Justification for extended retention period",
+	"@dataRecord-disposalDate": "Select the earliest possible disposal date of the data",
+	"@dataRecord-disposalDate-help": "",
+	"@dataRecord-relationships-tab": "When?",
+	"@dataRecord-relationships-heading": "When should your data be reviewed for disposal?",
+	"@dataRecord-coverage-tab": "Coverage",
+	"@dataRecord-coverage-heading": "What is the spatial/temporal coverage of the data content ?",
+	"@dataRecord-temporalcoverage-heading": "Temporal (time) coverage",
+	"@dataRecord-startDate": "Start date",
+	"@dataRecord-endDate": "End date",
+	"@dataRecord-timePeriod": "TimePeriod",
+	"@dataRecord-management-tab": "Management",
+	"@dataRecord-management-heading": "How should data access be managed?",
+	"@dataRecord-licensing-heading": "Licensing",
+	"@dataRecord-publication-tab": "Publication",
+	"@dataRecord-publication-heading": "When and how should this data record be published",
+	"@dataRecord-licence": "The data will be licenced under",
+	"@dataRecord-licence-by30au": "CC BY: Attribution 3.0 AU",
+	"@dataRecord-licence-bysa30au": "CC BY-SA: Attribution-Share Alike 3.0 AU",
+	"@dataRecord-licence-bynd30au": "CC BY-ND: Attribution-No Derivative Works 3.0 AU",
+	"@dataRecord-licence-bync30au": "CC BY-NC: Attribution-Noncommercial 3.0 AU",
+	"@dataRecord-licence-byncsa30au": "CC BY-NC-SA: Attribution-Noncommercial-Share Alike 3.0 AU",
+	"@dataRecord-licence-by40au": "CC BY 4.0: Attribution 4.0 International",
+	"@dataRecord-licence-bysa40au": "CC BY-SA 4.0: Attribution-Share Alike 4.0 International",
+	"@dataRecord-licence-bync40au": "CC BY-NC 4.0: Attribution-Noncommercial 4.0 International",
+	"@dataRecord-licence-byncsa40au": "CC BY-NC-SA 4.0: Attribution-Noncommercial-Share Alike 4.0 International",
+	"@dataRecord-licence-byncnd40au": "CC BY-NC-ND 4.0: Attribution-Noncommercial-No Derivatives 4.0 International",
+	"@dataRecord-licence-bynd40au": "CC BY-NC-ND: Attribution- No Derivatives r.0 AU",
+	"@dataRecord-licence-pddl10": "PDDL - Public Domain Dedication and License 1.0",
+	"@dataRecord-licence-odbl10": "ODC-By - Attribution License 1.0",
+	"@dataRecord-otherLicence": "Other licence",
+	"@dataRecord-otherLicence-help": "",
+	"@dataRecord-otherLicenceUrl": "Other licence URL",
+	"@dataRecord-rights-statement": "Statement of rights in data",
+	"@dataRecord-rights": "",
+	"@dataRecord-rights-help": "Data records rights help",
+	"@dataRecord-rightsUrl": "URL",
+	"@dataRecord-rightsUrl-help": "",
+	"@dataRecord-accessConditions": "",
+	"@dataRecord-accessConditions-help": "",
+	"@dataRecord-accessConditionsUrl": "URL",
+	"@dataRecord-accessConditionsUrl-help": "",
+	"@dataRecord-embargo-heading": "Embargo",
+	"@dataRecord-embargoEnabled": "Embargo this record",
+	"@dataRecord-embargoUntil": "Embargo until",
+	"@dataRecord-embargoUntil-help": "",
+	"@dataRecord-embargoNote": "Embargo note",
+	"@dataRecord-geospatial": "Geospatial location",
+	"@dataRecord-geospatial-help": "Data record geospatial help",
+	"@dataRecord-selector-label": "RDMP related to this data record",
+	"@dataPublication-geolocation": "Locations",
+	"@dataPublication-geolocation-help": "Locations help",
+	"@dataPublication-selector-label": "Data record related to this publication",
+	"@dmp-create-datapublication-link": "Create a data publication from this record",
+	"report-results-returned_one": "{{count}} result returned",
+	"report-results-returned_other": "{{count}} results returned",
+	"report-csv-download": "Download as CSV",
+	"report-retrieving-results": "Retrieving results",
+	"report-return-to-reports-list": "Return to Reports",
+	"report-filter-date-from": "From:",
+	"report-filter-date-to": "To:",
+	"report-filter-button": "Filter",
+	"report-filters-heading": "Filters",
+	"reports-heading": "Reports",
+	"reports-description": "Click on a link below to view a report",
+	"orcid-given-names": "Given names",
+	"orcid-family-name": "Family name",
+	"orcid-other-names": "Other names",
+	"orcid-researcher-urls": "Researcher URLs",
+	"orcid-keywords": "Keywords",
+	"orcid-biography": "Biography",
+	"user-profile-link": "Update my profile",
+	"user-profile-return": "Return",
+	"user-profile-success": "Profile updated successfully",
+	"user-profile-edit": "Edit Profile",
+	"@dmpt-select:Empty": "Please select",
+	"@dmpt-form-validation-fail-prefix": "Not all mandatory fields have been completed. Please complete ",
+	"@dmpt-form-validation-fail-suffix": "",
+	"@dmpt-form-saving": "Saving, please wait...",
+	"@dmpt-form-save-success": "Saved successfully.",
+	"@dmpt-form-save-error": "Error while saving: ",
+	"auth-update-error": "Updating authorization resulted in server error, please contact administrator.",
+	"edit-error-no-permissions": "You do not have permission to edit this record",
+	"view-error-no-permissions": "You do not have permission to view this record",
+	"missing-record": "Problems retrieving this record, are you sure it exists?",
+	"failed-delete": "Problems deleting this record.",
+	"failed-restore": "Problems restoring this deleted record.",
+	"failed-destroy": "Problems destroying this deleted record.",
+	"action-destroy": "Destroy",
+	"action-restore": "Restore",
+	"@dmpt-related-website": "Related website",
+	"@dmpt-related-website-help": "Help text for related website",
+	"@dmpt-related-website-url": "URL",
+	"@dmpt-related-website-title": "Title",
+	"@dmpt-related-website-notes": "Notes",
+	"@dmpt-related-publication": "Related publications",
+	"@dmpt-related-publication-help": "Help text for related publications",
+	"@dmpt-related-publication-url": "URL",
+	"@dmpt-related-publication-title": "Title",
+	"@dmpt-related-publication-notes": "Notes",
+	"@dmpt-related-data": "Related data",
+	"@dmpt-related-data-help": "Help text for related data",
+	"@dmpt-related-data-url": "Data URL",
+	"@dmpt-related-data-title": "Title",
+	"@dmpt-related-data-notes": "Notes",
+	"@dmpt-related-data-local": "Local related data",
+	"@dmpt-related-data-local-val": "Local related data",
+	"@dmpt-related-data-relationship": "Relationship",
+	"@dmpt-related-data-relationship-association-with": "Has association with",
+	"@dmpt-related-data-relationship-association-with-val": "Has association with",
+	"@dmpt-related-data-rda": "Publish to RDA",
+	"@dmpt-related-data-rda-val": "Publish to RDA",
+	"@dmpt-licences-agreements": "Licences or agreements:",
+	"@dataPublication-about-tab": "Start",
+	"@dataPublication-about-heading": "Choose a data record and update basic details",
+	"@dataPublication-title": "Data publication title",
+	"@dataPublication-description": "Description",
+	"@dataPublication-datatype": "Data type",
+	"@dataPublication-keywords": "Keywords",
+	"@dataPublication-dataype-select:Empty": "Please select",
+	"@dataPublication-dataype-select:catalogueOrIndex": "Catalogue or Index",
+	"@dataPublication-dataype-select:collection": "Collection",
+	"@dataPublication-dataype-select:dataset": "Dataset",
+	"@dataPublication-dataype-select:registry": "Registry",
+	"@dataPublication-dataype-select:repository": "Repository",
+	"@dataPublication-coverage-tab": "Specify coverage",
+	"@dataPublication-coverage-heading": "Specify spatial or temporal setting of the data",
+	"@dataPublication-temporalcoverage-heading": "Temporal (time) coverage",
+	"@dataPublication-temporalcoverage-heading-help": "Temporal (time) coverage help",
+	"@dataPublication-spatialcoverage-heading": "Spatial (location,mapping) coverage",
+	"@dataPublication-spatialcoverage-heading-help": "Spatial (location,mapping) coverage help",
+	"@dataPublication-startDate": "Start date",
+	"@dataPublication-startDate-help": "Start date help",
+	"@dataPublication-endDate": "End date",
+	"@dataPublication-endDate-help": "End date help",
+	"@dataPublication-timePeriod": "Time period",
+	"@dataPublication-timePeriod-help": "Time period Help",
+	"@dataPublication-geospatial": "Geospatial location",
+	"@dataPublication-geospatial-help": "Geospatial location help",
+	"@dataPublication-geospatial-coordinates-help": "KML or GeoJSON help",
+	"@dataPublication-publish-tab": "Publish",
+	"@dataPublication-data-tab": "Select data",
+	"@dataPublication-data-heading": "Select which data should be included",
+	"@dataPublication-license-tab": "License",
+	"@dataPublication-license-heading": "Select or add a licence for the data",
+	"@dataPublication-relationships-tab": "Supplements",
+	"@dataPublication-relationships-heading": "Specify related entities that contextualise the data",
+	"@dataPublication-related-services": "Related services",
+	"@dataPublication-related-services-help": "Related services help",
+	"@dataPublication-service-identifier": "Service identifier",
+	"@dataPublication-publication-tab": "Submit",
+	"@dataPublication-publication-heading": "Submit data for publication",
+	"@dataPublication-embargo-heading": "Embargo",
+	"@dataPublication-embargoEnabled": "Embargo this record by date",
+	"@dataPublication-embargoUntil": "Embargo until",
+	"@dataPublication-embargoUntil-help": "Embargo until help text placeholder",
+	"@dataPublication-embargoNote": "Embargo note",
+	"@dataPublication-publish-metadata-only": "Publish metadata only (no data)?",
+	"@dataPublication-publish-metadata-only-help": "Publish metadata only help place holder.",
+	"attachment-not-found": "Attachment not found for this record.",
+	"@dataRecord-aim-project-name": "Project name",
+	"@dataRecord-keywords-required": "Keyword must not be blank.",
+	"@dataRecord-data-software": "Software and equipment used",
+	"@dataRecord-about-language": "Language",
+	"@dataRecord-people-tab": "Who?",
+	"@dataRecord-people-heading": "Who was involved?",
+	"@tab-nav-previous": "Previous",
+	"@tab-nav-next": "Next",
+	"@dmp-edit-record-link": "Edit this plan",
+	"@data-record-edit-record-link": "Edit this record",
+	"workspace-request": "Request a Workspace",
+	"workspace-services-list": "List of available services",
+	"workspace-export-data": "Export data between Workspaces",
+	"get-help-subject": "ReDBox - Please help!",
+	"edit-dashboard-rdmp": "View & Update RDMP",
+	"edit-dashboard-datarecord": "View & Update archival Data Record",
+	"edit-dashboard-publication": "View & Update Data Publication",
+	"@dmpt-people-tab-ci-help": "Chief Investigator help text",
+	"@dmpt-people-tab-data-manager-help": "Data manager help text",
+	"@dmpt-people-tab-contributors-help": "Contributors help text",
+	"@dmpt-people-tab-supervisor-help": "Supervisor help text",
+	"@dataPublication-title-help": "Data publication title help text",
+	"@dataPublication-description-help": "Data publication description help text",
+	"@dataPublication-datatype-help": "Data publication data type help text",
+	"@dataPublication-keywords-help": "Data publication keywords help text",
+	"@asynch-label": "Background Tasks",
+	"@asynch-name": "Name",
+	"@asynch-status": "Status",
+	"@asynch-dateStarted": "Started",
+	"@asynch-dateCompleted": "Completed",
+	"@asynch-startedBy": "By Username",
+	"@asynch-message": "Message",
+	"@asynch-completion": "Progress",
+	"@asynch-lastUpdate": "Last Updated",
+	"@asynch-status-starting": "Starting",
+	"@asynch-status-started": "Started",
+	"@asynch-status-inprogress": "In Progress",
+	"@asynch-status-paused": "Paused",
+	"@asynch-status-aborted": "Cancelled",
+	"@asynch-status-errored": "Errored",
+	"@asynch-status-finished": "Completed",
+	"@dataPublication-dc:accessRights": "Access conditions",
+	"@dataPublication-dc:accessRights-help": "Access conditions placeholder help text",
+	"@dataPublication-dc:accessRights-open": "Open",
+	"@dataPublication-dc:accessRights-restricted": "Restricted",
+	"@dataPublication-dc:accessRights-restricted-val": "Restricted",
+	"@dataPublication-dataLicensingAccess_manager": "The data manager is recorded as:",
+	"@dataPublication-data-manager": "<h4>Access to the data will be managed by the data manager:</h4>",
+	"@dataPublication-data_manager-transferResponsibility": "To change the data manager please <a href='/@branding/@portal/record/transfer/rdmp'>transfer data responsibilities</a>.",
+	"@dataPublication-accessRights_url": "Access conditions URL",
+	"@dataPublication-accessRights_url-help": "Access conditions URL help text placeholder",
+	"@dataPublication-related-metadata": "Related metadata (including standards, codebooks, vocabularies, thesauri, ontologies)",
+	"@dataPublication-related-metadata-help": "Related Metadata help text placeholder",
+	"@dataPublication-related-metadata-url": "URI",
+	"@dataPublication-related-metadata-title": "Name",
+	"@dataPublication-related-publication-title": "Name",
+	"@dataPublication-related-publication-url": "URI",
+	"@dataPublication-related-publication-notes": "Notes",
+	"@dataPublication-related-data-title": "Name",
+	"@dataPublication-related-data-url": "URI",
+	"@dataPublication-related-data-notes": "Notes",
+	"@dataPublication-related-metadata-notes": "Notes",
+	"@dataPublication-related-service-title": "Name",
+	"@dataPublication-related-service-url": "URI",
+	"@dataPublication-related-service-notes": "Notes",
+	"@dataPublication-related-website-notes": "Notes",
+	"@dataPublication-related-website-title": "Name",
+	"@dataPublication-related-website-url": "URI",
+	"@dataPublication-license-sub-heading": "Licensing",
+	"@dataPublication-dc:license.dc:identifier": "The data will be licensed under",
+	"@dataPublication-dc:license.dc:identifier-help": "If you intend to make the data openly accessible select one of the licence options from the drop-down below. Further information about the licence options can be viewed at http://creativecommons.org.au/learn-more/licences. If you are using a licence that is not included in the drop-down list please provide the name of the licence in the Other license field and a URL if a website describing license terms is available.",
+	"@dataPublication-dc:license.rdf:Alt.skos:prefLabel": "Other license",
+	"@dataPublication-dc:license.rdf:Alt.dc:identifier": "Other license URL",
+	"@dataPublication-dc:license.rdf:Alt.dc:identifier-help": "Other license URL Help",
+	"@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel": "Statement of rights in data",
+	"@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-help": "Statement data help text place holder",
+	"@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-default": "Copyright ReDBox Research Data 2018",
+	"@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier": "URL",
+	"@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help": "Statement of rights help text place holder",
+	"@dataPublication-citation-tab": "Citation",
+	"@dataPublication-citation-tab-heading": "Specify how the data should be cited",
+	"@dataPublication-citation-request-identifier": "Request a DOI",
+	"@dataPublication-citation-identifier": "Identifier",
+	"@dataPublication-citation-title": "Title",
+	"@dataPublication-citation-title-help": "Citation title help text placeholder",
+	"@dataPublication-citation-publisher": "Publisher",
+	"@dataPublication-citation-publisher-help": "Publisher help text place holder",
+	"@dataPublication-citation-publisher-default": "ReDBox Research Data",
+	"@dataPublication-citation-url": "URL",
+	"@dataPublication-citation-url-help": "Help text place holder",
+	"@dataPublication-citation-publication-date": "Publication date",
+	"@dataPublication-citation-publication-date-help": "Help text place holder",
+	"@dataPublication-creators": "Creators",
+	"@dataPublication-creators-help": "Creators help text placehodler",
+	"@dataPublication-embargoEnabled-help": "Help text placeholder",
+	"@dataPublication-embargoNote-help": "Help text placeholder",
+	"@dataPublication-reviewerNote": "Please add any further information/queries below - these will be followed up by the reviewer",
+	"@dataPublication-reviewerNote-help": "Help text placeholder",
+	"@dataPublication-reviewer-tab": "Reviewer",
+	"@dataPublication-reviewer-tab-heading": "Data Publication review",
+	"@dataPublication-withdraw": "Withdraw",
+	"@dataPublication-delete": "DELETE PUBLICATION",
+	"@dataPublication-confirmDelete": "Are you sure you want to delete?",
+	"@dataPublication-confirmDeleteTitle": "Confirm Publication Delete",
+	"@dataPublication-cancelButtonMessage": "Cancel",
+	"@dataPublication-confirmButtonMessage": "Yes, please DELETE",
+	"@dataPublication-collectionCapacity": "Collection Capacity",
+	"@dataPublication-identifiers": "Additional Identifiers",
+	"@dataPublication-identifiers-help": "Any addtional, local, or alternative identifiers",
+	"@dmpt-people-family-hdr": "Family",
+	"@dmpt-people-given-hdr": "Given",
+	"search-by-name": "Search by name",
+	"change-text": "Change",
+	"workspaces": "Workspaces",
+	"create-workspace": "Create Workspace",
+	"workspaces-dashboard": "View workspaces",
+	"@dataLocations-help": "Data locations help placeholder text",
+	"@dataLocations-label": "Data Locations",
+	"@dataLocations-notes": "Notes",
+	"@dataLocations-uploader-note": "Maximum 50 files, up to 1 GB",
+	"@dataLocations-addText": "Enter",
+	"@dataLocations-enter-assistance-text": "Click the Enter button to add the data location",
+	"logo-alt-text": "ReDBox Logo",
+	"aaf-logo-alt-text": "AAF Logo",
+	"openidconnect-logo-alt-text": "OpenId Connect Logo",
+	"loading-alt-text": "Loading...",
+	"local-creds-input-username-label": "Username",
+	"local-creds-input-password-label": "Password",
+	"edit-link-label": "Edit",
+	"pdf-history-modal-label": "PDF History Modal",
+	"help": "Help",
+	"add-button-label": "Add Item",
+	"remove-button-label": "Remove Item",
+	"select-all-items": "Select All Items",
+	"select-item": "Select",
+	"move-up-button": "Move entry up",
+	"move-down-button": "Move entry down",
+	"@save-button": "Save",
+	"@save-and-close-button": "Save & Close",
+	"@cancel-button": "Cancel",
+	"@close-button": "Close",
+	"export-csv-rdmp": "Download Plans CSV",
+	"export-csv-dataRecord": "Download Data Records CSV",
+	"export-csv-dataPublication": "Download Data Publications CSV",
+	"export-rdmp": "Download Plans",
+	"export-dataRecord": "Download Data Records",
+	"export-dataPublication": "Download Data Publications",
+	"@dataPublication-publish": "Submit for Publication",
+	"@dataPublication-citation-generated-label": "Citation",
+	"manage-users-token-message": "Note: the API key below will only be visible once.",
+	"@refresh-attachments-text": "Refresh data from related data record",
+	"form-record-permissions-usereditheading": "Users with edit access",
+	"form-record-permissions-userviewheading": "Users with view access",
+	"form-record-permissions-userpendingeditheading": "Users with pending edit access",
+	"form-record-permissions-userpendingviewheading": "Users with pending view access",
+	"form-record-permissions-roleeditheading": "System roles with edit access",
+	"form-record-permissions-roleviewheading": "System roles with view access",
+	"form-record-permissions-usernametableheading": "Username",
+	"form-record-permissions-nametableheading": "Name",
+	"form-record-permissions-emailtableheading": "Email",
+	"form-record-permissions-rolenametableheading": "Role name",
+	"@pdf-column-version": "Version",
+	"@pdf-column-date-created": "Date created",
+	"@pdf-column-download": "Download",
+	"@pdf-close": "Close",
+	"@pdf-download": "Download a PDF of this plan",
+	"@pdf-download-previous": "Download a previous version",
+	"error-header": "Application Error",
+	"error-auth": "Apologies, we've encountered an issue with your user credentials. Please contact the application administrator.",
+	"error-403-heading": "Forbidden",
+	"error-404-heading": "Not Found",
+	"error-500-heading": "Server Error",
+	"error-please-login": "Please login",
+	"@ckan-record-published-prefix": "Record published at ",
+	"@ckan-record-submitting-label": "Submitting to CKAN",
+	"@ckan-record-unsubmitted-label": "Record not yet published",
+	"@existing-locations-label": "Existing Workspaces",
+	"@existing-locations-description": "Existing Workspaces description placeholder",
+	"@workspace-header": "Existing Cloud Services and Storage Locations",
+	"@workspace-name": "Location Name",
+	"@workspace-type": "Location Type",
+	"@workspace-description": "Description of Data",
+	"@workspace-location-url": "Location URL(s)",
+	"@workspace-type_required": "Workspace type must be specified",
+	"@workspace-type-shared": "Shared Drive",
+	"@workspace-type-cloud": "Cloud Drive",
+	"@workspace-type-survey": "Survey",
+	"@workspace-type-repo": "Code Repository",
+	"@workspace-type-notebook": "Electronic Notebook",
+	"@workspace-type-other": "Other",
+	"@workspace-edit": "Edit",
+	"@dataRecord-dc_extent": "Data record size",
+	"@dataRecord-dc_extent-help": "Enter details e.g. 3 files: 34 MB",
+	"@related-rdmp-title": "RDMP Title",
+	"@dataPublication-dc:accessRights-conditional": "Conditional",
+	"@dataPublication-dc:accessRights-conditional-val": "Conditional",
+	"@record-permissions-tab-heading": "Permissions",
+	"@record-permissions-tab": "Permissions",
+	"@dataPublication-retire": "Retire",
+	"workspace.no-records-found": "No workspace records were found",
+	"@header-view-only-description": "Description",
+	"@header-view-only-edit-label": "Edit this publication",
+	"@header-view-only-view-data-label": "View the associated data",
+	"oidc-login-session-destroyed": "There was an error logging you in, please try again.",
+	"@status-label": "Status",
+	"@dmp-associated-rdmp-link": "View Associated RDMP",
+	"@view-record-audit-link": "View Record Audit",
+	"@view-record-audit-heading": "Record Audit History",
+	"@view-record-audit-updatedBy": "Updated By",
+	"@view-record-audit-email": "Email Address",
+	"@view-record-audit-username": "Username",
+	"@view-record-audit-raw-link": "View Metadata",
+	"@view-record-audit-updatedAt": "Updated Date",
+	"@view-record-audit-workflow-state": "Workflow State",
+	"not-enough-disk-space": "There is not enough free space on disk to upload file",
+	"attachment-upload-error": "There is an error uploading files",
+	"max-total-files-upload-size-validation-error": "Max upload total size is {{maxUploadSize}} per record.",
+	"max-total-files-upload-size-alternative-validation-error": "",
+	"datacite-validation-error": "Datacite submission contains errors: ",
+	"title-required": "Title is required",
+	"publisher-required": "Publisher is required",
+	"creators-required": "Creators are required",
+	"publication-year-required": "Publication Year is required",
+	"url-required": "URL is required",
+	"url-invalid": "URL is invalid",
+	"doi-required": "DOI is required",
+	"date-invalid": "Date is invalid",
+	"not-authorised": "Not Authorised",
+	"not-found": "DOI Not found",
+	"invalid-format": "Submission format is invalid",
+	"server-error": "Server error",
+	"unknown-error": "Unknown error",
+	"@dmpt-raid": "RAiD",
+	"@dmpt-raid-help": "RAiD created when you first save your plan. See https://raid.org",
+	"raid-mint-transform-validation-error": "There's an issue preparing your data for RAiD, please contact your administrator. ",
+	"raid-mint-server-error": "There's an issue minting RAiD at the moment, we will try again later.",
+	"raid-mint-transform-missing-contributorid-error": "The ORCID seems to be invalid for ",
+	"local-auth-login": "Login",
+	"oidc-default-unknown-error": "Login unsuccessful contact your system administrator",
+	"oidc-user-doesnt-exist-in-tenant": "User account from identity provider does not exist in tenant. The account needs to be added as an external user in the tenant first.",
+	"oidc-user-doesnt-exist-in-tenant-detail": "For email {{-email}} and url {{-url}} and tenant {{-name}}",
+	"lang-en": "English",
+	"lang-mri": "Māori",
+	"system-message-enabled": "false",
+	"system-message-title": "System Notification",
+	"system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help",
+	"system-lookup-records": "Lookup records",
+	"system-lookup-record-item1": "Parties",
+	"menu-authorizeddomainsemails": "Authorized Domains and Emails",
+	"authorized-email-denied": "Email is not authorized to login.",
+	"record-table-results-table-header-actions": "Actions",
+	"deleted-records-results-returned_one": "{{count}} deleted record returned",
+	"deleted-records-results-returned_other": "{{count}} deleted records returned",
+	"deleted-records-retrieving-results": "Retrieving results",
+	"deleted-records-filter-date-from": "From:",
+	"deleted-records-filter-date-to": "To:",
+	"deleted-records-filter-button": "Filter",
+	"deleted-records-filters-heading": "Filters",
+	"deleted-records-heading": "Deleted Records",
+	"deleted-records-results-table-header-title": "Title",
+	"deleted-records-results-table-header-created-date": "Date Created",
+	"deleted-records-results-table-header-modified-date": "Date Modified",
+	"deleted-records-results-table-header-deleted-date": "Date Deleted",
+	"deleted-records-item-confirm-delete-title": "Confirm Record Delete",
+	"deleted-records-item-confirm-delete-message": "Do you want to delete this record? This cannot be undone.",
+	"deleted-records-item-confirm-delete-confirm": "Yes, please DELETE",
+	"deleting": "Deleting...",
+	"deleteSuccess": "Deleted successfully"
+}
