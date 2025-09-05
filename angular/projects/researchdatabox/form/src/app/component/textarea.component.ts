@@ -34,7 +34,7 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
   private defaultConfig = new TextareaComponentConfig();
   public rows:number = this.defaultConfig.rows;
   public cols:number = this.defaultConfig.cols;
-  public placeholder: string | undefined = this.defaultConfig.placeholder;
+  public placeholder: string | undefined = '';
 
   /**
    * Override to set additional properties required by the wrapper component.
@@ -49,7 +49,7 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
     if(!_isUndefined(textareaConfig) && _isEmpty(textareaConfig)) {
       this.rows = textareaConfig.rows;
       this.cols = textareaConfig.cols;
-      this.placeholder = textareaConfig.placeholder;
+      this.placeholder = textareaConfig.placeholder ?? this.defaultConfig.placeholder;
     }
   }
   
