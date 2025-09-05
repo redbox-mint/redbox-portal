@@ -1,6 +1,6 @@
 <% include('../../functions') %>
 <!DOCTYPE html>
-<html lang="<%= lang || 'en' %>">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>">
 
 <head>
   <base href="<%= BrandingService.getRootContext() ? BrandingService.getRootContext() : '/'  %>">
@@ -58,7 +58,7 @@
             <div class="dropdown pull-right">
                 <% 
                   // Use available languages from the i18nLanguages policy
-                  const languages = availableLanguages || [{ code: 'en', displayName: 'English' }];
+                  const languages = (typeof availableLanguages !== 'undefined' && availableLanguages) ? availableLanguages : [{ code: 'en', displayName: 'English' }];
                   if (languages.length > 1) { 
                     // Find current language display name
                     const currentLang = languages.find(l => l.code === lang) || languages[0];
