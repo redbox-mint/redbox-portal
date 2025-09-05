@@ -12,7 +12,7 @@ export interface TextareaComponentDefinition extends BaseFormFieldComponentDefin
 export class TextareaComponentConfig extends BaseFormFieldComponentConfig {
     public rows:number = 4;
     public cols:number = 50;
-    public placeholder:string = '';
+    public placeholder?:string = '';
 }
 
 export interface TextareaModelDefinition extends BaseFormFieldModelDefinition<TextareaModelValueType> {

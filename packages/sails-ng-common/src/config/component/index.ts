@@ -19,11 +19,11 @@ import {
     GroupFormFieldModelDefinition
 } from "./group.model";
 import {
-    TextFormFieldComponentConfig,
-    TextFormFieldComponentDefinition,
-    TextFormFieldModelConfig,
-    TextFormFieldModelDefinition
-} from "./text.model";
+    SimpleInputComponentConfig,
+    SimpleInputComponentDefinition,
+    SimpleInputModelConfig,
+    SimpleInputModelDefinition
+} from "./simpleinput.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
 import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.model";
@@ -34,7 +34,7 @@ import { TextareaComponentConfig, TextareaComponentDefinition, TextareaModelConf
  * Possible form field component definitions.
  */
 export type FormFieldComponentDefinition =
-    TextFormFieldComponentDefinition |
+    SimpleInputComponentDefinition |
     ContentComponentDefinition |
     RepeatableFormFieldComponentDefinition |
     ValidationSummaryFormFieldComponentDefinition |
@@ -48,7 +48,7 @@ export type FormFieldComponentDefinition =
  * Possible form field component configs.
  */
 export type FormFieldComponentConfig =
-    TextFormFieldComponentConfig |
+    SimpleInputComponentConfig |
     ContentComponentConfig |
     RepeatableFormFieldComponentConfig |
     ValidationSummaryFormFieldComponentConfig |
@@ -61,7 +61,7 @@ export type FormFieldComponentConfig =
  * Possible form field model definitions.
  */
 export type FormFieldModelDefinition =
-    TextFormFieldModelDefinition |
+    SimpleInputModelDefinition |
     RepeatableFormFieldModelDefinition |
     ValidationSummaryFormFieldModelDefinition |
     GroupFormFieldModelDefinition | 
@@ -72,7 +72,7 @@ export type FormFieldModelDefinition =
  * Possible form field model configs.
  */
 export type FormFieldModelConfig =
-    TextFormFieldModelConfig |
+    SimpleInputModelConfig |
     RepeatableFormFieldModelConfig |
     ValidationSummaryFormFieldModelConfig |
     GroupFormFieldModelConfig | 
@@ -98,7 +98,7 @@ export type FormFieldLayoutConfig =
 export * from './default-layout.model'
 export * from './group.model'
 export * from './repeatable.model'
-export * from './text.model'
+export * from './simpleinput.model'
 export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'

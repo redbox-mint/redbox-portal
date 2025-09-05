@@ -22,11 +22,6 @@ export class BaseFormFieldComponentConfig {
      * Whether the component is in edit mode or not.
      */
     public editMode?: boolean = true;
-    // the component/control type
-    /**
-     * The component's type.
-     */
-    public type?: string = '';
     /**
      * The label text translation message id.
      */

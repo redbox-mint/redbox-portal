@@ -9,15 +9,15 @@ export class TextareaModel extends FormFieldModel<string> {
 @Component({
   selector: 'redbox-textarea',
   template: `
-    @if (getBooleanProperty('visible')) {
+    @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <textarea [formControl]="formControl"
         class="form-control"
         [class.is-valid]="isValid"
         [class.is-invalid]="!isValid"
         [attr.required]="isRequired === true ? true : null"
-        [attr.disabled]="getBooleanProperty('disabled') ? 'true' : null"
-        [attr.readonly]="getBooleanProperty('readonly') ? 'true' : null"
+        [attr.disabled]="isDisabled ? 'true' : null"
+        [attr.readonly]="isReadonly ? 'true' : null"
         [attr.title]="tooltip ? tooltip : tooltipPlaceholder"
         [attr.rows]="rows"
         [attr.cols]="cols"
@@ -31,12 +31,10 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "TextareaComponent";
   public tooltip:string = '';
   public tooltipPlaceholder:string = 'placeholder';
-  private defaultRows:number = new TextareaComponentConfig().rows;
-  private defaultCols:number = new TextareaComponentConfig().cols;
-  private defaultPlaceholder:string = new TextareaComponentConfig().placeholder;
-  public rows:number = this.defaultRows;
-  public cols:number = this.defaultCols;
-  public placeholder:string = this.defaultPlaceholder;
+  private defaultConfig = new TextareaComponentConfig();
+  public rows:number = this.defaultConfig.rows;
+  public cols:number = this.defaultConfig.cols;
+  public placeholder: string | undefined = this.defaultConfig.placeholder;
 
   /**
    * Override to set additional properties required by the wrapper component.
@@ -47,11 +45,11 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getTooltip();
     this.tooltipPlaceholder = '';
-    let textareaConfig:TextareaComponentConfig = this.componentDefinition?.config as TextareaComponentConfig;
+    let textareaConfig = this.componentDefinition?.config as TextareaComponentConfig;
     if(!_isUndefined(textareaConfig) && _isEmpty(textareaConfig)) {
-      this.rows = textareaConfig.rows ?? this.defaultRows;
-      this.cols = textareaConfig.cols ?? this.defaultCols;
-      this.placeholder = textareaConfig.placeholder ?? this.defaultPlaceholder;
+      this.rows = textareaConfig.rows;
+      this.cols = textareaConfig.cols;
+      this.placeholder = textareaConfig.placeholder;
     }
   }
   

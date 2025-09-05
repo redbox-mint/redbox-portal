@@ -6,7 +6,7 @@ import { SaveButtonComponentDefinition } from '@researchdatabox/sails-ng-common'
 @Component({
   selector: 'redbox-form-save-button',
   template:`
-  @if (getBooleanProperty('visible')) {
+  @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="getStringProperty('label')" [disabled]="disabled"></button>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />

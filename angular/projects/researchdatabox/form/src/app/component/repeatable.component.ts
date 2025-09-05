@@ -22,7 +22,7 @@ import {FormFieldComponentDefinition} from "@researchdatabox/sails-ng-common";
   `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <ng-container #repeatableContainer></ng-container>
-    @if (isStatusReady() && getBooleanProperty('visible')) {
+    @if (isStatusReady() && isVisible) {
       <button type="button" class="btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
     }
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -288,11 +288,11 @@ export interface RepeatableElementEntry {
   selector: 'redbox-form-repeatable-component-layout',
   template: `
   <ng-container #componentContainer></ng-container>
-  @if (getBooleanProperty('visible')) {
+  @if (isVisible) {
     <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
   }
   <ng-template #afterComponentTemplate>
-    @if (getBooleanProperty('visible')) {
+    @if (isVisible) {
       @let componentValidationList = getFormValidatorComponentErrors;
       @if (componentValidationList.length > 0) {
         <div class="invalid-feedback">
