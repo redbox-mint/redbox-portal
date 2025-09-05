@@ -28,7 +28,6 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "SimpleInputComponent";
   public tooltip:string = '';
   public tooltipPlaceholder:string = 'placeholder';
-  private defaultConfig = new SimpleInputComponentConfig();
   public inputType:string = 'text';
 
   /**
@@ -42,7 +41,8 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     this.tooltipPlaceholder = '';
     let simpleInputConfig = this.componentDefinition?.config as SimpleInputComponentConfig;
     if(!_isUndefined(simpleInputConfig) && !_isEmpty(simpleInputConfig)) {
-      this.inputType = simpleInputConfig.type ?? this.defaultConfig.type;
+      let defaultConfig = new SimpleInputComponentConfig();
+      this.inputType = simpleInputConfig.type ?? defaultConfig.type;
     }
   }
 
