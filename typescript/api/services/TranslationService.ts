@@ -42,9 +42,6 @@ export module Services {
     // Map of i18next instances per branding
     private i18nextInstances: any = {};
 
-    constructor() {
-      super();
-    }
 
     /**
      * Get or create an i18next instance for a specific branding

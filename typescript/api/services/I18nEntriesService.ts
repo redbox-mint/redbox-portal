@@ -36,9 +36,7 @@ export module Services {
    */
   @PopulateExportedMethods
   export class I18nEntries extends services.Core.Service {
-    constructor() {
-      super();
-    }
+
     
   /**
    * Seed default i18n bundles into DB from language-defaults for the default brand.
