@@ -15,7 +15,7 @@ headers {
 }
 
 tests {
-  test("Status code is 200 or 404", function () {
-      expect([200,404]).to.include(res.getStatus());
+  test("Status code is 200", function () {
+      expect([200]).to.include(res.getStatus());
   });
 }
