@@ -48,14 +48,12 @@ export module Controllers {
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
-        let bundle = await I18nBundle.findOne({ branding: branding.id, locale: lng, namespace: ns });
+        let bundle = await I18nEntriesService.getBundle(branding, lng, ns);
 
         if (!bundle) {
-          const entries = await I18nTranslation.find({ branding: branding.id, locale: lng, namespace: ns });
+          const entries = await I18nEntriesService.listEntries(branding, lng, ns);
           if (entries && entries.length > 0) {
-            const flat = {} as any;
-            for (const e of entries) flat[e.key] = e.value;
-            bundle = { data: this.unflatten(flat) } as any;
+            bundle = { data: I18nEntriesService.composeNamespace(entries) } as any;
           }
         }
 
@@ -109,14 +107,14 @@ export module Controllers {
         const codes = Array.from(langCodes);
         const bundleMap = new Map(bundles.map(b => [b.locale, b]));
 
-        const list = codes.map(code => {
+        const list = await Promise.all(codes.map(async code => {
           const bundle = bundleMap.get(code);
           return {
             code: code,
-            displayName: bundle?.displayName || code,
+            displayName: bundle?.displayName || await I18nEntriesService.getLanguageDisplayName(code),
             enabled: bundle?.enabled !== false // defaults to true if not set
           };
-        });
+        }));
 
         list.sort((a, b) => a.displayName.localeCompare(b.displayName));
         return res.json(list);
@@ -124,24 +122,6 @@ export module Controllers {
         sails.log.error('Error in TranslationController.getLanguages:', err);
         return res.serverError(err);
       }
-    }
-
-    private unflatten(flatObj: any): any {
-      const result: any = {};
-      Object.keys(flatObj || {}).forEach(flatKey => {
-        const parts = flatKey.split('.');
-        let cursor = result;
-        for (let i = 0; i < parts.length; i++) {
-          const p = parts[i];
-          if (i === parts.length - 1) {
-            cursor[p] = flatObj[flatKey];
-          } else {
-            if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-            cursor = cursor[p];
-          }
-        }
-      });
-      return result;
     }
 
     /**
