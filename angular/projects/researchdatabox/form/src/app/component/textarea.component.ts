@@ -47,9 +47,9 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
     let textareaConfig = this.componentDefinition?.config as TextareaComponentConfig;
     if(!_isUndefined(textareaConfig) && _isEmpty(textareaConfig)) {
       let defaultConfig = new TextareaComponentConfig();
-      this.rows = textareaConfig.rows ?? defaultConfig.rows;
-      this.cols = textareaConfig.cols ?? defaultConfig.cols;
-      this.placeholder = textareaConfig.placeholder ?? defaultConfig.placeholder;
+      this.rows = textareaConfig.rows || defaultConfig.rows;
+      this.cols = textareaConfig.cols || defaultConfig.cols;
+      this.placeholder = textareaConfig.placeholder || defaultConfig.placeholder;
     }
   }
   
