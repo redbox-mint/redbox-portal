@@ -96,7 +96,7 @@ module.exports = function forbidden (data, options) {
         return res.json(data);
       }
 
-      // Send a simple test if html is empty
+      // We don't ever not want to serve html here so if everything fails fall back to a basic hard-coded html string.
       if (!html || html.length === 0) {
         sails.log.warn('res.forbidden() :: Rendered HTML is empty, sending test response');
         return res.send('<!DOCTYPE html><html><head><title>Forbidden</title></head><body><h1>403 - Forbidden</h1></body></html>');
