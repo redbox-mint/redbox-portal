@@ -100,7 +100,7 @@ export module Services {
       }
     }
 
-    // Minimal flatten utility (dot notation) to avoid ESM-only deps
+    // Basic flatten utility for dot-notation keys that fits the pattern required for i18next entries
     private flatten(obj: any, prefix = '', out: any = {}): any {
       for (const key of Object.keys(obj || {})) {
         const value = obj[key];
@@ -114,7 +114,7 @@ export module Services {
       return out;
     }
 
-    // Minimal unflatten utility for dot-notation keys
+    // Minimal unflatten utility for dot-notation keys that i18next uses
     private unflatten(flatObj: any): any {
       const result: any = {};
       for (const flatKey of Object.keys(flatObj || {})) {
