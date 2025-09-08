@@ -402,6 +402,10 @@ export module Services {
 
     /**
      * Load centralized metadata from language-defaults/meta.json
+     * This metadata is used to provide additional context and information
+     * about the translation keys and their usage. 
+     * This is only used for bootstrapping default values into the    database.
+     * See Readme for more details on how this file is used.
      */
     public async loadCentralizedMeta(): Promise<Record<string, any>> {
       try {
