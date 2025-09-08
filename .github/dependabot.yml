@@ -54,6 +54,8 @@ updates:
           - "ngx-bootstrap"
           - "angular-i18next"
           - "@schematics/angular"
+          - "ng-packagr"
+          - "@ngx-formly/*"
         update-types:
           - "minor"
           - "patch"
@@ -64,10 +66,12 @@ updates:
           - "ngx-bootstrap"
           - "angular-i18next"
           - "@schematics/angular"
+          - "ng-packagr"
+          - "@ngx-formly/*"
         update-types:
           - "major"
 
-  - package-ecosystem: "npm"
+
     directory: "/angular-legacy"
     schedule:
       interval: "daily"
