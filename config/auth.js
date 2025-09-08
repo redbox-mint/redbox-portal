@@ -62,6 +62,16 @@ module.exports.auth = {
       role: 'Librarians',
       can_update:true
     },
+     {
+      path: '/:branding/:portal/admin/translation',
+      role: 'Librarians',
+      can_update:true
+    },
+     {
+      path: '/:branding/:portal/app/i18n(/*)',
+      role: 'Librarians',
+      can_update:true
+    },
     {
       path: '/:branding/:portal/admin/reports',
       role: 'Librarians',

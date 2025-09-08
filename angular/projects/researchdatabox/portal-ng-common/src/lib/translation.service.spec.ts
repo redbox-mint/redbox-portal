@@ -66,7 +66,19 @@ describe('TranslationService testing', () => {
   it('should produce a valid translation using configService with valid config', async function () {
     const mockConfigData = {
       csrfToken: 'test', 
-      rootContext: 'base'
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en'],
+        ns: ['translation'],
+        resources: {
+          en: { translation: { key1: 'value1' } }
+        }
+      }
     };
     configService.getConfig = function () { return mockConfigData};
     await translationService.waitForInit();
