@@ -16,7 +16,7 @@ import * as Handlebars from 'handlebars';
 @Component({
     selector: 'redbox-content',
     template: `
-    @if (getBooleanProperty('visible')) {
+    @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <span [innerHtml]="content"></span>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />

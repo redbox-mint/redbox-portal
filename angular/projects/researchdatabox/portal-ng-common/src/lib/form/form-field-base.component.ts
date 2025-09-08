@@ -297,28 +297,32 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public getTooltip(): string {
-    let tooltip = this.componentDefinition?.config?.tooltip;
-    if(_isUndefined(tooltip)) {
-      return '';
-    } else {
-      return tooltip;
-    }
+  public getBooleanProperty(name:string, defaultValue:boolean): boolean {
+    return _get(this.componentDefinition?.config,name,defaultValue);
   }
 
-  public getBooleanProperty(name:string): boolean {
-    return _get(this.componentDefinition?.config,name,true);
-  }
-
-  public getStringProperty(name:string): string {
+  public getStringProperty(name:string) {
     return _get(this.componentDefinition?.config,name,'');
+  }
+
+  get isVisible(): boolean {
+    return this.componentDefinition?.config?.visible ?? true;
+  }
+
+  get isReadonly(): boolean {
+    return this.componentDefinition?.config?.readonly ?? false;
+  }
+
+  get isDisabled(): boolean {
+    return this.componentDefinition?.config?.disabled ?? false;
   }
 
   hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {
       //TODO in principle comparing properties that are complex objects seems not required
-      //group component has a componentDefinition property of its inner components or maybe
+      //group component has a componentDefinition property of its inner components so it may be
+      //It requires to revisit once we start testing a real form config in the new framework
       if((key == lastKeyChanged && !_isObject(key)) || forceCheckAll ) {
         let oldValue = _get(this.componentDefinition?.config,key);
         let newValue = _get(this.componentDefinitionCache,key);

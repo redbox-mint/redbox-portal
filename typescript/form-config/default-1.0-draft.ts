@@ -62,6 +62,30 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    name: 'textarea_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Textarea some label',
+                                            helpText: 'Textarea some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TextAreaModel',
+                                        config: {
+                                            defaultValue: 'Textarea hello world!!!',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TextAreaComponent',
+                                        config: {
+                                            rows: 7,
+                                            cols: 80,
+                                            tooltip: 'Textarea tooltip'
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',
@@ -141,7 +165,8 @@ const formConfig: FormConfig = {
                                     component: {
                                         class: 'SimpleInputComponent',
                                         config: {
-                                            tooltip: 'text_2_event tooltip'
+                                            tooltip: 'text_2_event tooltip',
+                                            type: 'text'
                                         }
                                     }
                                 },
@@ -164,7 +189,8 @@ const formConfig: FormConfig = {
                                     component: {
                                         class: 'SimpleInputComponent',
                                         config: {
-                                            tooltip: 'text_2_component_event component tooltip 22222'
+                                            tooltip: 'text_2_component_event component tooltip 22222',
+                                            type: 'text'
                                         }
                                     },
                                     expressions: {
@@ -367,6 +393,7 @@ const formConfig: FormConfig = {
                                                     class: 'SimpleInputComponent',
                                                     config: {
                                                         wrapperCssClasses: 'col',
+                                                        type: 'text'
                                                     }
                                                 },
                                                 layout: {
@@ -445,6 +472,7 @@ const formConfig: FormConfig = {
                                         component: {
                                             class: 'SimpleInputComponent',
                                             config: {
+                                                type: 'text'
                                             }
                                         }
                                     },

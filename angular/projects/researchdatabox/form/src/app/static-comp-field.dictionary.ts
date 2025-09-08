@@ -7,6 +7,7 @@ import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.comp
 import { ContentComponent } from "./component/content.component";
 import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
+import { TextAreaComponent, TextAreaModel } from "./component/textarea.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -25,6 +26,10 @@ export const StaticModelCompClassMap = {
   },
   'ContentComponent': {
     component: ContentComponent
+  },
+  'TextArea': {
+    model: TextAreaModel,
+    component: TextAreaComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent
