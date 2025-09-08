@@ -59,7 +59,7 @@
     "passport-http-bearer": "^1.0.1",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "pino": "^9.9.1",
+    "pino": "^9.9.4",
     "pino-logfmt": "^1.0.1",
     "postcss": "^8.5.6",
     "rc": "1.2.8",
