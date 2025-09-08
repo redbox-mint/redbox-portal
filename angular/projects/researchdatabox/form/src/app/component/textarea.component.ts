@@ -1,9 +1,9 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { TextareaComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/textarea.model';
-import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
+import { TextAreaComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/textarea.model';
+import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
-export class TextareaModel extends FormFieldModel<string> {
+export class TextAreaModel extends FormFieldModel<string> {
 }
 
 @Component({
@@ -15,24 +15,23 @@ export class TextareaModel extends FormFieldModel<string> {
         class="form-control"
         [class.is-valid]="isValid"
         [class.is-invalid]="!isValid"
-        [attr.required]="isRequired === true ? true : null"
-        [attr.disabled]="isDisabled ? 'true' : null"
-        [attr.readonly]="isReadonly ? 'true' : null"
-        [attr.title]="tooltip ? tooltip : tooltipPlaceholder"
-        [attr.rows]="rows"
-        [attr.cols]="cols"
-        [attr.placeholder]="placeholder"></textarea>
+        [required]="isRequired"
+        [disabled]="isDisabled"
+        [readonly]="isReadonly"
+        [title]="tooltip"
+        [rows]="rows"
+        [cols]="cols"
+        [placeholder]="placeholder"></textarea>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
   standalone: false
 })
-export class TextareaComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "TextareaComponent";
+export class TextAreaComponent extends FormFieldBaseComponent<string> {
+  protected override logName: string = "TextAreaComponent";
   public tooltip:string = '';
-  public tooltipPlaceholder:string = 'placeholder';
-  public rows:number = 0;
-  public cols:number = 0;
+  public rows: number | undefined = undefined;
+  public cols: number | undefined = undefined;
   public placeholder: string | undefined = '';
 
   /**
@@ -42,19 +41,17 @@ export class TextareaComponent extends FormFieldBaseComponent<string> {
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.tooltip = this.getTooltip();
-    this.tooltipPlaceholder = '';
-    let textareaConfig = this.componentDefinition?.config as TextareaComponentConfig;
-    if(!_isUndefined(textareaConfig) && _isEmpty(textareaConfig)) {
-      let defaultConfig = new TextareaComponentConfig();
-      this.rows = textareaConfig.rows || defaultConfig.rows;
-      this.cols = textareaConfig.cols || defaultConfig.cols;
-      this.placeholder = textareaConfig.placeholder || defaultConfig.placeholder;
-    }
+    this.tooltip = this.getStringProperty('tooltip');
+    let textareaConfig = this.componentDefinition?.config as TextAreaComponentConfig;
+    let defaultConfig = new TextAreaComponentConfig();
+    const cfg = (_isUndefined(textareaConfig) || _isEmpty(textareaConfig)) ? defaultConfig : textareaConfig;
+    this.rows = cfg.rows || defaultConfig.rows;
+    this.cols = cfg.cols || defaultConfig.cols;
+    this.placeholder = cfg.placeholder || defaultConfig.placeholder;
   }
   
   /**
    * The model associated with this component.
    */
-  @Input() public override model?: TextareaModel;
+  @Input() public override model?: TextAreaModel;
 }

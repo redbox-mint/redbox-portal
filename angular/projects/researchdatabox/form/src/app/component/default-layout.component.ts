@@ -32,7 +32,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
     @if (getStringProperty('label')) {
       @if (isVisible) {
         <label class="form-label">
-          <span [innerHtml]="getStringProperty('label')" [attr.title]="getTooltip()"></span>
+          <span [innerHtml]="getStringProperty('label')" [title]="tooltip"></span>
           @if (isRequired) {
             <span
               class="form-field-required-indicator"
@@ -99,6 +99,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   public helpTextVisibleOnInit:boolean = false;
   public labelRequiredStr:string = '';
+  public tooltip:string = '';
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -108,6 +109,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
+    this.tooltip = this.getStringProperty('tooltip');
     //normalise componentDefinition that is used to track property changes given these may not be present
     this.buildPropertyCache(true);
     if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {

@@ -34,7 +34,7 @@ import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
-import { TextareaComponent } from './component/textarea.component';
+import { TextAreaComponent } from './component/textarea.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -43,7 +43,7 @@ import { TextareaComponent } from './component/textarea.component';
     FormComponent,
     SimpleInputComponent,
     ContentComponent,
-    TextareaComponent,
+    TextAreaComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,
     ValidationSummaryFieldComponent,

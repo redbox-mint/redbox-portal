@@ -4,19 +4,19 @@ import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "..
 
 export type TextareaModelValueType = string;
 
-export interface TextareaComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "TextareaComponent";
-    config?: TextareaComponentConfig;
+export interface TextAreaComponentDefinition extends BaseFormFieldComponentDefinition {
+    class: "TextAreaComponent";
+    config?: TextAreaComponentConfig;
 }
 
-export class TextareaComponentConfig extends BaseFormFieldComponentConfig {
-    public rows:number = 4;
-    public cols:number = 50;
+export class TextAreaComponentConfig extends BaseFormFieldComponentConfig {
+    public rows:number = 2;
+    public cols:number = 20;
     public placeholder?:string = '';
 }
 
 export interface TextareaModelDefinition extends BaseFormFieldModelDefinition<TextareaModelValueType> {
-    class: "TextareaModel";
+    class: "TextAreaModel";
     config: TextareaModelConfig;
 }
 

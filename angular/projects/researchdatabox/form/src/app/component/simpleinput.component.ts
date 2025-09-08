@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import { SimpleInputComponentConfig } from '@researchdatabox/sails-ng-common';
-import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
+import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class SimpleInputModel extends FormFieldModel<string> {
 }
@@ -15,10 +15,10 @@ export class SimpleInputModel extends FormFieldModel<string> {
             class="form-control"
             [class.is-valid]="isValid"
             [class.is-invalid]="!isValid"
-            [attr.required]="isRequired === true ? true : null"
-            [attr.disabled]="isDisabled ? 'true' : null"
-            [attr.readonly]="isReadonly ? 'true' : null"
-            [attr.title]="tooltip ? tooltip : tooltipPlaceholder" />
+            [required]="isRequired"
+            [disabled]="isDisabled"
+            [readonly]="isReadonly"
+            [title]="tooltip" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
     `,
@@ -27,7 +27,6 @@ export class SimpleInputModel extends FormFieldModel<string> {
 export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "SimpleInputComponent";
   public tooltip:string = '';
-  public tooltipPlaceholder:string = 'placeholder';
   public inputType:string = 'text';
 
   /**
@@ -37,13 +36,11 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.tooltip = this.getTooltip();
-    this.tooltipPlaceholder = '';
+    this.tooltip = this.getStringProperty('tooltip');
     let simpleInputConfig = this.componentDefinition?.config as SimpleInputComponentConfig;
-    if(!_isUndefined(simpleInputConfig) && !_isEmpty(simpleInputConfig)) {
-      let defaultConfig = new SimpleInputComponentConfig();
-      this.inputType = simpleInputConfig.type || defaultConfig.type;
-    }
+    let defaultConfig = new SimpleInputComponentConfig();
+    const cfg = (_isUndefined(simpleInputConfig) || _isEmpty(simpleInputConfig)) ? defaultConfig : simpleInputConfig;
+    this.inputType = cfg.type || defaultConfig.type;
   }
 
   /**

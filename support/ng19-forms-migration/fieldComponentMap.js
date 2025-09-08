@@ -228,8 +228,8 @@ module.exports = {
 
     let componentDefinition = createBaseComponent({
         field,
-        componentClass: 'TextareaComponent',
-        modelClass: 'TextareaModel'
+        componentClass: 'TextAreaComponent',
+        modelClass: 'TextAreaModel'
     });
 
     if(fieldConfig.cols != 0) {

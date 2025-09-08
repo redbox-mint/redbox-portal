@@ -1,16 +1,16 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextareaComponent} from "./textarea.component";
+import {TextAreaComponent} from "./textarea.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
-describe('TextareaComponent', () => {
+describe('TextAreaComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
-      TextareaComponent,
+      TextAreaComponent,
     ]);
   });
   it('should create component', () => {
-    let fixture = TestBed.createComponent(TextareaComponent);
+    let fixture = TestBed.createComponent(TextAreaComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
@@ -26,13 +26,13 @@ describe('TextareaComponent', () => {
         {
           name: 'textarea_test',
           model: {
-            class: 'TextareaModel',
+            class: 'TextAreaModel',
             config: {
               defaultValue: 'Text area hello world test text'
             }
           },
           component: {
-            class: 'TextareaComponent'
+            class: 'TextAreaComponent'
           }
         }
       ]

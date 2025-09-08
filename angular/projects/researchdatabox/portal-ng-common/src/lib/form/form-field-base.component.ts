@@ -297,15 +297,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public getTooltip(): string {
-    let tooltip = this.componentDefinition?.config?.tooltip;
-    if(_isUndefined(tooltip)) {
-      return '';
-    } else {
-      return tooltip;
-    }
-  }
-
   public getBooleanProperty(name:string, defaultValue:boolean): boolean {
     return _get(this.componentDefinition?.config,name,defaultValue);
   }
@@ -323,7 +314,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get isDisabled(): boolean {
-    return this.componentDefinition?.config?.readonly ?? false;
+    return this.componentDefinition?.config?.disabled ?? false;
   }
 
   hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {

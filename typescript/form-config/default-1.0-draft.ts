@@ -71,16 +71,17 @@ const formConfig: FormConfig = {
                                         }
                                     },
                                     model: {
-                                        class: 'TextareaModel',
+                                        class: 'TextAreaModel',
                                         config: {
                                             defaultValue: 'Textarea hello world!!!',
                                         }
                                     },
                                     component: {
-                                        class: 'TextareaComponent',
+                                        class: 'TextAreaComponent',
                                         config: {
                                             rows: 7,
-                                            cols: 80
+                                            cols: 80,
+                                            tooltip: 'Textarea tooltip'
                                         }
                                     }
                                 },
