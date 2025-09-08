@@ -401,12 +401,17 @@ export module Services {
 
 
     /**
-     * Load centralized metadata from language-defaults/meta.json
-     * This metadata is used to provide additional context and information
-     * about the translation keys and their usage. 
-     * This is only used for bootstrapping default values into the    database.
-     * See Readme for more details on how this file is used.
-     */
+    * Load centralized metadata from language-defaults/meta.json.
+    * This metadata provides additional context and information about 
+    * the translation keys and their usage, and is only used for 
+    * bootstrapping default values into the database.
+    *
+    * The file itself is fairly large, so instead of storing it in 
+    * `sails.config.[...]` for the lifetime of the app, it is read 
+    * directly from disk at the time it is needed.
+    *
+    * See README for more details on how this file is used.
+    */
     public async loadCentralizedMeta(): Promise<Record<string, any>> {
       try {
         const fs = await import('node:fs');
