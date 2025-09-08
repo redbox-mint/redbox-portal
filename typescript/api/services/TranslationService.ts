@@ -267,7 +267,7 @@ export module Services {
       try {
         if (!branding) {
           this.logger.warn('No branding provided, using config fallback');
-          return sails.config.i18n.next.init.supportedLngs || ['en'];
+          return sails?.config?.i18n?.next?.init?.supportedLngs || ['en'];
         }
 
         const brandingId = branding.id || 'default';
@@ -304,7 +304,7 @@ export module Services {
         return list;
       } catch (e) {
         this.logger.warn('Error:', (e as Error)?.message || e);
-        return sails.config.i18n.next.init.supportedLngs || ['en'];
+        return sails?.config?.i18n?.next?.init?.supportedLngs || ['en'];
       }
     }
 
