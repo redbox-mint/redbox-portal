@@ -285,7 +285,7 @@ export module Services {
 
         // Add languages from DB bundles
         try {
-          const bundles = await I18nBundle.find({ branding: brandingId });
+          const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale');
           this.logger.debug(`Found ${bundles.length} bundles for branding ${brandingId}`);
           bundles.forEach((b: any) => {
             if (b?.locale) {
