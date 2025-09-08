@@ -554,20 +554,10 @@ export module Services {
 
             sails.log.verbose(`Validating key '${itemName}' with value '${JSON.stringify(record)}' and component class '${componentClass}'.`);
 
-            if (Array.isArray(validators) && validators.length > 0) {
-                const validatorFuncs = validatorSupport.createFormValidatorInstancesFromMapping(validatorDefinitions, validators);
-                for (const validatorFunc of validatorFuncs) {
-                    const funcResult = validatorFunc(new SimpleServerFormValidatorControl(record));
-                    if (funcResult!==null){
-                        result.push(funcResult);
-                    }
-                }
-            }
-
             // Validate any subcomponents
             for (const componentDefinition of componentDefinitions) {
                 const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                    record?.[componentDefinition.name], componentDefinition, validatorDefinitions)
+                        record?.[componentDefinition.name], componentDefinition, validatorDefinitions)
                 ) ?? [];
                 itemErrors.forEach(i => result.push(i));
             }
@@ -576,9 +566,21 @@ export module Services {
             if (elementTemplate && Array.isArray(record)) {
                 for (const element of record) {
                     const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                        element, elementTemplate, validatorDefinitions)
+                            element, elementTemplate, validatorDefinitions)
                     ) ?? [];
                     itemErrors.forEach(i => result.push(i));
+                }
+            }
+
+            // run the validators
+            if (Array.isArray(validators) && validators.length > 0) {
+                const validatorFuncs = validatorSupport.createFormValidatorInstancesFromMapping(validatorDefinitions, validators);
+                const recordFormControl = this.createFormControlFromRecordValue(record);
+                for (const validatorFunc of validatorFuncs) {
+                    const funcResult = validatorFunc(recordFormControl);
+                    // if (funcResult !== null) {
+                    result.push(funcResult);
+                    // }
                 }
             }
 
@@ -686,6 +688,19 @@ export module Services {
          */
         private arrayStartsWithArray(base: unknown[], check: unknown[]) {
             return base?.every((value, index) => check?.length > index && check?.[index] == value);
+        }
+
+        private createFormControlFromRecordValue(recordValue: unknown) {
+            const guessedType = this.guessType(recordValue);
+            if (guessedType === "object") {
+                return new SimpleServerFormValidatorControl(
+                    Object.fromEntries(Object.entries(recordValue).map(([key, value]) => [key, this.createFormControlFromRecordValue(value)]))
+                );
+            } else if (guessedType === "array") {
+                return (recordValue as Array<unknown>).map(i => this.createFormControlFromRecordValue(i));
+            } else {
+                return new SimpleServerFormValidatorControl(recordValue);
+            }
         }
     }
 }

@@ -495,6 +495,8 @@ describe('The FormRecordConsistencyService', function () {
                                 defaultValue: 'hello world!',
                                 validators: [
                                     {name: 'required'},
+                                    {name: 'minLength', config: {minLength: 10}},
+                                    {name: 'maxLength', config: {maxLength: 20}},
                                 ]
                             }
                         },
@@ -508,14 +510,108 @@ describe('The FormRecordConsistencyService', function () {
                                 defaultValue: '',
                                 validators: [
                                     {name: 'required'},
+                                    {name: 'requiredTrue'},
                                 ]
                             }
                         },
                         component: {class: 'SimpleInputComponent'}
                     },
+                    {
+                        name: 'group_2',
+                        model: {
+                            class: 'GroupFieldModel',
+                            config: {
+                                defaultValue: {
+                                    text_3: "group_2 text_3 default",
+                                    repeatable_2: [{text_rpt_2: "group_2 repeatable_2 text_rpt_2 default"}]
+                                }
+                            }
+                        },
+                        component: {
+                            class: 'GroupFieldComponent',
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: 'text_4',
+                                        model: {
+                                            class: 'SimpleInputModel', config: {
+                                                validators: [
+                                                    {name: 'min', config: {min: 5}},
+                                                    {name: 'max', config: {max: 15}},
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent', config: {}},
+                                    },
+                                    {
+                                        name: 'text_3',
+                                        model: {
+                                            class: 'SimpleInputModel',
+                                            config: {
+                                                defaultValue: "text_3 default",
+                                                validators: [
+                                                    {
+                                                        name: 'pattern',
+                                                        config: {
+                                                            pattern: /^some.*$/,
+                                                            description: "must start with 'some'"
+                                                        }
+                                                    },
+                                                    {
+                                                        name: 'minLength',
+                                                        message: "@validator-error-custom-text_7",
+                                                        config: {minLength: 3}
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent', config: {}},
+                                    },
+                                    {
+                                        name: 'repeatable_2',
+                                        model: {
+                                            class: 'RepeatableComponentModel',
+                                            config: {defaultValue: [{text_rpt_2: "text_rpt_2 default 1"}, {text_rpt_2: "text_rpt_2 default 2"}]}
+                                        },
+                                        component: {
+                                            class: 'RepeatableComponent',
+                                            config: {
+                                                elementTemplate: {
+                                                    name: 'text_rpt_2',
+                                                    model: {
+                                                        class: 'SimpleInputModel', config: {
+                                                            validators: [
+                                                                {name: 'email', config: {}},
+                                                            ]
+                                                        }
+                                                    },
+                                                    component: {
+                                                        class: 'SimpleInputComponent',
+                                                        config: {}
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                ]
+                            }
+                        }
+                    }
                 ],
             };
-            const record = {metadata: {text_1: "text_1_value", text_2: "text_2_value"}};
+            const record = {
+                metadata: {
+                    text_1: "text_1_value",
+                    text_2: true,
+                    group_2: {
+                        text_4: 10,
+                        text_3: "some text",
+                        repeatable_2: [
+                            {text_rpt_2: "example@example.com"}
+                        ]
+                    }
+                }
+            };
             const expected = [];
 
             let actual = null;
