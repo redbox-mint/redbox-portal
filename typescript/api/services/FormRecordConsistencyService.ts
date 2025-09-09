@@ -565,8 +565,10 @@ export module Services {
             // Validate any array elements
             if (elementTemplate && Array.isArray(record)) {
                 for (const element of record) {
+                    // The element value is the value of the property that starts with the itemName.
+                    const elementKey = Object.keys(element).find(i => i.startsWith(itemName));
                     const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                            element, elementTemplate, validatorDefinitions)
+                            element?.[elementKey], elementTemplate, validatorDefinitions)
                     ) ?? [];
                     itemErrors.forEach(i => result.push(i));
                 }
@@ -578,9 +580,9 @@ export module Services {
                 const recordFormControl = this.createFormControlFromRecordValue(record);
                 for (const validatorFunc of validatorFuncs) {
                     const funcResult = validatorFunc(recordFormControl);
-                    // if (funcResult !== null) {
-                    result.push(funcResult);
-                    // }
+                    if (funcResult !== null) {
+                        result.push(funcResult);
+                    }
                 }
             }
 

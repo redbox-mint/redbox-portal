@@ -607,7 +607,7 @@ describe('The FormRecordConsistencyService', function () {
                         text_4: 10,
                         text_3: "some text",
                         repeatable_2: [
-                            {text_rpt_2: "example@example.com"}
+                            {text_rpt_2_item1: "example@example.com"},
                         ]
                     }
                 }
