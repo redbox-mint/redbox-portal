@@ -21,10 +21,10 @@ sequenceDiagram
   participant SaveButtonComponent
   User->>FormComponent: Edit form fields
   FormComponent->>FormGroup: Triggers async validation
-  FormGroup-->>FormComponent: statusChanges (pending=true)
+  FormGroup-->>FormComponent: Validation pending (pending=true)
   FormComponent->>FormStatus: Set VALIDATION_PENDING
   FormComponent->>SaveButtonComponent: Disable Save
-  FormGroup-->>FormComponent: statusChanges (pending=false)
+  FormGroup-->>FormComponent: Validation pass (pending=false)
   FormComponent->>FormStatus: Set READY
   FormComponent->>SaveButtonComponent: Enable Save
 ```
