@@ -83,8 +83,7 @@
       "scripts": [
         "../node_modules/leaflet/dist/leaflet.js",
         "../node_modules/bootstrap-datepicker/js/bootstrap-datepicker.js",
-        "../node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js",
-        "assets/js/vocab_widget_v2.js"
+        "../node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"
       ],
       "environmentSource": "environments/environment.ts",
       "environments": {
