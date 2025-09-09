@@ -317,6 +317,10 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return this.componentDefinition?.config?.disabled ?? false;
   }
 
+  get label(): string {
+    return _get(this.componentDefinition?.config,'label','');
+  }
+
   hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {

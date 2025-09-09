@@ -2,13 +2,14 @@ import { Component, inject } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import { SaveButtonComponentDefinition } from '@researchdatabox/sails-ng-common';
+import { get as _get } from 'lodash-es';
 
 @Component({
   selector: 'redbox-form-save-button',
   template:`
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="getStringProperty('label')" [disabled]="disabled"></button>
+    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="label" [disabled]="disabled"></button>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
   `,
@@ -32,8 +33,13 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   }
 
   get disabled(): boolean { 
-    // Check if the `formComponent.formGroup` is valid and dirty
-    // Disable if the form is invalid or pristine (unchanged)
-    return !this.formComponent?.dataStatus.valid || this.formComponent?.dataStatus.pristine;   
+    // Disable if the form is invalid, pristine, or not ready (including VALIDATION_PENDING or SAVING)
+    const status = this.formComponent?.status();
+    return (
+      !this.formComponent?.dataStatus.valid ||
+      this.formComponent?.dataStatus.pristine ||
+      status === 'VALIDATION_PENDING' ||
+      status === 'SAVING'
+    );
   }
 }

@@ -34,7 +34,7 @@ import {
   model
 } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { FormGroup } from '@angular/forms';
+import { FormGroup, FormControlStatus } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
@@ -86,6 +86,12 @@ export class FormComponent extends BaseComponent {
    * The FormGroup instance
    */
   form?: FormGroup;
+  /**
+   * The form group status signal
+   */
+  formGroupStatus = computed<FormGroupStatus>(() => {
+    return this.dataStatus;
+  });
   /**
    * The form components
    */
@@ -165,6 +171,14 @@ export class FormComponent extends BaseComponent {
             this.componentsLoaded.set(false);
           });
       }
+    });
+
+    // Monitor async validation state using Angular signals effect
+    effect(() => {
+      if (this.formGroupStatus()?.pending) {
+        this.status.set(FormStatus.VALIDATION_PENDING);
+      } 
+      // Not reverting to READY here, as other operations may have changed the status
     });
   }
 
@@ -403,13 +417,37 @@ export class FormComponent extends BaseComponent {
   }
 
   // Expose the `form` status
-  public get dataStatus(): { valid: boolean; dirty: boolean, pristine: boolean } {
+  public get dataStatus(): FormGroupStatus {
     return {
       valid: this.form?.valid || false,
       dirty: this.form?.dirty || false,
       pristine: this.form?.pristine || false,
-    };
+      invalid: this.form?.invalid || false,
+      pending: this.form?.pending || false,
+      disabled: this.form?.disabled || false,
+      enabled: this.form?.enabled || false,
+      touched: this.form?.touched || false,
+      untouched: this.form?.untouched || false,
+      value: this.form?.value || null,
+      errors: this.form?.errors || null,
+      status: this.form?.status as FormControlStatus || 'DISABLED',
+    } as FormGroupStatus;
   }
+}
+
+export interface FormGroupStatus {
+  valid: boolean;
+  invalid: boolean;
+  dirty: boolean;
+  pristine: boolean;
+  pending: boolean;
+  disabled: boolean;
+  enabled: boolean;
+  touched: boolean;
+  untouched: boolean;
+  value: any;
+  errors: any;
+  status: FormControlStatus;
 }
 
 type DebugInfo = {
