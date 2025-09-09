@@ -48,11 +48,9 @@ services:
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-      # install dev dependencies for chai and other test utilities
       npm ci &&
-      # run nyc and mocha via npx to get latest versions
       npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
-        npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
+      npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'always'
