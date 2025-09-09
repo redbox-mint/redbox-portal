@@ -19,8 +19,9 @@ services:
          - bruno
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal/test/bruno && 
-      npm install && 
-      npx @usebruno/cli@1.34.1 run 
+  # try a clean, reproducible install but fall back to npm install if needed
+  (npm ci --prefer-offline --no-audit || npm install) && 
+  npx @usebruno/cli@1.34.1 run 
       --env int-test 
       --format junit 
       --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno.xml 
@@ -76,9 +77,8 @@ services:
       chmod 666 package-lock.json 2>/dev/null || true &&
       chmod -R 777 node_modules/ 2>/dev/null || true &&
       chmod -R 777 .tmp/ 2>/dev/null || true &&
-      npm install -g nyc &&
-      npm install &&
-      nyc --no-clean --report-dir coverage/bruno --reporter=lcov --exclude-after-remap=false node app.js
+
+      npx nyc --no-clean --report-dir coverage/bruno --reporter=lcov --exclude-after-remap=false node app.js
       "
   mongodb:
     image: mongo:latest
