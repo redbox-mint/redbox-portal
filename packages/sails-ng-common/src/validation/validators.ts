@@ -235,16 +235,19 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           // don't validate empty values to allow optional controls
           return null;
         }
-        if (!optionPatternValue.test(control.value?.toString() ?? "")) {
-          return {
-            [optionNameValue]: {
-              [optionMessageKey]: optionMessageValue,
-              params: {
-                requiredPattern: optionPatternValue,
-                description: optionDescriptionValue,
-                actual: control.value,
-              },
+
+        const value = control.value?.toString() ?? "";
+        const testOutcome = optionPatternValue.test(value);
+        if (!testOutcome) {
+        return {
+          [optionNameValue]: {
+            [optionMessageKey]: optionMessageValue,
+            params: {
+              requiredPattern: optionPatternValue,
+
+              description: optionDescriptionValue,actual: control.value,
             },
+          },
           };
         }
         return null;
