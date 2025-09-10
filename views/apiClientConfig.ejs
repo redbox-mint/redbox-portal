@@ -14,8 +14,10 @@ let defaultConfig = {
   maxTransferRowsPerPage: sails.config.record.transfer.maxRecordsPerPage,
   maxSearchRowsPerPage: sails.config.record.search.maxRecordsPerPage,
   i18NextOpts: i18NextOpts,
-  lang: lang
+  lang: lang || 'en'
 };
+defaultConfig.i18NextOpts.supportedLngs = [lang || 'en'];
+defaultConfig.i18NextOpts.preload = [lang || 'en'];
 if (!_.isUndefined(sails.config.api.additionalClientConfig)) {
   _.merge(defaultConfig, sails.config.api.additionalClientConfig);
 }

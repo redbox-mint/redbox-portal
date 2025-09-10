@@ -1,0 +1,35 @@
+meta {
+  name: Set Entry With Category And Description
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/default/rdmp/api/i18n/entries/ar/translation/hello-world
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "value": "Hello World!!",
+    "category": "test",
+    "description": "Greeting updated"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has category and description", function () {
+      var data = res.getBody();
+      expect(data.category).to.equal("test");
+      expect(data.description).to.equal("Greeting updated");
+  });
+}

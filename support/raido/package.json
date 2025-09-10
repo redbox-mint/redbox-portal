@@ -14,7 +14,7 @@
   "author": "QCIF Engineering",
   "license": "GPL-3.0",
   "devDependencies": {
-    "typescript": "^4.9.4",
+    "typescript": "^5.9.2",
     "@types/node": "^24.3.0"
   },
   "publishConfig": {

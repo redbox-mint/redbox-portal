@@ -21,11 +21,19 @@ const defaultPolicies = [
   'checkBrandingValid',
   'setLang',
   'prepWs',
+  'i18nLanguages',
   'isWebServiceAuthenticated',
   'checkAuth',
   'contentSecurityPolicy',
 ];
 const noCachePlusDefaultPolicies = ['noCache', ...defaultPolicies];
+const publicTranslationPolicies = [
+  'noCache',
+  'brandingAndPortal',
+  'checkBrandingValid',
+  'setLang',
+  'prepWs'
+];
 const noCachePlusCspNoncePolicy = ['noCache', 'contentSecurityPolicy']
 module.exports.policies = {
 
@@ -74,6 +82,12 @@ module.exports.policies = {
   },
   'DynamicAssetController': {
     '*': noCachePlusDefaultPolicies
+  },
+  // Ensure checkAuth runs on translation endpoints that modify data
+  // Keep read-only translation endpoints public for frontend access
+  'TranslationController': {
+    '*': noCachePlusDefaultPolicies,
+    'getNamespace': publicTranslationPolicies
   },
   '*': defaultPolicies
 };

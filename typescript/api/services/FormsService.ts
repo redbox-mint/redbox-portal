@@ -66,7 +66,7 @@ export module Services {
         workflowStep: workflowStep.id
       })
       if (sails.config.appmode.bootstrapAlways) {
-        sails.log.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
+        this.logger.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
         await Form.destroyOne({
           name: workflowStep.config.form
         })
@@ -74,10 +74,10 @@ export module Services {
       }
       let formDefs = [];
       let formName = null;
-      sails.log.verbose("Found : ");
-      sails.log.verbose(form);
+      this.logger.verbose("Found : ");
+      this.logger.verbose(form);
       if (!form || form.length == 0) {
-        sails.log.verbose("Bootstrapping form definitions..");
+        this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
         _.forOwn(sails.config.form.forms, (formDef, formName) => {
           if (formName == workflowStep.config.form) {
@@ -85,13 +85,13 @@ export module Services {
           }
         });
         formDefs = _.uniq(formDefs)
-        sails.log.verbose(JSON.stringify(formDefs));
+        this.logger.verbose(JSON.stringify(formDefs));
         if(_.isArray(formDefs)) {
           formDefs = formDefs[0]
         }
         formName = formDefs;
       } else {
-        sails.log.verbose("Not Bootstrapping form definitions... ");
+        this.logger.verbose("Not Bootstrapping form definitions... ");
 
       }
       // check now if the form already exists, if it does, ignore...
@@ -103,18 +103,18 @@ export module Services {
         existingFormDef: existingFormDef
       };
 
-      sails.log.verbose(`Existing form check: ${existCheck.formName}`);
-      sails.log.verbose(JSON.stringify(existCheck));
+      this.logger.verbose(`Existing form check: ${existCheck.formName}`);
+      this.logger.verbose(JSON.stringify(existCheck));
       formName = null;
       if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
         formName = existCheck.formName
       } else {
-        sails.log.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
+        this.logger.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
       }
 
 
-      sails.log.verbose("FormName is:");
-      sails.log.verbose(formName);
+      this.logger.verbose("FormName is:");
+      this.logger.verbose(formName);
       let result = null;
       if (!_.isNull(formName)) {
         sails.log.verbose(`Preparing to create form...`);
@@ -142,12 +142,12 @@ export module Services {
         };
 
         result = await Form.create(formObj);
-        sails.log.verbose("Created form record: ");
-        sails.log.verbose(result);
+        this.logger.verbose("Created form record: ");
+        this.logger.verbose(result);
       }
 
       if (result) {
-        sails.log.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
+        this.logger.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
         // update the workflow step...
         return await WorkflowStep.update({
           id: result.workflowStep
