@@ -19,7 +19,7 @@
     "@angular/platform-browser": "^20.2.4",
     "@angular/platform-browser-dynamic": "^20.2.4",
     "@angular/router": "^20.2.4",
-    "@ngx-formly/bootstrap": "^6.3.10",
+    "@ngx-formly/bootstrap": "^7.0.0",
     "@ngx-formly/core": "^6.3.6",
     "@researchdatabox/sails-ng-common": "../packages/sails-ng-common",
     "angular-i18next": "^20.0.0",
