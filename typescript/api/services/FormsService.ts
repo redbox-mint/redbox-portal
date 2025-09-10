@@ -591,7 +591,7 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      if (!this.isFormFieldDefinition(item)) {
+      if (!isFormFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field component definition ${JSON.stringify(item)}`);
       }
       return this.buildClientFormObject(item, context);
@@ -607,7 +607,7 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      if (!this.isFormFieldDefinition(item)) {
+      if (!isFormFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field layout definition ${JSON.stringify(item)}`);
       }
       return this.buildClientFormObject(item, context);
@@ -618,7 +618,7 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      if (!this.isFormFieldDefinition(item)) {
+      if (!isFormFieldDefinition(item)) {
           throw new Error(`FormsService - item is not a form field model definition ${JSON.stringify(item)}`);
       }
       if (item?.config?.value !== undefined) {
@@ -652,7 +652,7 @@ export module Services {
     private buildClientFormObject(item: FormConfig | BaseFormFieldDefinition, context: ClientFormContext): Record<string, unknown> | null {
       const result: Record<string, unknown> = {};
 
-      if (this.isFormFieldDefinition(item) && item.config === null) {
+      if (isFormFieldDefinition(item) && item.config === null) {
         // if the config was removed, then remove the definition block
         sails.log.verbose(`FormsService - removed form field definition with class '${item?.['class']}'`);
         return null;
@@ -685,26 +685,31 @@ export module Services {
             break;
 
           case 'component':
-            result[key] = this.buildClientFormFieldComponentDefinition(value, context);
-            if (result[key] === null || result[key]?.['config'] === null) {
-              // if a component or component config is set to null,
-              // then the component definition needs to be removed
-              sails.log.verbose(`FormsService - remove component form field component definition with class '${value?.['class']}'`);
-              return null;
-            }
+              if (isFormFieldDefinition(value)) {
+                  result[key] = this.buildClientFormFieldComponentDefinition(value, context);
+                  if (result[key] === null || result[key]?.['config'] === null) {
+                      // if a component or component config is set to null,
+                      // then the component definition needs to be removed
+                      sails.log.verbose(`FormsService - remove component form field component definition with class '${value?.['class']}'`);
+                      return null;
+                  }
+              }
             break;
 
           case 'model':
-              const modelItem = value as unknown as BaseFormFieldModelDefinition<unknown>;
-              result[key] = this.buildClientFormFieldModelDefinition(modelItem, context);
+              if (isFormFieldDefinition(value)) {
+                  result[key] = this.buildClientFormFieldModelDefinition(value, context);
+              }
               break;
 
           case 'layout':
-            result[key] = this.buildClientFormFieldLayoutDefinition(value, context);
+              if (isFormFieldDefinition(value)) {
+                  result[key] = this.buildClientFormFieldLayoutDefinition(value, context);
+              }
             break;
 
           case 'elementTemplate':
-            if (this.isFormComponentDefinition(value)) {
+            if (isFormComponentDefinition(value)) {
               result[key] = this.buildClientFormComponentDefinition(value, context);
               if (result[key] === null) {
                 // if the elementTemplate was removed,
@@ -778,26 +783,6 @@ export module Services {
       }
 
       return isAllowed;
-    }
-
-    private isFormFieldDefinition(item: unknown): item is Record<string, unknown> {
-      // use typescript narrowing to check the value
-      // see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
-      // not using 'BaseFormFieldComponentDefinition' because it is too general -
-      // it does not include the class and config
-      const i = item as Record<string, unknown>;
-      // note that 'config' can be null or object, or not set
-      return 'class' in i && typeof i?.class === 'string' &&
-          ('config' in i && (typeof i?.config === 'object' || i?.config === null) || i?.config === undefined);
-    }
-
-    private isFormComponentDefinition(item: unknown): item is FormComponentDefinition {
-      // use typescript narrowing to check the value
-
-      const i = item as FormComponentDefinition;
-      // only name and component are required
-      return 'name' in i && typeof i?.name === 'string' &&
-          'component' in i && this.isFormFieldDefinition(i?.component);
     }
   }
 }

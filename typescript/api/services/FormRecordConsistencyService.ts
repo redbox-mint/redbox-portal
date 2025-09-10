@@ -23,7 +23,8 @@ import {
     FormConfig,
     FormValidatorDefinition,
     formValidatorsSharedDefinitions,
-    FormValidatorSummaryErrors, RepeatableFormFieldComponentConfig,
+    FormValidatorSummaryErrors,
+    guessType,
     SimpleServerFormValidatorControl,
     ValidatorsSupport
 } from "@researchdatabox/sails-ng-common";
@@ -204,12 +205,12 @@ export module Services {
                 // pre-calculate aspects of the original item
                 const isKeyInOriginal = key in original;
                 const originalValue = isKeyInOriginal ? original[key] : undefined;
-                const originalValueType = this.guessType(originalValue);
+                const originalValueType = guessType(originalValue);
 
                 // pre-calculate aspects of the changed item
                 const isKeyInChanged = key in changed;
                 const changedValue = isKeyInChanged ? changed[key] : undefined;
-                const changedValueType = this.guessType(changedValue);
+                const changedValueType = guessType(changedValue);
 
                 // pre-calculate aspects of the permitted changes
                 const isKeyInPermittedChange = key in permittedChangesProps;
@@ -396,7 +397,7 @@ export module Services {
                 }
             } else if (item?.model?.config?.defaultValue !== undefined) {
                 // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-                result.properties[item?.name] = {type: this.guessType(item?.model?.config?.defaultValue)};
+                result.properties[item?.name] = {type: guessType(item?.model?.config?.defaultValue)};
             } else {
                 // empty: https://jsontypedef.com/docs/jtd-in-5-minutes/#empty-schemas
                 result.properties[item?.name] = {};
@@ -652,50 +653,6 @@ export module Services {
         }
 
         /**
-         * Guess the type of the value.
-         * @param value Guess the type of this value.
-         * @private
-         */
-        private guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "unknown" {
-            if (value === null) {
-                return "null";
-            }
-            if (_.isBoolean(value)) {
-                return "boolean";
-            }
-            if (Number.isFinite(value)) {
-                return "number";
-            }
-            if (_.isArray(value)) {
-                return "array";
-            }
-
-            // check for date
-            const momentFormats = [
-                'YYYY-MM-DDTHH:mm:ss.SSSZ', // ISO8601
-                'YYYY-MM-DDTHH:mm:ssZ', // RFC3339
-            ];
-            try {
-                const strict = true;
-                const result = moment(value?.toString(), momentFormats, strict);
-                sails.log.verbose(`guessType date input '${value}' output '${result}' typeof '${typeof result}' moment.isValid '${result.isValid()}'`);
-                if (result && result.isValid()) {
-                    return "timestamp";
-                }
-            } catch (err) {
-                sails.log.verbose(`guessType parse error with value '${value}' formats ${JSON.stringify(momentFormats)}: ${err}`);
-            }
-
-            if (_.isString(value)) {
-                return "string";
-            }
-            if (_.isPlainObject(value)) {
-                return "object";
-            }
-            return "unknown";
-        }
-
-        /**
          * Extract the keys and entries from an object or array.
          * @param item Extract keys and values from this item.
          * @private
@@ -704,7 +661,7 @@ export module Services {
             entries: [string | number, unknown][],
             keys: (string | number)[]
         } | undefined {
-            const guessedType = this.guessType(item);
+            const guessedType = guessType(item);
             if (guessedType === "object") {
                 const entries = Object.entries(item as Record<string, unknown>);
                 return {entries: entries, keys: entries.map(i => i[0])};
@@ -727,7 +684,7 @@ export module Services {
         }
 
         private createFormControlFromRecordValue(recordValue: unknown) {
-            const guessedType = this.guessType(recordValue);
+            const guessedType = guessType(recordValue);
             if (guessedType === "object") {
                 return new SimpleServerFormValidatorControl(
                     Object.fromEntries(
