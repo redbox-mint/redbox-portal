@@ -9,6 +9,7 @@ import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
 import { TextAreaComponent, TextAreaModel } from "./component/textarea.component";
 import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
+import { CheckboxInputComponent, CheckboxInputModel } from "./component/checkbox-input.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -35,6 +36,10 @@ export const StaticModelCompClassMap = {
   'DropdownInput': {
     model: DropdownInputModel,
     component: DropdownInputComponent
+  },
+  'CheckboxInput': {
+    model: CheckboxInputModel,
+    component: CheckboxInputComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent

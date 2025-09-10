@@ -31,6 +31,7 @@ import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
 import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
 import { DropdownInputComponentConfig, DropdownInputComponentDefinition, DropdownInputModelConfig, DropdownInputModelDefinition } from "./dropdown-input.model";
+import { CheckboxInputComponentConfig, CheckboxInputComponentDefinition, CheckboxInputModelConfig, CheckboxInputModelDefinition } from "./checkbox-input.model";
 /**
  * Possible form field component definitions.
  */
@@ -44,7 +45,8 @@ export type FormFieldComponentDefinition =
     TabContentComponentDefinition |
     SaveButtonComponentDefinition |
     TextAreaComponentDefinition |
-    DropdownInputComponentDefinition;
+    DropdownInputComponentDefinition |
+    CheckboxInputComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -58,7 +60,8 @@ export type FormFieldComponentConfig =
     TabComponentConfig |
     SaveButtonComponentConfig |
     TextAreaComponentConfig |
-    DropdownInputComponentConfig;
+    DropdownInputComponentConfig |
+    CheckboxInputComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -69,7 +72,8 @@ export type FormFieldModelDefinition =
     ValidationSummaryFormFieldModelDefinition |
     GroupFormFieldModelDefinition | 
     TextareaModelDefinition |
-    DropdownInputModelDefinition;
+    DropdownInputModelDefinition |
+    CheckboxInputModelDefinition;
 
 
 /**
@@ -81,7 +85,8 @@ export type FormFieldModelConfig =
     ValidationSummaryFormFieldModelConfig |
     GroupFormFieldModelConfig | 
     TextareaModelConfig |
-    DropdownInputModelConfig;
+    DropdownInputModelConfig |
+    CheckboxInputModelConfig;
 
 
 /**
@@ -109,3 +114,4 @@ export * from './tab.model'
 export * from './save-button.model'
 export * from './textblock.model'
 export * from './dropdown-input.model'
+export * from './checkbox-input.model'

@@ -113,6 +113,33 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    name: 'checkbox_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Checkbox some label',
+                                            helpText: 'Checkbox some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'CheckboxInputModel',
+                                        config: {
+                                            defaultValue: 'option1',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'CheckboxInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                            ],
+                                            tooltip: 'Checkbox tooltip'
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',
