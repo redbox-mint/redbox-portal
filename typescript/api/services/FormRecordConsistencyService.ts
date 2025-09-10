@@ -142,7 +142,7 @@ export module Services {
         public mergeRecordClientFormConfig(
             original: BasicRedboxRecord,
             changed: BasicRedboxRecord,
-            clientFormConfig: Record<string, unknown>,
+            clientFormConfig: FormConfig,
         ): BasicRedboxRecord {
             const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig);
             const originalMetadata = original?.metadata ?? {};
@@ -377,7 +377,7 @@ export module Services {
             const result = {properties: {}};
             if (item?.component?.class === "RepeatableComponent" && item?.component?.config?.['elementTemplate'] !== undefined) {
                 const elementTemplateItem = {
-                    name: RepeatableFormFieldComponentConfig.getLocalUID(),
+                    name: "",
                     ...item?.component?.config?.['elementTemplate']
                 };
                 // array elements: https://jsontypedef.com/docs/jtd-in-5-minutes/#elements-schemas
