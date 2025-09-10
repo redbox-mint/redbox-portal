@@ -30,6 +30,7 @@ import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
 import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
+import { DropdownComponentConfig, DropdownComponentDefinition, DropdownModelConfig, DropdownModelDefinition } from "./dropdown.model";
 /**
  * Possible form field component definitions.
  */
@@ -42,7 +43,8 @@ export type FormFieldComponentDefinition =
     TabFormFieldComponentDefinition | 
     TabContentComponentDefinition |
     SaveButtonComponentDefinition |
-    TextAreaComponentDefinition;
+    TextAreaComponentDefinition |
+    DropdownComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -55,7 +57,8 @@ export type FormFieldComponentConfig =
     GroupFormFieldComponentConfig |
     TabComponentConfig |
     SaveButtonComponentConfig |
-    TextAreaComponentConfig;
+    TextAreaComponentConfig |
+    DropdownComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -65,7 +68,8 @@ export type FormFieldModelDefinition =
     RepeatableFormFieldModelDefinition |
     ValidationSummaryFormFieldModelDefinition |
     GroupFormFieldModelDefinition | 
-    TextareaModelDefinition;
+    TextareaModelDefinition |
+    DropdownModelDefinition;
 
 
 /**
@@ -76,7 +80,8 @@ export type FormFieldModelConfig =
     RepeatableFormFieldModelConfig |
     ValidationSummaryFormFieldModelConfig |
     GroupFormFieldModelConfig | 
-    TextareaModelConfig;
+    TextareaModelConfig |
+    DropdownModelConfig;
 
 
 /**
@@ -103,3 +108,4 @@ export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'
 export * from './textblock.model'
+export * from './dropdown.model'
