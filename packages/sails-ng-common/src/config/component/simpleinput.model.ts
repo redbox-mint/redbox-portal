@@ -15,7 +15,7 @@ export class SimpleInputComponentConfig extends BaseFormFieldComponentConfig {
 
 export interface SimpleInputModelDefinition extends BaseFormFieldModelDefinition<SimpleInputModelValueType> {
     class: "SimpleInputModel";
-    config: SimpleInputModelConfig;
+    config?: SimpleInputModelConfig;
 }
 
 export class SimpleInputModelConfig extends BaseFormFieldModelConfig<SimpleInputModelValueType> {

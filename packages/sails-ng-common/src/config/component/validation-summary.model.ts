@@ -14,7 +14,7 @@ export class ValidationSummaryFormFieldComponentConfig extends BaseFormFieldComp
 
 export interface ValidationSummaryFormFieldModelDefinition extends BaseFormFieldModelDefinition<FormValidatorSummaryErrors> {
     class: "ValidationSummaryFieldModel";
-    config: ValidationSummaryFormFieldModelConfig;
+    config?: ValidationSummaryFormFieldModelConfig;
 }
 
 export class ValidationSummaryFormFieldModelConfig extends BaseFormFieldModelConfig<FormValidatorSummaryErrors> {

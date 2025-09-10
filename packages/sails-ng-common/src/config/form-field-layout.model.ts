@@ -1,9 +1,12 @@
 import {BaseFormFieldComponentConfig} from "./form-field-component.model";
+import {BaseFormFieldDefinition} from "./shared.model";
 
 /**
  * The common form field layout definition properties.
  */
-export interface BaseFormFieldLayoutDefinition {
+export interface BaseFormFieldLayoutDefinition extends BaseFormFieldDefinition {
+    class: string;
+    config?: BaseFormFieldLayoutConfig;
     /**
      * Optional name for the layout, used to reference the layout on the client-side.
      */

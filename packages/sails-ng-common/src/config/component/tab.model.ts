@@ -29,7 +29,7 @@ export class TabContentComponentConfig extends BaseFormFieldComponentConfig {
 
 export interface TabComponentFormFieldLayoutDefinition extends BaseFormFieldLayoutDefinition {
     class: "TabComponentLayout";
-    config: TabComponentFormFieldLayoutConfig;
+    config?: TabComponentFormFieldLayoutConfig;
 }
 
 export class TabComponentFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {

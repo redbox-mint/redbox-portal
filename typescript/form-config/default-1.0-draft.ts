@@ -505,7 +505,7 @@ const formConfig: FormConfig = {
         },
         {
             name: 'validation_summary_1',
-            model: { class: 'ValidationSummaryFieldModel', config: {} },
+            model: { class: 'ValidationSummaryFieldModel'},
             component: { class: "ValidationSummaryFieldComponent" }
         },
         // {

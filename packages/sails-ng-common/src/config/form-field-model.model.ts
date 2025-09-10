@@ -1,11 +1,12 @@
 import {FormValidatorConfig} from "../validation";
+import {BaseFormFieldDefinition} from "./shared.model";
 
 /**
  * The common form field model definition properties.
  */
-export interface BaseFormFieldModelDefinition<ValueType> {
+export interface BaseFormFieldModelDefinition<ValueType> extends BaseFormFieldDefinition {
     class: string;
-    config: BaseFormFieldModelConfig<ValueType>;
+    config?: BaseFormFieldModelConfig<ValueType>;
 }
 
 /**

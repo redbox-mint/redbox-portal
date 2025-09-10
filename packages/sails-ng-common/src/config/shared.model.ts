@@ -10,3 +10,11 @@ export type KeyValueStringProperty = Record<string, string> | string | null | un
  */
 export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
 
+/**
+ * The base form field definition for each property
+ * that specifies a class and config.
+ */
+export interface BaseFormFieldDefinition {
+    class: string;
+    config?: object;
+}

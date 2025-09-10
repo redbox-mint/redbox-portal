@@ -16,7 +16,7 @@ export class GroupFormFieldComponentConfig extends BaseFormFieldComponentConfig 
 
 export interface GroupFormFieldModelDefinition extends BaseFormFieldModelDefinition<GroupFieldModelValueType> {
     class: "GroupFieldModel";
-    config: GroupFormFieldModelConfig;
+    config?: GroupFormFieldModelConfig;
 }
 
 export class GroupFormFieldModelConfig extends BaseFormFieldModelConfig<GroupFieldModelValueType> {

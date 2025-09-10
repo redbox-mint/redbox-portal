@@ -27,7 +27,7 @@ export class RepeatableFormFieldComponentConfig extends BaseFormFieldComponentCo
 
 export interface RepeatableElementFormFieldLayoutDefinition extends BaseFormFieldLayoutDefinition {
     class: "RepeatableElementLayoutComponent";
-    config: RepeatableElementFormFieldLayoutConfig;
+    config?: RepeatableElementFormFieldLayoutConfig;
 }
 
 export class RepeatableElementFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
@@ -36,7 +36,7 @@ export class RepeatableElementFormFieldLayoutConfig extends BaseFormFieldLayoutC
 
 export interface RepeatableFormFieldModelDefinition extends BaseFormFieldModelDefinition<RepeatableModelValueType> {
     class: "RepeatableComponentModel";
-    config: RepeatableFormFieldModelConfig;
+    config?: RepeatableFormFieldModelConfig;
     // TODO: Migrate properties from `RepeatableContainer`
 }
 

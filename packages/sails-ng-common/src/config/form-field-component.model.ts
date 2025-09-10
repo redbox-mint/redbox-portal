@@ -1,9 +1,11 @@
-import {KeyValueStringProperty} from "./shared.model";
+import {BaseFormFieldDefinition, KeyValueStringProperty} from "./shared.model";
 
 /**
  * The common form field component definition properties.
  */
-export interface BaseFormFieldComponentDefinition {
+export interface BaseFormFieldComponentDefinition extends BaseFormFieldDefinition {
+    class: string;
+    config?: BaseFormFieldComponentConfig;
 }
 
 /**

@@ -186,7 +186,7 @@ describe("Validators", async () => {
             // email - expect pass
             args: {
                 value: "example@example.com", definition: formValidatorsSharedDefinitions,
-                block: {name: "email", config: {}},
+                block: {name: "email"},
             },
             expected: null,
         },

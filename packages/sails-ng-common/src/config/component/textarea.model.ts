@@ -17,7 +17,7 @@ export class TextAreaComponentConfig extends BaseFormFieldComponentConfig {
 
 export interface TextareaModelDefinition extends BaseFormFieldModelDefinition<TextareaModelValueType> {
     class: "TextAreaModel";
-    config: TextareaModelConfig;
+    config?: TextareaModelConfig;
 }
 
 export class TextareaModelConfig extends BaseFormFieldModelConfig<TextareaModelValueType> {
