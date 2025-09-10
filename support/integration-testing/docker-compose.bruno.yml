@@ -76,8 +76,25 @@ services:
       chmod 666 package-lock.json 2>/dev/null || true &&
       chmod -R 777 node_modules/ 2>/dev/null || true &&
       chmod -R 777 .tmp/ 2>/dev/null || true &&
-
-      npx nyc --no-clean --report-dir coverage/bruno --reporter=lcov --exclude-after-remap=false node app.js
+      # Ensure coverage directory exists and has proper permissions
+      mkdir -p coverage/bruno &&
+      chmod -R 777 coverage/ 2>/dev/null || true &&
+      echo 'Starting application with nyc coverage...' &&
+      # Function to handle shutdown and write coverage
+      shutdown_handler() {
+        echo 'Received shutdown signal, generating coverage report...' &&
+        npx nyc@17.1.0 report --report-dir coverage/bruno --reporter=lcov --temp-dir .tmp/.nyc_output &&
+        echo 'Coverage report generated, exiting' &&
+        exit 0
+      } &&
+      # Set up signal handlers
+      trap shutdown_handler SIGTERM SIGINT &&
+      # Run with nyc for code coverage
+      npx nyc@17.1.0 --no-clean --silent --temp-dir .tmp/.nyc_output node app.js &
+      APP_PID=\$! &&
+      echo 'Application started with PID:' \$APP_PID &&
+      # Wait for the application process
+      wait \$APP_PID
       "
   mongodb:
     image: mongo:latest
