@@ -30,7 +30,7 @@ import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
 import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
-import { DropdownComponentConfig, DropdownComponentDefinition, DropdownModelConfig, DropdownModelDefinition } from "./dropdown.model";
+import { DropdownInputComponentConfig, DropdownInputComponentDefinition, DropdownInputModelConfig, DropdownInputModelDefinition } from "./dropdown-input.model";
 /**
  * Possible form field component definitions.
  */
@@ -44,7 +44,7 @@ export type FormFieldComponentDefinition =
     TabContentComponentDefinition |
     SaveButtonComponentDefinition |
     TextAreaComponentDefinition |
-    DropdownComponentDefinition;
+    DropdownInputComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -58,7 +58,7 @@ export type FormFieldComponentConfig =
     TabComponentConfig |
     SaveButtonComponentConfig |
     TextAreaComponentConfig |
-    DropdownComponentConfig;
+    DropdownInputComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -69,7 +69,7 @@ export type FormFieldModelDefinition =
     ValidationSummaryFormFieldModelDefinition |
     GroupFormFieldModelDefinition | 
     TextareaModelDefinition |
-    DropdownModelDefinition;
+    DropdownInputModelDefinition;
 
 
 /**
@@ -81,7 +81,7 @@ export type FormFieldModelConfig =
     ValidationSummaryFormFieldModelConfig |
     GroupFormFieldModelConfig | 
     TextareaModelConfig |
-    DropdownModelConfig;
+    DropdownInputModelConfig;
 
 
 /**
@@ -108,4 +108,4 @@ export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'
 export * from './textblock.model'
-export * from './dropdown.model'
+export * from './dropdown-input.model'

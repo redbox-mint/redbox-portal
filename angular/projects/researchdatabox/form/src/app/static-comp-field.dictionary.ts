@@ -8,6 +8,7 @@ import { ContentComponent } from "./component/content.component";
 import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
 import { TextAreaComponent, TextAreaModel } from "./component/textarea.component";
+import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -30,6 +31,10 @@ export const StaticModelCompClassMap = {
   'TextArea': {
     model: TextAreaModel,
     component: TextAreaComponent
+  },
+  'DropdownInput': {
+    model: DropdownInputModel,
+    component: DropdownInputComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent

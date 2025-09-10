@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { NgModule } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
@@ -35,6 +35,7 @@ import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
 import { TextAreaComponent } from './component/textarea.component';
+import { DropdownInputComponent } from './component/dropdown-input.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -51,12 +52,14 @@ import { TextAreaComponent } from './component/textarea.component';
     SaveButtonComponent,
     TabComponent,
     TabContentComponent,
-    TabComponentLayout
+    TabComponentLayout,
+    DropdownInputComponent
   ],
   imports: [
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
+    FormsModule,
     RedboxPortalCoreModule,
     I18NextPipe,
   ],

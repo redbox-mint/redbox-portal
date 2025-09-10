@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
-export class DropdownModel extends FormFieldModel<string | number | null> {
+export class DropdownInputModel extends FormFieldModel<string | number | null> {
 }
 
 export interface DropdownOption {
@@ -22,7 +22,6 @@ export interface DropdownOption {
         [class.is-invalid]="!isValid"
         [required]="isRequired"
         [disabled]="isDisabled"
-        [readonly]="isReadonly"
         [title]="tooltip">
         @if (placeholder) {
           <option [ngValue]="null" disabled>{{placeholder}}</option>
@@ -36,8 +35,8 @@ export interface DropdownOption {
   `,
   standalone: false
 })
-export class DropdownComponent extends FormFieldBaseComponent<string | number | null> {
-  protected override logName: string = "DropdownComponent";
+export class DropdownInputComponent extends FormFieldBaseComponent<string | number | null> {
+  protected override logName: string = "DropdownInputComponent";
   public tooltip: string = '';
   public placeholder: string | undefined = '';
   public options: DropdownOption[] = [];
@@ -62,7 +61,7 @@ export class DropdownComponent extends FormFieldBaseComponent<string | number | 
   /**
    * The model associated with this component.
    */
-  @Input() public override model?: DropdownModel;
+  @Input() public override model?: DropdownInputModel;
 }
 
 
