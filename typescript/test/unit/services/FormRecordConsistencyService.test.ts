@@ -1,10 +1,20 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const rxjs_1 = require("rxjs");
-let expect;
+import {Observable, of} from "rxjs";
+import {Services, Services as FormRecordConsistencyModule} from "../../../api/services/FormRecordConsistencyService";
+import {Services as FormsModule} from "../../../api/services/FormsService";
+import {FormComponentDefinition, FormConfig} from "@researchdatabox/sails-ng-common";
+import BasicRedboxRecord = Services.BasicRedboxRecord;
+import {FormModel} from "@researchdatabox/redbox-core-types";
+
+let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
+
+declare const FormRecordConsistencyService: FormRecordConsistencyModule.FormRecordConsistency;
+type FormRecordConsistencyChange = FormRecordConsistencyModule.FormRecordConsistencyChange;
+declare const FormsService: FormsModule.Forms;
+
+
 describe('The FormRecordConsistencyService', function () {
-    const formConfigStandard = {
+    const formConfigStandard: FormConfig = {
         name: "default-1.0-draft",
         type: "rdmp",
         debugValue: true,
@@ -15,7 +25,7 @@ describe('The FormRecordConsistencyService', function () {
         editCssClasses: "redbox-form form",
         skipValidationOnSave: false,
     };
-    const formModelStandard = {
+    const formModelStandard: FormModel = {
         workflowStep: "",
         name: "default-1.0-draft",
         type: "rdmp",
@@ -27,11 +37,11 @@ describe('The FormRecordConsistencyService', function () {
         messages: {},
         requiredFieldIndicator: "",
         viewCssClasses: ""
-    };
-    const formModelConfigStandard = {
+    }
+    const formModelConfigStandard: FormModel & FormConfig = {
         ...formConfigStandard,
         ...formModelStandard,
-    };
+    }
     it('should detect changes using compareRecords', function () {
         const original = {
             name: 'my object',
@@ -50,11 +60,11 @@ describe('The FormRecordConsistencyService', function () {
             details: {
                 it: 'has',
                 an: 'array',
-                with: ['a', 'few', 'more', 'elements', { than: 'before' }],
+                with: ['a', 'few', 'more', 'elements', {than: 'before'}],
                 hello: ['first'],
             }
         };
-        const expected = [
+        const expected: FormRecordConsistencyChange[] = [
             {
                 kind: "change",
                 path: ['name'],
@@ -83,7 +93,7 @@ describe('The FormRecordConsistencyService', function () {
                 kind: 'add',
                 path: ['details', 'with', 4],
                 original: undefined,
-                changed: { than: 'before' },
+                changed: {than: 'before'},
             },
             {
                 kind: 'delete',
@@ -93,10 +103,18 @@ describe('The FormRecordConsistencyService', function () {
             }
         ];
         const outcome = FormRecordConsistencyService.compareRecords(original, changed);
-        expect(outcome).to.eql(expected);
+        expect(outcome).to.eql(expected)
     });
+
     describe('mergeRecord methods', function () {
-        const cases = [
+        const cases: {
+            args: {
+                componentDefinitions: FormComponentDefinition[],
+                original: BasicRedboxRecord,
+                changed: BasicRedboxRecord
+            },
+            expected: BasicRedboxRecord,
+        }[] = [
             {
                 // no changes
                 args: {
@@ -105,13 +123,13 @@ describe('The FormRecordConsistencyService', function () {
                             name: 'repeatable_group_1',
                             model: {
                                 class: 'RepeatableComponentModel',
-                                config: { value: [{ text_1: "hello world from repeating groups" }] }
+                                config: {value: [{text_1: "hello world from repeating groups"}]}
                             },
                             component: {
                                 class: 'RepeatableComponent',
                                 config: {
                                     elementTemplate: {
-                                        model: { class: 'GroupFieldModel', config: { defaultValue: {} } },
+                                        model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
                                         component: {
                                             class: 'GroupFieldComponent',
                                             config: {
@@ -121,7 +139,7 @@ describe('The FormRecordConsistencyService', function () {
                                                         name: 'text_2',
                                                         model: {
                                                             class: 'SimpleInputModel',
-                                                            config: { value: 'hello world 2!' }
+                                                            config: {value: 'hello world 2!'}
                                                         },
                                                         component: {
                                                             class: 'SimpleInputComponent'
@@ -143,16 +161,16 @@ describe('The FormRecordConsistencyService', function () {
                                     text_1: "text 1 value",
                                     text_2: "text 2 value",
                                     repeatable_for_admin: [
-                                        { text_for_repeatable_for_admin: "rpt value 1" },
-                                        { text_for_repeatable_for_admin: "rpt value 2" }
+                                        {text_for_repeatable_for_admin: "rpt value 1"},
+                                        {text_for_repeatable_for_admin: "rpt value 2"}
                                     ]
                                 },
                                 {
                                     text_1: "text 1 value 2",
                                     text_2: "text 2 value 2",
                                     repeatable_for_admin: [
-                                        { text_for_repeatable_for_admin: "rpt value 1 2" },
-                                        { text_for_repeatable_for_admin: "rpt value 2 2" }
+                                        {text_for_repeatable_for_admin: "rpt value 1 2"},
+                                        {text_for_repeatable_for_admin: "rpt value 2 2"}
                                     ]
                                 }
                             ]
@@ -166,16 +184,16 @@ describe('The FormRecordConsistencyService', function () {
                                     text_1: "text 1 value",
                                     text_2: "text 2 value",
                                     repeatable_for_admin: [
-                                        { text_for_repeatable_for_admin: "rpt value 1" },
-                                        { text_for_repeatable_for_admin: "rpt value 2" }
+                                        {text_for_repeatable_for_admin: "rpt value 1"},
+                                        {text_for_repeatable_for_admin: "rpt value 2"}
                                     ]
                                 },
                                 {
                                     text_1: "text 1 value 2",
                                     text_2: "text 2 value 2",
                                     repeatable_for_admin: [
-                                        { text_for_repeatable_for_admin: "rpt value 1 2" },
-                                        { text_for_repeatable_for_admin: "rpt value 2 2" }
+                                        {text_for_repeatable_for_admin: "rpt value 1 2"},
+                                        {text_for_repeatable_for_admin: "rpt value 2 2"}
                                     ]
                                 }
                             ]
@@ -190,16 +208,16 @@ describe('The FormRecordConsistencyService', function () {
                                 text_1: "text 1 value",
                                 text_2: "text 2 value",
                                 repeatable_for_admin: [
-                                    { text_for_repeatable_for_admin: "rpt value 1" },
-                                    { text_for_repeatable_for_admin: "rpt value 2" }
+                                    {text_for_repeatable_for_admin: "rpt value 1"},
+                                    {text_for_repeatable_for_admin: "rpt value 2"}
                                 ]
                             },
                             {
                                 text_1: "text 1 value 2",
                                 text_2: "text 2 value 2",
                                 repeatable_for_admin: [
-                                    { text_for_repeatable_for_admin: "rpt value 1 2" },
-                                    { text_for_repeatable_for_admin: "rpt value 2 2" }
+                                    {text_for_repeatable_for_admin: "rpt value 1 2"},
+                                    {text_for_repeatable_for_admin: "rpt value 2 2"}
                                 ]
                             }
                         ]
@@ -212,26 +230,26 @@ describe('The FormRecordConsistencyService', function () {
                     componentDefinitions: [
                         {
                             name: 'group_1',
-                            model: { class: 'GroupFieldModel' },
+                            model: {class: 'GroupFieldModel'},
                             component: {
                                 class: 'GroupFieldComponent',
                                 config: {
                                     componentDefinitions: [
                                         {
                                             name: 'text_1',
-                                            model: { class: 'SimpleInputModel', config: { value: 'hello world 1!' } },
-                                            component: { class: 'SimpleInputComponent' },
+                                            model: {class: 'SimpleInputModel', config: {value: 'hello world 1!'}},
+                                            component: {class: 'SimpleInputComponent'},
                                         },
                                         {
                                             name: 'group_2',
-                                            model: { class: 'GroupFieldModel' },
+                                            model: {class: 'GroupFieldModel'},
                                             component: {
                                                 class: 'GroupFieldComponent',
                                                 config: {
                                                     componentDefinitions: [
                                                         {
                                                             name: 'text_2',
-                                                            model: { class: 'SimpleInputModel' },
+                                                            model: {class: 'SimpleInputModel'},
                                                             component: {
                                                                 class: 'SimpleInputComponent'
                                                             },
@@ -248,14 +266,14 @@ describe('The FormRecordConsistencyService', function () {
                             name: 'repeatable_1',
                             model: {
                                 class: 'RepeatableComponentModel',
-                                config: { defaultValue: ["hello world from repeating groups"] }
+                                config: {defaultValue: ["hello world from repeating groups"]}
                             },
                             component: {
                                 class: 'RepeatableComponent',
                                 config: {
                                     elementTemplate: {
-                                        model: { class: 'SimpleInputModel' },
-                                        component: { class: 'SimpleInputComponent' },
+                                        model: {class: 'SimpleInputModel'},
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                 },
                             },
@@ -266,7 +284,7 @@ describe('The FormRecordConsistencyService', function () {
                         metadata: {
                             group_1: {
                                 text_1: 'hello world 1!',
-                                group_2: { text_2: "group_1 group_2 text_2" },
+                                group_2: {text_2: "group_1 group_2 text_2"},
                             },
                             repeatable_1: [
                                 "hello world from repeating groups",
@@ -293,7 +311,7 @@ describe('The FormRecordConsistencyService', function () {
                     metadata: {
                         group_1: {
                             text_1: 'text_1 new value',
-                            group_2: { text_2: "group_1 group_2 text_2" },
+                            group_2: {text_2: "group_1 group_2 text_2"},
                         },
                         repeatable_1: [
                             "repeatable_1 text_rpt_1 index 0 new value",
@@ -303,9 +321,9 @@ describe('The FormRecordConsistencyService', function () {
                 }
             }
         ];
-        cases.forEach(({ args, expected }) => {
+        cases.forEach(({args, expected}) => {
             it(`should merge as expected ${JSON.stringify(expected)} for args ${JSON.stringify(args)}`, (done) => {
-                const clientFormConfig = {
+                const clientFormConfig: FormConfig = {
                     name: "client-form-config",
                     type: "rdmp",
                     debugValue: true,
@@ -317,29 +335,35 @@ describe('The FormRecordConsistencyService', function () {
                     skipValidationOnSave: false,
                     componentDefinitions: args.componentDefinitions ?? [],
                 };
-                const result = FormRecordConsistencyService.mergeRecordClientFormConfig(args.original, args.changed, clientFormConfig);
+                const result = FormRecordConsistencyService.mergeRecordClientFormConfig(
+                    args.original,
+                    args.changed,
+                    clientFormConfig
+                );
                 expect(result).to.eql(expected);
                 done();
             });
         });
+
         it("fails when permittedChanges does not have a 'properties' property", function () {
             const func = function () {
-                FormRecordConsistencyService.mergeRecordMetadataPermitted({}, {}, {}, []);
-            };
+                FormRecordConsistencyService.mergeRecordMetadataPermitted({}, {}, {}, [])
+            }
             expect(func).to.throw(Error, 'top level');
         });
         it("fails when permittedChanges nested object is invalid", function () {
-            const record = { prop1: "value1" };
-            const permittedChanges = { properties: { prop1: { wrong: "wrong" } } };
+            const record = {prop1: "value1"};
+            const permittedChanges = {properties: {prop1: {wrong: "wrong"}}};
             const func = function () {
                 FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
-            };
+            }
             expect(func).to.throw(Error, 'elements');
         });
     });
+
     describe('buildDataModelDefault methods', function () {
         it("creates the expected default data model by using the most specific defaultValue", function () {
-            const formConfig = {
+            const formConfig: FormConfig = {
                 name: "remove-item-constraint-roles",
                 type: "rdmp",
                 debugValue: true,
@@ -357,7 +381,7 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: {
                                     text_1: "group_1 text_1 default",
-                                    group_2: { text_2: "group_1 group_2 text_2 default" }
+                                    group_2: {text_2: "group_1 group_2 text_2 default"}
                                 }
                             }
                         },
@@ -367,8 +391,8 @@ describe('The FormRecordConsistencyService', function () {
                                 componentDefinitions: [
                                     {
                                         name: 'text_1',
-                                        model: { class: 'SimpleInputModel', config: { defaultValue: 'text_1 default' } },
-                                        component: { class: 'SimpleInputComponent' },
+                                        model: {class: 'SimpleInputModel', config: {defaultValue: 'text_1 default'}},
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                     {
                                         name: 'group_2',
@@ -387,7 +411,7 @@ describe('The FormRecordConsistencyService', function () {
                                                 componentDefinitions: [
                                                     {
                                                         name: 'text_2',
-                                                        model: { class: 'SimpleInputModel' },
+                                                        model: {class: 'SimpleInputModel'},
                                                         component: {
                                                             class: 'SimpleInputComponent'
                                                         },
@@ -396,7 +420,7 @@ describe('The FormRecordConsistencyService', function () {
                                                         name: 'text_3',
                                                         model: {
                                                             class: 'SimpleInputModel',
-                                                            config: { defaultValue: "text_3 default" }
+                                                            config: {defaultValue: "text_3 default"}
                                                         },
                                                         component: {
                                                             class: 'SimpleInputComponent'
@@ -406,14 +430,14 @@ describe('The FormRecordConsistencyService', function () {
                                                         name: 'repeatable_2',
                                                         model: {
                                                             class: 'RepeatableComponentModel',
-                                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
+                                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
                                                         },
                                                         component: {
                                                             class: 'RepeatableComponent',
                                                             config: {
                                                                 elementTemplate: {
-                                                                    model: { class: 'SimpleInputModel' },
-                                                                    component: { class: 'SimpleInputComponent' },
+                                                                    model: {class: 'SimpleInputModel'},
+                                                                    component: {class: 'SimpleInputComponent'},
                                                                 },
                                                             },
                                                         },
@@ -429,7 +453,7 @@ describe('The FormRecordConsistencyService', function () {
                     {
                         name: 'repeatable_1',
                         // defaultValue of '{}' says that there is an item in the array, but with no properties
-                        model: { class: 'RepeatableComponentModel', config: { defaultValue: [{}] } },
+                        model: {class: 'RepeatableComponentModel', config: {defaultValue: [{}]}},
                         component: {
                             class: 'RepeatableComponent',
                             config: {
@@ -439,9 +463,9 @@ describe('The FormRecordConsistencyService', function () {
                                         // properties in this defaultValue will be added to the model.config.defaultValue
                                         // only if the properties are not present (or are present and have value 'undefined')
                                         // in model.config.defaultValue
-                                        config: { defaultValue: "hello world from repeating groups" }
+                                        config: {defaultValue: "hello world from repeating groups"}
                                     },
-                                    component: { class: 'SimpleInputComponent' },
+                                    component: {class: 'SimpleInputComponent'},
                                 },
                             },
                         },
@@ -461,19 +485,20 @@ describe('The FormRecordConsistencyService', function () {
                     },
                 },
                 repeatable_1: [
-                    { text_rpt_1: "hello world from repeating groups" },
+                    {text_rpt_1: "hello world from repeating groups"},
                 ],
             };
             const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig);
             expect(result).to.eql(expected);
         });
     });
+
     describe('validateRecordValues methods', async function () {
         it("passes when the record values are valid", async function () {
-            const formConfig = {
+            const formConfig: FormModel & FormConfig = {
                 ...formModelConfigStandard,
                 validators: [
-                    { name: 'different-values', config: { controlNames: ['text_1', 'text_2'] } },
+                    {name: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
                 ],
                 componentDefinitions: [
                     {
@@ -483,13 +508,13 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    { name: 'required' },
-                                    { name: 'minLength', config: { minLength: 10 } },
-                                    { name: 'maxLength', config: { maxLength: 20 } },
+                                    {name: 'required'},
+                                    {name: 'minLength', config: {minLength: 10}},
+                                    {name: 'maxLength', config: {maxLength: 20}},
                                 ]
                             }
                         },
-                        component: { class: 'SimpleInputComponent' }
+                        component: {class: 'SimpleInputComponent'}
                     },
                     {
                         name: 'text_2',
@@ -498,12 +523,12 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    { name: 'required' },
-                                    { name: 'requiredTrue' },
+                                    {name: 'required'},
+                                    {name: 'requiredTrue'},
                                 ]
                             }
                         },
-                        component: { class: 'SimpleInputComponent' }
+                        component: {class: 'SimpleInputComponent'}
                     },
                     {
                         name: 'group_2',
@@ -525,12 +550,12 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    { name: 'min', config: { min: 5 } },
-                                                    { name: 'max', config: { max: 15 } },
+                                                    {name: 'min', config: {min: 5}},
+                                                    {name: 'max', config: {max: 15}},
                                                 ]
                                             }
                                         },
-                                        component: { class: 'SimpleInputComponent' },
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                     {
                                         name: 'text_3',
@@ -549,18 +574,18 @@ describe('The FormRecordConsistencyService', function () {
                                                     {
                                                         name: 'minLength',
                                                         message: "@validator-error-custom-text_7",
-                                                        config: { minLength: 3 }
+                                                        config: {minLength: 3}
                                                     },
                                                 ]
                                             }
                                         },
-                                        component: { class: 'SimpleInputComponent' },
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                     {
                                         name: 'repeatable_2',
                                         model: {
                                             class: 'RepeatableComponentModel',
-                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
+                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -569,13 +594,13 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                { name: 'email' },
+                                                                {name: 'email'},
                                                             ]
                                                         }
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',
-                                                        config: { type: "email" }
+                                                        config: {type: "email"}
                                                     },
                                                 },
                                             },
@@ -585,13 +610,13 @@ describe('The FormRecordConsistencyService', function () {
                                         name: 'repeatable_3',
                                         model: {
                                             class: 'RepeatableComponentModel',
-                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
+                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
                                             config: {
                                                 elementTemplate: {
-                                                    model: { class: 'GroupFieldModel' },
+                                                    model: {class: 'GroupFieldModel'},
                                                     component: {
                                                         class: 'GroupFieldComponent',
                                                         config: {
@@ -600,7 +625,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                     name: 'repeatable_4',
                                                                     model: {
                                                                         class: 'RepeatableComponentModel',
-                                                                        config: { defaultValue: ["repeatable_4 default 1", "repeatable_4 default 2"] }
+                                                                        config: {defaultValue: ["repeatable_4 default 1", "repeatable_4 default 2"]}
                                                                     },
                                                                     component: {
                                                                         class: 'RepeatableComponent',
@@ -609,7 +634,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                                 model: {
                                                                                     class: 'SimpleInputModel', config: {
                                                                                         validators: [
-                                                                                            { name: 'required' },
+                                                                                            {name: 'required'},
                                                                                         ]
                                                                                     }
                                                                                 },
@@ -633,7 +658,7 @@ describe('The FormRecordConsistencyService', function () {
                     }
                 ],
             };
-            const record = {
+            const record: BasicRedboxRecord = {
                 metaMetadata: undefined,
                 redboxOid: "",
                 metadata: {
@@ -649,24 +674,25 @@ describe('The FormRecordConsistencyService', function () {
                 }
             };
             const expected = [];
+
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;
             try {
-                FormsService.getFormByName = function (formName, editMode) {
-                    return (0, rxjs_1.of)(formConfig);
-                };
+                FormsService.getFormByName = function (formName, editMode): Observable<FormModel> {
+                    return of(formConfig)
+                }
                 actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
-            }
-            finally {
+            } finally {
                 FormsService.getFormByName = oldFormServiceGetFormByName;
             }
+
             expect(actual).to.eql(expected);
         });
         it("fails when the record values are not valid", async function () {
-            const formConfig = {
+            const formConfig: FormModel & FormConfig = {
                 ...formModelConfigStandard,
                 validators: [
-                    { name: 'different-values', config: { controlNames: ['text_1', 'text_2'] } },
+                    {name: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
                 ],
                 componentDefinitions: [
                     {
@@ -676,12 +702,12 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    { name: 'minLength', config: { minLength: 20 } },
-                                    { name: 'maxLength', config: { maxLength: 10 } },
+                                    {name: 'minLength', config: {minLength: 20}},
+                                    {name: 'maxLength', config: {maxLength: 10}},
                                 ]
                             }
                         },
-                        component: { class: 'SimpleInputComponent' }
+                        component: {class: 'SimpleInputComponent'}
                     },
                     {
                         name: 'text_2',
@@ -690,13 +716,13 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    { name: 'required' },
-                                    { name: 'requiredTrue' },
+                                    {name: 'required'},
+                                    {name: 'requiredTrue'},
                                 ]
                             }
                         },
-                        component: { class: 'SimpleInputComponent' },
-                        layout: { class: "DefaultLayoutComponent", config: { label: "@text_2_custom_label" } },
+                        component: {class: 'SimpleInputComponent'},
+                        layout: {class: "DefaultLayoutComponent", config: {label: "@text_2_custom_label"}},
                     },
                     {
                         name: 'group_2',
@@ -705,7 +731,7 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: {
                                     text_3: "group_2 text_3 default",
-                                    repeatable_2: [{ text_rpt_2: "group_2 repeatable_2 text_rpt_2 default" }]
+                                    repeatable_2: [{text_rpt_2: "group_2 repeatable_2 text_rpt_2 default"}]
                                 }
                             }
                         },
@@ -718,23 +744,23 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    { name: 'min', config: { min: 5 } },
-                                                    { name: 'max', config: { max: 15 } },
+                                                    {name: 'min', config: {min: 5}},
+                                                    {name: 'max', config: {max: 15}},
                                                 ]
                                             }
                                         },
-                                        component: { class: 'SimpleInputComponent' },
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                     {
                                         name: 'text_5',
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    { name: 'required' },
+                                                    {name: 'required'},
                                                 ]
                                             }
                                         },
-                                        component: { class: 'SimpleInputComponent' },
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                     {
                                         name: 'text_3',
@@ -753,18 +779,18 @@ describe('The FormRecordConsistencyService', function () {
                                                     {
                                                         name: 'minLength',
                                                         message: "@validator-error-custom-text_7",
-                                                        config: { minLength: 50 }
+                                                        config: {minLength: 50}
                                                     },
                                                 ]
                                             }
                                         },
-                                        component: { class: 'SimpleInputComponent' },
+                                        component: {class: 'SimpleInputComponent'},
                                     },
                                     {
                                         name: 'repeatable_2',
                                         model: {
                                             class: 'RepeatableComponentModel',
-                                            config: { defaultValue: [{ repeatable_2_item1: "text_rpt_2 default 1" }, { repeatable_2_item2: "text_rpt_2 default 2" }] }
+                                            config: {defaultValue: [{repeatable_2_item1: "text_rpt_2 default 1"}, {repeatable_2_item2: "text_rpt_2 default 2"}]}
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -773,7 +799,7 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                { name: 'email' },
+                                                                {name: 'email'},
                                                             ]
                                                         }
                                                     },
@@ -790,7 +816,7 @@ describe('The FormRecordConsistencyService', function () {
                     }
                 ],
             };
-            const record = {
+            const record: BasicRedboxRecord = {
                 metaMetadata: undefined,
                 redboxOid: "",
                 metadata: {
@@ -913,19 +939,19 @@ describe('The FormRecordConsistencyService', function () {
                     ]
                 }
             ];
+
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;
             try {
-                FormsService.getFormByName = function (formName, editMode) {
-                    return (0, rxjs_1.of)(formConfig);
-                };
+                FormsService.getFormByName = function (formName, editMode): Observable<FormModel> {
+                    return of(formConfig)
+                }
                 actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
-            }
-            finally {
+            } finally {
                 FormsService.getFormByName = oldFormServiceGetFormByName;
             }
+
             expect(actual).to.eql(expected);
         });
     });
 });
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiRm9ybVJlY29yZENvbnNpc3RlbmN5U2VydmljZS50ZXN0LmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vdHlwZXNjcmlwdC90ZXN0L3VuaXQvc2VydmljZXMvRm9ybVJlY29yZENvbnNpc3RlbmN5U2VydmljZS50ZXN0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7O0FBQUEsK0JBQW9DO0FBT3BDLElBQUksTUFBeUIsQ0FBQztBQUM5QixNQUFNLENBQUMsTUFBTSxDQUFDLENBQUMsSUFBSSxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsTUFBTSxHQUFHLEdBQUcsQ0FBQyxNQUFNLENBQUMsQ0FBQztBQU9oRCxRQUFRLENBQUMsa0NBQWtDLEVBQUU7SUFDekMsTUFBTSxrQkFBa0IsR0FBZTtRQUNuQyxJQUFJLEVBQUUsbUJBQW1CO1FBQ3pCLElBQUksRUFBRSxNQUFNO1FBQ1osVUFBVSxFQUFFLElBQUk7UUFDaEIsY0FBYyxFQUFFLE1BQU07UUFDdEIsc0JBQXNCLEVBQUU7WUFDcEIsMEJBQTBCLEVBQUUsS0FBSztTQUNwQztRQUNELGNBQWMsRUFBRSxrQkFBa0I7UUFDbEMsb0JBQW9CLEVBQUUsS0FBSztLQUM5QixDQUFDO0lBQ0YsTUFBTSxpQkFBaUIsR0FBYztRQUNqQyxZQUFZLEVBQUUsRUFBRTtRQUNoQixJQUFJLEVBQUUsbUJBQW1CO1FBQ3pCLElBQUksRUFBRSxNQUFNO1FBQ1osY0FBYyxFQUFFLGtCQUFrQjtRQUNsQyxvQkFBb0IsRUFBRSxLQUFLO1FBQzNCLGdCQUFnQixFQUFFLFNBQVM7UUFDM0IsZ0JBQWdCLEVBQUUsU0FBUztRQUMzQixNQUFNLEVBQUUsRUFBRTtRQUNWLFFBQVEsRUFBRSxFQUFFO1FBQ1osc0JBQXNCLEVBQUUsRUFBRTtRQUMxQixjQUFjLEVBQUUsRUFBRTtLQUNyQixDQUFBO0lBQ0QsTUFBTSx1QkFBdUIsR0FBMkI7UUFDcEQsR0FBRyxrQkFBa0I7UUFDckIsR0FBRyxpQkFBaUI7S0FDdkIsQ0FB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
