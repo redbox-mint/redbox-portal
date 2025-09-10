@@ -53,7 +53,7 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "karma-junit-reporter": "^2.0.1",
-    "ng-packagr": "^20.2.0",
+    "ng-packagr": "^20.3.0",
     "tslib": "^2.8.1",
     "typescript": "~5.8.3"
   }
