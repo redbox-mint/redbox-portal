@@ -11,7 +11,18 @@ export interface RepeatableFormFieldComponentDefinition extends BaseFormFieldCom
 }
 
 export class RepeatableFormFieldComponentConfig extends BaseFormFieldComponentConfig {
-    elementTemplate?: FormComponentDefinition;
+    elementTemplate?: RepeatableFormComponentDefinition;
+
+    /**
+     * Create a unique ID using the current timestamp and a random number.
+     * This unique id must not be stored in the database.
+     * It will be different for each form load.
+     * It is for distinguishing the repeatable element entries.
+     */
+    public static getLocalUID(): string {
+        const randomNumber = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
+        return `${Date.now()}-${randomNumber}`;
+    }
 }
 
 export interface RepeatableElementFormFieldLayoutDefinition extends BaseFormFieldLayoutDefinition {
@@ -31,4 +42,8 @@ export interface RepeatableFormFieldModelDefinition extends BaseFormFieldModelDe
 
 export class RepeatableFormFieldModelConfig extends BaseFormFieldModelConfig<RepeatableModelValueType> {
     // TODO: Migrate JSON configurable properties from `RepeatableContainer`
+}
+
+export interface RepeatableFormComponentDefinition extends Omit<FormComponentDefinition, "name"> {
+
 }

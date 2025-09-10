@@ -9,6 +9,7 @@ import { FormValidatorSummaryErrors } from "@researchdatabox/sails-ng-common";
 export class ValidationSummaryFieldModel extends FormFieldModel<string> {
 }
 
+// TODO: use item.parents to reveal the parent components on click
 @Component({
   selector: 'redbox-validation-summary-field',
   template: `
@@ -19,14 +20,18 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
           @for (item of validationList; track item.id) {
             @if (item.errors.length > 0) {
               <li>
-                @if (item.id) {
-                  <a href="#{{ item.id }}">{{ item.message ?? "(no label)" | i18next }}</a>
+                @if (item.id && item.message) {
+                  <a href="#{{ item.id }}">{{ item.message | i18next }}</a>
+                } @else if (item.id && !item.message) {
+                  <a href="#{{ item.id }}">{{ item.id }}</a>
+                } @else if(!item.id && item.message) {
+                  {{ item.message | i18next }}
                 } @else {
-                  {{ item.message ?? "(no label)" | i18next }}
+                  {{ "@validator-label-default" | i18next }}
                 }
                 <ul>
                   @for (error of item.errors; track $index) {
-                    <li>{{ error.message ?? "(no message)" | i18next: error.params }}
+                    <li>{{ error.message | i18next: error.params }}
                     </li>
                   }
                 </ul>
@@ -41,7 +46,7 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
         The form is valid.
       </div>
     }
-    
+
     `,
   standalone: false
 })

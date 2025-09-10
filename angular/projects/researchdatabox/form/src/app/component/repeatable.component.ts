@@ -69,13 +69,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     // Resolve the classes using the FormService
-    const formConfig = this.getFormComponent.formDefMap?.formConfig;
     this.newElementFormConfig = {
-      componentDefinitions: [elementTemplate],
+      // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
+      componentDefinitions: [{...elementTemplate, name: ""}],
       // Get the default config.
-      // defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
-    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig);
+    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig as FormConfig);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
@@ -116,13 +116,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.createElement(elemEntry);
   }
 
-  protected getLocalUID(): string {
-    // Create a unique ID the timestamp, and a random number to ensure uniqueness.
-    return `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-  }
-
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
-    const localUniqueId = this.getLocalUID();
+    const localUniqueId = RepeatableFormFieldComponentConfig.getLocalUID();
 
     const elemEntry = {
       modelClass: templateEntry.modelClass,
@@ -132,9 +127,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       localUniqueId: localUniqueId,
     } as FormFieldCompMapEntry;
 
-    // The component and layout names are set from the elementTemplate name or the repeatable component name or a default name,
+    // The component and layout names are set from the repeatable component name or a default name,
     // with localUniqueId appended to ensure uniqueness.
-    const baseName = elemEntry.compConfigJson?.name || this.formFieldConfigName('repeatable') || 'repeatable-element';
+    const baseName = this.formFieldConfigName('repeatable') || 'repeatable-element';
 
     if (elemEntry.compConfigJson) {
       elemEntry.compConfigJson.name = `${baseName}-${localUniqueId}`;
@@ -149,6 +144,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.model = model;
     }
 
+    // Note that the repeatable elementTemplate does not have a 'name' property.
+    // This means that the array elements do not have to have a 'top-level key', like most other components.
+    // This is done to enable the array to be strings or numbers (using e.g. input component), as well as objects (using e.g. group component).
     return {
       defEntry: elemEntry,
       wrapperRef: null,

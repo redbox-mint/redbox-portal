@@ -6,9 +6,11 @@ import { get as _get } from 'lodash';
  * Typically, has a property whose name is the validation key, e.g. 'min', and
  * value is a dictionary of message and params that are arbitrary values
  * that can be used to render an error message template.
+ *
+ * This is similar to the angular form ValidationErrors type.
  */
 export type FormValidatorErrors = {
-  [key: string]: { message: string; params: { [key: string]: unknown } };
+  [key: string]: any;
 };
 
 /**
@@ -22,8 +24,10 @@ export type FormValidatorCreateConfig = {
 /**
  * The interface that a form control must implement to be validated by a validator function.
  * Some form controls are a collection of controls, these must provide a way to access the controls they contain.
+ *
+ * This is similar to the angular AbstractControl class, with only the properties needed for validation.
  */
-export type FormValidatorControl = {
+export interface FormValidatorControl {
   /**
    * The value of the control.
    */
@@ -39,7 +43,7 @@ export type FormValidatorControl = {
    * @param errors The complete map of validation errors.
    */
   setErrors(errors: FormValidatorErrors | null): void;
-};
+}
 
 /**
  * A simple form validator control that can be used on the server-side to mimic client-side controls.
@@ -72,9 +76,13 @@ export class SimpleServerFormValidatorControl implements FormValidatorControl {
 /**
  * The validator function.
  *
- * Accepts an AbstractControl and returns either a map of validation errors or null.
+ * Accepts an AbstractControl and returns either validation errors or no errors (null).
+ *
+ * This is similar to the angular form ValidatorFn interface.
  */
-export type FormValidatorFn = (control: FormValidatorControl) => FormValidatorErrors | null;
+export interface FormValidatorFn {
+    (control: FormValidatorControl): FormValidatorErrors | null;
+}
 
 /**
  * The validation function creator.
@@ -116,11 +124,12 @@ export interface FormValidatorConfig {
    * The optional message id to display when the validator fails.
    * This is only needed if the message to show is different to the validator definition.
    */
-  message?: string | null | undefined;
+  message?: string;
   /**
-   * The validator config. Can be left out if the validator takes no config.
+   * The optional validator config.
+   * Can be left out if the validator takes no config.
    */
-  config?: FormValidatorCreateConfig | null | undefined;
+  config?: FormValidatorCreateConfig;
 }
 
 /**
@@ -128,17 +137,17 @@ export interface FormValidatorConfig {
  */
 export interface FormValidatorComponentErrors {
   /**
-   * The message id.
+   * The message id for the validator.
    */
-  message: string | null;
+  message: string;
   /**
    * The name of the validator.
    */
-  name: string | null;
+  name: string;
   /**
    * The params for rendering the translated message.
    */
-  params?: { [key: string]: unknown };
+  params: FormValidatorErrors;
 }
 
 /**
@@ -155,14 +164,14 @@ export interface FormValidatorSummaryErrors {
    * The id of the form control.
    *
    * This is used on the client-side for linking to the form control to reveal it.
-   * If this is not available, the validation error is rendered without the form field name and with no link.
+   * If this is not available, the validation error is rendered with the form field label and with no link.
    */
   id: string | null;
   /**
    * The message id for the form control label.
    *
    * This is passed to the translation service to get the label text.
-   * If this is not available, the name is used.
+   * If this is not available, the id is used, otherwise a default label is used.
    */
   message: string | null;
   /**
@@ -178,5 +187,5 @@ export interface FormValidatorSummaryErrors {
    * This enables revealing the parents, to be able to navigate to the form control.
    * The parent names are in order from top-most to direct parent of this form control.
    */
-  parents: string[] | null;
+  parents: string[];
 }

@@ -171,7 +171,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
       return {
         name: key,
         message: item.message ?? null,
-        params: {validatorName: key, ...item.params},
+        params: {...item.params},
       };
     })
   }

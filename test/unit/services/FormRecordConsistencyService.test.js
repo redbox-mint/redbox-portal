@@ -571,13 +571,12 @@ describe('The FormRecordConsistencyService', function () {
                                         name: 'repeatable_2',
                                         model: {
                                             class: 'RepeatableComponentModel',
-                                            config: {defaultValue: [{text_rpt_2: "text_rpt_2 default 1"}, {text_rpt_2: "text_rpt_2 default 2"}]}
+                                            config: {defaultValue: [{repeatable_2_item1: "text_rpt_2 default 1"}, {repeatable_2_item2: "text_rpt_2 default 2"}]}
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
                                             config: {
                                                 elementTemplate: {
-                                                    name: 'text_rpt_2',
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
@@ -607,7 +606,7 @@ describe('The FormRecordConsistencyService', function () {
                         text_4: 10,
                         text_3: "some text",
                         repeatable_2: [
-                            {text_rpt_2_item1: "example@example.com"},
+                            "example@example.com",
                         ]
                     }
                 }
@@ -630,11 +629,253 @@ describe('The FormRecordConsistencyService', function () {
         it("fails when the record values are not valid", async function () {
             const formConfig = {
                 ...formConfigStandard,
-                validators: [],
-                componentDefinitions: [],
+                validators: [
+                    {name: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
+                ],
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: 'hello world!',
+                                validators: [
+                                    {name: 'minLength', config: {minLength: 20}},
+                                    {name: 'maxLength', config: {maxLength: 10}},
+                                ]
+                            }
+                        },
+                        component: {class: 'SimpleInputComponent'}
+                    },
+                    {
+                        name: 'text_2',
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: '',
+                                validators: [
+                                    {name: 'required'},
+                                    {name: 'requiredTrue'},
+                                ]
+                            }
+                        },
+                        component: {class: 'SimpleInputComponent'},
+                        layout: {class: "DefaultLayoutComponent", config: {label: "@text_2_custom_label"}},
+                    },
+                    {
+                        name: 'group_2',
+                        model: {
+                            class: 'GroupFieldModel',
+                            config: {
+                                defaultValue: {
+                                    text_3: "group_2 text_3 default",
+                                    repeatable_2: [{text_rpt_2: "group_2 repeatable_2 text_rpt_2 default"}]
+                                }
+                            }
+                        },
+                        component: {
+                            class: 'GroupFieldComponent',
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: 'text_4',
+                                        model: {
+                                            class: 'SimpleInputModel', config: {
+                                                validators: [
+                                                    {name: 'min', config: {min: 5}},
+                                                    {name: 'max', config: {max: 15}},
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent', config: {}},
+                                    },
+                                    {
+                                        name: 'text_5',
+                                        model: {
+                                            class: 'SimpleInputModel', config: {
+                                                validators: [
+                                                    {name: 'required'},
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent', config: {}},
+                                    },
+                                    {
+                                        name: 'text_3',
+                                        model: {
+                                            class: 'SimpleInputModel',
+                                            config: {
+                                                defaultValue: "text_3 default",
+                                                validators: [
+                                                    {
+                                                        name: 'pattern',
+                                                        config: {
+                                                            pattern: /^other.*$/,
+                                                            description: "must start with 'other'"
+                                                        }
+                                                    },
+                                                    {
+                                                        name: 'minLength',
+                                                        message: "@validator-error-custom-text_7",
+                                                        config: {minLength: 50}
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent', config: {}},
+                                    },
+                                    {
+                                        name: 'repeatable_2',
+                                        model: {
+                                            class: 'RepeatableComponentModel',
+                                            config: {defaultValue: [{repeatable_2_item1: "text_rpt_2 default 1"}, {repeatable_2_item2: "text_rpt_2 default 2"}]}
+                                        },
+                                        component: {
+                                            class: 'RepeatableComponent',
+                                            config: {
+                                                elementTemplate: {
+                                                    model: {
+                                                        class: 'SimpleInputModel', config: {
+                                                            validators: [
+                                                                {name: 'email', config: {}},
+                                                            ]
+                                                        }
+                                                    },
+                                                    component: {
+                                                        class: 'SimpleInputComponent',
+                                                        config: {}
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                ],
             };
-            const record = {metadata: {}};
-            const expected = [];
+            const record = {
+                metadata: {
+                    text_1: "text_1_value",
+                    text_2: "text_1_value",
+                    group_2: {
+                        text_4: 10,
+                        text_3: "some text",
+                        repeatable_2: [
+                            "not an email",
+                        ],
+                        text_5: '',
+                    }
+                }
+            };
+            const expected = [
+                {
+                    "id": "text_1",
+                    "message": null,
+                    "parents": ["default-1.0-draft"],
+                    "errors": [
+                        {
+                            "name": "minLength",
+                            "message": "@validator-error-min-length",
+                            "params": {
+                                "actualLength": 12,
+                                "requiredLength": 20,
+                            }
+                        },
+                        {
+                            "name": "maxLength",
+                            "message": "@validator-error-max-length",
+                            "params": {
+                                "actualLength": 12,
+                                "requiredLength": 10,
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "text_2",
+                    "message": "@text_2_custom_label",
+                    "parents": ["default-1.0-draft"],
+                    "errors": [
+                        {
+                            "name": "requiredTrue",
+                            "message": "@validator-error-required-true",
+                            "params": {
+                                "actual": "text_1_value",
+                                "required": true,
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "text_5",
+                    "message": null,
+                    "parents": [
+                        "default-1.0-draft",
+                        "group_2"
+                    ],
+                    "errors": [
+                        {
+                            "message": "@validator-error-required",
+                            "name": "required",
+                            "params": {
+                                "actual": "",
+                                "required": true,
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "text_3",
+                    "message": null,
+                    "parents": [
+                        "default-1.0-draft",
+                        "group_2"
+                    ],
+                    "errors": [
+                        {
+                            "name": "pattern",
+                            "message": "@validator-error-pattern",
+                            "params": {
+                                "actual": "some text",
+                                "description": "must start with 'other'",
+                                "requiredPattern": "/^other.*$/",
+                            }
+                        },
+                        {
+                            "name": "minLength",
+                            "message": "@validator-error-custom-text_7",
+                            "params": {
+                                "actualLength": 9,
+                                "requiredLength": 50,
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "default-1.0-draft",
+                    "message": null,
+                    "parents": [],
+                    "errors": [
+                        {
+                            "name": "different-values",
+                            "message": "@validator-error-different-values",
+                            "params": {
+                                "controlCount": 2,
+                                "controlNames": [
+                                    "text_1",
+                                    "text_2"
+                                ],
+                                "valueCount": 1,
+                                "values": [
+                                    "text_1_value"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ];
 
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;

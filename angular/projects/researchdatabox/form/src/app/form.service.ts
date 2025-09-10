@@ -368,15 +368,14 @@ export class FormService extends HttpClientService {
 
     // control
     name = name || null;
-    const componentDef = componentDefs
-      ?.find(i => !!name && i?.name === name) ?? null;
+    const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
     const {id, labelMessage} = this.componentIdLabel(componentDef);
     const errors = Object.entries(control?.errors ?? {})
         .map(([key, item]) => {
           return {
             name: key,
             message: item.message ?? null,
-            params: {validatorName: key, ...item.params},
+            params: {...item.params},
           }
         })
       ?? [];
@@ -410,10 +409,6 @@ export class FormService extends HttpClientService {
   } {
     const idParts = ["form", "item", "id"];
 
-    // id is built from the first of these that exists:
-    // - componentDefinition.model.name
-    // - componentDefinition.name
-    // const modelName = componentDef?.model?.name;
     const itemName = componentDef?.name;
 
     // construct the id so it is different to the model name
@@ -531,22 +526,34 @@ export class FormService extends HttpClientService {
     return result?.['data'] ?? {};
   }
 
+  /**
+   * Use this script to validate the form data model structure matches the form config.
+   * @param recordType
+   * @param oid
+   */
   public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
-    // TODO: Use this script to validate the form data model structure matches the form config.
     const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
+  /**
+   * Use this script to validate the form data model values match the form config.
+   * @param recordType
+   * @param oid
+   */
   public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
-    // TODO: Use this script to validate the form data model values match the form config.
     const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
+  /**
+   * Use this script to run the form data model expressions.
+   * @param recordType
+   * @param oid
+   */
   public async getDynamicImportFormExpressions(recordType: string, oid: string) {
-    // TODO: Use this script to run the form data model expressions.
     const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;

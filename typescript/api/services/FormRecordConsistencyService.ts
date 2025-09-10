@@ -23,7 +23,7 @@ import {
     FormConfig,
     FormValidatorDefinition,
     formValidatorsSharedDefinitions,
-    FormValidatorSummaryErrors,
+    FormValidatorSummaryErrors, RepeatableFormFieldComponentConfig,
     SimpleServerFormValidatorControl,
     ValidatorsSupport
 } from "@researchdatabox/sails-ng-common";
@@ -376,9 +376,13 @@ export module Services {
             // Ref: https://ajv.js.org/json-type-definition.html
             const result = {properties: {}};
             if (item?.component?.class === "RepeatableComponent" && item?.component?.config?.['elementTemplate'] !== undefined) {
+                const elementTemplateItem = {
+                    name: RepeatableFormFieldComponentConfig.getLocalUID(),
+                    ...item?.component?.config?.['elementTemplate']
+                };
                 // array elements: https://jsontypedef.com/docs/jtd-in-5-minutes/#elements-schemas
                 result.properties[item?.name] = {
-                    elements: this.buildSchemaForFormComponentDefinition(item?.component?.config?.['elementTemplate'])
+                    elements: this.buildSchemaForFormComponentDefinition(elementTemplateItem),
                 };
             } else if (item?.component?.class === "GroupFieldComponent" && item?.component?.config?.['componentDefinitions'] !== undefined) {
                 // object properties: https://jsontypedef.com/docs/jtd-in-5-minutes/#properties-schemas
@@ -483,7 +487,8 @@ export module Services {
         ): Promise<FormConfig> {
             // TODO: Use the record and form config and/or changes between the record and form config
             //  to build a new form config that displays only the changes.
-            return {};
+            //return {};
+            throw new Error("Not implemented");
         }
 
         /**
@@ -493,6 +498,7 @@ export module Services {
          * @param context The context for the user providing the record.
          */
         public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
+            /*
             // get the record's form name
             const formName = record?.metaMetadata?.['form'];
             // the validation will be done on all values present in the data model, so use the form config with all fields included
@@ -503,6 +509,8 @@ export module Services {
             const schema = this.buildSchemaForFormConfig(formConfig);
             // TODO: Match the schema to the record and return any differences.
             return [];
+            */
+            throw new Error("Not implemented");
         }
 
         /**
@@ -538,26 +546,33 @@ export module Services {
          * @param record The record metadata.
          * @param item The form component definition.
          * @param validatorDefinitions The form validator definition mapping.
+         * @param parents The names of the parent controls.
          */
         public async validateRecordValueForComponentDefinition(
             record: unknown,
             item: FormComponentDefinition,
-            validatorDefinitions: Map<string, FormValidatorDefinition>
+            validatorDefinitions: Map<string, FormValidatorDefinition>,
+            parents?: string[],
         ): Promise<FormValidatorSummaryErrors[]> {
             const validatorSupport = new ValidatorsSupport();
-            const result = [];
+            const result: FormValidatorSummaryErrors[] = [];
             const itemName = item?.name;
             const componentClass = item?.component?.class;
             const componentDefinitions = (item?.component?.config?.['componentDefinitions'] ?? []) as FormComponentDefinition[];
             const elementTemplate = (item?.component?.config?.['elementTemplate'] ?? {}) as FormComponentDefinition;
             const validators = item?.model?.config?.['validators'] ?? [];
+            parents = parents ?? [];
 
             sails.log.verbose(`Validating key '${itemName}' with value '${JSON.stringify(record)}' and component class '${componentClass}'.`);
 
             // Validate any subcomponents
             for (const componentDefinition of componentDefinitions) {
                 const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                        record?.[componentDefinition.name], componentDefinition, validatorDefinitions)
+                        record?.[componentDefinition.name],
+                        componentDefinition,
+                        validatorDefinitions,
+                        [...parents, itemName],
+                    )
                 ) ?? [];
                 itemErrors.forEach(i => result.push(i));
             }
@@ -568,7 +583,11 @@ export module Services {
                     // The element value is the value of the property that starts with the itemName.
                     const elementKey = Object.keys(element).find(i => i.startsWith(itemName));
                     const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                            element?.[elementKey], elementTemplate, validatorDefinitions)
+                            element?.[elementKey],
+                            elementTemplate,
+                            validatorDefinitions,
+                            [...parents, itemName],
+                            )
                     ) ?? [];
                     itemErrors.forEach(i => result.push(i));
                 }
@@ -576,13 +595,27 @@ export module Services {
 
             // run the validators
             if (Array.isArray(validators) && validators.length > 0) {
-                const validatorFuncs = validatorSupport.createFormValidatorInstancesFromMapping(validatorDefinitions, validators);
+                const formValidatorFns = validatorSupport.createFormValidatorInstancesFromMapping(validatorDefinitions, validators);
                 const recordFormControl = this.createFormControlFromRecordValue(record);
-                for (const validatorFunc of validatorFuncs) {
-                    const funcResult = validatorFunc(recordFormControl);
-                    if (funcResult !== null) {
-                        result.push(funcResult);
-                    }
+                const summaryErrors: FormValidatorSummaryErrors = {
+                    id: itemName,
+                    message: item?.layout?.config?.label || null,
+                    errors: [],
+                    parents: parents,
+                }
+                for (const formValidatorFn of formValidatorFns) {
+                    const funcResult = formValidatorFn(recordFormControl);
+                    Object.entries(funcResult ?? {})
+                        .forEach(([key, item]) => {
+                            summaryErrors.errors.push({
+                                name: key,
+                                message: item.message ?? null,
+                                params: {...item.params},
+                            })
+                        });
+                }
+                if (summaryErrors.errors.length > 0) {
+                    result.push(summaryErrors)
                 }
             }
 
@@ -671,11 +704,12 @@ export module Services {
             entries: [string | number, unknown][],
             keys: (string | number)[]
         } | undefined {
-            if (Array.isArray(item)) {
-                const entries: [string | number, unknown][] = item.map((value, index) => [index, value]);
+            const guessedType = this.guessType(item);
+            if (guessedType === "object") {
+                const entries = Object.entries(item as Record<string, unknown>);
                 return {entries: entries, keys: entries.map(i => i[0])};
-            } else if (_.isPlainObject(item)) {
-                const entries = Object.entries(item);
+            } else if (guessedType === "array") {
+                const entries: [string | number, unknown][] = (item as Array<unknown>).map((value, index) => [index, value]);
                 return {entries: entries, keys: entries.map(i => i[0])};
             } else {
                 return undefined;
@@ -696,7 +730,10 @@ export module Services {
             const guessedType = this.guessType(recordValue);
             if (guessedType === "object") {
                 return new SimpleServerFormValidatorControl(
-                    Object.fromEntries(Object.entries(recordValue).map(([key, value]) => [key, this.createFormControlFromRecordValue(value)]))
+                    Object.fromEntries(
+                        Object.entries(recordValue as Record<string, unknown>)
+                            .map(([key, value]) => [key, this.createFormControlFromRecordValue(value)])
+                    )
                 );
             } else if (guessedType === "array") {
                 return (recordValue as Array<unknown>).map(i => this.createFormControlFromRecordValue(i));
