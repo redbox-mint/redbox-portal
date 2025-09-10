@@ -86,6 +86,33 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    name: 'dropdown_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Dropdown some label',
+                                            helpText: 'Dropdown some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'DropdownInputModel',
+                                        config: {
+                                            defaultValue: 'Dropdown hello world!!!',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'DropdownInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                            ],
+                                            tooltip: 'Dropdown tooltip'
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',

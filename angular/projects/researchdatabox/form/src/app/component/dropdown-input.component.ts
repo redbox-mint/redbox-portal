@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { DropdownInputComponentConfig } from '@researchdatabox/sails-ng-common';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
 export class DropdownInputModel extends FormFieldModel<string | number | null> {
@@ -17,7 +18,7 @@ export interface DropdownOption {
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <select [formControl]="formControl"
-        class="form-control"
+        class="form-select"
         [class.is-valid]="isValid"
         [class.is-invalid]="!isValid"
         [required]="isRequired"
@@ -50,11 +51,14 @@ export class DropdownInputComponent extends FormFieldBaseComponent<string | numb
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
     this.placeholder = this.getStringProperty('placeholder');
-    const cfgOptions = _get(this.componentDefinition, 'config.options', []);
+    let dropdownInputConfig = this.componentDefinition?.config as DropdownInputComponentConfig;
+    let defaultConfig = new DropdownInputComponentConfig();
+    const cfg = (_isUndefined(dropdownInputConfig) || _isEmpty(dropdownInputConfig)) ? defaultConfig : dropdownInputConfig;
+    const cfgOptions:DropdownOption[] = cfg.options;
     if (!_isUndefined(cfgOptions) && !_isEmpty(cfgOptions)) {
-      this.options = cfgOptions as DropdownOption[];
+      this.options = cfgOptions;
     } else {
-      this.options = [];
+      this.options = defaultConfig.options;
     }
   }
 
