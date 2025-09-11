@@ -84,7 +84,6 @@ describe('SaveButtonComponent', () => {
     textField.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     await fixture.whenStable();
-    console.log('Form Status:', JSON.stringify(formComponent.formGroupStatus(), null, 2));
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeFalse();
   });
