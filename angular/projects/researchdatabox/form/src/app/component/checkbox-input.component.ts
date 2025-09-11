@@ -3,7 +3,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 import { CheckboxInputComponentConfig } from '@researchdatabox/sails-ng-common';
 
-export class CheckboxInputModel extends FormFieldModel<string | boolean | null> {
+export class CheckboxInputModel extends FormFieldModel<string | boolean | null | Array<any>> {
 }
 
 export interface CheckboxOption {
@@ -36,11 +36,12 @@ export interface CheckboxOption {
   `,
   standalone: false
 })
-export class CheckboxInputComponent extends FormFieldBaseComponent<string | boolean | null> {
+export class CheckboxInputComponent extends FormFieldBaseComponent<string | boolean | null | Array<any>> {
   protected override logName: string = "CheckboxInputComponent";
   public tooltip: string = '';
   public placeholder: string | undefined = '';
   public options: CheckboxOption[] = [];
+  public multipleValues: boolean = false;
   public trackByValue = (_: number, opt: CheckboxOption) => opt.value;
   /**
    * Override to set additional properties required by the wrapper component.
@@ -55,6 +56,7 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<string | bool
     let defaultConfig = new CheckboxInputComponentConfig();
     const cfg = (_isUndefined(checkboxConfig) || _isEmpty(checkboxConfig)) ? defaultConfig : checkboxConfig;
     this.placeholder = cfg.placeholder || defaultConfig.placeholder;
+    this.multipleValues = cfg.multipleValues ?? defaultConfig.multipleValues ?? false;
     const cfgOptions:CheckboxOption[] = cfg.options;
     if (!_isUndefined(cfgOptions) && !_isEmpty(cfgOptions)) {
       this.options = cfgOptions;
@@ -69,27 +71,34 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<string | bool
   @Input() public override model?: CheckboxInputModel;
 
   /**
-   * Check whether an option is selected based on the current control value.
+   * Check whether an option is selected based on the current control value and multipleValues configuration.
    */
   public isOptionSelected(optionValue: any): boolean {
     const currentValue = this.formControl?.value as any;
-    if (Array.isArray(currentValue)) {
-      return currentValue.includes(optionValue);
+    if (this.multipleValues) {
+      // In multiple values mode, check if the option is in the array
+      const currentArray = Array.isArray(currentValue) ? currentValue : [];
+      return currentArray.includes(optionValue);
+    } else {
+      // In single value mode, check direct equality or boolean true
+      return currentValue === optionValue || currentValue === true;
     }
-    return currentValue === optionValue || currentValue === true;
   }
 
   /**
-   * Toggle option selection. Supports array values (multi-select) and single value.
+   * Toggle option selection. Supports array values (multi-select) and single value based on multipleValues configuration.
    */
   public onOptionChange(checked: boolean, optionValue: any): void {
     const currentValue = this.formControl?.value as any;
-    if (Array.isArray(currentValue)) {
+    if (this.multipleValues) {
+      // Handle multiple values mode
+      const currentArray = Array.isArray(currentValue) ? currentValue : [];
       const next = checked
-        ? (currentValue.includes(optionValue) ? currentValue : [...currentValue, optionValue])
-        : currentValue.filter((v: any) => v !== optionValue);
+        ? (currentArray.includes(optionValue) ? currentArray : [...currentArray, optionValue])
+        : currentArray.filter((v: any) => v !== optionValue);
       this.formControl.setValue(next as any);
     } else {
+      // Handle single value mode
       this.formControl.setValue(checked ? optionValue : null as any);
     }
     this.formControl.markAsDirty();
