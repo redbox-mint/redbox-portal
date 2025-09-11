@@ -50,8 +50,8 @@ describe('CheckboxInputComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const selectEl = compiled.querySelector('input[type="checkbox"]:checked') as HTMLInputElement;
     expect(selectEl).toBeTruthy();
-    const selectedText = selectEl.value;
-    expect(selectedText).toEqual('b');
+    const selectedText = selectEl.id;
+    expect(selectedText).toEqual('checkbox_test-b');
   });
 });
 
