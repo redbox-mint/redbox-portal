@@ -36,7 +36,7 @@ export interface CheckboxOption {
   `,
   standalone: false
 })
-export class CheckboxInputComponent extends FormFieldBaseComponent<string | boolean | null | Array<any>> {
+export class CheckboxInputComponent extends FormFieldBaseComponent<string | Array<string>> {
   protected override logName: string = "CheckboxInputComponent";
   public tooltip: string = '';
   public placeholder: string | undefined = '';
