@@ -252,7 +252,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   ngAfterViewInit() {
     this.loggerService.debug(`${this.logName}: View has initialised`, this.formFieldCompMapEntry);
-    this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+    const s = this.status();
+    // Gating the status update in case the component has been set to something else beforehand.
+    if (s === FormFieldComponentStatus.INIT) {
+      this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+    }
   }
 
   public viewInitialised(): boolean {

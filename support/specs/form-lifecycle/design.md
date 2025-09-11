@@ -4,8 +4,12 @@
 ## 1. `FormStatus` Enum
 
 - Add a new status: `VALIDATION_PENDING` to the existing `FormStatus` enum in `status.model.ts`.
-- Enum values will now include: `INIT`, `READY`, `SAVING`, `VALIDATION_ERROR`, `LOAD_ERROR`, `VALIDATION_PENDING`.
-
+- Define `READY` explicitly as: form.valid && !form.pending && !isSaving.
+- Enum values SHOULD include:
+  - `INIT`, `READY`, `SAVING`, `SAVE_ERROR`, `LOAD_ERROR`, `VALIDATION_ERROR`, `VALIDATION_PENDING`.
+- Map Angular control status to enum:
+  - Angular `PENDING` -> `VALIDATION_PENDING`
+  - Angular `INVALID` -> `VALIDATION_ERROR` (when not saving/loading)
 ## 2. FormComponent Status Management
 
 - The `FormComponent` will monitor the `form` (FormGroup) for async validation state.

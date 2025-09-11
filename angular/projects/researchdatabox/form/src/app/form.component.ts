@@ -31,8 +31,10 @@ import {
   Signal,
   effect,
   computed,
-  model
+  model,
+  OnDestroy
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup, FormControlStatus } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
@@ -66,7 +68,7 @@ import { FormComponentsMap, FormService } from './form.service';
     providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
     standalone: false
 })
-export class FormComponent extends BaseComponent {
+export class FormComponent extends BaseComponent implements OnDestroy {
   private logName = "FormComponent";
   appName: string;
   oid = model<string>('');
@@ -89,6 +91,10 @@ export class FormComponent extends BaseComponent {
    */
   formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
+   * The previous formGroup status 
+   */
+  previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
+  /**
    * The form components
    */
   componentDefArr: FormFieldCompMapEntry[] = [];
@@ -97,6 +103,7 @@ export class FormComponent extends BaseComponent {
 
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
+  statusChangesSubscription?: Subscription;
 
   debugFormComponents = computed<Record<string, unknown>>(() => {
     if (!this.formDefMap?.formConfig?.debugValue){
@@ -149,10 +156,21 @@ export class FormComponent extends BaseComponent {
 
     // Monitor async validation state using Angular signals effect
     effect(() => {
-      if (this.formGroupStatus()?.pending) {
+      const formGroupStatus = this.formGroupStatus();
+      const currentPending = formGroupStatus?.pending || false;
+      const wasPending = this.previousFormGroupStatus()?.pending || false;
+      const isValid = formGroupStatus?.valid || false;
+      const wasValid = this.previousFormGroupStatus()?.valid || false;
+      if (currentPending) {
         this.status.set(FormStatus.VALIDATION_PENDING);
-      } 
-      // Not reverting to READY here, as other operations may have changed the status
+      } else if (wasPending && !currentPending && this.status() === FormStatus.VALIDATION_PENDING) {
+        this.status.set(FormStatus.READY);
+      } else if (!isValid && !currentPending && wasPending && this.status() !== FormStatus.SAVING) {
+        this.status.set(FormStatus.VALIDATION_ERROR);
+      } else if (isValid && !wasValid && !currentPending && wasPending) {
+        this.status.set(FormStatus.READY);
+      }
+      this.previousFormGroupStatus.set(formGroupStatus);
     });
   }
 
@@ -215,7 +233,8 @@ export class FormComponent extends BaseComponent {
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
         if (this.form) {
-          this.form.statusChanges.subscribe((status: any) => {
+          this.statusChangesSubscription?.unsubscribe();
+          this.statusChangesSubscription = this.form.statusChanges.subscribe((status: any) => {
             this.formGroupStatus.set(this.dataStatus);
           });
         }
@@ -409,6 +428,10 @@ export class FormComponent extends BaseComponent {
       errors: this.form?.errors || null,
       status: this.form?.status as FormControlStatus || 'DISABLED',
     } as FormGroupStatus;
+  }
+
+  ngOnDestroy(): void {
+    this.statusChangesSubscription?.unsubscribe();
   }
 }
 
