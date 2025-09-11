@@ -23,7 +23,7 @@ import {BrandingModel, FormModel, Services as services} from '@researchdatabox/r
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
-    BaseFormFieldComponentDefinition, BaseFormFieldDefinition,
+    BaseFormFieldComponentDefinition,
     BaseFormFieldLayoutDefinition,
     BaseFormFieldModelDefinition,
     FormComponentDefinition,
@@ -548,19 +548,19 @@ export module Services {
      * @param context The context for the current environment and building the client-side form config.
      */
     public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
-      sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}'`);
+      sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}' and constraints ${JSON.stringify(item.constraints)} context ${JSON.stringify(context)}`);
       context = context ? ClientFormContext.from(context) : ClientFormContext.createView();
 
       // add the item constraints to the context build
-      if (item?.name) {
-        if (!context?.build){
-          context.build = [];
-        }
-        context?.build?.push({
-          name: item?.name,
-          constraints: FormConstraintConfig.from(item.constraints)
-        });
+      if (!context?.build){
+        context.build = [];
       }
+      context?.build?.push({
+        name: item?.name ?? "",
+        constraints: FormConstraintConfig.from(item.constraints)
+      });
+
+        // sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}' and new context ${JSON.stringify(context)}`);
 
       // remove this component definition (by returning null) if the constraints are not met
       if (!this.checkClientFormComponentDefinitionAuthorization(context)) {
@@ -649,7 +649,7 @@ export module Services {
       return this.buildClientFormObject(result, context);
     }
 
-    private buildClientFormObject(item: FormConfig | BaseFormFieldDefinition, context: ClientFormContext): Record<string, unknown> | null {
+    private buildClientFormObject(item: FormConfig | { class: string, config?: object } | FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       const result: Record<string, unknown> = {};
 
       if (isFormFieldDefinition(item) && item.config === null) {
@@ -693,23 +693,26 @@ export module Services {
                       sails.log.verbose(`FormsService - remove component form field component definition with class '${value?.['class']}'`);
                       return null;
                   }
+              } else {
+                  sails.log.warn(`FormsService - invalid component form field component definition with class '${value?.['class']}'`);
               }
             break;
 
           case 'model':
-              if (isFormFieldDefinition(value)) {
-                  result[key] = this.buildClientFormFieldModelDefinition(value, context);
+              if (isFormFieldDefinition(value) && 'config' in value && value.config) {
+                  result[key] = this.buildClientFormFieldModelDefinition(value as BaseFormFieldModelDefinition<unknown>, context);
+              } else {
+                  sails.log.warn(`FormsService - invalid model form field component definition with class '${value?.['class']}'`);
               }
               break;
 
           case 'layout':
-              if (isFormFieldDefinition(value)) {
+              //if (isFormFieldDefinition(value)) {
                   result[key] = this.buildClientFormFieldLayoutDefinition(value, context);
-              }
+              //}
             break;
 
           case 'elementTemplate':
-            if (isFormComponentDefinition(value)) {
               result[key] = this.buildClientFormComponentDefinition(value, context);
               if (result[key] === null) {
                 // if the elementTemplate was removed,
@@ -717,7 +720,6 @@ export module Services {
                 sails.log.verbose(`FormsService - remove elementTemplate form component definition with name '${value?.['name']}'`);
                 return null;
               }
-            }
             break;
 
           default:
@@ -759,6 +761,8 @@ export module Services {
 
       if (!isAllowed) {
         sails.log.verbose(`FormsService - access denied for form component definition authorization, current: ${currentUserRoles?.join(', ')}, required: ${requiredRoles?.join(', ')}`);
+      } else {
+        sails.log.verbose(`FormsService - access allowed for form component definition authorization, current: ${currentUserRoles?.join(', ')}, required: ${requiredRoles?.join(', ')}`);
       }
 
       return isAllowed;

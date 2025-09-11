@@ -297,9 +297,10 @@ export module Services {
          * @param item The top-level form config.
          */
         public buildDataModelDefaultForFormConfig(item: FormConfig): Record<string, unknown> {
-            // each component definition is a property,
-            // where the key is the name and the value is the model value
-            // TODO: provide defaults from ancestors to descendants, so the descendants can either use their default or an ancestors default
+            // Each component definition is a property,
+            // where the key is the name and the value is the model value.
+            // Provides defaults from ancestors to descendants,
+            // so the descendants can either use their default or an ancestors default.
             const result = {};
             for (const componentDefinition of item?.componentDefinitions) {
                 const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition);
@@ -317,19 +318,20 @@ export module Services {
          */
         public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition, defaultValue?: Record<string, unknown>): Record<string, unknown> {
             const result = {};
-            const itemName = item?.name;
+            const itemName = item?.name ?? "";
             const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
             const componentDefinitions = item?.component?.config?.['componentDefinitions'];
             const elementTemplate = item?.component?.config?.['elementTemplate'];
 
             if (elementTemplate !== undefined) {
-                // for each element in the default value array, build the component from any ancestor defaultValues
-                // the default in the elementTemplate is the default for _new_ items, the template default doesn't create any array elements
-                // build the array of components from any ancestor defaultValues
+                // For each element in the default value array, build the component from any ancestor defaultValues.
+                // The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
+                // Build the array of components from any ancestor defaultValues.
                 const componentName = elementTemplate?.name;
                 result[itemName] = (itemDefaultValue ?? []).map(arrayElementDefaultValue => {
                     sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - elementTemplate component ${componentName} - arrayElementDefaultValue ${JSON.stringify(arrayElementDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplate, arrayElementDefaultValue);
+                    // elementTemplate does not have a name, so use the placeholder name (empty string) to populate the array.
+                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplate, arrayElementDefaultValue)[""];
                 });
 
             } else if (componentDefinitions !== undefined) {
@@ -364,7 +366,7 @@ export module Services {
             }
             const def = this.buildSchemaForFormComponentDefinition(formCompDef);
             // remove the FormConfig level
-            return def.properties[item?.name];
+            return def[item?.name] as Record<string, unknown>;
         }
 
         /**
@@ -375,32 +377,32 @@ export module Services {
             // Using JSON Type Definition schema
             // Ref: https://jsontypedef.com/docs/jtd-in-5-minutes/
             // Ref: https://ajv.js.org/json-type-definition.html
-            const result = {properties: {}};
-            if (item?.component?.class === "RepeatableComponent" && item?.component?.config?.['elementTemplate'] !== undefined) {
-                const elementTemplateItem = {
-                    name: "",
-                    ...item?.component?.config?.['elementTemplate']
-                };
+            const result: Record<string, unknown>  = {};
+            if (item?.component?.config?.['elementTemplate'] !== undefined) {
                 // array elements: https://jsontypedef.com/docs/jtd-in-5-minutes/#elements-schemas
-                result.properties[item?.name] = {
-                    elements: this.buildSchemaForFormComponentDefinition(elementTemplateItem),
+                // For array elements, the key is 'elements', not the name.
+                // So use a placeholder name of "", then get the value using the placeholder name as the key.
+                const elementTemplateItem = {
+                    ...item?.component?.config?.['elementTemplate'],
+                    name: "",
                 };
-            } else if (item?.component?.class === "GroupFieldComponent" && item?.component?.config?.['componentDefinitions'] !== undefined) {
+                result[item?.name] = {
+                    elements: this.buildSchemaForFormComponentDefinition(elementTemplateItem)[""],
+                };
+            } else if (item?.component?.config?.['componentDefinitions'] !== undefined) {
                 // object properties: https://jsontypedef.com/docs/jtd-in-5-minutes/#properties-schemas
-                result.properties[item?.name] = {properties: {}};
+                result[item?.name] = {properties: {}};
                 for (const componentDefinition of item?.component?.config?.['componentDefinitions'] ?? []) {
                     const def = this.buildSchemaForFormComponentDefinition(componentDefinition);
-                    result.properties[item?.name]['properties'] = {
-                        ...result.properties[item?.name]['properties'],
-                        ...def.properties as object,
-                    };
+                    // Add the def object to the existing proeperties.
+                    Object.assign(result[item?.name]['properties'], def);
                 }
             } else if (item?.model?.config?.defaultValue !== undefined) {
                 // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-                result.properties[item?.name] = {type: guessType(item?.model?.config?.defaultValue)};
+                result[item?.name] = {type: guessType(item?.model?.config?.defaultValue)};
             } else {
-                // empty: https://jsontypedef.com/docs/jtd-in-5-minutes/#empty-schemas
-                result.properties[item?.name] = {};
+                // default to a type of string
+                result[item?.name] = {type: "string"};
             }
             return result;
         }
@@ -630,9 +632,10 @@ export module Services {
          * @private
          */
         private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition): unknown {
+            sails.log.verbose(`buildDataModelDefaultValue - current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
             const itemName = item?.name;
             const itemDefaultValue = item?.model?.config?.defaultValue;
-            return _.mergeWith(
+            const outcome = _.mergeWith(
                 {},
                 current ?? {},
                 {[itemName]: itemDefaultValue},
@@ -650,6 +653,8 @@ export module Services {
                     return undefined;
                 }
             );
+            sails.log.verbose(`buildDataModelDefaultValue - outcome ${JSON.stringify(outcome)}`);
+            return outcome;
         }
 
         /**

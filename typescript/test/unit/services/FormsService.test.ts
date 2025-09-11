@@ -400,7 +400,7 @@ describe('The FormsService', function () {
                                                 {
                                                     // requires role 'Admin', so is removed
                                                     name: 'repeatable_for_admin',
-                                                    model: {class: 'RepeatableComponentModel'},
+                                                    model: {class: 'RepeatableComponentModel', config:{}},
                                                     component: {
                                                         class: 'RepeatableComponent',
                                                         config: {

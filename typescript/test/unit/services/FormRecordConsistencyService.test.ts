@@ -123,7 +123,7 @@ describe('The FormRecordConsistencyService', function () {
                             name: 'repeatable_group_1',
                             model: {
                                 class: 'RepeatableComponentModel',
-                                config: {value: [{text_1: "hello world from repeating groups"}]}
+                                config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
                             },
                             component: {
                                 class: 'RepeatableComponent',
@@ -139,7 +139,7 @@ describe('The FormRecordConsistencyService', function () {
                                                         name: 'text_2',
                                                         model: {
                                                             class: 'SimpleInputModel',
-                                                            config: {value: 'hello world 2!'}
+                                                            config: {defaultValue: 'hello world 2!'}
                                                         },
                                                         component: {
                                                             class: 'SimpleInputComponent'
@@ -230,26 +230,29 @@ describe('The FormRecordConsistencyService', function () {
                     componentDefinitions: [
                         {
                             name: 'group_1',
-                            model: {class: 'GroupFieldModel'},
+                            model: {class: 'GroupFieldModel', config: {}},
                             component: {
                                 class: 'GroupFieldComponent',
                                 config: {
                                     componentDefinitions: [
                                         {
                                             name: 'text_1',
-                                            model: {class: 'SimpleInputModel', config: {value: 'hello world 1!'}},
+                                            model: {
+                                                class: 'SimpleInputModel',
+                                                config: {defaultValue: 'hello world 1!'}
+                                            },
                                             component: {class: 'SimpleInputComponent'},
                                         },
                                         {
                                             name: 'group_2',
-                                            model: {class: 'GroupFieldModel'},
+                                            model: {class: 'GroupFieldModel', config: {}},
                                             component: {
                                                 class: 'GroupFieldComponent',
                                                 config: {
                                                     componentDefinitions: [
                                                         {
                                                             name: 'text_2',
-                                                            model: {class: 'SimpleInputModel'},
+                                                            model: {class: 'SimpleInputModel', config: {}},
                                                             component: {
                                                                 class: 'SimpleInputComponent'
                                                             },
@@ -272,7 +275,7 @@ describe('The FormRecordConsistencyService', function () {
                                 class: 'RepeatableComponent',
                                 config: {
                                     elementTemplate: {
-                                        model: {class: 'SimpleInputModel'},
+                                        model: {class: 'SimpleInputModel', config: {}},
                                         component: {class: 'SimpleInputComponent'},
                                     },
                                 },
@@ -411,7 +414,7 @@ describe('The FormRecordConsistencyService', function () {
                                                 componentDefinitions: [
                                                     {
                                                         name: 'text_2',
-                                                        model: {class: 'SimpleInputModel'},
+                                                        model: {class: 'SimpleInputModel', config: {}},
                                                         component: {
                                                             class: 'SimpleInputComponent'
                                                         },
@@ -436,8 +439,43 @@ describe('The FormRecordConsistencyService', function () {
                                                             class: 'RepeatableComponent',
                                                             config: {
                                                                 elementTemplate: {
-                                                                    model: {class: 'SimpleInputModel'},
+                                                                    // Properties in the elementTemplate defaultValue are only used on the client side as the default for new items.
+                                                                    // For the repeatable, the default is set in the RepeatableComponentModel.
+                                                                    model: {
+                                                                        class: 'SimpleInputModel',
+                                                                        config: {defaultValue: "elementTemplate default"}
+                                                                    },
                                                                     component: {class: 'SimpleInputComponent'},
+                                                                },
+                                                            },
+                                                        },
+                                                    },
+                                                    {
+                                                        name: 'repeatable_3',
+                                                        model: {
+                                                            class: 'RepeatableComponentModel',
+                                                            config: {}
+                                                        },
+                                                        component: {
+                                                            class: 'RepeatableComponent',
+                                                            config: {
+                                                                elementTemplate: {
+                                                                    model: {class: 'GroupFieldModel', config: {}},
+                                                                    component: {
+                                                                        class: 'GroupFieldComponent',
+                                                                        config: {
+                                                                            componentDefinitions: [
+                                                                                {
+                                                                                    name: 'text_group_repeatable_3',
+                                                                                    model: {class: 'SimpleInputModel', config: {defaultValue: "text_group_repeatable_3 default"}},
+                                                                                    component: {
+                                                                                        class: 'SimpleInputComponent'
+                                                                                    },
+                                                                                },
+
+                                                                            ]
+                                                                        }
+                                                                    }
                                                                 },
                                                             },
                                                         },
@@ -452,25 +490,32 @@ describe('The FormRecordConsistencyService', function () {
                     },
                     {
                         name: 'repeatable_1',
-                        // defaultValue of '{}' says that there is an item in the array, but with no properties
-                        model: {class: 'RepeatableComponentModel', config: {defaultValue: [{}]}},
+                        model: {class: 'RepeatableComponentModel', config: {defaultValue: [{text_group_repeatable_1: "hello world from repeating groups"}]}},
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
-                                    model: {
-                                        class: 'SimpleInputModel',
-                                        // properties in this defaultValue will be added to the model.config.defaultValue
-                                        // only if the properties are not present (or are present and have value 'undefined')
-                                        // in model.config.defaultValue
-                                        config: {defaultValue: "hello world from repeating groups"}
-                                    },
-                                    component: {class: 'SimpleInputComponent'},
-                                },
+                                    model: {class: 'GroupFieldModel', config: {}},
+                                    component: {
+                                        class: 'GroupFieldComponent',
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: 'text_group_repeatable_1',
+                                                    model: {class: 'SimpleInputModel', config: {}},
+                                                    component: {
+                                                        class: 'SimpleInputComponent'
+                                                    },
+                                                },
+
+                                            ]
+                                        }
+                                    }
+                                }
                             },
                         },
-                    },
-                ],
+                    }
+                ]
             };
             const expected = {
                 group_1: {
@@ -482,10 +527,11 @@ describe('The FormRecordConsistencyService', function () {
                             "text_rpt_2 default 1",
                             "text_rpt_2 default 2",
                         ],
+                        repeatable_3: [],
                     },
                 },
                 repeatable_1: [
-                    {text_rpt_1: "hello world from repeating groups"},
+                    {text_group_repeatable_1: "hello world from repeating groups"},
                 ],
             };
             const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig);
@@ -616,7 +662,7 @@ describe('The FormRecordConsistencyService', function () {
                                             class: 'RepeatableComponent',
                                             config: {
                                                 elementTemplate: {
-                                                    model: {class: 'GroupFieldModel'},
+                                                    model: {class: 'GroupFieldModel', config: {}},
                                                     component: {
                                                         class: 'GroupFieldComponent',
                                                         config: {
@@ -954,4 +1000,202 @@ describe('The FormRecordConsistencyService', function () {
             expect(actual).to.eql(expected);
         });
     });
-});
+
+    describe('buildSchemaForFormConfig methods', function () {
+        it("builds the expected schema", function () {
+            const formConfig: FormModel & FormConfig = {
+                ...formModelConfigStandard,
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: 'hello world!',
+                                validators: [
+                                    {name: 'required'},
+                                    {name: 'minLength', config: {minLength: 10}},
+                                    {name: 'maxLength', config: {maxLength: 20}},
+                                ]
+                            }
+                        },
+                        component: {class: 'SimpleInputComponent'}
+                    },
+                    {
+                        name: 'text_2',
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: '',
+                                validators: [
+                                    {name: 'required'},
+                                    {name: 'requiredTrue'},
+                                ]
+                            }
+                        },
+                        component: {class: 'SimpleInputComponent'}
+                    },
+                    {
+                        name: 'group_2',
+                        model: {
+                            class: 'GroupFieldModel',
+                            config: {
+                                defaultValue: {
+                                    text_3: "group_2 text_3 default",
+                                    repeatable_2: ["group_2 repeatable_2 text_rpt_2 default"]
+                                }
+                            }
+                        },
+                        component: {
+                            class: 'GroupFieldComponent',
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: 'text_4',
+                                        model: {
+                                            class: 'SimpleInputModel', config: {
+                                                validators: [
+                                                    {name: 'min', config: {min: 5}},
+                                                    {name: 'max', config: {max: 15}},
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent'},
+                                    },
+                                    {
+                                        name: 'text_3',
+                                        model: {
+                                            class: 'SimpleInputModel',
+                                            config: {
+                                                defaultValue: "text_3 default",
+                                                validators: [
+                                                    {
+                                                        name: 'pattern',
+                                                        config: {
+                                                            pattern: /^some.*$/,
+                                                            description: "must start with 'some'"
+                                                        }
+                                                    },
+                                                    {
+                                                        name: 'minLength',
+                                                        message: "@validator-error-custom-text_7",
+                                                        config: {minLength: 3}
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                        component: {class: 'SimpleInputComponent'},
+                                    },
+                                    {
+                                        name: 'repeatable_2',
+                                        model: {
+                                            class: 'RepeatableComponentModel',
+                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                        },
+                                        component: {
+                                            class: 'RepeatableComponent',
+                                            config: {
+                                                elementTemplate: {
+                                                    model: {
+                                                        class: 'SimpleInputModel', config: {
+                                                            validators: [
+                                                                {name: 'email'},
+                                                            ]
+                                                        }
+                                                    },
+                                                    component: {
+                                                        class: 'SimpleInputComponent',
+                                                        config: {type: "email"}
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                    {
+                                        name: 'repeatable_3',
+                                        model: {
+                                            class: 'RepeatableComponentModel',
+                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                        },
+                                        component: {
+                                            class: 'RepeatableComponent',
+                                            config: {
+                                                elementTemplate: {
+                                                    model: {class: 'GroupFieldModel', config: {}},
+                                                    component: {
+                                                        class: 'GroupFieldComponent',
+                                                        config: {
+                                                            componentDefinitions: [
+                                                                {
+                                                                    name: 'repeatable_4',
+                                                                    model: {
+                                                                        class: 'RepeatableComponentModel',
+                                                                        config: {defaultValue: ["repeatable_4 default 1", "repeatable_4 default 2"]}
+                                                                    },
+                                                                    component: {
+                                                                        class: 'RepeatableComponent',
+                                                                        config: {
+                                                                            elementTemplate: {
+                                                                                model: {
+                                                                                    class: 'SimpleInputModel', config: {
+                                                                                        validators: [
+                                                                                            {name: 'required'},
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                component: {
+                                                                                    class: 'SimpleInputComponent',
+                                                                                },
+                                                                            },
+                                                                        },
+                                                                    },
+                                                                },
+                                                            ]
+                                                        }
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                ],
+            };
+            const expected = {
+                "properties": {
+                    "text_1": {"type": "string"},
+                    "text_2": {"type": "string"},
+                    "group_2": {
+                        "properties": {
+                            "text_3": {"type": "string"},
+                            "text_4": {"type": "string"},
+                            "repeatable_2": {
+                                "elements": {
+                                    "type": "string"
+                                }
+                            },
+                            "repeatable_3": {
+                                "elements": {
+                                    "properties": {
+                                        "repeatable_4": {
+                                            "elements": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const actual = FormRecordConsistencyService.buildSchemaForFormConfig(formConfig);
+            expect(actual).to.eql(expected);
+        });
+    })
+    ;
+})
+;

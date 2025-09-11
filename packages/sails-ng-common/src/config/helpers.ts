@@ -1,5 +1,4 @@
 import {FormComponentDefinition} from "./form-component.model";
-import {BaseFormFieldDefinition} from "./shared.model";
 import {isBoolean as _isBoolean, isArray as _isArray, isString as _isString, isPlainObject as _isPlainObject} from "lodash-es";
 import { DateTime } from 'luxon';
 
@@ -54,15 +53,15 @@ export function guessType(value: unknown): "array" | "object" | "boolean" | "str
     return "unknown";
 }
 
-export function isFormFieldDefinition(item: unknown): item is BaseFormFieldDefinition {
+export function isFormFieldDefinition(item: unknown): item is { class: string, config?: object } {
     // use typescript narrowing to check the value
     // see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
     // not using 'BaseFormFieldComponentDefinition' because it is too general -
     // it does not include the class and config
-    const i = item as BaseFormFieldDefinition;
+    const i = item as { class: string, config?: object };
     // note that 'config' can be null or object or not set
     return 'class' in i && guessType(i?.class) === 'string' &&
-        (('config' in i && ["object", "null"].includes(guessType(i.class))) || i?.config === undefined);
+        (('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined);
 }
 
 export function  isFormComponentDefinition(item: unknown): item is FormComponentDefinition {
