@@ -550,6 +550,17 @@ export class FormService extends HttpClientService {
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
+
+  /**
+   * Get all the compiled items for the form.
+   * @param recordType The form record type.
+   * @param oid The form oid.
+   */
+  public async getDynamicImportFormCompiledItems(recordType: string, oid: string) {
+    const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString(), oid?.toString()];
+    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+    return result;
+  }
 }
 
 /**

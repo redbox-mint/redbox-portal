@@ -410,6 +410,14 @@ export class FormComponent extends BaseComponent {
       pristine: this.form?.pristine || false,
     };
   }
+
+  public async getCompiledItem(formComponentName: string | null, formConfigElement: string[]) {
+    const recordType = this.trimmedParams.recordType();
+    const oid = this.trimmedParams.oid();
+    const features = await this.formService.getDynamicImportFormCompiledItems(recordType, oid);
+    this.loggerService.info(`${this.logName}: getCompiledItem from getDynamicImportFormCompiledItems`,
+      {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
+  }
 }
 
 type DebugInfo = {
