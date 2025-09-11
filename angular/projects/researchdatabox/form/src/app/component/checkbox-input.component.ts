@@ -3,12 +3,12 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 import { CheckboxInputComponentConfig } from '@researchdatabox/sails-ng-common';
 
-export class CheckboxInputModel extends FormFieldModel<string | boolean | null | Array<any>> {
+export class CheckboxInputModel extends FormFieldModel<string | Array<string>> {
 }
 
 export interface CheckboxOption {
   label: string;
-  value: any;
+  value: string;
   disabled?: boolean;
 }
 
@@ -42,7 +42,6 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<string | bool
   public placeholder: string | undefined = '';
   public options: CheckboxOption[] = [];
   public multipleValues: boolean = false;
-  public trackByValue = (_: number, opt: CheckboxOption) => opt.value;
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -73,33 +72,29 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<string | bool
   /**
    * Check whether an option is selected based on the current control value and multipleValues configuration.
    */
-  public isOptionSelected(optionValue: any): boolean {
-    const currentValue = this.formControl?.value as any;
+  public isOptionSelected(optionValue: string): boolean {
+    const currentValue = this.formControl?.value as string | Array<string>;
     if (this.multipleValues) {
-      // In multiple values mode, check if the option is in the array
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       return currentArray.includes(optionValue);
     } else {
-      // In single value mode, check direct equality or boolean true
-      return currentValue === optionValue || currentValue === true;
+      return currentValue === optionValue;
     }
   }
 
   /**
    * Toggle option selection. Supports array values (multi-select) and single value based on multipleValues configuration.
    */
-  public onOptionChange(checked: boolean, optionValue: any): void {
-    const currentValue = this.formControl?.value as any;
+  public onOptionChange(checked: boolean, optionValue: string): void {
+    const currentValue = this.formControl?.value as string | Array<string>;
     if (this.multipleValues) {
-      // Handle multiple values mode
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       const next = checked
         ? (currentArray.includes(optionValue) ? currentArray : [...currentArray, optionValue])
-        : currentArray.filter((v: any) => v !== optionValue);
-      this.formControl.setValue(next as any);
+        : currentArray.filter((v: string) => v !== optionValue);
+      this.formControl.setValue(next);
     } else {
-      // Handle single value mode
-      this.formControl.setValue(checked ? optionValue : null as any);
+      this.formControl.setValue(checked ? optionValue : '');
     }
     this.formControl.markAsDirty();
     this.formControl.markAsTouched();
