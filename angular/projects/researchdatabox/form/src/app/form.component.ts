@@ -89,9 +89,7 @@ export class FormComponent extends BaseComponent {
   /**
    * The form group status signal
    */
-  formGroupStatus = computed<FormGroupStatus>(() => {
-    return this.dataStatus;
-  });
+  formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
    * The form components
    */
@@ -242,6 +240,11 @@ export class FormComponent extends BaseComponent {
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
+        if (this.form) {
+          this.form.statusChanges.subscribe((status: any) => {
+            this.formGroupStatus.set(this.dataStatus);
+          });
+        }
 
         // set up validators
         const validatorConfig = this.formDefMap.formConfig.validators;

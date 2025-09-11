@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, effect } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import { SaveButtonComponentDefinition } from '@researchdatabox/sails-ng-common';
@@ -19,6 +19,21 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName: string = "SaveButtonComponent";
   protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: SaveButtonComponentDefinition;
+  disabled: boolean = false;
+
+  constructor() {
+    super();
+    // Monitor form status to update disabled state
+    effect(() => {
+      const status = this.formComponent.status();
+      const dataStatus = this.formComponent.formGroupStatus();
+      // Disable if the form is invalid, pristine, or not ready (including VALIDATION_PENDING or SAVING)
+      this.disabled = !dataStatus.valid ||
+      dataStatus.pristine ||
+      status === 'VALIDATION_PENDING' ||
+      status === 'SAVING'
+    });
+  }
 
   protected override async setComponentReady(): Promise<void> {
     await super.setComponentReady(); 
@@ -32,14 +47,4 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     }
   }
 
-  get disabled(): boolean { 
-    // Disable if the form is invalid, pristine, or not ready (including VALIDATION_PENDING or SAVING)
-    const status = this.formComponent?.status();
-    return (
-      !this.formComponent?.dataStatus.valid ||
-      this.formComponent?.dataStatus.pristine ||
-      status === 'VALIDATION_PENDING' ||
-      status === 'SAVING'
-    );
-  }
 }
