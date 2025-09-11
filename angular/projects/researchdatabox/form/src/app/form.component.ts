@@ -161,14 +161,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       const wasPending = this.previousFormGroupStatus()?.pending || false;
       const isValid = formGroupStatus?.valid || false;
       const wasValid = this.previousFormGroupStatus()?.valid || false;
-      if (currentPending) {
-        this.status.set(FormStatus.VALIDATION_PENDING);
-      } else if (wasPending && !currentPending && this.status() === FormStatus.VALIDATION_PENDING) {
-        this.status.set(FormStatus.READY);
-      } else if (!isValid && !currentPending && wasPending && this.status() !== FormStatus.SAVING) {
-        this.status.set(FormStatus.VALIDATION_ERROR);
-      } else if (isValid && !wasValid && !currentPending && wasPending) {
-        this.status.set(FormStatus.READY);
+      const inSaving = this.status() === FormStatus.SAVING;
+
+      let next: FormStatus | null = null;
+      if (currentPending && !inSaving) {
+        next = FormStatus.VALIDATION_PENDING;
+      } else if (wasPending && !currentPending && !isValid && !inSaving) {
+        next = FormStatus.VALIDATION_ERROR;
+      } else if (wasPending && !currentPending && isValid && this.status() === FormStatus.VALIDATION_PENDING) {
+        next = FormStatus.READY;
+      } else if (!wasValid && isValid && !currentPending && wasPending) {
+        next = FormStatus.READY;
+      }
+
+      if (next !== null && this.status() !== next) {
+        this.status.set(next);
       }
       this.previousFormGroupStatus.set(formGroupStatus);
     });

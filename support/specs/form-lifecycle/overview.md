@@ -56,7 +56,8 @@ stateDiagram-v2
 ```
 ---
 
-## 3. Validation State Management Implementation
+
+## 2. Validation State Management Implementation
 
 The FormComponent implements sophisticated validation state tracking using Angular signals and effects:
 
@@ -64,27 +65,32 @@ The FormComponent implements sophisticated validation state tracking using Angul
 
 1. **Dual Status Tracking**: The form maintains both `formGroupStatus` and `previousFormGroupStatus` signals to detect state changes.
 
-2. **Reactive State Transitions**: An Angular effect monitors validation state changes:
-   ```typescript
-   effect(() => {
-     const formGroupStatus = this.formGroupStatus();
-     const currentPending = formGroupStatus?.pending || false;
-     const wasPending = this.previousFormGroupStatus()?.pending || false;
-     const isValid = formGroupStatus?.valid || false;
-     const wasValid = this.previousFormGroupStatus()?.valid || false;
-     
-     if (currentPending) {
-       this.status.set(FormStatus.VALIDATION_PENDING);
-     } else if (wasPending && !currentPending && this.status() === FormStatus.VALIDATION_PENDING) {
-       this.status.set(FormStatus.READY);
-     } else if (!isValid && !currentPending && wasPending && this.status() !== FormStatus.SAVING) {
-       this.status.set(FormStatus.VALIDATION_ERROR);
-     } else if (isValid && !wasValid && !currentPending && wasPending) {
-       this.status.set(FormStatus.READY);
-     }
-     
-     this.previousFormGroupStatus.set(formGroupStatus);
-   });
+```typescript
+effect(() => {
+  const formGroupStatus = this.formGroupStatus();
+  const currentPending = formGroupStatus?.pending || false;
+  const wasPending = this.previousFormGroupStatus()?.pending || false;
+  const isValid = formGroupStatus?.valid || false;
+  const wasValid = this.previousFormGroupStatus()?.valid || false;
+  const inSaving = this.status() === FormStatus.SAVING;
+
+  let next: FormStatus | null = null;
+  if (currentPending && !inSaving) {
+    next = FormStatus.VALIDATION_PENDING;
+  } else if (wasPending && !currentPending && !isValid && !inSaving) {
+    next = FormStatus.VALIDATION_ERROR;
+  } else if (wasPending && !currentPending && isValid && this.status() === FormStatus.VALIDATION_PENDING) {
+    next = FormStatus.READY;
+  } else if (!wasValid && isValid && !currentPending && wasPending) {
+    next = FormStatus.READY;
+  }
+
+  if (next !== null && this.status() !== next) {
+    this.status.set(next);
+  }
+
+  this.previousFormGroupStatus.set(formGroupStatus);
+});
    ```
 
 3. **State Transition Logic**:
@@ -101,7 +107,8 @@ The FormComponent implements sophisticated validation state tracking using Angul
 
 ---
 
-## 4. FormFieldBaseComponent Status Lifecycle
+
+## 3. FormFieldBaseComponent Status Lifecycle
 
 
 Each form field or layout component extends `FormFieldBaseComponent`, which tracks its own status using the `FormFieldComponentStatus` enum:
@@ -156,7 +163,8 @@ The FormFieldBaseComponent follows a structured initialization process:
 
 ---
 
-## 5. Status Propagation & Error Handling
+
+## 4. Status Propagation & Error Handling
 
 - The `FormComponent.status` reflects the form-specific status, and is an aggregate of the child components' `FormFieldBaseComponent.status` as well as any other dependencies, services, etc. required by `FormComponent`
 - The `FormComponent.formGroupStatus` reflects the aggregate state of all child components' models. It is a composition of the Angular framework's `AbstractControl` status-related properties.
@@ -176,7 +184,8 @@ The implementation correctly separates concerns between form-level status and Fo
 
 ---
 
-## 6. References
+
+## 5. References
 
 - `FormComponent`: `redbox-portal/angular/projects/researchdatabox/form/src/app/form.component.ts`
 - `FormFieldBaseComponent`: `redbox-portal/angular/projects/researchdatabox/portal-ng-common/src/lib/form/form-field-base.component.ts`
