@@ -87,7 +87,8 @@ stateDiagram-v2
 
 ## 3. Status Propagation & Error Handling
 
-- The `FormComponent` status reflects the aggregate state of all child components.
+- The `FormComponent.status` reflects the form-specific status, and is an aggregate of the child components' `FormFieldBaseComponent.status` as well as any other dependencies, services, etc. required by `FormComponent`
+- The `FormComponent.formGroupStatus` reflects the aggregate state of all child components' models. It is a composition of the Angular framework's `AbstractControl` status-related properties.
 - If any `FormFieldBaseComponent` enters `ERROR`, the parent form may transition to `LOAD_ERROR` or display error UI.
 - Status transitions are managed via Angular signals and are observable for UI updates and debugging.
 

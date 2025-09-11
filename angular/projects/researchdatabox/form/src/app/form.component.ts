@@ -70,8 +70,6 @@ export class FormComponent extends BaseComponent {
   private logName = "FormComponent";
   appName: string;
   oid = model<string>('');
-  // cache the previous oid to retrigger the load
-  currentOid: string = '';
   recordType = model<string>('');
   editMode = model<boolean>(true);
   formName = model<string>('');
@@ -148,28 +146,6 @@ export class FormComponent extends BaseComponent {
         this.registerUpdateExpression();
       }
     });
-    // Set another effect for the OID update, will reinit if changed if the form has been on the 'READY' state
-    effect(() => {
-      const oid = this.trimmedParams.oid();
-      if (!_isEmpty(oid) && this.currentOid !== oid && this.status() === FormStatus.READY) {
-        this.status.set(FormStatus.INIT);
-        this.componentsLoaded.set(false);
-        this.initComponent()
-          .then(() => {
-            // Only mark as initialized if oid hasn't changed during async init
-            if (this.currentOid === oid) {
-              this.loggerService.info(`${this.logName}: OID changed, form re-initialised.`);
-            } else {
-              this.loggerService.warn(`${this.logName}: OID changed during init, previous: ${oid}, new: ${this.currentOid}.`);
-            }
-          })
-          .catch((error) => {
-            this.loggerService.error(`${this.logName}: Error during OID re-init:`, error);
-            this.status.set(FormStatus.LOAD_ERROR);
-            this.componentsLoaded.set(false);
-          });
-      }
-    });
 
     // Monitor async validation state using Angular signals effect
     effect(() => {
@@ -221,8 +197,6 @@ export class FormComponent extends BaseComponent {
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
     await this.createFormGroup();
-    // set the cache that will trigger a form reinit when the OID is changed
-    this.currentOid = this.trimmedParams.oid();
     // Set the status to READY if all components are loaded
     this.status.set(FormStatus.READY);
     this.componentsLoaded.set(true);
