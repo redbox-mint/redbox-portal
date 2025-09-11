@@ -43,7 +43,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     if (this.formComponent && !this.disabled) {
       await this.formComponent.saveForm(this.componentDefinition?.config?.forceSave, this.componentDefinition?.config?.targetStep, this.componentDefinition?.config?.skipValidation);
     } else {
-      this.loggerService.debug(`Save button clicked but form is not valid or dirty`);
+      this.loggerService.debug(`Save button clicked but form is pristine, currently saving, not valid or dirty`);
     }
   }
 

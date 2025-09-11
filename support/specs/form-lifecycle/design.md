@@ -17,16 +17,16 @@
 sequenceDiagram
   participant User
   participant FormComponent
-  participant FormGroup
+  participant FormComponent.FormGroup
   participant SaveButtonComponent
   User->>FormComponent: Edit form fields
-  FormComponent->>FormGroup: Triggers async validation
-  FormGroup-->>FormComponent: Validation pending (pending=true)
-  FormComponent->>FormStatus: Set VALIDATION_PENDING
-  FormComponent->>SaveButtonComponent: Disable Save
-  FormGroup-->>FormComponent: Validation pass (pending=false)
-  FormComponent->>FormStatus: Set READY
-  FormComponent->>SaveButtonComponent: Enable Save
+  FormComponent->>FormComponent.FormGroup: Triggers async validation
+  FormComponent.FormGroup-->>FormComponent: Validation pending (pending=true)
+  FormComponent->>FormComponent.FormStatus: Set VALIDATION_PENDING
+  FormComponent.FormStatus-->>SaveButtonComponent: Disable Save
+  FormComponent.FormGroup-->>FormComponent: Validation pass (pending=false)
+  FormComponent->>FormComponent.FormStatus: Set READY
+  FormComponent.FormStatus-->>SaveButtonComponent: Enable Save
 ```
 
 ## 3. SaveButtonComponent Enhancement
@@ -42,8 +42,3 @@ sequenceDiagram
 
 - `FormComponent` exposes a property or observable indicating readiness (not pending, valid, etc.).
 - `SaveButtonComponent` consumes this property to determine its enabled/disabled state.
-
-## 5. UI/UX
-
-- When the form is validating asynchronously, show a spinner or subtle indicator near the Save button or form fields.
-- Tooltip or message on the Save button: “Please wait, validating form…”

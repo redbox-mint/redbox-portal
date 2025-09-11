@@ -38,8 +38,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public hostBindingCssClasses?: string;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
-  // The signal for when the view is ready for dom manipulations
-  viewInitialised = signal<boolean>(false);
 
   @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
@@ -254,7 +252,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   ngAfterViewInit() {
     this.loggerService.debug(`${this.logName}: View has initialised`, this.formFieldCompMapEntry);
-    this.viewInitialised.set(true);
+    this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+  }
+
+  public viewInitialised(): boolean {
+    return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
   }
 
   public buildPropertyMap(componentDefinition: FormFieldComponentOrLayoutConfig): Map<string, any> {
