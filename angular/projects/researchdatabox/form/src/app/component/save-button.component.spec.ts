@@ -61,6 +61,7 @@ describe('SaveButtonComponent', () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     formComponent.status.set(FormStatus.VALIDATION_PENDING);
     fixture.detectChanges();
+    await fixture.whenStable();
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeTrue();
   });
@@ -69,6 +70,7 @@ describe('SaveButtonComponent', () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     formComponent.status.set(FormStatus.SAVING);
     fixture.detectChanges();
+    await fixture.whenStable();
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeTrue();
   });
@@ -77,9 +79,12 @@ describe('SaveButtonComponent', () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     formComponent.status.set(FormStatus.READY);
     // Simulate valid and dirty
-    formComponent.form?.markAsDirty();
-    formComponent.form?.markAsTouched();
+    const textField = fixture.nativeElement.querySelector('input');
+    textField.value = 'new value';
+    textField.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+    await fixture.whenStable();
+    console.log('Form Status:', JSON.stringify(formComponent.formGroupStatus(), null, 2));
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeFalse();
   });
@@ -92,6 +97,7 @@ describe('SaveButtonComponent', () => {
     const saveButton = fixture.nativeElement.querySelector('button');
     saveButton.click();
     fixture.detectChanges();
+    await fixture.whenStable();
     expect(formComponent.saveForm).not.toHaveBeenCalled();
   });
 
@@ -104,10 +110,12 @@ describe('SaveButtonComponent', () => {
     textField.value = 'new value';
     textField.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+    await fixture.whenStable();
     // Simulate the save button click
     const saveButton = fixture.nativeElement.querySelector('button');
     saveButton.click();
     fixture.detectChanges();
+    await fixture.whenStable();
     // Assert that saveForm was called with the expected params
     expect(formComponent.saveForm).toHaveBeenCalledWith(true, 'next_step', true);
   });
@@ -120,6 +128,7 @@ describe('SaveButtonComponent', () => {
     const saveButton = fixture.nativeElement.querySelector('button');
     saveButton.click();
     fixture.detectChanges();
+    await fixture.whenStable();
     // Assert that saveForm was not called
     expect(formComponent.saveForm).not.toHaveBeenCalled();
   });
