@@ -28,6 +28,8 @@ export enum FormStatus {
 - **LOAD_ERROR**: The form failed to load (e.g., due to network or config errors).
 - **VALIDATION_PENDING**: The form is waiting for async validation to complete (e.g., server-side checks).
 
+Note that any errors that occur during save will not result in any form-specific error state. Any consumers can listen and react to the 'FormComponent.saveResponse' value to display any errors and/or modify statuses.
+
 #### Typical Lifecycle Flow
 
 ```mermaid
@@ -37,14 +39,11 @@ stateDiagram-v2
     INIT --> LOAD_ERROR: on load failure
     READY --> SAVING: on save action
     SAVING --> READY: on save success
-    SAVING --> VALIDATION_ERROR: on validation fail
-    SAVING --> LOAD_ERROR: on save error
     READY --> VALIDATION_PENDING: on async validation
     VALIDATION_PENDING --> READY: on validation success
     VALIDATION_PENDING --> VALIDATION_ERROR: on validation fail
     VALIDATION_ERROR --> READY: on user correction
 ```
-
 ---
 
 ## 2. FormFieldBaseComponent Status Lifecycle
