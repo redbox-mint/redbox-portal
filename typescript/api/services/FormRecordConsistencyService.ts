@@ -167,7 +167,7 @@ export module Services {
         public mergeRecordMetadataPermitted(
             original: object,
             changed: object,
-            permittedChanges: Record<string, unknown>,
+            permittedChanges: Record<string, unknown> | unknown,
             changes: FormRecordConsistencyChange[],
             currentPath?: FormRecordConsistencyChangePath
         ): Record<string, unknown> {
@@ -188,10 +188,10 @@ export module Services {
             // permittedChanged is in JSON Type Def format
             // permitted changes is always for an object (i.e. has property 'properties')
             const permittedChangesObj = permittedChanges as object;
-            if (!('properties' in permittedChangesObj)) {
-                throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
-            }
-            const permittedChangesProps = permittedChangesObj['properties'] as object;
+            // if (!('properties' in permittedChangesObj)) {
+            //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
+            // }
+            const permittedChangesProps = 'properties' in permittedChangesObj ? permittedChangesObj['properties'] as object : permittedChangesObj;
 
 
             // create a new record instance
@@ -346,10 +346,15 @@ export module Services {
                     }
                 }
 
+            } else if (itemDefaultValue !== undefined) {
+                result[itemName] = itemDefaultValue;
+                sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - itemDefaultValue !== undefined`, {result: result, itemName: itemName, defaultValue: defaultValue, itemDefaultValue:itemDefaultValue});
+            } else if (itemName) {
+                result[itemName] = _.get(defaultValue, itemName, undefined) ?? defaultValue;
+                sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - itemName`, {result: result, itemName: itemName, defaultValue: defaultValue});
             } else {
-                result[itemName] = itemDefaultValue !== undefined
-                    ? itemDefaultValue
-                    : _.get(defaultValue, itemName, undefined);
+                result[itemName] = defaultValue ?? undefined;
+                sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - else`, {result: result, itemName: itemName, defaultValue: defaultValue});
             }
             return result;
         }
@@ -632,7 +637,7 @@ export module Services {
          * @private
          */
         private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition): unknown {
-            sails.log.verbose(`buildDataModelDefaultValue - current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
+            sails.log.verbose(`buildDataModelDefaultValue - name '${item?.name}' current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
             const itemName = item?.name;
             const itemDefaultValue = item?.model?.config?.defaultValue;
             const outcome = _.mergeWith(
@@ -653,7 +658,7 @@ export module Services {
                     return undefined;
                 }
             );
-            sails.log.verbose(`buildDataModelDefaultValue - outcome ${JSON.stringify(outcome)}`);
+            sails.log.verbose(`buildDataModelDefaultValue - name '${item?.name}' outcome ${JSON.stringify(outcome)}`);
             return outcome;
         }
 
@@ -674,7 +679,7 @@ export module Services {
                 const entries: [string | number, unknown][] = (item as Array<unknown>).map((value, index) => [index, value]);
                 return {entries: entries, keys: entries.map(i => i[0])};
             } else {
-                return undefined;
+                return {entries: [], keys: []};
             }
         }
 

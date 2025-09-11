@@ -348,11 +348,13 @@ describe('The FormRecordConsistencyService', function () {
             });
         });
 
-        it("fails when permittedChanges does not have a 'properties' property", function () {
+        it("fails when permittedChanges is not the expected structure", function () {
+            const record = {};
+            const permittedChanges = {prop1: {prop2:{prop3: "value1"}}};
             const func = function () {
-                FormRecordConsistencyService.mergeRecordMetadataPermitted({}, {}, {}, [])
+                FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, [])
             }
-            expect(func).to.throw(Error, 'top level');
+            expect(func).to.throw(Error, 'all definitions must have a property that is one');
         });
         it("fails when permittedChanges nested object is invalid", function () {
             const record = {prop1: "value1"};
