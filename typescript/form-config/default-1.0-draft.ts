@@ -170,6 +170,33 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    name: 'radio_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Radio some label (single value)',
+                                            helpText: 'Radio some help text - single selection mode',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'RadioInputModel',
+                                        config: {
+                                            defaultValue: 'option1',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'RadioInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                            ],
+                                            tooltip: 'Checkbox tooltip'
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',

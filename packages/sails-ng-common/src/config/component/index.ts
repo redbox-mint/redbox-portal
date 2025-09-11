@@ -32,6 +32,7 @@ import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfi
 import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
 import { DropdownInputComponentConfig, DropdownInputComponentDefinition, DropdownInputModelConfig, DropdownInputModelDefinition } from "./dropdown-input.model";
 import { CheckboxInputComponentConfig, CheckboxInputComponentDefinition, CheckboxInputModelConfig, CheckboxInputModelDefinition } from "./checkbox-input.model";
+import { RadioInputComponentConfig, RadioInputComponentDefinition, RadioInputModelConfig, RadioInputModelDefinition } from "./radio-input.model";
 /**
  * Possible form field component definitions.
  */
@@ -46,7 +47,8 @@ export type FormFieldComponentDefinition =
     SaveButtonComponentDefinition |
     TextAreaComponentDefinition |
     DropdownInputComponentDefinition |
-    CheckboxInputComponentDefinition;
+    CheckboxInputComponentDefinition |
+    RadioInputComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -61,7 +63,8 @@ export type FormFieldComponentConfig =
     SaveButtonComponentConfig |
     TextAreaComponentConfig |
     DropdownInputComponentConfig |
-    CheckboxInputComponentConfig;
+    CheckboxInputComponentConfig |
+    RadioInputComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -73,7 +76,8 @@ export type FormFieldModelDefinition =
     GroupFormFieldModelDefinition | 
     TextareaModelDefinition |
     DropdownInputModelDefinition |
-    CheckboxInputModelDefinition;
+    CheckboxInputModelDefinition |
+    RadioInputModelDefinition;
 
 
 /**
@@ -86,7 +90,8 @@ export type FormFieldModelConfig =
     GroupFormFieldModelConfig | 
     TextareaModelConfig |
     DropdownInputModelConfig |
-    CheckboxInputModelConfig;
+    CheckboxInputModelConfig |
+    RadioInputModelConfig;
 
 
 /**
@@ -115,3 +120,4 @@ export * from './save-button.model'
 export * from './textblock.model'
 export * from './dropdown-input.model'
 export * from './checkbox-input.model'
+export * from './radio-input.model'

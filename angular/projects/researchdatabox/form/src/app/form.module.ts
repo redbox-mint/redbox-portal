@@ -37,6 +37,7 @@ import {TabComponent, TabComponentLayout, TabContentComponent} from "./component
 import { TextAreaComponent } from './component/textarea.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
+import { RadioInputComponent } from './component/radio-input.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -55,7 +56,8 @@ import { CheckboxInputComponent } from './component/checkbox-input.component';
     TabContentComponent,
     TabComponentLayout,
     DropdownInputComponent,
-    CheckboxInputComponent
+    CheckboxInputComponent,
+    RadioInputComponent
   ],
   imports: [
     CommonModule,
