@@ -51,7 +51,7 @@ describe('CheckboxInputComponent', () => {
     const selectEl = compiled.querySelector('input[type="checkbox"]') as HTMLInputElement;
     expect(selectEl).toBeTruthy();
     const selectedText = selectEl.value;
-    expect(selectedText).toEqual('Checkbox');
+    expect(selectedText).toEqual('b');
   });
 });
 
