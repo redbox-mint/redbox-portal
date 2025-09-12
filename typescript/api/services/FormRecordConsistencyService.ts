@@ -324,6 +324,8 @@ export module Services {
             const componentDefinitions = item?.component?.config?.['componentDefinitions'];
             const elementTemplate = item?.component?.config?.['elementTemplate'];
 
+            // FIXME: maintain object property values in child components in elementTemplate arrays.
+
             if (elementTemplate !== undefined) {
                 // For each element in the default value array, build the component from any ancestor defaultValues.
                 // The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
