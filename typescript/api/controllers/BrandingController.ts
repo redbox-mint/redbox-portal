@@ -1,8 +1,8 @@
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 import skipperGridFs from "skipper-gridfs";
-import {Model} from "sails";
-import {Sails} from "sails";
-import {Observable} from 'rxjs';
+import { Model } from "sails";
+import { Sails } from "sails";
+import { Observable } from 'rxjs';
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as path from 'path';
@@ -39,9 +39,9 @@ export module Controllers {
       'renderImage',
       'renderApiB',
       'renderSwaggerJSON',
-  'renderSwaggerYAML',
-  'renderPreviewCss',
-  'createPreview'
+      'renderSwaggerYAML',
+      'renderPreviewCss',
+      'createPreview'
     ];
 
     /**
@@ -103,14 +103,14 @@ export module Controllers {
         if (!token) {
           const tokenCss = req.param('tokenCss');
           if (tokenCss) {
-            token = tokenCss.replace(/\.css$/,'');
+            token = tokenCss.replace(/\.css$/, '');
           }
         }
         if (!token) {
           return res.status(404).send('/* preview token missing */');
         }
-  const svc = (global as any).BrandingService || BrandingService;
-  const data = await svc.fetchPreview(token);
+
+        const data = await BrandingService.fetchPreview(token);
         res.set('Content-Type', 'text/css');
         res.set('Cache-Control', 'no-cache, no-store');
         // Short weak etag for preview hash
@@ -135,7 +135,7 @@ export module Controllers {
         }
         const result = await (global as any).BrandingService.preview(branding, portal, actor);
         return res.json(result);
-      } catch (e:any) {
+      } catch (e: any) {
         return res.status(500).json({ error: 'preview-error', message: e.message });
       }
     }
@@ -150,7 +150,7 @@ export module Controllers {
     public renderApiB(req, res) {
       res.contentType('text/plain');
       req.options.locals["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsapib", {layout: false});
+      return this.sendView(req, res, "apidocsapib", { layout: false });
     }
 
 
@@ -164,7 +164,7 @@ export module Controllers {
     public renderSwaggerJSON(req, res) {
       res.contentType('application/json');
       req.options.locals["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsswaggerjson", {layout: false});
+      return this.sendView(req, res, "apidocsswaggerjson", { layout: false });
     }
 
     /**
@@ -177,7 +177,7 @@ export module Controllers {
     public renderSwaggerYAML(req, res) {
       res.contentType('application/x-yaml');
       req.options.locals["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsswaggeryaml", {layout: false});
+      return this.sendView(req, res, "apidocsswaggeryaml", { layout: false });
     }
 
     /**

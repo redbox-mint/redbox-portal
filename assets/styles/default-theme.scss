@@ -6438,6 +6438,65 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
     -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
     box-shadow: 0 1px 1px rgba(0,0,0,.05)
 }
+    // Card equivalents for panel styles
+    .card.panel-style {
+        margin-bottom: 20px;
+        background-color: #fff;
+        border-width: 1px;
+        border-style: solid;
+        border-radius: 4px;
+        -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
+        box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    }
+    .card.panel-style .card-body {
+        padding: 15px;
+    }
+    .card.panel-style .card-header {
+        padding: 10px 15px;
+        border-bottom: 1px solid transparent;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+        background-color: $panel-branding-background-color;
+        color: $panel-branding-color;
+    }
+    .card.panel-style .card-title {
+        margin-top: 0;
+        margin-bottom: 0;
+        font-size: 16px;
+        color: inherit;
+    }
+    .card.panel-style .card-footer {
+        padding: 10px 15px;
+        background-color: #f5f5f5;
+        border-top: 1px solid #ddd;
+        border-bottom-right-radius: 3px;
+        border-bottom-left-radius: 3px;
+    }
+    .card.panel-style .list-group-item {
+        border-width: 1px 0;
+        border-radius: 0;
+    }
+    .card.panel-style .list-group:first-child .list-group-item:first-child {
+        border-top: 0;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+    }
+    .card.panel-style .list-group:last-child .list-group-item:last-child {
+        border-bottom: 0;
+        border-bottom-right-radius: 3px;
+        border-bottom-left-radius: 3px;
+    }
+    .card.panel-style .card-header + .list-group .list-group-item:first-child {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+    .card.panel-style .card-title > .small,
+    .card.panel-style .card-title > .small > a,
+    .card.panel-style .card-title > a,
+    .card.panel-style .card-title > small,
+    .card.panel-style .card-title > small > a {
+        color: inherit;
+    }
 
 .panel-body {
     padding: 15px

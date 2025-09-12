@@ -23,7 +23,11 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
+  <% if (req.query && req.query.previewToken) { %>
+    <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/preview/<%= req.query.previewToken %>.css">
+  <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
+  <% } %>
 
   <!-- Current latest jQuery -->
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>

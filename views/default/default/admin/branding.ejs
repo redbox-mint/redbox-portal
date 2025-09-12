@@ -2,7 +2,7 @@
 <div class="row">
   <div class="col-xs-2"></div>
   <div class="col-xs-8">
-    <branding-admin-root>
+    <branding-admin-root <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <div class="col-xs-1"></div>
       <div class="col-xs-10">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg"

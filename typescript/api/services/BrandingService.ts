@@ -19,7 +19,7 @@
 
 import { Observable, of, throwError } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
-import {Services as services, BrandingModel}   from '@researchdatabox/redbox-core-types';
+import { Services as services, BrandingModel } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 import * as crypto from 'crypto';
 
@@ -50,12 +50,12 @@ export module Services {
       'getPortalFromReq',
       'getFullPath',
       'getRootContext',
-  'getBrandById',
-  'saveDraft',
-  'preview',
-  'fetchPreview',
-  'publish',
-  'rollback'
+      'getBrandById',
+      'saveDraft',
+      'preview',
+      'fetchPreview',
+      'publish',
+      'rollback'
     ];
 
     protected availableBrandings: any = []
@@ -73,7 +73,7 @@ export module Services {
           sails.log.verbose("Default brand already exists...");
           return of(defaultBrand);
         })
-        ,flatMap(this.loadAvailableBrands));
+          , flatMap(this.loadAvailableBrands));
     }
 
     public loadAvailableBrands = (defBrand): Observable<any> => {
@@ -84,7 +84,7 @@ export module Services {
         .pipe(flatMap(brands => {
           this.brandings = brands;
           this.availableBrandings = _.map(this.brandings, 'name');
-          var defBrandEntry:BrandingModel = this.getDefault();
+          var defBrandEntry: BrandingModel = this.getDefault();
           if (defBrandEntry == null) {
             sails.log.error("Failed to load default brand!");
             return throwError(new Error("Failed to load default brand!"));
@@ -109,33 +109,33 @@ export module Services {
       return this.availableBrandings;
     }
 
-    public getBrandAndPortalPath(req): string{
+    public getBrandAndPortalPath(req): string {
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
       const rootContext = this.getRootContext();
-      if(_.isEmpty(rootContext)) {
-      return `/${branding}/${portal}`;
+      if (_.isEmpty(rootContext)) {
+        return `/${branding}/${portal}`;
       } else {
-       return `${rootContext}/${branding}/${portal}`;
+        return `${rootContext}/${branding}/${portal}`;
       }
     }
 
-    public getRootContext():string {
-      
+    public getRootContext(): string {
+
       const rootContext = sails.config.http.rootContext;
-      if(_.isEmpty(rootContext)) {
-      return ``;
+      if (_.isEmpty(rootContext)) {
+        return ``;
       } else {
-       return `/${rootContext}`;
+        return `/${rootContext}`;
       }
     }
 
 
-    public getFullPath(req):string{
+    public getFullPath(req): string {
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
-    public getBrandFromReq(req):string {
+    public getBrandFromReq(req): string {
       var branding = req.params['branding'];
       if (branding == null) {
         if (req.body != null) {
@@ -181,10 +181,10 @@ export module Services {
     }
 
     /** Task 5.1: Save draft variables after whitelist + contrast validation */
-    public async saveDraft(input: { branding: string; variables: Record<string,string>; actor?: any; }): Promise<any> {
+    public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: any; }): Promise<any> {
       const whitelist: string[] = _.get(sails, 'config.branding.variableWhitelist', []) || [];
-      const normalized: Record<string,string> = {};
-      for (const [k,v] of Object.entries(input.variables || {})) {
+      const normalized: Record<string, string> = {};
+      for (const [k, v] of Object.entries(input.variables || {})) {
         const norm = k.startsWith('$') ? k.slice(1) : k;
         if (!whitelist.includes(norm)) {
           throw new Error('Invalid variable key: ' + norm);
@@ -193,14 +193,14 @@ export module Services {
       }
       // Contrast validation: only enforce on pairs where both fg/bg provided in this input.
       const colorKeysInInput = new Set(Object.keys(normalized));
-      const contrastPairKeyMap: Record<string,[string,string]> = {
-        'primary-text-on-primary-bg': ['primary-text-color','primary-color'],
-        'secondary-text-on-secondary-bg': ['secondary-text-color','secondary-color'],
-        'accent-text-on-accent-bg': ['accent-text-color','accent-color'],
-        'body-text-on-surface': ['body-text-color','surface-color'],
-        'heading-text-on-surface': ['heading-text-color','surface-color']
+      const contrastPairKeyMap: Record<string, [string, string]> = {
+        'primary-text-on-primary-bg': ['primary-text-color', 'primary-color'],
+        'secondary-text-on-secondary-bg': ['secondary-text-color', 'secondary-color'],
+        'accent-text-on-accent-bg': ['accent-text-color', 'accent-color'],
+        'body-text-on-surface': ['body-text-color', 'surface-color'],
+        'heading-text-on-surface': ['heading-text-color', 'surface-color']
       };
-      const relevantPairProvided = Object.values(contrastPairKeyMap).some(([a,b]) => colorKeysInInput.has(a) && colorKeysInInput.has(b));
+      const relevantPairProvided = Object.values(contrastPairKeyMap).some(([a, b]) => colorKeysInInput.has(a) && colorKeysInInput.has(b));
       if (relevantPairProvided) {
         const contrast = await ContrastService.validate(normalized);
         const filteredViolations = contrast.violations.filter(v => {
@@ -208,14 +208,14 @@ export module Services {
           return keys && keys.every(k => colorKeysInInput.has(k));
         });
         if (filteredViolations.length) {
-          throw new Error('contrast-violation: ' + filteredViolations.map(v=>v.pair).join(','));
+          throw new Error('contrast-violation: ' + filteredViolations.map(v => v.pair).join(','));
         }
       }
       const brand = await BrandingConfig.findOne({ name: input.branding });
       if (!brand) throw new Error('branding-not-found');
       await BrandingConfig.update({ id: brand.id }, { variables: normalized });
-  const updated = await this.refreshBrandingCache(brand.id);
-  return updated;
+      const updated = await this.refreshBrandingCache(brand.id);
+      return updated;
     }
 
     /** Task 5.2: Generate preview token storing compiled CSS in CacheEntry */
@@ -225,7 +225,7 @@ export module Services {
       const { css, hash } = await SassCompilerService.compile(brand.variables || {});
       const token = crypto.randomBytes(16).toString('hex');
       const name = `branding-preview:${token}`;
-      const ts = Math.floor(Date.now()/1000);
+      const ts = Math.floor(Date.now() / 1000);
       await CacheEntry.create({ name, data: { css, branding, portal, hash }, ts_added: ts });
       const url = `/${branding}/${portal}/preview/${token}.css`;
       return { token, url, hash };
@@ -237,7 +237,7 @@ export module Services {
       const name = `branding-preview:${token}`;
       const entry = await CacheEntry.findOne({ name });
       if (!entry) throw new Error('preview-not-found');
-      const age = Math.floor(Date.now()/1000) - entry.ts_added;
+      const age = Math.floor(Date.now() / 1000) - entry.ts_added;
       if (age > ttl) {
         await CacheEntry.destroy({ id: entry.id });
         throw new Error('preview-expired');
@@ -262,28 +262,28 @@ export module Services {
       const newVersion = (brand.version || 0) + 1;
       await BrandingConfig.update({ id: brand.id }, { css, hash, version: newVersion });
       await BrandingConfigHistory.create({ branding: brand.id, version: newVersion, hash, css, variables: brand.variables });
-  await this.refreshBrandingCache(brand.id);
+      await this.refreshBrandingCache(brand.id);
       return { version: newVersion, hash };
     }
 
-        /** Task 5.4: Rollback to a previous published version via history id */
-    public async rollback(historyId: string, actor: any): Promise<{ version: number; hash: string; branding: any; }>{
+    /** Task 5.4: Rollback to a previous published version via history id */
+    public async rollback(historyId: string, actor: any): Promise<{ version: number; hash: string; branding: any; }> {
       const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding');
       if (!historyEntry) throw new Error('history-not-found');
       const branding = historyEntry.branding;
       if (!branding) throw new Error('branding-not-found');
-      
+
       // Restore variables, CSS, hash from history
-      await BrandingConfig.update({ id: branding.id }, { 
-        variables: historyEntry.variables, 
-        css: historyEntry.css, 
-        hash: historyEntry.hash 
+      await BrandingConfig.update({ id: branding.id }, {
+        variables: historyEntry.variables,
+        css: historyEntry.css,
+        hash: historyEntry.hash
       });
       const refreshed = await this.refreshBrandingCache(branding.id);
-      return { 
-        version: historyEntry.version, 
-        hash: historyEntry.hash, 
-        branding: refreshed 
+      return {
+        version: historyEntry.version,
+        hash: historyEntry.hash,
+        branding: refreshed
       };
     }
 
