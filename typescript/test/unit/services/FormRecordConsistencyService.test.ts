@@ -157,6 +157,10 @@ describe('The FormRecordConsistencyService', function () {
                         redboxOid: "abcd",
                         metadata: {
                             repeatable_group_1: [
+                                // FIXME: can't specify array contents that differ from the provided form config,
+                                //        and none of the components in the elementTemplate or child components,
+                                //        can use constraints, as the values not accessible to any user will be overwritten
+                                //        when users without access save the form
                                 {
                                     text_1: "text 1 value",
                                     text_2: "text 2 value",

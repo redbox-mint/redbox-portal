@@ -248,6 +248,7 @@ export module Services {
                         // Evaluate the element in the array.
                         // TODO: Should the 'original' element be an instance of the elementTemplate with default values?
                         const originalElement = {};
+                        // FIXME: fix the path and key changes calculation to account for non-object array elements
                         const newPath = [...currentPath, key, index];
                         const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
                         return this.mergeRecordMetadataPermitted(originalElement, changedElement, newPermittedChanges, keyChanges, newPath);
