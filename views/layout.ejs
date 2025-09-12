@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>">
 
 <head>
   <meta charset="utf-8">
@@ -51,9 +51,9 @@
 
   <div class="site-branding-area">
     <div class="container">
-      <div class="row" style="position:relative">
+      <div class="row">
         <div class="col-sm-10">
-          <div class="logo" style="display:inline;">
+          <div class="logo">
             <h1><img src="images/<%= sails.config.static_assets.logoName %>"/></h1>
           </div>
         </div>
@@ -84,7 +84,7 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a "<%= BrandingService.getRootContext() %>">Home</a></li>
+            <li class="active"><a href="<%= BrandingService.getRootContext() %>">Home</a></li>
           </ul>
         </div>
       </div>

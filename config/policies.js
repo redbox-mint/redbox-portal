@@ -21,10 +21,20 @@ const defaultPolicies = [
   'checkBrandingValid',
   'setLang',
   'prepWs',
+  'i18nLanguages',
   'isWebServiceAuthenticated',
-  'checkAuth'
+  'checkAuth',
+  'contentSecurityPolicy',
 ];
 const noCachePlusDefaultPolicies = ['noCache', ...defaultPolicies];
+const publicTranslationPolicies = [
+  'noCache',
+  'brandingAndPortal',
+  'checkBrandingValid',
+  'setLang',
+  'prepWs'
+];
+const noCachePlusCspNoncePolicy = ['noCache', 'contentSecurityPolicy']
 module.exports.policies = {
 
   /***************************************************************************
@@ -58,14 +68,11 @@ module.exports.policies = {
 	// }
   UserController: {
     '*': noCachePlusDefaultPolicies,
-    'localLogin': 'noCache',
-    'aafLogin': 'noCache',
-    'openidConnectLogin': 'noCache',
-    'beginOidc': 'noCache',
-    'info': [
-      'noCache',
-      'isAuthenticated'
-    ]
+    'localLogin': noCachePlusCspNoncePolicy,
+    'aafLogin': noCachePlusCspNoncePolicy,
+    'openidConnectLogin': noCachePlusCspNoncePolicy,
+    'beginOidc': noCachePlusCspNoncePolicy,
+    'info': ['noCache', 'isAuthenticated', 'contentSecurityPolicy',],
   },
   RenderViewController: {
     'render': noCachePlusDefaultPolicies
@@ -78,6 +85,12 @@ module.exports.policies = {
   },
   'DynamicAssetController': {
     '*': noCachePlusDefaultPolicies
+  },
+  // Ensure checkAuth runs on translation endpoints that modify data
+  // Keep read-only translation endpoints public for frontend access
+  'TranslationController': {
+    '*': noCachePlusDefaultPolicies,
+    'getNamespace': publicTranslationPolicies
   },
   '*': defaultPolicies
 };

@@ -6,8 +6,9 @@ Security updates are provided for the following versions of our project. If your
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 4.x     | :white_check_mark: |
 | 3.x     | :white_check_mark: |
-| 2.5     | :white_check_mark: |
+| 2.5     | :x:                |
 | < 2.5   | :x:                |
 
 ## Reporting a Vulnerability

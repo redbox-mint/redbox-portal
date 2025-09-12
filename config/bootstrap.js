@@ -12,8 +12,7 @@
  const schedule = require('node-schedule');
  
  const actualBootstrap = async function() {
-   await sails.services.translationservice.bootstrap();
-   sails.log.verbose("Translation service, bootstrapped.");
+  
    let defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap())
    sails.log.verbose("Branding service, bootstrapped.");
    let rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand));
@@ -60,7 +59,12 @@
      });
      sails.log.debug('cronjobs scheduled...');
    }
- 
+   
+   // Seed default i18n data into DB if missing
+   await sails.services.i18nentriesservice.bootstrap();
+   sails.log.verbose("I18n entries service, seeded defaults.");
+   await sails.services.translationservice.bootstrap();
+   sails.log.verbose("Translation service, bootstrapped.");
   // Initialise the applicationConfig for all the brands
   await sails.services.appconfigservice.bootstrap()
   // bind convenience function to sails.config so that configuration access syntax is consistent

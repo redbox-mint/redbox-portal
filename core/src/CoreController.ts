@@ -1,8 +1,10 @@
+
 declare var _;
 declare var sails;
 
 import {existsSync} from 'fs';
-import {APIErrorResponse } from './model/APIErrorResponse';
+import { ILogger } from './Logger';
+import {APIErrorResponse, ApiVersion, ApiVersionStrings, DataResponseV2, ErrorResponseV2} from "./model";
 export module Controllers.Core {
 
   /**
@@ -59,9 +61,25 @@ export module Controllers.Core {
       '_config',
     ];
     
+    // Namespaced logger for controllers
+    private _logger: ILogger;
+    
+    /**
+     * Get a namespaced logger for this controller class.
+     * Uses the class constructor name as the namespace.
+     * Falls back to this.logger if pino namespaced logging is not available.
+     */
+    protected get logger() {
+      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+        const controllerName = this.constructor.name + 'Controller';
+        this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
+      }
+      return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
+    }
+    
     constructor() {
       this.processDynamicImports().then(result => {
-        sails.log.verbose("Dynamic imports imported");
+        this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
       })
     }
@@ -111,10 +129,10 @@ export module Controllers.Core {
               exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            console.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
           }
         } else {
-          console.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
         }
       }
 
@@ -250,10 +268,10 @@ export module Controllers.Core {
       let fullViewPath = sails.config.appPath + "/views/"+resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0,fullViewPath.lastIndexOf('/') + 1);
 
-      sails.log.debug("resolvedView");
-      sails.log.debug(resolvedView);
-      sails.log.debug("mergedLocal");
-      sails.log.debug(mergedLocal);
+      this.logger.debug("resolvedView");
+      this.logger.debug(resolvedView);
+      this.logger.debug("mergedLocal");
+      this.logger.debug(mergedLocal);
 
 
 
@@ -299,7 +317,7 @@ export module Controllers.Core {
       var ajaxMsg = "Got ajax request, don't know what do...";
       this.respond(req, res,
         (req, res)=> {
-        sails.log.verbose(ajaxMsg);
+        this.logger.verbose(ajaxMsg);
         res.notFound(ajaxMsg);
         },
         (req, res) => {
@@ -319,7 +337,7 @@ export module Controllers.Core {
         res.set('Expires', 0);
         return res.json(jsonObj);
       }, (req, res)=> {
-        sails.log.verbose(notAjaxMsg);
+        this.logger.verbose(notAjaxMsg);
         res.notFound(notAjaxMsg);
       }, forceAjax);
     }
@@ -332,5 +350,71 @@ export module Controllers.Core {
       }
     }
 
+    /**
+     * Get the API version from the request.
+     * Defaults to v1.
+     * @param req The sails request.
+     * @return The API version string.
+     * @protected
+     */
+    protected getApiVersion(req): ApiVersionStrings {
+      const defaultVersion = ApiVersion.VERSION_1_0;
+
+      const qs = req.query;
+      const qsKey = "apiVersion";
+      const qsKeyLower = qsKey.toLowerCase();
+
+      const headers = req.headers;
+      const headerKey = "X-ReDBox-Api-Version";
+      const headerKeyLower = headerKey.toLowerCase();
+
+      const qsValue = (_.get(qs, qsKey) ?? _.get(qs, qsKeyLower))?.toString()?.trim()?.toLowerCase();
+      const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
+
+      if (qsValue && headerValue && qsValue !== headerValue) {
+        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match.`);
+        return defaultVersion;
+      }
+
+      // Use the HTTP header value first, then the query string value, then the default.
+      const version = headerValue ?? qsValue ?? defaultVersion;
+
+      const available = Array.from(Object.values(ApiVersion));
+      if (!available.includes(version)) {
+        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
+        return defaultVersion;
+      }
+
+      sails.log.verbose(`Using API version '${version}' for url '${req.url}'.`);
+      return version;
+    }
+
+    /**
+     * Build a success response with the provided data and meta items.
+     * @param data The primary data for the response.
+     * @param meta The metadata for the response.
+     * @protected
+     */
+    protected buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
+      // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
+      return {
+        data: data,
+        meta: {...Object.entries(meta ?? {})},
+      }
+    }
+
+    /**
+     * Build an error response with the provided data and meta items.
+     * @param errors The error details for the response.
+     * @param meta The metadata for the response.
+     * @protected
+     */
+    protected buildResponseError(errors: { title?: string, detail?: string }[], meta: Record<string, unknown>): ErrorResponseV2 {
+      // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
+      return {
+        errors: errors,
+        meta: {...Object.entries(meta ?? {})},
+      }
+    }
   }
 }

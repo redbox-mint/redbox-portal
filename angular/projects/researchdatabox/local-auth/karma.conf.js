@@ -41,13 +41,7 @@ module.exports = function (config) {
     autoWatch: true,
     browsers: ['Chrome'],
     singleRun: false,
-    restartOnFileChange: true,
-    files: [
-      { pattern: 'test/locales/**/*.json', watched: true, included: false, served: true, nocache: true },
-    ],
-    proxies: {
-      '/base/locales/': '/base/test/locales/'
-    }
+    restartOnFileChange: true
   });
 };
 

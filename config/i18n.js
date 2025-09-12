@@ -62,6 +62,7 @@ module.exports.i18n = {
       preload: ['en'],
       debug: true,
       fallbackLng: 'en',
+      lowerCaseLng: true,
       initImmediate: false,
       skipOnVariables: false,
       returnEmptyString: false,

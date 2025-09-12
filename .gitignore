@@ -185,5 +185,21 @@ support/raido/*.tgz
 angular/.angular/cache/
 
 api/configmodels/*
+api/additional/*
+
+# js files built from ts files
+
+# typescript/assets/default/default/js
+assets/default/default/js/client-script.js
+
+# typescript/config/validators.ts
+config/validators.js
+
+# typescript/form-config
+form-config/default-1.0-draft.js
+
+!support/ng19-forms-migration/parseTabs.js
+!support/ng19-forms-migration/parseTabFields.js
+!support/ng19-forms-migration/fieldComponentMap.js
 api/shims/*.js
 

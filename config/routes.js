@@ -100,6 +100,13 @@ module.exports.routes = {
       'view': 'admin/home'
     }
   },
+  '/:branding/:portal/admin/translation': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: {
+      'view': 'admin/translation'
+    }
+  },
   '/:branding/:portal/admin/roles': {
     controller: 'AdminController',
     action: 'rolesIndex',
@@ -145,6 +152,11 @@ module.exports.routes = {
   // 'get /dynamic/': 'UserController.info',
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
+  'get /:branding/:portal/dynamicAsset/formStructureValidations/:recordType/:oid?': 'DynamicAssetController.getFormStructureValidations',
+  'get /:branding/:portal/dynamicAsset/formDataValidations/:recordType/:oid?': 'DynamicAssetController.getFormDataValidations',
+  'get /:branding/:portal/dynamicAsset/formExpressions/:recordType/:oid?': 'DynamicAssetController.getFormExpressions',
+  'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
+  'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
   'post /user/login_local': 'UserController.localLogin',
   'post /user/login_aaf': {
     controller: 'UserController',
@@ -202,6 +214,7 @@ module.exports.routes = {
   'post /:branding/:portal/admin/users/newUser': 'AdminController.addLocalUser',
   'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
   'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
+  'get /:branding/:portal/record/default/:name': 'RecordController.getMetaDefault',
   'get /:branding/:portal/record/metadata/:oid': 'RecordController.getMeta',
   'get /:branding/:portal/record/form/:name': 'RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
@@ -561,6 +574,80 @@ module.exports.routes = {
   'post /:branding/:portal/api/branding/rollback/:versionId': { controller: 'webservice/BrandingController', action: 'rollback', csrf: false },
   'post /:branding/:portal/api/branding/logo': { controller: 'webservice/BrandingController', action: 'logo', csrf: false },
   'get /:branding/:portal/api/branding/history': { controller: 'webservice/BrandingController', action: 'history', csrf: false },
+  // i18next http-backend compatible route to fetch namespaces
+  // Example: /default/rdmp/locales/en/translation.json
+  'get /:branding/:portal/locales/:lng/:ns.json': {
+    controller: 'TranslationController',
+    action: 'getNamespace',
+    csrf: false
+  },
+  // TODO: Fix pattern so above route works.
+  'get /:branding/:portal/locales/:lng/translation.json': {
+    controller: 'TranslationController',
+    action: 'getNamespace',
+    csrf: false
+  },
+  // Languages list for Translation app
+  'get /:branding/:portal/locales': {
+    controller: 'TranslationController',
+    action: 'getLanguages',
+    csrf: false
+  },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
+  ,
+  // Translation management API (webservice)
+  'get /:branding/:portal/api/i18n/entries': {
+    controller: 'webservice/TranslationController',
+    action: 'listEntries',
+    csrf: false
+  },
+  // Allow dots in keys via * slug
+  'get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'getEntry',
+    csrf: false
+  },
+  'post /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'setEntry',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'deleteEntry',
+    csrf: false
+  },
+  'get /:branding/:portal/api/i18n/bundles/:locale/:namespace': {
+    controller: 'webservice/TranslationController',
+    action: 'getBundle',
+    csrf: false
+  },
+  'post /:branding/:portal/api/i18n/bundles/:locale/:namespace': {
+    controller: 'webservice/TranslationController',
+    action: 'setBundle',
+    csrf: false
+  }
+  ,
+  // Angular app i18n endpoints (CSRF enabled)
+  'get /:branding/:portal/app/i18n/entries': {
+    controller: 'TranslationController',
+    action: 'listEntriesApp'
+  },
+  'post /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'TranslationController',
+    action: 'setEntryApp'
+  },
+  'get /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
+    controller: 'TranslationController',
+    action: 'getBundleApp'
+  },
+  'post /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
+    controller: 'TranslationController',
+    action: 'setBundleApp'
+  },
+  'post /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled': {
+    controller: 'webservice/TranslationController',
+    action: 'updateBundleEnabled'
+  }
 };

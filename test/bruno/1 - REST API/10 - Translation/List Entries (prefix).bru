@@ -1,0 +1,27 @@
+meta {
+  name: List Entries (prefix)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/i18n/entries?locale=ar&namespace=translation&keyPrefix=hello
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("All keys start with hello", function () {
+      var data = res.getBody();
+      var allPrefixed = data.every(function (e) { return e.key.indexOf("hello") === 0; });
+      expect(allPrefixed).to.equal(true);
+  });
+}

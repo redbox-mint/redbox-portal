@@ -20,23 +20,43 @@ import { NgModule } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
-import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
+import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
-import { TextFieldComponent } from './component/textfield.component';
-import { FormFieldWrapperDirective } from './form-field-wrapper.directive';
+import { SimpleInputComponent } from './component/simpleinput.component';
 import { FormService } from './form.service';
-import { FormFieldWrapperComponent } from './form-field-wrapper.component';
+import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
+import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
+import {I18NextPipe, provideI18Next} from "angular-i18next";
+import {GroupFieldComponent} from "./component/groupfield.component";
+import {DefaultLayoutComponent} from "./component/default-layout.component";
+import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
+import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import { ContentComponent } from './component/content.component';
+import { SaveButtonComponent } from './component/save-button.component';
+import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
 @NgModule({
   declarations: [
+    DefaultLayoutComponent,
+    FormBaseWrapperComponent,
+    FormBaseWrapperDirective,
     FormComponent,
-    FormFieldWrapperComponent,
-    FormFieldWrapperDirective,
-    TextFieldComponent
+    SimpleInputComponent,
+    ContentComponent,
+    RepeatableComponent,
+    RepeatableElementLayoutComponent,
+    ValidationSummaryFieldComponent,
+    GroupFieldComponent,
+    SaveButtonComponent,
+    TabComponent,
+    TabContentComponent,
+    TabComponentLayout
   ],
   imports: [
+    CommonModule,
     BrowserModule,
     ReactiveFormsModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    I18NextPipe,
   ],
   providers: [
     {
@@ -45,11 +65,14 @@ import { FormFieldWrapperComponent } from './form-field-wrapper.component';
       deps: [PlatformLocation]
     },
     Title,
-    FormService
+    FormService,
+    provideI18Next(),
   ],
-  bootstrap: [FormComponent],
+  bootstrap: [
+    FormComponent
+  ],
   exports: [
-    
+
   ]
 })
 export class FormModule { }

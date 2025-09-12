@@ -60,24 +60,50 @@ module.exports = function forbidden (data, options) {
 
   // If no second argument provided, try to serve the default view,
   // but fall back to sending JSON(P) if any errors occur.
-  else return res.view('403', { data: viewData, title: 'Forbidden',  templateDirectoryLocation:  brandingViewPath }, function (err, html) {
+  else {
+    // Ensure required variables are set for the view (normally done by policies)
+    var lang = req.session.lang || req.getLocale() || 'en';
+    var availableLanguages = req.session.availableLanguages || [{ code: 'en', displayName: 'English' }];
+    
+    return res.view('403', { 
+      data: viewData, 
+      title: 'Forbidden', 
+      templateDirectoryLocation: brandingViewPath,
+      lang: lang,
+      availableLanguages: availableLanguages
+    }, function (err, html) {
 
-    // If a view error occured, fall back to JSON(P).
-    if (err) {
-      //
-      // Additionally:
-      // • If the view was missing, ignore the error but provide a verbose log.
-      if (err.code === 'E_VIEW_FAILED') {
-        sails.log.verbose('res.forbidden() :: Could not locate view for error page (sending JSON instead).  Details: ',err);
-      }
-      // Otherwise, if this was a more serious error, log to the console with the details.
-      else {
-        sails.log.warn('res.forbidden() :: When attempting to render error page view, an error occured (sending JSON instead).  Details: ', err);
-      }
-      return res.json(data);
-    }
+      // Debug logging
+      sails.log.verbose('res.forbidden() :: View render callback - err:', err ? err.message : 'none');
+      sails.log.verbose('res.forbidden() :: View render callback - html length:', html ? html.length : 'undefined');
 
-    return res.send(html);
-  });
+      // If a view error occured, fall back to JSON(P).
+      if (err) {
+        //
+        // Additionally:
+        // • If the view was missing, ignore the error but provide a verbose log.
+        if (err.code === 'E_VIEW_FAILED') {
+          sails.log.warn('res.forbidden() :: Could not locate view for error page (sending JSON instead).  Details: ', JSON.stringify(err, null, 2));
+          sails.log.warn('res.forbidden() :: Error message:', err.message);
+          sails.log.warn('res.forbidden() :: Error stack:', err.stack);
+        }
+        // Otherwise, if this was a more serious error, log to the console with the details.
+        else {
+          sails.log.warn('res.forbidden() :: When attempting to render error page view, an error occured (sending JSON instead).  Details: ', JSON.stringify(err, null, 2));
+          sails.log.warn('res.forbidden() :: Error message:', err.message);
+          sails.log.warn('res.forbidden() :: Error stack:', err.stack);
+        }
+        return res.json(data);
+      }
+
+      // We don't ever not want to serve html here so if everything fails fall back to a basic hard-coded html string.
+      if (!html || html.length === 0) {
+        sails.log.warn('res.forbidden() :: Rendered HTML is empty, sending test response');
+        return res.send('<!DOCTYPE html><html><head><title>Forbidden</title></head><body><h1>403 - Forbidden</h1></body></html>');
+      }
+
+      return res.send(html);
+    });
+  }
 
 };

@@ -1,0 +1,21 @@
+meta {
+  name: Get Entry After Delete (404)
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/api/i18n/entries/ar/translation/hello-world
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 404", function () {
+      expect(res.getStatus()).to.equal(404);
+  });
+}

@@ -44,18 +44,18 @@ import { RB_HTTP_INTERCEPTOR_AUTH_CSRF } from './csrf.interceptor';
 export class HttpClientService implements Service {
   protected initSubject: any;
   protected config: any;
-  public baseUrl:string;
-  public brandingAndPortalUrl:string;
+  public baseUrl: string;
+  public brandingAndPortalUrl: string;
   public baseUrlWithContext: string;
   protected httpContext: HttpContext = null as any;
   // define some predefined request options here for extensions can use,clone,modify,etc.
-  protected reqOptsJsonBodyOnly:any = {responseType: 'json', observe: 'body'};
+  protected reqOptsJsonBodyOnly: any = { responseType: 'json', observe: 'body' };
 
-  constructor( 
-  @Inject(HttpClient) protected http: HttpClient, 
-  @Inject(APP_BASE_HREF) public rootContext: string,
-  @Inject(UtilityService) protected utilService: UtilityService,
-  @Inject(ConfigService) protected configService: ConfigService
+  constructor(
+    @Inject(HttpClient) protected http: HttpClient,
+    @Inject(APP_BASE_HREF) public rootContext: string,
+    @Inject(UtilityService) protected utilService: UtilityService,
+    @Inject(ConfigService) protected configService: ConfigService
   ) {
     this.initSubject = new Subject();
     if (_isEmpty(this.rootContext)) {
@@ -95,7 +95,7 @@ export class HttpClientService implements Service {
     this.baseUrlWithContext = `${this.baseUrl}${this.rootContext}`;
     this.httpContext = new HttpContext();
     return this;
-  }  
+  }
   /**
    * Default checks if we've loaded the config. Extensions can add more conditions as needed.
    * 
@@ -108,6 +108,7 @@ export class HttpClientService implements Service {
    * Call from extending class to enable CSRF in the header
    */
   protected enableCsrfHeader() {
+    // HttpContext is immutable; set() returns a new instance. Assign it back.
     this.httpContext = this.httpContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
   }
 }

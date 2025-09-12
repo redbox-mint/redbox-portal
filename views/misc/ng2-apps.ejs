@@ -1,5 +1,5 @@
 <!-- stupid workaround for commonjs elements -->
-<script>window.module = "";</script>
+<script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>window.module = "";</script>
 <%
 if (apps) {
   var currentMinute = sails.config.startupMinute;
