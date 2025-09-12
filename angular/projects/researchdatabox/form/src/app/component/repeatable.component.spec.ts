@@ -40,7 +40,6 @@ describe('RepeatableComponent', () => {
             class: 'RepeatableComponent',
             config: {
               elementTemplate: {
-                name: "repeatable_component_1",
                 model: {
                   class: 'SimpleInputModel',
                   config: {

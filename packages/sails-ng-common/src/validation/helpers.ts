@@ -1,4 +1,4 @@
-import _ from "lodash";
+import {get as _get} from "lodash-es";
 import { FormValidatorCreateConfig } from "./form.model";
 
 /**
@@ -24,7 +24,7 @@ export function formValidatorGetDefinitionItem(
   key: string,
   defaultValue: unknown = undefined,
 ): unknown {
-  const value = _.get(config ?? {}, key, defaultValue);
+  const value = _get(config ?? {}, key, defaultValue);
   if (value === undefined) {
     throw new Error(`Must define '${key}' in validator config.`);
   }

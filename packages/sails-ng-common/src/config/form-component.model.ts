@@ -64,7 +64,7 @@ export class FormConstraintConfig {
     public static from(other?: FormConstraintConfig) {
         const newInstance = new FormConstraintConfig();
         newInstance.authorization = FormConstraintAuthorizationConfig.from(other?.authorization);
-        newInstance.allowModes = [...other?.allowModes ?? []];
+        newInstance.allowModes = [...(other?.allowModes ?? [])];
         return newInstance;
     }
 }
@@ -86,7 +86,7 @@ export class FormConstraintAuthorizationConfig {
      */
     public static from(other?: FormConstraintAuthorizationConfig) {
         const newInstance = new FormConstraintAuthorizationConfig();
-        newInstance.allowRoles = [...other?.allowRoles ?? []];
+        newInstance.allowRoles = [...(other?.allowRoles ?? [])];
         return newInstance;
     }
 }

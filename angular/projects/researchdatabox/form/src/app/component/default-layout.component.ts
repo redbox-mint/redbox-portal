@@ -67,7 +67,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
                 Field validation errors:
                 <ul>
                   @for (error of componentValidationList; track $index) {
-                    <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
+                    <li>{{ error.message | i18next: error.params }}</li>
                   }
                 </ul>
               </div>
@@ -173,7 +173,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
       return {
         name: key,
         message: item.message ?? null,
-        params: {validatorName: key, ...item.params},
+        params: {...item.params},
       };
     })
   }

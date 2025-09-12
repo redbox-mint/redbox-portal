@@ -1,5 +1,5 @@
 import { KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
-import {FormValidatorConfig, FormValidatorDefinition} from "../validation";
+import {FormValidatorConfig} from "../validation";
 import {FormComponentDefinition} from "./form-component.model";
 
 // TODO: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions

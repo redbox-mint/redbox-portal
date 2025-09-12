@@ -7,10 +7,10 @@ jobs:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: npm run compile:core:prod
+          command: npm run compile:core
       - run:
           name: Install npm packages and compile for sails-ng-common
-          command: npm run compile:sails-ng-common:prod
+          command: npm run compile:sails-ng-common
       - run:
           name: Build generated api library for raido
           command: |
@@ -26,7 +26,7 @@ jobs:
             /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc   
       - run:
           name: Install npm packages and compile for project
-          command: npm run compile:sails:prod
+          command: npm run compile:sails
       - run:
           name: Install nvm
           command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -60,13 +60,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: npm run compile:core:prod
+          command: npm run compile:core
       - run:
           name: Install npm packages and compile for sails-ng-common
-          command: npm run compile:sails-ng-common:prod
+          command: npm run compile:sails-ng-common
       - run:
           name: Install npm packages and compile for project
-          command: npm run compile:sails:prod
+          command: npm run compile:sails
       - run:
           name: Compile sails app using webpack
           command: npm run webpack

@@ -371,7 +371,6 @@ const formConfig: FormConfig = {
                                         class: 'RepeatableComponent',
                                         config: {
                                             elementTemplate: {
-                                                name: 'example_repeatable',
                                                 model: {
                                                     class: 'SimpleInputModel',
                                                     config: {
@@ -442,7 +441,6 @@ const formConfig: FormConfig = {
                 config: {
                     elementTemplate: {
                         // first group component
-                        name: 'group_1_component',
                         model: {
                             class: 'GroupFieldModel',
                             config: {
