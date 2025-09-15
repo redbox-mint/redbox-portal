@@ -9,6 +9,8 @@ services:
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
     working_dir: /opt/bruno-tests
+    environment:
+      - BRUNO_SUBSET
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -22,7 +24,9 @@ services:
       i=0; until curl -fsS http://redboxportal:1500/default/rdmp/home >/dev/null 2>&1; do i=$$((i+1)); if [ $$i -gt 120 ]; then echo 'Timeout waiting for redboxportal'; exit 1; fi; sleep 2; done && 
       echo 'redboxportal is healthy. Starting Bruno tests...' && 
       ( while sleep 20; do echo '[bruno] heartbeat'; done ) & HB=$$! && 
-      bru run 
+      TARGET='.'; if [ -n \"$$BRUNO_SUBSET\" ]; then TARGET=\"$$BRUNO_SUBSET\"; fi && 
+      echo "bru run target: $$TARGET" && 
+      bru run \"$$TARGET\" 
       --env int-test 
       --format junit 
       --output /opt/junit/backend-bruno/backend-bruno.xml 
