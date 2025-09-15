@@ -30,6 +30,9 @@ import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
 import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
+import { DropdownInputComponentConfig, DropdownInputComponentDefinition, DropdownInputModelConfig, DropdownInputModelDefinition } from "./dropdown-input.model";
+import { CheckboxInputComponentConfig, CheckboxInputComponentDefinition, CheckboxInputModelConfig, CheckboxInputModelDefinition } from "./checkbox-input.model";
+import { RadioInputComponentConfig, RadioInputComponentDefinition, RadioInputModelConfig, RadioInputModelDefinition } from "./radio-input.model";
 /**
  * Possible form field component definitions.
  */
@@ -42,7 +45,10 @@ export type FormFieldComponentDefinition =
     TabFormFieldComponentDefinition | 
     TabContentComponentDefinition |
     SaveButtonComponentDefinition |
-    TextAreaComponentDefinition;
+    TextAreaComponentDefinition |
+    DropdownInputComponentDefinition |
+    CheckboxInputComponentDefinition |
+    RadioInputComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -55,7 +61,10 @@ export type FormFieldComponentConfig =
     GroupFormFieldComponentConfig |
     TabComponentConfig |
     SaveButtonComponentConfig |
-    TextAreaComponentConfig;
+    TextAreaComponentConfig |
+    DropdownInputComponentConfig |
+    CheckboxInputComponentConfig |
+    RadioInputComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -65,7 +74,10 @@ export type FormFieldModelDefinition =
     RepeatableFormFieldModelDefinition |
     ValidationSummaryFormFieldModelDefinition |
     GroupFormFieldModelDefinition | 
-    TextareaModelDefinition;
+    TextareaModelDefinition |
+    DropdownInputModelDefinition |
+    CheckboxInputModelDefinition |
+    RadioInputModelDefinition;
 
 
 /**
@@ -76,7 +88,10 @@ export type FormFieldModelConfig =
     RepeatableFormFieldModelConfig |
     ValidationSummaryFormFieldModelConfig |
     GroupFormFieldModelConfig | 
-    TextareaModelConfig;
+    TextareaModelConfig |
+    DropdownInputModelConfig |
+    CheckboxInputModelConfig |
+    RadioInputModelConfig;
 
 
 /**
@@ -103,3 +118,6 @@ export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'
 export * from './textblock.model'
+export * from './dropdown-input.model'
+export * from './checkbox-input.model'
+export * from './radio-input.model'
