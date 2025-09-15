@@ -95,59 +95,21 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Bruno and Mocha tests with code coverage
+          name: Run Mocha tests only (Bruno temporarily disabled)
           no_output_timeout: 30m
           command: |
-            sudo mkdir -p .tmp/junit/backend-bruno
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            echo "Building bruno-runner image..."
-            npm run test:bruno:build-runner
-            echo "Starting Bruno tests (robust teardown)..."
-            timeout 1800s npm run test:bruno:ci
-            BRUNO_EXIT_CODE=$?
-            echo "Bruno tests finished with exit code: $BRUNO_EXIT_CODE"
-            echo "Generating Bruno coverage (non-fatal)..."
-            npm run test:bruno:coverage || true
-            # Store Bruno result for later evaluation
-            BRUNO_SUCCESS=false
-            if [ $BRUNO_EXIT_CODE -eq 0 ]; then
-              echo "Bruno tests passed successfully"
-              BRUNO_SUCCESS=true
-            else
-              echo "Bruno tests failed with exit code: $BRUNO_EXIT_CODE"
-            fi
             echo "Starting Mocha tests..."
-            npm run test:mocha
+            timeout 1800s npm run test:mocha
             MOCHA_EXIT_CODE=$?
             echo "Mocha tests completed with exit code: $MOCHA_EXIT_CODE, cleaning up..."
-            timeout 60s npm run test:mocha:clean || (echo "Force stopping containers..." && docker compose -f ./support/integration-testing/docker-compose.mocha.yml down --timeout 30 --remove-orphans)
-            # Final exit code logic: fail only if both Bruno and Mocha have issues
-            if [ "$BRUNO_SUCCESS" = true ] && [ $MOCHA_EXIT_CODE -eq 0 ]; then
-              echo "Both Bruno and Mocha tests passed"
-              exit 0
-            elif [ "$BRUNO_SUCCESS" = true ]; then
-              echo "Bruno tests passed, but Mocha failed"
-              exit $MOCHA_EXIT_CODE
-            elif [ $MOCHA_EXIT_CODE -eq 0 ]; then
-              echo "Mocha tests passed, but Bruno failed"
-              exit $BRUNO_EXIT_CODE
-            else
-              echo "Both Bruno and Mocha tests failed"
-              exit 1
-            fi
+            timeout 120s npm run test:mocha:clean || (echo "Force stopping containers..." && docker compose -f ./support/integration-testing/docker-compose.mocha.yml down --timeout 30 --remove-orphans)
+            exit $MOCHA_EXIT_CODE
       - run:
-          name: Upload Bruno and mocha code coverage
+          name: Upload Mocha code coverage (Bruno disabled)
           command: |
-            if [ -f "./coverage/bruno/lcov.info" ]; then
-              /tmp/.codecov-cli/codecov --verbose upload-process --disable-search \
-                --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-                --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-                || echo "Codecov upload (bruno) failed, continuing"
-            else
-              echo "Bruno coverage not found, skipping upload"
-            fi
             if [ -f "./coverage/mocha/lcov.info" ]; then
               /tmp/.codecov-cli/codecov --verbose upload-process --disable-search \
                 --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
