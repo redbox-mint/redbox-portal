@@ -73,7 +73,7 @@ export class RadioInputComponent extends FormFieldBaseComponent<string> {
    * @returns A unique ID string
    */
   getOptionId(opt: RadioOption): string {
-    return `${this.name}_${opt.value}`;
+    return `${this.name}-${opt.value}`;
   }
 
   /**
