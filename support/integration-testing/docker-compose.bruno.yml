@@ -69,7 +69,7 @@ services:
     init: true
     stop_grace_period: 2m
     entrypoint: |
-      /bin/bash -c "
+      /bin/sh -lc "
       cd /opt/redbox-portal &&
       # Fix permissions for mounted files - make them world-writable temporarily
       chmod 666 package-lock.json 2>/dev/null || true &&
@@ -78,24 +78,8 @@ services:
       # Ensure coverage directory exists and has proper permissions
       mkdir -p coverage/bruno &&
       chmod -R 777 coverage/ 2>/dev/null || true &&
-      echo 'Starting application with nyc coverage...' &&
-      # Function to handle shutdown: stop app first; coverage handled externally
-      shutdown_handler() {
-        echo 'Received shutdown signal, stopping application (PID: ' \"$APP_PID\" ')...' &&
-        kill -TERM \"$APP_PID\" 2>/dev/null || true &&
-        # Wait for the application process to exit
-        wait \"$APP_PID\" 2>/dev/null || true &&
-        echo 'Application stopped. Exiting.' &&
-        exit 0
-      } &&
-      # Set up signal handlers
-      trap shutdown_handler SIGTERM SIGINT &&
-      # Run with nyc for code coverage
-      npx nyc@17.1.0 --no-clean --silent --temp-dir .tmp/.nyc_output node app.js &
-      APP_PID=\$! &&
-      echo 'Application started with PID:' \$APP_PID &&
-      # Wait for the application process
-      wait \$APP_PID
+      echo 'Starting application with nyc coverage (foreground with exec)...' &&
+      exec npx nyc@17.1.0 --no-clean --silent --temp-dir .tmp/.nyc_output node app.js
       "
   mongodb:
     image: mongo:latest
