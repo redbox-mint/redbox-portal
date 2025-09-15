@@ -18,6 +18,9 @@ services:
          - bruno
     entrypoint: >-
       /bin/sh -lc "cd /opt/bruno-tests && 
+      echo 'Waiting for redboxportal to become healthy...' && 
+      i=0; until curl -fsS http://redboxportal:1500/default/rdmp/home >/dev/null 2>&1; do i=$((i+1)); if [ \"$i\" -gt 120 ]; then echo 'Timeout waiting for redboxportal'; exit 1; fi; sleep 2; done && 
+      echo 'redboxportal is healthy. Starting Bruno tests...' && 
       bru run 
       --env int-test 
       --format junit 
@@ -67,6 +70,7 @@ services:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
     init: true
+    stop_signal: SIGINT
     stop_grace_period: 2m
     entrypoint: |
       /bin/sh -lc "

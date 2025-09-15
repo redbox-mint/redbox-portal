@@ -103,10 +103,12 @@ jobs:
             sudo chmod -R 777 .
             echo "Building bruno-runner image..."
             npm run test:bruno:build-runner
-            echo "Starting Bruno tests (with robust teardown + coverage)..."
-            timeout 1800s npm run test:bruno:ci:cov
+            echo "Starting Bruno tests (robust teardown)..."
+            timeout 1800s npm run test:bruno:ci
             BRUNO_EXIT_CODE=$?
             echo "Bruno tests finished with exit code: $BRUNO_EXIT_CODE"
+            echo "Generating Bruno coverage (non-fatal)..."
+            npm run test:bruno:coverage || true
             # Store Bruno result for later evaluation
             BRUNO_SUCCESS=false
             if [ $BRUNO_EXIT_CODE -eq 0 ]; then
@@ -137,12 +139,22 @@ jobs:
       - run:
           name: Upload Bruno and mocha code coverage
           command: |
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+            if [ -f "./coverage/bruno/lcov.info" ]; then
+              /tmp/.codecov-cli/codecov --verbose upload-process --disable-search \
+                --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+                --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+                || echo "Codecov upload (bruno) failed, continuing"
+            else
+              echo "Bruno coverage not found, skipping upload"
+            fi
+            if [ -f "./coverage/mocha/lcov.info" ]; then
+              /tmp/.codecov-cli/codecov --verbose upload-process --disable-search \
+                --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+                --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+                || echo "Codecov upload (mocha) failed, continuing"
+            else
+              echo "Mocha coverage not found, skipping upload"
+            fi
           when: always
       - run:
           name: Run angular tests
