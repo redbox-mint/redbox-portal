@@ -35,12 +35,9 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
   public componentDefinitionCache?: FormFieldComponentConfig;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
-  // public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   public hostBindingCssClasses?: string;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
-
-  viewInitialised = signal<boolean>(false);
 
   @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
@@ -59,7 +56,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * @private
    */
   private appRef: ApplicationRef = inject(ApplicationRef);
-  private componentViewReady:boolean = false;
   /**
    * Cache the reference to the FormComponent instance.
    * @private
@@ -255,9 +251,16 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.componentViewReady = true;
     this.loggerService.debug(`${this.logName}: View has initialised`, this.formFieldCompMapEntry);
-    this.viewInitialised.set(true);
+    const s = this.status();
+    // Gating the status update in case the component has been set to something else beforehand.
+    if (s === FormFieldComponentStatus.INIT) {
+      this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+    }
+  }
+
+  public viewInitialised(): boolean {
+    return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
   }
 
   public buildPropertyMap(componentDefinition: FormFieldComponentOrLayoutConfig): Map<string, any> {
@@ -315,6 +318,10 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   get isDisabled(): boolean {
     return this.componentDefinition?.config?.disabled ?? false;
+  }
+
+  get label(): string {
+    return _get(this.componentDefinition?.config,'label','');
   }
 
   hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
