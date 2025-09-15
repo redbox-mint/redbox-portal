@@ -4,15 +4,11 @@ networks:
 
 services:
   bruno:
-    build:
-      context: ../..
-      dockerfile: support/integration-testing/bruno-runner/Dockerfile
     image: redbox-portal/bruno-runner:1
     pull_policy: 'missing'
     volumes:
-      - "../..:/opt/redbox-portal"
-      - "../../.tmp/attachments:/attachments"
-    working_dir: /tests
+      - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
+    working_dir: /opt/bruno-tests
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -21,11 +17,11 @@ services:
        aliases:
          - bruno
     entrypoint: >-
-      /bin/sh -lc "cd /opt/redbox-portal/test/bruno && 
+      /bin/sh -lc "cd /opt/bruno-tests && 
       bru run 
       --env int-test 
       --format junit 
-      --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno.xml 
+      --output /opt/junit/backend-bruno/backend-bruno.xml 
       --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
