@@ -96,6 +96,7 @@ jobs:
             chmod +x codecov
       - run:
           name: Run Bruno and Mocha tests with code coverage
+          no_output_timeout: 30m
           command: |
             sudo mkdir -p .tmp/junit/backend-bruno
             sudo mkdir -p .tmp/junit/backend-mocha
