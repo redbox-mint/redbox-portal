@@ -71,7 +71,7 @@ services:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
     init: true
-    command: ["node", "app.js"]
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
