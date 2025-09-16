@@ -93,7 +93,7 @@
     "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:build-runner": "docker build -t redbox-portal/bruno-runner:1 -f support/integration-testing/bruno-runner/Dockerfile .",
     "test:bruno:ci": "set -e; FILE=./support/integration-testing/docker-compose.bruno.yml; docker compose -f $FILE up -d redboxportal mongodb solr keycloak email; EXIT=0; docker compose -f $FILE logs -f --timestamps redboxportal & LOG_PID=$!; docker compose -f $FILE run --rm bruno || EXIT=$?; kill $LOG_PID || true; docker compose -f $FILE down -v --remove-orphans --timeout 60 || true; docker compose -f $FILE kill redboxportal || true; docker compose -f $FILE rm -f redboxportal || true; exit $EXIT",
-    "test:bruno:ci:subset": "set -e; FILE=./support/integration-testing/docker-compose.bruno.yml; docker compose -f $FILE up",
+    "test:bruno:ci:subset": "set -e; FILE=./support/integration-testing/docker-compose.bruno.yml; docker compose -f $FILE up --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:coverage": "docker run --rm -v $PWD:/opt/redbox-portal -w /opt/redbox-portal node:24-alpine sh -lc 'npx nyc@17.1.0 report --report-dir coverage/bruno --reporter=lcov --temp-dir .tmp/.nyc_output'",
     "test:bruno:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml down -v --remove-orphans --timeout 180",
     "test:bruno:ci:cov": "npm run -s test:bruno:ci && npm run -s test:bruno:coverage",
