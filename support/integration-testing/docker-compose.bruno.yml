@@ -20,17 +20,13 @@ services:
          - bruno
     entrypoint: >-
       /bin/sh -lc "cd /opt/bruno-tests && 
-      echo 'Waiting for redboxportal to become healthy...' && 
-      i=0; until curl -fsS http://redboxportal:1500/default/rdmp/home >/dev/null 2>&1; do i=$$((i+1)); if [ $$i -gt 120 ]; then echo 'Timeout waiting for redboxportal'; exit 1; fi; sleep 2; done && 
-      echo 'redboxportal is healthy. Starting Bruno tests...' && 
-      ( while sleep 20; do echo '[bruno] heartbeat'; done ) & HB=$$! && 
-      TARGET='.'; if [ -n \"$$BRUNO_SUBSET\" ]; then TARGET=\"$$BRUNO_SUBSET\"; fi && 
-      echo "bru run target: $$TARGET" && 
-      bru run \"$$TARGET\" 
+      TARGET='.'; if [ -n \"$BRUNO_SUBSET\" ]; then TARGET=\"$BRUNO_SUBSET\"; fi && 
+      echo \"bru run target: $BRUNO_SUBSET\" && 
+      bru run \"$TARGET\" 
       --env int-test 
       --format junit 
       --output /opt/junit/backend-bruno/backend-bruno.xml 
-      --bail; STATUS=$$?; kill $$HB 2>/dev/null || true; exit $$STATUS"
+      --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'missing'
@@ -73,23 +69,9 @@ services:
      main:
        aliases:
          - redboxportal
-    # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
+    # add 'node --inspect=0.0.0.0:9876' for debugging locally
     init: true
-    stop_signal: SIGINT
-    stop_grace_period: 2m
-    entrypoint: |
-      /bin/sh -lc "
-      cd /opt/redbox-portal &&
-      # Fix permissions for mounted files - make them world-writable temporarily
-      chmod 666 package-lock.json 2>/dev/null || true &&
-      chmod -R 777 node_modules/ 2>/dev/null || true &&
-      chmod -R 777 .tmp/ 2>/dev/null || true &&
-      # Ensure coverage directory exists and has proper permissions
-      mkdir -p coverage/bruno &&
-      chmod -R 777 coverage/ 2>/dev/null || true &&
-      echo 'Starting application with nyc coverage (foreground with exec)...' &&
-      exec npx nyc@17.1.0 --no-clean --silent --temp-dir .tmp/.nyc_output node app.js
-      "
+    command: ["node", "app.js"]
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
