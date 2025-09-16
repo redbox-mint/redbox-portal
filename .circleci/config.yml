@@ -95,7 +95,7 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Bruno subset and Mocha tests
+          name: Run Bruno subsets sequentially, then Mocha
           no_output_timeout: 30m
           command: |
             sudo mkdir -p .tmp/junit/backend-bruno
@@ -104,12 +104,23 @@ jobs:
             sudo chmod -R 777 .
             echo "Building bruno-runner image..."
             npm run test:bruno:build-runner
-            echo "Running Bruno subset..."
-            export BRUNO_SUBSET="1 - REST API"
-            timeout 1800s npm run test:bruno:ci:subset
-            BRUNO_EXIT_CODE=$?
-            echo "Bruno subset finished with exit code: $BRUNO_EXIT_CODE"
-            # Skipping Bruno coverage generation
+            echo "Running Bruno subsets..."
+            FAIL=0
+            SUBSETS=(
+              "1 - REST API"
+              "2 - AJAX calls"
+              "3 - OpenID Connect"
+              "4 - General"
+              "5 - OpenID Connect Denied"
+              "6 - OpenID Connect Allowed"
+            )
+            for S in "${SUBSETS[@]}"; do
+              echo "=== Running Bruno subset: $S ==="
+              export BRUNO_SUBSET="$S"
+              timeout 1800s npm run test:bruno:ci:subset || FAIL=1
+            done
+            BRUNO_EXIT_CODE=$FAIL
+            echo "Bruno subsets aggregate status: $BRUNO_EXIT_CODE"
             echo "Starting Mocha tests..."
             timeout 1800s npm run test:mocha
             MOCHA_EXIT_CODE=$?
