@@ -109,8 +109,7 @@ jobs:
             timeout 1800s npm run test:bruno:ci:subset
             BRUNO_EXIT_CODE=$?
             echo "Bruno subset finished with exit code: $BRUNO_EXIT_CODE"
-            echo "Generating Bruno coverage (non-fatal)..."
-            npm run test:bruno:coverage || true
+            # Skipping Bruno coverage generation
             echo "Starting Mocha tests..."
             timeout 1800s npm run test:mocha
             MOCHA_EXIT_CODE=$?
@@ -125,16 +124,8 @@ jobs:
               exit $MOCHA_EXIT_CODE
             fi
       - run:
-          name: Upload Bruno and Mocha code coverage
+          name: Upload Mocha code coverage
           command: |
-            if [ -f "./coverage/bruno/lcov.info" ]; then
-              /tmp/.codecov-cli/codecov --verbose upload-process --disable-search \
-                --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-                --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-                || echo "Codecov upload (bruno) failed, continuing"
-            else
-              echo "Bruno coverage not found, skipping upload"
-            fi
             if [ -f "./coverage/mocha/lcov.info" ]; then
               /tmp/.codecov-cli/codecov --verbose upload-process --disable-search \
                 --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
