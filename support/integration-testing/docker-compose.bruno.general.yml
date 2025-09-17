@@ -13,8 +13,10 @@ services:
       - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
       - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
       - "../../test/bruno/environments:/opt/bruno-tests/environments"
-      - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
-      - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
+      - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
+      - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
+      - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
+      - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
     working_dir: /opt/bruno-tests
     depends_on:
       redboxportal:
@@ -29,7 +31,7 @@ services:
       npx @usebruno/cli@1.34.1 run 
       --env int-test 
       --format junit 
-      --output /opt/junit/backend-bruno/backend-bruno-oidc.xml 
+      --output /opt/junit/backend-bruno/backend-bruno-general.xml 
       --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24

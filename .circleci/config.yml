@@ -102,7 +102,7 @@ jobs:
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            timeout 1800s npm run test:bruno
+            timeout 1800s npm run test:bruno:general
             timeout 1800s npm run test:bruno:clean
             timeout 1800s npm run test:bruno:oidc
             timeout 1800s npm run test:bruno:clean

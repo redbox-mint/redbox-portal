@@ -8,20 +8,8 @@ services:
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
-      - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
-      - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
-      - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
-      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
-      - "../../test/bruno/environments:/opt/bruno-tests/environments"
-      - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
-      - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
-      - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
-      - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
-      # - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
-      # - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
+      - "../../test/bruno:/opt/bruno-tests"
     working_dir: /opt/bruno-tests
-    # environment:
-    #   - BRUNO_SUBSET
     depends_on:
       redboxportal:
         condition: service_healthy
