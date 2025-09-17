@@ -240,18 +240,33 @@ export module Services {
                     && changedValueType === "array"
                 ) {
                     // The change is permitted and an array, original and changed have the key and both are arrays.
-                    // For an array, the merge logic is to replace the original array with the changed array
+                    // For an array, the merge logic is to replace the original array with the changed array.
+                    // The whole array is replaced because there is no current way to distinguish what from the original should be kept.
                     // TODO: Consider how to replace each element in the array instead of the whole array.
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
                     const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
-                    result[key] = changedValue.map((changedElement: object, index: number) => {
+                    result[key] = changedValue.map((changedElement: unknown, index: number) => {
                         // Evaluate the element in the array.
-                        // TODO: Should the 'original' element be an instance of the elementTemplate with default values?
-                        const originalElement = {};
-                        // FIXME: fix the path and key changes calculation to account for non-object array elements
-                        const newPath = [...currentPath, key, index];
-                        const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
-                        return this.mergeRecordMetadataPermitted(originalElement, changedElement, newPermittedChanges, keyChanges, newPath);
+                        const guessedType = guessType(changedElement);
+                        if (guessedType === "object") {
+                            // For an object, evaluate it as a component value.
+                            // NOTE: The 'original' element does not include elementTemplate default values,
+                            //       because that default is for new entries, not existing entries.
+                            const originalElement = {};
+                            const newPath = [...currentPath, key, index];
+                            const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
+                            sails.log.verbose(`mergeRecordMetadataPermitted - array`, {
+                                originalElement: originalElement,
+                                changedElement: changedElement,
+                                newPermittedChanges: newPermittedChanges,
+                                keyChanges: keyChanges,
+                                newPath: newPath,
+                            });
+                            return this.mergeRecordMetadataPermitted(originalElement, changedElement as object, newPermittedChanges, keyChanges, newPath);
+                        } else {
+                            // For anything that's not an object, there's nothing else to do, return it.
+                            return changedElement;
+                        }
                     });
 
                 } else if (
@@ -318,23 +333,31 @@ export module Services {
          * @param defaultValue The default value if there is an ancestor component.
          */
         public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition, defaultValue?: Record<string, unknown>): Record<string, unknown> {
+            // Use empty string as a placeholder item name. Empty string indicates that there is no name.
             const result = {};
             const itemName = item?.name ?? "";
             const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
             const componentDefinitions = item?.component?.config?.['componentDefinitions'];
             const elementTemplate = item?.component?.config?.['elementTemplate'];
 
-            // FIXME: maintain object property values in child components in elementTemplate arrays.
+            sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - start - item ${JSON.stringify(item)} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
+
+            // NOTE: To maintain object property values in child components in elementTemplate arrays, the name defaults to empty string.
+            //       Empty string is used as a placeholder name for the elementTemplate component definition.
 
             if (elementTemplate !== undefined) {
                 // For each element in the default value array, build the component from any ancestor defaultValues.
                 // The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
                 // Build the array of components from any ancestor defaultValues.
-                const componentName = elementTemplate?.name;
+                const componentName = elementTemplate?.name ?? "";
                 result[itemName] = (itemDefaultValue ?? []).map(arrayElementDefaultValue => {
-                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - elementTemplate component ${componentName} - arrayElementDefaultValue ${JSON.stringify(arrayElementDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-                    // elementTemplate does not have a name, so use the placeholder name (empty string) to populate the array.
-                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplate, arrayElementDefaultValue)[""];
+                    const elementTemplateDefaultValue = {"": arrayElementDefaultValue};
+                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - elementTemplate - component ${componentName} - elementTemplateDefaultValue ${JSON.stringify(elementTemplateDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
+                    // The elementTemplate does not have a name, so use the placeholder name (empty string) to populate the array.
+                    // Don't provide the default from the elementTemplate - it is only the default for new items, not for existing items.
+                    const elementTemplateNoDefault = {...elementTemplate};
+                    _.unset(elementTemplateNoDefault, 'model.config.defaultValue');
+                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplateNoDefault, elementTemplateDefaultValue)[""];
                 });
 
             } else if (componentDefinitions !== undefined) {
@@ -342,7 +365,7 @@ export module Services {
                 result[itemName] = {};
                 for (const componentDefinition of (componentDefinitions ?? [])) {
                     const componentName = componentDefinition?.name;
-                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - componentDefinitions component ${componentName} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
+                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - componentDefinitions - component ${componentName} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
                     const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition, itemDefaultValue);
                     for (const [key, value] of Object.entries(def ?? {})) {
                         result[itemName][key] = value;
@@ -640,13 +663,14 @@ export module Services {
          * @private
          */
         private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition): unknown {
-            sails.log.verbose(`buildDataModelDefaultValue - name '${item?.name}' current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
-            const itemName = item?.name;
+            const itemName = item?.name ?? "";
+            sails.log.verbose(`buildDataModelDefaultValue - name '${itemName}' current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
             const itemDefaultValue = item?.model?.config?.defaultValue;
             const outcome = _.mergeWith(
                 {},
                 current ?? {},
-                {[itemName]: itemDefaultValue},
+                // only include the item default value if 'defaultValue' is not undefined
+                itemDefaultValue === undefined ? {} : {[itemName]: itemDefaultValue},
                 (objValue, srcValue, key, object, source, stack) => {
                     // merge approach for arrays is to choose the source array,
                     // or the one that is an array if the other isn't

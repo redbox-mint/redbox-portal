@@ -153,29 +153,23 @@ describe('The FormRecordConsistencyService', function () {
                             },
                         },
                     ],
+                    // NOTE: can't specify array contents that differ from the provided form config,
+                    //        and none of the components in the elementTemplate or child components,
+                    //        can use constraints, as the values not accessible to any user will be overwritten
+                    //        when users without access save the form
                     original: {
                         redboxOid: "abcd",
                         metadata: {
+                            repeatable_for_admin: [
+                                {text_for_repeatable_for_admin: "rpt value 1"},
+                                {text_for_repeatable_for_admin: "rpt value 2"}
+                            ],
                             repeatable_group_1: [
-                                // FIXME: can't specify array contents that differ from the provided form config,
-                                //        and none of the components in the elementTemplate or child components,
-                                //        can use constraints, as the values not accessible to any user will be overwritten
-                                //        when users without access save the form
                                 {
-                                    text_1: "text 1 value",
                                     text_2: "text 2 value",
-                                    repeatable_for_admin: [
-                                        {text_for_repeatable_for_admin: "rpt value 1"},
-                                        {text_for_repeatable_for_admin: "rpt value 2"}
-                                    ]
                                 },
                                 {
-                                    text_1: "text 1 value 2",
                                     text_2: "text 2 value 2",
-                                    repeatable_for_admin: [
-                                        {text_for_repeatable_for_admin: "rpt value 1 2"},
-                                        {text_for_repeatable_for_admin: "rpt value 2 2"}
-                                    ]
                                 }
                             ]
                         }
@@ -183,22 +177,16 @@ describe('The FormRecordConsistencyService', function () {
                     changed: {
                         redboxOid: "abcd",
                         metadata: {
+                            repeatable_for_admin: [
+                                {text_for_repeatable_for_admin: "rpt value 1"},
+                                {text_for_repeatable_for_admin: "rpt value 2"}
+                            ],
                             repeatable_group_1: [
                                 {
-                                    text_1: "text 1 value",
                                     text_2: "text 2 value",
-                                    repeatable_for_admin: [
-                                        {text_for_repeatable_for_admin: "rpt value 1"},
-                                        {text_for_repeatable_for_admin: "rpt value 2"}
-                                    ]
                                 },
                                 {
-                                    text_1: "text 1 value 2",
                                     text_2: "text 2 value 2",
-                                    repeatable_for_admin: [
-                                        {text_for_repeatable_for_admin: "rpt value 1 2"},
-                                        {text_for_repeatable_for_admin: "rpt value 2 2"}
-                                    ]
                                 }
                             ]
                         }
@@ -207,22 +195,16 @@ describe('The FormRecordConsistencyService', function () {
                 expected: {
                     redboxOid: "abcd",
                     metadata: {
+                        repeatable_for_admin: [
+                            {text_for_repeatable_for_admin: "rpt value 1"},
+                            {text_for_repeatable_for_admin: "rpt value 2"}
+                        ],
                         repeatable_group_1: [
                             {
-                                text_1: "text 1 value",
                                 text_2: "text 2 value",
-                                repeatable_for_admin: [
-                                    {text_for_repeatable_for_admin: "rpt value 1"},
-                                    {text_for_repeatable_for_admin: "rpt value 2"}
-                                ]
                             },
                             {
-                                text_1: "text 1 value 2",
                                 text_2: "text 2 value 2",
-                                repeatable_for_admin: [
-                                    {text_for_repeatable_for_admin: "rpt value 1 2"},
-                                    {text_for_repeatable_for_admin: "rpt value 2 2"}
-                                ]
                             }
                         ]
                     }
@@ -353,8 +335,8 @@ describe('The FormRecordConsistencyService', function () {
         });
 
         it("fails when permittedChanges is not the expected structure", function () {
-            const record = {};
-            const permittedChanges = {prop1: {prop2:{prop3: "value1"}}};
+            const record = {prop1: "value1"};
+            const permittedChanges = {prop1: {prop2: {prop3: "value1"}}};
             const func = function () {
                 FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, [])
             }
@@ -473,7 +455,10 @@ describe('The FormRecordConsistencyService', function () {
                                                                             componentDefinitions: [
                                                                                 {
                                                                                     name: 'text_group_repeatable_3',
-                                                                                    model: {class: 'SimpleInputModel', config: {defaultValue: "text_group_repeatable_3 default"}},
+                                                                                    model: {
+                                                                                        class: 'SimpleInputModel',
+                                                                                        config: {defaultValue: "text_group_repeatable_3 default"}
+                                                                                    },
                                                                                     component: {
                                                                                         class: 'SimpleInputComponent'
                                                                                     },
@@ -496,7 +481,10 @@ describe('The FormRecordConsistencyService', function () {
                     },
                     {
                         name: 'repeatable_1',
-                        model: {class: 'RepeatableComponentModel', config: {defaultValue: [{text_group_repeatable_1: "hello world from repeating groups"}]}},
+                        model: {
+                            class: 'RepeatableComponentModel',
+                            config: {defaultValue: [{text_group_repeatable_1: "hello world from repeating groups"}]}
+                        },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
