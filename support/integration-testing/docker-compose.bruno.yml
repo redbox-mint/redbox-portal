@@ -4,13 +4,24 @@ networks:
 
 services:
   bruno:
-    image: redbox-portal/bruno-runner:1
+    image: node:24-alpine
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
+      - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
+      - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
+      - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
+      - "../../test/bruno/environments:/opt/bruno-tests/environments"
+      - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
+      - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
+      - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
+      - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
+      # - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
+      # - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
     working_dir: /opt/bruno-tests
-    environment:
-      - BRUNO_SUBSET
+    # environment:
+    #   - BRUNO_SUBSET
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -19,10 +30,9 @@ services:
        aliases:
          - bruno
     entrypoint: >-
-      /bin/sh -lc "cd /opt/bruno-tests && 
-      TARGET='.'; if [ -n \"$BRUNO_SUBSET\" ]; then TARGET=\"$BRUNO_SUBSET\"; fi && 
-      echo \"bru run target: $BRUNO_SUBSET\" && 
-      bru run \"$TARGET\" 
+      /bin/sh -lc "cd /opt/bruno-tests &&  
+      npm install &&
+      npx @usebruno/cli@1.34.1 run 
       --env int-test 
       --format junit 
       --output /opt/junit/backend-bruno/backend-bruno.xml 

@@ -102,38 +102,9 @@ jobs:
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            echo "Building bruno-runner image..."
-            npm run test:bruno:build-runner
-            echo "Running Bruno subsets..."
-            FAIL=0
-            SUBSETS=(
-              "1 - REST API"
-              "2 - AJAX calls"
-              "3 - OpenID Connect"
-              "4 - General"
-              "5 - OpenID Connect Denied"
-              "6 - OpenID Connect Allowed"
-            )
-            for S in "${SUBSETS[@]}"; do
-              echo "=== Running Bruno subset: $S ==="
-              export BRUNO_SUBSET="$S"
-              timeout 1800s npm run test:bruno:ci:subset || FAIL=1
-            done
-            BRUNO_EXIT_CODE=$FAIL
-            echo "Bruno subsets aggregate status: $BRUNO_EXIT_CODE"
-            echo "Starting Mocha tests..."
+           
+            timeout 1800s npm run test:bruno
             timeout 1800s npm run test:mocha
-            MOCHA_EXIT_CODE=$?
-            echo "Mocha tests completed with exit code: $MOCHA_EXIT_CODE, cleaning up..."
-            timeout 120s npm run test:mocha:clean || (echo "Force stopping containers..." && docker compose -f ./support/integration-testing/docker-compose.mocha.yml down --timeout 30 --remove-orphans)
-            # Decide final result: both must pass to pass; otherwise fail with the failing code
-            if [ $BRUNO_EXIT_CODE -eq 0 ] && [ $MOCHA_EXIT_CODE -eq 0 ]; then
-              exit 0
-            elif [ $BRUNO_EXIT_CODE -ne 0 ]; then
-              exit $BRUNO_EXIT_CODE
-            else
-              exit $MOCHA_EXIT_CODE
-            fi
       - run:
           name: Upload Mocha code coverage
           command: |
