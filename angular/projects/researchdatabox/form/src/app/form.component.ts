@@ -417,6 +417,7 @@ export class FormComponent extends BaseComponent {
     const features = await this.formService.getDynamicImportFormCompiledItems(recordType, oid);
     this.loggerService.info(`${this.logName}: getCompiledItem from getDynamicImportFormCompiledItems`,
       {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
+    return features;
   }
 }
 

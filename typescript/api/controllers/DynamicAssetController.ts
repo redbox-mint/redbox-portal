@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-import {TemplateCompileInput} from "../additional/TemplateCompile";
+import {TemplateCompileInput} from "@researchdatabox/sails-ng-common";
 
 declare var module;
 declare var sails;
@@ -41,6 +41,7 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'get',
+        'getFormCompiledItems',
         'getFormStructureValidations',
         'getFormDataValidations',
         'getFormExpressions',
@@ -67,6 +68,17 @@ export module Controllers {
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
       this.sendAssetView(res, assetId, {layout: false});
+    }
+
+    public getFormCompiledItems(req, res) {
+      const recordType = req.param("recordType") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const apiVersion = this.getApiVersion(req);
+      const isNewRecord = this.isNewRecord(recordType, oid);
+      const isExistingRecord = this.isExistingRecord(recordType, oid);
+      // TODO:
+      const entries = [];
+      return this.sendClientMappingJavascript(res, entries);
     }
 
     public getFormStructureValidations(req, res) {
