@@ -37,12 +37,6 @@ export interface FormValidatorControl {
    * @param path
    */
   get<P extends string>(path: P): FormValidatorControl | null;
-  /**
-   * Set the validation errors map manually.
-   * This method updates the entire errors map, so include all the existing errors.
-   * @param errors The complete map of validation errors.
-   */
-  setErrors(errors: FormValidatorErrors | null): void;
 }
 
 /**
@@ -52,7 +46,6 @@ export interface FormValidatorControl {
  */
 export class SimpleServerFormValidatorControl implements FormValidatorControl {
     value: unknown;
-    private _setErrors: (FormValidatorErrors | null)[] = [];
 
     constructor(value: unknown) {
         this.value = value;
@@ -62,14 +55,6 @@ export class SimpleServerFormValidatorControl implements FormValidatorControl {
         const result = _get(this.value, path) ?? null;
         console.debug(`SimpleServerFormValidatorControl.get path '${path}' with result '${JSON.stringify(result)}' from value '${JSON.stringify(this.value)}'`);
         return result;
-    }
-    setErrors(errors: FormValidatorErrors | null): void {
-        console.debug(`SimpleServerFormValidatorControl.setErrors adding '${JSON.stringify(errors)}'`);
-        this._setErrors.push(errors);
-    }
-
-    get storedErrors(): any[] {
-        return this._setErrors;
     }
 }
 
