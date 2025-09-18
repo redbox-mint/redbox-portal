@@ -41,7 +41,7 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormFieldComponentStatus,
-  FormStatus, FormValidatorConfig, FormValidatorDefinition,
+  FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
@@ -370,15 +370,7 @@ export class FormService extends HttpClientService {
     name = name || null;
     const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
     const {id, labelMessage} = this.componentIdLabel(componentDef);
-    const errors = Object.entries(control?.errors ?? {})
-        .map(([key, item]) => {
-          return {
-            name: key,
-            message: item.message ?? null,
-            params: {...item.params},
-          }
-        })
-      ?? [];
+    const errors = this.getFormValidatorComponentErrors(control);
 
     // Only add the result if there are errors.
     if (errors.length > 0) {
@@ -396,6 +388,22 @@ export class FormService extends HttpClientService {
 
     // output
     return results;
+  }
+
+  /**
+   * Get the form validator errors for a component's control.
+   * @param control
+   */
+  public getFormValidatorComponentErrors(control: AbstractControl | null | undefined): FormValidatorComponentErrors[] {
+    return Object.entries(control?.errors ?? {})
+        .map(([key, item]) => {
+          return {
+            name: key,
+            message: item.message ?? null,
+            params: {...item.params},
+          }
+        })
+      ?? [];
   }
 
   /**

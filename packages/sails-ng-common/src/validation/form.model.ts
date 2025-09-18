@@ -1,16 +1,30 @@
 import { get as _get } from 'lodash';
 
 /**
+ * The parameters for a validator error.
+ *
+ * These can be used with the translation message id to create the translated text.
+ *
+ * For example:
+ * {actual: 2, requiredThreshold: 3}
+ */
+export type FormValidatorErrorParams = {
+  [key: string]: unknown;
+}
+
+/**
  * The map of validation errors.
  *
  * Typically, has a property whose name is the validation key, e.g. 'min', and
  * value is a dictionary of message and params that are arbitrary values
  * that can be used to render an error message template.
  *
+ * This is similar to FormValidatorComponentErrors, but with the name as the key in a parent object.
+ *
  * This is similar to the angular form ValidationErrors type.
  */
 export type FormValidatorErrors = {
-  [key: string]: any;
+  [key: string]: { message: string; params: FormValidatorErrorParams };
 };
 
 /**
@@ -132,7 +146,7 @@ export interface FormValidatorComponentErrors {
   /**
    * The params for rendering the translated message.
    */
-  params: FormValidatorErrors;
+  params: FormValidatorErrorParams;
 }
 
 /**

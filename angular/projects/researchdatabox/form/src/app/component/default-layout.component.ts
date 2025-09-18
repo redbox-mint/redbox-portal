@@ -1,8 +1,9 @@
 import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
-import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
+import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type, inject} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import {FormFieldLayoutDefinition, FormValidatorComponentErrors} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import {FormService} from "../form.service";
 
 /**
  * Default Form Component Layout
@@ -95,6 +96,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
   afterComponentTemplate!: TemplateRef<any>;
 
+  private formService = inject(FormService);
+
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   public helpTextVisibleOnInit:boolean = false;
@@ -168,14 +171,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.helpTextVisible = true;
   }
 
-  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{
-    return Object.entries(this.model?.formControl?.errors ?? {}).map(([key, item]) => {
-      return {
-        name: key,
-        message: item.message ?? null,
-        params: {...item.params},
-      };
-    })
+  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[] {
+    return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
   protected get componentName(){
