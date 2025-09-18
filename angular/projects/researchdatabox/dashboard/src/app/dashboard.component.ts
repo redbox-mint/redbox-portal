@@ -833,30 +833,31 @@ export class DashboardComponent extends BaseComponent {
 
 
   private getSortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-
     let fields = _get(this.sortFields,step);
     let sortString = 'metaMetadata.lastSaveDate:-1';
-    for (let i = 0; i < fields.length; i++) {
-      let sortField = fields[i];
-      if(!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep,sortField)) {
-        if (sortMapAtStep[sortField].sort != null && forceDefault && sortMapAtStep[sortField].defaultSort == true) {
-          sortString = `${sortField}:`;
-          if (sortMapAtStep[sortField].sort == 'desc') {
-            sortString = sortString + "-1";
-          } else {
-            sortString = sortString + "1";
-          }
-          return sortString;
-        } else {
-          if (sortMapAtStep[sortField].sort != null) {
+    if(!_isUndefined(fields) && !_isEmpty(fields)) {
+      for (let i = 0; i < fields.length; i++) {
+        let sortField = fields[i];
+        if(!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep,sortField)) {
+          if (sortMapAtStep[sortField].sort != null && forceDefault && sortMapAtStep[sortField].defaultSort == true) {
             sortString = `${sortField}:`;
             if (sortMapAtStep[sortField].sort == 'desc') {
               sortString = sortString + "-1";
             } else {
               sortString = sortString + "1";
             }
-          }
-        } 
+            return sortString;
+          } else {
+            if (sortMapAtStep[sortField].sort != null) {
+              sortString = `${sortField}:`;
+              if (sortMapAtStep[sortField].sort == 'desc') {
+                sortString = sortString + "-1";
+              } else {
+                sortString = sortString + "1";
+              }
+            }
+          } 
+        }
       }
     }
     return sortString;

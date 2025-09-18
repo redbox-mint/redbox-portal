@@ -300,7 +300,7 @@ describe('DashboardComponent workspace', () => {
     let defaultSortObject = {
       sort: 'desc',
       secondarySort: '',
-      step: 'existing-locations-draft',
+      step: 'draft',
       title: '',
       variable: 'metaMetadata.lastSaveDate'
     };
@@ -525,13 +525,7 @@ describe('DashboardComponent consolidated group by record type', () => {
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-    let defaultSortObject = {
-      sort: 'desc',
-      secondarySort: '',
-      step: 'consolidated',
-      title: '',
-      variable: 'metaMetadata.lastSaveDate'
-    };
+    let defaultSortObject = {};
     await dashboardComponent.initStep('','consolidated','rdmp','',1, defaultSortObject);
     let groupedRecords = recordDataConsolidated['groupedRecords'];
     let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig, 
