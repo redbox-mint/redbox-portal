@@ -95,7 +95,7 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Bruno subsets sequentially, then Mocha
+          name: Run Bruno and Mocha tests
           no_output_timeout: 30m
           command: |
             sudo mkdir -p .tmp/junit/backend-bruno
@@ -108,7 +108,7 @@ jobs:
             timeout 1800s npm run test:bruno:clean
             timeout 1800s npm run test:mocha
       - run:
-          name: Upload Mocha code coverage
+          name: Upload Bruno and Mocha code coverage
           command: |
              /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
