@@ -16,6 +16,7 @@ services:
       - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
       - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
     working_dir: /opt/bruno-tests
+    stop_grace_period: 1800s
     depends_on:
       redboxportal:
         condition: service_healthy

@@ -18,6 +18,7 @@ services:
       - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
       - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
     working_dir: /opt/bruno-tests
+    stop_grace_period: 1800s
     depends_on:
       redboxportal:
         condition: service_healthy
