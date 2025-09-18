@@ -30,7 +30,11 @@ services:
       --env int-test 
       --format junit 
       --output /opt/junit/backend-bruno/backend-bruno-oidc.xml 
-      --bail"
+      --bail;
+      status=$?;
+      wget -qO- http://redboxportal:1599 || true;
+      sleep 180;
+      exit $status"
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'missing'
@@ -74,8 +78,8 @@ services:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
-    init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc@17.1.0 --no-clean --report-dir coverage/bruno-general --reporter=lcov --exclude-after-remap=false node app.js"
+    # init: true
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc --no-clean --report-dir /opt/redbox-portal/coverage/bruno-oidc --reporter=lcov --exclude-after-remap=false node app.integrationtest.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
