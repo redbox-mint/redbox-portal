@@ -22,7 +22,7 @@ jobs:
             cd -
             cd support/raido
             npm init -y
-            npm install
+            npm ci
             /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc   
       - run:
           name: Install npm packages and compile for project
@@ -95,56 +95,28 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Bruno and Mocha tests with code coverage
+          name: Run Bruno and Mocha tests
+          no_output_timeout: 30m
           command: |
             sudo mkdir -p .tmp/junit/backend-bruno
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            cd support/integration-testing
-            echo "Starting Bruno tests..."
-            timeout 1800s npm run test:bruno &
-            BRUNO_PID=$!
-            echo "Waiting for Bruno tests to complete..."
-            wait $BRUNO_PID
-            BRUNO_EXIT_CODE=$?
-            echo "Bruno tests finished with exit code: $BRUNO_EXIT_CODE"
-            echo "Cleaning up containers..."
-            timeout 180s npm run test:bruno:clean || (echo "Force stopping containers..." && docker compose -f ./docker-compose.bruno.yml down --timeout 30 --remove-orphans)
-            # Store Bruno result for later evaluation
-            BRUNO_SUCCESS=false
-            if [ $BRUNO_EXIT_CODE -eq 0 ]; then
-              echo "Bruno tests passed successfully"
-              BRUNO_SUCCESS=true
-            else
-              echo "Bruno tests failed with exit code: $BRUNO_EXIT_CODE"
-            fi
-            echo "Starting Mocha tests..."
-            npm run test:mocha
-            MOCHA_EXIT_CODE=$?
-            echo "Mocha tests completed with exit code: $MOCHA_EXIT_CODE, cleaning up..."
-            timeout 60s npm run test:mocha:clean || (echo "Force stopping containers..." && docker compose -f ./docker-compose.mocha.yml down --timeout 30 --remove-orphans)
-            # Final exit code logic: fail only if both Bruno and Mocha have issues
-            if [ "$BRUNO_SUCCESS" = true ] && [ $MOCHA_EXIT_CODE -eq 0 ]; then
-              echo "Both Bruno and Mocha tests passed"
-              exit 0
-            elif [ "$BRUNO_SUCCESS" = true ]; then
-              echo "Bruno tests passed, but Mocha failed"
-              exit $MOCHA_EXIT_CODE
-            elif [ $MOCHA_EXIT_CODE -eq 0 ]; then
-              echo "Mocha tests passed, but Bruno failed"
-              exit $BRUNO_EXIT_CODE
-            else
-              echo "Both Bruno and Mocha tests failed"
-              exit 1
-            fi
+            timeout 1800s npm run test:bruno:general
+            timeout 1800s npm run test:bruno:clean
+            timeout 1800s npm run test:bruno:oidc
+            timeout 1800s npm run test:bruno:clean
+            timeout 1800s npm run test:mocha
       - run:
-          name: Upload Bruno and mocha code coverage
+          name: Upload Bruno and Mocha code coverage
           command: |
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --flag "backend-bruno" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-bruno" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -159,7 +131,7 @@ jobs:
           name: Install npm packages for project
           command: |
             sudo chmod -R 777 .
-            npm i
+            npm ci
       - store_test_results:
           path: .tmp/junit
   deploy:

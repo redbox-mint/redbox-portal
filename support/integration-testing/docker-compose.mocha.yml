@@ -48,18 +48,9 @@ services:
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-      npm install -g nyc &&
-      npm install &&
-      nyc
-      --no-clean
-      --report-dir coverage/mocha
-      --reporter=lcov
-      --exclude-after-remap=false
-      node
-      ./node_modules/mocha/bin/mocha
-      --config test/unit/.mocharc.js
-      --exit test/bootstrap.test.js
-      test/unit/**/*.test.js"
+      npm ci &&
+      npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
+      npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'always'
