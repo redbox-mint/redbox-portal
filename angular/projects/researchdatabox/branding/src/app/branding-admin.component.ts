@@ -6,17 +6,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ConfigService, LoggerService, TranslationService, BaseComponent } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
+import { BrandingPreviewComponent } from './branding-preview.component';
 
 @Component({
   selector: 'branding-admin-root',
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BrandingPreviewComponent],
   providers: [BrandingAdminService]
 })
 export class BrandingAdminComponent extends BaseComponent {
   previewUrl?: SafeResourceUrl;
+  previewCssUrl?: string;
+  previewBaseCssUrl?: string;
 
 
 
@@ -215,9 +218,16 @@ export class BrandingAdminComponent extends BaseComponent {
       const res: any = await this.brandingService.createPreview(this.draftConfig);
       this.previewToken = res?.token || res?.previewToken;
       if (this.previewToken) {
+        // Existing full-page preview URL (no longer used in iframe)
         this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`/default/rdmp/researcher/home?previewToken=${this.previewToken}`);
+        // New CSS preview URL for Shadow DOM preview component
+        const base = this.brandingService.getBrandingAndPortalUrl();
+        this.previewBaseCssUrl = `${base}/styles/style.min.css`;
+        this.previewCssUrl = `${base}/preview/${this.previewToken}.css`;
       } else {
         this.previewUrl = undefined;
+        this.previewCssUrl = undefined as any;
+        this.previewBaseCssUrl = undefined as any;
       }
       this.message = 'Preview generated';
     } catch (e: any) {

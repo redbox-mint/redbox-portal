@@ -22,6 +22,13 @@ export class BrandingAdminService extends HttpClientService {
     super(http, rootContext, utilService, configService);
   }
 
+  /**
+   * Expose the brand+portal base path (e.g., /<brand>/<portal>) for building asset URLs.
+   */
+  public getBrandingAndPortalUrl(): string {
+    return this.brandingAndPortalUrl;
+  }
+
   public override async waitForInit(): Promise<any> {
     await super.waitForInit(); 
     this.enableCsrfHeader();
