@@ -198,7 +198,13 @@ export module Controllers {
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         const id = brand.logo.gridFsId;
-        const buf = (global as any).BrandingLogoService.getBinary(id);
+        // Try persistent storage first (GridFS), then in-memory cache
+        let buf: Buffer | null = null;
+        if ((global as any).BrandingLogoService?.getBinaryAsync) {
+          buf = await (global as any).BrandingLogoService.getBinaryAsync(id);
+        } else {
+          buf = (global as any).BrandingLogoService.getBinary(id);
+        }
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
