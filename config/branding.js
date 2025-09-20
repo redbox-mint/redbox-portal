@@ -11,6 +11,7 @@ module.exports.branding = {
    * Keys (without leading $) allowed in BrandingConfig.variables
    */
   variableWhitelist: [
+    // Legacy (British spelling) keys retained for backward compatibility
     'site-branding-area-background',
     'site-branding-area-heading-colour',
     'panel-branding-background-colour',
@@ -58,7 +59,39 @@ module.exports.branding = {
     'accent-text-colour',
     'surface-colour',
     'body-text-colour',
-    'heading-text-colour'
+    'heading-text-colour',
+    'site-branding-area-background-color',
+    'header-branding-link-color',
+    'header-branding-background-color',
+    'header-branding-text-color',
+    'body-background-color',
+    'body-text-color',
+    'footer-bottom-area-branding-background-color',
+    'footer-bottom-area-branding-color',
+    'panel-branding-background-color',
+    'panel-branding-color',
+    'panel-branding-border-color',
+    'anchor-color',
+    'anchor-color-hover',
+    'anchor-color-focus',
+    'main-menu-branding-background-color',
+    'main-menu-inactive-item-color',
+    'main-menu-inactive-item-color-hover',
+    'main-menu-inactive-item-background-color-hover',
+    'main-menu-inactive-item-background-color',
+    'main-menu-active-item-color',
+    'main-menu-active-item-color-hover',
+    'main-menu-active-item-background-color',
+    'main-menu-active-item-background-color-hover',
+    'main-menu-inactive-dropdown-item-color',
+    'main-menu-inactive-dropdown-item-color-hover',
+    'main-menu-inactive-dropdown-item-background-color',
+    'main-menu-active-dropdown-item-color',
+    'main-menu-active-dropdown-item-color-hover',
+    'main-menu-active-dropdown-item-background-color',
+    'main-menu-active-dropdown-item-background-color-hover',
+    // Bootstrap contextual theme variables
+    'primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'
   ]
   ,
   /** Preview token TTL in seconds */

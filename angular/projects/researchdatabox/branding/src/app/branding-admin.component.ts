@@ -38,93 +38,95 @@ export class BrandingAdminComponent extends BaseComponent {
   error?: string;
   showJsonView = false;
 
-  // Variable definitions for form fields (Australian spelling)
+  // Variables sourced exclusively from assets/styles/custom-variables.scss
+  // Keys align exactly with SCSS variable names (without the leading $)
   colourGroups = [
     {
       name: 'Site Branding',
-      help: 'Set the main background and heading colours for the site branding area.',
+      help: 'Set the main background colour for the site branding area.',
       variables: [
-        { key: 'site-branding-area-background', label: 'Site Branding Background', default: '#b1101a', help: 'Background colour for the main site branding area (top of the page).' },
-        { key: 'site-branding-area-heading-colour', label: 'Site Branding Heading', default: '#888', help: 'Colour for headings in the site branding area.' },
+        { key: 'site-branding-area-background-color', label: 'Site Branding Background', default: '#b1101a', help: 'Background colour for the main site branding area (top of the page).' }
       ]
     },
     {
       name: 'Header & Logo',
-      help: 'Customise the header and logo link colours for your portal.',
+      help: 'Customise the header colours for your portal.',
       variables: [
-        { key: 'header-branding-link-colour', label: 'Header Link', default: '#222', help: 'Colour for links in the header area.' },
-        { key: 'header-branding-background-colour', label: 'Header Background', default: '#f4f4f4', help: 'Background colour for the header area.' },
-        { key: 'logo-link-colour-branding', label: 'Logo Link', default: '#262626', help: 'Colour for the logo link in the header.' },
+        { key: 'header-branding-link-color', label: 'Header Link', default: '#222', help: 'Colour for links in the header area.' },
+        { key: 'header-branding-background-color', label: 'Header Background', default: '#f4f4f4', help: 'Background colour for the header area.' },
+        { key: 'header-branding-text-color', label: 'Header Text', default: '#333', help: 'Text colour for the header area.' }
       ]
     },
     {
       name: 'Menu',
       help: 'Adjust the appearance of the main menu and dropdowns, including active and inactive states.',
       variables: [
-        { key: 'main-menu-branding-background-colour', label: 'Main Menu Background', default: '#500005', help: 'Background colour for the main menu bar.' },
-        { key: 'main-menu-active-item-colour', label: 'Active Menu Text', default: '#fff', help: 'Text colour for the active menu item.' },
-        { key: 'main-menu-active-item-background-colour', label: 'Active Menu Background', default: '#500005', help: 'Background colour for the active menu item.' },
-        { key: 'main-menu-inactive-item-colour', label: 'Inactive Menu Text', default: '#fff', help: 'Text colour for inactive menu items.' },
-        { key: 'main-menu-inactive-item-colour-hover', label: 'Menu Text Hover', default: '#888', help: 'Text colour for menu items on hover.' },
-        { key: 'main-menu-inactive-item-background-colour-hover', label: 'Menu Background Hover', default: '#fff', help: 'Background colour for menu items on hover.' },
-        { key: 'main-menu-inactive-item-background-colour', label: 'Inactive Menu Background', default: '#222', help: 'Background colour for inactive menu items.' },
-        { key: 'main-menu-inactive-dropdown-item-colour', label: 'Dropdown Text', default: '#a9a9a9', help: 'Text colour for dropdown menu items.' },
-        { key: 'main-menu-inactive-dropdown-item-colour-hover', label: 'Dropdown Text Hover', default: '#888', help: 'Text colour for dropdown menu items on hover.' },
-        { key: 'main-menu-active-dropdown-item-colour', label: 'Active Dropdown Text', default: '#a9a9a9', help: 'Text colour for active dropdown menu items.' },
-        { key: 'main-menu-active-dropdown-item-colour-hover', label: 'Active Dropdown Text Hover', default: '#888', help: 'Text colour for active dropdown menu items on hover.' },
-        { key: 'main-menu-active-dropdown-item-background-colour-hover', label: 'Active Dropdown Background Hover', default: '#b1101a', help: 'Background colour for active dropdown menu items on hover.' },
-        { key: 'main-menu-selected-item-colour', label: 'Selected Menu Text', default: '#000', help: 'Text colour for the selected menu item.' },
-        { key: 'main-menu-selected-item-background-colour', label: 'Selected Menu Background', default: '#500005', help: 'Background colour for the selected menu item.' },
+        { key: 'main-menu-branding-background-color', label: 'Main Menu Background', default: '#500005', help: 'Background colour for the main menu bar.' },
+        { key: 'main-menu-inactive-item-color', label: 'Inactive Menu Text', default: '#fff', help: 'Text colour for inactive menu items.' },
+        { key: 'main-menu-inactive-item-color-hover', label: 'Menu Text Hover', default: '#888', help: 'Text colour for menu items on hover.' },
+        { key: 'main-menu-inactive-item-background-color', label: 'Inactive Menu Background', default: '#500005', help: 'Background colour for inactive menu items.' },
+        { key: 'main-menu-inactive-item-background-color-hover', label: 'Menu Background Hover', default: '#fff', help: 'Background colour for menu items on hover.' },
+        { key: 'main-menu-active-item-color', label: 'Active Menu Text', default: '#fff', help: 'Text colour for the active menu item.' },
+        { key: 'main-menu-active-item-color-hover', label: 'Active Menu Text Hover', default: '#888', help: 'Text colour for the active menu item on hover.' },
+        { key: 'main-menu-active-item-background-color', label: 'Active Menu Background', default: '#b1101a', help: 'Background colour for the active menu item.' },
+        { key: 'main-menu-active-item-background-color-hover', label: 'Active Menu Background Hover', default: '#fff', help: 'Background colour for the active menu item on hover.' },
+        { key: 'main-menu-inactive-dropdown-item-color', label: 'Dropdown Text', default: '#a9a9a9', help: 'Text colour for dropdown menu items.' },
+        { key: 'main-menu-inactive-dropdown-item-color-hover', label: 'Dropdown Text Hover', default: '#888', help: 'Text colour for dropdown menu items on hover.' },
+        { key: 'main-menu-inactive-dropdown-item-background-color', label: 'Dropdown Background (Inactive)', default: '#500005', help: 'Background colour for inactive dropdown items.' },
+        { key: 'main-menu-active-dropdown-item-color', label: 'Active Dropdown Text', default: '#fff', help: 'Text colour for active dropdown menu items.' },
+        { key: 'main-menu-active-dropdown-item-color-hover', label: 'Active Dropdown Text Hover', default: '#888', help: 'Text colour for active dropdown items on hover.' },
+        { key: 'main-menu-active-dropdown-item-background-color', label: 'Active Dropdown Background', default: '#b1101a', help: 'Background colour for active dropdown menu items.' },
+        { key: 'main-menu-active-dropdown-item-background-color-hover', label: 'Active Dropdown Background Hover', default: '#fff', help: 'Background colour for active dropdown items on hover.' }
       ]
     },
     {
       name: 'Content',
-      help: 'Control the colours for headings, body text, and content backgrounds.',
+      help: 'Control the colours for body text and backgrounds.',
       variables: [
-        { key: 'main-content-heading-text-branding-colour', label: 'Content Heading', default: '#000', help: 'Colour for main content headings.' },
-        { key: 'body-text-colour', label: 'Body Text', default: '#222', help: 'Colour for main body text.' },
-        { key: 'heading-text-colour', label: 'Heading Text', default: '#000', help: 'Colour for general headings.' },
-        { key: 'surface-colour', label: 'Surface Colour', default: '#fff', help: 'Background colour for content surfaces.' },
+        { key: 'body-text-color', label: 'Body Text', default: '#333', help: 'Colour for main body text.' },
+        { key: 'body-background-color', label: 'Body Background', default: '#fff', help: 'Background colour for the page body.' }
       ]
     },
     {
       name: 'Links',
       help: 'Set the default, hover, and focus colours for hyperlinks.',
       variables: [
-        { key: 'anchor-colour', label: 'Link Colour', default: '#337ab7', help: 'Default colour for hyperlinks.' },
-        { key: 'anchor-colour-hover', label: 'Link Hover', default: '#23527c', help: 'Colour for hyperlinks on hover.' },
-        { key: 'anchor-colour-focus', label: 'Link Focus', default: '#23527c', help: 'Colour for hyperlinks on focus.' },
+        { key: 'anchor-color', label: 'Link Colour', default: '#337ab7', help: 'Default colour for hyperlinks.' },
+        { key: 'anchor-color-hover', label: 'Link Hover', default: '#23527c', help: 'Colour for hyperlinks on hover.' },
+        { key: 'anchor-color-focus', label: 'Link Focus', default: '#23527c', help: 'Colour for hyperlinks on focus.' }
       ]
     },
     {
       name: 'Panels',
       help: 'Change the background, text, and border colours for panel components.',
       variables: [
-        { key: 'panel-branding-background-colour', label: 'Panel Background', default: '#b1101a', help: 'Background colour for panel components.' },
-        { key: 'panel-branding-colour', label: 'Panel Text', default: '#fff', help: 'Text colour for panel components.' },
-        { key: 'panel-branding-border-colour', label: 'Panel Border', default: '#ddd', help: 'Border colour for panel components.' },
+        { key: 'panel-branding-background-color', label: 'Panel Background', default: '#b1101a', help: 'Background colour for panel components.' },
+        { key: 'panel-branding-color', label: 'Panel Text', default: '#fff', help: 'Text colour for panel components.' },
+        { key: 'panel-branding-border-color', label: 'Panel Border', default: '#ddd', help: 'Border colour for panel components.' }
       ]
     },
     {
       name: 'Footer',
       help: 'Configure the footer background and text colours.',
       variables: [
-        { key: 'footer-bottom-area-branding-background-colour', label: 'Footer Background', default: '#000', help: 'Background colour for the footer area.' },
-        { key: 'footer-bottom-area-branding-colour', label: 'Footer Text', default: '#fff', help: 'Text colour for the footer area.' },
+        { key: 'footer-bottom-area-branding-background-color', label: 'Footer Background', default: '#000', help: 'Background colour for the footer area.' },
+        { key: 'footer-bottom-area-branding-color', label: 'Footer Text', default: '#fff', help: 'Text colour for the footer area.' }
       ]
     },
     {
-      name: 'Primary/Secondary/Accent',
-      help: 'Adjust the primary, secondary, and accent colours used throughout the site.',
+      name: 'Bootstrap Contextual',
+      help: 'Override Bootstrap contextual theme colours used by utilities and components.',
       variables: [
-        { key: 'primary-colour', label: 'Primary Colour', default: '#b1101a', help: 'Primary accent colour used throughout the site.' },
-        { key: 'primary-text-colour', label: 'Primary Text', default: '#fff', help: 'Text colour for primary elements.' },
-        { key: 'secondary-colour', label: 'Secondary Colour', default: '#888', help: 'Secondary accent colour used throughout the site.' },
-        { key: 'secondary-text-colour', label: 'Secondary Text', default: '#fff', help: 'Text colour for secondary elements.' },
-        { key: 'accent-colour', label: 'Accent Colour', default: '#28a745', help: 'Accent colour for highlights and special elements.' },
-        { key: 'accent-text-colour', label: 'Accent Text', default: '#fff', help: 'Text colour for accent elements.' },
+        { key: 'primary', label: 'Primary', default: '#0d6efd', help: 'Bootstrap primary colour.' },
+        { key: 'secondary', label: 'Secondary', default: '#6c757d', help: 'Bootstrap secondary colour.' },
+        { key: 'success', label: 'Success', default: '#198754', help: 'Bootstrap success colour.' },
+        { key: 'info', label: 'Info', default: '#0dcaf0', help: 'Bootstrap info colour.' },
+        { key: 'warning', label: 'Warning', default: '#ffc107', help: 'Bootstrap warning colour.' },
+        { key: 'danger', label: 'Danger', default: '#dc3545', help: 'Bootstrap danger colour.' },
+        { key: 'light', label: 'Light', default: '#f8f9fa', help: 'Bootstrap light colour.' },
+        { key: 'dark', label: 'Dark', default: '#212529', help: 'Bootstrap dark colour.' }
       ]
-    },
+    }
   ];
 
   fontVariables = [

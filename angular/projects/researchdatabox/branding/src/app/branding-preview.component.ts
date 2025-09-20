@@ -16,7 +16,7 @@ import { Component, ElementRef, Input, OnChanges, SimpleChanges, ViewEncapsulati
             <div class="col-md-8">
               <div class="user-menu">
                 <ul>
-                  <li><a href="#"><i class="fa fa-user"></i> Welcome User</a></li>
+                  <li><i class="fa fa-user"></i> Welcome User</li>
                   <li><a href="#">Logout</a></li>
                 </ul>
               </div>
@@ -87,6 +87,8 @@ import { Component, ElementRef, Input, OnChanges, SimpleChanges, ViewEncapsulati
                     <button class="btn btn-info">Info</button>
                     <button class="btn btn-warning">Warning</button>
                     <button class="btn btn-danger">Danger</button>
+                    <button class="btn btn-light">Light</button>
+                    <button class="btn btn-dark">Dark</button>
                   </div>
                 </div>
               </div>
