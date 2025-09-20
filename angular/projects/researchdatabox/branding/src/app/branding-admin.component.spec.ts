@@ -78,10 +78,27 @@ describe('BrandingAdminComponent', () => {
     component.draftConfig['primary-color'] = '#abcdef';
     const savePromise = component.saveDraft();
     const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
+    // Assert the POST body format is { variables: {...} }
+    expect(saveReq.request.method).toBe('POST');
+    expect(saveReq.request.body).toEqual({ variables: component.draftConfig });
     saveReq.flush({ branding: { variables: { 'primary-color': '#abcdef' }, version: 1 } });
     await savePromise;
     expect(component.message).toBe('Draft saved');
     expect(component.publishedConfig.variables['primary-color']).toBe('#abcdef');
+    httpMock.verify();
+  });
+
+  it('saveDraft shows error message on contrast violation', async () => {
+    const loadPromise = component.loadConfig();
+    httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
+    await loadPromise;
+    component.draftConfig['body-text-color'] = '#000000';
+    component.draftConfig['surface-color'] = '#000000';
+    const savePromise = component.saveDraft();
+    const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
+    saveReq.flush({ error: 'contrast-violation', message: 'contrast-violation: body-text-on-surface' }, { status: 400, statusText: 'Bad Request' });
+    await savePromise.catch(() => {});
+    expect(component.error).toContain('contrast-violation');
     httpMock.verify();
   });
 
@@ -91,10 +108,26 @@ describe('BrandingAdminComponent', () => {
     await loadPromise;
     const promise = component.createPreview();
     const previewReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/preview'));
-    previewReq.flush({ token: 'preview-token-123' });
+    previewReq.flush({ token: 'preview-token-123', url: '/branding/rdmp/preview/preview-token-123.css' });
     await promise;
     expect(component.previewToken).toBe('preview-token-123');
+    // Base/preview CSS URLs set after preview
+    expect(component.previewBaseCssUrl).toContain('/styles/style.min.css');
+    expect(component.previewCssUrl).toContain('/preview/preview-token-123.css');
     httpMock.verify();
+  });
+
+  it('exposes new variable keys in groups (e.g., Bootstrap contextual, menu, footer)', () => {
+    // Create component to access colourGroups definition
+    expect(component).toBeTruthy();
+    const allKeys = (component as any).colourGroups.flatMap((g: any) => g.variables.map((v: any) => v.key));
+    // Spot-check a few critical keys we added
+    expect(allKeys).toContain('primary');
+    expect(allKeys).toContain('secondary');
+    expect(allKeys).toContain('light');
+    expect(allKeys).toContain('dark');
+    expect(allKeys).toContain('main-menu-active-dropdown-item-background-color');
+    expect(allKeys).toContain('footer-bottom-area-branding-background-color');
   });
 
   it('publish reloads config', async () => {

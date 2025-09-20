@@ -209,7 +209,11 @@ export class BrandingAdminComponent extends BaseComponent {
         this.publishedConfig = res.branding;
       }
     } catch (e: any) {
-      this.error = `Failed to save draft: ${e?.message || e}`;
+      // Prefer server-provided message (e.error.message) when available to surface
+      // validation details like 'contrast-violation'. Fallback to generic error.
+      const serverMsg = e?.error?.message || e?.error?.error;
+      const msg = serverMsg || e?.message || e;
+      this.error = `Failed to save draft: ${msg}`;
       this.logger.error(this.error);
     } finally { this.savingDraft = false; }
   }

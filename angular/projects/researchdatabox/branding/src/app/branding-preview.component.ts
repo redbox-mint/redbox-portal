@@ -135,6 +135,8 @@ export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDes
 
   ngAfterViewInit(): void {
     const root = this.host.nativeElement.shadowRoot as ShadowRoot;
+    // Ensure stylesheets are attached on first render even if inputs were bound before view init
+    this.applyStylesheets(this.baseCssHref || undefined, this.cssHref || undefined);
     // Delegate clicks inside the shadow root to prevent navigation
     this.clickListener = (ev: Event) => {
       // Find an anchor in the composed path (works across shadow boundaries)
