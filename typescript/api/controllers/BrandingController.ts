@@ -69,17 +69,29 @@ export module Controllers {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
         res.set('Content-Type', 'text/css');
-        // If brand (or css) not present, serve a minimal valid stylesheet instead of the previous
-        // placeholder comment so tests can assert there are "some rules" and an ETag.
+        // If brand (or css) not present, serve the pre-compiled default CSS
         if (!brand || !brand.css) {
-          const css = ':root{}';
-          const etag = 'W/"' + crypto.createHash('sha256').update(css).digest('hex') + '"';
-          res.set('ETag', etag);
-          if (req.headers['if-none-match'] === etag) {
-            return res.status(304).end();
+          const defaultCssPath = path.join(sails.config.appPath, '.tmp/public/default/default/styles/style.min.css');
+          try {
+            const css = fs.readFileSync(defaultCssPath, 'utf8');
+            const etag = 'W/"' + crypto.createHash('sha256').update(css).digest('hex') + '"';
+            res.set('ETag', etag);
+            if (req.headers['if-none-match'] === etag) {
+              return res.status(304).end();
+            }
+            res.set('Cache-Control', 'public, max-age=300'); // Cache default CSS longer
+            return res.send(css);
+          } catch (fsError) {
+            // Fallback to minimal CSS if default file cannot be read
+            const css = ':root{}';
+            const etag = 'W/"' + crypto.createHash('sha256').update(css).digest('hex') + '"';
+            res.set('ETag', etag);
+            if (req.headers['if-none-match'] === etag) {
+              return res.status(304).end();
+            }
+            res.set('Cache-Control', 'public, max-age=60');
+            return res.send(css);
           }
-          res.set('Cache-Control', 'public, max-age=60');
-          return res.send(css);
         }
         // Ensure hash is lowercase hex; fall back to sha256 hex of css if stored hash is missing or not hex.
         const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(brand.css).digest('hex');
