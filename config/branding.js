@@ -11,12 +11,18 @@ module.exports.branding = {
    * Keys (without leading $) allowed in BrandingConfig.variables
    */
   variableWhitelist: [
-    // Legacy (British spelling) keys retained for backward compatibility
-    'site-branding-area-background',
-    'site-branding-area-heading-colour',
-    'panel-branding-background-colour',
-    'panel-branding-colour',
-    'panel-branding-border-colour',
+    // CSS-property-name variants (using 'color' to match CSS)
+    'primary-color',
+    'primary-text-color',
+    'secondary-color',
+    'secondary-text-color',
+    'accent-color',
+    'accent-text-color',
+    'body-text-color',
+    'surface-color',
+    'heading-text-color',
+    'site-branding-area-background-color',
+    'panel-branding-color',
     'main-menu-branding-background-colour',
     'header-branding-link-colour',
     'header-branding-background-colour',

@@ -13,13 +13,13 @@ describe('BrandingConfig Model (semantic variables whitelist)', () => {
     const created = await BrandingConfig.create({
       name: 'tenant-b',
       variables: {
-        'site-branding-area-background': '#ffffff',
-        '$panel-branding-color': '#000000',
+        'site-branding-area-background-color': '#ffffff',
+        'panel-branding-color': '#000000',
         'branding-font-family': 'Arial, sans-serif'
       }
     }).fetch();
     expect(created.variables).to.have.keys([
-      'site-branding-area-background',
+      'site-branding-area-background-color',
       'panel-branding-color',
       'branding-font-family'
     ]);

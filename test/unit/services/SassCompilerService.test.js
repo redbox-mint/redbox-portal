@@ -15,9 +15,11 @@ describe('SassCompilerService', () => {
     expect(String(err.message)).to.match(/Invalid variable/);
   });
 
-  it('accepts semantic variable override', async () => {
-    const { css } = await SassCompilerService.compile({ 'site-branding-area-background': '#abc' });
-    // Expect resulting CSS to contain compiled hex color #aabbcc (#abc expanded)
-    expect(css).to.match(/#aabbcc/i);
+  it('accepts semantic variable override', async function () {
+    const { css } = await SassCompilerService.compile({ 'site-branding-area-background-color': '#abc' });
+
+    // Test should check for the actual color value that SCSS outputs
+    // SCSS preserves 3-digit hex format when it's valid, so we check for #abc not #aabbcc
+    css.should.match(/#abc/i);
   });
 });

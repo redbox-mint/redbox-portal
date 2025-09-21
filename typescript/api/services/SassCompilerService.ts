@@ -4,6 +4,12 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import sass from 'sass';
+import os from 'os';
+import fse from 'fs-extra';
+// Use require to avoid type dependencies for webpack internals
+const webpack = require('webpack');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 declare var sails; // Sails global
 declare var _;
@@ -61,7 +67,7 @@ export module Services {
             return lines.join('\n');
         }
 
-        /** Compile full theme returning css + sha256 hash */
+        /** Compile full theme returning css + sha256 hash using webpack loader chain */
         async compile(variables: Record<string, string>): Promise<{ css: string; hash: string; }> {
             const whitelist = this.getWhitelist();
             const invalid = Object.keys(variables || {}).filter(k => !whitelist.includes(k.replace(/^\$/, '')));
@@ -73,29 +79,99 @@ export module Services {
                 overrideLines.push(`$${normKey}: ${value}; // tenant override`);
             }
             const scss = this.buildRootScss(overrideLines);
-            
-            // Custom importer to handle ~ prefix resolution
-            const importer = {
-                findFileUrl(url: string) {
-                    if (url.startsWith('~')) {
-                        // Resolve ~ imports to node_modules
-                        const resolvedPath = url.substring(1); // Remove ~
-                        const fullPath = path.resolve(process.cwd(), 'node_modules', resolvedPath);
-                        return new URL(`file://${fullPath}`);
-                    }
-                    return null; // Let Sass handle normal imports
-                }
-            };
-            
-            const result = sass.compileString(scss, {
-                style: 'expanded',
-                loadPaths: [
-                    path.resolve(process.cwd(), 'assets/styles'),
-                    path.resolve(process.cwd(), 'node_modules')
+
+            // Build a temporary workspace for webpack to compile our injected SCSS using the project loader chain
+            const tmpBase = path.join(process.cwd(), '.tmp', 'branding-webpack', crypto.randomBytes(8).toString('hex'));
+            const tmpOut = path.join(tmpBase, 'dist');
+            fse.mkdirpSync(tmpBase);
+            // Write a temporary root.scss and entry.js that imports it
+            const rootScssPath = path.join(tmpBase, 'root.scss');
+            const entryJsPath = path.join(tmpBase, 'entry.js');
+            fs.writeFileSync(rootScssPath, scss, 'utf8');
+            fs.writeFileSync(entryJsPath, `require('./root.scss');\n`, 'utf8');
+
+            // Minimal webpack config aligned with project's sass/css pipeline
+            const wpConfig = {
+                mode: 'production',
+                devtool: false,
+                entry: entryJsPath,
+                output: {
+                    path: tmpOut,
+                    filename: 'bundle.js',
+                    publicPath: '/',
+                    clean: true
+                },
+                module: {
+                    rules: [
+                        {
+                            test: /\.(sa|sc|c)ss$/,
+                            exclude: /\.\.\/angular/,
+                            use: [
+                                MiniCssExtractPlugin.loader,
+                                'css-loader',
+                                'resolve-url-loader',
+                                {
+                                    loader: 'sass-loader',
+                                    options: {
+                                        sourceMap: true, // Required for resolve-url-loader
+                                        sassOptions: {
+                                            loadPaths: [
+                                                path.resolve(process.cwd(), 'assets/styles'),
+                                                path.resolve(process.cwd(), 'node_modules')
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            test: /\.(woff2?|ttf|otf|eot|svg)$/,
+                            type: 'asset/resource',
+                            exclude: /\.\.\/angular/
+                        },
+                        {
+                            mimetype: 'image/svg+xml',
+                            scheme: 'data',
+                            type: 'asset/resource',
+                            generator: { filename: 'icons/[hash].svg' }
+                        }
+                    ]
+                },
+                plugins: [
+                    new MiniCssExtractPlugin({ filename: 'style.css' })
                 ],
-                importers: [importer]
+                optimization: {
+                    minimize: false,
+                    minimizer: [ new CssMinimizerPlugin() ]
+                },
+                resolve: {
+                    extensions: ['.js', '.ts', '.scss', '.css'],
+                    modules: [path.resolve(process.cwd(), 'node_modules'), 'node_modules']
+                },
+                resolveLoader: {
+                    modules: [path.resolve(process.cwd(), 'node_modules'), 'node_modules']
+                },
+                stats: 'errors-warnings'
+            };
+
+            const compiler = webpack(wpConfig);
+            const stats = await new Promise<any>((resolve, reject) => {
+                compiler.run((err: any, stats: any) => {
+                    if (err) return reject(err);
+                    const info = stats.toJson({ all: false, errors: true, warnings: true });
+                    if (stats.hasErrors()) {
+                        return reject(new Error('Webpack SCSS compile failed: ' + (info.errors && info.errors[0] && info.errors[0].message || 'unknown error')));
+                    }
+                    resolve(stats);
+                });
             });
-            const css = result.css;
+
+            // Read the emitted CSS
+            const cssPath = path.join(tmpOut, 'style.css');
+            const css = fs.readFileSync(cssPath, 'utf8');
+            // Clean up temp directory (best-effort)
+            try { fse.removeSync(tmpBase); } catch(_e) {}
+
             const hash = crypto.createHash('sha256').update(css).digest('hex').substring(0, 32);
             return { css, hash };
         }
