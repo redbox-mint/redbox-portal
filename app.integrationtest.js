@@ -60,6 +60,9 @@ try {
 // Start server
 sails.lift(rc('sails'));
 
+// In the integrationtest env, start a simple server to listen for GET / on a separate port.
+// This is needed to ensure the server is shut down when the bruno tests finish and that it shuts down correctly so that code coverage reports are written.
+// This addresses an issue with the server sometimes hanging and causing issues in CI.
 
 if (process.env.NODE_ENV === 'integrationtest') {
   const http = require('http');

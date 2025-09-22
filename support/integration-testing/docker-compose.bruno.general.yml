@@ -18,7 +18,7 @@ services:
       - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
       - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
     working_dir: /opt/bruno-tests
-    stop_grace_period: 1800s
+    stop_grace_period: 30m
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
-    stop_grace_period: 1800s
+    stop_grace_period: 30m
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'
