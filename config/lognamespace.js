@@ -20,4 +20,6 @@ module.exports.lognamespace = {
   WorkflowStepsService: 'warn',
   // Set FormsService to only show warn or error messages
   FormsService: 'warn',
+  // Set RenderViewController to only show warn or error messages
+  RenderViewController: 'warn',
 };
