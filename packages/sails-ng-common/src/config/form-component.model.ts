@@ -1,11 +1,13 @@
-import {FormFieldComponentDefinition, FormFieldLayoutDefinition, FormFieldModelDefinition} from "./component";
-
+import {BaseFormFieldComponentDefinition, BaseFormFieldComponentDefinitionFrame} from "./form-field-component.model";
+import {FormFieldModelDefinition, FormFieldModelDefinitionFrame} from "./form-field-model.model";
+import {FormFieldLayoutDefinition, FormFieldLayoutDefinitionFrame} from "./form-field-layout.model";
+import {FormExpressionsConfig, FormConstraintConfig} from "./shared.model";
+import {FormConfigItemVisitor, Visitee} from "./visitor";
 
 /**
- * The form component configuration definition.
- *
+ * The form component interface that provides typing for the object literal and schema.
  */
-export interface FormComponentDefinition {
+export interface FormComponentDefinitionFrame {
     /**
      * top-level field name, applies to field and the component, etc.
      */
@@ -13,22 +15,22 @@ export interface FormComponentDefinition {
     /**
      * The definition of the model that backs the form field.
      */
-    model?: FormFieldModelDefinition;
+    model?: FormFieldModelDefinitionFrame<unknown>;
     /**
      * The definition of the client-side component for the form field.
      */
-    component: FormFieldComponentDefinition;
+    component: BaseFormFieldComponentDefinitionFrame;
     /**
      * The definition of the client-side layout for this form field.
      */
-    layout?: FormFieldLayoutDefinition;
+    layout?: FormFieldLayoutDefinitionFrame;
     /**
      * A record with string keys and expression template values for defining expressions.
      *
      * TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
      *   Expression functions will participate in a similar process as the validation functions to get to the client.
      */
-    expressions?: ExpressionsConfig;
+    expressions?: FormExpressionsConfig;
     /**
      * For a custom form component definition, module defines where to find the definition.
      */
@@ -39,59 +41,33 @@ export interface FormComponentDefinition {
     constraints?: FormConstraintConfig;
 }
 
-export type ExpressionsConfig = Record<string, { template: string; condition?: any }>;
-
 /**
- * The constraints that must be fulfilled for the form field to be included.
+ * The form component abstract class is the base for each real component definition class.
  */
-export class FormConstraintConfig {
-    /**
-     * The current user must fulfill these authorization constraints.
-     * This is only available on the server side.
-     * These are checked first.
-     */
-    authorization?: FormConstraintAuthorizationConfig;
-    /**
-     * This form field is included when the displayed form is in one of these modes.
-     * If this is not specified, the form field will be included in all modes.
-     */
-    allowModes?: FormModesConfig[]
+export abstract class FormComponentDefinition implements FormComponentDefinitionFrame, Visitee {
+    public name: string;
+    public component: BaseFormFieldComponentDefinition;
+    public model?: FormFieldModelDefinition<unknown>;
+    public layout?: FormFieldLayoutDefinition;
+    public expressions?: FormExpressionsConfig;
+    public module?: string;
+    public constraints?: FormConstraintConfig;
 
-    /**
-     * Create a new instance from an existing instance to ensure no references are shared.
-     * @param other
-     */
-    public static from(other?: FormConstraintConfig) {
-        const newInstance = new FormConstraintConfig();
-        newInstance.authorization = FormConstraintAuthorizationConfig.from(other?.authorization);
-        newInstance.allowModes = [...other?.allowModes ?? []];
-        return newInstance;
+    protected constructor(data: FormComponentDefinitionFrame) {
+        Object.assign(this, data);
+        this.name = data.name;
+        this.component = data.component;
     }
+
+    abstract accept(visitor: FormConfigItemVisitor): void;
 }
 
 /**
- * The options available for the authorization constraints.
+ * An interface for classes that might have children.
  */
-export class FormConstraintAuthorizationConfig {
+export interface HasChildren {
     /**
-     * The current user must have at least one of these roles for the form field to be included.
-     *
-     * e.g. allowRoles: ['Admin', 'Librarians'],
+     * Get all the components that are directly contained by this component.
      */
-    allowRoles?: string[];
-
-    /**
-     * Create a new instance from an existing instance to ensure no references are shared.
-     * @param other
-     */
-    public static from(other?: FormConstraintAuthorizationConfig) {
-        const newInstance = new FormConstraintAuthorizationConfig();
-        newInstance.allowRoles = [...other?.allowRoles ?? []];
-        return newInstance;
-    }
+    get children(): FormComponentDefinition[];
 }
-
-/**
- * The available form modes.
- */
-export type FormModesConfig  = "edit" | "view";

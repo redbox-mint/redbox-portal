@@ -24,8 +24,8 @@ import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
   BaseFormFieldComponentDefinition,
-  BaseFormFieldLayoutDefinition,
-  BaseFormFieldModelDefinition,
+  FormFieldLayoutDefinition,
+  FormFieldModelDefinition,
   FormComponentDefinition,
   FormConfig,
   FormConstraintConfig,
@@ -602,7 +602,7 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldLayoutDefinition(item: FormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field layout definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -613,7 +613,7 @@ export module Services {
       return this.buildClientFormObject(item, context);
     }
 
-    public buildClientFormFieldModelDefinition(item: BaseFormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldModelDefinition(item: FormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field model definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -695,7 +695,7 @@ export module Services {
             break;
 
           case 'model':
-              const modelItem = value as unknown as BaseFormFieldModelDefinition<unknown>;
+              const modelItem = value as unknown as FormFieldModelDefinition<unknown>;
               result[key] = this.buildClientFormFieldModelDefinition(modelItem, context);
               break;
 

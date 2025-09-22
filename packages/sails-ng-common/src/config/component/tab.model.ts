@@ -1,6 +1,6 @@
 import {FormComponentDefinition} from "../form-component.model";
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
-import {BaseFormFieldLayoutConfig, BaseFormFieldLayoutDefinition} from "../form-field-layout.model";
+import {FormFieldLayoutConfig, FormFieldLayoutDefinition} from "../form-field-layout.model";
 
 export interface TabFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "TabComponent";
@@ -27,12 +27,12 @@ export class TabContentComponentConfig extends BaseFormFieldComponentConfig {
     tab?: TabComponentEntryDefinition;
 }
 
-export interface TabComponentFormFieldLayoutDefinition extends BaseFormFieldLayoutDefinition {
+export interface TabComponentFormFieldLayoutDefinition extends FormFieldLayoutDefinition {
     class: "TabComponentLayout";
     config: TabComponentFormFieldLayoutConfig;
 }
 
-export class TabComponentFormFieldLayoutConfig extends BaseFormFieldLayoutConfig {
+export class TabComponentFormFieldLayoutConfig extends FormFieldLayoutConfig {
     buttonSectionCssClass?: string; // CSS class for the tab buttons
     tabPaneCssClass?: string; // CSS class for the tab pane
     tabPaneActiveCssClass?: string; // CSS class for the active tab pane

@@ -1,120 +1,210 @@
 import {
-    ContentComponentConfig,
-    ContentComponentDefinition,
-    DefaultFormFieldLayoutConfig,
-    DefaultFormFieldLayoutDefinition,
-    GroupFormFieldComponentConfig,
-    GroupFormFieldComponentDefinition,
-    GroupFormFieldModelConfig,
-    GroupFormFieldModelDefinition,
-    RepeatableElementFormFieldLayoutConfig,
-    RepeatableElementFormFieldLayoutDefinition,
-    RepeatableFormFieldComponentConfig,
-    RepeatableFormFieldComponentDefinition,
-    RepeatableFormFieldModelConfig,
-    RepeatableFormFieldModelDefinition,
-    SaveButtonComponentDefinition,
-    SaveButtonComponentConfig,
-    SimpleInputComponentConfig,
-    SimpleInputComponentDefinition,
-    SimpleInputModelConfig,
-    SimpleInputModelDefinition,
-    TabComponentConfig,
-    TabFormFieldComponentDefinition,
-    TabContentComponentDefinition,
-    TabComponentFormFieldLayoutDefinition,
-    TabComponentFormFieldLayoutConfig,
-    TextAreaComponentConfig,
-    TextAreaComponentDefinition,
-    TextareaModelConfig,
-    TextareaModelDefinition,
-    ValidationSummaryFormFieldComponentConfig,
-    ValidationSummaryFormFieldComponentDefinition,
-    ValidationSummaryFormFieldModelConfig,
-    ValidationSummaryFormFieldModelDefinition,
-    RepeatableComponentName,
-    RepeatableModelName,
-    RepeatableElementLayoutComponentName, ContentComponentName,
+    DefaultLayoutMap,
+    RepeatableMap,
+    DefaultLayoutFrames,
+    RepeatableFrames,
 } from "./component";
-import {BaseFormFieldComponentDefinition} from "./form-field-component.model";
-import {BaseFormFieldLayoutDefinition} from "./form-field-layout.model";
-import {BaseFormFieldModelDefinition} from "./form-field-model.model";
+import {
+    FormComponentDefinitionFrameKindType,
+    FormComponentDefinitionKindType,
+    FormFieldComponentDefinitionFrameKindType,
+    FormFieldComponentDefinitionKindType,
+    FormFieldComponentConfigFrameKindType,
+    FormFieldComponentConfigKindType,
+    FormFieldModelDefinitionFrameKindType,
+    FormFieldModelDefinitionKindType,
+    FormFieldModelConfigFrameKindType,
+    FormFieldModelConfigKindType,
+    FormFieldLayoutDefinitionFrameKindType,
+    FormFieldLayoutDefinitionKindType,
+    FormFieldLayoutConfigFrameKindType,
+    FormFieldLayoutConfigKindType,
+    AvailableFormKindTypes,
+    FormFieldLayoutConfigKind,
+    FormFieldLayoutDefinitionKind,
+    FormFieldModelConfigKind,
+    FormFieldModelDefinitionKind,
+    FormFieldComponentConfigKind,
+    FormFieldComponentDefinitionKind,
+    FormComponentDefinitionKind,
+} from "./shared.model";
+import {FormComponentDefinitionFrame} from "./form-component.model";
+import {
+    FormFieldComponentConfigFrame,
+    FormFieldComponentDefinitionFrame
+} from "./form-field-component.model";
+import {FormFieldModelConfigFrame, FormFieldModelDefinitionFrame} from "./form-field-model.model";
+import {FormFieldLayoutConfigFrame, FormFieldLayoutDefinitionFrame} from "./form-field-layout.model";
 
-
-/**
- * Possible form field component definitions.
- */
-export type FormFieldComponentDefinition =
-    SimpleInputComponentDefinition |
-    ContentComponentDefinition |
-    RepeatableFormFieldComponentDefinition |
-    ValidationSummaryFormFieldComponentDefinition |
-    GroupFormFieldComponentDefinition |
-    TabFormFieldComponentDefinition |
-    TabContentComponentDefinition |
-    SaveButtonComponentDefinition |
-    TextAreaComponentDefinition;
-
-/**
- * Possible form field component configs.
- */
-export type FormFieldComponentConfig =
-    SimpleInputComponentConfig |
-    ContentComponentConfig |
-    RepeatableFormFieldComponentConfig |
-    ValidationSummaryFormFieldComponentConfig |
-    GroupFormFieldComponentConfig |
-    TabComponentConfig |
-    SaveButtonComponentConfig |
-    TextAreaComponentConfig;
-
-/**
- * Possible form field model definitions.
- */
-export type FormFieldModelDefinition =
-    SimpleInputModelDefinition |
-    RepeatableFormFieldModelDefinition |
-    ValidationSummaryFormFieldModelDefinition |
-    GroupFormFieldModelDefinition |
-    TextareaModelDefinition;
-
+/* Ensure all available types, interfaces, and classes are added here. */
 
 /**
- * Possible form field model configs.
+ * The static type union of all available interfaces that provides typing for the object literal and schema.
+ * Other convenience mappings are built from this.
  */
-export type FormFieldModelConfig =
-    SimpleInputModelConfig |
-    RepeatableFormFieldModelConfig |
-    ValidationSummaryFormFieldModelConfig |
-    GroupFormFieldModelConfig |
-    TextareaModelConfig;
-
+export type AvailableFrames =
+    DefaultLayoutFrames |
+    RepeatableFrames
+    ;
 
 /**
- * Possible form field layout definitions.
+ * The static array of all available classes and the kind of class.
+ * Other convenience mappings are built from this.
  */
-export type FormFieldLayoutDefinition =
-    DefaultFormFieldLayoutDefinition |
-    RepeatableElementFormFieldLayoutDefinition |
-    TabComponentFormFieldLayoutDefinition;
+export const StaticMap = [
+    ...DefaultLayoutMap,
+    ...RepeatableMap,
+] as const;
 
-/**
- * Possible form field layout configs.
+/* typescript-only types and interfaces */
+
+
+/*
+ * Build various convenience types from the static mapping.
  */
-export type FormFieldLayoutConfig =
-    DefaultFormFieldLayoutConfig |
-    RepeatableElementFormFieldLayoutConfig |
-    TabComponentFormFieldLayoutConfig;
+
+export type StaticMapTypes = typeof StaticMap[number];
+
+export type AllAvailableClassNames = Pick<Extract<StaticMapTypes, { class: string }>, 'class'>['class'];
+
+export type FormComponentDefinitionFrameTypes = Extract<AvailableFrames, FormComponentDefinitionFrame>;
+export type FormComponentDefinitionTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormComponentDefinitionKindType
+}>, 'def'>['def'];
+
+export type FormFieldComponentDefinitionFrameTypes = Extract<AvailableFrames, FormFieldComponentDefinitionFrame>;
+export type FormFieldComponentDefinitionTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormFieldComponentDefinitionKindType
+}>, 'def'>['def'];
+
+export type FormFieldComponentConfigFrameTypes = Extract<AvailableFrames, FormFieldComponentConfigFrame>;
+export type FormFieldComponentConfigTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormFieldComponentConfigKindType
+}>, 'def'>['def'];
+
+
+export type FormFieldModelDefinitionFrameTypes = Extract<AvailableFrames, FormFieldModelDefinitionFrame<unknown>>;
+export type FormFieldModelDefinitionTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormFieldModelDefinitionKindType
+}>, 'def'>['def'];
+
+export type FormFieldModelConfigFrameTypes = Extract<AvailableFrames, FormFieldModelConfigFrame<unknown>>;
+export type FormFieldModelConfigTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormFieldModelConfigKindType
+}>, 'def'>['def'];
+
+export type FormFieldLayoutDefinitionFrameTypes = Extract<AvailableFrames, FormFieldLayoutDefinitionFrame>;
+export type FormFieldLayoutDefinitionTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormFieldLayoutDefinitionKindType
+}>, 'def'>['def'];
+
+export type FormFieldLayoutConfigFrameTypes = Extract<AvailableFrames, FormFieldLayoutConfigFrame>;
+export type FormFieldLayoutConfigTypes = Pick<Extract<StaticMapTypes, {
+    kind: FormFieldLayoutConfigKindType
+}>, 'def'>['def'];
+
+/* aspects available to javascript */
+
+
+/*
+ * Build various convenience mapping variables from the static mapping.
+ */
+
+function buildMap(
+    staticMap: StaticMapTypes[],
+    kind: AvailableFormKindTypes
+) {
+    return new Map(staticMap
+        .filter(i => i.kind === kind && i.class)
+        .map(i => [i.class, i.def])
+    );
+}
+
+export const FormComponentDefinitions = buildMap(StaticMap, FormComponentDefinitionKind);
+export const FormFieldComponentDefinitions = buildMap(StaticMap, FormFieldComponentDefinitionKind);
+export const FormFieldComponentConfigs = buildMap(StaticMap, FormFieldComponentConfigKind);
+export const FormFieldModelDefinitions = buildMap(StaticMap, FormFieldModelDefinitionKind);
+export const FormFieldModelConfigs = buildMap(StaticMap, FormFieldModelConfigKind);
+export const FormFieldLayoutDefinitions = buildMap(StaticMap, FormFieldLayoutDefinitionKind);
+export const FormFieldLayoutConfigs = buildMap(StaticMap, FormFieldLayoutConfigKind);
+
+
+// function whichComponentDefinition(compDef: FormFieldDefinitionTypes) {
+//     switch (compDef.component.class) {
+//         case RepeatableComponentName:
+//             break;
+//         case "SimpleInputComponent":
+//             break;
+//         case "":
+//             break;
+//     }
+// }
+//
+// function whichLayouts(def: FormFieldLayoutDefinition) {
+//     switch (def.class) {
+//         case "DefaultLayoutComponent":
+//             break;
+//     }
+// }
+
 
 /**
  * Static dictionary that maps class name strings to
  * classes, which enables obtaining the class without evaluating text as js.
  */
 // TODO: consider how to use these interfaces to type the map.
-// : {[index: string]: BaseFormFieldComponentDefinition | BaseFormFieldLayoutDefinition | BaseFormFieldModelDefinition<unknown> }
-export const staticNameModelCompMap = {
-    [RepeatableComponentName]: RepeatableFormFieldComponentDefinition,
-    [RepeatableModelName]: RepeatableFormFieldModelDefinition,
-    [RepeatableElementLayoutComponentName]: RepeatableFormFieldModelDefinition,
-    [ContentComponentName]: ContentComponentDefinition,
-};
+//
+// export type StaticNameModelCompMapType = new (...args: ConstructorParameters<BaseFormFieldDefinition>) => BaseFormFieldDefinition;
+// export type StaticNameModelCompMapType = abstract new(...args: infer P) => any ? P : never;
+// type Testing<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any ? P : never;
+// type AbstractConstructorParameters<T> = T extends abstract new(...args: infer P) => any ? P : never;
+// type StaticNameModelCompMapType = new (className: string, config?: BaseFormFieldComponentConfig) => typeof BaseFormFieldDefinition;
+// export const staticNameModelCompMap: {[index: string]: StaticNameModelCompMapType } = {
+//     [RepeatableComponentName]: RepeatableFormFieldComponentDefinition,
+//     [RepeatableModelName]: RepeatableFormFieldModelDefinition,
+//     [RepeatableElementLayoutComponentName]: RepeatableElementFormFieldLayoutDefinition,
+//     [ContentComponentName]: ContentFormFieldComponentDefinition,
+// };
+
+
+/*
+* Proof of concept for a 'collection' of component, model, layout.
+*/
+
+// There needs to be some definition that will be present in js of the collection of classes.
+// const pocCompDefCollection1 = {
+//     component: RepeatableFormFieldComponentDefinition,
+//     model: RepeatableFormFieldModelDefinition,
+//     layout: RepeatableElementFormFieldLayoutDefinition,
+// } as const
+// const pocCompDefCollection2 = {
+//     component: ContentFormFieldComponentDefinition,
+// } as const
+
+// The static definition can be transformed into typescript types.
+// const pocFormFieldComponentDefinitions = [pocCompDefCollection1, pocCompDefCollection2].map(i => i.component).filter(i => !!i);
+// export type pocFormFieldComponentDefinitionsType = typeof pocFormFieldComponentDefinitions[number];
+
+/*
+ * TODO: Proof of concept for defining the class string and js class.
+ */
+
+
+// export class SimpleInputFormComponentDefinition extends FormComponentDefinition {
+//     constructor(name: string, component: SimpleInputComponentDefinition) {
+//         super(name, component);
+//     }
+// }
+
+// const FormComponentDefinitions = [RepeatableFormComponentDefinition, ContentFormComponentDefinition, SimpleInputFormComponentDefinition] as const;
+// export type FormComponentDefinitionType = InstanceType<typeof FormComponentDefinitions[number]>;
+// function whichComponentDefinition(compDef: FormComponentDefinitionType){
+//     switch (compDef.component.class) {
+//         case RepeatableComponentName:
+//             break;
+//         case "SimpleInputComponent":
+//             break;
+//         case "":
+//             break;
+//     }
+// }

@@ -28,3 +28,13 @@ export interface TemplateCompileInput extends TemplateCompileItem {
      */
     kind: TemplateCompileKind;
 }
+
+/**
+ * An interface for classes that might have templates that can be compiled.
+ */
+export interface HasCompilableTemplates {
+    /**
+     * Get all the templates for this component.
+     */
+    get templates(): TemplateCompileInput[];
+}

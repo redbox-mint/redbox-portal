@@ -1,4 +1,4 @@
-import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
+import {FormFieldModelConfig, FormFieldModelDefinition} from "../form-field-model.model";
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
 
@@ -15,11 +15,11 @@ export class TextAreaComponentConfig extends BaseFormFieldComponentConfig {
     public placeholder?:string = '';
 }
 
-export interface TextareaModelDefinition extends BaseFormFieldModelDefinition<TextareaModelValueType> {
+export interface TextareaModelDefinition extends FormFieldModelDefinition<TextareaModelValueType> {
     class: "TextAreaModel";
     config: TextareaModelConfig;
 }
 
-export class TextareaModelConfig extends BaseFormFieldModelConfig<TextareaModelValueType> {
+export class TextareaModelConfig extends FormFieldModelConfig<TextareaModelValueType> {
 
 }

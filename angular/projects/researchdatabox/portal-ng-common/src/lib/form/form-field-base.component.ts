@@ -5,8 +5,8 @@ import { LoggerService } from '../logger.service';
 import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {
-  BaseFormFieldComponentConfig, BaseFormFieldLayoutConfig,
-  ExpressionsConfig,
+  BaseFormFieldComponentConfig, FormFieldLayoutConfig,
+  FormExpressionsConfig,
   FormComponentDefinition,
   FormFieldComponentConfig,
   FormFieldComponentDefinition,
@@ -128,7 +128,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public propagateExpressions(expressions: ExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
+  public propagateExpressions(expressions: FormExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
     let expressionKeys = _keys(expressions);
     for (let key of expressionKeys) {
       try {
@@ -283,8 +283,8 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       if(isInit) {
         //normalise componentDefinition that is used to track property changes given these may not be present
         // Determine whether componentDefinition.config is a layout or a component.
-        let initDef = (this.componentDefinition.config instanceof BaseFormFieldLayoutConfig)
-          ? new BaseFormFieldLayoutConfig()
+        let initDef = (this.componentDefinition.config instanceof FormFieldLayoutConfig)
+          ? new FormFieldLayoutConfig()
           : new BaseFormFieldComponentConfig();
         let initMap:Map<string, any> = this.buildPropertyMap(initDef);
         for (const key of initMap.keys()) {

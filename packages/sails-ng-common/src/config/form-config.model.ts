@@ -1,30 +1,13 @@
-import { KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
-import {FormValidatorConfig, FormValidatorDefinition} from "../validation";
-import {FormComponentDefinition} from "./form-component.model";
-
-// TODO: https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions
+import {KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
+import {FormValidatorConfig} from "../validation";
+import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from "./form-component.model";
+import {FormConfigItemVisitor, Visitee} from "./visitor";
+import {HasCompilableTemplates, TemplateCompileInput} from "../template.model";
 
 /**
- * These classes are used to define the configuration for the form and form components.
- *
- * These can be used to generate JSON schema for validation, etc. both on the client and server side.
- *
- * Classes ending `Definition` establish the metadata (name, class, config type) for the form and its components.
- *
- * Classes ending `Config` establish the field-type-specific config structure of the form and its components.
- *
- * These may or may not share the same field name(s) as the `Definition` classes.
- * This could also be used to define the expected JSON schema, where it is indicated.
+ * The top-level form config interface that provides typing for the object literal and schema.
  */
-
-
-/**
- * The form definition.
- *
- * Also, used to define the JSON schema.
- *
- * */
-export class FormConfig {
+export interface FormConfigFrame {
     /**
      * optional form name, will be used to identify the form in the config
      */
@@ -63,11 +46,11 @@ export class FormConfig {
      * whether to trigger validation on save
      * Default false.
      */
-    skipValidationOnSave?: boolean = false;
+    skipValidationOnSave?: boolean;
     /**
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */
-    validators?: FormValidatorConfig[] = [];
+    validators?: FormValidatorConfig[];
 
     // TODO: a way to create groups of validators
     // This is not implemented yet.
@@ -88,11 +71,45 @@ export class FormConfig {
     /**
      * the components of this form
      */
-    componentDefinitions?: FormComponentDefinition[] = [];
+    componentDefinitions?: FormComponentDefinitionFrame[];
     /**
      * debug: show the form JSON
      * Default false.
      */
-    debugValue?: boolean = false;
+    debugValue?: boolean;
+}
+
+/**
+ * The form definition.
+ * */
+export class FormConfig implements FormConfigFrame, HasChildren, HasCompilableTemplates, Visitee {
+    public name?: string;
+    public type?: string;
+    public domElementType?: string;
+    public domId?: string;
+    public viewCssClasses?: KeyValueStringProperty;
+    public editCssClasses?: KeyValueStringProperty;
+    public defaultComponentConfig?: KeyValueStringNested;
+    public defaultLayoutComponent?: string;
+    public skipValidationOnSave: boolean = false;
+    public validators: FormValidatorConfig[] = [];
+    public componentDefinitions: FormComponentDefinition[] = [];
+    public debugValue: boolean = false;
+
+    constructor(data: FormConfigFrame) {
+        Object.assign(this, data);
+    }
+
+    get templates(): TemplateCompileInput[] {
+        throw new Error("Method not implemented.");
+    }
+
+    get children(): FormComponentDefinition[] {
+        return this.componentDefinitions;
+    }
+
+    accept(visitor: FormConfigItemVisitor): void {
+        visitor.visitFormConfig(this);
+    }
 }
 
