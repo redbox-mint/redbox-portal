@@ -8,8 +8,15 @@ services:
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
-      - "../../test/bruno:/opt/bruno-tests"
+      - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
+      - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
+      - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
+      - "../../test/bruno/environments:/opt/bruno-tests/environments"
+      - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
+      - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
     working_dir: /opt/bruno-tests
+    stop_grace_period: 30m
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -23,8 +30,12 @@ services:
       npx @usebruno/cli@1.34.1 run 
       --env int-test 
       --format junit 
-      --output /opt/junit/backend-bruno/backend-bruno.xml 
-      --bail"
+      --output /opt/junit/backend-bruno/backend-bruno-oidc.xml 
+      --bail;
+      status=$?;
+      wget -qO- http://redboxportal:1599 || true;
+      sleep 180;
+      exit $status"
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'missing'
@@ -68,8 +79,8 @@ services:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
-    init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    # init: true
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc --no-clean --report-dir /opt/redbox-portal/coverage/bruno-oidc --reporter=lcov --exclude-after-remap=false node app.integrationtest.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
