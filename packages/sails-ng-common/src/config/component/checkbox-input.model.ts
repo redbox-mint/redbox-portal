@@ -2,7 +2,13 @@ import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-fi
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
 
-export type CheckboxModelValueType = string | boolean | null | Array<any>;
+export type CheckboxModelValueType = string | null | Array<string>;
+
+export interface CheckboxOption {
+  label: string;
+  value: string;
+  disabled?: boolean;
+}
 
 export interface CheckboxInputComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "CheckboxInputComponent";
@@ -11,7 +17,7 @@ export interface CheckboxInputComponentDefinition extends BaseFormFieldComponent
 
 export class CheckboxInputComponentConfig extends BaseFormFieldComponentConfig {
     public placeholder?: string = '';
-    public options: Array<{ label: string; value: any; disabled?: boolean }> = [];
+    public options: Array<CheckboxOption> = [];
     public multipleValues?: boolean = false;
 }
 

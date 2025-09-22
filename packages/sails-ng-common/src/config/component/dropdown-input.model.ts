@@ -2,7 +2,13 @@ import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-fi
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
 
-export type DropdownModelValueType = string | number | null;
+export type DropdownModelValueType = string | null;
+
+export interface DropdownOption {
+  label: string;
+  value: string;
+  disabled?: boolean;
+}
 
 export interface DropdownInputComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "DropdownInputComponent";
@@ -11,7 +17,7 @@ export interface DropdownInputComponentDefinition extends BaseFormFieldComponent
 
 export class DropdownInputComponentConfig extends BaseFormFieldComponentConfig {
     public placeholder?: string = '';
-    public options: Array<{ label: string; value: any; disabled?: boolean }> = [];
+    public options: Array<DropdownOption> = [];
 }
 
 export interface DropdownInputModelDefinition extends BaseFormFieldModelDefinition<DropdownModelValueType> {

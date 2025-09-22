@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { NgModule } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
-import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
@@ -63,9 +63,8 @@ import { RadioInputComponent } from './component/radio-input.component';
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
-    FormsModule,
     RedboxPortalCoreModule,
-    I18NextPipe,
+    I18NextPipe
   ],
   providers: [
     {

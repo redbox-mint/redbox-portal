@@ -2,7 +2,13 @@ import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-fi
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
 
-export type RadioInputModelValueType = string | number | null;
+export type RadioInputModelValueType = string | null;
+
+export interface RadioOption {
+  label: string;
+  value: string;
+  disabled?: boolean;
+}
 
 export interface RadioInputComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "RadioInputComponent";
@@ -10,7 +16,7 @@ export interface RadioInputComponentDefinition extends BaseFormFieldComponentDef
 }
 
 export class RadioInputComponentConfig extends BaseFormFieldComponentConfig {
-    public options: Array<{ label: string; value: any; disabled?: boolean }> = [];
+    public options: Array<RadioOption> = [];
 }
 
 export interface RadioInputModelDefinition extends BaseFormFieldModelDefinition<RadioInputModelValueType> {

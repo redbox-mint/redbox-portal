@@ -1,15 +1,9 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
-import { CheckboxInputComponentConfig } from '@researchdatabox/sails-ng-common';
+import { CheckboxInputComponentConfig, CheckboxOption, CheckboxModelValueType } from '@researchdatabox/sails-ng-common';
 
-export class CheckboxInputModel extends FormFieldModel<string | Array<string>> {
-}
-
-export interface CheckboxOption {
-  label: string;
-  value: string;
-  disabled?: boolean;
+export class CheckboxInputModel extends FormFieldModel<CheckboxModelValueType> {
 }
 
 @Component({
@@ -36,7 +30,7 @@ export interface CheckboxOption {
   `,
   standalone: false
 })
-export class CheckboxInputComponent extends FormFieldBaseComponent<string | Array<string>> {
+export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxModelValueType> {
   protected override logName: string = "CheckboxInputComponent";
   public tooltip: string = '';
   public placeholder: string | undefined = '';
