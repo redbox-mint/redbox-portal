@@ -3440,7 +3440,7 @@
 	"@dmpt-vivo:Dataset_dc:extent-required": "Expected size is required",
 	"@dmpt-vivo:Dataset_dc:extent-less-than-10GB": "Less than 10 GB",
 	"@dmpt-vivo:Dataset_dc:extent-10-20GB": "10GB-20GB",
-	"@dmpt-vivo:Dataset_dc:extent-20-100GB": "20GB – 100GB",
+	"@dmpt-vivo:Dataset_dc:extent-20-100GB": "20GB - 100GB",
 	"@dmpt-vivo:Dataset_dc:extent-more-than-100GB": "100GB+",
 	"@dmpt-vivo:Dataset_dc:extent-less-than-100GB": "less than 100GB",
 	"@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB": "100GB - 2TB",
