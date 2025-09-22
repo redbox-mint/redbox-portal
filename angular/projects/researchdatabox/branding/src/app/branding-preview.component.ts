@@ -1,4 +1,5 @@
 import { Component, ElementRef, Input, OnChanges, SimpleChanges, ViewEncapsulation, AfterViewInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 /**
  * Shadow DOM based branding preview component.
@@ -31,8 +32,13 @@ import { Component, ElementRef, Input, OnChanges, SimpleChanges, ViewEncapsulati
         <div class="container-fluid">
           <div class="row">
             <div class="col-sm-10">
-              <h1 class="site-title">Portal Branding</h1>
-              <p class="site-subtitle">Branding subtitle</p>
+              <div class="logo" *ngIf="logoSrc; else textFallback">
+                <h1><img [src]="logoSrc" alt="Logo" /></h1>
+              </div>
+              <ng-template #textFallback>
+                <h1 class="site-title">Portal Branding</h1>
+                <p class="site-subtitle">Branding subtitle</p>
+              </ng-template>
             </div>
             <div class="col-sm-2"></div>
           </div>
@@ -115,11 +121,13 @@ import { Component, ElementRef, Input, OnChanges, SimpleChanges, ViewEncapsulati
     `.mainmenu-area ul.dropdown-menu li a.dropdown-item, .mainmenu-area ul.dropdown-menu li a.dropdown-item:hover { text-decoration: none !important; }`
   ],
   encapsulation: ViewEncapsulation.ShadowDom,
-  standalone: true
+  standalone: true,
+  imports: [CommonModule]
 })
 export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() baseCssHref?: string | null;
   @Input() cssHref?: string | null;
+  @Input() logoSrc?: string | null;
 
   private baseLinkEl?: HTMLLinkElement;
   private previewLinkEl?: HTMLLinkElement;

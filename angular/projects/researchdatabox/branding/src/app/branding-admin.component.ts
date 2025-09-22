@@ -20,6 +20,7 @@ export class BrandingAdminComponent extends BaseComponent {
   previewUrl?: SafeResourceUrl;
   previewCssUrl?: string;
   previewBaseCssUrl?: string;
+  logoUrl?: string;
 
 
 
@@ -62,21 +63,21 @@ export class BrandingAdminComponent extends BaseComponent {
       help: 'Adjust the appearance of the main menu and dropdowns, including active and inactive states.',
       variables: [
         { key: 'main-menu-branding-background-color', label: 'Main Menu Background', default: '#500005', help: 'Background colour for the main menu bar.' },
-        { key: 'main-menu-inactive-item-color', label: 'Inactive Menu Text', default: '#fff', help: 'Text colour for inactive menu items.' },
+        { key: 'main-menu-inactive-item-color', label: 'Inactive Menu Text', default: '#ffffff', help: 'Text colour for inactive menu items.' },
         { key: 'main-menu-inactive-item-color-hover', label: 'Menu Text Hover', default: '#888', help: 'Text colour for menu items on hover.' },
         { key: 'main-menu-inactive-item-background-color', label: 'Inactive Menu Background', default: '#500005', help: 'Background colour for inactive menu items.' },
-        { key: 'main-menu-inactive-item-background-color-hover', label: 'Menu Background Hover', default: '#fff', help: 'Background colour for menu items on hover.' },
-        { key: 'main-menu-active-item-color', label: 'Active Menu Text', default: '#fff', help: 'Text colour for the active menu item.' },
+        { key: 'main-menu-inactive-item-background-color-hover', label: 'Menu Background Hover', default: '#ffffff', help: 'Background colour for menu items on hover.' },
+        { key: 'main-menu-active-item-color', label: 'Active Menu Text', default: '#ffffff', help: 'Text colour for the active menu item.' },
         { key: 'main-menu-active-item-color-hover', label: 'Active Menu Text Hover', default: '#888', help: 'Text colour for the active menu item on hover.' },
         { key: 'main-menu-active-item-background-color', label: 'Active Menu Background', default: '#b1101a', help: 'Background colour for the active menu item.' },
-        { key: 'main-menu-active-item-background-color-hover', label: 'Active Menu Background Hover', default: '#fff', help: 'Background colour for the active menu item on hover.' },
+        { key: 'main-menu-active-item-background-color-hover', label: 'Active Menu Background Hover', default: '#ffffff', help: 'Background colour for the active menu item on hover.' },
         { key: 'main-menu-inactive-dropdown-item-color', label: 'Dropdown Text', default: '#a9a9a9', help: 'Text colour for dropdown menu items.' },
         { key: 'main-menu-inactive-dropdown-item-color-hover', label: 'Dropdown Text Hover', default: '#888', help: 'Text colour for dropdown menu items on hover.' },
         { key: 'main-menu-inactive-dropdown-item-background-color', label: 'Dropdown Background (Inactive)', default: '#500005', help: 'Background colour for inactive dropdown items.' },
-        { key: 'main-menu-active-dropdown-item-color', label: 'Active Dropdown Text', default: '#fff', help: 'Text colour for active dropdown menu items.' },
+        { key: 'main-menu-active-dropdown-item-color', label: 'Active Dropdown Text', default: '#ffffff', help: 'Text colour for active dropdown menu items.' },
         { key: 'main-menu-active-dropdown-item-color-hover', label: 'Active Dropdown Text Hover', default: '#888', help: 'Text colour for active dropdown items on hover.' },
         { key: 'main-menu-active-dropdown-item-background-color', label: 'Active Dropdown Background', default: '#b1101a', help: 'Background colour for active dropdown menu items.' },
-        { key: 'main-menu-active-dropdown-item-background-color-hover', label: 'Active Dropdown Background Hover', default: '#fff', help: 'Background colour for active dropdown items on hover.' }
+        { key: 'main-menu-active-dropdown-item-background-color-hover', label: 'Active Dropdown Background Hover', default: '#ffffff', help: 'Background colour for active dropdown items on hover.' }
       ]
     },
     {
@@ -84,7 +85,7 @@ export class BrandingAdminComponent extends BaseComponent {
       help: 'Control the colours for body text and backgrounds.',
       variables: [
         { key: 'body-text-color', label: 'Body Text', default: '#333', help: 'Colour for main body text.' },
-        { key: 'body-background-color', label: 'Body Background', default: '#fff', help: 'Background colour for the page body.' }
+        { key: 'body-background-color', label: 'Body Background', default: '#ffffff', help: 'Background colour for the page body.' }
       ]
     },
     {
@@ -101,7 +102,7 @@ export class BrandingAdminComponent extends BaseComponent {
       help: 'Change the background, text, and border colours for panel components.',
       variables: [
         { key: 'panel-branding-background-color', label: 'Panel Background', default: '#b1101a', help: 'Background colour for panel components.' },
-        { key: 'panel-branding-color', label: 'Panel Text', default: '#fff', help: 'Text colour for panel components.' },
+        { key: 'panel-branding-color', label: 'Panel Text', default: '#ffffff', help: 'Text colour for panel components.' },
         { key: 'panel-branding-border-color', label: 'Panel Border', default: '#ddd', help: 'Border colour for panel components.' }
       ]
     },
@@ -110,7 +111,7 @@ export class BrandingAdminComponent extends BaseComponent {
       help: 'Configure the footer background and text colours.',
       variables: [
         { key: 'footer-bottom-area-branding-background-color', label: 'Footer Background', default: '#000', help: 'Background colour for the footer area.' },
-        { key: 'footer-bottom-area-branding-color', label: 'Footer Text', default: '#fff', help: 'Text colour for the footer area.' }
+        { key: 'footer-bottom-area-branding-color', label: 'Footer Text', default: '#ffffff', help: 'Text colour for the footer area.' }
       ]
     },
     {
@@ -173,6 +174,9 @@ export class BrandingAdminComponent extends BaseComponent {
 
   protected async initComponent(): Promise<void> {
     await this.loadConfig();
+    // Set logo URL
+    const base = this.brandingService.getBrandingAndPortalUrl();
+    this.logoUrl = `${base}/images/logo`;
     // mark component ready via BaseComponent's internal flag
     (this as any).isReady = true;
     // Initialize Bootstrap tooltips for all elements with data-bs-toggle="tooltip"
