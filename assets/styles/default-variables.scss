@@ -51,7 +51,9 @@ $logo-link-color-branding: #262626;
 	Used by: default-theme.scss (.mainmenu-area ul.navbar-nav li a.active)
 */
 $main-menu-active-item-color: #fff;
+$main-menu-active-item-color-hover: #888;
 $main-menu-active-item-background-color: #500005;
+$main-menu-active-item-background-color-hover: #700007;
 
 /*
 	Main menu: unfocused (default) items
@@ -68,10 +70,12 @@ $main-menu-inactive-item-background-color:#222;
 */
 $main-menu-inactive-dropdown-item-color: #a9a9a9;
 $main-menu-inactive-dropdown-item-color-hover: #888;
+$main-menu-inactive-dropdown-item-background-color: #500005;
 
 $main-menu-active-dropdown-item-color: #a9a9a9;
 $main-menu-active-dropdown-item-color-hover: #888;
-$main-menu-active-dropdown-item-background-color-hover: #b1101a;
+$main-menu-active-dropdown-item-background-color: #b1101a;
+$main-menu-active-dropdown-item-background-color-hover: #fff;
 
 /*
 	Main menu: selected item focus color
