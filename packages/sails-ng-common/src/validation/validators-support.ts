@@ -1,4 +1,4 @@
-import { FormValidatorConfig, FormValidatorDefinition, FormValidatorFn } from "./form.model";
+import { FormValidatorConfig, FormValidatorDefinition, FormValidatorFn } from ".";
 
 export class ValidatorsSupport {
   /**

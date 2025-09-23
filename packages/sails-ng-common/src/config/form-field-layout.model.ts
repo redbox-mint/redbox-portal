@@ -2,7 +2,7 @@ import {
     BaseFormFieldComponentConfig,
     BaseFormFieldComponentConfigFrame, BaseFormFieldComponentDefinition,
     BaseFormFieldComponentDefinitionFrame
-} from "./form-field-component.model";
+} from ".";
 
 /**
  * The form field layout config interface that provides typing for the object literal and schema.
@@ -40,9 +40,8 @@ export abstract class FormFieldLayoutConfig extends BaseFormFieldComponentConfig
     public helpTextVisibleOnInit?: boolean = false;
     public helpTextVisible?: boolean = false;
 
-    protected constructor(data: FormFieldLayoutConfigFrame) {
+    protected constructor(data?: FormFieldLayoutConfigFrame) {
         super(data);
-        Object.assign(this, data);
     }
 }
 

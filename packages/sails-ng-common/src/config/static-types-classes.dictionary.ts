@@ -3,21 +3,20 @@ import {
     RepeatableMap,
     DefaultLayoutFrames,
     RepeatableFrames,
+    GroupFrames,
+    GroupMap,
+    SaveButtonFrames,
+    SaveButtonMap,
+    TextAreaFrames,
+    TextAreaMap,
 } from "./component";
 import {
-    FormComponentDefinitionFrameKindType,
     FormComponentDefinitionKindType,
-    FormFieldComponentDefinitionFrameKindType,
     FormFieldComponentDefinitionKindType,
-    FormFieldComponentConfigFrameKindType,
     FormFieldComponentConfigKindType,
-    FormFieldModelDefinitionFrameKindType,
     FormFieldModelDefinitionKindType,
-    FormFieldModelConfigFrameKindType,
     FormFieldModelConfigKindType,
-    FormFieldLayoutDefinitionFrameKindType,
     FormFieldLayoutDefinitionKindType,
-    FormFieldLayoutConfigFrameKindType,
     FormFieldLayoutConfigKindType,
     AvailableFormKindTypes,
     FormFieldLayoutConfigKind,
@@ -27,14 +26,14 @@ import {
     FormFieldComponentConfigKind,
     FormFieldComponentDefinitionKind,
     FormComponentDefinitionKind,
-} from "./shared.model";
-import {FormComponentDefinitionFrame} from "./form-component.model";
-import {
+    FormComponentDefinitionFrame,
     FormFieldComponentConfigFrame,
-    FormFieldComponentDefinitionFrame
-} from "./form-field-component.model";
-import {FormFieldModelConfigFrame, FormFieldModelDefinitionFrame} from "./form-field-model.model";
-import {FormFieldLayoutConfigFrame, FormFieldLayoutDefinitionFrame} from "./form-field-layout.model";
+    FormFieldComponentDefinitionFrame,
+    FormFieldModelConfigFrame,
+    FormFieldModelDefinitionFrame,
+    FormFieldLayoutConfigFrame,
+    FormFieldLayoutDefinitionFrame
+} from ".";
 
 /* Ensure all available types, interfaces, and classes are added here. */
 
@@ -44,8 +43,10 @@ import {FormFieldLayoutConfigFrame, FormFieldLayoutDefinitionFrame} from "./form
  */
 export type AvailableFrames =
     DefaultLayoutFrames |
-    RepeatableFrames
-    ;
+    RepeatableFrames |
+    GroupFrames |
+    SaveButtonFrames |
+    TextAreaFrames;
 
 /**
  * The static array of all available classes and the kind of class.
@@ -54,18 +55,31 @@ export type AvailableFrames =
 export const StaticMap = [
     ...DefaultLayoutMap,
     ...RepeatableMap,
+    ...GroupMap,
+    ...SaveButtonMap,
+    ...TextAreaMap,
 ] as const;
 
-/* typescript-only types and interfaces */
-
-
 /*
- * Build various convenience types from the static mapping.
+ * The variables below here are conveniences that provide access to the various groups
+ * of types, interfaces, and classes.
+ * These should update as entries are added above, and should not need to be changed.
  */
 
+/**
+ * A compile-time-only type union of all the available types.
+ */
 export type StaticMapTypes = typeof StaticMap[number];
 
+/**
+ * A compile-time-only type union of all the classes.
+ */
 export type AllAvailableClassNames = Pick<Extract<StaticMapTypes, { class: string }>, 'class'>['class'];
+
+/*
+ * Compile-time-only type unions for the various kinds of classes.
+ * These make it easier to reference the set of types of one kind.
+ */
 
 export type FormComponentDefinitionFrameTypes = Extract<AvailableFrames, FormComponentDefinitionFrame>;
 export type FormComponentDefinitionTypes = Pick<Extract<StaticMapTypes, {
@@ -103,20 +117,24 @@ export type FormFieldLayoutConfigTypes = Pick<Extract<StaticMapTypes, {
     kind: FormFieldLayoutConfigKindType
 }>, 'def'>['def'];
 
-/* aspects available to javascript */
-
-
 /*
- * Build various convenience mapping variables from the static mapping.
+ * Runtime variables containing one of the different kinds of classes.
+ * These make it easier to reference the set of classes of one kind.
  */
 
+/**
+ * Build a js map from the static map containing only the kind of entries.
+ * @param staticMap
+ * @param kind
+ */
 function buildMap(
-    staticMap: StaticMapTypes[],
+    // TODO: fix the typing here - it's a bit tricky to get right
+    staticMap: any,
     kind: AvailableFormKindTypes
 ) {
     return new Map(staticMap
-        .filter(i => i.kind === kind && i.class)
-        .map(i => [i.class, i.def])
+        .filter((i: any) => i.kind === kind && i.class)
+        .map((i: any) => [i.class, i.def])
     );
 }
 

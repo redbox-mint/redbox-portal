@@ -1,5 +1,6 @@
-import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
-import {FormFieldModelConfig, FormFieldModelDefinition} from "../form-field-model.model";
+import {
+    BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition, FormFieldModelConfig, FormFieldModelDefinition
+} from "..";
 import {FormValidatorSummaryErrors} from "../../validation";
 
 

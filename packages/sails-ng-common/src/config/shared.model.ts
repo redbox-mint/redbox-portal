@@ -91,10 +91,7 @@ export type AvailableFormKindTypes = typeof AvailableFormKinds[number];
  */
 export type FormExpressionsConfig = Record<string, { template: string; condition?: any }>;
 
-/**
- * The constraints that must be fulfilled for the form field to be included.
- */
-export class FormConstraintConfig {
+export interface FormConstraintConfigFrame {
     /**
      * The current user must fulfill these authorization constraints.
      * This is only available on the server side.
@@ -105,39 +102,38 @@ export class FormConstraintConfig {
      * This form field is included when the displayed form is in one of these modes.
      * If this is not specified, the form field will be included in all modes.
      */
-    allowModes?: FormModesConfig[]
-
-    /**
-     * Create a new instance from an existing instance to ensure no references are shared.
-     * @param other
-     */
-    public static from(other?: FormConstraintConfig) {
-        const newInstance = new FormConstraintConfig();
-        newInstance.authorization = FormConstraintAuthorizationConfig.from(other?.authorization);
-        newInstance.allowModes = [...other?.allowModes ?? []];
-        return newInstance;
-    }
+    allowModes?: FormModesConfig[];
 }
 
 /**
- * The options available for the authorization constraints.
+ * The constraints that must be fulfilled for the form field to be included.
  */
-export class FormConstraintAuthorizationConfig {
+export class FormConstraintConfig {
+    authorization?: FormConstraintAuthorizationConfig;
+    allowModes?: FormModesConfig[]
+
+    constructor(data?: FormConstraintConfigFrame) {
+        Object.assign(this,data ?? {});
+        this.authorization = new FormConstraintAuthorizationConfig(data?.authorization);
+    }
+}
+
+export interface FormConstraintAuthorizationConfigFrame {
     /**
      * The current user must have at least one of these roles for the form field to be included.
      *
      * e.g. allowRoles: ['Admin', 'Librarians'],
      */
     allowRoles?: string[];
+}
 
-    /**
-     * Create a new instance from an existing instance to ensure no references are shared.
-     * @param other
-     */
-    public static from(other?: FormConstraintAuthorizationConfig) {
-        const newInstance = new FormConstraintAuthorizationConfig();
-        newInstance.allowRoles = [...other?.allowRoles ?? []];
-        return newInstance;
+/**
+ * The options available for the authorization constraints.
+ */
+export class FormConstraintAuthorizationConfig implements FormConstraintAuthorizationConfigFrame {
+    allowRoles?: string[];
+    constructor(data?: FormConstraintAuthorizationConfigFrame) {
+        Object.assign(this, data ?? {});
     }
 }
 

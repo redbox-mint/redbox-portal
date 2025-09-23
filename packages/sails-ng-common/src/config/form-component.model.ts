@@ -1,7 +1,7 @@
-import {BaseFormFieldComponentDefinition, BaseFormFieldComponentDefinitionFrame} from "./form-field-component.model";
-import {FormFieldModelDefinition, FormFieldModelDefinitionFrame} from "./form-field-model.model";
-import {FormFieldLayoutDefinition, FormFieldLayoutDefinitionFrame} from "./form-field-layout.model";
-import {FormExpressionsConfig, FormConstraintConfig} from "./shared.model";
+import {BaseFormFieldComponentDefinition, BaseFormFieldComponentDefinitionFrame,
+FormFieldModelDefinition, FormFieldModelDefinitionFrame,
+FormFieldLayoutDefinition, FormFieldLayoutDefinitionFrame,
+FormExpressionsConfig, FormConstraintConfig} from ".";
 import {FormConfigItemVisitor, Visitee} from "./visitor";
 
 /**
@@ -46,7 +46,10 @@ export interface FormComponentDefinitionFrame {
  */
 export abstract class FormComponentDefinition implements FormComponentDefinitionFrame, Visitee {
     public name: string;
-    public component: BaseFormFieldComponentDefinition;
+    // Using definite assignment assertion operator (!) to say that component does not need to be set in the abstract class constructor.
+    // The component property can't be set here, as BaseFormFieldComponentDefinition is abstract there is no way to work out which class to use.
+    // Subclasses set the component property with a new instance of the proper class.
+    public component!: BaseFormFieldComponentDefinition;
     public model?: FormFieldModelDefinition<unknown>;
     public layout?: FormFieldLayoutDefinition;
     public expressions?: FormExpressionsConfig;
@@ -56,7 +59,7 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     protected constructor(data: FormComponentDefinitionFrame) {
         Object.assign(this, data);
         this.name = data.name;
-        this.component = data.component;
+        this.constraints = new FormConstraintConfig(data.constraints)
     }
 
     abstract accept(visitor: FormConfigItemVisitor): void;

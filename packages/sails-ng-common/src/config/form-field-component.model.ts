@@ -1,5 +1,5 @@
-import {KeyValueStringProperty} from "./shared.model";
-import {FormFieldDefinition, FormFieldDefinitionFrame} from "./form-field.model";
+import {KeyValueStringProperty} from ".";
+import {FormFieldDefinition, FormFieldDefinitionFrame} from ".";
 
 /**
  * The form field component config interface that provides typing for the object literal and schema.
@@ -65,8 +65,8 @@ export abstract class BaseFormFieldComponentConfig implements BaseFormFieldCompo
     public autofocus: boolean = false;
     public tooltip?: string;
 
-    protected constructor(data: BaseFormFieldComponentConfigFrame) {
-        Object.assign(this, data);
+    protected constructor(data?: BaseFormFieldComponentConfigFrame) {
+        Object.assign(this, data ?? {});
     }
 }
 

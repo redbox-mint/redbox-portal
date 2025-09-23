@@ -1,6 +1,8 @@
-import {FormComponentDefinition} from "../form-component.model";
-import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
-import {FormFieldLayoutConfig, FormFieldLayoutDefinition} from "../form-field-layout.model";
+import {
+    FormComponentDefinition,
+    BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition,
+    FormFieldLayoutConfig, FormFieldLayoutDefinition
+} from "..";
 
 export interface TabFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "TabComponent";

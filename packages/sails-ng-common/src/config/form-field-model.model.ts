@@ -1,5 +1,5 @@
 import {FormValidatorConfig} from "../validation";
-import {FormFieldDefinition, FormFieldDefinitionFrame} from "./form-field.model";
+import {FormFieldDefinition, FormFieldDefinitionFrame} from ".";
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.
@@ -45,8 +45,8 @@ export abstract class FormFieldModelConfig<ValueType> implements FormFieldModelC
     value?: ValueType;
     wrapperCssClasses?: string;
 
-    protected constructor(data: FormFieldModelConfigFrame<ValueType>) {
-        Object.assign(this, data);
+    protected constructor(data?: FormFieldModelConfigFrame<ValueType>) {
+        Object.assign(this, data ?? {});
     }
 }
 

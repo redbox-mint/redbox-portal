@@ -1,8 +1,8 @@
-import {KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
+import {KeyValueStringNested, KeyValueStringProperty} from ".";
 import {FormValidatorConfig} from "../validation";
-import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from "./form-component.model";
+import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from ".";
 import {FormConfigItemVisitor, Visitee} from "./visitor";
-import {HasCompilableTemplates, TemplateCompileInput} from "../template.model";
+import {HasCompilableTemplates, TemplateCompileInput} from "..";
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.

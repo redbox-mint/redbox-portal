@@ -1,5 +1,8 @@
-import {FormFieldModelConfig, FormFieldModelDefinition} from "../form-field-model.model";
-import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
+import {
+    FormFieldModelConfig, FormFieldModelDefinition,
+    BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition
+} from "../";
+import { FormConfigItemVisitor } from "../visitor";
 
 /* Simple Inpout Component */
 
@@ -8,9 +11,13 @@ export type SimpleInputModelValueType = string;
 export class SimpleInputComponentConfig extends BaseFormFieldComponentConfig {
     type: "email" | "text" | "tel" | "number" | "password" | "url" = "text";
 }
+
 export class SimpleInputComponentDefinition implements BaseFormFieldComponentDefinition {
     class: "SimpleInputComponent";
     config?: SimpleInputComponentConfig;
+    accept(visitor: FormConfigItemVisitor): void {
+        visitor.visitSimpleInputComponentDefinition(this);
+    }
 }
 
 

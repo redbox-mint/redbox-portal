@@ -1,28 +1,19 @@
 import {
-    BaseFormFieldComponentConfig,
-    BaseFormFieldComponentConfigFrame,
-    BaseFormFieldComponentDefinition, BaseFormFieldComponentDefinitionFrame,
     FormFieldComponentConfig,
-    FormFieldComponentConfigFrame, FormFieldComponentDefinition, FormFieldComponentDefinitionFrame
-} from "../form-field-component.model";
-import {
+    FormFieldComponentConfigFrame, FormFieldComponentDefinition, FormFieldComponentDefinitionFrame,
     FormFieldLayoutConfig,
     FormFieldLayoutConfigFrame,
-    FormFieldLayoutDefinition, FormFieldLayoutDefinitionFrame
-} from "../form-field-layout.model";
-import {
+    FormFieldLayoutDefinition,
     FormFieldModelConfig,
     FormFieldModelConfigFrame,
-    FormFieldModelDefinition, FormFieldModelDefinitionFrame
-} from "../form-field-model.model";
-import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from "../form-component.model";
-import {FormConfigItemVisitor} from "../visitor";
-import {
+    FormFieldModelDefinition, FormFieldModelDefinitionFrame,
+    FormComponentDefinition, FormComponentDefinitionFrame, HasChildren,
     FormComponentDefinitionKind, FormFieldComponentConfigKind,
     FormFieldComponentDefinitionKind, FormFieldLayoutDefinitionKind, FormFieldModelConfigKind,
-    FormFieldModelDefinitionKind,
-} from "../shared.model";
-import {DefaultFormFieldLayoutConfigFrame, DefaultFormFieldLayoutDefinitionFrame} from "./default-layout.model";
+    FormFieldModelDefinitionKind, DefaultFormFieldLayoutDefinitionFrame, DefaultFormFieldLayoutDefinition,
+    FormComponentDefinitionFrameKind,
+} from "..";
+import {FormConfigItemVisitor} from "../visitor";
 
 
 /* Repeatable Component */
@@ -33,7 +24,7 @@ export interface RepeatableFormFieldComponentConfigFrame extends FormFieldCompon
 export class RepeatableFormFieldComponentConfig extends FormFieldComponentConfig implements RepeatableFormFieldComponentConfigFrame {
     elementTemplate?: FormComponentDefinition;
 
-    constructor(data: RepeatableFormFieldComponentConfigFrame) {
+    constructor(data?: RepeatableFormFieldComponentConfigFrame) {
         super(data);
         this.elementTemplate = data?.elementTemplate;
     }
@@ -43,13 +34,14 @@ export interface RepeatableFormFieldComponentDefinitionFrame extends FormFieldCo
 }
 
 export const RepeatableComponentName = `RepeatableComponent` as const;
+
 export class RepeatableFormFieldComponentDefinition extends FormFieldComponentDefinition implements RepeatableFormFieldComponentDefinitionFrame, HasChildren {
     class = RepeatableComponentName;
     config?: RepeatableFormFieldComponentConfig;
 
     constructor(data: RepeatableFormFieldComponentDefinitionFrame) {
         super(data);
-        this.config = new RepeatableFormFieldComponentConfig(data.config ?? {});
+        this.config = new RepeatableFormFieldComponentConfig(data?.config);
     }
 
     get children(): FormComponentDefinition[] {
@@ -70,7 +62,7 @@ export interface RepeatableFormFieldModelConfigFrame extends FormFieldModelConfi
 }
 
 export class RepeatableFormFieldModelConfig extends FormFieldModelConfig<RepeatableModelValueType> {
-    constructor(data: RepeatableFormFieldModelConfigFrame) {
+    constructor(data?: RepeatableFormFieldModelConfigFrame) {
         super(data);
     }
 }
@@ -80,13 +72,14 @@ export interface RepeatableFormFieldModelDefinitionFrame extends FormFieldModelD
 }
 
 export const RepeatableModelName = `RepeatableComponentModel` as const;
+
 export class RepeatableFormFieldModelDefinition extends FormFieldModelDefinition<RepeatableModelValueType> implements RepeatableFormFieldModelDefinitionFrame {
     class = RepeatableModelName;
     config?: RepeatableFormFieldModelConfig;
 
-    constructor(data: RepeatableFormFieldModelDefinitionFrame) {
-        super(data);
-        this.config = new RepeatableFormFieldModelConfig(data?.config ?? {});
+    constructor(data?: RepeatableFormFieldModelDefinitionFrame) {
+        super(data ?? {class:RepeatableModelName});
+        this.config = new RepeatableFormFieldModelConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -96,12 +89,11 @@ export class RepeatableFormFieldModelDefinition extends FormFieldModelDefinition
 
 
 /* Repeatable Element Layout */
-
 export interface RepeatableElementFormFieldLayoutConfigFrame extends FormFieldLayoutConfigFrame {
 }
 
 export class RepeatableElementFormFieldLayoutConfig extends FormFieldLayoutConfig implements RepeatableElementFormFieldLayoutConfigFrame {
-    constructor(data: RepeatableElementFormFieldLayoutConfigFrame) {
+    constructor(data?: RepeatableElementFormFieldLayoutConfigFrame) {
         super(data);
     }
 }
@@ -111,13 +103,14 @@ export interface RepeatableElementFormFieldLayoutDefinitionFrame extends FormFie
 }
 
 export const RepeatableElementLayoutComponentName = `RepeatableElementLayoutComponent` as const;
+
 export class RepeatableElementFormFieldLayoutDefinition extends FormFieldLayoutDefinition implements RepeatableElementFormFieldLayoutDefinitionFrame {
     class = RepeatableElementLayoutComponentName;
     config?: RepeatableElementFormFieldLayoutConfig;
 
     constructor(data: RepeatableElementFormFieldLayoutDefinitionFrame) {
         super(data);
-        this.config = new RepeatableElementFormFieldLayoutConfig(data.config ?? {});
+        this.config = new RepeatableElementFormFieldLayoutConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -126,24 +119,24 @@ export class RepeatableElementFormFieldLayoutDefinition extends FormFieldLayoutD
 }
 
 
-
 /* Repeatable Form Component */
-
 export interface RepeatableFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: RepeatableFormFieldComponentDefinitionFrame;
     model?: RepeatableFormFieldModelDefinitionFrame;
-    layout?: RepeatableFormFieldLayoutDefinitionFrame;
+    layout?: DefaultFormFieldLayoutDefinitionFrame;
 }
 
 export class RepeatableFormComponentDefinition extends FormComponentDefinition {
     public component: RepeatableFormFieldComponentDefinition;
     public model?: RepeatableFormFieldModelDefinition;
-    public layout?: RepeatableFormFieldLayoutDefinition;
+    public layout?: DefaultFormFieldLayoutDefinition;
 
     constructor(data: RepeatableFormComponentDefinitionFrame) {
         super(data);
         this.name = data.name;
-        this.component = data.component;
+        this.component = new RepeatableFormFieldComponentDefinition(data.component);
+        this.model = new RepeatableFormFieldModelDefinition(data.model);
+        this.layout = new DefaultFormFieldLayoutDefinition(data.layout);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -153,11 +146,19 @@ export class RepeatableFormComponentDefinition extends FormComponentDefinition {
 
 export const RepeatableMap = [
     {kind: FormFieldComponentConfigKind, def: RepeatableFormFieldComponentConfig},
-    {kind: FormFieldComponentDefinitionKind, def: RepeatableFormFieldComponentDefinition, class: RepeatableComponentName},
+    {
+        kind: FormFieldComponentDefinitionKind,
+        def: RepeatableFormFieldComponentDefinition,
+        class: RepeatableComponentName
+    },
     {kind: FormFieldModelConfigKind, def: RepeatableFormFieldModelConfig},
-    {kind: FormFieldModelDefinitionKind, def: RepeatableFormFieldModelDefinition, class: RepeatableModelName },
-    {kind: FormFieldModelDefinitionKind, def: RepeatableElementFormFieldLayoutConfig,  },
-    {kind: FormFieldLayoutDefinitionKind, def: RepeatableElementFormFieldLayoutDefinition, class: RepeatableElementLayoutComponentName},
+    {kind: FormFieldModelDefinitionKind, def: RepeatableFormFieldModelDefinition, class: RepeatableModelName},
+    {kind: FormFieldModelDefinitionKind, def: RepeatableElementFormFieldLayoutConfig,},
+    {
+        kind: FormFieldLayoutDefinitionKind,
+        def: RepeatableElementFormFieldLayoutDefinition,
+        class: RepeatableElementLayoutComponentName
+    },
     {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition},
 ];
 export type RepeatableFrames =

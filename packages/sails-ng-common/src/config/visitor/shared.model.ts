@@ -1,5 +1,9 @@
-import {FormConfig} from "../form-config.model";
-
+import {
+    FormConfig,
+    GroupFormComponentDefinition,
+    RepeatableFormComponentDefinition,
+    SaveButtonFormComponentDefinition
+} from "..";
 import {
     ContentFormComponentDefinition,
     ContentFormFieldComponentDefinition,
@@ -9,13 +13,13 @@ import {
     RepeatableElementFormFieldLayoutDefinition,
     RepeatableFormFieldComponentDefinition,
     RepeatableFormFieldModelDefinition,
-    SaveButtonComponentDefinition,
+    SaveButtonFormFieldComponentDefinition,
     SimpleInputComponentDefinition,
     SimpleInputModelDefinition,
     TabComponentFormFieldLayoutDefinition,
     TabContentComponentDefinition,
     TabFormFieldComponentDefinition,
-    TextAreaComponentDefinition,
+    TextAreaFormFieldComponentDefinition,
     TextareaModelDefinition,
     ValidationSummaryFormFieldComponentDefinition,
     ValidationSummaryFormFieldModelDefinition
@@ -33,66 +37,114 @@ export interface Visitee {
  */
 export abstract class FormConfigItemVisitor {
 
-    abstract visitFormConfig(item: FormConfig): void;
+    visitFormConfig(item: FormConfig): void {
+        throw new Error("Method not implemented.");
+    }
 
     /* SimpleInput */
 
-    abstract visitSimpleInputComponentDefinition(item: SimpleInputComponentDefinition): void;
+    visitSimpleInputComponentDefinition(item: SimpleInputComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitSimpleInputModelDefinition(item: SimpleInputModelDefinition): void;
+    visitSimpleInputModelDefinition(item: SimpleInputModelDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /* Content */
 
-    abstract visitContentFormFieldComponentDefinition(item: ContentFormFieldComponentDefinition): void;
+    visitContentFormFieldComponentDefinition(item: ContentFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitContentFormComponentDefinition(item: ContentFormComponentDefinition): void;
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /* Repeatable  */
 
-    abstract visitRepeatableFormFieldComponentDefinition(item: RepeatableFormFieldComponentDefinition): void;
+    visitRepeatableFormFieldComponentDefinition(item: RepeatableFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitRepeatableFormFieldModelDefinition(item: RepeatableFormFieldModelDefinition): void;
+    visitRepeatableFormFieldModelDefinition(item: RepeatableFormFieldModelDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitRepeatableElementFormFieldLayoutDefinition(item: RepeatableElementFormFieldLayoutDefinition): void;
+    visitRepeatableElementFormFieldLayoutDefinition(item: RepeatableElementFormFieldLayoutDefinition): void {
+        throw new Error("Method not implemented.");
+    }
+
+    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /*
      * Validation Summary
      */
-    abstract visitValidationSummaryFormFieldComponentDefinition(item: ValidationSummaryFormFieldComponentDefinition): void;
+    visitValidationSummaryFormFieldComponentDefinition(item: ValidationSummaryFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitValidationSummaryFormFieldModelDefinition(item: ValidationSummaryFormFieldModelDefinition): void;
+    visitValidationSummaryFormFieldModelDefinition(item: ValidationSummaryFormFieldModelDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /*
      * Group
      */
-    abstract visitGroupFormFieldComponentDefinition(item: GroupFormFieldComponentDefinition): void;
+    visitGroupFormFieldComponentDefinition(item: GroupFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitGroupFormFieldModelDefinition(item: GroupFormFieldModelDefinition): void;
+    visitGroupFormFieldModelDefinition(item: GroupFormFieldModelDefinition): void {
+        throw new Error("Method not implemented.");
+    }
+
+    visitGroupFormComponentDefinition(param: GroupFormComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /*
      * Tab
      */
-    abstract visitTabFormFieldComponentDefinition(item: TabFormFieldComponentDefinition): void;
+    visitTabFormFieldComponentDefinition(item: TabFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitTabContentComponentDefinition(item: TabContentComponentDefinition): void;
+    visitTabContentComponentDefinition(item: TabContentComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitTabComponentFormFieldLayoutDefinition(item: TabComponentFormFieldLayoutDefinition): void;
+    visitTabComponentFormFieldLayoutDefinition(item: TabComponentFormFieldLayoutDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /*
      * Save Button
      */
-    abstract visitSaveButtonComponentDefinition(item: SaveButtonComponentDefinition): void;
-
+    visitSaveButtonFormFieldComponentDefinition(item: SaveButtonFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
+    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinition) {
+        throw new Error("Method not implemented.");
+    }
     /*
      * Text Area
      */
-    abstract visitTextAreaComponentDefinition(item: TextAreaComponentDefinition): void;
+    visitTextAreaFormFieldComponentDefinition(item: TextAreaFormFieldComponentDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
-    abstract visitTextareaModelDefinition(item: TextareaModelDefinition): void;
+    visitTextAreaFormFieldModelDefinition(item: TextareaModelDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 
     /*
      * Default Layout
      */
-    abstract visitDefaultFormFieldLayoutDefinition(item: DefaultFormFieldLayoutDefinition): void;
+    visitDefaultFormFieldLayoutDefinition(item: DefaultFormFieldLayoutDefinition): void {
+        throw new Error("Method not implemented.");
+    }
 }
 

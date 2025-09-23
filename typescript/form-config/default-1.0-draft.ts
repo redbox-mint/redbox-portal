@@ -1,6 +1,6 @@
-import {FormConfig} from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 
-const formConfig: FormConfig = {
+const formConfig: FormConfigFrame = {
     name: "default-1.0-draft",
     type: "rdmp",
     debugValue: true,

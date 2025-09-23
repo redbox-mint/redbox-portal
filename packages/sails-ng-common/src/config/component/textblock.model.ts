@@ -1,8 +1,7 @@
-import {TemplateCompileInput} from "../../template.model";
-import {BaseFormFieldComponentConfig, FormFieldComponentDefinition} from "../form-field-component.model";
+import {
+    FormComponentDefinition, BaseFormFieldComponentConfig, FormFieldComponentDefinition
+} from "..";
 import {FormConfigItemVisitor} from "../visitor";
-import {FormComponentDefinition} from "../form-component.model";
-import {RepeatableFormFieldComponentDefinition} from "./repeatable.model";
 
 
 /* Content Component */
