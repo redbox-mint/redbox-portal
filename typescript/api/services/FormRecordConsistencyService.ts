@@ -310,6 +310,7 @@ export module Services {
             const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
             const componentDefinitions = item?.component?.config?.['componentDefinitions'];
             const elementTemplate = item?.component?.config?.['elementTemplate'];
+            // TODO: const tabs
 
             if (elementTemplate !== undefined) {
                 // for each element in the default value array, build the component from any ancestor defaultValues

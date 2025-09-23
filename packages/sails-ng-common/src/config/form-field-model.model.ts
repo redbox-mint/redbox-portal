@@ -1,10 +1,9 @@
-import {FormValidatorConfig} from "../validation";
-import {FormFieldDefinition, FormFieldDefinitionFrame} from ".";
+import {FormValidatorConfig,FieldDefinition, FieldDefinitionFrame} from "..";
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.
  */
-export interface FormFieldModelConfigFrame<ValueType> {
+export interface FieldModelConfigFrame<ValueType> {
     /**
      * TODO: What is this for? And rename to `bindingDisabled` or `disabledBinding`.
      */
@@ -37,7 +36,7 @@ export interface FormFieldModelConfigFrame<ValueType> {
 /**
  * The common form field model config properties.
  */
-export abstract class FormFieldModelConfig<ValueType> implements FormFieldModelConfigFrame<ValueType> {
+export abstract class FieldModelConfig<ValueType> implements FieldModelConfigFrame<ValueType> {
     defaultValue?: ValueType;
     disableFormBinding?: boolean;
     editCssClasses?: string;
@@ -45,7 +44,7 @@ export abstract class FormFieldModelConfig<ValueType> implements FormFieldModelC
     value?: ValueType;
     wrapperCssClasses?: string;
 
-    protected constructor(data?: FormFieldModelConfigFrame<ValueType>) {
+    protected constructor(data?: FieldModelConfigFrame<ValueType>) {
         Object.assign(this, data ?? {});
     }
 }
@@ -53,17 +52,17 @@ export abstract class FormFieldModelConfig<ValueType> implements FormFieldModelC
 /**
  * The form field model definition interface that provides typing for the object literal and schema.
  */
-export interface FormFieldModelDefinitionFrame<ValueType> extends FormFieldDefinitionFrame {
-    config?: FormFieldModelConfig<ValueType>;
+export interface FieldModelDefinitionFrame<ValueType> extends FieldDefinitionFrame {
+    config?: FieldModelConfig<ValueType>;
 }
 
 /**
  * The common form field model definition properties.
  */
-export abstract class FormFieldModelDefinition<ValueType> extends FormFieldDefinition implements FormFieldModelDefinitionFrame<ValueType>  {
-    config?: FormFieldModelConfig<ValueType>;
+export abstract class FieldModelDefinition<ValueType> extends FieldDefinition implements FieldModelDefinitionFrame<ValueType>  {
+    config?: FieldModelConfig<ValueType>;
 
-    protected constructor(data: FormFieldModelDefinitionFrame<ValueType>) {
+    protected constructor(data: FieldModelDefinitionFrame<ValueType>) {
         super(data);
         // The config must be assigned in the subclasses.
         this.config = undefined;

@@ -3,7 +3,6 @@ import {
     FormConfig,
     FormConfigFrame,
     RepeatableFormComponentDefinition,
-    SimpleInputComponentDefinition
 } from "../../src";
 
 
@@ -17,8 +16,8 @@ describe("Construct Visitor ", async () => {
     }[] = [
         {
             // empty
-            args: {},
-            expected: new FormConfig({}),
+            args: {componentDefinitions: []},
+            expected: new FormConfig({componentDefinitions: []}),
         },
         {
             // simple example
@@ -27,7 +26,7 @@ describe("Construct Visitor ", async () => {
                     {
                         name: 'repeatable_group_1',
                         model: {
-                            class: 'RepeatableComponentModel',
+                            class: 'RepeatableModel',
                             config: {
                                 defaultValue: [{ text_3: "hello world from repeating groups" }]
                             }
@@ -39,13 +38,13 @@ describe("Construct Visitor ", async () => {
                                     // first group component
                                     name: 'group_1_component',
                                     model: {
-                                        class: 'GroupFieldModel',
+                                        class: 'GroupModel',
                                         config: {
                                             defaultValue: {},
                                         }
                                     },
                                     component: {
-                                        class: 'GroupFieldComponent',
+                                        class: 'GroupComponent',
                                         config: {
                                             wrapperCssClasses: 'col',
                                             componentDefinitions: [
@@ -75,7 +74,7 @@ describe("Construct Visitor ", async () => {
                                         }
                                     },
                                     layout: {
-                                        class: 'RepeatableElementLayoutComponent',
+                                        class: 'RepeatableElementLayout',
                                         config: {
                                             hostCssClasses: 'row align-items-start'
                                         }
@@ -84,7 +83,7 @@ describe("Construct Visitor ", async () => {
                             },
                         },
                         layout: {
-                            class: 'DefaultLayoutComponent',
+                            class: 'DefaultLayout',
                             config: {
                                 label: 'Repeatable TextField not inside the tab with default wrapper defined',
                                 helpText: 'Repeatable component help text',

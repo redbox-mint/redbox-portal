@@ -1,7 +1,7 @@
 import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
 import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import {FormFieldLayoutDefinition, FormValidatorComponentErrors} from "@researchdatabox/sails-ng-common";
+import {FieldLayoutDefinition, FormValidatorComponentErrors} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 
 /**
@@ -85,7 +85,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent<ValueType>;
-  public override componentDefinition?: FormFieldLayoutDefinition;
+  public override componentDefinition?: FieldLayoutDefinition;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
   // @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;

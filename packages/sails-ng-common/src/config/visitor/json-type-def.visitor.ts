@@ -1,4 +1,4 @@
-import {FormConfigItemVisitor} from ".";
+import {FormConfigItemVisitor} from "../..";
 
 /**
  * Visit each form config class type to build the JSON TypeDef schema that represents the form config.

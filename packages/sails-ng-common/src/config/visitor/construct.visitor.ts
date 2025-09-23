@@ -1,5 +1,4 @@
-import {FormConfigItemVisitor} from ".";
-import {FormConfig, FormConfigFrame} from "..";
+import {FormConfigItemVisitor,FormConfig, FormConfigFrame} from "../..";
 
 
 /**

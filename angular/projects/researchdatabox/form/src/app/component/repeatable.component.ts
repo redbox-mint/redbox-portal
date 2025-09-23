@@ -7,7 +7,7 @@ import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {DefaultLayoutComponent} from "./default-layout.component";
-import {FormFieldComponentDefinition} from "@researchdatabox/sails-ng-common";
+import {FieldComponentDefinition} from "@researchdatabox/sails-ng-common";
 
 /**
  * Repeatable Form Field Component

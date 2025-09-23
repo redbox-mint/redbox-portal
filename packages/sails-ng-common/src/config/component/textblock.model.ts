@@ -1,24 +1,62 @@
 import {
-    FormComponentDefinition, BaseFormFieldComponentConfig, FormFieldComponentDefinition
-} from "..";
-import {FormConfigItemVisitor} from "../visitor";
+    FormComponentDefinition,
+    FieldComponentDefinition,
+    FieldComponentConfigFrame,
+    FieldComponentDefinitionFrame,
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind,
+    FormComponentDefinitionKind,
+    FormComponentDefinitionFrame,
+    DefaultFieldLayoutDefinitionFrame,
+    FieldComponentConfig,
+    FormConfigItemVisitor,
+    HasCompilableTemplates,
+    TemplateCompileInput
+} from "../..";
 
 
 /* Content Component */
 export const ContentComponentName = `ContentComponent` as const;
-export type ContentComponentType = typeof ContentComponentName;
+export type ContentComponentNameType = typeof ContentComponentName;
 
-export class ContentFormFieldComponentDefinition extends FormFieldComponentDefinition {
-    class: ContentComponentType = ContentComponentName;
-    config?: ContentFormFieldComponentConfig;
+export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    /**
+     * The template that can be used for setting content in innerHtml.
+     */
+    template?: string;
+    /**
+     * The template that can be used for setting content in innerHtml.
+     */
+    content?: string;
+}
 
-    constructor(className: ContentComponentType, config?: ContentFormFieldComponentConfig) {
-        super(className, config);
-        this.config = config;
+export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigFrame {
+    template?: string;
+    content?: string;
+
+    constructor(data?: ContentFieldComponentConfigFrame) {
+        super(data);
+    }
+}
+
+
+export interface ContentFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
+    class: ContentComponentNameType;
+    config?: ContentFieldComponentConfigFrame
+}
+
+
+export class ContentFieldComponentDefinition extends FieldComponentDefinition implements ContentFieldComponentDefinitionFrame, HasCompilableTemplates {
+    class = ContentComponentName;
+    config?: ContentFieldComponentConfig;
+
+    constructor(data: ContentFieldComponentDefinitionFrame) {
+        super(data);
+        this.config = new ContentFieldComponentConfig(data.config);
     }
 
     accept(visitor: FormConfigItemVisitor) {
-        visitor.visitContentFormFieldComponentDefinition(this);
+        visitor.visitContentFieldComponentDefinition(this);
     }
 
     // get getTemplateInfo(): TemplateCompileInput[] {
@@ -29,26 +67,40 @@ export class ContentFormFieldComponentDefinition extends FormFieldComponentDefin
     //         return [];
     //     }
     // }
+    get templates(): TemplateCompileInput[] {
+        throw new Error("Method not implemented.");
+    }
 }
 
-export class ContentFormFieldComponentConfig extends BaseFormFieldComponentConfig {
-
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    public template?: string = '';
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    public content?: string = '';
-}
 
 /* Content Form Component */
+export interface ContentFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
+    component: ContentFieldComponentDefinitionFrame;
+    layout?: DefaultFieldLayoutDefinitionFrame;
+}
+
 export class ContentFormComponentDefinition extends FormComponentDefinition {
-    constructor(name: string, component: ContentFormFieldComponentDefinition) {
-        super(name, component);
+
+    constructor(data: ContentFormComponentDefinitionFrame) {
+        super(data);
     }
+
     accept(visitor: FormConfigItemVisitor) {
         visitor.visitContentFormComponentDefinition(this);
     }
 }
+
+export const ContentMap = [
+    {kind: FieldComponentConfigKind, def: ContentFieldComponentConfig},
+    {
+        kind: FieldComponentDefinitionKind,
+        def: ContentFieldComponentDefinition,
+        class: ContentComponentName
+    },
+    {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition},
+];
+export type ContentFrames =
+    ContentFieldComponentConfigFrame |
+    ContentFieldComponentDefinitionFrame |
+    ContentFormComponentDefinitionFrame;
+

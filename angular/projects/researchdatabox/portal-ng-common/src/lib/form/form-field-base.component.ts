@@ -5,19 +5,19 @@ import { LoggerService } from '../logger.service';
 import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {
-  BaseFormFieldComponentConfig, FormFieldLayoutConfig,
+  BaseFieldComponentConfig, FieldLayoutConfig,
   FormExpressionsConfig,
   FormComponentDefinition,
-  FormFieldComponentConfig,
-  FormFieldComponentDefinition,
+  FieldComponentConfig,
+  FieldComponentDefinition,
   FormFieldComponentStatus,
-  FormFieldLayoutConfig,
-  FormFieldLayoutDefinition
+  FieldLayoutConfig,
+  FieldLayoutDefinition
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
-export type FormFieldComponentOrLayoutDefinition = FormFieldComponentDefinition | FormFieldLayoutDefinition;
-export type FormFieldComponentOrLayoutConfig = FormFieldComponentConfig | FormFieldLayoutConfig;
+export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinition | FieldLayoutDefinition;
+export type FormFieldComponentOrLayoutConfig = FieldComponentConfig | FieldLayoutConfig;
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -33,7 +33,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public className:string = '';
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
-  public componentDefinitionCache?: FormFieldComponentConfig;
+  public componentDefinitionCache?: FieldComponentConfig;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
   // public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   public hostBindingCssClasses?: string;
@@ -283,9 +283,9 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       if(isInit) {
         //normalise componentDefinition that is used to track property changes given these may not be present
         // Determine whether componentDefinition.config is a layout or a component.
-        let initDef = (this.componentDefinition.config instanceof FormFieldLayoutConfig)
-          ? new FormFieldLayoutConfig()
-          : new BaseFormFieldComponentConfig();
+        let initDef = (this.componentDefinition.config instanceof FieldLayoutConfig)
+          ? new FieldLayoutConfig()
+          : new BaseFieldComponentConfig();
         let initMap:Map<string, any> = this.buildPropertyMap(initDef);
         for (const key of initMap.keys()) {
           _set(this.componentDefinition.config,key,_get(this.componentDefinition.config,key,initMap.get(key)));

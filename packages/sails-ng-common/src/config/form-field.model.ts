@@ -1,10 +1,10 @@
-import {FormConfigItemVisitor, Visitee} from "./visitor";
+import {FormConfigItemVisitor, Visitee} from "..";
 
 
 /**
  * The form field definition interface that provides typing for the object literal and schema.
  */
-export interface FormFieldDefinitionFrame {
+export interface FieldDefinitionFrame {
     /**
      * The class name as a string.
      *
@@ -24,11 +24,11 @@ export interface FormFieldDefinitionFrame {
  *
  * This is the basic structure used by component, model, and layout definitions.
  */
-export abstract class FormFieldDefinition implements FormFieldDefinitionFrame, Visitee {
+export abstract class FieldDefinition implements FieldDefinitionFrame, Visitee {
     class: string;
     config?: object;
 
-    protected constructor(data: FormFieldDefinitionFrame) {
+    protected constructor(data: FieldDefinitionFrame) {
         Object.assign(this, data);
         // Typescript can't yet use Object.assign to know that a property has been assigned in the constructor.
         this.class = data.class;

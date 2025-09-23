@@ -1,8 +1,12 @@
-import {KeyValueStringNested, KeyValueStringProperty} from ".";
-import {FormValidatorConfig} from "../validation";
-import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from ".";
-import {FormConfigItemVisitor, Visitee} from "./visitor";
-import {HasCompilableTemplates, TemplateCompileInput} from "..";
+import {
+    AllFormComponentDefinitionFrames,
+    KeyValueStringNested,
+    KeyValueStringProperty,
+    FormValidatorConfig,
+    FormComponentDefinition, HasChildren,
+    FormConfigItemVisitor, Visitee,
+    HasCompilableTemplates, TemplateCompileInput, AvailableFormComponentDefinitions
+} from "..";
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
@@ -71,7 +75,7 @@ export interface FormConfigFrame {
     /**
      * the components of this form
      */
-    componentDefinitions?: FormComponentDefinitionFrame[];
+    componentDefinitions: AllFormComponentDefinitionFrames[];
     /**
      * debug: show the form JSON
      * Default false.
@@ -93,7 +97,7 @@ export class FormConfig implements FormConfigFrame, HasChildren, HasCompilableTe
     public defaultLayoutComponent?: string;
     public skipValidationOnSave: boolean = false;
     public validators: FormValidatorConfig[] = [];
-    public componentDefinitions: FormComponentDefinition[] = [];
+    public componentDefinitions: AvailableFormComponentDefinitions[] = [];
     public debugValue: boolean = false;
 
     constructor(data: FormConfigFrame) {

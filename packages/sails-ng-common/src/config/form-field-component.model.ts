@@ -1,10 +1,9 @@
-import {KeyValueStringProperty} from ".";
-import {FormFieldDefinition, FormFieldDefinitionFrame} from ".";
+import {KeyValueStringProperty, FieldDefinition, FieldDefinitionFrame} from "..";
 
 /**
  * The form field component config interface that provides typing for the object literal and schema.
  */
-export interface BaseFormFieldComponentConfigFrame {
+export interface BaseFieldComponentConfigFrame {
     /**
      * Whether the component is read-only or not.
      */
@@ -47,13 +46,10 @@ export interface BaseFormFieldComponentConfigFrame {
     tooltip?: string;
 }
 
-export interface FormFieldComponentConfigFrame extends BaseFormFieldComponentConfigFrame {
-}
-
 /**
  * The common form field component config properties.
  */
-export abstract class BaseFormFieldComponentConfig implements BaseFormFieldComponentConfigFrame {
+export abstract class BaseFieldComponentConfig implements BaseFieldComponentConfigFrame {
     public readonly: boolean = false;
     public visible: boolean = true;
     public editMode: boolean = true;
@@ -65,36 +61,40 @@ export abstract class BaseFormFieldComponentConfig implements BaseFormFieldCompo
     public autofocus: boolean = false;
     public tooltip?: string;
 
-    protected constructor(data?: BaseFormFieldComponentConfigFrame) {
+    protected constructor(data?: BaseFieldComponentConfigFrame) {
         Object.assign(this, data ?? {});
     }
 }
 
-export abstract class FormFieldComponentConfig extends BaseFormFieldComponentConfig {
+export interface FieldComponentConfigFrame extends BaseFieldComponentConfigFrame {
+}
+
+export abstract class FieldComponentConfig extends BaseFieldComponentConfig implements FieldComponentConfigFrame {
 }
 
 /**
  * The form field component definition interface that provides typing for the object literal and schema.
  */
-export interface BaseFormFieldComponentDefinitionFrame extends FormFieldDefinitionFrame {
-    config?: BaseFormFieldComponentConfigFrame;
+export interface BaseFieldComponentDefinitionFrame extends FieldDefinitionFrame {
+    config?: BaseFieldComponentConfigFrame;
 }
 
-export interface FormFieldComponentDefinitionFrame extends BaseFormFieldComponentDefinitionFrame {
-}
 
 /**
  * The common form field component definition properties.
  */
-export abstract class BaseFormFieldComponentDefinition extends FormFieldDefinition implements BaseFormFieldComponentDefinitionFrame {
-    config?: BaseFormFieldComponentConfig;
+export abstract class BaseFieldComponentDefinition extends FieldDefinition implements BaseFieldComponentDefinitionFrame {
+    config?: BaseFieldComponentConfig;
 
-    protected constructor(data: BaseFormFieldComponentDefinitionFrame) {
+    protected constructor(data: BaseFieldComponentDefinitionFrame) {
         super(data);
         // The config must be assigned in the subclasses.
         this.config = undefined;
     }
 }
 
-export abstract class FormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
+export interface FieldComponentDefinitionFrame extends BaseFieldComponentDefinitionFrame {
+}
+
+export abstract class FieldComponentDefinition extends BaseFieldComponentDefinition implements FieldComponentDefinitionFrame {
 }

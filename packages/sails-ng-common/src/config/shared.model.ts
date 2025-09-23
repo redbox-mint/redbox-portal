@@ -21,57 +21,57 @@ export type FormComponentDefinitionKindType = typeof FormComponentDefinitionKind
 
 /* Form Field Component */
 
-export const FormFieldComponentDefinitionFrameKind = "FormFieldComponentDefinitionFrameKind" as const;
-export type FormFieldComponentDefinitionFrameKindType = typeof FormFieldComponentDefinitionFrameKind;
-export const FormFieldComponentDefinitionKind = "FormFieldComponentDefinitionKind" as const;
-export type FormFieldComponentDefinitionKindType = typeof FormFieldComponentDefinitionKind;
+export const FieldComponentDefinitionFrameKind = "FieldComponentDefinitionFrameKind" as const;
+export type FieldComponentDefinitionFrameKindType = typeof FieldComponentDefinitionFrameKind;
+export const FieldComponentDefinitionKind = "FieldComponentDefinitionKind" as const;
+export type FieldComponentDefinitionKindType = typeof FieldComponentDefinitionKind;
 
-export const FormFieldComponentConfigFrameKind = "FormFieldComponentConfigFrameKind" as const;
-export type FormFieldComponentConfigFrameKindType = typeof FormFieldComponentConfigFrameKind;
-export const FormFieldComponentConfigKind = "FormFieldComponentConfigKind" as const;
-export type FormFieldComponentConfigKindType = typeof FormFieldComponentConfigKind;
+export const FieldComponentConfigFrameKind = "FieldComponentConfigFrameKind" as const;
+export type FieldComponentConfigFrameKindType = typeof FieldComponentConfigFrameKind;
+export const FieldComponentConfigKind = "FieldComponentConfigKind" as const;
+export type FieldComponentConfigKindType = typeof FieldComponentConfigKind;
 
 /* Form Field Model */
 
-export const FormFieldModelDefinitionFrameKind = "FormFieldModelDefinitionFrameKind" as const;
-export type FormFieldModelDefinitionFrameKindType = typeof FormFieldModelDefinitionFrameKind;
-export const FormFieldModelDefinitionKind = "FormFieldModelDefinitionKind" as const;
-export type FormFieldModelDefinitionKindType = typeof FormFieldModelDefinitionKind;
+export const FieldModelDefinitionFrameKind = "FieldModelDefinitionFrameKind" as const;
+export type FieldModelDefinitionFrameKindType = typeof FieldModelDefinitionFrameKind;
+export const FieldModelDefinitionKind = "FieldModelDefinitionKind" as const;
+export type FieldModelDefinitionKindType = typeof FieldModelDefinitionKind;
 
-export const FormFieldModelConfigFrameKind = "FormFieldModelConfigFrameKind" as const;
-export type FormFieldModelConfigFrameKindType = typeof FormFieldModelConfigFrameKind;
-export const FormFieldModelConfigKind = "FormFieldModelConfigKind" as const;
-export type FormFieldModelConfigKindType = typeof FormFieldModelConfigKind;
+export const FieldModelConfigFrameKind = "FieldModelConfigFrameKind" as const;
+export type FieldModelConfigFrameKindType = typeof FieldModelConfigFrameKind;
+export const FieldModelConfigKind = "FieldModelConfigKind" as const;
+export type FieldModelConfigKindType = typeof FieldModelConfigKind;
 
 /* Form Field Layout */
 
-export const FormFieldLayoutDefinitionFrameKind = "FormFieldLayoutDefinitionFrameKind" as const;
-export type FormFieldLayoutDefinitionFrameKindType = typeof FormFieldLayoutDefinitionFrameKind;
-export const FormFieldLayoutDefinitionKind = "FormFieldLayoutDefinitionKind" as const;
-export type FormFieldLayoutDefinitionKindType = typeof FormFieldLayoutDefinitionKind;
+export const FieldLayoutDefinitionFrameKind = "FieldLayoutDefinitionFrameKind" as const;
+export type FieldLayoutDefinitionFrameKindType = typeof FieldLayoutDefinitionFrameKind;
+export const FieldLayoutDefinitionKind = "FieldLayoutDefinitionKind" as const;
+export type FieldLayoutDefinitionKindType = typeof FieldLayoutDefinitionKind;
 
-export const FormFieldLayoutConfigFrameKind = "FormFieldLayoutConfigFrameKind" as const;
-export type FormFieldLayoutConfigFrameKindType = typeof FormFieldLayoutConfigFrameKind;
-export const FormFieldLayoutConfigKind = "FormFieldLayoutConfigKind" as const;
-export type FormFieldLayoutConfigKindType = typeof FormFieldLayoutConfigKind;
+export const FieldLayoutConfigFrameKind = "FieldLayoutConfigFrameKind" as const;
+export type FieldLayoutConfigFrameKindType = typeof FieldLayoutConfigFrameKind;
+export const FieldLayoutConfigKind = "FieldLayoutConfigKind" as const;
+export type FieldLayoutConfigKindType = typeof FieldLayoutConfigKind;
 
 /* All Form Kinds and Types */
 
 export const AvailableFormKinds = [
     FormComponentDefinitionFrameKind,
     FormComponentDefinitionKind,
-    FormFieldComponentDefinitionFrameKind,
-    FormFieldComponentDefinitionKind,
-    FormFieldComponentConfigFrameKind,
-    FormFieldComponentConfigKind,
-    FormFieldModelDefinitionFrameKind,
-    FormFieldModelDefinitionKind,
-    FormFieldModelConfigFrameKind,
-    FormFieldModelConfigKind,
-    FormFieldLayoutDefinitionFrameKind,
-    FormFieldLayoutDefinitionKind,
-    FormFieldLayoutConfigFrameKind,
-    FormFieldLayoutConfigKind,
+    FieldComponentDefinitionFrameKind,
+    FieldComponentDefinitionKind,
+    FieldComponentConfigFrameKind,
+    FieldComponentConfigKind,
+    FieldModelDefinitionFrameKind,
+    FieldModelDefinitionKind,
+    FieldModelConfigFrameKind,
+    FieldModelConfigKind,
+    FieldLayoutDefinitionFrameKind,
+    FieldLayoutDefinitionKind,
+    FieldLayoutConfigFrameKind,
+    FieldLayoutConfigKind,
     ] as const;
 export type AvailableFormKindTypes = typeof AvailableFormKinds[number];
 
@@ -89,7 +89,19 @@ export type AvailableFormKindTypes = typeof AvailableFormKinds[number];
 /**
  * The expressions for a component.
  */
-export type FormExpressionsConfig = Record<string, { template: string; condition?: any }>;
+export interface FormExpressionsConfigFrame{
+    template: string;
+    condition?: any;
+}
+
+export class FormExpressionsConfig implements FormExpressionsConfigFrame {
+    template: string;
+    condition?: any;
+    constructor(data?: FormExpressionsConfigFrame) {
+        Object.assign(this,data ?? {});
+        this.template = data?.template ?? "";
+    }
+}
 
 export interface FormConstraintConfigFrame {
     /**

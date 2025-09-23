@@ -1,47 +1,52 @@
 import {
-    FormFieldComponentConfig,
-    FormFieldComponentConfigFrame, FormFieldComponentDefinition, FormFieldComponentDefinitionFrame,
-    FormFieldLayoutConfig,
-    FormFieldLayoutConfigFrame,
-    FormFieldLayoutDefinition,
-    FormFieldModelConfig,
-    FormFieldModelConfigFrame,
-    FormFieldModelDefinition, FormFieldModelDefinitionFrame,
+    FieldComponentConfig,
+    FieldComponentConfigFrame, FieldComponentDefinition, FieldComponentDefinitionFrame,
+    FieldLayoutConfig,
+    FieldLayoutConfigFrame,
+    FieldLayoutDefinition,
+    FieldModelConfig,
+    FieldModelConfigFrame,
+    FieldModelDefinition, FieldModelDefinitionFrame,
     FormComponentDefinition, FormComponentDefinitionFrame, HasChildren,
-    FormComponentDefinitionKind, FormFieldComponentConfigKind,
-    FormFieldComponentDefinitionKind, FormFieldLayoutDefinitionKind, FormFieldModelConfigKind,
-    FormFieldModelDefinitionKind, DefaultFormFieldLayoutDefinitionFrame, DefaultFormFieldLayoutDefinition,
-    FormComponentDefinitionFrameKind,
-} from "..";
-import {FormConfigItemVisitor} from "../visitor";
+    FormComponentDefinitionKind, FieldComponentConfigKind,
+    FieldComponentDefinitionKind, FieldLayoutDefinitionKind, FieldModelConfigKind,
+    FieldModelDefinitionKind, DefaultFieldLayoutDefinitionFrame, DefaultFieldLayoutDefinition,
+    FieldLayoutConfigKind,
+FormConfigItemVisitor
+} from "../..";
+import {AvailableFormComponentDefinitionFrames} from "../..";
+import {AvailableFormComponentDefinitions} from "../..";
 
 
 /* Repeatable Component */
-export interface RepeatableFormFieldComponentConfigFrame extends FormFieldComponentConfigFrame {
-    elementTemplate?: FormComponentDefinition;
+export const RepeatableComponentName = `RepeatableComponent` as const;
+export type RepeatableComponentNameType = typeof RepeatableComponentName;
+export interface RepeatableFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    elementTemplate?: AvailableFormComponentDefinitionFrames;
 }
 
-export class RepeatableFormFieldComponentConfig extends FormFieldComponentConfig implements RepeatableFormFieldComponentConfigFrame {
-    elementTemplate?: FormComponentDefinition;
+export class RepeatableFieldComponentConfig extends FieldComponentConfig implements RepeatableFieldComponentConfigFrame {
+    elementTemplate?: AvailableFormComponentDefinitions;
 
-    constructor(data?: RepeatableFormFieldComponentConfigFrame) {
+    constructor(data?: RepeatableFieldComponentConfigFrame, elementTemplate?: AvailableFormComponentDefinitions) {
         super(data);
-        this.elementTemplate = data?.elementTemplate;
+        this.elementTemplate = elementTemplate;
     }
 }
 
-export interface RepeatableFormFieldComponentDefinitionFrame extends FormFieldComponentDefinitionFrame {
+export interface RepeatableFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
+    class: RepeatableComponentNameType;
+    config?: RepeatableFieldComponentConfigFrame
 }
 
-export const RepeatableComponentName = `RepeatableComponent` as const;
 
-export class RepeatableFormFieldComponentDefinition extends FormFieldComponentDefinition implements RepeatableFormFieldComponentDefinitionFrame, HasChildren {
+export class RepeatableFieldComponentDefinition extends FieldComponentDefinition implements RepeatableFieldComponentDefinitionFrame, HasChildren {
     class = RepeatableComponentName;
-    config?: RepeatableFormFieldComponentConfig;
+    config?: RepeatableFieldComponentConfig;
 
-    constructor(data: RepeatableFormFieldComponentDefinitionFrame) {
+    constructor(data: RepeatableFieldComponentDefinitionFrame) {
         super(data);
-        this.config = new RepeatableFormFieldComponentConfig(data?.config);
+        this.config = new RepeatableFieldComponentConfig(data?.config);
     }
 
     get children(): FormComponentDefinition[] {
@@ -49,94 +54,100 @@ export class RepeatableFormFieldComponentDefinition extends FormFieldComponentDe
     }
 
     accept(visitor: FormConfigItemVisitor) {
-        visitor.visitRepeatableFormFieldComponentDefinition(this);
+        visitor.visitRepeatableFieldComponentDefinition(this);
     }
 }
 
 
 /* Repeatable Model */
+export const RepeatableModelName = `RepeatableModel` as const;
+export type RepeatableModelNameType = typeof RepeatableModelName;
 export type RepeatableModelValueType = unknown[];
 
-export interface RepeatableFormFieldModelConfigFrame extends FormFieldModelConfigFrame<RepeatableModelValueType> {
+export interface RepeatableFieldModelConfigFrame extends FieldModelConfigFrame<RepeatableModelValueType> {
     // TODO: Migrate JSON configurable properties from `RepeatableContainer`
 }
 
-export class RepeatableFormFieldModelConfig extends FormFieldModelConfig<RepeatableModelValueType> {
-    constructor(data?: RepeatableFormFieldModelConfigFrame) {
+export class RepeatableFieldModelConfig extends FieldModelConfig<RepeatableModelValueType> {
+    constructor(data?: RepeatableFieldModelConfigFrame) {
         super(data);
     }
 }
 
-export interface RepeatableFormFieldModelDefinitionFrame extends FormFieldModelDefinitionFrame<RepeatableModelValueType> {
+export interface RepeatableFieldModelDefinitionFrame extends FieldModelDefinitionFrame<RepeatableModelValueType> {
+    class: RepeatableModelNameType;
+    config?: RepeatableFieldModelConfigFrame
     // TODO: Migrate properties from `RepeatableContainer`
 }
 
-export const RepeatableModelName = `RepeatableComponentModel` as const;
 
-export class RepeatableFormFieldModelDefinition extends FormFieldModelDefinition<RepeatableModelValueType> implements RepeatableFormFieldModelDefinitionFrame {
+
+export class RepeatableFieldModelDefinition extends FieldModelDefinition<RepeatableModelValueType> implements RepeatableFieldModelDefinitionFrame {
     class = RepeatableModelName;
-    config?: RepeatableFormFieldModelConfig;
+    config?: RepeatableFieldModelConfig;
 
-    constructor(data?: RepeatableFormFieldModelDefinitionFrame) {
-        super(data ?? {class:RepeatableModelName});
-        this.config = new RepeatableFormFieldModelConfig(data?.config);
+    constructor(data?: RepeatableFieldModelDefinitionFrame) {
+        super(data ?? {class: RepeatableModelName});
+        this.config = new RepeatableFieldModelConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor) {
-        visitor.visitRepeatableFormFieldModelDefinition(this);
+        visitor.visitRepeatableFieldModelDefinition(this);
     }
 }
 
 
 /* Repeatable Element Layout */
-export interface RepeatableElementFormFieldLayoutConfigFrame extends FormFieldLayoutConfigFrame {
+export const RepeatableElementLayoutName = `RepeatableElementLayout` as const;
+export type RepeatableElementLayoutNameType = typeof RepeatableElementLayoutName;
+export interface RepeatableElementFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
 }
 
-export class RepeatableElementFormFieldLayoutConfig extends FormFieldLayoutConfig implements RepeatableElementFormFieldLayoutConfigFrame {
-    constructor(data?: RepeatableElementFormFieldLayoutConfigFrame) {
+export class RepeatableElementFieldLayoutConfig extends FieldLayoutConfig implements RepeatableElementFieldLayoutConfigFrame {
+    constructor(data?: RepeatableElementFieldLayoutConfigFrame) {
         super(data);
     }
 }
 
-export interface RepeatableElementFormFieldLayoutDefinitionFrame extends FormFieldLayoutDefinition {
-
+export interface RepeatableElementFieldLayoutDefinitionFrame extends FieldLayoutDefinition {
+    class: RepeatableElementLayoutNameType;
+    config?: RepeatableElementFieldLayoutConfig;
 }
 
-export const RepeatableElementLayoutComponentName = `RepeatableElementLayoutComponent` as const;
 
-export class RepeatableElementFormFieldLayoutDefinition extends FormFieldLayoutDefinition implements RepeatableElementFormFieldLayoutDefinitionFrame {
-    class = RepeatableElementLayoutComponentName;
-    config?: RepeatableElementFormFieldLayoutConfig;
+export class RepeatableElementFieldLayoutDefinition extends FieldLayoutDefinition implements RepeatableElementFieldLayoutDefinitionFrame {
+    class = RepeatableElementLayoutName;
+    config?: RepeatableElementFieldLayoutConfig;
 
-    constructor(data: RepeatableElementFormFieldLayoutDefinitionFrame) {
+    constructor(data: RepeatableElementFieldLayoutDefinitionFrame) {
         super(data);
-        this.config = new RepeatableElementFormFieldLayoutConfig(data?.config);
+        this.config = new RepeatableElementFieldLayoutConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor) {
-        visitor.visitRepeatableElementFormFieldLayoutDefinition(this);
+        visitor.visitRepeatableElementFieldLayoutDefinition(this);
     }
 }
 
 
 /* Repeatable Form Component */
 export interface RepeatableFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: RepeatableFormFieldComponentDefinitionFrame;
-    model?: RepeatableFormFieldModelDefinitionFrame;
-    layout?: DefaultFormFieldLayoutDefinitionFrame;
+    component: RepeatableFieldComponentDefinitionFrame;
+    model?: RepeatableFieldModelDefinitionFrame;
+    layout?: DefaultFieldLayoutDefinitionFrame;
 }
 
 export class RepeatableFormComponentDefinition extends FormComponentDefinition {
-    public component: RepeatableFormFieldComponentDefinition;
-    public model?: RepeatableFormFieldModelDefinition;
-    public layout?: DefaultFormFieldLayoutDefinition;
+    public component: RepeatableFieldComponentDefinition;
+    public model?: RepeatableFieldModelDefinition;
+    public layout?: DefaultFieldLayoutDefinition;
 
     constructor(data: RepeatableFormComponentDefinitionFrame) {
         super(data);
         this.name = data.name;
-        this.component = new RepeatableFormFieldComponentDefinition(data.component);
-        this.model = new RepeatableFormFieldModelDefinition(data.model);
-        this.layout = new DefaultFormFieldLayoutDefinition(data.layout);
+        this.component = new RepeatableFieldComponentDefinition(data.component);
+        this.model = new RepeatableFieldModelDefinition(data.model);
+        this.layout = new DefaultFieldLayoutDefinition(data.layout);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -145,27 +156,19 @@ export class RepeatableFormComponentDefinition extends FormComponentDefinition {
 }
 
 export const RepeatableMap = [
-    {kind: FormFieldComponentConfigKind, def: RepeatableFormFieldComponentConfig},
-    {
-        kind: FormFieldComponentDefinitionKind,
-        def: RepeatableFormFieldComponentDefinition,
-        class: RepeatableComponentName
-    },
-    {kind: FormFieldModelConfigKind, def: RepeatableFormFieldModelConfig},
-    {kind: FormFieldModelDefinitionKind, def: RepeatableFormFieldModelDefinition, class: RepeatableModelName},
-    {kind: FormFieldModelDefinitionKind, def: RepeatableElementFormFieldLayoutConfig,},
-    {
-        kind: FormFieldLayoutDefinitionKind,
-        def: RepeatableElementFormFieldLayoutDefinition,
-        class: RepeatableElementLayoutComponentName
-    },
+    {kind: FieldComponentConfigKind, def: RepeatableFieldComponentConfig},
+    {kind: FieldComponentDefinitionKind, def: RepeatableFieldComponentDefinition, class: RepeatableComponentName},
+    {kind: FieldModelConfigKind, def: RepeatableFieldModelConfig},
+    {kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName},
+    {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig,},
+    {kind: FieldLayoutDefinitionKind,def: RepeatableElementFieldLayoutDefinition,class: RepeatableElementLayoutName},
     {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition},
 ];
 export type RepeatableFrames =
-    RepeatableFormFieldComponentConfigFrame |
-    RepeatableFormFieldComponentDefinitionFrame |
-    RepeatableFormFieldModelConfigFrame |
-    RepeatableFormFieldModelDefinitionFrame |
-    RepeatableElementFormFieldLayoutConfigFrame |
-    RepeatableElementFormFieldLayoutDefinitionFrame |
+    RepeatableFieldComponentConfigFrame |
+    RepeatableFieldComponentDefinitionFrame |
+    RepeatableFieldModelConfigFrame |
+    RepeatableFieldModelDefinitionFrame |
+    RepeatableElementFieldLayoutConfigFrame |
+    RepeatableElementFieldLayoutDefinitionFrame |
     RepeatableFormComponentDefinitionFrame;

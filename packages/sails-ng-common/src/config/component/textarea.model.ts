@@ -1,89 +1,96 @@
 import {
-    FormFieldModelConfig, FormFieldModelDefinition, FormFieldComponentConfigFrame, FormFieldComponentConfig,
-    FormFieldComponentDefinitionFrame, FormFieldComponentDefinition, FormFieldModelDefinitionFrame,
-    FormFieldModelConfigFrame, FormFieldComponentConfigKind, FormFieldComponentDefinitionKind,
-} from "..";
-import {FormConfigItemVisitor} from "../visitor";
+    FieldModelConfig, FieldModelDefinition, FieldComponentConfigFrame, FieldComponentConfig,
+    FieldComponentDefinitionFrame, FieldComponentDefinition, FieldModelDefinitionFrame,
+    FieldModelConfigFrame, FieldComponentConfigKind, FieldComponentDefinitionKind,
+FormConfigItemVisitor
+} from "../..";
 
 /* Text Area Component */
-export interface TextAreaFormFieldComponentConfigFrame extends FormFieldComponentConfigFrame {
+export const TextAreaComponentName = "TextAreaComponent" as const;
+export type TextAreaComponentNameType = typeof TextAreaComponentName;
+export interface TextAreaFieldComponentConfigFrame extends FieldComponentConfigFrame {
     rows: number;
     cols: number;
     placeholder?: string;
 }
 
-export class TextAreaFormFieldComponentConfig extends FormFieldComponentConfig implements TextAreaFormFieldComponentConfigFrame {
+export class TextAreaFieldComponentConfig extends FieldComponentConfig implements TextAreaFieldComponentConfigFrame {
     public rows: number = 2;
     public cols: number = 20;
     public placeholder?: string = '';
 
-    constructor(data?: TextAreaFormFieldComponentConfigFrame) {
+    constructor(data?: TextAreaFieldComponentConfigFrame) {
         super(data);
     }
 }
 
-export interface TextAreaFormFieldComponentDefinitionFrame extends FormFieldComponentDefinitionFrame {
-    config?: TextAreaFormFieldComponentConfigFrame
+export interface TextAreaFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
+    class: TextAreaComponentNameType;
+    config?: TextAreaFieldComponentConfigFrame
 }
 
-export const TextAreaComponentName = "TextAreaComponent" as const;
 
-export class TextAreaFormFieldComponentDefinition extends FormFieldComponentDefinition implements TextAreaFormFieldComponentDefinitionFrame {
+
+export class TextAreaFieldComponentDefinition extends FieldComponentDefinition implements TextAreaFieldComponentDefinitionFrame {
     class = TextAreaComponentName;
-    config?: TextAreaFormFieldComponentConfig;
+    config?: TextAreaFieldComponentConfig;
 
-    constructor(data: TextAreaFormFieldComponentDefinitionFrame) {
+    constructor(data: TextAreaFieldComponentDefinitionFrame) {
         super(data);
-        this.config = new TextAreaFormFieldComponentConfig(data.config);
+        this.config = new TextAreaFieldComponentConfig(data.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
-        visitor.visitTextAreaFormFieldComponentDefinition(this);
+        visitor.visitTextAreaFieldComponentDefinition(this);
     }
 }
 
 
 /* Text Area Model */
+export const TextAreaModelName = "TextAreaModel" as const;
+export type TextAreaModelNameType = typeof TextAreaModelName;
 export type TextAreaModelValueType = string;
 
-export interface TextAreaFormFieldModelConfigFrame extends FormFieldModelConfigFrame<TextAreaModelValueType> {
+export interface TextAreaFieldModelConfigFrame extends FieldModelConfigFrame<TextAreaModelValueType> {
 }
 
-export class TextAreaFormFieldModelConfig extends FormFieldModelConfig<TextAreaModelValueType> implements TextAreaFormFieldModelConfigFrame {
-    constructor(data?: TextAreaFormFieldModelConfigFrame) {
+export class TextAreaFieldModelConfig extends FieldModelConfig<TextAreaModelValueType> implements TextAreaFieldModelConfigFrame {
+    constructor(data?: TextAreaFieldModelConfigFrame) {
         super(data);
     }
 }
 
-export interface TextAreaFormFieldModelDefinitionFrame extends FormFieldModelDefinitionFrame<TextAreaModelValueType> {
+export interface TextAreaFieldModelDefinitionFrame extends FieldModelDefinitionFrame<TextAreaModelValueType> {
+    class: TextAreaModelNameType;
+    config?: TextAreaFieldModelConfigFrame;
 }
 
-export const TextAreaModelName = "TextAreaModel" as const;
 
-export class TextareaModelDefinition extends FormFieldModelDefinition<TextAreaModelValueType> implements TextAreaFormFieldModelDefinitionFrame {
+
+export class TextareaModelDefinition extends FieldModelDefinition<TextAreaModelValueType> implements TextAreaFieldModelDefinitionFrame {
     class = TextAreaModelName;
-    config: TextAreaFormFieldModelConfig;
+    config: TextAreaFieldModelConfig;
 
-    constructor(data: TextAreaFormFieldModelDefinitionFrame) {
+    constructor(data: TextAreaFieldModelDefinitionFrame) {
         super(data);
-        this.config = new TextAreaFormFieldModelConfig(data.config);
+        this.config = new TextAreaFieldModelConfig(data.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
-        visitor.visitTextAreaFormFieldModelDefinition(this);
+        visitor.visitTextAreaFieldModelDefinition(this);
     }
 }
 
 
 export const TextAreaMap = [
-    {kind: FormFieldComponentConfigKind, def: TextAreaFormFieldComponentConfig},
+    {kind: FieldComponentConfigKind, def: TextAreaFieldComponentConfig},
     {
-        kind: FormFieldComponentDefinitionKind,
-        def: TextAreaFormFieldComponentDefinition,
+        kind: FieldComponentDefinitionKind,
+        def: TextAreaFieldComponentDefinition,
         class: TextAreaComponentName
     },
 ];
 export type TextAreaFrames =
-    TextAreaFormFieldComponentConfigFrame |
-    TextAreaFormFieldComponentDefinitionFrame;
+    TextAreaFieldComponentConfigFrame |
+    TextAreaFieldComponentDefinitionFrame;
 

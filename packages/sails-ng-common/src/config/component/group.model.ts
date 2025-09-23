@@ -1,104 +1,109 @@
 import {
-    FormFieldModelConfig,
-    FormFieldModelConfigFrame,
-    FormFieldModelDefinition,
-    FormFieldModelDefinitionFrame,
+    FieldModelConfig,
+    FieldModelConfigFrame,
+    FieldModelDefinition,
+    FieldModelDefinitionFrame,
     FormComponentDefinition,
     FormComponentDefinitionFrame,
-    BaseFormFieldComponentConfig, BaseFormFieldComponentConfigFrame,
-    BaseFormFieldComponentDefinition,
-    FormFieldComponentConfigFrame, FormFieldComponentDefinitionFrame,
-    FormFieldComponentConfigKind,
-    FormFieldComponentDefinitionKind,
-    FormFieldModelConfigKind,
-    FormFieldModelDefinitionKind, DefaultFormFieldLayoutDefinitionFrame, DefaultFormFieldLayoutDefinition,
-    FormComponentDefinitionKind
-} from "..";
-import {FormConfigItemVisitor} from "../visitor";
+    FieldComponentConfigFrame, FieldComponentDefinitionFrame,
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind,
+    FieldModelConfigKind,
+    FieldModelDefinitionKind, DefaultFieldLayoutDefinitionFrame, DefaultFieldLayoutDefinition,
+    FormComponentDefinitionKind,
+    FieldComponentConfig, FieldComponentDefinition,
+     FormConfigItemVisitor, AvailableFormComponentDefinitionFrames,
+    AvailableFormComponentDefinitions
+} from "../../";
 
 
 /* Group Component */
-export interface GroupFormFieldComponentConfigFrame extends FormFieldComponentConfigFrame {
-    componentDefinitions?: FormComponentDefinitionFrame[];
+export const GroupFieldComponentName = "GroupComponent" as const;
+export type GroupFieldComponentNameType = typeof GroupFieldComponentName;
+
+export interface GroupFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    componentDefinitions: AvailableFormComponentDefinitionFrames[];
 }
 
-export class GroupFormFieldComponentConfig extends BaseFormFieldComponentConfig implements GroupFormFieldComponentConfigFrame {
-    componentDefinitions?: FormComponentDefinition[];
+export class GroupFieldComponentConfig extends FieldComponentConfig implements GroupFieldComponentConfigFrame {
+    componentDefinitions: AvailableFormComponentDefinitions[];
 
-    constructor(data?: BaseFormFieldComponentConfigFrame) {
+    constructor(data?: GroupFieldComponentConfigFrame, componentDefinitions?: AvailableFormComponentDefinitions[]) {
         super(data);
+        this.componentDefinitions = componentDefinitions ?? [];
     }
 }
 
-export interface GroupFormFieldComponentDefinitionFrame extends FormFieldComponentDefinitionFrame {
+export interface GroupFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
+    class: GroupFieldComponentNameType;
+    config?: GroupFieldComponentConfigFrame;
 }
 
-export const GroupFieldComponentName = "GroupFieldComponent" as const;
-
-export class GroupFormFieldComponentDefinition extends BaseFormFieldComponentDefinition implements GroupFormFieldComponentDefinitionFrame {
+export class GroupFieldComponentDefinition extends FieldComponentDefinition implements GroupFieldComponentDefinitionFrame {
     class = GroupFieldComponentName;
-    config?: GroupFormFieldComponentConfig;
+    config?: GroupFieldComponentConfig;
 
-    constructor(data: GroupFormFieldComponentDefinitionFrame) {
+    constructor(data: GroupFieldComponentDefinitionFrame) {
         super(data);
-        this.config = new GroupFormFieldComponentConfig(data.config);
+        this.config = new GroupFieldComponentConfig(data.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
-        visitor.visitGroupFormFieldComponentDefinition(this);
+        visitor.visitGroupFieldComponentDefinition(this);
     }
 }
 
 
 /* Group Model */
+export const GroupFieldModelName = "GroupModel" as const;
+export type GroupFieldModelNameType = typeof GroupFieldModelName;
 export type GroupFieldModelValueType = Record<string, unknown>;
 
-export interface GroupFormFieldModelConfigFrame extends FormFieldModelConfigFrame<GroupFieldModelValueType> {
+export interface GroupFieldModelConfigFrame extends FieldModelConfigFrame<GroupFieldModelValueType> {
 }
 
-export class GroupFormFieldModelConfig extends FormFieldModelConfig<GroupFieldModelValueType> implements GroupFormFieldModelConfigFrame {
-    constructor(data?: FormFieldModelConfigFrame<GroupFieldModelValueType>) {
+export class GroupFieldModelConfig extends FieldModelConfig<GroupFieldModelValueType> implements GroupFieldModelConfigFrame {
+    constructor(data?: GroupFieldModelConfigFrame) {
         super(data);
     }
 }
 
-export interface GroupFormFieldModelDefinitionFrame extends FormFieldModelDefinitionFrame<GroupFieldModelValueType> {
+export interface GroupFieldModelDefinitionFrame extends FieldModelDefinitionFrame<GroupFieldModelValueType> {
+    class: GroupFieldModelNameType;
+    config?: GroupFieldModelConfigFrame;
 }
 
-export const GroupFieldModelName = "GroupFieldModel" as const;
-
-export class GroupFormFieldModelDefinition extends FormFieldModelDefinition<GroupFieldModelValueType> implements GroupFormFieldModelDefinitionFrame {
+export class GroupFieldModelDefinition extends FieldModelDefinition<GroupFieldModelValueType> implements GroupFieldModelDefinitionFrame {
     class = GroupFieldModelName;
-    config: GroupFormFieldModelConfig;
+    config: GroupFieldModelConfig;
 
-    constructor(data?: FormFieldModelDefinitionFrame<GroupFieldModelValueType>) {
+    constructor(data?: FieldModelDefinitionFrame<GroupFieldModelValueType>) {
         super(data ?? {class: GroupFieldModelName});
-        this.config = new GroupFormFieldModelConfig(data?.config);
+        this.config = new GroupFieldModelConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
-        visitor.visitGroupFormFieldModelDefinition(this);
+        visitor.visitGroupFieldModelDefinition(this);
     }
 }
 
 /* Group Form Component */
 export interface GroupFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: GroupFormFieldComponentDefinitionFrame;
-    model?: GroupFormFieldModelDefinitionFrame;
-    layout?: DefaultFormFieldLayoutDefinitionFrame;
+    component: GroupFieldComponentDefinitionFrame;
+    model?: GroupFieldModelDefinitionFrame;
+    layout?: DefaultFieldLayoutDefinitionFrame;
 }
 
-export class GroupFormComponentDefinition extends FormComponentDefinition {
-    public component: GroupFormFieldComponentDefinition;
-    public model?: GroupFormFieldModelDefinition;
-    public layout?: DefaultFormFieldLayoutDefinition;
+export class GroupFormComponentDefinition extends FormComponentDefinition implements GroupFormComponentDefinitionFrame {
+    public component: GroupFieldComponentDefinition;
+    public model?: GroupFieldModelDefinition;
+    public layout?: DefaultFieldLayoutDefinition;
 
     constructor(data: GroupFormComponentDefinitionFrame) {
         super(data);
-        this.name = data.name;
-        this.component = new GroupFormFieldComponentDefinition(data.component);
-        this.model = new GroupFormFieldModelDefinition(data.model);
-        this.layout = new DefaultFormFieldLayoutDefinition(data.layout);
+        this.component = new GroupFieldComponentDefinition(data.component);
+        this.model = new GroupFieldModelDefinition(data.model);
+        this.layout = new DefaultFieldLayoutDefinition(data.layout);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -107,14 +112,15 @@ export class GroupFormComponentDefinition extends FormComponentDefinition {
 }
 
 export const GroupMap = [
-    {kind: FormFieldComponentConfigKind, def: GroupFormFieldComponentConfig},
-    {kind: FormFieldComponentDefinitionKind, def: GroupFormFieldComponentDefinition, class: GroupFieldComponentName},
-    {kind: FormFieldModelConfigKind, def: GroupFormFieldModelConfig},
-    {kind: FormFieldModelDefinitionKind, def: GroupFormFieldModelDefinition, class: GroupFieldModelName},
+    {kind: FieldComponentConfigKind, def: GroupFieldComponentConfig},
+    {kind: FieldComponentDefinitionKind, def: GroupFieldComponentDefinition, class: GroupFieldComponentName},
+    {kind: FieldModelConfigKind, def: GroupFieldModelConfig},
+    {kind: FieldModelDefinitionKind, def: GroupFieldModelDefinition, class: GroupFieldModelName},
     {kind: FormComponentDefinitionKind, def: GroupFormComponentDefinition},
 ];
 export type GroupFrames =
-    GroupFormFieldComponentConfigFrame |
-    GroupFormFieldComponentDefinitionFrame |
-    GroupFormFieldModelConfigFrame |
-    GroupFormFieldModelDefinitionFrame;
+    GroupFieldComponentConfigFrame |
+    GroupFieldComponentDefinitionFrame |
+    GroupFieldModelConfigFrame |
+    GroupFieldModelDefinitionFrame |
+    GroupFormComponentDefinitionFrame;

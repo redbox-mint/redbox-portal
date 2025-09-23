@@ -1,61 +1,64 @@
 import {
     FormComponentDefinition,
-    FormComponentDefinitionFrame, FormComponentDefinitionFrameKind, FormComponentDefinitionKind,
-    FormFieldComponentConfig,
-    FormFieldComponentConfigFrame,
-    FormFieldComponentConfigKind,
-    FormFieldComponentDefinition,
-    FormFieldComponentDefinitionFrame,
-    FormFieldComponentDefinitionKind, GroupFormComponentDefinition,
-} from "..";
-import {FormConfigItemVisitor} from "../visitor";
+    FormComponentDefinitionFrame,
+    FormComponentDefinitionKind,
+    FieldComponentConfig,
+    FieldComponentConfigFrame,
+    FieldComponentConfigKind,
+    FieldComponentDefinition,
+    FieldComponentDefinitionFrame,
+    FieldComponentDefinitionKind,
+    FormConfigItemVisitor
+} from "../..";
 
 
 /* Save Button Component */
-export interface SaveButtonFormFieldComponentConfigFrame extends FormFieldComponentConfigFrame {
+export const SaveButtonComponentName = "SaveButtonComponent" as const;
+export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
+export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
 }
 
-export class SaveButtonFormFieldComponentConfig extends FormFieldComponentConfig implements SaveButtonFormFieldComponentConfigFrame {
+export class SaveButtonFieldComponentConfig extends FieldComponentConfig implements SaveButtonFieldComponentConfigFrame {
     targetStep?: string;
     forceSave?: boolean;
     skipValidation?: boolean;
 
-    constructor(data?: SaveButtonFormFieldComponentConfigFrame) {
+    constructor(data?: SaveButtonFieldComponentConfigFrame) {
         super(data);
     }
 }
 
-export interface SaveButtonFormFieldComponentDefinitionFrame extends FormFieldComponentDefinitionFrame {
+export interface SaveButtonFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
+    class: SaveButtonComponentNameType;
+    config?: SaveButtonFieldComponentConfigFrame
 }
 
-export const SaveButtonComponentName = "SaveButtonComponent" as const;
 
-export class SaveButtonFormFieldComponentDefinition extends FormFieldComponentDefinition implements SaveButtonFormFieldComponentDefinitionFrame {
+export class SaveButtonFieldComponentDefinition extends FieldComponentDefinition implements SaveButtonFieldComponentDefinitionFrame {
     class = SaveButtonComponentName;
-    config?: SaveButtonFormFieldComponentConfig;
+    config?: SaveButtonFieldComponentConfig;
 
-    constructor(data: SaveButtonFormFieldComponentDefinitionFrame) {
+    constructor(data: SaveButtonFieldComponentDefinitionFrame) {
         super(data);
-        this.config = new SaveButtonFormFieldComponentConfig(data.config);
+        this.config = new SaveButtonFieldComponentConfig(data.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
-        visitor.visitSaveButtonFormFieldComponentDefinition(this);
+        visitor.visitSaveButtonFieldComponentDefinition(this);
     }
 }
 
 /* Save Button Form Component */
 export interface SaveButtonFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: SaveButtonFormFieldComponentDefinitionFrame;
+    component: SaveButtonFieldComponentDefinitionFrame;
 }
 
 export class SaveButtonFormComponentDefinition extends FormComponentDefinition {
-    public component: SaveButtonFormFieldComponentDefinition;
+    public component: SaveButtonFieldComponentDefinition;
 
     constructor(data: SaveButtonFormComponentDefinitionFrame) {
         super(data);
-        this.name = data.name;
-        this.component = new SaveButtonFormFieldComponentDefinition(data.component);
+        this.component = new SaveButtonFieldComponentDefinition(data.component);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -64,16 +67,16 @@ export class SaveButtonFormComponentDefinition extends FormComponentDefinition {
 }
 
 export const SaveButtonMap = [
-    {kind: FormFieldComponentConfigKind, def: SaveButtonFormFieldComponentConfig},
+    {kind: FieldComponentConfigKind, def: SaveButtonFieldComponentConfig},
     {
-        kind: FormFieldComponentDefinitionKind,
-        def: SaveButtonFormFieldComponentDefinition,
+        kind: FieldComponentDefinitionKind,
+        def: SaveButtonFieldComponentDefinition,
         class: SaveButtonComponentName
     },
     {kind: FormComponentDefinitionKind, def: SaveButtonFormComponentDefinition},
 ];
 export type SaveButtonFrames =
-    SaveButtonFormFieldComponentConfigFrame |
-    SaveButtonFormFieldComponentDefinitionFrame |
+    SaveButtonFieldComponentConfigFrame |
+    SaveButtonFieldComponentDefinitionFrame |
     SaveButtonFormComponentDefinitionFrame;
 

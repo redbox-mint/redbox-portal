@@ -1,43 +1,46 @@
 import {
-    FormFieldLayoutConfig, FormFieldLayoutConfigFrame,
-    FormFieldLayoutDefinition,
-    FormFieldLayoutDefinitionFrame,
-    FormFieldLayoutConfigKind, FormFieldLayoutDefinitionKind
-} from "..";
-import {FormConfigItemVisitor} from "../visitor";
+    FieldLayoutConfig, FieldLayoutConfigFrame,
+    FieldLayoutDefinition,
+    FieldLayoutDefinitionFrame,
+    FieldLayoutConfigKind, FieldLayoutDefinitionKind,
+    FormConfigItemVisitor
+} from "../..";
 
 
 /* Default Layout */
-export interface DefaultFormFieldLayoutConfigFrame extends FormFieldLayoutConfigFrame {
+export const DefaultLayoutName = `DefaultLayout` as const;
+export type DefaultLayoutNameType = typeof DefaultLayoutName;
+
+export interface DefaultFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
 }
 
-export class DefaultFormFieldLayoutConfig extends FormFieldLayoutConfig implements DefaultFormFieldLayoutConfigFrame {
-
-    constructor(data?: FormFieldLayoutConfigFrame) {
+export class DefaultFieldLayoutConfig extends FieldLayoutConfig implements DefaultFieldLayoutConfigFrame {
+    constructor(data?: FieldLayoutConfigFrame) {
         super(data);
     }
 }
 
-export interface DefaultFormFieldLayoutDefinitionFrame extends FormFieldLayoutDefinitionFrame {
+export interface DefaultFieldLayoutDefinitionFrame extends FieldLayoutDefinitionFrame {
+    class: DefaultLayoutNameType;
+    config?: DefaultFieldLayoutConfigFrame;
 }
 
-export const DefaultLayoutName = `DefaultLayoutComponent` as const;
-export class DefaultFormFieldLayoutDefinition extends FormFieldLayoutDefinition implements DefaultFormFieldLayoutDefinitionFrame {
+export class DefaultFieldLayoutDefinition extends FieldLayoutDefinition implements DefaultFieldLayoutDefinitionFrame {
     class = DefaultLayoutName;
-    config?: DefaultFormFieldLayoutConfig;
+    config?: DefaultFieldLayoutConfig;
 
-    constructor(data?: DefaultFormFieldLayoutDefinitionFrame) {
-        super(data ?? {class:DefaultLayoutName});
-        this.config = new DefaultFormFieldLayoutConfig(data?.config);
+    constructor(data?: DefaultFieldLayoutDefinitionFrame) {
+        super(data ?? {class: DefaultLayoutName});
+        this.config = new DefaultFieldLayoutConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
-        visitor.visitDefaultFormFieldLayoutDefinition(this);
+        visitor.visitDefaultFieldLayoutDefinition(this);
     }
 }
 
 export const DefaultLayoutMap = [
-    {class: DefaultLayoutName, kind: FormFieldLayoutConfigKind, def: DefaultFormFieldLayoutConfig},
-    {class: DefaultLayoutName, kind: FormFieldLayoutDefinitionKind, def: DefaultFormFieldLayoutDefinition},
+    {kind: FieldLayoutConfigKind, def: DefaultFieldLayoutConfig},
+    {kind: FieldLayoutDefinitionKind, def: DefaultFieldLayoutDefinition, class: DefaultLayoutName},
 ];
-export type DefaultLayoutFrames = DefaultFormFieldLayoutConfigFrame | DefaultFormFieldLayoutDefinitionFrame;
+export type DefaultLayoutFrames = DefaultFieldLayoutConfigFrame | DefaultFieldLayoutDefinitionFrame;

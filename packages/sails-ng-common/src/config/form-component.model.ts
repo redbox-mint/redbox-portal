@@ -1,8 +1,10 @@
-import {BaseFormFieldComponentDefinition, BaseFormFieldComponentDefinitionFrame,
-FormFieldModelDefinition, FormFieldModelDefinitionFrame,
-FormFieldLayoutDefinition, FormFieldLayoutDefinitionFrame,
-FormExpressionsConfig, FormConstraintConfig} from ".";
-import {FormConfigItemVisitor, Visitee} from "./visitor";
+import {
+    FormExpressionsConfig, FormConstraintConfig,
+    FormConstraintConfigFrame, FormExpressionsConfigFrame, AllFieldModelDefinitionFrames,
+     AllFieldLayoutDefinitionFrames,
+    AllFieldModelDefinitions, AllFieldLayoutDefinitions,
+    FormConfigItemVisitor, Visitee, AvailableFieldComponentDefinitions, AvailableFieldComponentDefinitionFrames
+} from "..";
 
 /**
  * The form component interface that provides typing for the object literal and schema.
@@ -15,22 +17,22 @@ export interface FormComponentDefinitionFrame {
     /**
      * The definition of the model that backs the form field.
      */
-    model?: FormFieldModelDefinitionFrame<unknown>;
+    model?: AllFieldModelDefinitionFrames;
     /**
      * The definition of the client-side component for the form field.
      */
-    component: BaseFormFieldComponentDefinitionFrame;
+    component: AvailableFieldComponentDefinitionFrames;
     /**
      * The definition of the client-side layout for this form field.
      */
-    layout?: FormFieldLayoutDefinitionFrame;
+    layout?: AllFieldLayoutDefinitionFrames;
     /**
      * A record with string keys and expression template values for defining expressions.
      *
      * TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
      *   Expression functions will participate in a similar process as the validation functions to get to the client.
      */
-    expressions?: FormExpressionsConfig;
+    expressions?: FormExpressionsConfigFrame;
     /**
      * For a custom form component definition, module defines where to find the definition.
      */
@@ -38,7 +40,7 @@ export interface FormComponentDefinitionFrame {
     /**
      * Constraints / prerequisites for this component to be included in the form definition.
      */
-    constraints?: FormConstraintConfig;
+    constraints?: FormConstraintConfigFrame;
 }
 
 /**
@@ -47,11 +49,11 @@ export interface FormComponentDefinitionFrame {
 export abstract class FormComponentDefinition implements FormComponentDefinitionFrame, Visitee {
     public name: string;
     // Using definite assignment assertion operator (!) to say that component does not need to be set in the abstract class constructor.
-    // The component property can't be set here, as BaseFormFieldComponentDefinition is abstract there is no way to work out which class to use.
+    // The component property can't be set here, as FieldComponentDefinition is abstract there is no way to work out which class to use.
     // Subclasses set the component property with a new instance of the proper class.
-    public component!: BaseFormFieldComponentDefinition;
-    public model?: FormFieldModelDefinition<unknown>;
-    public layout?: FormFieldLayoutDefinition;
+    public component!: AvailableFieldComponentDefinitions;
+    public model?: AllFieldModelDefinitions;
+    public layout?: AllFieldLayoutDefinitions;
     public expressions?: FormExpressionsConfig;
     public module?: string;
     public constraints?: FormConstraintConfig;
