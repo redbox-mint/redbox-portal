@@ -1,7 +1,7 @@
 /**
  * The status of a component.
  */
-export enum FormFieldComponentStatus {
+export enum FieldComponentStatus {
   INIT = "INIT",
   READY = "READY",
   BUSY = "BUSY",
