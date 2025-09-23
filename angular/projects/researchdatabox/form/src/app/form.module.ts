@@ -38,6 +38,8 @@ import { TextAreaComponent } from './component/textarea.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { DateInputComponent } from './component/date-input.component';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -57,14 +59,16 @@ import { RadioInputComponent } from './component/radio-input.component';
     TabComponentLayout,
     DropdownInputComponent,
     CheckboxInputComponent,
-    RadioInputComponent
+    RadioInputComponent,
+    DateInputComponent
   ],
   imports: [
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
     RedboxPortalCoreModule,
-    I18NextPipe
+    I18NextPipe,
+    BsDatepickerModule.forRoot()
   ],
   providers: [
     {

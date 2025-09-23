@@ -33,6 +33,7 @@ import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConf
 import { DropdownInputComponentConfig, DropdownInputComponentDefinition, DropdownInputModelConfig, DropdownInputModelDefinition } from "./dropdown-input.model";
 import { CheckboxInputComponentConfig, CheckboxInputComponentDefinition, CheckboxInputModelConfig, CheckboxInputModelDefinition } from "./checkbox-input.model";
 import { RadioInputComponentConfig, RadioInputComponentDefinition, RadioInputModelConfig, RadioInputModelDefinition } from "./radio-input.model";
+import { DateInputComponentConfig, DateInputComponentDefinition, DateInputModelConfig, DateInputModelDefinition } from "./date-input.model";
 /**
  * Possible form field component definitions.
  */
@@ -48,7 +49,8 @@ export type FormFieldComponentDefinition =
     TextAreaComponentDefinition |
     DropdownInputComponentDefinition |
     CheckboxInputComponentDefinition |
-    RadioInputComponentDefinition;
+    RadioInputComponentDefinition |
+    DateInputComponentDefinition;
 
 /**
  * Possible form field component configs.
@@ -64,7 +66,8 @@ export type FormFieldComponentConfig =
     TextAreaComponentConfig |
     DropdownInputComponentConfig |
     CheckboxInputComponentConfig |
-    RadioInputComponentConfig;
+    RadioInputComponentConfig |
+    DateInputComponentConfig;
 
 /**
  * Possible form field model definitions.
@@ -77,7 +80,8 @@ export type FormFieldModelDefinition =
     TextareaModelDefinition |
     DropdownInputModelDefinition |
     CheckboxInputModelDefinition |
-    RadioInputModelDefinition;
+    RadioInputModelDefinition |
+    DateInputModelDefinition;
 
 
 /**
@@ -91,7 +95,8 @@ export type FormFieldModelConfig =
     TextareaModelConfig |
     DropdownInputModelConfig |
     CheckboxInputModelConfig |
-    RadioInputModelConfig;
+    RadioInputModelConfig |
+    DateInputModelConfig;
 
 
 /**
@@ -121,3 +126,4 @@ export * from './textblock.model'
 export * from './dropdown-input.model'
 export * from './checkbox-input.model'
 export * from './radio-input.model'
+export * from './date-input.model'
