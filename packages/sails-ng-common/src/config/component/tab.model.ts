@@ -4,8 +4,8 @@ import {
     FieldComponentDefinitionFrame, FieldComponentDefinition, FieldComponentConfigKind, FieldComponentDefinitionKind,
     FieldLayoutConfigFrame, FieldLayoutDefinitionFrame, FormComponentDefinitionFrame,
     FormComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind, FormConfigItemVisitor,
-    TabContentFieldComponentDefinition,
-    TabContentFieldComponentDefinitionFrame
+     TabContentFormComponentDefinitionFrame,
+    TabContentFormComponentDefinition,
 } from "../..";
 
 /* Tab Component */
@@ -13,14 +13,12 @@ export const TabComponentName = "TabComponent" as const;
 export type TabComponentNameType = typeof TabComponentName;
 
 export interface TabFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    tabs: TabContentFieldComponentDefinitionFrame[];
+    tabs: TabContentFormComponentDefinitionFrame[];
 }
 
-export type TabFieldComponentConfigTabType = InstanceType<typeof TabContentFieldComponentDefinition>;
-
 export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigFrame {
-    tabs: TabFieldComponentConfigTabType[];
-    constructor(data?: TabFieldComponentConfigFrame, tabs?: TabFieldComponentConfigTabType[]) {
+    tabs: TabContentFormComponentDefinition[];
+    constructor(data?: TabFieldComponentConfigFrame, tabs?: TabContentFormComponentDefinition[]) {
         super(data);
         this.tabs = tabs ?? [];
     }

@@ -13,7 +13,7 @@ export class ConstructFormConfigVisitor extends FormConfigItemVisitor {
         const item = new FormConfig(data);
 
         for (const componentDefinition of data.componentDefinitions ?? []) {
-
+            componentDefinition
         }
 
         item.accept(this);

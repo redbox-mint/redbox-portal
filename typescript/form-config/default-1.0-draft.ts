@@ -287,18 +287,18 @@ const formConfig: FormConfigFrame = {
                                             layout: {
                                                 class: 'DefaultLayoutComponent',
                                                 config: {
-                                                    label: 'GroupField label',
-                                                    helpText: 'GroupField help',
+                                                    label: 'Group label',
+                                                    helpText: 'Group help',
                                                 }
                                             },
                                             model: {
-                                                class: 'GroupFieldModel',
+                                                class: 'GroupModel',
                                                 config: {
                                                     defaultValue: {},
                                                 }
                                             },
                                             component: {
-                                                class: 'GroupFieldComponent',
+                                                class: 'GroupComponent',
                                                 config: {
                                                     componentDefinitions: [
                                                         {
@@ -338,18 +338,18 @@ const formConfig: FormConfigFrame = {
                                                             layout: {
                                                                 class: 'DefaultLayoutComponent',
                                                                 config: {
-                                                                    label: 'GroupField 2 label',
-                                                                    helpText: 'GroupField 2 help',
+                                                                    label: 'Group2 label',
+                                                                    helpText: 'Group 2 help',
                                                                 }
                                                             },
                                                             model: {
-                                                                class: 'GroupFieldModel',
+                                                                class: 'GroupModel',
                                                                 config: {
                                                                     defaultValue: {},
                                                                 }
                                                             },
                                                             component: {
-                                                                class: 'GroupFieldComponent',
+                                                                class: 'GroupComponent',
                                                                 config: {
                                                                     componentDefinitions: [
                                                                         {

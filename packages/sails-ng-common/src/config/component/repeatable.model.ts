@@ -12,10 +12,8 @@ import {
     FieldComponentDefinitionKind, FieldLayoutDefinitionKind, FieldModelConfigKind,
     FieldModelDefinitionKind, DefaultFieldLayoutDefinitionFrame, DefaultFieldLayoutDefinition,
     FieldLayoutConfigKind,
-FormConfigItemVisitor
+FormConfigItemVisitor, AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitions
 } from "../..";
-import {AvailableFormComponentDefinitionFrames} from "../..";
-import {AvailableFormComponentDefinitions} from "../..";
 
 
 /* Repeatable Component */
@@ -160,7 +158,7 @@ export const RepeatableMap = [
     {kind: FieldComponentDefinitionKind, def: RepeatableFieldComponentDefinition, class: RepeatableComponentName},
     {kind: FieldModelConfigKind, def: RepeatableFieldModelConfig},
     {kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName},
-    {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig,},
+    {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind,def: RepeatableElementFieldLayoutDefinition,class: RepeatableElementLayoutName},
     {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition},
 ];

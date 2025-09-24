@@ -1,4 +1,5 @@
-import {KeyValueStringProperty, FieldDefinition, FieldDefinitionFrame} from "..";
+import {KeyValueStringProperty} from "./shared.model";
+import {FieldDefinition, FieldDefinitionFrame} from "./field.model";
 
 /**
  * The form field component config interface that provides typing for the object literal and schema.
@@ -66,19 +67,12 @@ export abstract class BaseFieldComponentConfig implements BaseFieldComponentConf
     }
 }
 
-export interface FieldComponentConfigFrame extends BaseFieldComponentConfigFrame {
-}
-
-export abstract class FieldComponentConfig extends BaseFieldComponentConfig implements FieldComponentConfigFrame {
-}
-
 /**
  * The form field component definition interface that provides typing for the object literal and schema.
  */
 export interface BaseFieldComponentDefinitionFrame extends FieldDefinitionFrame {
     config?: BaseFieldComponentConfigFrame;
 }
-
 
 /**
  * The common form field component definition properties.
@@ -91,10 +85,4 @@ export abstract class BaseFieldComponentDefinition extends FieldDefinition imple
         // The config must be assigned in the subclasses.
         this.config = undefined;
     }
-}
-
-export interface FieldComponentDefinitionFrame extends BaseFieldComponentDefinitionFrame {
-}
-
-export abstract class FieldComponentDefinition extends BaseFieldComponentDefinition implements FieldComponentDefinitionFrame {
 }

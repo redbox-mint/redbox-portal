@@ -5,7 +5,7 @@ import {
     FieldComponentDefinitionKind, FormComponentDefinitionKind, FormComponentDefinitionFrame,
     FormComponentDefinition,
     DefaultFieldLayoutDefinitionFrame, FieldModelConfigKind, FieldModelDefinitionKind,
-    FormConfigItemVisitor
+    FormConfigItemVisitor, DefaultFieldLayoutDefinition
 } from "../..";
 
 /* Simple Input Component */
@@ -72,9 +72,9 @@ export class SimpleInputFieldModelDefinition extends FieldModelDefinition<Simple
     class = SimpleInputModelName;
     config: SimpleInputFieldModelConfig;
 
-    constructor(data: SimpleInputFieldModelDefinitionFrame) {
-        super(data);
-        this.config = new SimpleInputFieldModelConfig(data.config);
+    constructor(data?: SimpleInputFieldModelDefinitionFrame) {
+        super(data ?? {class: SimpleInputModelName});
+        this.config = new SimpleInputFieldModelConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
@@ -89,13 +89,15 @@ export interface SimpleInputFormComponentDefinitionFrame extends FormComponentDe
     layout?: DefaultFieldLayoutDefinitionFrame
 }
 
-export class SimpleInputFormComponentDefinition extends FormComponentDefinition {
+export class SimpleInputFormComponentDefinition extends FormComponentDefinition implements SimpleInputFormComponentDefinitionFrame {
     public component: SimpleInputFieldComponentDefinition;
-
+    public model?: SimpleInputFieldModelDefinition;
+    public layout?: DefaultFieldLayoutDefinition;
     constructor(data: SimpleInputFormComponentDefinitionFrame) {
         super(data);
-        this.name = data.name;
         this.component = new SimpleInputFieldComponentDefinition(data.component);
+        this.model = new SimpleInputFieldModelDefinition(data.model);
+        this.layout = new DefaultFieldLayoutDefinition(data.layout);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -105,18 +107,9 @@ export class SimpleInputFormComponentDefinition extends FormComponentDefinition 
 
 export const SimpleInputMap = [
     {kind: FieldComponentConfigKind, def: SimpleInputFieldComponentConfig},
-    {
-        kind: FieldComponentDefinitionKind,
-        def: SimpleInputFieldComponentDefinition,
-        class: SimpleInputComponentName
-    },
+    {kind: FieldComponentDefinitionKind, def: SimpleInputFieldComponentDefinition, class: SimpleInputComponentName},
     {kind: FieldModelConfigKind, def: SimpleInputFieldModelConfig},
     {kind: FieldModelDefinitionKind, def: SimpleInputFieldModelDefinition, class: SimpleInputModelName},
-    {
-        kind: FieldComponentDefinitionKind,
-        def: SimpleInputFieldComponentDefinition,
-        class: SimpleInputComponentName
-    },
     {kind: FormComponentDefinitionKind, def: SimpleInputFormComponentDefinition},
 ];
 export type SimpleInputFrames =

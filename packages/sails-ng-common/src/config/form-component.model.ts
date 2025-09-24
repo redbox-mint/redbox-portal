@@ -1,9 +1,8 @@
 import {
     FormExpressionsConfig, FormConstraintConfig,
-    FormConstraintConfigFrame, FormExpressionsConfigFrame, AllFieldModelDefinitionFrames,
-     AllFieldLayoutDefinitionFrames,
-    AllFieldModelDefinitions, AllFieldLayoutDefinitions,
-    FormConfigItemVisitor, Visitee, AvailableFieldComponentDefinitions, AvailableFieldComponentDefinitionFrames
+    FormConstraintConfigFrame, FormExpressionsConfigFrame,
+    FormConfigItemVisitor, Visitee,  FieldModelDefinitionFrame, FieldComponentDefinitionFrame,
+    FieldLayoutDefinitionFrame, FieldModelDefinition, FieldLayoutDefinition, FieldComponentDefinition
 } from "..";
 
 /**
@@ -17,15 +16,15 @@ export interface FormComponentDefinitionFrame {
     /**
      * The definition of the model that backs the form field.
      */
-    model?: AllFieldModelDefinitionFrames;
+    model?: FieldModelDefinitionFrame<unknown>;
     /**
      * The definition of the client-side component for the form field.
      */
-    component: AvailableFieldComponentDefinitionFrames;
+    component: FieldComponentDefinitionFrame;
     /**
      * The definition of the client-side layout for this form field.
      */
-    layout?: AllFieldLayoutDefinitionFrames;
+    layout?: FieldLayoutDefinitionFrame;
     /**
      * A record with string keys and expression template values for defining expressions.
      *
@@ -51,9 +50,9 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     // Using definite assignment assertion operator (!) to say that component does not need to be set in the abstract class constructor.
     // The component property can't be set here, as FieldComponentDefinition is abstract there is no way to work out which class to use.
     // Subclasses set the component property with a new instance of the proper class.
-    public component!: AvailableFieldComponentDefinitions;
-    public model?: AllFieldModelDefinitions;
-    public layout?: AllFieldLayoutDefinitions;
+    public component!: FieldComponentDefinition;
+    public model?: FieldModelDefinition<unknown>;
+    public layout?: FieldLayoutDefinition;
     public expressions?: FormExpressionsConfig;
     public module?: string;
     public constraints?: FormConstraintConfig;
@@ -61,6 +60,7 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     protected constructor(data: FormComponentDefinitionFrame) {
         Object.assign(this, data);
         this.name = data.name;
+        this.expressions = new FormExpressionsConfig(data.expressions)
         this.constraints = new FormConstraintConfig(data.constraints)
     }
 

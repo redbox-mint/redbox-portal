@@ -1,10 +1,8 @@
-import {ConstructFormConfigVisitor} from "../../src/config/visitor/construct.visitor";
 import {
+    ConstructFormConfigVisitor,
     FormConfig,
     FormConfigFrame,
-    RepeatableFormComponentDefinition,
 } from "../../src";
-
 
 
 describe("Construct Visitor ", async () => {
@@ -28,7 +26,7 @@ describe("Construct Visitor ", async () => {
                         model: {
                             class: 'RepeatableModel',
                             config: {
-                                defaultValue: [{ text_3: "hello world from repeating groups" }]
+                                defaultValue: [{text_3: "hello world from repeating groups"}]
                             }
                         },
                         component: {
@@ -58,7 +56,7 @@ describe("Construct Visitor ", async () => {
                                                                 {
                                                                     name: 'minLength',
                                                                     message: "@validator-error-custom-text_3",
-                                                                    config: { minLength: 3 }
+                                                                    config: {minLength: 3}
                                                                 }
                                                             ]
                                                         }
@@ -93,15 +91,13 @@ describe("Construct Visitor ", async () => {
                 ]
             },
             expected: function () {
-                const form = new FormConfig({});
-                form.componentDefinitions = [
-                    new RepeatableFormComponentDefinition()
-                ]
+                const form = new FormConfig();
+                form.componentDefinitions = [];
                 return form;
             }(),
         },
     ];
-    cases.forEach(({ args, expected }) => {
+    cases.forEach(({args, expected}) => {
         it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const visitor = new ConstructFormConfigVisitor();
             const actual = visitor.constructFormConfig(args);

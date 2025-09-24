@@ -1,5 +1,3 @@
-
-
 /**
  * A property that can be one of a record with string keys and values,
  * a string, null, or undefined.
@@ -10,7 +8,7 @@ export type KeyValueStringProperty = Record<string, string> | string | null | un
  * A property that can be one of a record with string keys and record values,
  * a string, null, or undefined.
  */
-export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
+export type KeyValueStringNested = Record<string, KeyValueStringProperty> | string | null | undefined;
 
 /* Form Component */
 
@@ -72,9 +70,8 @@ export const AvailableFormKinds = [
     FieldLayoutDefinitionKind,
     FieldLayoutConfigFrameKind,
     FieldLayoutConfigKind,
-    ] as const;
+] as const;
 export type AvailableFormKindTypes = typeof AvailableFormKinds[number];
-
 
 
 // TODO: is this the right approach to providing common methods?
@@ -89,17 +86,18 @@ export type AvailableFormKindTypes = typeof AvailableFormKinds[number];
 /**
  * The expressions for a component.
  */
-export interface FormExpressionsConfigFrame{
-    template: string;
-    condition?: any;
+export interface FormExpressionsConfigFrame {
+    [key: string]: {
+        template: string;
+        condition?: unknown;
+    }
 }
 
 export class FormExpressionsConfig implements FormExpressionsConfigFrame {
-    template: string;
-    condition?: any;
+    [key: string]: { template: string; condition?: unknown; };
+
     constructor(data?: FormExpressionsConfigFrame) {
-        Object.assign(this,data ?? {});
-        this.template = data?.template ?? "";
+        Object.assign(this, data ?? {});
     }
 }
 
@@ -125,7 +123,7 @@ export class FormConstraintConfig {
     allowModes?: FormModesConfig[]
 
     constructor(data?: FormConstraintConfigFrame) {
-        Object.assign(this,data ?? {});
+        Object.assign(this, data ?? {});
         this.authorization = new FormConstraintAuthorizationConfig(data?.authorization);
     }
 }
@@ -144,6 +142,7 @@ export interface FormConstraintAuthorizationConfigFrame {
  */
 export class FormConstraintAuthorizationConfig implements FormConstraintAuthorizationConfigFrame {
     allowRoles?: string[];
+
     constructor(data?: FormConstraintAuthorizationConfigFrame) {
         Object.assign(this, data ?? {});
     }

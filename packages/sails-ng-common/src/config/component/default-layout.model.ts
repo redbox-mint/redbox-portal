@@ -43,4 +43,6 @@ export const DefaultLayoutMap = [
     {kind: FieldLayoutConfigKind, def: DefaultFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: DefaultFieldLayoutDefinition, class: DefaultLayoutName},
 ];
-export type DefaultLayoutFrames = DefaultFieldLayoutConfigFrame | DefaultFieldLayoutDefinitionFrame;
+export type DefaultLayoutFrames =
+    DefaultFieldLayoutConfigFrame
+    | DefaultFieldLayoutDefinitionFrame;

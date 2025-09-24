@@ -104,7 +104,7 @@ export interface TabContentFormComponentDefinitionFrame extends FormComponentDef
     layout?: TabContentFieldLayoutDefinitionFrame;
 }
 
-export class TabContentFormComponentDefinition extends FormComponentDefinition implements TabContentFormComponentDefinitionFrame{
+export class TabContentFormComponentDefinition extends FormComponentDefinition implements TabContentFormComponentDefinitionFrame {
     public component: TabContentFieldComponentDefinition;
     public layout?: TabContentFieldLayoutDefinition;
 

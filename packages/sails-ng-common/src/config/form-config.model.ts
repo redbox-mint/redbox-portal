@@ -1,11 +1,11 @@
 import {
-    AllFormComponentDefinitionFrames,
     KeyValueStringNested,
     KeyValueStringProperty,
     FormValidatorConfig,
     FormComponentDefinition, HasChildren,
     FormConfigItemVisitor, Visitee,
-    HasCompilableTemplates, TemplateCompileInput, AvailableFormComponentDefinitions
+    HasCompilableTemplates, TemplateCompileInput, AvailableFormComponentDefinitions,
+    AvailableFormComponentDefinitionFrames
 } from "..";
 
 /**
@@ -75,7 +75,7 @@ export interface FormConfigFrame {
     /**
      * the components of this form
      */
-    componentDefinitions: AllFormComponentDefinitionFrames[];
+    componentDefinitions: AvailableFormComponentDefinitionFrames[];
     /**
      * debug: show the form JSON
      * Default false.
@@ -100,8 +100,8 @@ export class FormConfig implements FormConfigFrame, HasChildren, HasCompilableTe
     public componentDefinitions: AvailableFormComponentDefinitions[] = [];
     public debugValue: boolean = false;
 
-    constructor(data: FormConfigFrame) {
-        Object.assign(this, data);
+    constructor(data?: FormConfigFrame) {
+        Object.assign(this, data ?? {});
     }
 
     get templates(): TemplateCompileInput[] {

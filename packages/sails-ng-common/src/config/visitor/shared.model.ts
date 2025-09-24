@@ -17,11 +17,11 @@ import {
     SimpleInputFieldModelDefinition,
     TabFieldComponentDefinition,
     TextAreaFieldComponentDefinition,
-    TextareaModelDefinition,
+    TextAreaFieldModelDefinition,
     ValidationSummaryFieldComponentDefinition,
     TabContentFieldComponentDefinition,
     TabContentFieldLayoutDefinition,
-    TabContentFormComponentDefinition
+    TabContentFormComponentDefinition, TextAreaFormComponentDefinition
 } from "../..";
 
 export interface Visitee {
@@ -37,134 +37,134 @@ export interface Visitee {
 export abstract class FormConfigItemVisitor {
 
     visitFormConfig(item: FormConfig): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitFormConfig');
     }
 
     /* SimpleInput */
 
     visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitSimpleInputFieldComponentDefinition');
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitSimpleInputFieldModelDefinition');
     }
 
     visitSimpleInputFormComponentDefinition(param: SimpleInputFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitSimpleInputFormComponentDefinition');
     }
 
     /* Content */
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitContentFieldComponentDefinition');
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitContentFormComponentDefinition');
     }
 
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitRepeatableFieldComponentDefinition');
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitRepeatableFieldModelDefinition');
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitRepeatableElementFieldLayoutDefinition');
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitRepeatableFormComponentDefinition');
     }
 
-    /*
-     * Validation Summary
-     */
+    /* Validation Summary */
+
     visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitValidationSummaryFieldComponentDefinition');
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitValidationSummaryFormComponentDefinition');
     }
 
-    /*
-     * Group
-     */
+    /* Group */
+
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitGroupFieldComponentDefinition');
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitGroupFieldModelDefinition');
     }
 
     visitGroupFormComponentDefinition(param: GroupFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitGroupFormComponentDefinition');
     }
 
-    /*
-     * Tab
-     */
+    /* Tab  */
+
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTabFieldComponentDefinition');
     }
+
     visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTabFieldLayoutDefinition');
     }
+
     visitTabFormComponentDefinition(item: TabFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTabFormComponentDefinition');
     }
 
-    /*
-     * Tab Content
-     */
+    /*  Tab Content */
+
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTabContentFieldComponentDefinition');
     }
+
     visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTabContentFieldLayoutDefinition');
     }
+
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTabContentFormComponentDefinition');
     }
 
+    /* Save Button  */
 
-
-    /*
-     * Save Button
-     */
     visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitSaveButtonFieldComponentDefinition');
     }
 
     visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinition) {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitSaveButtonFormComponentDefinition');
     }
 
-    /*
-     * Text Area
-     */
+    /* Text Area */
+
     visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitTextAreaFieldComponentDefinition');
     }
 
-    visitTextAreaFieldModelDefinition(item: TextareaModelDefinition): void {
-        throw new Error("Method not implemented.");
+    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinition): void {
+        this.notImplemented('visitTextAreaFieldModelDefinition');
     }
 
-    /*
-     * Default Layout
-     */
+    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinition): void {
+        this.notImplemented('visitTextAreaFormComponentDefinition');
+    }
+
+    /* Default Layout  */
     visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinition): void {
-        throw new Error("Method not implemented.");
+        this.notImplemented('visitDefaultFieldLayoutDefinition');
     }
 
-
+    private notImplemented(name: string) {
+        throw new Error(`Method '${name}' is not implemented.`);
+    }
 }
 

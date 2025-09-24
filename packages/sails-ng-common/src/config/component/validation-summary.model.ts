@@ -5,7 +5,7 @@ import {
     FieldComponentConfigFrame, FieldComponentConfigKind,
     FieldComponentDefinition, FieldComponentDefinitionFrame,
     FieldComponentDefinitionKind,
-    FormConfigItemVisitor
+    FormConfigItemVisitor, DefaultFieldLayoutDefinition, TextAreaFieldComponentDefinition, TextAreaFieldModelDefinition
 } from "../..";
 
 
@@ -50,9 +50,12 @@ export interface ValidationSummaryFormComponentDefinitionFrame extends FormCompo
 }
 
 export class ValidationSummaryFormComponentDefinition extends FormComponentDefinition {
-
+    component: ValidationSummaryFieldComponentDefinition;
+    layout?: DefaultFieldLayoutDefinition;
     constructor(data: ValidationSummaryFormComponentDefinitionFrame) {
         super(data);
+        this.component = new ValidationSummaryFieldComponentDefinition(data.component);
+        this.layout = new DefaultFieldLayoutDefinition(data.layout);
     }
 
     accept(visitor: FormConfigItemVisitor) {

@@ -2,7 +2,8 @@ import {
     FieldModelConfig, FieldModelDefinition, FieldComponentConfigFrame, FieldComponentConfig,
     FieldComponentDefinitionFrame, FieldComponentDefinition, FieldModelDefinitionFrame,
     FieldModelConfigFrame, FieldComponentConfigKind, FieldComponentDefinitionKind,
-FormConfigItemVisitor
+    FormConfigItemVisitor, FormComponentDefinitionFrame, DefaultFieldLayoutDefinitionFrame, FormComponentDefinition,
+    DefaultFieldLayoutDefinition, FormComponentDefinitionKind, FieldModelConfigKind, FieldModelDefinitionKind
 } from "../..";
 
 /* Text Area Component */
@@ -67,13 +68,13 @@ export interface TextAreaFieldModelDefinitionFrame extends FieldModelDefinitionF
 
 
 
-export class TextareaModelDefinition extends FieldModelDefinition<TextAreaModelValueType> implements TextAreaFieldModelDefinitionFrame {
+export class TextAreaFieldModelDefinition extends FieldModelDefinition<TextAreaModelValueType> implements TextAreaFieldModelDefinitionFrame {
     class = TextAreaModelName;
     config: TextAreaFieldModelConfig;
 
-    constructor(data: TextAreaFieldModelDefinitionFrame) {
-        super(data);
-        this.config = new TextAreaFieldModelConfig(data.config);
+    constructor(data?: TextAreaFieldModelDefinitionFrame) {
+        super(data ?? {class: TextAreaModelName});
+        this.config = new TextAreaFieldModelConfig(data?.config);
     }
 
     accept(visitor: FormConfigItemVisitor): void {
@@ -81,16 +82,41 @@ export class TextareaModelDefinition extends FieldModelDefinition<TextAreaModelV
     }
 }
 
+/* Text Area Form Component */
+export interface TextAreaFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
+    component: TextAreaFieldComponentDefinitionFrame;
+    model?: TextAreaFieldModelDefinitionFrame;
+    layout?: DefaultFieldLayoutDefinitionFrame;
+}
+
+export class TextAreaFormComponentDefinition extends FormComponentDefinition implements TextAreaFormComponentDefinitionFrame {
+    public component: TextAreaFieldComponentDefinition;
+    public model?: TextAreaFieldModelDefinition;
+    public layout?: DefaultFieldLayoutDefinition;
+
+    constructor(data: TextAreaFormComponentDefinitionFrame) {
+        super(data);
+        this.component = new TextAreaFieldComponentDefinition(data.component);
+        this.model = new TextAreaFieldModelDefinition(data.model);
+        this.layout = new DefaultFieldLayoutDefinition(data.layout);
+    }
+
+    accept(visitor: FormConfigItemVisitor) {
+        visitor.visitTextAreaFormComponentDefinition(this);
+    }
+}
 
 export const TextAreaMap = [
     {kind: FieldComponentConfigKind, def: TextAreaFieldComponentConfig},
-    {
-        kind: FieldComponentDefinitionKind,
-        def: TextAreaFieldComponentDefinition,
-        class: TextAreaComponentName
-    },
+    {kind: FieldComponentDefinitionKind, def: TextAreaFieldComponentDefinition, class: TextAreaComponentName},
+    {kind: FieldModelConfigKind, def: TextAreaFieldModelConfig},
+    {kind: FieldModelDefinitionKind, def: TextAreaFieldModelDefinition, class: TextAreaModelName},
+    {kind: FormComponentDefinitionKind, def: TextAreaFormComponentDefinition},
 ];
 export type TextAreaFrames =
     TextAreaFieldComponentConfigFrame |
-    TextAreaFieldComponentDefinitionFrame;
+    TextAreaFieldComponentDefinitionFrame |
+    TextAreaFieldModelConfigFrame |
+    TextAreaFieldModelDefinitionFrame |
+    TextAreaFormComponentDefinitionFrame;
 

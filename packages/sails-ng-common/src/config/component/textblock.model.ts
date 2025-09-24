@@ -11,7 +11,7 @@ import {
     FieldComponentConfig,
     FormConfigItemVisitor,
     HasCompilableTemplates,
-    TemplateCompileInput
+    TemplateCompileInput, DefaultFieldLayoutDefinition,
 } from "../..";
 
 
@@ -79,10 +79,13 @@ export interface ContentFormComponentDefinitionFrame extends FormComponentDefini
     layout?: DefaultFieldLayoutDefinitionFrame;
 }
 
-export class ContentFormComponentDefinition extends FormComponentDefinition {
-
+export class ContentFormComponentDefinition extends FormComponentDefinition implements ContentFormComponentDefinitionFrame {
+    component: ContentFieldComponentDefinition;
+    layout?: DefaultFieldLayoutDefinition;
     constructor(data: ContentFormComponentDefinitionFrame) {
         super(data);
+        this.component = new ContentFieldComponentDefinition(data.component);
+        this.layout = new DefaultFieldLayoutDefinition(data.layout);
     }
 
     accept(visitor: FormConfigItemVisitor) {
@@ -100,7 +103,7 @@ export const ContentMap = [
     {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition},
 ];
 export type ContentFrames =
-    ContentFieldComponentConfigFrame |
-    ContentFieldComponentDefinitionFrame |
-    ContentFormComponentDefinitionFrame;
+    ContentFieldComponentConfigFrame
+    | ContentFieldComponentDefinitionFrame
+    | ContentFormComponentDefinitionFrame;
 
