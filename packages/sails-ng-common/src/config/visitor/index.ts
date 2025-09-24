@@ -1,6 +1,0 @@
-export * from "./shared.model"
-export * from "./client.visitor"
-export * from "./default-value.visitor"
-export * from "./json-type-def.visitor"
-export * from "./template.visitor"
-export * from "./construct.visitor"

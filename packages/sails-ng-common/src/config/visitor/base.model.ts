@@ -1,42 +1,13 @@
-import {
-    FormConfig,
-    GroupFormComponentDefinition,
-    RepeatableFormComponentDefinition,
-    SaveButtonFormComponentDefinition, SimpleInputFormComponentDefinition,
-    TabFieldLayoutDefinition, TabFormComponentDefinition, ValidationSummaryFormComponentDefinition,
-    ContentFormComponentDefinition,
-    ContentFieldComponentDefinition,
-    DefaultFieldLayoutDefinition,
-    GroupFieldComponentDefinition,
-    GroupFieldModelDefinition,
-    RepeatableElementFieldLayoutDefinition,
-    RepeatableFieldComponentDefinition,
-    RepeatableFieldModelDefinition,
-    SaveButtonFieldComponentDefinition,
-    SimpleInputFieldComponentDefinition,
-    SimpleInputFieldModelDefinition,
-    TabFieldComponentDefinition,
-    TextAreaFieldComponentDefinition,
-    TextAreaFieldModelDefinition,
-    ValidationSummaryFieldComponentDefinition,
-    TabContentFieldComponentDefinition,
-    TabContentFieldLayoutDefinition,
-    TabContentFormComponentDefinition, TextAreaFormComponentDefinition
-} from "../..";
+import {IFormConfig} from "../form-config.frame";
+import {IFormConfigVisitor} from "./base.structure";
 
-export interface Visitee {
-    /**
-     * Accept a visitor to this form field definition.
-     */
-    accept(visitor: FormConfigItemVisitor): void;
-}
 
 /**
  * The form config visitor definition.
  */
-export abstract class FormConfigItemVisitor {
+export abstract class FormConfigVisitor implements IFormConfigVisitor {
 
-    visitFormConfig(item: FormConfig): void {
+    visitFormConfig(item: IFormConfig): void {
         this.notImplemented('visitFormConfig');
     }
 
@@ -140,7 +111,7 @@ export abstract class FormConfigItemVisitor {
         this.notImplemented('visitSaveButtonFieldComponentDefinition');
     }
 
-    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinition) {
+    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinition): void {
         this.notImplemented('visitSaveButtonFormComponentDefinition');
     }
 
@@ -167,4 +138,3 @@ export abstract class FormConfigItemVisitor {
         throw new Error(`Method '${name}' is not implemented.`);
     }
 }
-

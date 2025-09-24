@@ -1,11 +1,11 @@
-import {FormConfigItemVisitor} from "../..";
+import {FormConfigVisitor} from "./base.model";
 
 
 /**
  * Visit each form config class type and extract information about any
  * templates that need to be compiled.
  */
-export class TemplateFormConfigVisitor extends FormConfigItemVisitor {
+export class TemplateFormConfigVisitor extends FormConfigVisitor {
     private _templates: Record<string, unknown> = {};
 
     constructor() {

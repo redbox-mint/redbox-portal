@@ -1,5 +1,6 @@
 import _ from "lodash";
-import { FormValidatorCreateConfig } from ".";
+import {FormValidatorCreateConfig} from "./form.model";
+
 
 /**
  * Extract the length property in case it's an array or a string.

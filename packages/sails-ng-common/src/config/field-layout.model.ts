@@ -1,9 +1,9 @@
 import {
     BaseFieldComponentConfig,
-    BaseFieldComponentConfigFrame,
-    BaseFieldComponentDefinition,
+    BaseFieldComponentConfigFrame, BaseFieldComponentDefinition,
     BaseFieldComponentDefinitionFrame
-} from "..";
+} from "./base-field-component.model";
+
 
 /**
  * The form field layout config interface that provides typing for the object literal and schema.
@@ -40,10 +40,6 @@ export abstract class FieldLayoutConfig extends BaseFieldComponentConfig impleme
     public cssClassesMap?: Record<string, string> = {};
     public helpTextVisibleOnInit?: boolean = false;
     public helpTextVisible?: boolean = false;
-
-    protected constructor(data?: FieldLayoutConfigFrame) {
-        super(data);
-    }
 }
 
 /**
@@ -57,15 +53,9 @@ export interface FieldLayoutDefinitionFrame extends BaseFieldComponentDefinition
  * The common form field layout definition properties.
  */
 export abstract class FieldLayoutDefinition extends BaseFieldComponentDefinition implements FieldLayoutDefinitionFrame {
-    config?: FieldLayoutConfig;
+    abstract config?: FieldLayoutConfig;
     /**
      * Optional name for the layout, used to reference the layout on the client-side.
      */
     name?: string;
-
-    protected constructor(data: FieldLayoutDefinitionFrame) {
-        super(data);
-        // The config must be assigned in the subclasses.
-        this.config = undefined;
-    }
 }

@@ -51,20 +51,16 @@ export interface BaseFieldComponentConfigFrame {
  * The common form field component config properties.
  */
 export abstract class BaseFieldComponentConfig implements BaseFieldComponentConfigFrame {
-    public readonly: boolean = false;
-    public visible: boolean = true;
-    public editMode: boolean = true;
+    public readonly?: boolean = false;
+    public visible?: boolean = true;
+    public editMode?: boolean = true;
     public label?: string;
     public defaultComponentCssClasses?: KeyValueStringProperty;
     public hostCssClasses?: KeyValueStringProperty;
     public wrapperCssClasses?: KeyValueStringProperty;
-    public disabled: boolean = false;
-    public autofocus: boolean = false;
+    public disabled?: boolean = false;
+    public autofocus?: boolean = false;
     public tooltip?: string;
-
-    protected constructor(data?: BaseFieldComponentConfigFrame) {
-        Object.assign(this, data ?? {});
-    }
 }
 
 /**
@@ -78,11 +74,5 @@ export interface BaseFieldComponentDefinitionFrame extends FieldDefinitionFrame 
  * The common form field component definition properties.
  */
 export abstract class BaseFieldComponentDefinition extends FieldDefinition implements BaseFieldComponentDefinitionFrame {
-    config?: BaseFieldComponentConfig;
-
-    protected constructor(data: BaseFieldComponentDefinitionFrame) {
-        super(data);
-        // The config must be assigned in the subclasses.
-        this.config = undefined;
-    }
+    abstract config?: BaseFieldComponentConfig;
 }

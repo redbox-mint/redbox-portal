@@ -15,7 +15,7 @@ describe("Construct Visitor ", async () => {
         {
             // empty
             args: {componentDefinitions: []},
-            expected: new FormConfig({componentDefinitions: []}),
+            expected: new FormConfig(),
         },
         {
             // simple example

@@ -1,20 +1,28 @@
 import {
+    FieldComponentConfig,
+    FieldComponentConfigFrame,
+    FieldComponentDefinition,
+    FieldComponentDefinitionFrame
+} from "../field-component.model";
+import {
+    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
+    AvailableFormComponentDefinitionFrames,
+    AvailableFormComponentDefinitions
+} from "../static-types-classes.dictionary";
+import {
     FieldModelConfig,
     FieldModelConfigFrame,
     FieldModelDefinition,
-    FieldModelDefinitionFrame,
-    FormComponentDefinition,
-    FormComponentDefinitionFrame,
-    FieldComponentConfigFrame, FieldComponentDefinitionFrame,
+    FieldModelDefinitionFrame
+} from "../field-model.model";
+import {FormComponentDefinition, FormComponentDefinitionFrame} from "../form-component.model";
+import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
-    FieldModelDefinitionKind, DefaultFieldLayoutDefinitionFrame, DefaultFieldLayoutDefinition,
-    FormComponentDefinitionKind,
-    FieldComponentConfig, FieldComponentDefinition,
-     FormConfigItemVisitor, AvailableFormComponentDefinitionFrames,
-    AvailableFormComponentDefinitions
-} from "../../";
+    FieldModelDefinitionKind, FormComponentDefinitionKind
+} from "../shared.model";
+import {IFormConfigVisitor} from "../visitor/base.structure";
 
 
 /* Group Component */
@@ -28,9 +36,9 @@ export interface GroupFieldComponentConfigFrame extends FieldComponentConfigFram
 export class GroupFieldComponentConfig extends FieldComponentConfig implements GroupFieldComponentConfigFrame {
     componentDefinitions: AvailableFormComponentDefinitions[];
 
-    constructor(data?: GroupFieldComponentConfigFrame, componentDefinitions?: AvailableFormComponentDefinitions[]) {
-        super(data);
-        this.componentDefinitions = componentDefinitions ?? [];
+    constructor() {
+        super();
+        this.componentDefinitions = [];
     }
 }
 
@@ -43,12 +51,11 @@ export class GroupFieldComponentDefinition extends FieldComponentDefinition impl
     class = GroupFieldComponentName;
     config?: GroupFieldComponentConfig;
 
-    constructor(data: GroupFieldComponentDefinitionFrame) {
-        super(data);
-        this.config = new GroupFieldComponentConfig(data.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitGroupFieldComponentDefinition(this);
     }
 }
@@ -63,8 +70,8 @@ export interface GroupFieldModelConfigFrame extends FieldModelConfigFrame<GroupF
 }
 
 export class GroupFieldModelConfig extends FieldModelConfig<GroupFieldModelValueType> implements GroupFieldModelConfigFrame {
-    constructor(data?: GroupFieldModelConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -75,14 +82,13 @@ export interface GroupFieldModelDefinitionFrame extends FieldModelDefinitionFram
 
 export class GroupFieldModelDefinition extends FieldModelDefinition<GroupFieldModelValueType> implements GroupFieldModelDefinitionFrame {
     class = GroupFieldModelName;
-    config: GroupFieldModelConfig;
+    config?: GroupFieldModelConfig;
 
-    constructor(data?: FieldModelDefinitionFrame<GroupFieldModelValueType>) {
-        super(data ?? {class: GroupFieldModelName});
-        this.config = new GroupFieldModelConfig(data?.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitGroupFieldModelDefinition(this);
     }
 }
@@ -91,22 +97,20 @@ export class GroupFieldModelDefinition extends FieldModelDefinition<GroupFieldMo
 export interface GroupFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: GroupFieldComponentDefinitionFrame;
     model?: GroupFieldModelDefinitionFrame;
-    layout?: DefaultFieldLayoutDefinitionFrame;
+    layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
 export class GroupFormComponentDefinition extends FormComponentDefinition implements GroupFormComponentDefinitionFrame {
     public component: GroupFieldComponentDefinition;
     public model?: GroupFieldModelDefinition;
-    public layout?: DefaultFieldLayoutDefinition;
+    public layout?: AvailableFieldLayoutDefinitions;
 
-    constructor(data: GroupFormComponentDefinitionFrame) {
-        super(data);
-        this.component = new GroupFieldComponentDefinition(data.component);
-        this.model = new GroupFieldModelDefinition(data.model);
-        this.layout = new DefaultFieldLayoutDefinition(data.layout);
+    constructor() {
+        super();
+        this.component = new GroupFieldComponentDefinition();
     }
 
-    accept(visitor: FormConfigItemVisitor) {
+    accept(visitor: IFormConfigVisitor) {
         visitor.visitGroupFormComponentDefinition(this);
     }
 }

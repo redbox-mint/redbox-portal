@@ -1,18 +1,22 @@
 import {
-    FormComponentDefinition,
-    FieldComponentDefinition,
+    FieldComponentConfig,
     FieldComponentConfigFrame,
-    FieldComponentDefinitionFrame,
+    FieldComponentDefinition,
+    FieldComponentDefinitionFrame
+} from "../field-component.model";
+import {
+    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
+
+} from "../static-types-classes.dictionary";
+
+import {FormComponentDefinition, FormComponentDefinitionFrame,} from "../form-component.model";
+import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
-    FormComponentDefinitionKind,
-    FormComponentDefinitionFrame,
-    DefaultFieldLayoutDefinitionFrame,
-    FieldComponentConfig,
-    FormConfigItemVisitor,
-    HasCompilableTemplates,
-    TemplateCompileInput, DefaultFieldLayoutDefinition,
-} from "../..";
+    FormComponentDefinitionKind
+} from "../shared.model";
+import {HasCompilableTemplates, TemplateCompileInput} from "../../template.model";
+import {IFormConfigVisitor} from "../visitor/base.structure";
 
 
 /* Content Component */
@@ -34,8 +38,8 @@ export class ContentFieldComponentConfig extends FieldComponentConfig implements
     template?: string;
     content?: string;
 
-    constructor(data?: ContentFieldComponentConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -50,12 +54,11 @@ export class ContentFieldComponentDefinition extends FieldComponentDefinition im
     class = ContentComponentName;
     config?: ContentFieldComponentConfig;
 
-    constructor(data: ContentFieldComponentDefinitionFrame) {
-        super(data);
-        this.config = new ContentFieldComponentConfig(data.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor) {
+    accept(visitor: IFormConfigVisitor) {
         visitor.visitContentFieldComponentDefinition(this);
     }
 
@@ -76,19 +79,21 @@ export class ContentFieldComponentDefinition extends FieldComponentDefinition im
 /* Content Form Component */
 export interface ContentFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: ContentFieldComponentDefinitionFrame;
-    layout?: DefaultFieldLayoutDefinitionFrame;
+    model?: never;
+    layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
 export class ContentFormComponentDefinition extends FormComponentDefinition implements ContentFormComponentDefinitionFrame {
     component: ContentFieldComponentDefinition;
-    layout?: DefaultFieldLayoutDefinition;
-    constructor(data: ContentFormComponentDefinitionFrame) {
-        super(data);
-        this.component = new ContentFieldComponentDefinition(data.component);
-        this.layout = new DefaultFieldLayoutDefinition(data.layout);
+    model?: never;
+    layout?: AvailableFieldLayoutDefinitions;
+
+    constructor() {
+        super();
+        this.component = new ContentFieldComponentDefinition();
     }
 
-    accept(visitor: FormConfigItemVisitor) {
+    accept(visitor: IFormConfigVisitor) {
         visitor.visitContentFormComponentDefinition(this);
     }
 }

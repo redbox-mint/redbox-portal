@@ -1,4 +1,6 @@
-import {FormValidatorConfig,FieldDefinition, FieldDefinitionFrame} from "..";
+import { FormValidatorConfig } from "../validation/form.model";
+import {FieldDefinition, FieldDefinitionFrame} from "./field.model";
+
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.
@@ -60,12 +62,6 @@ export interface FieldModelDefinitionFrame<ValueType> extends FieldDefinitionFra
  * The common form field model definition properties.
  */
 export abstract class FieldModelDefinition<ValueType> extends FieldDefinition implements FieldModelDefinitionFrame<ValueType>  {
-    config?: FieldModelConfig<ValueType>;
-
-    protected constructor(data: FieldModelDefinitionFrame<ValueType>) {
-        super(data);
-        // The config must be assigned in the subclasses.
-        this.config = undefined;
-    }
+    abstract config?: FieldModelConfig<ValueType>;
 }
 

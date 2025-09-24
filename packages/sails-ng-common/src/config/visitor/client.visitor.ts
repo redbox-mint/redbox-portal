@@ -1,13 +1,14 @@
-import {FormConfigItemVisitor,FormConfig} from "../..";
+import {IFormConfig} from "../form-config.frame";
+import {FormConfigVisitor} from "./base.model";
 
 
 /**
  * Visit each form config class type and build the form config for the client-side.
  */
-export class ClientFormConfigVisitor extends FormConfigItemVisitor {
-    private _form?: FormConfig;
+export class ClientFormConfigVisitor extends FormConfigVisitor {
+    private _form?: IFormConfig;
 
-    buildClientFormConfig(original: FormConfig): FormConfig {
+    buildClientFormConfig(original: IFormConfig): IFormConfig {
         this._form = undefined;
         original.accept(this);
         if (this._form !== undefined) {
@@ -16,7 +17,7 @@ export class ClientFormConfigVisitor extends FormConfigItemVisitor {
         throw new Error("Form building failed.");
     }
 
-    visitFormConfig(item: FormConfig): void {
+    visitFormConfig(item: IFormConfig): void {
         for (const child of item.children) {
             child.accept(this);
         }

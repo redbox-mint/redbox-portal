@@ -1,4 +1,4 @@
-import {FormConfigItemVisitor, Visitee} from "..";
+import {IFormConfigVisitor, Visitee} from "./visitor/base.structure";
 
 
 /**
@@ -25,14 +25,8 @@ export interface FieldDefinitionFrame {
  * This is the basic structure used by component, model, and layout definitions.
  */
 export abstract class FieldDefinition implements FieldDefinitionFrame, Visitee {
-    class: string;
-    config?: object;
+    abstract class: string;
+    abstract config?: object;
 
-    protected constructor(data: FieldDefinitionFrame) {
-        Object.assign(this, data);
-        // Typescript can't yet use Object.assign to know that a property has been assigned in the constructor.
-        this.class = data.class;
-    }
-
-    abstract accept(visitor: FormConfigItemVisitor): void;
+    abstract accept(visitor: IFormConfigVisitor): void;
 }

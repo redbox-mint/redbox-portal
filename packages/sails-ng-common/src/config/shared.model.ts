@@ -95,10 +95,6 @@ export interface FormExpressionsConfigFrame {
 
 export class FormExpressionsConfig implements FormExpressionsConfigFrame {
     [key: string]: { template: string; condition?: unknown; };
-
-    constructor(data?: FormExpressionsConfigFrame) {
-        Object.assign(this, data ?? {});
-    }
 }
 
 export interface FormConstraintConfigFrame {
@@ -121,11 +117,6 @@ export interface FormConstraintConfigFrame {
 export class FormConstraintConfig {
     authorization?: FormConstraintAuthorizationConfig;
     allowModes?: FormModesConfig[]
-
-    constructor(data?: FormConstraintConfigFrame) {
-        Object.assign(this, data ?? {});
-        this.authorization = new FormConstraintAuthorizationConfig(data?.authorization);
-    }
 }
 
 export interface FormConstraintAuthorizationConfigFrame {
@@ -142,10 +133,6 @@ export interface FormConstraintAuthorizationConfigFrame {
  */
 export class FormConstraintAuthorizationConfig implements FormConstraintAuthorizationConfigFrame {
     allowRoles?: string[];
-
-    constructor(data?: FormConstraintAuthorizationConfigFrame) {
-        Object.assign(this, data ?? {});
-    }
 }
 
 /**

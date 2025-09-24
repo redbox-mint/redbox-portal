@@ -1,24 +1,33 @@
 import {
-    DefaultFieldLayoutDefinitionFrame, FormComponentDefinition,
-    FormComponentDefinitionFrame, FormComponentDefinitionKind,
     FieldComponentConfig,
-    FieldComponentConfigFrame, FieldComponentConfigKind,
-    FieldComponentDefinition, FieldComponentDefinitionFrame,
-    FieldComponentDefinitionKind,
-    FormConfigItemVisitor, DefaultFieldLayoutDefinition, TextAreaFieldComponentDefinition, TextAreaFieldModelDefinition
-} from "../..";
+    FieldComponentConfigFrame,
+    FieldComponentDefinition,
+    FieldComponentDefinitionFrame
+} from "../field-component.model";
+import {
+    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
+
+} from "../static-types-classes.dictionary";
+
+import {FormComponentDefinition, FormComponentDefinitionFrame} from "../form-component.model";
+import {
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind, FormComponentDefinitionKind
+} from "../shared.model";
+import {IFormConfigVisitor} from "../visitor/base.structure";
 
 
 
 /*  Validation Summary Component */
 export const ValidationSummaryComponentName = "ValidationSummaryComponent" as const;
-export type ValidationSummaryComponentNameType =  typeof ValidationSummaryComponentName;
+export type ValidationSummaryComponentNameType = typeof ValidationSummaryComponentName;
+
 export interface ValidationSummaryFieldComponentConfigFrame extends FieldComponentConfigFrame {
 }
 
 export class ValidationSummaryFieldComponentConfig extends FieldComponentConfig implements ValidationSummaryFieldComponentConfigFrame {
-    constructor(data?: ValidationSummaryFieldComponentConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -32,13 +41,12 @@ export class ValidationSummaryFieldComponentDefinition extends FieldComponentDef
     class = ValidationSummaryComponentName;
     config?: ValidationSummaryFieldComponentConfig;
 
-
-    constructor(data: ValidationSummaryFieldComponentDefinitionFrame) {
-        super(data);
-        this.config = new ValidationSummaryFieldComponentConfig(data.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitValidationSummaryFieldComponentDefinition(this);
     }
 }
@@ -46,19 +54,21 @@ export class ValidationSummaryFieldComponentDefinition extends FieldComponentDef
 /* Validation Summary Form Component */
 export interface ValidationSummaryFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: ValidationSummaryFieldComponentDefinitionFrame;
-    layout?: DefaultFieldLayoutDefinitionFrame;
+    model?: never;
+    layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
-export class ValidationSummaryFormComponentDefinition extends FormComponentDefinition {
+export class ValidationSummaryFormComponentDefinition extends FormComponentDefinition implements ValidationSummaryFormComponentDefinitionFrame {
     component: ValidationSummaryFieldComponentDefinition;
-    layout?: DefaultFieldLayoutDefinition;
-    constructor(data: ValidationSummaryFormComponentDefinitionFrame) {
-        super(data);
-        this.component = new ValidationSummaryFieldComponentDefinition(data.component);
-        this.layout = new DefaultFieldLayoutDefinition(data.layout);
+    model?: never;
+    layout?: AvailableFieldLayoutDefinitions;
+
+    constructor() {
+        super();
+        this.component = new ValidationSummaryFieldComponentDefinition();
     }
 
-    accept(visitor: FormConfigItemVisitor) {
+    accept(visitor: IFormConfigVisitor) {
         visitor.visitValidationSummaryFormComponentDefinition(this);
     }
 }

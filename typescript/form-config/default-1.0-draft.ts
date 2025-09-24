@@ -23,7 +23,7 @@ const formConfig: FormConfigFrame = {
 
     // Validators that operate on multiple fields.
     validators: [
-        { name: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
+        {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
     // componentTemplates: [
     //     // TODO - server-side only, replaced in componentDefinitions
@@ -72,7 +72,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'textarea_1',
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'Textarea some label',
                                                     helpText: 'Textarea some help text',
@@ -111,7 +111,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'text_2',
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'TextField with default wrapper defined',
                                                     helpText: 'This is a help text',
@@ -134,7 +134,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'text_7',
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'TextField with default wrapper defined',
                                                     helpText: 'This is a help text',
@@ -191,7 +191,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'text_2_component_event',
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'TextField with default wrapper defined',
                                                     helpText: 'This is a help text',
@@ -239,7 +239,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'text_3_layout_event',
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'TextField with default wrapper defined',
                                                     helpText: 'This is a help text',
@@ -285,7 +285,7 @@ const formConfig: FormConfigFrame = {
                                             // first group component
                                             name: 'group_1_component',
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'Group label',
                                                     helpText: 'Group help',
@@ -304,7 +304,7 @@ const formConfig: FormConfigFrame = {
                                                         {
                                                             name: 'text_3',
                                                             layout: {
-                                                                class: 'DefaultLayoutComponent',
+                                                                class: 'DefaultLayout',
                                                                 config: {
                                                                     label: 'TextField with default wrapper defined',
                                                                     helpText: 'This is a help text',
@@ -336,7 +336,7 @@ const formConfig: FormConfigFrame = {
                                                             // second group component, nested in first group component
                                                             name: 'group_2_component',
                                                             layout: {
-                                                                class: 'DefaultLayoutComponent',
+                                                                class: 'DefaultLayout',
                                                                 config: {
                                                                     label: 'Group2 label',
                                                                     helpText: 'Group 2 help',
@@ -355,7 +355,7 @@ const formConfig: FormConfigFrame = {
                                                                         {
                                                                             name: 'text_5',
                                                                             layout: {
-                                                                                class: 'DefaultLayoutComponent',
+                                                                                class: 'DefaultLayout',
                                                                                 config: {
                                                                                     label: 'TextField with default wrapper defined',
                                                                                     helpText: 'This is a help text',
@@ -391,7 +391,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'repeatable_textfield_1',
                                             model: {
-                                                class: 'RepeatableComponentModel',
+                                                class: 'RepeatableModel',
                                                 config: {
                                                     defaultValue: ['hello world from repeatable, default!']
                                                 }
@@ -408,12 +408,15 @@ const formConfig: FormConfigFrame = {
                                                                 validators: [
                                                                     {
                                                                         name: 'pattern',
-                                                                        config: { pattern: /prefix.*/, description: "must start with prefix" }
+                                                                        config: {
+                                                                            pattern: /prefix.*/,
+                                                                            description: "must start with prefix"
+                                                                        }
                                                                     },
                                                                     {
                                                                         name: 'minLength',
                                                                         message: "@validator-error-custom-example_repeatable",
-                                                                        config: { minLength: 3 }
+                                                                        config: {minLength: 3}
                                                                     },
                                                                 ]
                                                             }
@@ -426,7 +429,7 @@ const formConfig: FormConfigFrame = {
                                                             }
                                                         },
                                                         layout: {
-                                                            class: 'RepeatableElementLayoutComponent',
+                                                            class: 'RepeatableElementLayout',
                                                             config: {
                                                                 hostCssClasses: 'row align-items-start'
                                                             }
@@ -435,7 +438,7 @@ const formConfig: FormConfigFrame = {
                                                 },
                                             },
                                             layout: {
-                                                class: 'DefaultLayoutComponent',
+                                                class: 'DefaultLayout',
                                                 config: {
                                                     label: 'Repeatable TextField with default wrapper defined',
                                                     helpText: 'Repeatable component help text',
@@ -465,7 +468,7 @@ const formConfig: FormConfigFrame = {
             model: {
                 class: 'RepeatableModel',
                 config: {
-                    defaultValue: [{ text_3: "hello world from repeating groups" }]
+                    defaultValue: [{text_3: "hello world from repeating groups"}]
                 }
             },
             component: {
@@ -495,7 +498,7 @@ const formConfig: FormConfigFrame = {
                                                     {
                                                         name: 'minLength',
                                                         message: "@validator-error-custom-text_3",
-                                                        config: { minLength: 3 }
+                                                        config: {minLength: 3}
                                                     }
                                                 ]
                                             }
@@ -527,7 +530,7 @@ const formConfig: FormConfigFrame = {
                 }
             },
         },
-        { 
+        {
             name: 'save_button',
             component: {
                 class: 'SaveButtonComponent',
@@ -538,7 +541,7 @@ const formConfig: FormConfigFrame = {
         },
         {
             name: 'validation_summary_1',
-            component: { class: "ValidationSummaryComponent" }
+            component: {class: "ValidationSummaryComponent"}
         },
         // {
         //   module: 'custom',

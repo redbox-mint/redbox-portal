@@ -1,4 +1,4 @@
-import { RecordPageDto, RecordPropViewMetaDto } from ".";
+import {RecordPageDto, RecordPropViewMetaDto} from "./record.model";
 
 export interface ReportFilterDto {
   type: string;

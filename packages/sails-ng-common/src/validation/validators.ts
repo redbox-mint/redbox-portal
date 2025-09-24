@@ -1,9 +1,11 @@
+import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
 import {
-    formValidatorGetDefinitionArray, formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
+    formValidatorGetDefinitionArray,
+    formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
     formValidatorGetDefinitionNumber,
     formValidatorGetDefinitionRegexp, formValidatorGetDefinitionString, formValidatorLengthOrSize
-} from ".";
-import {FormValidatorControl, FormValidatorDefinition} from ".";
+} from "./helpers";
+
 
 export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 

@@ -1,10 +1,12 @@
 import {
-    FieldLayoutConfig, FieldLayoutConfigFrame,
+    FieldLayoutConfig,
+    FieldLayoutConfigFrame,
     FieldLayoutDefinition,
-    FieldLayoutDefinitionFrame,
-    FieldLayoutConfigKind, FieldLayoutDefinitionKind,
-    FormConfigItemVisitor
-} from "../..";
+    FieldLayoutDefinitionFrame
+} from "../field-layout.model";
+import {FieldLayoutConfigKind, FieldLayoutDefinitionKind} from "../shared.model";
+import {IFormConfigVisitor} from "../visitor/base.structure";
+
 
 
 /* Default Layout */
@@ -15,8 +17,8 @@ export interface DefaultFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
 }
 
 export class DefaultFieldLayoutConfig extends FieldLayoutConfig implements DefaultFieldLayoutConfigFrame {
-    constructor(data?: FieldLayoutConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -25,16 +27,14 @@ export interface DefaultFieldLayoutDefinitionFrame extends FieldLayoutDefinition
     config?: DefaultFieldLayoutConfigFrame;
 }
 
+
 export class DefaultFieldLayoutDefinition extends FieldLayoutDefinition implements DefaultFieldLayoutDefinitionFrame {
     class = DefaultLayoutName;
     config?: DefaultFieldLayoutConfig;
-
-    constructor(data?: DefaultFieldLayoutDefinitionFrame) {
-        super(data ?? {class: DefaultLayoutName});
-        this.config = new DefaultFieldLayoutConfig(data?.config);
+    constructor() {
+        super();
     }
-
-    accept(visitor: FormConfigItemVisitor): void {
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitDefaultFieldLayoutDefinition(this);
     }
 }

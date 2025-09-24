@@ -1,12 +1,29 @@
 import {
-    FieldModelConfig, FieldModelDefinition, FieldComponentConfigFrame,
-    FieldComponentDefinitionFrame, FieldComponentConfig, FieldComponentDefinition,
-    FieldModelConfigFrame, FieldModelDefinitionFrame, FieldComponentConfigKind,
-    FieldComponentDefinitionKind, FormComponentDefinitionKind, FormComponentDefinitionFrame,
-    FormComponentDefinition,
-    DefaultFieldLayoutDefinitionFrame, FieldModelConfigKind, FieldModelDefinitionKind,
-    FormConfigItemVisitor, DefaultFieldLayoutDefinition
-} from "../..";
+    FieldComponentConfig,
+    FieldComponentConfigFrame,
+    FieldComponentDefinition,
+    FieldComponentDefinitionFrame
+} from "../field-component.model";
+import {
+    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
+
+} from "../static-types-classes.dictionary";
+
+import {
+    FieldModelConfig,
+    FieldModelConfigFrame,
+    FieldModelDefinition,
+    FieldModelDefinitionFrame
+} from "../field-model.model";
+import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from "../form-component.model";
+import {
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind,
+    FieldModelConfigKind,
+    FieldModelDefinitionKind, FormComponentDefinitionKind
+} from "../shared.model";
+import {IFormConfigVisitor} from "../visitor/base.structure";
+
 
 /* Simple Input Component */
 export const SimpleInputComponentName = "SimpleInputComponent" as const;
@@ -23,8 +40,8 @@ export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConf
 export class SimpleInputFieldComponentConfig extends FieldComponentConfig implements SimpleInputFieldComponentConfigFrame {
     type: SimpleInputFieldComponentConfigType = "text";
 
-    constructor(data?: SimpleInputFieldComponentConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -37,12 +54,11 @@ export class SimpleInputFieldComponentDefinition extends FieldComponentDefinitio
     class = SimpleInputComponentName;
     config?: SimpleInputFieldComponentConfig;
 
-    constructor(data: SimpleInputFieldComponentDefinitionFrame) {
-        super(data);
-        this.config = new SimpleInputFieldComponentConfig(data.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitSimpleInputFieldComponentDefinition(this);
     }
 }
@@ -57,8 +73,8 @@ export interface SimpleInputFieldModelConfigFrame extends FieldModelConfigFrame<
 }
 
 export class SimpleInputFieldModelConfig extends FieldModelConfig<SimpleInputModelValueType> implements SimpleInputFieldModelConfigFrame {
-    constructor(data?: SimpleInputFieldModelConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -70,14 +86,13 @@ export interface SimpleInputFieldModelDefinitionFrame extends FieldModelDefiniti
 
 export class SimpleInputFieldModelDefinition extends FieldModelDefinition<SimpleInputModelValueType> {
     class = SimpleInputModelName;
-    config: SimpleInputFieldModelConfig;
+    config?: SimpleInputFieldModelConfig;
 
-    constructor(data?: SimpleInputFieldModelDefinitionFrame) {
-        super(data ?? {class: SimpleInputModelName});
-        this.config = new SimpleInputFieldModelConfig(data?.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitSimpleInputFieldModelDefinition(this);
     }
 }
@@ -86,21 +101,20 @@ export class SimpleInputFieldModelDefinition extends FieldModelDefinition<Simple
 export interface SimpleInputFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: SimpleInputFieldComponentDefinitionFrame;
     model?: SimpleInputFieldModelDefinitionFrame;
-    layout?: DefaultFieldLayoutDefinitionFrame
+    layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
 export class SimpleInputFormComponentDefinition extends FormComponentDefinition implements SimpleInputFormComponentDefinitionFrame {
     public component: SimpleInputFieldComponentDefinition;
     public model?: SimpleInputFieldModelDefinition;
-    public layout?: DefaultFieldLayoutDefinition;
-    constructor(data: SimpleInputFormComponentDefinitionFrame) {
-        super(data);
-        this.component = new SimpleInputFieldComponentDefinition(data.component);
-        this.model = new SimpleInputFieldModelDefinition(data.model);
-        this.layout = new DefaultFieldLayoutDefinition(data.layout);
+    public layout?: AvailableFieldLayoutDefinitions;
+
+    constructor() {
+        super();
+        this.component = new SimpleInputFieldComponentDefinition();
     }
 
-    accept(visitor: FormConfigItemVisitor) {
+    accept(visitor: IFormConfigVisitor) {
         visitor.visitSimpleInputFormComponentDefinition(this);
     }
 }

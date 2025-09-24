@@ -1,17 +1,29 @@
 import {
     FieldComponentConfig,
-    FieldComponentConfigFrame, FieldComponentDefinition,
-    FieldComponentDefinitionFrame, FormConfigItemVisitor,
+    FieldComponentConfigFrame,
+    FieldComponentDefinition,
+    FieldComponentDefinitionFrame
+} from "../field-component.model";
+import {
+
+    AvailableFormComponentDefinitionFrames,
+    AvailableFormComponentDefinitions
+} from "../static-types-classes.dictionary";
+
+
+import {FormComponentDefinition, FormComponentDefinitionFrame, } from "../form-component.model";
+import {
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind,
+    FormComponentDefinitionKind
+} from "../shared.model";
+import {
     FieldLayoutConfig,
     FieldLayoutConfigFrame,
     FieldLayoutDefinition,
-    FieldLayoutDefinitionFrame, FormComponentDefinitionFrame, FormComponentDefinition,
-    FieldComponentConfigKind,
-    FieldComponentDefinitionKind,
-    FieldLayoutConfigKind,
-    FieldLayoutDefinitionKind, FormComponentDefinitionKind, AvailableFormComponentDefinitionFrames,
-    AvailableFormComponentDefinitions
-} from "../..";
+    FieldLayoutDefinitionFrame
+} from "../field-layout.model";
+import {IFormConfigVisitor} from "../visitor/base.structure";
 
 
 /* Tab Content Component */
@@ -34,9 +46,9 @@ export class TabContentFieldComponentConfig extends FieldComponentConfig impleme
     componentDefinitions: AvailableFormComponentDefinitions[];
     selected?: boolean = false;
 
-    constructor(data?: TabContentFieldComponentConfigFrame, componentDefinitions?: AvailableFormComponentDefinitions[]) {
-        super(data);
-        this.componentDefinitions = componentDefinitions ?? [];
+    constructor() {
+        super();
+        this.componentDefinitions = [];
     }
 }
 
@@ -49,12 +61,12 @@ export class TabContentFieldComponentDefinition extends FieldComponentDefinition
     class = TabContentComponentName;
     config?: TabContentFieldComponentConfig;
 
-    constructor(data: TabContentFieldComponentDefinitionFrame) {
-        super(data);
-        this.config = new TabContentFieldComponentConfig(data.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitTabContentFieldComponentDefinition(this);
     }
 }
@@ -74,8 +86,8 @@ export interface TabContentFieldLayoutConfigFrame extends FieldLayoutConfigFrame
 export class TabContentFieldLayoutConfig extends FieldLayoutConfig implements TabContentFieldLayoutConfigFrame {
     buttonLabel?: string;
 
-    constructor(data?: TabContentFieldLayoutConfigFrame) {
-        super(data);
+    constructor() {
+        super();
     }
 }
 
@@ -88,12 +100,11 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
     class = TabContentLayoutName;
     config?: TabContentFieldLayoutConfig;
 
-    constructor(data?: TabContentFieldLayoutDefinitionFrame) {
-        super(data ?? {class: TabContentLayoutName});
-        this.config = new TabContentFieldLayoutConfig(data?.config);
+    constructor() {
+        super();
     }
 
-    accept(visitor: FormConfigItemVisitor): void {
+    accept(visitor: IFormConfigVisitor): void {
         visitor.visitTabContentFieldLayoutDefinition(this);
     }
 }
@@ -101,21 +112,21 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
 /* Tab Content Form Component */
 export interface TabContentFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: TabContentFieldComponentDefinitionFrame;
+    model?: never;
     layout?: TabContentFieldLayoutDefinitionFrame;
 }
 
 export class TabContentFormComponentDefinition extends FormComponentDefinition implements TabContentFormComponentDefinitionFrame {
     public component: TabContentFieldComponentDefinition;
+    public model?: never;
     public layout?: TabContentFieldLayoutDefinition;
 
-    constructor(data: TabContentFormComponentDefinitionFrame) {
-        super(data);
-        this.name = data.name;
-        this.component = new TabContentFieldComponentDefinition(data.component);
-        this.layout = new TabContentFieldLayoutDefinition(data.layout);
+    constructor() {
+        super();
+        this.component = new TabContentFieldComponentDefinition();
     }
 
-    accept(visitor: FormConfigItemVisitor) {
+    accept(visitor: IFormConfigVisitor) {
         visitor.visitTabContentFormComponentDefinition(this);
     }
 }

@@ -36,7 +36,7 @@ The form config needs to be transformed into other structures.
 There are two aspects to this:
 
 1. The outcome: the complete structure that is needed after processing all items.
-   This is implemented by 'visitors' via the `Visitee` interface and `FormConfigItemVisitor` abstract class.
+   This is implemented by 'visitors' via the `Visitee` interface and `IFormConfigVisitor` abstract class.
 
 2. The aspects of each component, and the component's various pieces of config.
    This is implemented by each form components via the abstract class `FormComponentDefinition`.
