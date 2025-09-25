@@ -35,38 +35,29 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
   protected override logName: string = "DateInputComponent";
   public tooltip: string = '';
-  public placeholder: string | undefined = '';
-  public dateFormat: string = 'YYYY-MM-DD';
-  public minDate: Date | undefined;
-  public maxDate: Date | undefined;
+  public placeholder: string | undefined = 'DD/MM/YYYY';
+  private dateFormat: string = 'DD/MM/YYYY';
+  private showWeekNumbers: boolean = false;
+  private containerClass: string = 'theme-dark-blue';
 
-  public get bsConfig() {
+  public get bsConfig(): BsDatepickerConfig {
     return {
       dateInputFormat: this.dateFormat,
-      minDate: this.minDate,
-      maxDate: this.maxDate,
-      adaptivePosition: true,
-      showWeekNumbers: false
+      showWeekNumbers: this.showWeekNumbers,
+      containerClass: this.containerClass
     } as BsDatepickerConfig;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
-    const dateConfig = this.componentDefinition?.config as DateInputComponentConfig;
-    const defaultConfig = new DateInputComponentConfig();
-    const cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
+    let dateConfig = this.componentDefinition?.config as DateInputComponentConfig;
+    let defaultConfig = new DateInputComponentConfig();
+    let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
     this.placeholder = cfg.placeholder ?? defaultConfig.placeholder;
     this.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormat;
-    this.minDate = this.parseDate(cfg.minDate ?? defaultConfig.minDate);
-    this.maxDate = this.parseDate(cfg.maxDate ?? defaultConfig.maxDate);
-  }
-
-  private parseDate(value: string | Date | null | undefined): Date | undefined {
-    if (!value) { return undefined; }
-    if (value instanceof Date) { return value; }
-    const parsed = new Date(value);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
+    this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
+    this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
   }
 
   @Input() public override model?: DateInputModel;

@@ -10,9 +10,9 @@ export interface DateInputComponentDefinition extends BaseFormFieldComponentDefi
 
 export class DateInputComponentConfig extends BaseFormFieldComponentConfig {
     public placeholder?: string = '';
-    public dateFormat?: string = 'YYYY-MM-DD';
-    public minDate?: string | Date | null = null;
-    public maxDate?: string | Date | null = null;
+    public dateFormat?: string = 'DD/MM/YYYY';
+    public showWeekNumbers?: boolean = false;
+    public containerClass?: string = 'theme-dark-blue';
 }
 
 export interface DateInputModelDefinition extends BaseFormFieldModelDefinition<DateInputModelValueType> {
