@@ -93,5 +93,5 @@ export const SimpleInputMap = [
     {kind: FieldComponentDefinitionKind, def: SimpleInputFieldComponentDefinition, class: SimpleInputComponentName},
     {kind: FieldModelConfigKind, def: SimpleInputFieldModelConfig},
     {kind: FieldModelDefinitionKind, def: SimpleInputFieldModelDefinition, class: SimpleInputModelName},
-    {kind: FormComponentDefinitionKind, def: SimpleInputFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: SimpleInputFormComponentDefinition, class:SimpleInputComponentName},
 ];

@@ -42,7 +42,7 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     public abstract layout?: FieldLayoutDefinitionOutline;
     public expressions?: FormExpressionsConfigOutline;
     public module?: string;
-    public constraints?: FormConstraintConfig;
+    public constraints?: FormConstraintConfigOutline;
 
     protected constructor() {
         this.name = "";

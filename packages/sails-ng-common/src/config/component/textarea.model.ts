@@ -98,6 +98,6 @@ export const TextAreaMap = [
     {kind: FieldComponentDefinitionKind, def: TextAreaFieldComponentDefinition, class: TextAreaComponentName},
     {kind: FieldModelConfigKind, def: TextAreaFieldModelConfig},
     {kind: FieldModelDefinitionKind, def: TextAreaFieldModelDefinition, class: TextAreaModelName},
-    {kind: FormComponentDefinitionKind, def: TextAreaFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: TextAreaFormComponentDefinition, class:TextAreaComponentName},
 ];
 

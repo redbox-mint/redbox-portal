@@ -1,11 +1,28 @@
 import {
     AvailableFieldLayoutDefinitionOutlines,
-    AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines
+    AvailableFormComponentDefinitionFrames,
+    AvailableFormComponentDefinitionOutlines,
+    AvailableFieldLayoutDefinitionFrames
 } from "../dictionary.outline";
-import {AvailableFieldLayoutDefinitionFrames} from "../dictionary.outline";
-import {FieldModelConfigFrame, FieldModelDefinitionFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
-import {FormComponentDefinitionFrame, HasChildren} from "../form-component.outline";
+import {
+    FieldModelConfigFrame,
+    FieldModelConfigOutline,
+    FieldModelDefinitionFrame,
+    FieldModelDefinitionOutline
+} from "../field-model.outline";
+import {
+    FieldComponentConfigFrame,
+    FieldComponentConfigOutline,
+    FieldComponentDefinitionFrame, FieldComponentDefinitionOutline
+} from "../field-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FieldModelConfigFrameKindType,
+    FieldModelConfigKindType, FieldModelDefinitionFrameKindType,
+    FieldModelDefinitionKindType, FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 /* Group Component */
 
@@ -16,14 +33,14 @@ export interface GroupFieldComponentConfigFrame extends FieldComponentConfigFram
     componentDefinitions: AvailableFormComponentDefinitionFrames[];
 }
 
-export interface GroupFieldComponentConfigOutline extends GroupFieldComponentConfigFrame {
+export interface GroupFieldComponentConfigOutline extends GroupFieldComponentConfigFrame, FieldComponentConfigOutline {
     componentDefinitions: AvailableFormComponentDefinitionOutlines[];
 }
 
 export interface GroupFieldModelConfigFrame extends FieldModelConfigFrame<GroupFieldModelValueType> {
 }
 
-export interface GroupFieldModelConfigOutline extends GroupFieldModelConfigFrame {
+export interface GroupFieldModelConfigOutline extends GroupFieldModelConfigFrame, FieldModelConfigOutline<GroupFieldModelValueType> {
 
 }
 
@@ -38,7 +55,7 @@ export interface GroupFieldComponentDefinitionFrame extends FieldComponentDefini
     config?: GroupFieldComponentConfigFrame;
 }
 
-export interface GroupFieldComponentDefinitionOutline extends GroupFieldComponentDefinitionFrame {
+export interface GroupFieldComponentDefinitionOutline extends GroupFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: GroupFieldComponentNameType;
     config?: GroupFieldComponentConfigOutline;
 }
@@ -48,7 +65,7 @@ export interface GroupFieldModelDefinitionFrame extends FieldModelDefinitionFram
     config?: GroupFieldModelConfigFrame;
 }
 
-export interface GroupFieldModelDefinitionOutline extends GroupFieldModelDefinitionFrame, HasChildren {
+export interface GroupFieldModelDefinitionOutline extends GroupFieldModelDefinitionFrame, FieldModelDefinitionOutline<GroupFieldModelValueType>, HasChildren {
     class: GroupFieldModelNameType;
     config?: GroupFieldModelConfigOutline;
 }
@@ -61,21 +78,20 @@ export interface GroupFormComponentDefinitionFrame extends FormComponentDefiniti
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
-export interface GroupFormComponentDefinitionOutline extends GroupFormComponentDefinitionFrame {
+export interface GroupFormComponentDefinitionOutline extends GroupFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: GroupFieldComponentDefinitionOutline;
     model?: GroupFieldModelDefinitionOutline;
     layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
-export type GroupFrames =
-    GroupFieldComponentConfigFrame |
-    GroupFieldComponentDefinitionFrame |
-    GroupFieldModelConfigFrame |
-    GroupFieldModelDefinitionFrame |
-    GroupFormComponentDefinitionFrame;
-export type GroupOutlines =
-    GroupFieldComponentConfigOutline |
-    GroupFieldComponentDefinitionOutline |
-    GroupFieldModelConfigOutline |
-    GroupFieldModelDefinitionOutline |
-    GroupFormComponentDefinitionOutline;
+export type GroupTypes = { kind: FieldComponentConfigFrameKindType, class: GroupFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: GroupFieldComponentDefinitionFrame }
+    | { kind: FieldModelConfigFrameKindType, class: GroupFieldModelConfigFrame }
+    | { kind: FieldModelDefinitionFrameKindType, class: GroupFieldModelDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: GroupFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: GroupFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: GroupFieldComponentDefinitionOutline }
+    | { kind: FieldModelConfigKindType, class: GroupFieldModelConfigOutline }
+    | { kind: FieldModelDefinitionKindType, class: GroupFieldModelDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: GroupFormComponentDefinitionOutline }
+    ;

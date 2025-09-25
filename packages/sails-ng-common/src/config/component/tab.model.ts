@@ -14,6 +14,7 @@ import {FieldComponentDefinition} from "../field-component.model";
 import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
 import { FormComponentDefinitionOutline } from "../form-component.outline";
 import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
+import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 
 
 /* Tab Component */
@@ -38,7 +39,7 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
         super();
     }
 
-    get children(): FormComponentDefinitionOutline[] {
+    get children(): AllFormComponentDefinitionOutlines[] {
         throw new Error("Method not implemented.");
     }
 
@@ -96,5 +97,5 @@ export const TabMap = [
     {kind: FieldComponentDefinitionKind, def: TabFieldComponentDefinition, class: TabComponentName},
     {kind: FieldLayoutConfigKind, def: TabFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: TabFieldLayoutDefinition, class: TabLayoutName},
-    {kind: FormComponentDefinitionKind, def: TabFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: TabFormComponentDefinition, class:TabComponentName},
 ];

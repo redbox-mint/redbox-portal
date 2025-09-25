@@ -1,6 +1,15 @@
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
-import {FormComponentDefinitionFrame} from "../form-component.outline";
+import {
+    FieldComponentConfigFrame, FieldComponentConfigOutline,
+    FieldComponentDefinitionFrame,
+    FieldComponentDefinitionOutline
+} from "../field-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 /* Save Button Component */
 
@@ -11,7 +20,7 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
 }
 
 
-export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame {
+export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {
 
 }
 
@@ -20,7 +29,7 @@ export interface SaveButtonFieldComponentDefinitionFrame extends FieldComponentD
     config?: SaveButtonFieldComponentConfigFrame;
 }
 
-export interface SaveButtonFieldComponentDefinitionOutline extends SaveButtonFieldComponentDefinitionFrame {
+export interface SaveButtonFieldComponentDefinitionOutline extends SaveButtonFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: SaveButtonComponentNameType;
     config?: SaveButtonFieldComponentConfigOutline;
 }
@@ -34,20 +43,18 @@ export interface SaveButtonFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
-export interface SaveButtonFormComponentDefinitionOutline extends SaveButtonFormComponentDefinitionFrame {
+export interface SaveButtonFormComponentDefinitionOutline extends SaveButtonFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: SaveButtonFieldComponentDefinitionOutline;
     model?: never;
     layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
-export type SaveButtonFrames =
-    SaveButtonFieldComponentConfigFrame |
-    SaveButtonFieldComponentDefinitionFrame |
-    SaveButtonFormComponentDefinitionFrame;
-
-
-export type SaveButtonOutlines =
-    SaveButtonFieldComponentConfigOutline |
-    SaveButtonFieldComponentDefinitionOutline |
-    SaveButtonFormComponentDefinitionOutline;
+export type SaveButtonTypes =
+    | { kind: FieldComponentConfigFrameKindType, class: SaveButtonFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: SaveButtonFieldComponentDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: SaveButtonFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: SaveButtonFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: SaveButtonFieldComponentDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: SaveButtonFormComponentDefinitionOutline }
+    ;
 

@@ -60,5 +60,5 @@ export const SaveButtonMap = [
         def: SaveButtonFieldComponentDefinition,
         class: SaveButtonComponentName
     },
-    {kind: FormComponentDefinitionKind, def: SaveButtonFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: SaveButtonFormComponentDefinition, class:SaveButtonComponentName},
 ];

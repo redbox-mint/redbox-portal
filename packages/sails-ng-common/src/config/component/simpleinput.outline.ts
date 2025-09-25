@@ -1,7 +1,23 @@
-import {    AvailableFieldLayoutDefinitionFrames,} from "../dictionary.outline";
-import {FieldModelConfigFrame, FieldModelDefinitionFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
-import {FormComponentDefinitionFrame} from "../form-component.outline";
+import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines,} from "../dictionary.outline";
+import {
+    FieldModelConfigFrame,
+    FieldModelConfigOutline,
+    FieldModelDefinitionFrame,
+    FieldModelDefinitionOutline
+} from "../field-model.outline";
+import {
+    FieldComponentConfigFrame, FieldComponentConfigOutline,
+    FieldComponentDefinitionFrame,
+    FieldComponentDefinitionOutline
+} from "../field-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FieldModelConfigFrameKindType,
+    FieldModelConfigKindType, FieldModelDefinitionFrameKindType,
+    FieldModelDefinitionKindType, FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 
 /* Simple Input Component */
@@ -15,16 +31,18 @@ export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConf
     type: SimpleInputFieldComponentConfigType;
 }
 
-export interface SimpleInputFieldComponentConfigOutline extends SimpleInputFieldComponentConfigFrame {
-
+export interface SimpleInputFieldComponentConfigOutline extends SimpleInputFieldComponentConfigFrame, FieldComponentConfigOutline {
+    type: SimpleInputFieldComponentConfigType;
 }
 
 export interface SimpleInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
     class: SimpleInputComponentNameType;
     config?: SimpleInputFieldComponentConfigFrame;
 }
-export interface SimpleInputFieldComponentDefinitionOutline extends SimpleInputFieldComponentDefinitionFrame {
 
+export interface SimpleInputFieldComponentDefinitionOutline extends SimpleInputFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
+    class: SimpleInputComponentNameType;
+    config?: SimpleInputFieldComponentConfigOutline;
 }
 
 
@@ -37,15 +55,18 @@ export interface SimpleInputFieldModelConfigFrame extends FieldModelConfigFrame<
 }
 
 
-export interface SimpleInputFieldModelConfigOutline extends SimpleInputFieldModelConfigFrame {
+export interface SimpleInputFieldModelConfigOutline extends SimpleInputFieldModelConfigFrame, FieldModelConfigOutline<SimpleInputModelValueType>  {
 
 }
+
 export interface SimpleInputFieldModelDefinitionFrame extends FieldModelDefinitionFrame<SimpleInputModelValueType> {
     class: SimpleInputModelNameType;
-    config?: SimpleInputFieldModelConfigFrame
+    config?: SimpleInputFieldModelConfigFrame;
 }
-export interface SimpleInputFieldModelDefinitionOutline extends SimpleInputFieldModelDefinitionFrame {
 
+export interface SimpleInputFieldModelDefinitionOutline extends SimpleInputFieldModelDefinitionFrame, FieldModelDefinitionOutline<SimpleInputModelValueType>  {
+    class: SimpleInputModelNameType;
+    config?: SimpleInputFieldModelConfigOutline;
 }
 
 /* Simple Input Form Component */
@@ -53,22 +74,24 @@ export interface SimpleInputFormComponentDefinitionFrame extends FormComponentDe
     component: SimpleInputFieldComponentDefinitionFrame;
     model?: SimpleInputFieldModelDefinitionFrame;
     layout?: AvailableFieldLayoutDefinitionFrames;
-}export interface SimpleInputFormComponentDefinitionOutline extends SimpleInputFormComponentDefinitionFrame {
+}
 
+export interface SimpleInputFormComponentDefinitionOutline extends SimpleInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
+    component: SimpleInputFieldComponentDefinitionOutline;
+    model?: SimpleInputFieldModelDefinitionOutline;
+    layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
 
-
-export type SimpleInputFrames =
-    SimpleInputFieldComponentConfigFrame |
-    SimpleInputFieldComponentDefinitionFrame |
-    SimpleInputFieldModelConfigFrame |
-    SimpleInputFieldModelDefinitionFrame |
-    SimpleInputFormComponentDefinitionFrame;
-
-export type SimpleInputOutlines =
-    SimpleInputFieldComponentConfigOutline |
-    SimpleInputFieldComponentDefinitionOutline |
-    SimpleInputFieldModelConfigOutline |
-    SimpleInputFieldModelDefinitionOutline |
-    SimpleInputFormComponentDefinitionOutline;
+export type SimpleInputTypes =
+    | { kind: FieldComponentConfigFrameKindType, class: SimpleInputFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: SimpleInputFieldComponentDefinitionFrame }
+    | { kind: FieldModelConfigFrameKindType, class: SimpleInputFieldModelConfigFrame }
+    | { kind: FieldModelDefinitionFrameKindType, class: SimpleInputFieldModelDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: SimpleInputFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: SimpleInputFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: SimpleInputFieldComponentDefinitionOutline }
+    | { kind: FieldModelConfigKindType, class: SimpleInputFieldModelConfigOutline }
+    | { kind: FieldModelDefinitionKindType, class: SimpleInputFieldModelDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: SimpleInputFormComponentDefinitionOutline }
+    ;

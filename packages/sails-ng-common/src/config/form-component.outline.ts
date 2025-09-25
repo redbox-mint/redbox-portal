@@ -1,8 +1,9 @@
 import {CanVisit} from "./visitor/base.outline";
-import {FieldModelDefinitionFrame} from "./field-model.outline";
-import {FieldComponentDefinitionFrame} from "./field-component.outline";
+import {FieldModelDefinitionFrame, FieldModelDefinitionOutline} from "./field-model.outline";
+import {FieldComponentDefinitionFrame, FieldComponentDefinitionOutline} from "./field-component.outline";
 import {FormModesConfig} from "./shared.outline";
-import {FieldLayoutDefinitionFrame} from "./field-layout.outline";
+import {FieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline} from "./field-layout.outline";
+import {AllFormComponentDefinitionOutlines} from "./dictionary.outline";
 
 /**
  * An interface for classes that might have children.
@@ -11,7 +12,7 @@ export interface HasChildren {
     /**
      * Get all the components that are directly contained by this component.
      */
-    get children(): FormComponentDefinitionOutline[];
+    get children(): AllFormComponentDefinitionOutlines[];
 }
 
 /**
@@ -43,7 +44,7 @@ export interface FormConstraintConfigFrame {
 }
 
 export interface FormConstraintConfigOutline extends FormConstraintConfigFrame {
-
+    authorization?: FormConstraintAuthorizationConfigOutline;
 }
 
 export interface FormConstraintAuthorizationConfigFrame {
@@ -98,6 +99,10 @@ export interface FormComponentDefinitionFrame {
 }
 
 export interface FormComponentDefinitionOutline extends FormComponentDefinitionFrame, CanVisit {
-
+    model?: FieldModelDefinitionOutline<unknown>;
+    component: FieldComponentDefinitionOutline;
+    layout?: FieldLayoutDefinitionOutline;
+    expressions?: FormExpressionsConfigOutline;
+    constraints?: FormConstraintConfigOutline;
 }
 

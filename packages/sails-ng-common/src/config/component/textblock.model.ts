@@ -79,6 +79,6 @@ export const ContentMap = [
         def: ContentFieldComponentDefinition,
         class: ContentComponentName
     },
-    {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition, class:ContentComponentName},
 ];
 

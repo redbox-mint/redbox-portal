@@ -5,7 +5,7 @@ import {
     FieldLayoutConfigKind,
     FieldLayoutDefinitionKind, FormComponentDefinitionKind
 } from "../shared.outline";
-import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {AllFormComponentDefinitionOutlines, AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
 import {FormComponentDefinition} from "../form-component.model";
@@ -66,7 +66,7 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
         super();
     }
 
-    get children(): FormComponentDefinitionOutline[] {
+    get children(): AllFormComponentDefinitionOutlines[] {
         throw new Error("Method not implemented.");
     }
 
@@ -78,9 +78,9 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
 /* Tab Content Form Component */
 
 export class TabContentFormComponentDefinition extends FormComponentDefinition implements TabContentFormComponentDefinitionOutline {
-    public component!: TabContentFieldComponentDefinition;
+    public component!: TabContentFieldComponentDefinitionOutline;
     public model?: never;
-    public layout?: TabContentFieldLayoutDefinition;
+    public layout?: TabContentFieldLayoutDefinitionOutline;
 
     constructor() {
         super();
@@ -96,5 +96,5 @@ export const TabContentMap = [
     {kind: FieldComponentDefinitionKind, def: TabContentFieldComponentDefinition, class: TabContentComponentName},
     {kind: FieldLayoutConfigKind, def: TabContentFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: TabContentFieldLayoutDefinition, class: TabContentLayoutName},
-    {kind: FormComponentDefinitionKind, def: TabContentFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: TabContentFormComponentDefinition, class: TabContentComponentName},
 ];

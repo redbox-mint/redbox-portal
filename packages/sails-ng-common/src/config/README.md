@@ -34,10 +34,10 @@ javascript.
 The convention is to separate the classes into a '<name>.model.ts' file 
 and the types and interfaces into a '<name>.outline.ts' file.
 
-For example, files that contain and import only interface and type declarations
+Files that contain and import only interface and type declarations
 should be able to contain circular imports with only other files that contain compile-time-only items.
 
-Some examples of the problems that circular imports and dependencies can cause:
+Some examples of the problems that runtime circular imports and dependencies can cause:
 
 - `TypeError: Class extends value undefined is not a constructor or null`
 - Imported items seem to be missing or partly-constructed.
@@ -47,8 +47,6 @@ which does not depend on or import any of the other items.
 
 The most common way to do this in Typescript is to create an interface in a new file,
 and use that for typing instead of the class.
-
-
 
 
 ## Transforming Form Config

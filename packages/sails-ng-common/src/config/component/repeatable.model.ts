@@ -29,7 +29,10 @@ import {
     RepeatableModelName,
     RepeatableModelValueType
 } from "./repeatable.outline";
-import {AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {
+    AllFormComponentDefinitionOutlines,
+    AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines
+} from "../dictionary.outline";
 
 
 /* Repeatable Component */
@@ -50,7 +53,7 @@ export class RepeatableFieldComponentDefinition extends FieldComponentDefinition
         super();
     }
 
-    get children(): FormComponentDefinition[] {
+    get children(): AllFormComponentDefinitionOutlines[] {
         throw new Error("Method not implemented.");
     }
 
@@ -124,5 +127,5 @@ export const RepeatableMap = [
     {kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName},
     {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: RepeatableElementFieldLayoutDefinition, class: RepeatableElementLayoutName},
-    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class:RepeatableComponentName},
 ];

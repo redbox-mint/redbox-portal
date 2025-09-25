@@ -6,15 +6,23 @@ import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
-    FieldModelDefinitionKind, FormComponentDefinitionKind
+    FieldModelDefinitionKind,
+    FormComponentDefinitionKind
 } from "../shared.outline";
 import {
     GroupFieldComponentConfigOutline,
     GroupFieldComponentDefinitionOutline,
-    GroupFieldComponentName, GroupFieldModelConfigOutline, GroupFieldModelDefinitionOutline,
-    GroupFieldModelName, GroupFieldModelValueType, GroupFormComponentDefinitionOutline
+    GroupFieldComponentName,
+    GroupFieldModelConfigOutline,
+    GroupFieldModelDefinitionOutline,
+    GroupFieldModelName,
+    GroupFieldModelValueType,
+    GroupFormComponentDefinitionOutline,
 } from "./group.outline";
-import {AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {
+    AllFormComponentDefinitionOutlines,
+    AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines
+} from "../dictionary.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 
 
@@ -61,7 +69,7 @@ export class GroupFieldModelDefinition extends FieldModelDefinition<GroupFieldMo
         super();
     }
 
-    get children(): FormComponentDefinitionOutline[] {
+    get children(): AllFormComponentDefinitionOutlines[] {
         throw new Error("Method not implemented.");
     }
 
@@ -91,5 +99,5 @@ export const GroupMap = [
     {kind: FieldComponentDefinitionKind, def: GroupFieldComponentDefinition, class: GroupFieldComponentName},
     {kind: FieldModelConfigKind, def: GroupFieldModelConfig},
     {kind: FieldModelDefinitionKind, def: GroupFieldModelDefinition, class: GroupFieldModelName},
-    {kind: FormComponentDefinitionKind, def: GroupFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: GroupFormComponentDefinition, class: GroupFieldComponentName},
 ];

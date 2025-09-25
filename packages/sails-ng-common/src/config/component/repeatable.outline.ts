@@ -1,13 +1,37 @@
-import {FieldLayoutConfigFrame, FieldLayoutDefinitionFrame} from "../field-layout.outline";
+import {
+    FieldLayoutConfigFrame,
+    FieldLayoutConfigOutline,
+    FieldLayoutDefinitionFrame,
+    FieldLayoutDefinitionOutline
+} from "../field-layout.outline";
 import {
     AvailableFieldLayoutDefinitionFrames,
     AvailableFieldLayoutDefinitionOutlines,
     AvailableFormComponentDefinitionFrames,
     AvailableFormComponentDefinitionOutlines
 } from "../dictionary.outline";
-import {FormComponentDefinitionFrame, HasChildren} from "../form-component.outline";
-import {FieldModelConfigFrame, FieldModelDefinitionFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {
+    FieldModelConfigFrame,
+    FieldModelConfigOutline,
+    FieldModelDefinitionFrame,
+    FieldModelDefinitionOutline
+} from "../field-model.outline";
+import {
+    FieldComponentConfigFrame, FieldComponentConfigOutline,
+    FieldComponentDefinitionFrame,
+    FieldComponentDefinitionOutline
+} from "../field-component.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType,
+    FieldComponentDefinitionKindType, FieldLayoutConfigFrameKindType,
+    FieldLayoutConfigKindType, FieldLayoutDefinitionFrameKindType,
+    FieldLayoutDefinitionKindType,
+    FieldModelConfigFrameKindType,
+    FieldModelConfigKindType, FieldModelDefinitionFrameKindType,
+    FieldModelDefinitionKindType, FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 /* Repeatable Component */
 
@@ -18,7 +42,7 @@ export interface RepeatableFieldComponentConfigFrame extends FieldComponentConfi
     elementTemplate: AvailableFormComponentDefinitionFrames;
 }
 
-export interface RepeatableFieldComponentConfigOutline extends RepeatableFieldComponentConfigFrame {
+export interface RepeatableFieldComponentConfigOutline extends RepeatableFieldComponentConfigFrame, FieldComponentConfigOutline {
     elementTemplate: AvailableFormComponentDefinitionOutlines;
 }
 
@@ -27,7 +51,7 @@ export interface RepeatableFieldComponentDefinitionFrame extends FieldComponentD
     config?: RepeatableFieldComponentConfigFrame;
 }
 
-export interface RepeatableFieldComponentDefinitionOutline extends RepeatableFieldComponentDefinitionFrame, HasChildren {
+export interface RepeatableFieldComponentDefinitionOutline extends RepeatableFieldComponentDefinitionFrame, HasChildren, FieldComponentDefinitionOutline {
     class: RepeatableComponentNameType;
     config?: RepeatableFieldComponentConfigOutline;
 }
@@ -43,7 +67,7 @@ export interface RepeatableFieldModelConfigFrame extends FieldModelConfigFrame<R
     // TODO: Migrate JSON configurable properties from `RepeatableContainer`
 }
 
-export interface RepeatableFieldModelConfigOutline extends RepeatableFieldModelConfigFrame {
+export interface RepeatableFieldModelConfigOutline extends RepeatableFieldModelConfigFrame, FieldModelConfigOutline<RepeatableModelValueType> {
 
 }
 
@@ -54,7 +78,7 @@ export interface RepeatableFieldModelDefinitionFrame extends FieldModelDefinitio
     // TODO: Migrate properties from `RepeatableContainer`
 }
 
-export interface RepeatableFieldModelDefinitionOutline extends RepeatableFieldModelDefinitionFrame {
+export interface RepeatableFieldModelDefinitionOutline extends RepeatableFieldModelDefinitionFrame, FieldModelDefinitionOutline<RepeatableModelValueType> {
     class: RepeatableModelNameType;
     config?: RepeatableFieldModelConfigOutline;
 }
@@ -66,7 +90,7 @@ export type RepeatableElementLayoutNameType = typeof RepeatableElementLayoutName
 export interface RepeatableElementFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
 }
 
-export interface RepeatableElementFieldLayoutConfigOutline extends RepeatableElementFieldLayoutConfigFrame {
+export interface RepeatableElementFieldLayoutConfigOutline extends RepeatableElementFieldLayoutConfigFrame, FieldLayoutConfigOutline {
 
 }
 
@@ -76,7 +100,7 @@ export interface RepeatableElementFieldLayoutDefinitionFrame extends FieldLayout
     config?: RepeatableElementFieldLayoutConfigFrame;
 }
 
-export interface RepeatableElementFieldLayoutDefinitionOutline extends RepeatableElementFieldLayoutDefinitionFrame {
+export interface RepeatableElementFieldLayoutDefinitionOutline extends RepeatableElementFieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline {
     class: RepeatableElementLayoutNameType;
     config?: RepeatableElementFieldLayoutConfigOutline;
 }
@@ -90,26 +114,25 @@ export interface RepeatableFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
-export interface RepeatableFormComponentDefinitionOutline extends RepeatableFormComponentDefinitionFrame {
+export interface RepeatableFormComponentDefinitionOutline extends RepeatableFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: RepeatableFieldComponentDefinitionOutline;
     model?: RepeatableFieldModelDefinitionOutline;
     layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
-export type RepeatableFrames =
-    RepeatableFieldComponentConfigFrame |
-    RepeatableFieldComponentDefinitionFrame |
-    RepeatableFieldModelConfigFrame |
-    RepeatableFieldModelDefinitionFrame |
-    RepeatableElementFieldLayoutConfigFrame |
-    RepeatableElementFieldLayoutDefinitionFrame |
-    RepeatableFormComponentDefinitionFrame;
 
-export type RepeatableOutlines =
-    RepeatableFieldComponentConfigOutline |
-    RepeatableFieldComponentDefinitionOutline |
-    RepeatableFieldModelConfigOutline |
-    RepeatableFieldModelDefinitionOutline |
-    RepeatableElementFieldLayoutConfigOutline |
-    RepeatableElementFieldLayoutDefinitionOutline |
-    RepeatableFormComponentDefinitionOutline;
+export type RepeatableTypes = { kind: FieldComponentConfigFrameKindType, class: RepeatableFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: RepeatableFieldComponentDefinitionFrame }
+    | { kind: FieldModelConfigFrameKindType, class: RepeatableFieldModelConfigFrame }
+    | { kind: FieldModelDefinitionFrameKindType, class: RepeatableFieldModelDefinitionFrame }
+    | { kind: FieldLayoutConfigFrameKindType, class: RepeatableElementFieldLayoutConfigFrame }
+    | { kind: FieldLayoutDefinitionFrameKindType, class: RepeatableElementFieldLayoutDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: RepeatableFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: RepeatableFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: RepeatableFieldComponentDefinitionOutline }
+    | { kind: FieldModelConfigKindType, class: RepeatableFieldModelConfigOutline }
+    | { kind: FieldModelDefinitionKindType, class: RepeatableFieldModelDefinitionOutline }
+    | { kind: FieldLayoutConfigKindType, class: RepeatableElementFieldLayoutConfigOutline }
+    | { kind: FieldLayoutDefinitionKindType, class: RepeatableElementFieldLayoutDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: RepeatableFormComponentDefinitionOutline }
+    ;

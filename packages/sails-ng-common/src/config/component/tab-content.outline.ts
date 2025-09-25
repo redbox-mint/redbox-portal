@@ -1,7 +1,22 @@
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
+import {
+    FieldComponentConfigFrame,
+    FieldComponentConfigOutline,
+    FieldComponentDefinitionFrame, FieldComponentDefinitionOutline
+} from "../field-component.outline";
 import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {FieldLayoutConfigFrame, FieldLayoutDefinitionFrame} from "../field-layout.outline";
-import {FormComponentDefinitionFrame, HasChildren} from "../form-component.outline";
+import {
+    FieldLayoutConfigFrame,
+    FieldLayoutDefinitionFrame,
+    FieldLayoutDefinitionOutline
+} from "../field-layout.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FieldLayoutConfigFrameKindType,
+    FieldLayoutConfigKindType, FieldLayoutDefinitionFrameKindType,
+    FieldLayoutDefinitionKindType, FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 /* Tab Content Component */
 
@@ -21,7 +36,7 @@ export interface TabContentFieldComponentConfigFrame extends FieldComponentConfi
 }
 
 
-export interface TabContentFieldComponentConfigOutline extends TabContentFieldComponentConfigFrame {
+export interface TabContentFieldComponentConfigOutline extends TabContentFieldComponentConfigFrame, FieldComponentConfigOutline {
     componentDefinitions: AvailableFormComponentDefinitionOutlines[];
     selected?: boolean;
 }
@@ -31,7 +46,7 @@ export interface TabContentFieldComponentDefinitionFrame extends FieldComponentD
     config?: TabContentFieldComponentConfigFrame;
 }
 
-export interface TabContentFieldComponentDefinitionOutline extends TabContentFieldComponentDefinitionFrame {
+export interface TabContentFieldComponentDefinitionOutline extends TabContentFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: TabContentComponentNameType;
     config?: TabContentFieldComponentConfigOutline;
 }
@@ -47,7 +62,10 @@ export interface TabContentFieldLayoutConfigFrame extends FieldLayoutConfigFrame
     buttonLabel?: string;
 }
 
-export interface TabContentFieldLayoutConfigOutline extends TabContentFieldLayoutConfigFrame {
+interface FieldLayoutConfigOutline {
+}
+
+export interface TabContentFieldLayoutConfigOutline extends TabContentFieldLayoutConfigFrame, FieldLayoutConfigOutline {
     buttonLabel?: string;
 }
 
@@ -57,7 +75,7 @@ export interface TabContentFieldLayoutDefinitionFrame extends FieldLayoutDefinit
     config?: TabContentFieldLayoutConfigFrame;
 }
 
-export interface TabContentFieldLayoutDefinitionOutline extends TabContentFieldLayoutDefinitionFrame, HasChildren {
+export interface TabContentFieldLayoutDefinitionOutline extends TabContentFieldLayoutDefinitionFrame, HasChildren, FieldLayoutDefinitionOutline {
     class: TabContentLayoutNameType;
     config?: TabContentFieldLayoutConfigOutline;
 }
@@ -69,22 +87,21 @@ export interface TabContentFormComponentDefinitionFrame extends FormComponentDef
     layout?: TabContentFieldLayoutDefinitionFrame;
 }
 
-export interface TabContentFormComponentDefinitionOutline extends TabContentFormComponentDefinitionFrame {
+export interface TabContentFormComponentDefinitionOutline extends TabContentFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: TabContentFieldComponentDefinitionOutline;
     model?: never;
     layout?: TabContentFieldLayoutDefinitionOutline;
 }
 
-export type TabContentFrames =
-    TabContentFieldComponentConfigFrame |
-    TabContentFieldComponentDefinitionFrame |
-    TabContentFieldLayoutConfigFrame |
-    TabContentFieldLayoutDefinitionFrame |
-    TabContentFormComponentDefinitionFrame;
-
-export type TabContentOutlines =
-    TabContentFieldComponentConfigOutline |
-    TabContentFieldComponentDefinitionOutline |
-    TabContentFieldLayoutConfigOutline |
-    TabContentFieldLayoutDefinitionOutline |
-    TabContentFormComponentDefinitionOutline;
+export type TabContentTypes =
+    | { kind: FieldComponentConfigFrameKindType, class: TabContentFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: TabContentFieldComponentDefinitionFrame }
+    | { kind: FieldLayoutConfigFrameKindType, class: TabContentFieldLayoutConfigFrame }
+    | { kind: FieldLayoutDefinitionFrameKindType, class: TabContentFieldLayoutDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: TabContentFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: TabContentFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: TabContentFieldComponentDefinitionOutline }
+    | { kind: FieldLayoutConfigKindType, class: TabContentFieldLayoutConfigOutline }
+    | { kind: FieldLayoutDefinitionKindType, class: TabContentFieldLayoutDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: TabContentFormComponentDefinitionOutline }
+    ;

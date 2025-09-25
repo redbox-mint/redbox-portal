@@ -1,7 +1,15 @@
-
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
-import {FormComponentDefinitionFrame} from "../form-component.outline";
+import {
+    FieldComponentConfigFrame,
+    FieldComponentConfigOutline,
+    FieldComponentDefinitionFrame, FieldComponentDefinitionOutline
+} from "../field-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 /*  Validation Summary Component */
 
@@ -11,7 +19,7 @@ export type ValidationSummaryComponentNameType = typeof ValidationSummaryCompone
 export interface ValidationSummaryFieldComponentConfigFrame extends FieldComponentConfigFrame {
 }
 
-export interface ValidationSummaryFieldComponentConfigOutline extends ValidationSummaryFieldComponentConfigFrame {
+export interface ValidationSummaryFieldComponentConfigOutline extends ValidationSummaryFieldComponentConfigFrame, FieldComponentConfigOutline {
 
 }
 
@@ -20,7 +28,7 @@ export interface ValidationSummaryFieldComponentDefinitionFrame extends FieldCom
     config?: ValidationSummaryFieldComponentConfigFrame;
 }
 
-export interface ValidationSummaryFieldComponentDefinitionOutline extends ValidationSummaryFieldComponentDefinitionFrame {
+export interface ValidationSummaryFieldComponentDefinitionOutline extends ValidationSummaryFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: ValidationSummaryComponentNameType;
     config?: ValidationSummaryFieldComponentConfigOutline;
 }
@@ -33,19 +41,18 @@ export interface ValidationSummaryFormComponentDefinitionFrame extends FormCompo
 }
 
 
-export interface ValidationSummaryFormComponentDefinitionOutline extends ValidationSummaryFormComponentDefinitionFrame {
+export interface ValidationSummaryFormComponentDefinitionOutline extends ValidationSummaryFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: ValidationSummaryFieldComponentDefinitionOutline;
     model?: never;
     layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
-export type ValidationSummaryFrames =
-    ValidationSummaryFieldComponentConfigFrame |
-    ValidationSummaryFieldComponentDefinitionFrame |
-    ValidationSummaryFormComponentDefinitionFrame;
-
-export type ValidationSummaryOutlines =
-    ValidationSummaryFieldComponentConfigOutline |
-    ValidationSummaryFieldComponentDefinitionOutline |
-    ValidationSummaryFormComponentDefinitionOutline;
+export type ValidationSummaryTypes =
+    { kind: FieldComponentConfigFrameKindType, class: ValidationSummaryFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: ValidationSummaryFieldComponentDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: ValidationSummaryFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: ValidationSummaryFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: ValidationSummaryFieldComponentDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: ValidationSummaryFormComponentDefinitionOutline }
+    ;
 

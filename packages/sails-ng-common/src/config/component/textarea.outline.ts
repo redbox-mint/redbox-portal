@@ -1,7 +1,23 @@
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines,} from "../dictionary.outline";
-import {FieldModelConfigFrame, FieldModelDefinitionFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame, FieldComponentDefinitionFrame} from "../field-component.outline";
-import {FormComponentDefinitionFrame} from "../form-component.outline";
+import {
+    FieldModelConfigFrame,
+    FieldModelConfigOutline,
+    FieldModelDefinitionFrame,
+    FieldModelDefinitionOutline
+} from "../field-model.outline";
+import {
+    FieldComponentConfigFrame,
+    FieldComponentDefinitionFrame,
+    FieldComponentDefinitionOutline
+} from "../field-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FieldModelConfigFrameKindType, FieldModelConfigKindType, FieldModelDefinitionFrameKindType,
+    FieldModelDefinitionKindType,
+    FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType
+} from "../shared.outline";
 
 
 /* Text Area Component */
@@ -15,7 +31,10 @@ export interface TextAreaFieldComponentConfigFrame extends FieldComponentConfigF
     placeholder?: string;
 }
 
-export interface TextAreaFieldComponentConfigOutline extends TextAreaFieldComponentConfigFrame {
+interface FieldComponentConfigOutline {
+}
+
+export interface TextAreaFieldComponentConfigOutline extends TextAreaFieldComponentConfigFrame, FieldComponentConfigOutline {
     rows: number;
     cols: number;
     placeholder?: string;
@@ -27,7 +46,7 @@ export interface TextAreaFieldComponentDefinitionFrame extends FieldComponentDef
 }
 
 
-export interface TextAreaFieldComponentDefinitionOutline extends TextAreaFieldComponentDefinitionFrame {
+export interface TextAreaFieldComponentDefinitionOutline extends TextAreaFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: TextAreaComponentNameType;
     config?: TextAreaFieldComponentConfigOutline;
 }
@@ -42,7 +61,7 @@ export type TextAreaModelValueType = string;
 export interface TextAreaFieldModelConfigFrame extends FieldModelConfigFrame<TextAreaModelValueType> {
 }
 
-export interface TextAreaFieldModelConfigOutline extends TextAreaFieldModelConfigFrame {
+export interface TextAreaFieldModelConfigOutline extends TextAreaFieldModelConfigFrame, FieldModelConfigOutline<TextAreaModelValueType> {
 
 }
 
@@ -51,7 +70,7 @@ export interface TextAreaFieldModelDefinitionFrame extends FieldModelDefinitionF
     config?: TextAreaFieldModelConfigFrame;
 }
 
-export interface TextAreaFieldModelDefinitionOutline extends TextAreaFieldModelDefinitionFrame {
+export interface TextAreaFieldModelDefinitionOutline extends TextAreaFieldModelDefinitionFrame, FieldModelDefinitionOutline<TextAreaModelValueType> {
     class: TextAreaModelNameType;
     config?: TextAreaFieldModelConfigOutline;
 }
@@ -64,24 +83,22 @@ export interface TextAreaFormComponentDefinitionFrame extends FormComponentDefin
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
-export interface TextAreaFormComponentDefinitionOutline extends TextAreaFormComponentDefinitionFrame {
+export interface TextAreaFormComponentDefinitionOutline extends TextAreaFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: TextAreaFieldComponentDefinitionOutline;
     model?: TextAreaFieldModelDefinitionOutline;
     layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
-export type TextAreaFrames =
-    TextAreaFieldComponentConfigFrame |
-    TextAreaFieldComponentDefinitionFrame |
-    TextAreaFieldModelConfigFrame |
-    TextAreaFieldModelDefinitionFrame |
-    TextAreaFormComponentDefinitionFrame;
-
-
-export type TextAreaOutlines =
-    TextAreaFieldComponentConfigOutline |
-    TextAreaFieldComponentDefinitionOutline |
-    TextAreaFieldModelConfigOutline |
-    TextAreaFieldModelDefinitionOutline |
-    TextAreaFormComponentDefinitionOutline;
+export type TextAreaTypes =
+    | { kind: FieldComponentConfigFrameKindType, class: TextAreaFieldComponentConfigFrame }
+    | { kind: FieldComponentDefinitionFrameKindType, class: TextAreaFieldComponentDefinitionFrame }
+    | { kind: FieldModelConfigFrameKindType, class: TextAreaFieldModelConfigFrame }
+    | { kind: FieldModelDefinitionFrameKindType, class: TextAreaFieldModelDefinitionFrame }
+    | { kind: FormComponentDefinitionFrameKindType, class: TextAreaFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: TextAreaFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: TextAreaFieldComponentDefinitionOutline }
+    | { kind: FieldModelConfigKindType, class: TextAreaFieldModelConfigOutline }
+    | { kind: FieldModelDefinitionKindType, class: TextAreaFieldModelDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: TextAreaFormComponentDefinitionOutline }
+    ;
 

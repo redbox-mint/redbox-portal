@@ -1,10 +1,10 @@
 import {FormValidatorConfig} from "../validation/form.model";
-import {AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
-import {FormComponentDefinition} from "./form-component.model";
+import {AllFormComponentDefinitionOutlines, AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
 import {TemplateCompileInput} from "../template.outline";
 import {FormConfigOutline} from "./form-config.outline";
 import {FormConfigVisitorOutline} from "./visitor/base.outline";
 import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
+
 
 /**
  * The form definition.
@@ -28,7 +28,7 @@ export class FormConfig implements FormConfigOutline {
         throw new Error("Method not implemented.");
     }
 
-    get children(): FormComponentDefinition[] {
+    get children(): AllFormComponentDefinitionOutlines[] {
         return this.componentDefinitions;
     }
 

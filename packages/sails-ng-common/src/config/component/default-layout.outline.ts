@@ -1,4 +1,14 @@
-import {FieldLayoutConfigFrame, FieldLayoutDefinitionFrame} from "../field-layout.outline";
+import {
+    FieldLayoutConfigFrame,
+    FieldLayoutConfigOutline,
+    FieldLayoutDefinitionFrame,
+    FieldLayoutDefinitionOutline
+} from "../field-layout.outline";
+import {
+    FieldLayoutConfigFrameKindType, FieldLayoutConfigKindType,
+    FieldLayoutDefinitionFrameKindType,
+    FieldLayoutDefinitionKindType
+} from "../shared.outline";
 
 export const DefaultLayoutName = `DefaultLayout` as const;
 export type DefaultLayoutNameType = typeof DefaultLayoutName;
@@ -6,7 +16,7 @@ export type DefaultLayoutNameType = typeof DefaultLayoutName;
 export interface DefaultFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
 }
 
-export interface DefaultFieldLayoutConfigOutline extends DefaultFieldLayoutConfigFrame {
+export interface DefaultFieldLayoutConfigOutline extends DefaultFieldLayoutConfigFrame, FieldLayoutConfigOutline {
 
 }
 
@@ -15,15 +25,13 @@ export interface DefaultFieldLayoutDefinitionFrame extends FieldLayoutDefinition
     config?: DefaultFieldLayoutConfigFrame;
 }
 
-export interface DefaultFieldLayoutDefinitionOutline extends DefaultFieldLayoutDefinitionFrame {
+export interface DefaultFieldLayoutDefinitionOutline extends DefaultFieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline {
     class: DefaultLayoutNameType;
     config?: DefaultFieldLayoutConfigOutline;
 }
 
-export type DefaultLayoutFrames = DefaultFieldLayoutConfigFrame
-    | DefaultFieldLayoutDefinitionFrame
-    ;
-
-export type DefaultLayoutOutlines = DefaultFieldLayoutConfigOutline
-    | DefaultFieldLayoutDefinitionOutline
+export type DefaultLayoutTypes = { kind: FieldLayoutConfigFrameKindType, class: DefaultFieldLayoutConfigFrame }
+    | { kind: FieldLayoutConfigKindType, class: DefaultFieldLayoutConfigOutline }
+    | { kind: FieldLayoutDefinitionFrameKindType, class: DefaultFieldLayoutDefinitionFrame }
+    | { kind: FieldLayoutDefinitionKindType, class: DefaultFieldLayoutDefinitionOutline }
     ;

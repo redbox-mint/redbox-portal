@@ -57,6 +57,6 @@ export const ValidationSummaryMap = [
         def: ValidationSummaryFieldComponentDefinition,
         class: ValidationSummaryComponentName
     },
-    {kind: FormComponentDefinitionKind, def: ValidationSummaryFormComponentDefinition},
+    {kind: FormComponentDefinitionKind, def: ValidationSummaryFormComponentDefinition, class:ValidationSummaryComponentName},
 ];
 
