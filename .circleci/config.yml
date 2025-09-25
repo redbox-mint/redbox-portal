@@ -74,7 +74,7 @@ jobs:
           root: .
           paths:
             - .
-  test:
+  test-bruno-general:
     machine:
       image: ubuntu-2004:current
     resource_class: large
@@ -83,7 +83,6 @@ jobs:
           at: /home/circleci/project
       - run:
           name: Install codecov
-          # https://github.com/codecov/codecov-cli?tab=readme-ov-file#usage
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
@@ -95,45 +94,143 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Bruno and Mocha tests
-          no_output_timeout: 30m
+          name: Setup test directories
           command: |
             sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Bruno General tests
+          no_output_timeout: 30m
+          command: timeout 1800s npm run test:bruno:general
+      - run:
+          name: Clean up Bruno containers
+          command: npm run test:bruno:clean || true
+          when: always
+      - run:
+          name: Upload Bruno General code coverage
+          command: |
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+  test-bruno-oidc:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Bruno OIDC tests
+          no_output_timeout: 30m
+          command: timeout 1800s npm run test:bruno:oidc
+      - run:
+          name: Clean up Bruno containers
+          command: npm run test:bruno:clean || true
+          when: always
+      - run:
+          name: Upload Bruno OIDC code coverage
+          command: |
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-bruno-oidc" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+  test-mocha:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Setup test directories
+          command: |
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            timeout 1800s npm run test:bruno:general
-            timeout 1800s npm run test:bruno:clean
-            timeout 1800s npm run test:bruno:oidc
-            timeout 1800s npm run test:bruno:clean
-            timeout 1800s npm run test:mocha
       - run:
-          name: Upload Bruno and Mocha code coverage
+          name: Run Mocha tests
+          no_output_timeout: 30m
+          command: timeout 1800s npm run test:mocha
+      - run:
+          name: Upload Mocha code coverage
           command: |
-             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
              /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
+      - store_test_results:
+          path: .tmp/junit
+  test-angular:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Run angular tests
-          # uses the codecov binary installed in previous step
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Angular tests
+          no_output_timeout: 30m
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
-          when: always
       - run:
           name: Install npm packages for project
           command: |
             sudo chmod -R 777 .
             npm ci
-      - store_test_results:
-          path: .tmp/junit
   deploy:
     docker:
       - image: 'cimg/node:24.2.0'
@@ -188,18 +285,33 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - test:
+      - test-bruno-general:
+          requires:
+            - build
+      - test-bruno-oidc:
+          requires:
+            - build
+      - test-mocha:
+          requires:
+            - build
+      - test-angular:
           requires:
             - build
       - deploy:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
           filters:
             branches:
               only: 'master'
@@ -211,18 +323,33 @@ workflows:
               only: /^dependabot.*/
             tags:
               ignore: /.*/
-      - test:
+      - test-bruno-general:
+          requires:
+            - build
+      - test-bruno-oidc:
+          requires:
+            - build
+      - test-mocha:
+          requires:
+            - build
+      - test-angular:
           requires:
             - build
       - deploy:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
           filters:
             branches:
               only: 'master'
@@ -234,7 +361,31 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test:
+      - test-bruno-general:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-bruno-oidc:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-mocha:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-angular:
           requires:
             - build
           filters:
@@ -244,7 +395,10 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
           filters:
             tags:
               only: /^v.*/
