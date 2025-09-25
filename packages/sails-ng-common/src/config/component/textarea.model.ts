@@ -1,41 +1,34 @@
 import {
     FieldComponentConfig,
-    FieldComponentConfigFrame,
     FieldComponentDefinition,
-    FieldComponentDefinitionFrame
 } from "../field-component.model";
-import {
-    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
-
-} from "../static-types-classes.dictionary";
 
 import {
     FieldModelConfig,
-    FieldModelConfigFrame,
-    FieldModelDefinition,
-    FieldModelDefinitionFrame
+    FieldModelDefinition
 } from "../field-model.model";
-import {FormComponentDefinition, FormComponentDefinitionFrame,} from "../form-component.model";
+import {FormComponentDefinition,} from "../form-component.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
     FieldModelDefinitionKind, FormComponentDefinitionKind
-} from "../shared.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
+} from "../shared.outline";
+import {
+    TextAreaComponentName,
+    TextAreaFieldComponentConfigOutline,
+    TextAreaFieldComponentDefinitionOutline,
+    TextAreaFieldModelConfigOutline, TextAreaFieldModelDefinitionOutline,
+    TextAreaFormComponentDefinitionOutline, TextAreaModelName, TextAreaModelValueType
+} from "./textarea.outline";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 
 /* Text Area Component */
-export const TextAreaComponentName = "TextAreaComponent" as const;
-export type TextAreaComponentNameType = typeof TextAreaComponentName;
 
-export interface TextAreaFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    rows: number;
-    cols: number;
-    placeholder?: string;
-}
 
-export class TextAreaFieldComponentConfig extends FieldComponentConfig implements TextAreaFieldComponentConfigFrame {
+export class TextAreaFieldComponentConfig extends FieldComponentConfig implements TextAreaFieldComponentConfigOutline {
     public rows: number = 2;
     public cols: number = 20;
     public placeholder?: string = '';
@@ -45,77 +38,57 @@ export class TextAreaFieldComponentConfig extends FieldComponentConfig implement
     }
 }
 
-export interface TextAreaFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: TextAreaComponentNameType;
-    config?: TextAreaFieldComponentConfigFrame
-}
 
-
-export class TextAreaFieldComponentDefinition extends FieldComponentDefinition implements TextAreaFieldComponentDefinitionFrame {
+export class TextAreaFieldComponentDefinition extends FieldComponentDefinition implements TextAreaFieldComponentDefinitionOutline {
     class = TextAreaComponentName;
-    config?: TextAreaFieldComponentConfig;
+    config?: TextAreaFieldComponentConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTextAreaFieldComponentDefinition(this);
     }
 }
 
 
 /* Text Area Model */
-export const TextAreaModelName = "TextAreaModel" as const;
-export type TextAreaModelNameType = typeof TextAreaModelName;
-export type TextAreaModelValueType = string;
 
-export interface TextAreaFieldModelConfigFrame extends FieldModelConfigFrame<TextAreaModelValueType> {
-}
 
-export class TextAreaFieldModelConfig extends FieldModelConfig<TextAreaModelValueType> implements TextAreaFieldModelConfigFrame {
+export class TextAreaFieldModelConfig extends FieldModelConfig<TextAreaModelValueType> implements TextAreaFieldModelConfigOutline {
     constructor() {
         super();
     }
 }
 
-export interface TextAreaFieldModelDefinitionFrame extends FieldModelDefinitionFrame<TextAreaModelValueType> {
-    class: TextAreaModelNameType;
-    config?: TextAreaFieldModelConfigFrame;
-}
 
-
-export class TextAreaFieldModelDefinition extends FieldModelDefinition<TextAreaModelValueType> implements TextAreaFieldModelDefinitionFrame {
+export class TextAreaFieldModelDefinition extends FieldModelDefinition<TextAreaModelValueType> implements TextAreaFieldModelDefinitionOutline {
     class = TextAreaModelName;
-    config?: TextAreaFieldModelConfig;
+    config?: TextAreaFieldModelConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTextAreaFieldModelDefinition(this);
     }
 }
 
 /* Text Area Form Component */
-export interface TextAreaFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: TextAreaFieldComponentDefinitionFrame;
-    model?: TextAreaFieldModelDefinitionFrame;
-    layout?: AvailableFieldLayoutDefinitionFrames;
-}
 
-export class TextAreaFormComponentDefinition extends FormComponentDefinition implements TextAreaFormComponentDefinitionFrame {
-    public component: TextAreaFieldComponentDefinition;
-    public model?: TextAreaFieldModelDefinition;
-    public layout?: AvailableFieldLayoutDefinitions;
+
+export class TextAreaFormComponentDefinition extends FormComponentDefinition implements TextAreaFormComponentDefinitionOutline {
+    public component!: TextAreaFieldComponentDefinitionOutline;
+    public model?: TextAreaFieldModelDefinitionOutline;
+    public layout?: AvailableFieldLayoutDefinitionOutlines;
 
     constructor() {
         super();
-        this.component = new TextAreaFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitTextAreaFormComponentDefinition(this);
     }
 }
@@ -127,10 +100,4 @@ export const TextAreaMap = [
     {kind: FieldModelDefinitionKind, def: TextAreaFieldModelDefinition, class: TextAreaModelName},
     {kind: FormComponentDefinitionKind, def: TextAreaFormComponentDefinition},
 ];
-export type TextAreaFrames =
-    TextAreaFieldComponentConfigFrame |
-    TextAreaFieldComponentDefinitionFrame |
-    TextAreaFieldModelConfigFrame |
-    TextAreaFieldModelDefinitionFrame |
-    TextAreaFormComponentDefinitionFrame;
 

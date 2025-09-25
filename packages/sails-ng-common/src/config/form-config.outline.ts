@@ -1,9 +1,9 @@
-import {KeyValueStringNested, KeyValueStringProperty} from "./shared.model";
 import {FormValidatorConfig} from "../validation/form.model";
-import {AvailableFormComponentDefinitionFrames} from "./static-types-classes.dictionary";
-import {HasChildren} from "./form-component.model";
-import {HasCompilableTemplates} from "../template.model";
-import {Visitee} from "./visitor/base.structure";
+import {AvailableFormComponentDefinitionFrames} from "./dictionary.outline";
+import {HasCompilableTemplates} from "../template.outline";
+import {CanVisit} from "./visitor/base.outline";
+import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
+import {HasChildren} from "./form-component.outline";
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
@@ -80,5 +80,5 @@ export interface FormConfigFrame {
     debugValue?: boolean;
 }
 
-export interface IFormConfig extends FormConfigFrame, HasChildren, HasCompilableTemplates, Visitee {
+export interface FormConfigOutline extends FormConfigFrame, HasChildren, HasCompilableTemplates, CanVisit {
 }

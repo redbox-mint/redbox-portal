@@ -1,40 +1,20 @@
-import {
-    FieldComponentConfig,
-    FieldComponentConfigFrame,
-    FieldComponentDefinition,
-    FieldComponentDefinitionFrame
-} from "../field-component.model";
-import {
-    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
 
-} from "../static-types-classes.dictionary";
-
-import {FormComponentDefinition, FormComponentDefinitionFrame,} from "../form-component.model";
+import { TemplateCompileInput} from "../../template.outline";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {FormComponentDefinition} from "../form-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 import {
-    FieldComponentConfigKind,
-    FieldComponentDefinitionKind,
-    FormComponentDefinitionKind
-} from "../shared.model";
-import {HasCompilableTemplates, TemplateCompileInput} from "../../template.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
+    ContentComponentName,
+    ContentFieldComponentConfigOutline,
+    ContentFieldComponentDefinitionOutline, ContentFormComponentDefinitionOutline
+} from "./textblock.outline";
 
 
 /* Content Component */
-export const ContentComponentName = `ContentComponent` as const;
-export type ContentComponentNameType = typeof ContentComponentName;
 
-export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    template?: string;
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    content?: string;
-}
-
-export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigFrame {
+export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigOutline {
     template?: string;
     content?: string;
 
@@ -44,13 +24,9 @@ export class ContentFieldComponentConfig extends FieldComponentConfig implements
 }
 
 
-export interface ContentFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: ContentComponentNameType;
-    config?: ContentFieldComponentConfigFrame
-}
 
 
-export class ContentFieldComponentDefinition extends FieldComponentDefinition implements ContentFieldComponentDefinitionFrame, HasCompilableTemplates {
+export class ContentFieldComponentDefinition extends FieldComponentDefinition implements ContentFieldComponentDefinitionOutline {
     class = ContentComponentName;
     config?: ContentFieldComponentConfig;
 
@@ -58,7 +34,7 @@ export class ContentFieldComponentDefinition extends FieldComponentDefinition im
         super();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitContentFieldComponentDefinition(this);
     }
 
@@ -77,23 +53,21 @@ export class ContentFieldComponentDefinition extends FieldComponentDefinition im
 
 
 /* Content Form Component */
-export interface ContentFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: ContentFieldComponentDefinitionFrame;
-    model?: never;
-    layout?: AvailableFieldLayoutDefinitionFrames;
-}
 
-export class ContentFormComponentDefinition extends FormComponentDefinition implements ContentFormComponentDefinitionFrame {
-    component: ContentFieldComponentDefinition;
+export class ContentFormComponentDefinition extends FormComponentDefinition implements ContentFormComponentDefinitionOutline {
+    component!: ContentFieldComponentDefinitionOutline;
     model?: never;
-    layout?: AvailableFieldLayoutDefinitions;
+    layout?: AvailableFieldLayoutDefinitionOutlines;
 
     constructor() {
         super();
-        this.component = new ContentFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    get templates(): TemplateCompileInput[] {
+        throw new Error("Method not implemented.");
+    }
+
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitContentFormComponentDefinition(this);
     }
 }
@@ -107,8 +81,4 @@ export const ContentMap = [
     },
     {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition},
 ];
-export type ContentFrames =
-    ContentFieldComponentConfigFrame
-    | ContentFieldComponentDefinitionFrame
-    | ContentFormComponentDefinitionFrame;
 

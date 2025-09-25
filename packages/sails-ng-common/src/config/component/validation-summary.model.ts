@@ -1,74 +1,51 @@
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {
-    FieldComponentConfig,
-    FieldComponentConfigFrame,
-    FieldComponentDefinition,
-    FieldComponentDefinitionFrame
-} from "../field-component.model";
-import {
-    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
-
-} from "../static-types-classes.dictionary";
-
-import {FormComponentDefinition, FormComponentDefinitionFrame} from "../form-component.model";
-import {
-    FieldComponentConfigKind,
-    FieldComponentDefinitionKind, FormComponentDefinitionKind
-} from "../shared.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
-
+    ValidationSummaryComponentName,
+    ValidationSummaryFieldComponentConfigOutline,
+    ValidationSummaryFieldComponentDefinitionOutline, ValidationSummaryFormComponentDefinitionOutline
+} from "./validation-summary.outline";
+import {FormComponentDefinition} from "../form-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 
 /*  Validation Summary Component */
-export const ValidationSummaryComponentName = "ValidationSummaryComponent" as const;
-export type ValidationSummaryComponentNameType = typeof ValidationSummaryComponentName;
 
-export interface ValidationSummaryFieldComponentConfigFrame extends FieldComponentConfigFrame {
-}
-
-export class ValidationSummaryFieldComponentConfig extends FieldComponentConfig implements ValidationSummaryFieldComponentConfigFrame {
+export class ValidationSummaryFieldComponentConfig extends FieldComponentConfig implements ValidationSummaryFieldComponentConfigOutline {
     constructor() {
         super();
     }
 }
 
-export interface ValidationSummaryFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: ValidationSummaryComponentNameType;
-    config?: ValidationSummaryFieldComponentConfigFrame;
-}
 
-
-export class ValidationSummaryFieldComponentDefinition extends FieldComponentDefinition implements ValidationSummaryFieldComponentDefinitionFrame {
+export class ValidationSummaryFieldComponentDefinition extends FieldComponentDefinition implements ValidationSummaryFieldComponentDefinitionOutline {
     class = ValidationSummaryComponentName;
-    config?: ValidationSummaryFieldComponentConfig;
+    config?: ValidationSummaryFieldComponentConfigOutline;
 
     constructor() {
         super();
     }
 
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitValidationSummaryFieldComponentDefinition(this);
     }
 }
 
 /* Validation Summary Form Component */
-export interface ValidationSummaryFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: ValidationSummaryFieldComponentDefinitionFrame;
-    model?: never;
-    layout?: AvailableFieldLayoutDefinitionFrames;
-}
 
-export class ValidationSummaryFormComponentDefinition extends FormComponentDefinition implements ValidationSummaryFormComponentDefinitionFrame {
-    component: ValidationSummaryFieldComponentDefinition;
+
+export class ValidationSummaryFormComponentDefinition extends FormComponentDefinition implements ValidationSummaryFormComponentDefinitionOutline {
+    component!: ValidationSummaryFieldComponentDefinitionOutline;
     model?: never;
-    layout?: AvailableFieldLayoutDefinitions;
+    layout?: AvailableFieldLayoutDefinitionOutlines;
 
     constructor() {
         super();
-        this.component = new ValidationSummaryFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitValidationSummaryFormComponentDefinition(this);
     }
 }
@@ -82,8 +59,4 @@ export const ValidationSummaryMap = [
     },
     {kind: FormComponentDefinitionKind, def: ValidationSummaryFormComponentDefinition},
 ];
-export type ValidationSummaryFrames =
-    ValidationSummaryFieldComponentConfigFrame |
-    ValidationSummaryFieldComponentDefinitionFrame |
-    ValidationSummaryFormComponentDefinitionFrame;
 

@@ -1,28 +1,18 @@
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import {FormComponentDefinition,} from "../form-component.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
 import {
-    FieldComponentConfig,
-    FieldComponentConfigFrame,
-    FieldComponentDefinition,
-    FieldComponentDefinitionFrame
-} from "../field-component.model";
-import {
-    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
-} from "../static-types-classes.dictionary";
-import {FormComponentDefinition, FormComponentDefinitionFrame,} from "../form-component.model";
-import {
-    FieldComponentConfigKind,
-    FieldComponentDefinitionKind, FormComponentDefinitionKind
-} from "../shared.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
+    SaveButtonComponentName,
+    SaveButtonFieldComponentConfigOutline,
+    SaveButtonFieldComponentDefinitionOutline, SaveButtonFormComponentDefinitionOutline
+} from "./save-button.outline";
 
 
 /* Save Button Component */
-export const SaveButtonComponentName = "SaveButtonComponent" as const;
-export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
 
-export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
-}
-
-export class SaveButtonFieldComponentConfig extends FieldComponentConfig implements SaveButtonFieldComponentConfigFrame {
+export class SaveButtonFieldComponentConfig extends FieldComponentConfig implements SaveButtonFieldComponentConfigOutline {
     targetStep?: string;
     forceSave?: boolean;
     skipValidation?: boolean;
@@ -32,43 +22,33 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     }
 }
 
-export interface SaveButtonFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: SaveButtonComponentNameType;
-    config?: SaveButtonFieldComponentConfigFrame
-}
 
-
-export class SaveButtonFieldComponentDefinition extends FieldComponentDefinition implements SaveButtonFieldComponentDefinitionFrame {
+export class SaveButtonFieldComponentDefinition extends FieldComponentDefinition implements SaveButtonFieldComponentDefinitionOutline {
     class = SaveButtonComponentName;
-    config?: SaveButtonFieldComponentConfig;
+    config?: SaveButtonFieldComponentConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitSaveButtonFieldComponentDefinition(this);
     }
 }
 
 /* Save Button Form Component */
-export interface SaveButtonFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: SaveButtonFieldComponentDefinitionFrame;
-    model?: never;
-    layout?: AvailableFieldLayoutDefinitionFrames;
-}
 
-export class SaveButtonFormComponentDefinition extends FormComponentDefinition implements SaveButtonFormComponentDefinitionFrame {
-    component: SaveButtonFieldComponentDefinition;
+
+export class SaveButtonFormComponentDefinition extends FormComponentDefinition implements SaveButtonFormComponentDefinitionOutline {
+    component!: SaveButtonFieldComponentDefinitionOutline;
     model?: never;
-    layout?: AvailableFieldLayoutDefinitions;
+    layout?: AvailableFieldLayoutDefinitionOutlines;
 
     constructor() {
         super();
-        this.component = new SaveButtonFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitSaveButtonFormComponentDefinition(this);
     }
 }
@@ -82,8 +62,3 @@ export const SaveButtonMap = [
     },
     {kind: FormComponentDefinitionKind, def: SaveButtonFormComponentDefinition},
 ];
-export type SaveButtonFrames =
-    SaveButtonFieldComponentConfigFrame |
-    SaveButtonFieldComponentDefinitionFrame |
-    SaveButtonFormComponentDefinitionFrame;
-

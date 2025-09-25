@@ -5,7 +5,7 @@ import {
 } from "../../src";
 
 
-describe("Construct Visitor ", async () => {
+describe("Construct Visitor", async () => {
     const chai = await import("chai");
 
     const cases: {
@@ -100,7 +100,7 @@ describe("Construct Visitor ", async () => {
     cases.forEach(({args, expected}) => {
         it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const visitor = new ConstructFormConfigVisitor();
-            const actual = visitor.constructFormConfig(args);
+            const actual = visitor.start(args);
             chai.expect(actual).to.eql(expected);
         });
     });

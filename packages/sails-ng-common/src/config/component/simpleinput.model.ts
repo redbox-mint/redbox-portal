@@ -1,43 +1,32 @@
-import {
-    FieldComponentConfig,
-    FieldComponentConfigFrame,
-    FieldComponentDefinition,
-    FieldComponentDefinitionFrame
-} from "../field-component.model";
-import {
-    AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitions,
 
-} from "../static-types-classes.dictionary";
-
-import {
-    FieldModelConfig,
-    FieldModelConfigFrame,
-    FieldModelDefinition,
-    FieldModelDefinitionFrame
-} from "../field-model.model";
-import {FormComponentDefinition, FormComponentDefinitionFrame, HasChildren} from "../form-component.model";
+import {    FieldModelConfig,    FieldModelDefinition} from "../field-model.model";
+import {FormComponentDefinition} from "../form-component.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
     FieldModelDefinitionKind, FormComponentDefinitionKind
-} from "../shared.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
+} from "../shared.outline";
+import {
+    SimpleInputComponentName,
+    SimpleInputFieldComponentConfigOutline,
+    SimpleInputFieldComponentConfigType,
+    SimpleInputFieldComponentDefinitionOutline,
+    SimpleInputFieldModelConfigOutline,
+    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFormComponentDefinitionOutline,
+    SimpleInputModelName,
+    SimpleInputModelValueType
+} from "./simpleinput.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 
 /* Simple Input Component */
-export const SimpleInputComponentName = "SimpleInputComponent" as const;
-export type SimpleInputComponentNameType = typeof SimpleInputComponentName;
-
-export const SimpleInputFieldComponentConfigTypeNames = ["email", "text", "tel", "number", "password", "url"] as const;
-export type SimpleInputFieldComponentConfigType = typeof SimpleInputFieldComponentConfigTypeNames[number];
-
-export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    type: SimpleInputFieldComponentConfigType;
-}
 
 
-export class SimpleInputFieldComponentConfig extends FieldComponentConfig implements SimpleInputFieldComponentConfigFrame {
+export class SimpleInputFieldComponentConfig extends FieldComponentConfig implements SimpleInputFieldComponentConfigOutline {
     type: SimpleInputFieldComponentConfigType = "text";
 
     constructor() {
@@ -45,76 +34,56 @@ export class SimpleInputFieldComponentConfig extends FieldComponentConfig implem
     }
 }
 
-export interface SimpleInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: SimpleInputComponentNameType;
-    config?: SimpleInputFieldComponentConfigFrame;
-}
 
-export class SimpleInputFieldComponentDefinition extends FieldComponentDefinition implements SimpleInputFieldComponentDefinitionFrame {
+export class SimpleInputFieldComponentDefinition extends FieldComponentDefinition implements SimpleInputFieldComponentDefinitionOutline {
     class = SimpleInputComponentName;
-    config?: SimpleInputFieldComponentConfig;
+    config?: SimpleInputFieldComponentConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitSimpleInputFieldComponentDefinition(this);
     }
 }
 
 
 /* Simple Input Model */
-export const SimpleInputModelName = "SimpleInputModel" as const;
-export type SimpleInputModelNameType = typeof SimpleInputModelName;
-export type SimpleInputModelValueType = string;
 
-export interface SimpleInputFieldModelConfigFrame extends FieldModelConfigFrame<SimpleInputModelValueType> {
-}
 
-export class SimpleInputFieldModelConfig extends FieldModelConfig<SimpleInputModelValueType> implements SimpleInputFieldModelConfigFrame {
+export class SimpleInputFieldModelConfig extends FieldModelConfig<SimpleInputModelValueType> implements SimpleInputFieldModelConfigOutline {
     constructor() {
         super();
     }
 }
 
 
-export interface SimpleInputFieldModelDefinitionFrame extends FieldModelDefinitionFrame<SimpleInputModelValueType> {
-    class: SimpleInputModelNameType;
-    config?: SimpleInputFieldModelConfigFrame
-}
-
-export class SimpleInputFieldModelDefinition extends FieldModelDefinition<SimpleInputModelValueType> {
+export class SimpleInputFieldModelDefinition extends FieldModelDefinition<SimpleInputModelValueType> implements SimpleInputFieldModelDefinitionOutline {
     class = SimpleInputModelName;
-    config?: SimpleInputFieldModelConfig;
+    config?: SimpleInputFieldModelConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitSimpleInputFieldModelDefinition(this);
     }
 }
 
 /* Simple Input Form Component */
-export interface SimpleInputFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: SimpleInputFieldComponentDefinitionFrame;
-    model?: SimpleInputFieldModelDefinitionFrame;
-    layout?: AvailableFieldLayoutDefinitionFrames;
-}
 
-export class SimpleInputFormComponentDefinition extends FormComponentDefinition implements SimpleInputFormComponentDefinitionFrame {
-    public component: SimpleInputFieldComponentDefinition;
-    public model?: SimpleInputFieldModelDefinition;
-    public layout?: AvailableFieldLayoutDefinitions;
+export class SimpleInputFormComponentDefinition extends FormComponentDefinition implements SimpleInputFormComponentDefinitionOutline {
+    public component!: SimpleInputFieldComponentDefinitionOutline;
+    public model?: SimpleInputFieldModelDefinitionOutline;
+    public layout?: AvailableFieldLayoutDefinitionOutlines;
 
     constructor() {
         super();
-        this.component = new SimpleInputFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitSimpleInputFormComponentDefinition(this);
     }
 }
@@ -126,9 +95,3 @@ export const SimpleInputMap = [
     {kind: FieldModelDefinitionKind, def: SimpleInputFieldModelDefinition, class: SimpleInputModelName},
     {kind: FormComponentDefinitionKind, def: SimpleInputFormComponentDefinition},
 ];
-export type SimpleInputFrames =
-    SimpleInputFieldComponentConfigFrame |
-    SimpleInputFieldComponentDefinitionFrame |
-    SimpleInputFieldModelConfigFrame |
-    SimpleInputFieldModelDefinitionFrame |
-    SimpleInputFormComponentDefinitionFrame;

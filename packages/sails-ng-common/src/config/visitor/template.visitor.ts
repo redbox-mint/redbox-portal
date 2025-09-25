@@ -1,4 +1,5 @@
 import {FormConfigVisitor} from "./base.model";
+import {FormConfigOutline} from "../form-config.outline";
 
 
 /**
@@ -6,13 +7,14 @@ import {FormConfigVisitor} from "./base.model";
  * templates that need to be compiled.
  */
 export class TemplateFormConfigVisitor extends FormConfigVisitor {
-    private _templates: Record<string, unknown> = {};
+    private result?: Record<string, unknown>;
 
-    constructor() {
-        super()
-    }
-
-    get result(): Record<string, unknown> {
-        return this._templates;
+    start(formConfig: FormConfigOutline): Record<string, unknown> {
+        this.result = undefined;
+        formConfig.accept(this);
+        if (this.result !== undefined) {
+            return this.result;
+        }
+        throw new Error("Not implemented.");
     }
 }

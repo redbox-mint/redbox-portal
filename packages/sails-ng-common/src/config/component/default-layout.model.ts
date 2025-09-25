@@ -1,40 +1,32 @@
+import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
-    FieldLayoutConfig,
-    FieldLayoutConfigFrame,
-    FieldLayoutDefinition,
-    FieldLayoutDefinitionFrame
-} from "../field-layout.model";
-import {FieldLayoutConfigKind, FieldLayoutDefinitionKind} from "../shared.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
-
+    DefaultFieldLayoutConfigOutline,
+    DefaultFieldLayoutDefinitionOutline,
+    DefaultLayoutName
+} from "./default-layout.outline";
+import {FieldLayoutConfigKind, FieldLayoutDefinitionKind} from "../shared.outline";
 
 
 /* Default Layout */
-export const DefaultLayoutName = `DefaultLayout` as const;
-export type DefaultLayoutNameType = typeof DefaultLayoutName;
 
-export interface DefaultFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
-}
 
-export class DefaultFieldLayoutConfig extends FieldLayoutConfig implements DefaultFieldLayoutConfigFrame {
+export class DefaultFieldLayoutConfig extends FieldLayoutConfig implements DefaultFieldLayoutConfigOutline {
     constructor() {
         super();
     }
 }
 
-export interface DefaultFieldLayoutDefinitionFrame extends FieldLayoutDefinitionFrame {
-    class: DefaultLayoutNameType;
-    config?: DefaultFieldLayoutConfigFrame;
-}
 
-
-export class DefaultFieldLayoutDefinition extends FieldLayoutDefinition implements DefaultFieldLayoutDefinitionFrame {
+export class DefaultFieldLayoutDefinition extends FieldLayoutDefinition implements DefaultFieldLayoutDefinitionOutline {
     class = DefaultLayoutName;
-    config?: DefaultFieldLayoutConfig;
+    config?: DefaultFieldLayoutConfigOutline;
+
     constructor() {
         super();
     }
-    accept(visitor: IFormConfigVisitor): void {
+
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitDefaultFieldLayoutDefinition(this);
     }
 }
@@ -43,6 +35,3 @@ export const DefaultLayoutMap = [
     {kind: FieldLayoutConfigKind, def: DefaultFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: DefaultFieldLayoutDefinition, class: DefaultLayoutName},
 ];
-export type DefaultLayoutFrames =
-    DefaultFieldLayoutConfigFrame
-    | DefaultFieldLayoutDefinitionFrame;

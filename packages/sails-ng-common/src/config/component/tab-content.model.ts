@@ -1,49 +1,28 @@
-import {
-    FieldComponentConfig,
-    FieldComponentConfigFrame,
-    FieldComponentDefinition,
-    FieldComponentDefinitionFrame
-} from "../field-component.model";
-import {
-
-    AvailableFormComponentDefinitionFrames,
-    AvailableFormComponentDefinitions
-} from "../static-types-classes.dictionary";
-
-
-import {FormComponentDefinition, FormComponentDefinitionFrame, } from "../form-component.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
-    FieldComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind,
-    FormComponentDefinitionKind
-} from "../shared.model";
+    FieldComponentDefinitionKind,
+    FieldLayoutConfigKind,
+    FieldLayoutDefinitionKind, FormComponentDefinitionKind
+} from "../shared.outline";
+import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
+import {FormComponentDefinition} from "../form-component.model";
 import {
-    FieldLayoutConfig,
-    FieldLayoutConfigFrame,
-    FieldLayoutDefinition,
-    FieldLayoutDefinitionFrame
-} from "../field-layout.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
+    TabContentComponentName,
+    TabContentFieldComponentConfigOutline,
+    TabContentFieldComponentDefinitionOutline,
+    TabContentFieldLayoutConfigOutline,
+    TabContentFieldLayoutDefinitionOutline, TabContentFormComponentDefinitionOutline, TabContentLayoutName
+} from "./tab-content.outline";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
 
 
 /* Tab Content Component */
-export const TabContentComponentName = "TabContentComponent" as const;
-export type TabContentComponentNameType = typeof TabContentComponentName;
 
-
-export interface TabContentFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    /**
-     * The components to render in the tab.
-     */
-    componentDefinitions: AvailableFormComponentDefinitionFrames[];
-    /**
-     * Whether the tab is selected on initialization
-     */
-    selected?: boolean;
-}
-
-export class TabContentFieldComponentConfig extends FieldComponentConfig implements TabContentFieldComponentConfigFrame {
-    componentDefinitions: AvailableFormComponentDefinitions[];
+export class TabContentFieldComponentConfig extends FieldComponentConfig implements TabContentFieldComponentConfigOutline {
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[];
     selected?: boolean = false;
 
     constructor() {
@@ -52,12 +31,8 @@ export class TabContentFieldComponentConfig extends FieldComponentConfig impleme
     }
 }
 
-export interface TabContentFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: TabContentComponentNameType;
-    config?: TabContentFieldComponentConfigFrame;
-}
 
-export class TabContentFieldComponentDefinition extends FieldComponentDefinition implements TabContentFieldComponentDefinitionFrame {
+export class TabContentFieldComponentDefinition extends FieldComponentDefinition implements TabContentFieldComponentDefinitionOutline {
     class = TabContentComponentName;
     config?: TabContentFieldComponentConfig;
 
@@ -66,24 +41,15 @@ export class TabContentFieldComponentDefinition extends FieldComponentDefinition
     }
 
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTabContentFieldComponentDefinition(this);
     }
 }
 
 
 /* Tab Content Layout */
-export const TabContentLayoutName = "TabContentLayout" as const;
-export type TabContentLayoutNameType = typeof TabContentLayoutName;
 
-export interface TabContentFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
-    /**
-     * The text on the button
-     */
-    buttonLabel?: string;
-}
-
-export class TabContentFieldLayoutConfig extends FieldLayoutConfig implements TabContentFieldLayoutConfigFrame {
+export class TabContentFieldLayoutConfig extends FieldLayoutConfig implements TabContentFieldLayoutConfigOutline {
     buttonLabel?: string;
 
     constructor() {
@@ -91,12 +57,8 @@ export class TabContentFieldLayoutConfig extends FieldLayoutConfig implements Ta
     }
 }
 
-export interface TabContentFieldLayoutDefinitionFrame extends FieldLayoutDefinitionFrame {
-    class: TabContentLayoutNameType;
-    config?: TabContentFieldLayoutConfigFrame;
-}
 
-export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition implements TabContentFieldLayoutDefinitionFrame {
+export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition implements TabContentFieldLayoutDefinitionOutline {
     class = TabContentLayoutName;
     config?: TabContentFieldLayoutConfig;
 
@@ -104,29 +66,27 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    get children(): FormComponentDefinitionOutline[] {
+        throw new Error("Method not implemented.");
+    }
+
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTabContentFieldLayoutDefinition(this);
     }
 }
 
 /* Tab Content Form Component */
-export interface TabContentFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: TabContentFieldComponentDefinitionFrame;
-    model?: never;
-    layout?: TabContentFieldLayoutDefinitionFrame;
-}
 
-export class TabContentFormComponentDefinition extends FormComponentDefinition implements TabContentFormComponentDefinitionFrame {
-    public component: TabContentFieldComponentDefinition;
+export class TabContentFormComponentDefinition extends FormComponentDefinition implements TabContentFormComponentDefinitionOutline {
+    public component!: TabContentFieldComponentDefinition;
     public model?: never;
     public layout?: TabContentFieldLayoutDefinition;
 
     constructor() {
         super();
-        this.component = new TabContentFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitTabContentFormComponentDefinition(this);
     }
 }
@@ -138,9 +98,3 @@ export const TabContentMap = [
     {kind: FieldLayoutDefinitionKind, def: TabContentFieldLayoutDefinition, class: TabContentLayoutName},
     {kind: FormComponentDefinitionKind, def: TabContentFormComponentDefinition},
 ];
-export type TabContentFrames =
-    TabContentFieldComponentConfigFrame |
-    TabContentFieldComponentDefinitionFrame |
-    TabContentFieldLayoutConfigFrame |
-    TabContentFieldLayoutDefinitionFrame |
-    TabContentFormComponentDefinitionFrame;

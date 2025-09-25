@@ -1,4 +1,4 @@
-import {IFormConfig} from "../form-config.frame";
+import {FormConfigOutline} from "../form-config.outline";
 import {FormConfigVisitor} from "./base.model";
 
 
@@ -6,18 +6,18 @@ import {FormConfigVisitor} from "./base.model";
  * Visit each form config class type and build the form config for the client-side.
  */
 export class ClientFormConfigVisitor extends FormConfigVisitor {
-    private _form?: IFormConfig;
+    private result?: FormConfigOutline;
 
-    buildClientFormConfig(original: IFormConfig): IFormConfig {
-        this._form = undefined;
+    start(original: FormConfigOutline): FormConfigOutline {
+        this.result = undefined;
         original.accept(this);
-        if (this._form !== undefined) {
-            return this._form;
+        if (this.result !== undefined) {
+            return this.result;
         }
-        throw new Error("Form building failed.");
+        throw new Error("Not implemented.");
     }
 
-    visitFormConfig(item: IFormConfig): void {
+    visitFormConfig(item: FormConfigOutline): void {
         for (const child of item.children) {
             child.accept(this);
         }

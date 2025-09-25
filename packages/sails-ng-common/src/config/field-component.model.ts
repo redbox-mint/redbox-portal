@@ -1,22 +1,15 @@
 import {
     BaseFieldComponentConfig,
-    BaseFieldComponentConfigFrame,
     BaseFieldComponentDefinition,
-    BaseFieldComponentDefinitionFrame
 } from "./base-field-component.model";
+import {FieldComponentConfigOutline, FieldComponentDefinitionOutline} from "./field-component.outline";
 
-export interface FieldComponentConfigFrame extends BaseFieldComponentConfigFrame {
+
+export abstract class FieldComponentConfig extends BaseFieldComponentConfig implements FieldComponentConfigOutline {
+
 }
 
-export abstract class FieldComponentConfig extends BaseFieldComponentConfig implements FieldComponentConfigFrame {
 
-}
-
-
-export interface FieldComponentDefinitionFrame extends BaseFieldComponentDefinitionFrame {
-    config?: FieldComponentConfigFrame;
-}
-
-export abstract class FieldComponentDefinition extends BaseFieldComponentDefinition implements FieldComponentDefinitionFrame {
+export abstract class FieldComponentDefinition extends BaseFieldComponentDefinition implements FieldComponentDefinitionOutline {
     abstract config?: FieldComponentConfig;
 }

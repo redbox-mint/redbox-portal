@@ -1,136 +1,180 @@
-import {IFormConfig} from "../form-config.frame";
-import {IFormConfigVisitor} from "./base.structure";
+import {FormConfigOutline} from "../form-config.outline";
+import {FormConfigVisitorOutline} from "./base.outline";
+import {
+    SimpleInputFieldComponentDefinitionOutline,
+    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFormComponentDefinitionOutline,
+} from "../component/simpleinput.outline";
+import {ContentFieldComponentDefinitionOutline,
+    ContentFormComponentDefinitionOutline,
+} from "../component/textblock.outline";
+import {
+    RepeatableElementFieldLayoutDefinitionOutline,
+    RepeatableFieldComponentDefinitionOutline,
+    RepeatableFieldModelDefinitionOutline,
+    RepeatableFormComponentDefinitionOutline,
+} from "../component/repeatable.outline";
+import {
+    ValidationSummaryFieldComponentDefinitionOutline,
+    ValidationSummaryFormComponentDefinitionOutline,
+} from "../component/validation-summary.outline";
+import {
+    GroupFieldComponentDefinitionOutline,
+    GroupFieldModelDefinitionOutline,
+    GroupFormComponentDefinitionOutline,
+} from "../component/group.outline";
+import {
+    TabFieldComponentDefinitionOutline,
+    TabFieldLayoutDefinitionOutline,
+    TabFormComponentDefinitionOutline,
+} from "../component/tab.outline";
+import {
+    TabContentFieldComponentDefinitionOutline,
+    TabContentFieldLayoutDefinitionOutline,
+    TabContentFormComponentDefinitionOutline,
+} from "../component/tab-content.outline";
+import {SaveButtonFieldComponentDefinitionOutline,
+    SaveButtonFormComponentDefinitionOutline,
+} from "../component/save-button.outline";
+import {
+    TextAreaFieldComponentDefinitionOutline,
+    TextAreaFieldModelDefinitionOutline,
+    TextAreaFormComponentDefinitionOutline,
+} from "../component/textarea.outline";
+import {
+    DefaultFieldLayoutDefinitionOutline,
+} from "../component/default-layout.outline";
 
 
 /**
  * The form config visitor definition.
  */
-export abstract class FormConfigVisitor implements IFormConfigVisitor {
+export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
-    visitFormConfig(item: IFormConfig): void {
+    visitFormConfig(item: FormConfigOutline): void {
         this.notImplemented('visitFormConfig');
     }
 
     /* SimpleInput */
 
-    visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinition): void {
+    visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
         this.notImplemented('visitSimpleInputFieldComponentDefinition');
     }
 
-    visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinition): void {
+    visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
         this.notImplemented('visitSimpleInputFieldModelDefinition');
     }
 
-    visitSimpleInputFormComponentDefinition(param: SimpleInputFormComponentDefinition): void {
+    visitSimpleInputFormComponentDefinition(param: SimpleInputFormComponentDefinitionOutline): void {
         this.notImplemented('visitSimpleInputFormComponentDefinition');
     }
 
     /* Content */
 
-    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinition): void {
+    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
         this.notImplemented('visitContentFieldComponentDefinition');
     }
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinition): void {
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
         this.notImplemented('visitContentFormComponentDefinition');
     }
 
     /* Repeatable  */
 
-    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinition): void {
+    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         this.notImplemented('visitRepeatableFieldComponentDefinition');
     }
 
-    visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinition): void {
+    visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
         this.notImplemented('visitRepeatableFieldModelDefinition');
     }
 
-    visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinition): void {
+    visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
         this.notImplemented('visitRepeatableElementFieldLayoutDefinition');
     }
 
-    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinition): void {
+    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
         this.notImplemented('visitRepeatableFormComponentDefinition');
     }
 
     /* Validation Summary */
 
-    visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinition): void {
+    visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
         this.notImplemented('visitValidationSummaryFieldComponentDefinition');
     }
 
-    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinition): void {
+    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
         this.notImplemented('visitValidationSummaryFormComponentDefinition');
     }
 
     /* Group */
 
-    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinition): void {
+    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         this.notImplemented('visitGroupFieldComponentDefinition');
     }
 
-    visitGroupFieldModelDefinition(item: GroupFieldModelDefinition): void {
+    visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
         this.notImplemented('visitGroupFieldModelDefinition');
     }
 
-    visitGroupFormComponentDefinition(param: GroupFormComponentDefinition): void {
+    visitGroupFormComponentDefinition(param: GroupFormComponentDefinitionOutline): void {
         this.notImplemented('visitGroupFormComponentDefinition');
     }
 
     /* Tab  */
 
-    visitTabFieldComponentDefinition(item: TabFieldComponentDefinition): void {
+    visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         this.notImplemented('visitTabFieldComponentDefinition');
     }
 
-    visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinition): void {
+    visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
         this.notImplemented('visitTabFieldLayoutDefinition');
     }
 
-    visitTabFormComponentDefinition(item: TabFormComponentDefinition): void {
+    visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
         this.notImplemented('visitTabFormComponentDefinition');
     }
 
     /*  Tab Content */
 
-    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinition): void {
+    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         this.notImplemented('visitTabContentFieldComponentDefinition');
     }
 
-    visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinition): void {
+    visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
         this.notImplemented('visitTabContentFieldLayoutDefinition');
     }
 
-    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinition): void {
+    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
         this.notImplemented('visitTabContentFormComponentDefinition');
     }
 
     /* Save Button  */
 
-    visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinition): void {
+    visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
         this.notImplemented('visitSaveButtonFieldComponentDefinition');
     }
 
-    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinition): void {
+    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinitionOutline): void {
         this.notImplemented('visitSaveButtonFormComponentDefinition');
     }
 
     /* Text Area */
 
-    visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinition): void {
+    visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
         this.notImplemented('visitTextAreaFieldComponentDefinition');
     }
 
-    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinition): void {
+    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
         this.notImplemented('visitTextAreaFieldModelDefinition');
     }
 
-    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinition): void {
+    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
         this.notImplemented('visitTextAreaFormComponentDefinition');
     }
 
     /* Default Layout  */
-    visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinition): void {
+    visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
         this.notImplemented('visitDefaultFieldLayoutDefinition');
     }
 

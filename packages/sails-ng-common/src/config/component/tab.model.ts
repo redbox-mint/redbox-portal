@@ -1,34 +1,27 @@
 import {
-    FieldComponentConfig,
-    FieldComponentConfigFrame,
-    FieldComponentDefinition,
-    FieldComponentDefinitionFrame
-} from "../field-component.model";
-import {FormComponentDefinition, FormComponentDefinitionFrame} from "../form-component.model";
+    FieldComponentConfigKind, FieldComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind,
+    FormComponentDefinitionKind
+} from "../shared.outline";
 import {
-    FieldComponentConfigKind,
-    FieldComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind,
-     FormComponentDefinitionKind
-} from "../shared.model";
-import {
-    FieldLayoutConfig,
-    FieldLayoutConfigFrame,
-    FieldLayoutDefinition,
-    FieldLayoutDefinitionFrame
-} from "../field-layout.model";
-import {TabContentFormComponentDefinition, TabContentFormComponentDefinitionFrame} from "./tab-content.model";
-import {IFormConfigVisitor} from "../visitor/base.structure";
+    ButtonSectionAriaOrientationOptionsType,
+    TabComponentName, TabFieldComponentConfigOutline, TabFieldComponentDefinitionOutline, TabFieldLayoutConfigOutline,
+    TabFieldLayoutDefinitionOutline, TabFormComponentDefinitionOutline,
+    TabLayoutName
+} from "./tab.outline";
+import {FormComponentDefinition} from "../form-component.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {FieldComponentDefinition} from "../field-component.model";
+import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
+import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
+
 
 /* Tab Component */
-export const TabComponentName = "TabComponent" as const;
-export type TabComponentNameType = typeof TabComponentName;
-
-export interface TabFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    tabs: TabContentFormComponentDefinitionFrame[];
+class FieldComponentConfig {
 }
 
-export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigFrame {
-    tabs: TabContentFormComponentDefinition[];
+export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigOutline {
+    tabs: TabContentFormComponentDefinitionOutline[];
 
     constructor() {
         super();
@@ -36,51 +29,28 @@ export class TabFieldComponentConfig extends FieldComponentConfig implements Tab
     }
 }
 
-export interface TabFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
-    class: TabComponentNameType;
-    config?: TabFieldComponentConfigFrame;
-}
 
-export class TabFieldComponentDefinition extends FieldComponentDefinition implements TabFieldComponentDefinitionFrame {
+export class TabFieldComponentDefinition extends FieldComponentDefinition implements TabFieldComponentDefinitionOutline {
     class = TabComponentName;
-    config?: TabFieldComponentConfig
+    config?: TabFieldComponentConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    get children(): FormComponentDefinitionOutline[] {
+        throw new Error("Method not implemented.");
+    }
+
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTabFieldComponentDefinition(this);
     }
 }
 
 /* Tab Layout */
-export const TabLayoutName = "TabLayout" as const;
-export type TabLayoutNameType = typeof TabLayoutName;
 
-export const ButtonSectionAriaOrientationOptions = ["horizontal", "vertical"] as const;
-export type ButtonSectionAriaOrientationOptionsType = typeof ButtonSectionAriaOrientationOptions[number];
 
-export interface TabFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
-    /**
-     * CSS class for the tab buttons
-     */
-    buttonSectionCssClass?: string;
-    /**
-     * CSS class for the tab pane
-     */
-    tabPaneCssClass?: string;
-    /**
-     * CSS class for the active tab pane
-     */
-    tabPaneActiveCssClass?: string;
-    /**
-     * The aria orientation for the section button
-     */
-    buttonSectionAriaOrientation?: ButtonSectionAriaOrientationOptionsType;
-}
-
-export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldLayoutConfigFrame {
+export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldLayoutConfigOutline {
     buttonSectionCssClass?: string;
     tabPaneCssClass?: string;
     tabPaneActiveCssClass?: string;
@@ -91,42 +61,32 @@ export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldL
     }
 }
 
-export interface TabFieldLayoutDefinitionFrame extends FieldLayoutDefinitionFrame {
-    class: TabLayoutNameType;
-    config?: TabFieldLayoutConfigFrame;
-}
-
-export class TabFieldLayoutDefinition extends FieldLayoutDefinition implements TabFieldLayoutDefinitionFrame {
+export class TabFieldLayoutDefinition extends FieldLayoutDefinition implements TabFieldLayoutDefinitionOutline {
     class = TabLayoutName;
-    config?: TabFieldLayoutConfig;
+    config?: TabFieldLayoutConfigOutline;
 
     constructor() {
         super();
     }
 
-    accept(visitor: IFormConfigVisitor): void {
+    accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTabFieldLayoutDefinition(this);
     }
 }
 
 /* Tab Form Component */
-export interface TabFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
-    component: TabFieldComponentDefinitionFrame;
-    model?: never;
-    layout?: TabFieldLayoutDefinitionFrame;
-}
 
-export class TabFormComponentDefinition extends FormComponentDefinition implements TabFormComponentDefinitionFrame {
-    public component: TabFieldComponentDefinition;
+
+export class TabFormComponentDefinition extends FormComponentDefinition implements TabFormComponentDefinitionOutline {
+    public component!: TabFieldComponentDefinitionOutline;
     public model?: never;
-    public layout?: TabFieldLayoutDefinition;
+    public layout?: TabFieldLayoutDefinitionOutline;
 
     constructor() {
         super();
-        this.component = new TabFieldComponentDefinition();
     }
 
-    accept(visitor: IFormConfigVisitor) {
+    accept(visitor: FormConfigVisitorOutline) {
         visitor.visitTabFormComponentDefinition(this);
     }
 }
@@ -138,9 +98,3 @@ export const TabMap = [
     {kind: FieldLayoutDefinitionKind, def: TabFieldLayoutDefinition, class: TabLayoutName},
     {kind: FormComponentDefinitionKind, def: TabFormComponentDefinition},
 ];
-export type TabFrames =
-    TabFieldComponentConfigFrame |
-    TabFieldComponentDefinitionFrame |
-    TabFieldLayoutConfigFrame |
-    TabFieldLayoutDefinitionFrame |
-    TabFormComponentDefinitionFrame;
