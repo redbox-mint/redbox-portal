@@ -34,35 +34,6 @@
       }
     },
     {
-      "name": "userProfile",
-      "root": "userProfile",
-      "outDir": "../assets/angular/userProfile",
-      "assets": [
-        "assets",
-        "favicon.ico"
-      ],
-      "index": "index.html",
-      "main": "main.ts",
-      "polyfills": "polyfills.ts",
-      "test": "test.ts",
-      "tsconfig": "tsconfig.app.json",
-      "testTsconfig": "tsconfig.spec.json",
-      "prefix": "app",
-      "styles": [
-        "styles.css"
-      ],
-      "scripts": [
-        "../node_modules/leaflet/dist/leaflet.js",
-        "../node_modules/bootstrap-datepicker/js/bootstrap-datepicker.js",
-        "../node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"
-      ],
-      "environmentSource": "environments/environment.ts",
-      "environments": {
-        "dev": "environments/environment.ts",
-        "prod": "environments/environment.prod.ts"
-      }
-    },
-    {
       "name": "dmp",
       "root": "dmp",
       "outDir": "../assets/angular/dmp",
@@ -79,35 +50,6 @@
       "prefix": "app",
       "styles": [
         "styles.scss"
-      ],
-      "scripts": [
-        "../node_modules/leaflet/dist/leaflet.js",
-        "../node_modules/bootstrap-datepicker/js/bootstrap-datepicker.js",
-        "../node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"
-      ],
-      "environmentSource": "environments/environment.ts",
-      "environments": {
-        "dev": "environments/environment.ts",
-        "prod": "environments/environment.prod.ts"
-      }
-    },
-    {
-      "name": "workspace_list",
-      "root": "workspace_list",
-      "outDir": "../assets/angular/workspace_list",
-      "assets": [ 
-        "assets",
-        "favicon.ico"
-      ],
-      "index": "index.html",
-      "main": "main.ts",
-      "polyfills": "polyfills.ts",
-      "test": "test.ts",
-      "tsconfig": "tsconfig.app.json",
-      "testTsconfig": "tsconfig.spec.json",
-      "prefix": "app",
-      "styles": [
-        "styles.css"
       ],
       "scripts": [
         "../node_modules/leaflet/dist/leaflet.js",

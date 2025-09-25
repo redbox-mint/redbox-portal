@@ -1,7 +1,7 @@
 import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
 import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type, inject} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import {FormFieldLayoutDefinition, FormValidatorComponentErrors} from "@researchdatabox/sails-ng-common";
+import {FormFieldLayoutDefinition, FormValidatorComponentErrors, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
 
@@ -160,7 +160,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   override ngAfterViewInit() {
-    this.viewInitialised.set(true);
+    this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
   }
 
   public toggleHelpTextVisibility() {
