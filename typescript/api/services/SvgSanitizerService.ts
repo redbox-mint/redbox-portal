@@ -87,7 +87,12 @@ export module Services {
       working = working.replace(/<\?\w+[^>]*\?>/gi, '');
       
       // Remove comments that might contain executable content
-      working = working.replace(/<!--[\s\S]*?-->/g, '');
+      // Repeat until no more matches to ensure complete removal (mitigates incomplete multi-character sanitization)
+      let prevWorking;
+      do {
+        prevWorking = working;
+        working = working.replace(/<!--[\s\S]*?-->/g, '');
+      } while (working !== prevWorking);
 
       // Comprehensive URL scheme validation for all href attributes
       // This addresses the "Incomplete URL scheme check" vulnerability
