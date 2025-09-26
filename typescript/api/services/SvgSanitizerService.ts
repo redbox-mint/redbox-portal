@@ -70,16 +70,27 @@ export module Services {
       if (/<foreignObject[\s>]/i.test(working)) {
         errors.push('foreign-object');
       }
-      working = working
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '');
+      // Remove <script> and <foreignObject> elements repeatedly until gone
+      let prevWorking;
+      do {
+        prevWorking = working;
+        working = working
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '');
+      } while (working !== prevWorking);
 
       // Strip event handler attributes (on*)
       if (/ on[a-z]+=/i.test(working)) {
         warnings.push('event-handlers-removed');
       }
-      working = working.replace(/\s+on[a-z]+="[^"]*"/gi, '');
-      working = working.replace(/\s+on[a-z]+='[^']*'/gi, '');
+      // Remove all event handler attributes in a loop until none remain
+      let prevWorkingAttrs;
+      do {
+        prevWorkingAttrs = working;
+        working = working
+          .replace(/\s+on[a-z]+="[^"]*"/gi, '')
+          .replace(/\s+on[a-z]+='[^']*'/gi, '');
+      } while (working !== prevWorkingAttrs);
 
       // Strip potentially dangerous namespace script references (javascript: URLs)
       if (/javascript:/i.test(working)) {
