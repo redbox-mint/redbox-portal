@@ -16,7 +16,7 @@ declare var _;
 
 /**
  * SassCompilerService
- * Task 2: compile semantic variable map into CSS using root assets/styles/style.scss
+ * : compile semantic variable map into CSS using root assets/styles/style.scss
  * injecting tenant overrides after the variable import section.
  *
  * Usage: await SassCompilerService.compile({ 'site-branding-area-background': '#ffffff' })

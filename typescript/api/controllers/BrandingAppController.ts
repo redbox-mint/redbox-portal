@@ -1,5 +1,5 @@
 /**
- * Branding App Controller (Task 9)
+ * Branding App Controller
  * Endpoints consumed by the Angular admin UI (session / cookie auth, CSRF enabled by default)
  */
 import type { Request, Response } from 'sails';
