@@ -43,41 +43,44 @@ export class BrandingAdminComponent extends BaseComponent {
   // Keys align exactly with SCSS variable names (without the leading $)
   colourGroups = [
     {
-      name: 'Site Branding',
-      help: 'Set the main background colour for the site branding area.',
+      name: 'Header',
+      help: 'Customise the header colours. This is the area above the main site branding section where login details are shown.',
       variables: [
-        { key: 'site-branding-area-background-color', label: 'Site Branding Background', default: '#b1101a', help: 'Background colour for the main site branding area (top of the page).' }
+        { key: 'header-branding-text-color', label: 'Header Text', default: '#333', help: 'The colour of the text shown in the header area.' },
+        { key: 'header-branding-link-color', label: 'Header Link', default: '#222', help: 'Colour for any links in the header area.' },
+        { key: 'header-branding-background-color', label: 'Header Background', default: '#f4f4f4', help: 'The background colour for the header area.' }
       ]
     },
     {
-      name: 'Header & Logo',
-      help: 'Customise the header colours for your portal.',
+      name: 'Site Branding',
+      help: 'Customise the site branding area colours. This is the large area at the top of the page that contains the logo and site name.',
       variables: [
-        { key: 'header-branding-link-color', label: 'Header Link', default: '#222', help: 'Colour for links in the header area.' },
-        { key: 'header-branding-background-color', label: 'Header Background', default: '#f4f4f4', help: 'Background colour for the header area.' },
-        { key: 'header-branding-text-color', label: 'Header Text', default: '#333', help: 'Text colour for the header area.' }
+        { key: 'site-branding-area-background-color', label: 'Site Branding Background', default: '#b1101a', help: 'The background colour for the main site branding area (top of the page).' }
       ]
     },
     {
       name: 'Menu',
-      help: 'Adjust the appearance of the main menu and dropdowns, including active and inactive states.',
+      help: 'Customise the appearance of the main menu and menu dropdowns, including active and inactive states.',
       variables: [
-        { key: 'main-menu-branding-background-color', label: 'Main Menu Background', default: '#500005', help: 'Background colour for the main menu bar.' },
-        { key: 'main-menu-inactive-item-color', label: 'Inactive Menu Text', default: '#ffffff', help: 'Text colour for inactive menu items.' },
-        { key: 'main-menu-inactive-item-color-hover', label: 'Menu Text Hover', default: '#888', help: 'Text colour for menu items on hover.' },
-        { key: 'main-menu-inactive-item-background-color', label: 'Inactive Menu Background', default: '#500005', help: 'Background colour for inactive menu items.' },
-        { key: 'main-menu-inactive-item-background-color-hover', label: 'Menu Background Hover', default: '#ffffff', help: 'Background colour for menu items on hover.' },
-        { key: 'main-menu-active-item-color', label: 'Active Menu Text', default: '#ffffff', help: 'Text colour for the active menu item.' },
-        { key: 'main-menu-active-item-color-hover', label: 'Active Menu Text Hover', default: '#888', help: 'Text colour for the active menu item on hover.' },
-        { key: 'main-menu-active-item-background-color', label: 'Active Menu Background', default: '#b1101a', help: 'Background colour for the active menu item.' },
-        { key: 'main-menu-active-item-background-color-hover', label: 'Active Menu Background Hover', default: '#ffffff', help: 'Background colour for the active menu item on hover.' },
-        { key: 'main-menu-inactive-dropdown-item-color', label: 'Dropdown Text', default: '#a9a9a9', help: 'Text colour for dropdown menu items.' },
-        { key: 'main-menu-inactive-dropdown-item-color-hover', label: 'Dropdown Text Hover', default: '#888', help: 'Text colour for dropdown menu items on hover.' },
-        { key: 'main-menu-inactive-dropdown-item-background-color', label: 'Dropdown Background (Inactive)', default: '#500005', help: 'Background colour for inactive dropdown items.' },
-        { key: 'main-menu-active-dropdown-item-color', label: 'Active Dropdown Text', default: '#ffffff', help: 'Text colour for active dropdown menu items.' },
-        { key: 'main-menu-active-dropdown-item-color-hover', label: 'Active Dropdown Text Hover', default: '#888', help: 'Text colour for active dropdown items on hover.' },
-        { key: 'main-menu-active-dropdown-item-background-color', label: 'Active Dropdown Background', default: '#b1101a', help: 'Background colour for active dropdown menu items.' },
-        { key: 'main-menu-active-dropdown-item-background-color-hover', label: 'Active Dropdown Background Hover', default: '#ffffff', help: 'Background colour for active dropdown items on hover.' }
+        { key: 'main-menu-branding-background-color', label: 'Main Menu Background', default: '#500005', help: 'The background colour for the main menu bar this is the colour of the bar outside the menu items (e.g. to the left and right of the menu items).' },
+        { key: 'main-menu-active-item-color', label: 'Active Menu Text', default: '#ffffff', help: 'The text colour for the active menu item.' },
+        { key: 'main-menu-active-item-color-hover', label: 'Active Menu Text Hover', default: '#888', help: 'The text colour for the active menu item on hover.' },
+        { key: 'main-menu-active-item-background-color', label: 'Active Menu Background', default: '#b1101a', help: 'The background colour for the active menu item.' },
+        { key: 'main-menu-active-item-background-color-hover', label: 'Active Menu Background Hover', default: '#ffffff', help: 'The background colour for the active menu item on hover.' },
+        { key: 'main-menu-inactive-item-color', label: 'Inactive Menu Text', default: '#ffffff', help: 'The text colour for inactive menu items.' },
+        { key: 'main-menu-inactive-item-color-hover', label: 'Inactive Menu Text Hover', default: '#888', help: 'The text colour for inactive menu items on hover.' },
+        { key: 'main-menu-inactive-item-background-color', label: 'Inactive Menu Background', default: '#500005', help: 'The background colour for inactive menu items.' },
+        { key: 'main-menu-inactive-item-background-color-hover', label: 'Inactive Menu Background Hover', default: '#ffffff', help: 'The background colour for inactive menu items on hover.' },
+        
+        { key: 'main-menu-active-dropdown-item-color', label: 'Active Dropdown Text', default: '#ffffff', help: 'The text colour for active dropdown menu items.' },
+        { key: 'main-menu-active-dropdown-item-color-hover', label: 'Active Dropdown Text Hover', default: '#888', help: 'The text colour for active dropdown items on hover.' },
+        { key: 'main-menu-active-dropdown-item-background-color', label: 'Active Dropdown Background', default: '#b1101a', help: 'The background colour for active dropdown menu items.' },
+        { key: 'main-menu-active-dropdown-item-background-color-hover', label: 'Active Dropdown Background Hover', default: '#ffffff', help: 'The background colour for dropdown items in the active menu on hover.' },
+
+
+        { key: 'main-menu-inactive-dropdown-item-color', label: 'Inactive Dropdown Text', default: '#a9a9a9', help: 'The text colour for dropdown menu items.' },
+        { key: 'main-menu-inactive-dropdown-item-color-hover', label: 'Inactive Dropdown Text Hover', default: '#888', help: 'The text colour for dropdown menu items on hover in the active menu.' },
+        { key: 'main-menu-inactive-dropdown-item-background-color', label: 'Inactive Dropdown Background', default: '#222', help: 'The background colour for inactive dropdown items in the active menu.' }
       ]
     },
     {

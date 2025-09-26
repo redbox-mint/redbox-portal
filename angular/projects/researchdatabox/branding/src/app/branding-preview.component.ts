@@ -77,26 +77,46 @@ import { CommonModule } from '@angular/common';
         </p>
       </div>
 
-      <!-- Panel and Button bar (card content moved into panel) -->
+      <!-- Home Panel Example -->
   <div class="container-fluid mt-3">
         <div class="row">
-          <div class="col-md-12">
+          <div class="col-md-4">
             <div class="panel panel-default">
-              <div class="panel-heading">Panel Heading</div>
+              <div class="panel-heading text-center">
+                <div><i class="fa fa-laptop fa-3x"></i></div>
+                <span class="panel-title">Manage Data</span>
+              </div>
               <div class="panel-body">
-                <p>Body content to preview surface/background and text colors.</p>
-                <div class="btn-toolbar" role="toolbar">
-                  <div class="btn-group me-2" role="group">
-                    <button class="btn btn-primary">Primary</button>
-                    <button class="btn btn-secondary">Secondary</button>
-                    <button class="btn btn-success">Success</button>
-                    <button class="btn btn-info">Info</button>
-                    <button class="btn btn-warning">Warning</button>
-                    <button class="btn btn-danger">Danger</button>
-                    <button class="btn btn-light">Light</button>
-                    <button class="btn btn-dark">Dark</button>
-                  </div>
-                </div>
+                <div><a href="#">Create Data Record</a></div>
+                <div><a href="#">View & Update Records</a></div>
+                <div><a href="#">Export Data</a></div>
+                <div><a href="#">Archive Records</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <p class="mt-2"><small class="text-muted">Sample home panel layout to preview panel styling including background, text, and border colors.</small></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Button Color Bar -->
+      <div class="container-fluid mt-3">
+        <div class="row">
+          <div class="col-md-12">
+            <h4>Bootstrap Theme Colors</h4>
+            <div class="btn-toolbar" role="toolbar">
+              <div class="btn-group me-2" role="group">
+                <button class="btn btn-primary">Primary</button>
+                <button class="btn btn-secondary">Secondary</button>
+                <button class="btn btn-success">Success</button>
+                <button class="btn btn-info">Info</button>
+                <button class="btn btn-warning">Warning</button>
+                <button class="btn btn-danger">Danger</button>
+                <button class="btn btn-light">Light</button>
+                <button class="btn btn-dark">Dark</button>
               </div>
             </div>
           </div>
