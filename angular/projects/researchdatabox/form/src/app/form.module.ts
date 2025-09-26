@@ -35,6 +35,9 @@ import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
 import { TextAreaComponent } from './component/textarea.component';
+import { DropdownInputComponent } from './component/dropdown-input.component';
+import { CheckboxInputComponent } from './component/checkbox-input.component';
+import { RadioInputComponent } from './component/radio-input.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -51,14 +54,17 @@ import { TextAreaComponent } from './component/textarea.component';
     SaveButtonComponent,
     TabComponent,
     TabContentComponent,
-    TabComponentLayout
+    TabComponentLayout,
+    DropdownInputComponent,
+    CheckboxInputComponent,
+    RadioInputComponent
   ],
   imports: [
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
     RedboxPortalCoreModule,
-    I18NextPipe,
+    I18NextPipe
   ],
   providers: [
     {

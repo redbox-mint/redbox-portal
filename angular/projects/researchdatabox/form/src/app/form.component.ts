@@ -19,27 +19,26 @@
 import {
   Component,
   Inject,
-  Input,
   ElementRef,
   signal,
   HostBinding,
   ViewChild,
-  viewChild,
   ViewContainerRef,
-  ComponentRef,
   inject,
-  Signal,
   effect,
   computed,
-  model
+  model,
+  OnDestroy
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { FormGroup } from '@angular/forms';
+import { FormGroup, FormControlStatus } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
+
 
 /**
  * The ReDBox Form
@@ -66,12 +65,10 @@ import { FormComponentsMap, FormService } from './form.service';
     providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
     standalone: false
 })
-export class FormComponent extends BaseComponent {
+export class FormComponent extends BaseComponent implements OnDestroy {
   private logName = "FormComponent";
   appName: string;
   oid = model<string>('');
-  // cache the previous oid to retrigger the load
-  currentOid: string = '';
   recordType = model<string>('');
   editMode = model<boolean>(true);
   formName = model<string>('');
@@ -87,6 +84,14 @@ export class FormComponent extends BaseComponent {
    */
   form?: FormGroup;
   /**
+   * The form group status signal
+   */
+  formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
+  /**
+   * The previous formGroup status
+   */
+  previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
+  /**
    * The form components
    */
   componentDefArr: FormFieldCompMapEntry[] = [];
@@ -95,13 +100,9 @@ export class FormComponent extends BaseComponent {
 
   status = signal<FormStatus>(FormStatus.INIT);
   componentsLoaded = signal<boolean>(false);
+  statusChangesSubscription?: Subscription;
 
-  debugFormComponents = computed<Record<string, unknown>>(() => {
-    if (!this.formDefMap?.formConfig?.debugValue){
-      return {};
-    }
-    return this.getDebugInfo();
-  });
+  debugFormComponents = signal<Record<string, unknown>>({});
 
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
@@ -144,27 +145,31 @@ export class FormComponent extends BaseComponent {
         this.registerUpdateExpression();
       }
     });
-    // Set another effect for the OID update, will reinit if changed if the form has been on the 'READY' state
+
+    // Monitor async validation state using Angular signals effect
     effect(() => {
-      const oid = this.trimmedParams.oid();
-      if (!_isEmpty(oid) && this.currentOid !== oid && this.status() === FormStatus.READY) {
-        this.status.set(FormStatus.INIT);
-        this.componentsLoaded.set(false);
-        this.initComponent()
-          .then(() => {
-            // Only mark as initialized if oid hasn't changed during async init
-            if (this.currentOid === oid) {
-              this.loggerService.info(`${this.logName}: OID changed, form re-initialised.`);
-            } else {
-              this.loggerService.warn(`${this.logName}: OID changed during init, previous: ${oid}, new: ${this.currentOid}.`);
-            }
-          })
-          .catch((error) => {
-            this.loggerService.error(`${this.logName}: Error during OID re-init:`, error);
-            this.status.set(FormStatus.LOAD_ERROR);
-            this.componentsLoaded.set(false);
-          });
+      const formGroupStatus = this.formGroupStatus();
+      const currentPending = formGroupStatus?.pending || false;
+      const wasPending = this.previousFormGroupStatus()?.pending || false;
+      const isValid = formGroupStatus?.valid || false;
+      const wasValid = this.previousFormGroupStatus()?.valid || false;
+      const inSaving = this.status() === FormStatus.SAVING;
+
+      let next: FormStatus | null = null;
+      if (currentPending && !inSaving) {
+        next = FormStatus.VALIDATION_PENDING;
+      } else if (wasPending && !currentPending && !isValid && !inSaving) {
+        next = FormStatus.VALIDATION_ERROR;
+      } else if (wasPending && !currentPending && isValid && this.status() === FormStatus.VALIDATION_PENDING) {
+        next = FormStatus.READY;
+      } else if (!wasValid && isValid && !currentPending && wasPending) {
+        next = FormStatus.READY;
       }
+
+      if (next !== null && this.status() !== next) {
+        this.status.set(next);
+      }
+      this.previousFormGroupStatus.set(formGroupStatus);
     });
   }
 
@@ -209,8 +214,6 @@ export class FormComponent extends BaseComponent {
     }
     // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
     await this.createFormGroup();
-    // set the cache that will trigger a form reinit when the OID is changed
-    this.currentOid = this.trimmedParams.oid();
     // Set the status to READY if all components are loaded
     this.status.set(FormStatus.READY);
     this.componentsLoaded.set(true);
@@ -228,6 +231,13 @@ export class FormComponent extends BaseComponent {
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
+        if (this.form) {
+          this.statusChangesSubscription?.unsubscribe();
+          this.statusChangesSubscription = this.form.statusChanges.subscribe((status: any) => {
+            this.formGroupStatus.set(this.dataStatus);
+          });
+          this.form.valueChanges.subscribe(() => this.debugFormComponents.set(this.getDebugInfo()));
+        }
 
         // set up validators
         const validatorConfig = this.formDefMap.formConfig.validators;
@@ -403,12 +413,25 @@ export class FormComponent extends BaseComponent {
   }
 
   // Expose the `form` status
-  public get dataStatus(): { valid: boolean; dirty: boolean, pristine: boolean } {
+  public get dataStatus(): FormGroupStatus {
     return {
       valid: this.form?.valid || false,
       dirty: this.form?.dirty || false,
       pristine: this.form?.pristine || false,
-    };
+      invalid: this.form?.invalid || false,
+      pending: this.form?.pending || false,
+      disabled: this.form?.disabled || false,
+      enabled: this.form?.enabled || false,
+      touched: this.form?.touched || false,
+      untouched: this.form?.untouched || false,
+      value: this.form?.value || null,
+      errors: this.form?.errors || null,
+      status: this.form?.status as FormControlStatus || 'DISABLED',
+    } as FormGroupStatus;
+  }
+
+  ngOnDestroy(): void {
+    this.statusChangesSubscription?.unsubscribe();
   }
 
   public async getCompiledItem(formComponentName: string | null, formConfigElement: string[]) {
@@ -419,6 +442,21 @@ export class FormComponent extends BaseComponent {
       {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
     return features;
   }
+}
+
+export interface FormGroupStatus {
+  valid: boolean;
+  invalid: boolean;
+  dirty: boolean;
+  pristine: boolean;
+  pending: boolean;
+  disabled: boolean;
+  enabled: boolean;
+  touched: boolean;
+  untouched: boolean;
+  value: any;
+  errors: any;
+  status: FormControlStatus;
 }
 
 type DebugInfo = {

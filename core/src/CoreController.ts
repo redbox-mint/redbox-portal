@@ -270,8 +270,8 @@ export module Controllers.Core {
 
       this.logger.debug("resolvedView");
       this.logger.debug(resolvedView);
-      this.logger.debug("mergedLocal");
-      this.logger.debug(mergedLocal);
+      // this.logger.debug("mergedLocal");
+      // this.logger.debug(mergedLocal);
 
 
 

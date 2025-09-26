@@ -20,6 +20,8 @@ const simulateBrowserLoadingJsFile = async function (value, callback) {
         const path = `${tempDir}/compile-mapping.js`;
         await fs.writeFile(path, value);
         callback(path);
+    } catch (err) {
+        console.error(err);
     } finally {
         if (tempDir) {
             await fs.rm(tempDir, {recursive: true, force: true});

@@ -94,7 +94,118 @@ const formConfig: FormConfigFrame = {
                                             }
                                         },
                                         {
-                                            name: 'text_1_event',
+                                            name: 'dropdown_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Dropdown some label',
+                                            helpText: 'Dropdown some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'DropdownInputModel',
+                                        config: {
+                                            defaultValue: 'Dropdown hello world!!!',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'DropdownInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                            ],
+                                            tooltip: 'Dropdown tooltip'
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'checkbox_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Checkbox some label (single value)',
+                                            helpText: 'Checkbox some help text - single selection mode',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'CheckboxInputModel',
+                                        config: {
+                                            defaultValue: 'option1',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'CheckboxInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                            ],
+                                            tooltip: 'Checkbox tooltip',
+                                            multipleValues: false
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'checkbox_multiple',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Checkbox multiple values',
+                                            helpText: 'Checkbox with multiple selection enabled',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'CheckboxInputModel',
+                                        config: {
+                                            defaultValue: ['option1', 'option3'],
+                                        }
+                                    },
+                                    component: {
+                                        class: 'CheckboxInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Multi Option 1', value: 'option1' },
+                                                { label: 'Multi Option 2', value: 'option2' },
+                                                { label: 'Multi Option 3', value: 'option3' },
+                                                { label: 'Multi Option 4', value: 'option4' },
+                                            ],
+                                            tooltip: 'Multiple selection checkbox tooltip',
+                                            multipleValues: true
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'radio_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Radio some label (single value)',
+                                            helpText: 'Radio some help text - single selection mode',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'RadioInputModel',
+                                        config: {
+                                            defaultValue: 'option1',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'RadioInputComponent',
+                                        config: {
+                                            options: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                            ],
+                                            tooltip: 'Checkbox tooltip'
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'text_1_event',
                                             model: {
                                                 class: 'SimpleInputModel',
                                                 config: {
@@ -400,7 +511,7 @@ const formConfig: FormConfigFrame = {
                                                 class: 'RepeatableComponent',
                                                 config: {
                                                     elementTemplate: {
-                                                        name: 'example_repeatable',
+
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
@@ -476,7 +587,6 @@ const formConfig: FormConfigFrame = {
                 config: {
                     elementTemplate: {
                         // first group component
-                        name: 'group_1_component',
                         model: {
                             class: 'GroupModel',
                             config: {
