@@ -188,23 +188,23 @@ module.exports.routes = {
   'get /:branding/:portal/user/find': 'UserController.find',
   // App Branding (Task 9)
   'get /:branding/:portal/app/branding/config': {
-    controller: 'AppBrandingController',
+    controller: 'BrandingAppController',
     action: 'config'
   },
   'post /:branding/:portal/app/branding/draft': {
-    controller: 'AppBrandingController',
+    controller: 'BrandingAppController',
     action: 'draft'
   },
   'post /:branding/:portal/app/branding/preview': {
-    controller: 'AppBrandingController',
+    controller: 'BrandingAppController',
     action: 'preview'
   },
   'post /:branding/:portal/app/branding/publish': {
-    controller: 'AppBrandingController',
+    controller: 'BrandingAppController',
     action: 'publish'
   },
   'post /:branding/:portal/app/branding/logo': {
-    controller: 'AppBrandingController',
+    controller: 'BrandingAppController',
     action: 'logo'
   },
   'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
