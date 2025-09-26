@@ -180,7 +180,7 @@ export module Services {
       }
     }
 
-    /** Task 5.1: Save draft variables after whitelist + contrast validation */
+    /** Save draft variables after whitelist + contrast validation */
     public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: any; }): Promise<any> {
       const whitelist: string[] = _.get(sails, 'config.branding.variableWhitelist', []) || [];
       const normalized: Record<string, string> = {};
@@ -218,7 +218,7 @@ export module Services {
       return updated;
     }
 
-    /** Task 5.2: Generate preview token storing compiled CSS in CacheEntry */
+    /** Generate preview token storing compiled CSS in CacheEntry */
     public async preview(branding: string, portal: string, actor: any): Promise<{ token: string; url: string; hash: string; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
@@ -247,7 +247,7 @@ export module Services {
       return entry.data;
     }
 
-    /** Task 5.3: Publish current draft (variables) -> CSS, bump version, persist hash, history */
+    /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
     public async publish(branding: string, portal: string, actor: any, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
@@ -266,7 +266,7 @@ export module Services {
       return { version: newVersion, hash };
     }
 
-    /** Task 5.4: Rollback to a previous published version via history id */
+    /** Rollback to a previous published version via history id */
     public async rollback(historyId: string, actor: any): Promise<{ version: number; hash: string; branding: any; }> {
       const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding');
       if (!historyEntry) throw new Error('history-not-found');

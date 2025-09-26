@@ -25,7 +25,8 @@ declare var _: any;
 
 /**
  * ContrastService
- * Task 3: Validate color contrast ratios using WCAG AA standards
+ * 
+ * Validate color contrast ratios using WCAG AA standards
  * and provide suggestions for compliant color combinations.
  *
  * Usage: await ContrastService.validate(variablesMap)

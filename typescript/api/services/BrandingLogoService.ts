@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { GridFSBucket, Db } from 'mongodb';
 
 /**
- * BrandingLogoService (Task 6)
+ * BrandingLogoService
  * - sanitizeAndValidate(fileBuf, contentType)
  * - putLogo({branding, portal, fileBuf, contentType, actor}) -> GridFS path `${branding}/${portal}/images/logo.(ext)`
  */
@@ -11,7 +11,6 @@ import { GridFSBucket, Db } from 'mongodb';
 declare const sails: any;
 declare const _: any;
 declare const BrandingConfig: any;
-declare const ContrastService: any; // placeholder if future color extraction
 declare const SvgSanitizerService: any;
 // Using skipper-gridfs adapter pattern like BrandingController
 // We'll lazily require to avoid circular load issues.
@@ -19,9 +18,9 @@ declare const SvgSanitizerService: any;
 export module Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
-  _exportedMethods = [ 'sanitizeAndValidate', 'putLogo', 'getBinary' ];
+  
 
-  /** In-memory placeholder storage keyed by gridFsId (Task 6/7 interim). */
+  /** In-memory placeholder storage keyed by gridFsId. */
   private _binaryById: Record<string, Buffer> = {};
 
     /** Lazily create a GridFS bucket using the configured 'mongodb' datastore. */
@@ -88,11 +87,6 @@ export module Services {
 
   /** Write logo to storage (GridFS) and update BrandingConfig.logo metadata */
     async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; actor?: any; }): Promise<{ hash: string; gridFsId: string; contentType: string; updatedAt: string; }> {
-  // NOTE: Earlier iterations enforced admin-only logo uploads. Other branding
-  // endpoints (draft/preview/publish/rollback) now rely on higher-level
-  // policy enforcement instead of explicit isAdmin checks, so we mirror that
-  // approach here to keep test expectations consistent. If finer-grained
-  // authorization is required later, reintroduce a policy or role check here.
       const brand = await BrandingConfig.findOne({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(opts.fileBuffer, opts.contentType);

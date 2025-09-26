@@ -1,5 +1,5 @@
 /**
- * Webservice BrandingController (Task 8)
+ * Webservice BrandingController
  * Machine-to-machine endpoints for managing branding draft, preview, publish, rollback, logo.
  */
 import type { Request, Response } from 'sails';

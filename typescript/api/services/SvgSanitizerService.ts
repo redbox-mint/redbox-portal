@@ -5,7 +5,7 @@ declare var _: any;
 
 /**
  * SvgSanitizerService
- * Task 4: Sanitize uploaded SVGs.
+ * Sanitize uploaded SVGs.
  * - Remove <script>, <foreignObject> elements
  * - Reject external references (http/https protocol or //) in href/xlink:href
  * - Detect data: URL embeds

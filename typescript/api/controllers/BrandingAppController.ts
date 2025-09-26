@@ -1,5 +1,5 @@
 /**
- * App Branding Controller (Task 9)
+ * Branding App Controller (Task 9)
  * Endpoints consumed by the Angular admin UI (session / cookie auth, CSRF enabled by default)
  */
 import type { Request, Response } from 'sails';
@@ -27,7 +27,7 @@ function mapError(e: Error): { status: number; body: any } {
 // in config/auth.js (pattern: /:branding/:portal/app/branding/*). We only map errors here.
 
 export module Controllers {
-  export class AppBranding extends controllers.Core.Controller {
+  export class BrandingApp extends controllers.Core.Controller {
     protected _exportedMethods: any = ['config','draft','preview','publish','logo'];
 
     /** 9.1 Return current draft/active branding config + logo meta */
@@ -116,4 +116,4 @@ export module Controllers {
   }
 }
 
-module.exports = new Controllers.AppBranding().exports();
+module.exports = new Controllers.BrandingApp().exports();
