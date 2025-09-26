@@ -70,9 +70,14 @@ export module Services {
       if (/<foreignObject[\s>]/i.test(working)) {
         errors.push('foreign-object');
       }
-      working = working
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '');
+      // Remove <script> and <foreignObject> elements repeatedly until gone
+      let prevWorking;
+      do {
+        prevWorking = working;
+        working = working
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '');
+      } while (working !== prevWorking);
 
       // Strip event handler attributes (on*)
       if (/ on[a-z]+=/i.test(working)) {
