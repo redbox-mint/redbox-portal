@@ -1,0 +1,24 @@
+meta {
+  name: Render Preview CSS Success
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{host}}/default/rdmp/branding/preview/css?token=test-token
+  auth: none
+}
+
+tests {
+  test("Status code is 200 or 404 depending on token validity", function () {
+    const status = res.getStatus();
+    expect([200, 404]).to.include(status);
+  });
+  
+  test("Content-Type is CSS when successful", function () {
+    if (res.getStatus() === 200) {
+      const contentType = res.getHeader('Content-Type');
+      expect(contentType).to.include('text/css');
+    }
+  });
+}

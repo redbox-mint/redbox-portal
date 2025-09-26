@@ -1,0 +1,28 @@
+meta {
+  name: App Branding - Preview with Invalid Branding
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{host}}/nonexistent/rdmp/app/branding/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+tests {
+  test("Status code is 404 for non-existent branding", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+  
+}

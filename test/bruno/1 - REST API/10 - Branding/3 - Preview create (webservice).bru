@@ -25,7 +25,7 @@ tests {
     console.log(raw)
     console.log("&*^*&^*()^*&*^*^*&*^*^*^*&*^raw")
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    expect(body.branding.variables['site-branding-area-background']).to.equal('#123123');
+    expect(body.branding.variables['site-branding-area-background-color']).to.equal('#123123');
   });
   test("Preview token + url stored", function(){
     var raw = res.getBody();

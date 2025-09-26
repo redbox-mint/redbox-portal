@@ -1,0 +1,20 @@
+meta {
+  name: Webservice Preview Unauthorized
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/preview
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 403 (unauthorized)", function () {
+    expect(res.getStatus()).to.equal(403);
+  });
+}

@@ -1,0 +1,37 @@
+meta {
+  name: App Branding - Draft Contrast Violation (400)
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/draft
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+body:json {
+  {
+    "variables": {
+      "site-branding-area-background-color": "#ffffff",
+      "site-branding-area-text-color": "#ffff00"
+    }
+  }
+}
+
+tests {
+  test("Status code is 400 for contrast violation ", function () {
+    const status = res.getStatus();
+    expect([400]).to.include(status);
+  });
+}

@@ -1,7 +1,7 @@
 meta {
-  name: Draft update unauthorised
+  name: Webservice Draft Unauthorized
   type: http
-  seq: 1
+  seq: 20
 }
 
 post {
@@ -22,7 +22,8 @@ body:json {
 }
 
 tests {
-  test("Status code is 403 (non-admin rejected)", function () {
+  test("Status code is 403 (unauthorized)", function () {
     expect(res.getStatus()).to.equal(403);
   });
+  
 }
