@@ -5,7 +5,7 @@
       <div class="card panel-style panel-default">
         <div class="card-header">
           <h5 class="card-title mb-0">
-            Branding Configuration
+            {{ 'branding-configuration-title' | i18next }}
           </h5>
         </div>
         <div class="card-body">
@@ -54,7 +54,7 @@
               <div class="mb-3">
                 <label for="logoUpload" class="form-label">
                   <i class="fas fa-image me-2"></i>
-                  Logo Upload
+                  {{ 'branding-logo-upload-label' | i18next }}
                 </label>
                 <input type="file" class="form-control" id="logoUpload" (change)="uploadLogo($event)" accept="image/*" />
               </div>
@@ -68,31 +68,31 @@
               <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-primary" (click)="saveDraft()" [disabled]="savingDraft">
                   <i class="fas fa-save me-2"></i>
-                  <span *ngIf="!savingDraft">Save Draft</span>
+                  <span *ngIf="!savingDraft">{{ 'branding-save-draft-button' | i18next }}</span>
                   <span *ngIf="savingDraft">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Saving...
+                    {{ 'branding-save-draft-saving' | i18next }}
                   </span>
                 </button>
                 <button class="btn btn-info" (click)="createPreview()" [disabled]="generatingPreview">
                   <i class="fas fa-eye me-2"></i>
-                  <span *ngIf="!generatingPreview">Generate Preview</span>
+                  <span *ngIf="!generatingPreview">{{ 'branding-generate-preview-button' | i18next }}</span>
                   <span *ngIf="generatingPreview">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Generating...
+                    {{ 'branding-generate-preview-generating' | i18next }}
                   </span>
                 </button>
                 <button class="btn btn-success" (click)="publish()" [disabled]="publishing">
                   <i class="fas fa-rocket me-2"></i>
-                  <span *ngIf="!publishing">Publish</span>
+                  <span *ngIf="!publishing">{{ 'branding-publish-button' | i18next }}</span>
                   <span *ngIf="publishing">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Publishing...
+                    {{ 'branding-publish-publishing' | i18next }}
                   </span>
                 </button>
                 <button class="btn btn-outline-secondary" (click)="resetDraft()">
                   <i class="fas fa-undo me-2"></i>
-                  Reset Draft
+                  {{ 'branding-reset-draft-button' | i18next }}
                 </button>
               </div>
             </div>
@@ -125,7 +125,7 @@
         <div class="card-header">
           <h5 class="card-title mb-0">
             <i class="fas fa-eye me-2"></i>
-            Preview
+            {{ 'branding-preview-title' | i18next }}
           </h5>
         </div>
         <div class="card-body">

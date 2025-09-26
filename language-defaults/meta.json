@@ -3214,5 +3214,413 @@
 		"deleteSuccess": {
 			"category": "deleteSuccess",
 			"description": "Translation for deleteSuccess"
+		},
+		"branding-header-name": {
+			"category": "branding",
+			"description": "Name for the Header colour group in branding configuration"
+		},
+		"branding-header-help": {
+			"category": "branding",
+			"description": "Help text for the Header colour group in branding configuration"
+		},
+		"branding-header-text-color-label": {
+			"category": "branding",
+			"description": "Label for header text colour in branding configuration"
+		},
+		"branding-header-text-color-help": {
+			"category": "branding",
+			"description": "Help text for header text colour in branding configuration"
+		},
+		"branding-header-link-color-label": {
+			"category": "branding",
+			"description": "Label for header link colour in branding configuration"
+		},
+		"branding-header-link-color-help": {
+			"category": "branding",
+			"description": "Help text for header link colour in branding configuration"
+		},
+		"branding-header-background-color-label": {
+			"category": "branding",
+			"description": "Label for header background colour in branding configuration"
+		},
+		"branding-header-background-color-help": {
+			"category": "branding",
+			"description": "Help text for header background colour in branding configuration"
+		},
+		"branding-site-branding-name": {
+			"category": "branding",
+			"description": "Name for the Site Branding colour group in branding configuration"
+		},
+		"branding-site-branding-help": {
+			"category": "branding",
+			"description": "Help text for the Site Branding colour group in branding configuration"
+		},
+		"branding-site-branding-background-color-label": {
+			"category": "branding",
+			"description": "Label for site branding background colour in branding configuration"
+		},
+		"branding-site-branding-background-color-help": {
+			"category": "branding",
+			"description": "Help text for site branding background colour in branding configuration"
+		},
+		"branding-menu-name": {
+			"category": "branding",
+			"description": "Name for the Menu colour group in branding configuration"
+		},
+		"branding-menu-help": {
+			"category": "branding",
+			"description": "Help text for the Menu colour group in branding configuration"
+		},
+		"branding-main-menu-background-color-label": {
+			"category": "branding",
+			"description": "Label for main menu background colour in branding configuration"
+		},
+		"branding-main-menu-background-color-help": {
+			"category": "branding",
+			"description": "Help text for main menu background colour in branding configuration"
+		},
+		"branding-main-menu-active-item-color-label": {
+			"category": "branding",
+			"description": "Label for active menu text colour in branding configuration"
+		},
+		"branding-main-menu-active-item-color-help": {
+			"category": "branding",
+			"description": "Help text for active menu text colour in branding configuration"
+		},
+		"branding-main-menu-active-item-color-hover-label": {
+			"category": "branding",
+			"description": "Label for active menu text hover colour in branding configuration"
+		},
+		"branding-main-menu-active-item-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for active menu text hover colour in branding configuration"
+		},
+		"branding-main-menu-active-item-background-color-label": {
+			"category": "branding",
+			"description": "Label for active menu background colour in branding configuration"
+		},
+		"branding-main-menu-active-item-background-color-help": {
+			"category": "branding",
+			"description": "Help text for active menu background colour in branding configuration"
+		},
+		"branding-main-menu-active-item-background-color-hover-label": {
+			"category": "branding",
+			"description": "Label for active menu background hover colour in branding configuration"
+		},
+		"branding-main-menu-active-item-background-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for active menu background hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-color-label": {
+			"category": "branding",
+			"description": "Label for inactive menu text colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-color-help": {
+			"category": "branding",
+			"description": "Help text for inactive menu text colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-color-hover-label": {
+			"category": "branding",
+			"description": "Label for inactive menu text hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for inactive menu text hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-background-color-label": {
+			"category": "branding",
+			"description": "Label for inactive menu background colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-background-color-help": {
+			"category": "branding",
+			"description": "Help text for inactive menu background colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-background-color-hover-label": {
+			"category": "branding",
+			"description": "Label for inactive menu background hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-item-background-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for inactive menu background hover colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-color-label": {
+			"category": "branding",
+			"description": "Label for active dropdown text colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-color-help": {
+			"category": "branding",
+			"description": "Help text for active dropdown text colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-color-hover-label": {
+			"category": "branding",
+			"description": "Label for active dropdown text hover colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for active dropdown text hover colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-background-color-label": {
+			"category": "branding",
+			"description": "Label for active dropdown background colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-background-color-help": {
+			"category": "branding",
+			"description": "Help text for active dropdown background colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-background-color-hover-label": {
+			"category": "branding",
+			"description": "Label for active dropdown background hover colour in branding configuration"
+		},
+		"branding-main-menu-active-dropdown-item-background-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for active dropdown background hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-dropdown-item-color-label": {
+			"category": "branding",
+			"description": "Label for inactive dropdown text colour in branding configuration"
+		},
+		"branding-main-menu-inactive-dropdown-item-color-help": {
+			"category": "branding",
+			"description": "Help text for inactive dropdown text colour in branding configuration"
+		},
+		"branding-main-menu-inactive-dropdown-item-color-hover-label": {
+			"category": "branding",
+			"description": "Label for inactive dropdown text hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-dropdown-item-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for inactive dropdown text hover colour in branding configuration"
+		},
+		"branding-main-menu-inactive-dropdown-item-background-color-label": {
+			"category": "branding",
+			"description": "Label for inactive dropdown background colour in branding configuration"
+		},
+		"branding-main-menu-inactive-dropdown-item-background-color-help": {
+			"category": "branding",
+			"description": "Help text for inactive dropdown background colour in branding configuration"
+		},
+		"branding-content-name": {
+			"category": "branding",
+			"description": "Name for the Content colour group in branding configuration"
+		},
+		"branding-content-help": {
+			"category": "branding",
+			"description": "Help text for the Content colour group in branding configuration"
+		},
+		"branding-body-text-color-label": {
+			"category": "branding",
+			"description": "Label for body text colour in branding configuration"
+		},
+		"branding-body-text-color-help": {
+			"category": "branding",
+			"description": "Help text for body text colour in branding configuration"
+		},
+		"branding-body-background-color-label": {
+			"category": "branding",
+			"description": "Label for body background colour in branding configuration"
+		},
+		"branding-body-background-color-help": {
+			"category": "branding",
+			"description": "Help text for body background colour in branding configuration"
+		},
+		"branding-links-name": {
+			"category": "branding",
+			"description": "Name for the Links colour group in branding configuration"
+		},
+		"branding-links-help": {
+			"category": "branding",
+			"description": "Help text for the Links colour group in branding configuration"
+		},
+		"branding-anchor-color-label": {
+			"category": "branding",
+			"description": "Label for link colour in branding configuration"
+		},
+		"branding-anchor-color-help": {
+			"category": "branding",
+			"description": "Help text for link colour in branding configuration"
+		},
+		"branding-anchor-color-hover-label": {
+			"category": "branding",
+			"description": "Label for link hover colour in branding configuration"
+		},
+		"branding-anchor-color-hover-help": {
+			"category": "branding",
+			"description": "Help text for link hover colour in branding configuration"
+		},
+		"branding-anchor-color-focus-label": {
+			"category": "branding",
+			"description": "Label for link focus colour in branding configuration"
+		},
+		"branding-anchor-color-focus-help": {
+			"category": "branding",
+			"description": "Help text for link focus colour in branding configuration"
+		},
+		"branding-panels-name": {
+			"category": "branding",
+			"description": "Name for the Panels colour group in branding configuration"
+		},
+		"branding-panels-help": {
+			"category": "branding",
+			"description": "Help text for the Panels colour group in branding configuration"
+		},
+		"branding-panel-background-color-label": {
+			"category": "branding",
+			"description": "Label for panel background colour in branding configuration"
+		},
+		"branding-panel-background-color-help": {
+			"category": "branding",
+			"description": "Help text for panel background colour in branding configuration"
+		},
+		"branding-panel-text-color-label": {
+			"category": "branding",
+			"description": "Label for panel text colour in branding configuration"
+		},
+		"branding-panel-text-color-help": {
+			"category": "branding",
+			"description": "Help text for panel text colour in branding configuration"
+		},
+		"branding-panel-border-color-label": {
+			"category": "branding",
+			"description": "Label for panel border colour in branding configuration"
+		},
+		"branding-panel-border-color-help": {
+			"category": "branding",
+			"description": "Help text for panel border colour in branding configuration"
+		},
+		"branding-footer-name": {
+			"category": "branding",
+			"description": "Name for the Footer colour group in branding configuration"
+		},
+		"branding-footer-help": {
+			"category": "branding",
+			"description": "Help text for the Footer colour group in branding configuration"
+		},
+		"branding-footer-background-color-label": {
+			"category": "branding",
+			"description": "Label for footer background colour in branding configuration"
+		},
+		"branding-footer-background-color-help": {
+			"category": "branding",
+			"description": "Help text for footer background colour in branding configuration"
+		},
+		"branding-footer-text-color-label": {
+			"category": "branding",
+			"description": "Label for footer text colour in branding configuration"
+		},
+		"branding-footer-text-color-help": {
+			"category": "branding",
+			"description": "Help text for footer text colour in branding configuration"
+		},
+		"branding-bootstrap-contextual-name": {
+			"category": "branding",
+			"description": "Name for the Bootstrap Contextual colour group in branding configuration"
+		},
+		"branding-bootstrap-contextual-help": {
+			"category": "branding",
+			"description": "Help text for the Bootstrap Contextual colour group in branding configuration"
+		},
+		"branding-primary-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap primary colour in branding configuration"
+		},
+		"branding-primary-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap primary colour in branding configuration"
+		},
+		"branding-secondary-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap secondary colour in branding configuration"
+		},
+		"branding-secondary-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap secondary colour in branding configuration"
+		},
+		"branding-success-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap success colour in branding configuration"
+		},
+		"branding-success-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap success colour in branding configuration"
+		},
+		"branding-info-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap info colour in branding configuration"
+		},
+		"branding-info-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap info colour in branding configuration"
+		},
+		"branding-warning-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap warning colour in branding configuration"
+		},
+		"branding-warning-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap warning colour in branding configuration"
+		},
+		"branding-danger-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap danger colour in branding configuration"
+		},
+		"branding-danger-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap danger colour in branding configuration"
+		},
+		"branding-light-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap light colour in branding configuration"
+		},
+		"branding-light-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap light colour in branding configuration"
+		},
+		"branding-dark-label": {
+			"category": "branding",
+			"description": "Label for Bootstrap dark colour in branding configuration"
+		},
+		"branding-dark-help": {
+			"category": "branding",
+			"description": "Help text for Bootstrap dark colour in branding configuration"
+		},
+		"branding-configuration-title": {
+			"category": "branding",
+			"description": "Main title for the branding configuration page"
+		},
+		"branding-logo-upload-label": {
+			"category": "branding",
+			"description": "Label for logo upload section"
+		},
+		"branding-preview-title": {
+			"category": "branding",
+			"description": "Title for the preview section"
+		},
+		"branding-save-draft-button": {
+			"category": "branding",
+			"description": "Text for save draft button"
+		},
+		"branding-save-draft-saving": {
+			"category": "branding",
+			"description": "Text shown while saving draft"
+		},
+		"branding-generate-preview-button": {
+			"category": "branding",
+			"description": "Text for generate preview button"
+		},
+		"branding-generate-preview-generating": {
+			"category": "branding",
+			"description": "Text shown while generating preview"
+		},
+		"branding-publish-button": {
+			"category": "branding",
+			"description": "Text for publish button"
+		},
+		"branding-publish-publishing": {
+			"category": "branding",
+			"description": "Text shown while publishing"
+		},
+		"branding-reset-draft-button": {
+			"category": "branding",
+			"description": "Text for reset draft button"
 		}
 }

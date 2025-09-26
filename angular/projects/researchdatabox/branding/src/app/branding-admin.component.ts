@@ -7,13 +7,14 @@ import { FormsModule } from '@angular/forms';
 import { ConfigService, LoggerService, TranslationService, BaseComponent } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import { BrandingPreviewComponent } from './branding-preview.component';
+import { I18NextPipe } from 'angular-i18next';
 
 @Component({
   selector: 'branding-admin-root',
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, BrandingPreviewComponent],
+  imports: [CommonModule, FormsModule, BrandingPreviewComponent, I18NextPipe],
   providers: [BrandingAdminService]
 })
 export class BrandingAdminComponent extends BaseComponent {
@@ -41,97 +42,7 @@ export class BrandingAdminComponent extends BaseComponent {
 
   // Variables sourced exclusively from assets/styles/custom-variables.scss
   // Keys align exactly with SCSS variable names (without the leading $)
-  colourGroups = [
-    {
-      name: 'Header',
-      help: 'Customise the header colours. This is the area above the main site branding section where login details are shown.',
-      variables: [
-        { key: 'header-branding-text-color', label: 'Header Text', default: '#333', help: 'The colour of the text shown in the header area.' },
-        { key: 'header-branding-link-color', label: 'Header Link', default: '#222', help: 'Colour for any links in the header area.' },
-        { key: 'header-branding-background-color', label: 'Header Background', default: '#f4f4f4', help: 'The background colour for the header area.' }
-      ]
-    },
-    {
-      name: 'Site Branding',
-      help: 'Customise the site branding area colours. This is the large area at the top of the page that contains the logo and site name.',
-      variables: [
-        { key: 'site-branding-area-background-color', label: 'Site Branding Background', default: '#b1101a', help: 'The background colour for the main site branding area (top of the page).' }
-      ]
-    },
-    {
-      name: 'Menu',
-      help: 'Customise the appearance of the main menu and menu dropdowns, including active and inactive states.',
-      variables: [
-        { key: 'main-menu-branding-background-color', label: 'Main Menu Background', default: '#500005', help: 'The background colour for the main menu bar this is the colour of the bar outside the menu items (e.g. to the left and right of the menu items).' },
-        { key: 'main-menu-active-item-color', label: 'Active Menu Text', default: '#ffffff', help: 'The text colour for the active menu item.' },
-        { key: 'main-menu-active-item-color-hover', label: 'Active Menu Text Hover', default: '#888', help: 'The text colour for the active menu item on hover.' },
-        { key: 'main-menu-active-item-background-color', label: 'Active Menu Background', default: '#b1101a', help: 'The background colour for the active menu item.' },
-        { key: 'main-menu-active-item-background-color-hover', label: 'Active Menu Background Hover', default: '#ffffff', help: 'The background colour for the active menu item on hover.' },
-        { key: 'main-menu-inactive-item-color', label: 'Inactive Menu Text', default: '#ffffff', help: 'The text colour for inactive menu items.' },
-        { key: 'main-menu-inactive-item-color-hover', label: 'Inactive Menu Text Hover', default: '#888', help: 'The text colour for inactive menu items on hover.' },
-        { key: 'main-menu-inactive-item-background-color', label: 'Inactive Menu Background', default: '#500005', help: 'The background colour for inactive menu items.' },
-        { key: 'main-menu-inactive-item-background-color-hover', label: 'Inactive Menu Background Hover', default: '#ffffff', help: 'The background colour for inactive menu items on hover.' },
-        
-        { key: 'main-menu-active-dropdown-item-color', label: 'Active Dropdown Text', default: '#ffffff', help: 'The text colour for active dropdown menu items.' },
-        { key: 'main-menu-active-dropdown-item-color-hover', label: 'Active Dropdown Text Hover', default: '#888', help: 'The text colour for active dropdown items on hover.' },
-        { key: 'main-menu-active-dropdown-item-background-color', label: 'Active Dropdown Background', default: '#b1101a', help: 'The background colour for active dropdown menu items.' },
-        { key: 'main-menu-active-dropdown-item-background-color-hover', label: 'Active Dropdown Background Hover', default: '#ffffff', help: 'The background colour for dropdown items in the active menu on hover.' },
-
-
-        { key: 'main-menu-inactive-dropdown-item-color', label: 'Inactive Dropdown Text', default: '#a9a9a9', help: 'The text colour for dropdown menu items.' },
-        { key: 'main-menu-inactive-dropdown-item-color-hover', label: 'Inactive Dropdown Text Hover', default: '#888', help: 'The text colour for dropdown menu items on hover in the active menu.' },
-        { key: 'main-menu-inactive-dropdown-item-background-color', label: 'Inactive Dropdown Background', default: '#222', help: 'The background colour for inactive dropdown items in the active menu.' }
-      ]
-    },
-    {
-      name: 'Content',
-      help: 'Control the colours for body text and backgrounds.',
-      variables: [
-        { key: 'body-text-color', label: 'Body Text', default: '#333', help: 'Colour for main body text.' },
-        { key: 'body-background-color', label: 'Body Background', default: '#ffffff', help: 'Background colour for the page body.' }
-      ]
-    },
-    {
-      name: 'Links',
-      help: 'Set the default, hover, and focus colours for hyperlinks.',
-      variables: [
-        { key: 'anchor-color', label: 'Link Colour', default: '#337ab7', help: 'Default colour for hyperlinks.' },
-        { key: 'anchor-color-hover', label: 'Link Hover', default: '#23527c', help: 'Colour for hyperlinks on hover.' },
-        { key: 'anchor-color-focus', label: 'Link Focus', default: '#23527c', help: 'Colour for hyperlinks on focus.' }
-      ]
-    },
-    {
-      name: 'Panels',
-      help: 'Change the background, text, and border colours for panel components.',
-      variables: [
-        { key: 'panel-branding-background-color', label: 'Panel Background', default: '#b1101a', help: 'Background colour for panel components.' },
-        { key: 'panel-branding-color', label: 'Panel Text', default: '#ffffff', help: 'Text colour for panel components.' },
-        { key: 'panel-branding-border-color', label: 'Panel Border', default: '#ddd', help: 'Border colour for panel components.' }
-      ]
-    },
-    {
-      name: 'Footer',
-      help: 'Configure the footer background and text colours.',
-      variables: [
-        { key: 'footer-bottom-area-branding-background-color', label: 'Footer Background', default: '#000', help: 'Background colour for the footer area.' },
-        { key: 'footer-bottom-area-branding-color', label: 'Footer Text', default: '#ffffff', help: 'Text colour for the footer area.' }
-      ]
-    },
-    {
-      name: 'Bootstrap Contextual',
-      help: 'Override Bootstrap contextual theme colours used by utilities and components.',
-      variables: [
-        { key: 'primary', label: 'Primary', default: '#0d6efd', help: 'Bootstrap primary colour.' },
-        { key: 'secondary', label: 'Secondary', default: '#6c757d', help: 'Bootstrap secondary colour.' },
-        { key: 'success', label: 'Success', default: '#198754', help: 'Bootstrap success colour.' },
-        { key: 'info', label: 'Info', default: '#0dcaf0', help: 'Bootstrap info colour.' },
-        { key: 'warning', label: 'Warning', default: '#ffc107', help: 'Bootstrap warning colour.' },
-        { key: 'danger', label: 'Danger', default: '#dc3545', help: 'Bootstrap danger colour.' },
-        { key: 'light', label: 'Light', default: '#f8f9fa', help: 'Bootstrap light colour.' },
-        { key: 'dark', label: 'Dark', default: '#212529', help: 'Bootstrap dark colour.' }
-      ]
-    }
-  ];
+  colourGroups: any[] = [];
 
   fontVariables = [
     { key: 'branding-font-family', label: 'Main Font Family', default: '' },
@@ -177,6 +88,7 @@ export class BrandingAdminComponent extends BaseComponent {
 
   protected async initComponent(): Promise<void> {
     await this.loadConfig();
+    this.initializeColourGroups();
     // Set logo URL
     const base = this.brandingService.getBrandingAndPortalUrl();
     this.logoUrl = `${base}/images/logo`;
@@ -203,6 +115,101 @@ export class BrandingAdminComponent extends BaseComponent {
       this.error = `Failed to load config: ${e?.message || e}`;
       this.logger.error(this.error);
     }
+  }
+
+  private initializeColourGroups() {
+    // Variables sourced exclusively from assets/styles/custom-variables.scss
+    // Keys align exactly with SCSS variable names (without the leading $)
+    this.colourGroups = [
+      {
+        name: this.i18n.t('branding-header-name'),
+        help: this.i18n.t('branding-header-help'),
+        variables: [
+          { key: 'header-branding-text-color', label: this.i18n.t('branding-header-text-color-label'), default: '#333', help: this.i18n.t('branding-header-text-color-help') },
+          { key: 'header-branding-link-color', label: this.i18n.t('branding-header-link-color-label'), default: '#222', help: this.i18n.t('branding-header-link-color-help') },
+          { key: 'header-branding-background-color', label: this.i18n.t('branding-header-background-color-label'), default: '#f4f4f4', help: this.i18n.t('branding-header-background-color-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-site-branding-name'),
+        help: this.i18n.t('branding-site-branding-help'),
+        variables: [
+          { key: 'site-branding-area-background-color', label: this.i18n.t('branding-site-branding-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-site-branding-background-color-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-menu-name'),
+        help: this.i18n.t('branding-menu-help'),
+        variables: [
+          { key: 'main-menu-branding-background-color', label: this.i18n.t('branding-main-menu-background-color-label'), default: '#500005', help: this.i18n.t('branding-main-menu-background-color-help') },
+          { key: 'main-menu-active-item-color', label: this.i18n.t('branding-main-menu-active-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-item-color-help') },
+          { key: 'main-menu-active-item-color-hover', label: this.i18n.t('branding-main-menu-active-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-active-item-color-hover-help') },
+          { key: 'main-menu-active-item-background-color', label: this.i18n.t('branding-main-menu-active-item-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-main-menu-active-item-background-color-help') },
+          { key: 'main-menu-active-item-background-color-hover', label: this.i18n.t('branding-main-menu-active-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-item-background-color-hover-help') },
+          { key: 'main-menu-inactive-item-color', label: this.i18n.t('branding-main-menu-inactive-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-inactive-item-color-help') },
+          { key: 'main-menu-inactive-item-color-hover', label: this.i18n.t('branding-main-menu-inactive-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-inactive-item-color-hover-help') },
+          { key: 'main-menu-inactive-item-background-color', label: this.i18n.t('branding-main-menu-inactive-item-background-color-label'), default: '#500005', help: this.i18n.t('branding-main-menu-inactive-item-background-color-help') },
+          { key: 'main-menu-inactive-item-background-color-hover', label: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-help') },
+          
+          { key: 'main-menu-active-dropdown-item-color', label: this.i18n.t('branding-main-menu-active-dropdown-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-dropdown-item-color-help') },
+          { key: 'main-menu-active-dropdown-item-color-hover', label: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-help') },
+          { key: 'main-menu-active-dropdown-item-background-color', label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-help') },
+          { key: 'main-menu-active-dropdown-item-background-color-hover', label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-hover-help') },
+
+          { key: 'main-menu-inactive-dropdown-item-color', label: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-label'), default: '#a9a9a9', help: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-help') },
+          { key: 'main-menu-inactive-dropdown-item-color-hover', label: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-hover-help') },
+          { key: 'main-menu-inactive-dropdown-item-background-color', label: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-label'), default: '#222', help: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-content-name'),
+        help: this.i18n.t('branding-content-help'),
+        variables: [
+          { key: 'body-text-color', label: this.i18n.t('branding-body-text-color-label'), default: '#333', help: this.i18n.t('branding-body-text-color-help') },
+          { key: 'body-background-color', label: this.i18n.t('branding-body-background-color-label'), default: '#ffffff', help: this.i18n.t('branding-body-background-color-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-links-name'),
+        help: this.i18n.t('branding-links-help'),
+        variables: [
+          { key: 'anchor-color', label: this.i18n.t('branding-anchor-color-label'), default: '#337ab7', help: this.i18n.t('branding-anchor-color-help') },
+          { key: 'anchor-color-hover', label: this.i18n.t('branding-anchor-color-hover-label'), default: '#23527c', help: this.i18n.t('branding-anchor-color-hover-help') },
+          { key: 'anchor-color-focus', label: this.i18n.t('branding-anchor-color-focus-label'), default: '#23527c', help: this.i18n.t('branding-anchor-color-focus-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-panels-name'),
+        help: this.i18n.t('branding-panels-help'),
+        variables: [
+          { key: 'panel-branding-background-color', label: this.i18n.t('branding-panel-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-panel-background-color-help') },
+          { key: 'panel-branding-color', label: this.i18n.t('branding-panel-text-color-label'), default: '#ffffff', help: this.i18n.t('branding-panel-text-color-help') },
+          { key: 'panel-branding-border-color', label: this.i18n.t('branding-panel-border-color-label'), default: '#ddd', help: this.i18n.t('branding-panel-border-color-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-footer-name'),
+        help: this.i18n.t('branding-footer-help'),
+        variables: [
+          { key: 'footer-bottom-area-branding-background-color', label: this.i18n.t('branding-footer-background-color-label'), default: '#000', help: this.i18n.t('branding-footer-background-color-help') },
+          { key: 'footer-bottom-area-branding-color', label: this.i18n.t('branding-footer-text-color-label'), default: '#ffffff', help: this.i18n.t('branding-footer-text-color-help') }
+        ]
+      },
+      {
+        name: this.i18n.t('branding-bootstrap-contextual-name'),
+        help: this.i18n.t('branding-bootstrap-contextual-help'),
+        variables: [
+          { key: 'primary', label: this.i18n.t('branding-primary-label'), default: '#0d6efd', help: this.i18n.t('branding-primary-help') },
+          { key: 'secondary', label: this.i18n.t('branding-secondary-label'), default: '#6c757d', help: this.i18n.t('branding-secondary-help') },
+          { key: 'success', label: this.i18n.t('branding-success-label'), default: '#198754', help: this.i18n.t('branding-success-help') },
+          { key: 'info', label: this.i18n.t('branding-info-label'), default: '#0dcaf0', help: this.i18n.t('branding-info-help') },
+          { key: 'warning', label: this.i18n.t('branding-warning-label'), default: '#ffc107', help: this.i18n.t('branding-warning-help') },
+          { key: 'danger', label: this.i18n.t('branding-danger-label'), default: '#dc3545', help: this.i18n.t('branding-danger-help') },
+          { key: 'light', label: this.i18n.t('branding-light-label'), default: '#f8f9fa', help: this.i18n.t('branding-light-help') },
+          { key: 'dark', label: this.i18n.t('branding-dark-label'), default: '#212529', help: this.i18n.t('branding-dark-help') }
+        ]
+      }
+    ];
   }
 
   async saveDraft() {
