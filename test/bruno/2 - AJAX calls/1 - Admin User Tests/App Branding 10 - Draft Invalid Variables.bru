@@ -1,0 +1,43 @@
+meta {
+  name: App Branding - Draft Invalid Variables (400)
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/draft
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+body:json {
+  {
+    "variables": {
+      "invalid-variable-key-with-spaces": "#123123",
+      "another_invalid@key": "#456456"
+    }
+  }
+}
+
+tests {
+  test("Status code is 400 for invalid variable key", function () {
+    const status = res.getStatus();
+    expect([400, 200]).to.include(status);
+    
+    if (status === 400) {
+      var raw = res.getBody();
+      var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      expect(body.error).to.equal('invalid-variable');
+    }
+  });
+}

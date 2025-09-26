@@ -1,0 +1,32 @@
+meta {
+  name: Get theme stylesheet
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/styles/theme.css
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Ensure we don't send conditional header first time
+  bru.deleteVar("theme_etag");
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Stores weak ETag", function () {
+      const etag = res.getHeader("etag");
+      expect(etag).to.match(/^W\/\"[a-f0-9]+\"$/);
+      bru.setVar("theme_etag", etag);
+  });
+  
+  test("CSS has some rules", function () {
+      expect(res.getBody()).to.not.match(/Using the default theme/);
+  });
+}

@@ -1,43 +1,235 @@
-$site-branding-area-background: $branding-color-1;
-$site-branding-area-heading-color: $branding-color-4;
+/*
+	Theme variables for Redbox Portal
+	----------------------------------------------------------------------------
+	Purpose: Central place to tweak branding colors and fonts.
+	Load order: Imported by assets/styles/style.scss before default-theme.scss.
 
-$panel-branding-background-color: $branding-color-1;
-$panel-branding-color: $branding-color-3;
-$panel-branding-border-color: $branding-color-12;
+	Where used (not exhaustive):
+	- assets/styles/default-theme.scss: header, main menu, panels, footer, headings, links
+	- assets/styles/default-responsive.scss: site branding area and panel overrides
 
-$main-menu-branding-background-color: $branding-color-2;
+	Notes:
+	- Keep variable names stable; they’re referenced across theme SCSS.
+	- Inline hex values are intentional; we no longer depend on default-colors.scss.
+*/
 
-$header-branding-link-color: $branding-color-6;
-$header-branding-background-color: $branding-color-11;
-$logo-link-color-branding: $branding-color-7;
+/*
+	Site branding banner (strip under header)
+	Used by: default-theme.scss (.site-branding-area), default-responsive.scss (mobile overrides)
+*/
+$site-branding-area-background-color: #b1101a;
+$site-branding-area-heading-color: #888;
 
-/* The text colour and background colour of focused main menu item */
-$main-menu-active-item-color: $branding-color-3;
-$main-menu-active-item-background-color: $branding-color-2;
+/*
+	Panels (heading bars and accents)
+	Used by: default-theme.scss (.panel-default > .panel-heading, alerts),
+					 default-responsive.scss (panel overrides)
+*/
+$panel-branding-background-color: #b1101a;
+$panel-branding-color: #fff;
+$panel-branding-border-color: #ddd;
+
+/*
+	Main menu (navbar) shell
+	Used by: default-theme.scss (.mainmenu-area)
+*/
+$main-menu-branding-background-color: #500005;
+
+/*
+	Header bar (top header with links and logo)
+	Used by: default-theme.scss (.header-area, .header-area a, .logo h1 a)
+*/
+$header-branding-link-color: #222;
+$header-branding-background-color: #f4f4f4;
+$header-branding-text-color: #333;
 
 
-/* The text colour and background colour of an unfocused main menu item*/
-$main-menu-inactive-item-color: $branding-color-3;
-$main-menu-inactive-item-color-hover: $branding-color-4;
-$main-menu-inactive-item-background-color-hover: $branding-color-3;
-$main-menu-inactive-item-background-color:$branding-color-6;
+$logo-link-color-branding: #262626;
 
-$main-menu-inactive-dropdown-item-color: $branding-color-8;
-$main-menu-inactive-dropdown-item-color-hover: $branding-color-4;
+/*
+	Main menu: focused/active item
+	Used by: default-theme.scss (.mainmenu-area ul.navbar-nav li a.active)
+*/
+$main-menu-active-item-color: #fff;
+$main-menu-active-item-color-hover: #888;
+$main-menu-active-item-background-color: #500005;
+$main-menu-active-item-background-color-hover: #700007;
 
-$main-menu-active-dropdown-item-color: $branding-color-8;
-$main-menu-active-dropdown-item-color-hover: $branding-color-4;
-$main-menu-active-dropdown-item-background-color-hover: $branding-color-1;
+/*
+	Main menu: unfocused (default) items
+	Used by: default-theme.scss (.mainmenu-area ul.navbar-nav li a, :hover)
+*/
+$main-menu-inactive-item-color: #fff;
+$main-menu-inactive-item-color-hover: #888;
+$main-menu-inactive-item-background-color-hover: #fff;
+$main-menu-inactive-item-background-color:#500005;
 
-/* The text colour and background-color of a selected main menu item */
-$main-menu-selected-item-color: $branding-color-9;
+/*
+	Main menu: dropdown item colors (when site-branding-area menu is open)
+	Used by: default-theme.scss (.mainmenu-area ul.dropdown-menu li a.dropdown-item)
+*/
+$main-menu-inactive-dropdown-item-color: #a9a9a9;
+$main-menu-inactive-dropdown-item-color-hover: #888;
+$main-menu-inactive-dropdown-item-background-color: #222;
+
+$main-menu-active-dropdown-item-color: #a9a9a9;
+$main-menu-active-dropdown-item-color-hover: #888;
+$main-menu-active-dropdown-item-background-color: #b1101a;
+$main-menu-active-dropdown-item-background-color-hover: #fff;
+$main-menu-inactive-dropdown-item-background-color-hover: #fff;
+
+/*
+	Main menu: selected item focus color
+	Used by: default-theme.scss (.mainmenu-area .nav > li > a:focus)
+*/
+$main-menu-selected-item-color: #000;
 $main-menu-selected-item-background-color: $main-menu-active-item-background-color;
 
-/* The text colour and background-color for the footer */
-$footer-bottom-area-branding-background-color: $branding-color-9;
-$footer-bottom-area-branding-color: $branding-color-3;
+/*
+	Footer bar
+	Used by: default-theme.scss (.footer-bottom-area)
+*/
+$footer-bottom-area-branding-background-color: #000;
+$footer-bottom-area-branding-color: #fff;
 
-$main-content-heading-text-branding-color:  $branding-color-9;
+/*
+	Main content heading (H2 banner text in section headers)
+	Used by: default-theme.scss (.maincontent-bit-title h2)
+*/
+$main-content-heading-text-branding-color:  #000;
+
+/*
+	Global base usage colors (override from branding app)
+	Describe where they apply rather than the color itself.
+*/
+$body-background-color: #fff;           // body/page background
+$body-text-color: #333;                 // default body text color
+$muted-text-color: #777;                // small/muted text
+$hr-border-color: #eee;                 // horizontal rule border
+$thumbnail-background-color: #fff;      // .img-thumbnail background
+$thumbnail-border-color: #ddd;          // .img-thumbnail border
+$mark-background-color: #fcf8e3;        // <mark> highlight background
+
+/*
+	Form controls and buttons
+*/
+$input-border-color: #ddd;
+$submit-button-background-color: #428bca;
+$submit-button-text-color: #fff;
+$submit-button-hover-background-color: #428bca;
+
+// Secondary buttons
+$btn-secondary-text-color: #fff;        // .btn-secondary text
+$btn-secondary-background-color: #6c757d; // .btn-secondary background
+$btn-secondary-border-color: #6c757d;     // .btn-secondary border
+
+/*
+	Pagination
+*/
+$pagination-link-color: #428bca;
+
+/*
+	Responsive/print specific overrides
+*/
+$print-panel-title-link-color: #fff;  // print .panel-title > a
+$navbar-toggle-border-color: #fff;    // mobile navbar toggle
+$navbar-toggle-icon-color: #fff;      // mobile navbar icon bars
+$navbar-collapse-bg: #222;            // expanded mobile navbar background
+
+/* Utility backgrounds (Bootstrap-like helpers) */
+$bg-danger-background-color: #f2dede;   // .bg-danger
+$bg-success-background-color: #def2de;  // .bg-success
+
+// Hyperlink colors (global anchors)
+$anchor-color: #337ab7;
+$anchor-color-hover: #23527c;
+$anchor-color-focus: #23527c;
+
+/* Misc global tweaks */
+$nonlink-anchor-color: $anchor-color;   // a:not([href]):not([class])
+$mark-text-color: #000;                 // text color inside <mark>
+
+/* Print palette */
+$print-text-color: #000;                // default text in print
+$print-border-color: #999;              // print blockquote border
+$print-label-border-color: #000;        // print .label border
+$print-table-cell-bg: #fff;             // print .table cell background
+$print-table-border-color: #ddd;        // print .table cell borders
+
+/* Inline code and preformatted blocks */
+$code-text-color: #c7254e;              // code { color }
+$code-background-color: #f9f2f4;        // code { background }
+$kbd-text-color: #fff;                  // kbd { color }
+$kbd-background-color: #333;            // kbd { background }
+$pre-text-color: #333;                  // pre { color }
+$pre-background-color: #f5f5f5;         // pre { background }
+$pre-border-color: #ccc;                // pre { border-color }
+
+/* Tables */
+$table-caption-text-color: #777;        // caption { color }
+$table-border-color: #ddd;              // table borders
+$table-background-color: #fff;          // nested .table background
+$table-striped-row-bg: #f9f9f9;         // striped rows
+$table-hover-row-bg: #f5f5f5;           // hover rows
+$table-active-row-bg: #f5f5f5;          // .active rows
+$table-active-hover-row-bg: #e8e8e8;    // .active:hover rows
+$table-success-row-bg: #dff0d8;         // .success rows
+$table-success-row-hover-bg: #d0e9c6;   // .success hover
+$table-info-row-bg: #d9edf7;            // .info rows
+$table-info-row-hover-bg: #c4e3f3;      // .info hover
+$table-warning-row-bg: #fcf8e3;         // .warning rows
+$table-warning-row-hover-bg: #faf2cc;   // .warning hover
+$table-danger-row-bg: #f2dede;          // .danger rows
+$table-danger-row-hover-bg: #ebcccc;    // .danger hover
+
+/* Forms - controls */
+$form-control-text-color: #555;
+$form-control-background-color: #fff;
+$form-control-border-color: #ccc;       // aligns with bootstrap block
+$form-control-focus-border-color: #66afe9;
+$form-control-disabled-background: #eee;
+$form-control-placeholder-color: #999;
+
+/* Forms - validation states */
+$form-state-success-text-color: #3c763d;
+$form-state-success-border-color: #3c763d;
+$form-state-success-focus-border-color: #2b542c;
+$form-state-success-bg: #dff0d8;
+$form-state-success-glow-color: #67b168;
+
+$form-state-warning-text-color: #8a6d3b;
+$form-state-warning-border-color: #8a6d3b;
+$form-state-warning-focus-border-color: #66512c;
+$form-state-warning-bg: #fcf8e3;
+$form-state-warning-glow-color: #c0a16b;
+
+$form-state-error-text-color: #a94442;
+$form-state-error-border-color: #a94442;
+$form-state-error-focus-border-color: #843534;
+$form-state-error-bg: #f2dede;
+$form-state-error-glow-color: #ce8483;
+
+/* Page elements */
+$page-header-border-color: #eee;        // .page-header border-bottom
+$legend-text-color: #333;               // legend color
+$legend-border-color: #e5e5e5;          // legend border-bottom
+$output-text-color: #555;               // output { color }
+$help-block-text-color: #737373;        // .help-block text
+$blockquote-border-color: #eee;         // blockquote borders
+
+/* Dropdown menus */
+$dropdown-menu-background-color: #fff;        // dropdown background
+$dropdown-menu-border-color: #ccc;            // dropdown border color
+$dropdown-menu-border-color-rgba: rgba(0,0,0,.15); // dropdown border overlay (rgba)
+$dropdown-menu-box-shadow: 0 6px 12px rgba(0,0,0,.175); // dropdown menu shadow
+$dropdown-divider-background-color: #e5e5e5;  // divider line
+$dropdown-link-color: #333;                   // link color
+$dropdown-link-hover-color: #262626;          // link hover/focus color
+$dropdown-link-hover-background: #f5f5f5;     // link hover/focus background
+$dropdown-active-link-color: #fff;            // active item color
+$dropdown-active-link-background: #337ab7;    // active item background
+$dropdown-disabled-link-color: #777;          // disabled item color
+$dropdown-header-color: #777;                 // header text color
 
 /* Font config */
 
@@ -56,7 +248,4 @@ $input-btn-font-size: 1.6rem;
 $input-btn-padding-y: 0.5rem;
 $input-btn-padding-x: 1.4rem;
 
-// Hyperlink
-$anchor-color: $branding-color-13;
-$anchor-color-hover: $branding-color-14;
-$anchor-color-focus: $branding-color-15;
+// (moved hyperlink colors above to ensure availability before use)

@@ -1,0 +1,21 @@
+meta {
+  name: Render CSS with ETag (304)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{host}}/default/rdmp/styles/theme.css
+  auth: none
+}
+
+headers {
+  If-None-Match: W/"test-css-hash"
+}
+
+tests {
+  test("Status code is 200 or 304 (depending on ETag match)", function () {
+    const status = res.getStatus();
+    expect([200, 304]).to.include(status);
+  });
+}

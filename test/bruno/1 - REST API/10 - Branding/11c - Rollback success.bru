@@ -1,0 +1,19 @@
+meta {
+  name: Rollback success
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/rollback/{{first_history_id}}
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Rollback 200", function(){ expect(res.getStatus()).to.equal(200); });
+}

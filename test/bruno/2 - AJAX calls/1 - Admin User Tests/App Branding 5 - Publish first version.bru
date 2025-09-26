@@ -1,0 +1,38 @@
+meta {
+  name: App Branding - Publish first version
+  type: http
+  seq: 904
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/publish
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  ~Content-Type: application/json
+  Accept: application/json, text/plain, */*
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+tests {
+  test("Status code is 200", function(){
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Version & hash present", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(typeof body.version).to.equal('number');
+    expect(!!body.hash).to.equal(true);
+  });
+}
