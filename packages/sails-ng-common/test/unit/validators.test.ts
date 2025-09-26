@@ -1,12 +1,11 @@
 import {
-    FORM_VALIDATOR_EMAIL_REGEXP,
     FormValidatorConfig,
     FormValidatorDefinition,
-    FormValidatorErrors,
-    formValidatorsSharedDefinitions,
-    SimpleServerFormValidatorControl,
-    ValidatorsSupport,
-} from "../../src";
+    FormValidatorErrors, SimpleServerFormValidatorControl
+} from "../../src/validation/form.model";
+import {FORM_VALIDATOR_EMAIL_REGEXP, formValidatorsSharedDefinitions} from "../../src/validation/validators";
+import {ValidatorsSupport} from "../../src/validation/validators-support";
+
 
 describe("Validators", async () => {
     const chai = await import("chai");

@@ -23,9 +23,9 @@ import {BrandingModel, FormModel, Services as services} from '@researchdatabox/r
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
-    BaseFormFieldComponentDefinition,
-    BaseFormFieldLayoutDefinition,
-    BaseFormFieldModelDefinition,
+    BaseFieldComponentDefinition,
+    FieldLayoutDefinition,
+    FieldModelDefinition,
     FormComponentDefinition,
     FormConfig,
     FormConstraintConfig, isFormComponentDefinition, isFormFieldDefinition,
@@ -586,7 +586,7 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldComponentDefinition(item: BaseFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field component definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -602,7 +602,7 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldLayoutDefinition(item: FieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field layout definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -613,7 +613,7 @@ export module Services {
       return this.buildClientFormObject(item, context);
     }
 
-    public buildClientFormFieldModelDefinition(item: BaseFormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldModelDefinition(item: FieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field model definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 

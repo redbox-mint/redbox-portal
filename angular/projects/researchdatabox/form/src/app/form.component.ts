@@ -88,7 +88,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
-   * The previous formGroup status 
+   * The previous formGroup status
    */
   previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
@@ -432,6 +432,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.statusChangesSubscription?.unsubscribe();
+  }
+
+  public async getCompiledItem(formComponentName: string | null, formConfigElement: string[]) {
+    const recordType = this.trimmedParams.recordType();
+    const oid = this.trimmedParams.oid();
+    const features = await this.formService.getDynamicImportFormCompiledItems(recordType, oid);
+    this.loggerService.info(`${this.logName}: getCompiledItem from getDynamicImportFormCompiledItems`,
+      {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
+    return features;
   }
 }
 

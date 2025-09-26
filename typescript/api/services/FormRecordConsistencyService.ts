@@ -339,6 +339,7 @@ export module Services {
             const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
             const componentDefinitions = item?.component?.config?.['componentDefinitions'];
             const elementTemplate = item?.component?.config?.['elementTemplate'];
+            // TODO: const tabs
 
             sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - start - item ${JSON.stringify(item)} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
 
