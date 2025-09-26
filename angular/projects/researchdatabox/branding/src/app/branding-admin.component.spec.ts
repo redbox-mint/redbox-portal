@@ -120,6 +120,8 @@ describe('BrandingAdminComponent', () => {
   it('exposes new variable keys in groups (e.g., Bootstrap contextual, menu, footer)', () => {
     // Create component to access colourGroups definition
     expect(component).toBeTruthy();
+    // Initialize colourGroups since detectChanges() is skipped in test setup
+    (component as any).initializeColourGroups();
     const allKeys = (component as any).colourGroups.flatMap((g: any) => g.variables.map((v: any) => v.key));
     // Spot-check a few critical keys we added
     expect(allKeys).toContain('primary');
