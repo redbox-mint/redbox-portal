@@ -236,6 +236,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.statusChangesSubscription = this.form.statusChanges.subscribe((status: any) => {
             this.formGroupStatus.set(this.dataStatus);
           });
+          this.form.valueChanges.subscribe(() => this.debugFormComponents.set(this.getDebugInfo()));
         }
 
         // set up validators
