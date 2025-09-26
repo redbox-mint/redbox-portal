@@ -1,5 +1,5 @@
 import {FormValidatorConfig} from "../validation/form.model";
-import {FieldDefinitionFrame} from "./field.outline";
+import {FieldDefinitionFrame, FieldDefinitionOutline} from "./field.outline";
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.
@@ -45,6 +45,6 @@ export interface FieldModelDefinitionFrame<ValueType> extends FieldDefinitionFra
     config?: FieldModelConfigFrame<ValueType>;
 }
 
-export interface FieldModelDefinitionOutline<ValueType> extends FieldModelDefinitionFrame<ValueType> {
-
+export interface FieldModelDefinitionOutline<ValueType> extends FieldModelDefinitionFrame<ValueType>, FieldDefinitionOutline {
+    config?: FieldModelConfigFrame<ValueType>;
 }

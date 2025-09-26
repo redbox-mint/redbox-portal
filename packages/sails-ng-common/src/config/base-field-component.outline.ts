@@ -1,5 +1,5 @@
 import {KeyValueStringProperty} from "./shared.outline";
-import {FieldDefinitionFrame} from "./field.outline";
+import {FieldDefinitionFrame, FieldDefinitionOutline} from "./field.outline";
 
 /**
  * The form field component config interface that provides typing for the object literal and schema.
@@ -58,6 +58,6 @@ export interface BaseFieldComponentDefinitionFrame extends FieldDefinitionFrame 
     config?: BaseFieldComponentConfigFrame;
 }
 
-export interface BaseFieldComponentDefinitionOutline extends BaseFieldComponentDefinitionFrame {
-
+export interface BaseFieldComponentDefinitionOutline extends BaseFieldComponentDefinitionFrame, FieldDefinitionOutline {
+    config?: BaseFieldComponentConfigFrame;
 }

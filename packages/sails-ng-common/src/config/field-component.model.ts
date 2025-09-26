@@ -6,7 +6,6 @@ import {FieldComponentConfigOutline, FieldComponentDefinitionOutline} from "./fi
 
 
 export abstract class FieldComponentConfig extends BaseFieldComponentConfig implements FieldComponentConfigOutline {
-
 }
 
 

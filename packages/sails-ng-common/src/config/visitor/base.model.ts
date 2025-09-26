@@ -178,7 +178,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented('visitDefaultFieldLayoutDefinition');
     }
 
-    private notImplemented(name: string) {
+    protected notImplemented(name: string) {
         throw new Error(`Method '${name}' is not implemented.`);
     }
 }

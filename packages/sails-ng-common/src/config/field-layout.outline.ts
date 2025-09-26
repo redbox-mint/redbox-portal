@@ -1,4 +1,5 @@
 import {BaseFieldComponentConfigFrame, BaseFieldComponentDefinitionFrame} from "./base-field-component.outline";
+import {FieldDefinitionOutline} from "./field.outline";
 
 
 /**
@@ -38,6 +39,6 @@ export interface FieldLayoutDefinitionFrame extends BaseFieldComponentDefinition
     config?: FieldLayoutConfigFrame;
 }
 
-export interface FieldLayoutDefinitionOutline extends FieldLayoutDefinitionFrame {
-
+export interface FieldLayoutDefinitionOutline extends FieldLayoutDefinitionFrame, FieldDefinitionOutline {
+    config?: FieldLayoutConfigFrame;
 }
