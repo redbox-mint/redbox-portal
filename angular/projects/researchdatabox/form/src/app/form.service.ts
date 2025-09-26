@@ -41,13 +41,14 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormFieldComponentStatus,
-  FormStatus, FormValidatorConfig, FormValidatorDefinition,
+  FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
+import {firstValueFrom} from "rxjs";
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -367,18 +368,9 @@ export class FormService extends HttpClientService {
 
     // control
     name = name || null;
-    const componentDef = componentDefs
-      ?.find(i => !!name && i?.name === name) ?? null;
+    const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
     const {id, labelMessage} = this.componentIdLabel(componentDef);
-    const errors = Object.entries(control?.errors ?? {})
-        .map(([key, item]) => {
-          return {
-            name: key,
-            message: item.message ?? null,
-            params: {validatorName: key, ...item.params},
-          }
-        })
-      ?? [];
+    const errors = this.getFormValidatorComponentErrors(control);
 
     // Only add the result if there are errors.
     if (errors.length > 0) {
@@ -399,6 +391,22 @@ export class FormService extends HttpClientService {
   }
 
   /**
+   * Get the form validator errors for a component's control.
+   * @param control
+   */
+  public getFormValidatorComponentErrors(control: AbstractControl | null | undefined): FormValidatorComponentErrors[] {
+    return Object.entries(control?.errors ?? {})
+        .map(([key, item]) => {
+          return {
+            name: key,
+            message: item.message ?? null,
+            params: {...item.params},
+          }
+        })
+      ?? [];
+  }
+
+  /**
    * Get the component id and translatable label message.
    *
    * @param componentDef The component definition from the form config.
@@ -409,10 +417,6 @@ export class FormService extends HttpClientService {
   } {
     const idParts = ["form", "item", "id"];
 
-    // id is built from the first of these that exists:
-    // - componentDefinition.model.name
-    // - componentDefinition.name
-    // const modelName = componentDef?.model?.name;
     const itemName = componentDef?.name;
 
     // construct the id so it is different to the model name
@@ -503,7 +507,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await this.http.get<{data: FormConfig}>(url.href, this.requestOptions).toPromise();
+    const result = await firstValueFrom(this.http.get<{data: FormConfig}>(url.href, this.requestOptions));
     this.loggerService.info(`Get form fields from url: ${url}`, result);
     return result?.data;
   }
@@ -525,27 +529,39 @@ export class FormService extends HttpClientService {
       : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
-    const result = await this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions).toPromise();
+    const result = await firstValueFrom(this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions));
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
   }
 
+  /**
+   * Use this script to validate the form data model structure matches the form config.
+   * @param recordType
+   * @param oid
+   */
   public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
-    // TODO: Use this script to validate the form data model structure matches the form config.
     const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
+  /**
+   * Use this script to validate the form data model values match the form config.
+   * @param recordType
+   * @param oid
+   */
   public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
-    // TODO: Use this script to validate the form data model values match the form config.
     const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
+  /**
+   * Use this script to run the form data model expressions.
+   * @param recordType
+   * @param oid
+   */
   public async getDynamicImportFormExpressions(recordType: string, oid: string) {
-    // TODO: Use this script to run the form data model expressions.
     const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;

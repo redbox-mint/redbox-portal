@@ -45,6 +45,8 @@
     "@stylistic/eslint-plugin-ts": "4.2.0",
     "@types/chai": "5.2.1",
     "@types/lodash": "4.17.17",
+    "@types/lodash-es": "4.17.10",
+    "@types/luxon": "3.7.1",
     "@types/mocha": "10.0.10",
     "@types/node": "20.17.48",
     "@typescript-eslint/eslint-plugin": "8.32.1",
@@ -76,6 +78,8 @@
     ]
   },
   "dependencies": {
-    "ts-json-schema-generator": "^2.4.0"
+    "luxon": "^3.7.2",
+    "ts-json-schema-generator": "^2.4.0",
+    "lodash-es": "^4.17.21"
   }
 }

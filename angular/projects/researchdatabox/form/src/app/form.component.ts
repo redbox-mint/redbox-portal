@@ -19,16 +19,12 @@
 import {
   Component,
   Inject,
-  Input,
   ElementRef,
   signal,
   HostBinding,
   ViewChild,
-  viewChild,
   ViewContainerRef,
-  ComponentRef,
   inject,
-  Signal,
   effect,
   computed,
   model,
@@ -42,6 +38,7 @@ import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFi
 import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
+
 
 /**
  * The ReDBox Form
@@ -105,12 +102,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   componentsLoaded = signal<boolean>(false);
   statusChangesSubscription?: Subscription;
 
-  debugFormComponents = computed<Record<string, unknown>>(() => {
-    if (!this.formDefMap?.formConfig?.debugValue){
-      return {};
-    }
-    return this.getDebugInfo();
-  });
+  debugFormComponents = signal<Record<string, unknown>>({});
 
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
 
@@ -244,6 +236,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.statusChangesSubscription = this.form.statusChanges.subscribe((status: any) => {
             this.formGroupStatus.set(this.dataStatus);
           });
+          this.form.valueChanges.subscribe(() => this.debugFormComponents.set(this.getDebugInfo()));
         }
 
         // set up validators

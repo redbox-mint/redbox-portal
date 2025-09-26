@@ -18,6 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
+
+import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import {TemplateCompileInput} from "../additional/TemplateCompile";
 
 declare var module;
@@ -27,7 +29,6 @@ declare var TemplateService;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
@@ -69,54 +70,79 @@ export module Controllers {
       this.sendAssetView(res, assetId, {layout: false});
     }
 
+    /**
+    * Provide the client script that can validate the form data model matches the form config.
+    * @param req
+    * @param res
+    */
     public getFormStructureValidations(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO: Provide the client script that can validate the form data model matches the form config.
+      // TODO:
       //  Similar to FormRecordConsistency.validateRecordSchema.
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
+    /**
+    * Provide the client script that can validate the form data model values match the form config types.
+    * Similar to FormRecordConsistency.validateRecordValues.
+    * @param req
+    * @param res
+    */
     public getFormDataValidations(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO: Provide the client script that can validate the form data model values match the form config types.
-      //  Similar to FormRecordConsistency.validateRecordValues.
+      // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
+    /**
+    * Provide the client script that can run the form expressions as jsonata expressions.
+    * @param req
+    * @param res
+    */
     public getFormExpressions(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
-      // TODO: Provide the client script that can run the form expressions as jsonata expressions.
+      // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
+    /**
+    * Provide the client script that can run the report expressions as jsonata expressions.
+    * @param req
+    * @param res
+    */
     public getAdminReportTemplates(req, res) {
       const reportName = req.param("reportName") || "";
       const apiVersion = this.getApiVersion(req);
-      // TODO: Provide the client script that can run the report expressions as jsonata expressions.
+      // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
+    /**
+    * Provide the client script that can run the dashboard expressions as jsonata expressions.
+    * @param req
+    * @param res
+    */
     public getRecordDashboardTemplates(req, res) {
       const recordType = req.param("name") || "";
       const workflowStage = req.param("workflowStage") || "";
       const apiVersion = this.getApiVersion(req);
-      // TODO: Provide the client script that can run the dashboard expressions as jsonata expressions.
+      // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -146,7 +172,8 @@ export module Controllers {
       res.set('Content-Type', dynamicAssetInfo.type);
       return res.view(dynamicAssetInfo.view, viewContext);
     }
-    /**
+
+      /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************
      **************************************************************************************************
