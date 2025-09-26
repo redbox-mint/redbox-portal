@@ -17,6 +17,7 @@
     "rootDir": "./",
     "composite": true,
     "allowSyntheticDefaultImports": true,
+    "strictNullChecks": true,
     "types": [
       "node",
       "mocha",

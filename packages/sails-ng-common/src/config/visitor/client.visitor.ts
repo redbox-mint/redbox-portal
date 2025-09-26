@@ -18,8 +18,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitFormConfig(item: FormConfigOutline): void {
-        for (const child of item.children) {
-            child.accept(this);
-        }
+        super.visitFormConfig(item);
+        // for (const child of item.children) {
+        //     child.accept(this);
+        // }
     }
 }

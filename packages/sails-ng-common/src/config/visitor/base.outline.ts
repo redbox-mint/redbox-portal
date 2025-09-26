@@ -44,6 +44,18 @@ import {
 import {
     DefaultFieldLayoutDefinitionOutline,
 } from "../component/default-layout.outline";
+import {
+    CheckboxInputFieldComponentDefinitionOutline,
+    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline
+} from "../component/checkbox-input.outline";
+import {
+    DropdownInputFieldComponentDefinitionOutline,
+    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline
+} from "../component/dropdown-input.outline";
+import {
+    RadioInputFieldComponentDefinitionOutline,
+    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
+} from "../component/radio-input.outline";
 
 
 export interface CanVisit {
@@ -128,4 +140,28 @@ export interface FormConfigVisitorOutline {
     /* Default Layout  */
 
     visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void;
+
+    /* Checkbox Input */
+
+    visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void;
+
+    visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void;
+
+    visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void;
+
+    /* Dropdown Input */
+
+    visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void;
+
+    visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void;
+
+    visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void;
+
+    /* Radio Input */
+
+    visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void;
+
+    visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void;
+
+    visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void;
 }

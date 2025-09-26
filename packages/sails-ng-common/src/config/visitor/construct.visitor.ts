@@ -14,12 +14,13 @@ import {
 } from "../component/group.outline";
 import {
     RepeatableComponentName,
-    RepeatableElementFieldLayoutDefinitionOutline,
+    RepeatableElementFieldLayoutDefinitionOutline, RepeatableElementLayoutName,
     RepeatableFieldComponentDefinitionOutline, RepeatableFieldModelDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline
+    RepeatableFormComponentDefinitionOutline, RepeatableModelName
 } from "../component/repeatable.outline";
 import _ from "lodash";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
+import {isFormComponentDefinition, isFormFieldDefinition} from "../helpers";
 
 /**
  * Visit each form config frame and create an instance of the associated class.
@@ -68,7 +69,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.debugValue = currentData.debugValue;
 
         // Visit the components
-        (currentData?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        // TODO: fix the typing
+        (currentData?.componentDefinitions as any[] ?? []).forEach((componentDefinition, index) => {
             // The class to use is identified by the class property string values in the field definitions.
             // The form component is identifier the component field class string
             const componentClassString = componentDefinition?.component?.class;
@@ -86,7 +88,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             item.componentDefinitions.push(formComponent);
 
             // Continue the construction
-            this.currentPath = [...this.currentPath, index.toString()];
+            this.currentPath = [...this.currentPath, "componentDefinitions", index.toString()];
             formComponent?.accept(this);
         });
     }
@@ -98,24 +100,37 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitRepeatableFieldComponentDefinition');
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isRepeatableFieldComponentDefinition(currentData)){
+            throw new Error("Invalid RepeatableFieldComponentDefinition");
+        }
+        super.visitRepeatableFieldComponentDefinition(item);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.notImplemented('visitRepeatableFieldModelDefinition');
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isRepeatableFieldModelDefinition(currentData)){
+            throw new Error("Invalid RepeatableFieldModelDefinition");
+        }
+        super.visitRepeatableFieldModelDefinition(item);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
-        this.notImplemented('visitRepeatableElementFieldLayoutDefinition');
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isRepeatableElementFieldLayoutDefinition(currentData)){
+            throw new Error("Invalid RepeatableElementFieldLayoutDefinition");
+        }
+        super.visitRepeatableElementFieldLayoutDefinition(item);
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (currentData?.component?.class !== RepeatableComponentName){
-            throw
-        } else {
-            currentData is RepeatableFormComponentDefinitionOutline
+        if (!this.isRepeatableFormComponentDefinition(currentData)){
+            throw new Error("Invalid RepeatableFormComponentDefinition");
         }
 
         // Set the simple properties
@@ -124,10 +139,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         // Set the constraints
         item.constraints = new FormConstraintConfig();
-        item.constraints.allowModes = currentData.constraints.allowModes ?? [];
+        item.constraints.allowModes = currentData?.constraints?.allowModes ?? [];
 
         item.constraints.authorization = new FormConstraintAuthorizationConfig();
-        item.constraints.authorization.allowRoles = currentData.constraints.authorization.allowRoles ?? [];
+        item.constraints.authorization.allowRoles = currentData?.constraints?.authorization?.allowRoles ?? [];
 
         // Set the expressions
         item.expressions = new FormExpressionsConfig();
@@ -154,20 +169,38 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const layout = layoutClass ? new layoutClass() : null;
 
         // Set the instances and then continue the construction
+        const formComponentPath = [...this.currentPath];
         item.component = component;
-        this.currentPath = [...this.currentPath, 'component'];
+        this.currentPath = [...formComponentPath, 'component'];
         item.component?.accept(this);
 
         if (model){
             item.model = model;
-            this.currentPath = [...this.currentPath, 'model'];
+            this.currentPath = [...formComponentPath, 'model'];
             item.model?.accept(this);
         }
         if (layout) {
             item.layout = layout;
-            this.currentPath = [...this.currentPath, 'layout'];
+            this.currentPath = [...formComponentPath, 'layout'];
             item.layout?.accept(this);
         }
+        this.currentPath = formComponentPath;
+    }
+
+    private isRepeatableFormComponentDefinition(value: unknown): value is RepeatableFormComponentDefinitionOutline {
+        return isFormComponentDefinition(value) &&
+            value?.['component']?.['class'] === RepeatableComponentName;
+    }
+
+    private isRepeatableFieldComponentDefinition(value: unknown) : value is RepeatableFieldComponentDefinitionOutline {
+        return isFormFieldDefinition(value) && value?.class === RepeatableComponentName;
+    }
+
+    private isRepeatableFieldModelDefinition(value: unknown) : value is RepeatableFieldModelDefinitionOutline {
+        return isFormFieldDefinition(value) && value?.class === RepeatableModelName;
+    }
+    private isRepeatableElementFieldLayoutDefinition(value: unknown) : value is RepeatableElementFieldLayoutDefinitionOutline {
+        return isFormFieldDefinition(value) && value?.class === RepeatableElementLayoutName;
     }
 
     /* Validation Summary */
@@ -182,9 +215,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.notImplemented('visitGroupFieldModelDefinition');
     }
 
-    visitGroupFormComponentDefinition(param: GroupFormComponentDefinitionOutline): void {
+    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getData();
+        const currentData = this.getDataPath(this.data, this.currentPath);
 
         // Get the class string names.
         const componentClassString = currentData?.component?.class;
@@ -196,6 +229,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
         const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
 
+        super.visitGroupFormComponentDefinition(item);
     }
 
     /* Tab  */
@@ -208,10 +242,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     /* Default Layout  */
 
-    private getDataPath(data, path) {
-        if (!path){
+    // TODO: fix typing
+    private getDataPath(data?: object, path?: string[]) {
+        if (!path || path.length < 1){
             return data;
         }
-        return _.get(data, path.map(i => i.toString()));
+        const pathStr = path.map((i: any) => i.toString());
+        const result = _.get(data, pathStr);
+        return result;
     }
 }

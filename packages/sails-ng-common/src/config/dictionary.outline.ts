@@ -23,6 +23,9 @@ import {
     FormComponentDefinitionFrameKindType,
     FormComponentDefinitionKindType
 } from "./shared.outline";
+import {CheckboxInputTypes} from "./component/checkbox-input.outline";
+import {DropdownInputTypes} from "./component/dropdown-input.outline";
+import {RadioInputTypes} from "./component/radio-input.outline";
 
 
 /* Ensure all available types, interfaces, and classes are added here. */
@@ -42,6 +45,9 @@ export type AllTypes = DefaultLayoutTypes
     | ValidationSummaryTypes
     | TabContentTypes
     | TabTypes
+    | CheckboxInputTypes
+    | DropdownInputTypes
+    | RadioInputTypes
     ;
 
 

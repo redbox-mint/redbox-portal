@@ -1,14 +1,9 @@
 import {
     FormValidatorConfig,
-    FormValidatorControl,
     FormValidatorDefinition,
-    FormValidatorErrors
+    FormValidatorErrors, SimpleServerFormValidatorControl
 } from "../../src/validation/form.model";
-import {
-    formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem, formValidatorGetDefinitionNumber,
-    formValidatorGetDefinitionString,
-    formValidatorLengthOrSize
-} from "../../src/validation/helpers";
+import {FORM_VALIDATOR_EMAIL_REGEXP, formValidatorsSharedDefinitions} from "../../src/validation/validators";
 import {ValidatorsSupport} from "../../src/validation/validators-support";
 
 
