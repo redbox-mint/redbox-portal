@@ -1,7 +1,7 @@
 import {TestBed} from '@angular/core/testing';
 import {FormComponent} from './form.component';
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './component/simpleinput.component';
+import {SimpleInputComponent} from './component/simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
 
 describe('FormComponent', () => {

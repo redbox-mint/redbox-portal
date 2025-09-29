@@ -1,7 +1,7 @@
 // import {FormConfig} from '@researchdatabox/sails-ng-common';
 
 import {SaveButtonComponent} from './save-button.component';
-import {SimpleInputComponent} from './simpleinput.component';
+import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import {FormStatus, FormConfig} from '@researchdatabox/sails-ng-common';

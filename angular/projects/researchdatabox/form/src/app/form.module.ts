@@ -23,7 +23,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
-import { SimpleInputComponent } from './component/simpleinput.component';
+import { SimpleInputComponent } from './component/simple-input.component';
 import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";

@@ -1,4 +1,4 @@
-import { SimpleInputModel, SimpleInputComponent } from "./component/simpleinput.component";
+import { SimpleInputModel, SimpleInputComponent } from "./component/simple-input.component";
 import { RepeatableComponent, RepeatableComponentModel, RepeatableElementLayoutComponent } from "./component/repeatable.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';

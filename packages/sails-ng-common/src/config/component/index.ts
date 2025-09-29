@@ -23,7 +23,7 @@ import {
     SimpleInputComponentDefinition,
     SimpleInputModelConfig,
     SimpleInputModelDefinition
-} from "./simpleinput.model";
+} from "./simple-input.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
 import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.model";
@@ -118,7 +118,7 @@ export type FormFieldLayoutConfig =
 export * from './default-layout.model'
 export * from './group.model'
 export * from './repeatable.model'
-export * from './simpleinput.model'
+export * from './simple-input.model'
 export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'

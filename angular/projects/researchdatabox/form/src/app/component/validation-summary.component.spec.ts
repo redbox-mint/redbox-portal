@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {SimpleInputComponent} from "./simpleinput.component";
+import {SimpleInputComponent} from "./simple-input.component";
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
