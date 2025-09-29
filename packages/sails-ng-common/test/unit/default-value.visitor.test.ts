@@ -1,8 +1,9 @@
 import {ClientFormConfigVisitor, DefaultValueFormConfigVisitor, FormConfig, FormConfigOutline} from "../../src";
 
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
-    const chai = await import("chai");
 
     const cases: {
         args: FormConfigOutline;
@@ -18,7 +19,7 @@ describe("Client Visitor", async () => {
         it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const visitor = new DefaultValueFormConfigVisitor();
             const actual = visitor.start(args);
-            chai.expect(actual).to.eql(expected);
+            expect(actual).to.eql(expected);
         });
     });
 });

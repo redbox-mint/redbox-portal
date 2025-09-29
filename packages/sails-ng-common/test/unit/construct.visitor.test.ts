@@ -4,10 +4,10 @@ import {
     FormConfigFrame,
 } from "../../src";
 
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 
 describe("Construct Visitor", async () => {
-    const chai = await import("chai");
-
     const cases: {
         args: FormConfigFrame;
         expected: FormConfig;
@@ -101,7 +101,7 @@ describe("Construct Visitor", async () => {
         it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const visitor = new ConstructFormConfigVisitor();
             const actual = visitor.start(args);
-            chai.expect(actual).to.eql(expected);
+            expect(actual).to.eql(expected);
         });
     });
 });
