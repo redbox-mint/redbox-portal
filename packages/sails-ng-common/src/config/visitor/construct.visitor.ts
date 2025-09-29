@@ -18,7 +18,7 @@ import {
     RepeatableFieldComponentDefinitionOutline, RepeatableFieldModelDefinitionOutline,
     RepeatableFormComponentDefinitionOutline, RepeatableModelName
 } from "../component/repeatable.outline";
-import _ from "lodash";
+import { get as _get} from "lodash";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
 import {isFormComponentDefinition, isFormFieldDefinition} from "../helpers";
 

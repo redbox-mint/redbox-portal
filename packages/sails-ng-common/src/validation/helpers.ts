@@ -1,4 +1,4 @@
-import {get as _get} from "lodash-es";
+import {get as _get} from "lodash";
 import {FormValidatorCreateConfig} from "./form.model";
 
 
