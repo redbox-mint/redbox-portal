@@ -26,10 +26,10 @@ import {
 } from "./simple-input.model";
 import {DefaultFormFieldLayoutConfig, DefaultFormFieldLayoutDefinition} from "./default-layout.model";
 import {TabComponentConfig, TabFormFieldComponentDefinition, TabContentComponentDefinition} from "./tab.model";
-import { ContentComponentConfig, ContentComponentDefinition } from "./textblock.model";
+import { ContentComponentConfig, ContentComponentDefinition } from "./content.model";
 import { SaveButtonComponentDefinition, SaveButtonComponentConfig } from "./save-button.model";
 import { TabComponentFormFieldLayoutDefinition, TabComponentFormFieldLayoutConfig } from "./tab.model";
-import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./textarea.model";
+import { TextAreaComponentConfig, TextAreaComponentDefinition, TextareaModelConfig, TextareaModelDefinition } from "./text-area.model";
 import { DropdownInputComponentConfig, DropdownInputComponentDefinition, DropdownInputModelConfig, DropdownInputModelDefinition } from "./dropdown-input.model";
 import { CheckboxInputComponentConfig, CheckboxInputComponentDefinition, CheckboxInputModelConfig, CheckboxInputModelDefinition } from "./checkbox-input.model";
 import { RadioInputComponentConfig, RadioInputComponentDefinition, RadioInputModelConfig, RadioInputModelDefinition } from "./radio-input.model";
@@ -122,7 +122,7 @@ export * from './simple-input.model'
 export * from './validation-summary.model'
 export * from './tab.model'
 export * from './save-button.model'
-export * from './textblock.model'
+export * from './content.model'
 export * from './dropdown-input.model'
 export * from './checkbox-input.model'
 export * from './radio-input.model'

@@ -7,7 +7,7 @@ import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.comp
 import { ContentComponent } from "./component/content.component";
 import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
-import { TextAreaComponent, TextAreaModel } from "./component/textarea.component";
+import { TextAreaComponent, TextAreaModel } from "./component/text-area.component";
 import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
 import { CheckboxInputComponent, CheckboxInputModel } from "./component/checkbox-input.component";
 import { RadioInputComponent, RadioInputModel } from "./component/radio-input.component";
