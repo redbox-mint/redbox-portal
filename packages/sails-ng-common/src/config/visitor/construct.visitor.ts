@@ -21,6 +21,7 @@ import {
 import { get as _get} from "lodash";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
 import {isFormComponentDefinition, isFormFieldDefinition} from "../helpers";
+import {RepeatableFieldComponentConfig} from "../component/repeatable.model";
 
 /**
  * Visit each form config frame and create an instance of the associated class.
@@ -105,7 +106,42 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!this.isRepeatableFieldComponentDefinition(currentData)){
             throw new Error("Invalid RepeatableFieldComponentDefinition");
         }
-        super.visitRepeatableFieldComponentDefinition(item);
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new RepeatableFieldComponentConfig();
+
+        // Set the common field component config properties
+        item.config.readonly = config?.readonly;
+        item.config.visible = config?.visible;
+        item.config.editMode = config?.editMode;
+        item.config.label = config?.label;
+        item.config.defaultComponentCssClasses = config?.defaultComponentCssClasses;
+        item.config.hostCssClasses = config?.hostCssClasses;
+        item.config.wrapperCssClasses = config?.wrapperCssClasses;
+        item.config.disabled = config?.disabled;
+        item.config.autofocus = config?.autofocus;
+        item.config.tooltip = config?.tooltip;
+
+        // The class to use is identified by the class property string values in the field definitions.
+        const elementTemplateClassString = config?.elementTemplate?.component?.class;
+
+        // The class to use is identified by the class property string values in the field definitions.
+        // The form component is identifier the component field class string
+        const formComponentClass = this.formComponentMap?.get(elementTemplateClassString);
+
+        // Create new instance
+        if (!formComponentClass){
+            throw new Error(`Could not find repeatable field component form class string '${formComponentClass}'.`)
+        }
+        const formComponent = new formComponentClass();
+
+        // Store the instances on the item
+        item.config.elementTemplate = formComponent;
+
+        // Continue the construction
+        this.currentPath = [...this.currentPath, "config", "elementTemplate"];
+        formComponent?.accept(this);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -248,7 +284,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             return data;
         }
         const pathStr = path.map((i: any) => i.toString());
-        const result = _.get(data, pathStr);
+        const result = _get(data, pathStr);
         return result;
     }
 }
