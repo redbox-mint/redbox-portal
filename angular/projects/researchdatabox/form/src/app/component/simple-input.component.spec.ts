@@ -38,10 +38,7 @@ describe('SimpleInputComponent', () => {
       ]
     };
 
-    // act
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
-
-    // Now run your expectations
+    const {fixture} = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
