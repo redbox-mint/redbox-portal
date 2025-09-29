@@ -1,8 +1,102 @@
 import { PopulateExportedMethods, Services as coreServices } from '@researchdatabox/redbox-core-types';
-import DOMPurify from 'isomorphic-dompurify';
+import createDOMPurify = require('isomorphic-dompurify');
+import domPurify = require('dompurify');
+import { Buffer } from 'buffer';
+import { JSDOM } from 'jsdom';
 
 declare var sails: any;
 declare var _: any;
+
+//TODO: Move to a shared place when we want to reuse dompurify 
+type DomPurifyInstance = {
+  sanitize: (input: string, config?: Record<string, any>) => string;
+  addHook: (hook: string, cb: (...args: any[]) => void) => void;
+  removeHook: (hook: string) => void;
+};
+
+const isDomPurifyInstance = (candidate: any): candidate is DomPurifyInstance => (
+  candidate && typeof candidate.sanitize === 'function' && typeof candidate.addHook === 'function' && typeof candidate.removeHook === 'function'
+);
+
+const getWindow = () => {
+  const globalWindow = (globalThis as any).window;
+  if (globalWindow && typeof globalWindow.document !== 'undefined') {
+    return globalWindow;
+  }
+
+  const cacheKey = '__svgSanitizerWindow';
+  if (!(globalThis as any)[cacheKey]) {
+    const { window } = new JSDOM('', { pretendToBeVisual: true });
+    (globalThis as any)[cacheKey] = window;
+  }
+
+  return (globalThis as any)[cacheKey];
+};
+
+const instantiateDomPurify = (factoryModule: any): DomPurifyInstance | null => {
+  if (!factoryModule) {
+    return null;
+  }
+
+  const windowRef = getWindow();
+
+  const tryGet = (candidate: any) => (isDomPurifyInstance(candidate) ? candidate : null);
+
+  const candidates = [
+    () => tryGet(factoryModule),
+    () => tryGet(factoryModule?.default),
+    () => tryGet(factoryModule?.DOMPurify),
+    () => {
+      if (typeof factoryModule?.createDOMPurify === 'function') {
+        return tryGet(factoryModule.createDOMPurify(windowRef));
+      }
+      return null;
+    },
+    () => {
+      if (typeof factoryModule === 'function') {
+        return tryGet(factoryModule(windowRef));
+      }
+      return null;
+    },
+    () => {
+      if (typeof factoryModule?.default === 'function') {
+        return tryGet(factoryModule.default(windowRef));
+      }
+      return null;
+    }
+  ];
+
+  for (const resolver of candidates) {
+    try {
+      const instance = resolver();
+      if (instance) {
+        return instance;
+      }
+    } catch (error) {
+      sails?.log?.silly?.('SvgSanitizerService:: DOMPurify instantiation attempt failed', error);
+    }
+  }
+
+  return null;
+};
+
+const initialiseDOMPurify = (): DomPurifyInstance => {
+  const instanceFromIso = instantiateDomPurify(createDOMPurify);
+  if (instanceFromIso) {
+    return instanceFromIso;
+  }
+
+  const instanceFromDomPurify = instantiateDomPurify(domPurify);
+  if (instanceFromDomPurify) {
+    return instanceFromDomPurify;
+  }
+
+  throw new Error('SvgSanitizerService: Failed to initialise DOMPurify with hook support');
+};
+
+const DOMPurify = initialiseDOMPurify();
+
+(globalThis as any).DOMPurify = DOMPurify;
 
 export module Services {
   /**
@@ -202,18 +296,14 @@ export module Services {
       try {
         // Use DOMPurify to sanitize the SVG
         const config = this.getDOMPurifyConfig();
-        
-        // Add a custom hook to catch any remaining dangerous patterns
-        DOMPurify.addHook('beforeSanitizeElements', (node: any) => {
-          // Check for dangerous tag names
+
+        const beforeSanitizeElementsHook = (node: any) => {
           if (node.tagName && /^(script|iframe|embed|object|applet)$/i.test(node.tagName)) {
             node.remove();
-            return;
           }
-        });
+        };
 
-        DOMPurify.addHook('beforeSanitizeAttributes', (node: any) => {
-          // Remove any attributes that start with 'on' (event handlers)
+        const beforeSanitizeAttributesHook = (node: any) => {
           if (node.attributes) {
             const attrs = Array.from(node.attributes);
             attrs.forEach((attr: any) => {
@@ -223,31 +313,30 @@ export module Services {
               }
             });
           }
-          
-          // Validate href/xlink:href attributes
+
           const href = node.getAttribute('href') || node.getAttribute('xlink:href');
-          if (href) {
-            const lowerHref = href.toLowerCase().trim();
-            
-            // Block dangerous protocols
-            const dangerousProtocols = [
-              'javascript:', 'vbscript:', 'data:', 'file:', 'chrome:',
-              'resource:', 'moz-extension:', 'chrome-extension:', 'ms-appx:',
-              'about:', 'blob:', 'filesystem:'
-            ];
-            
-            // Block external references
-            const externalProtocols = ['http:', 'https:', '//'];
-            
-            let shouldRemove = false;
-            
-            for (const protocol of dangerousProtocols) {
-              if (lowerHref.startsWith(protocol)) {
-                shouldRemove = true;
-                break;
-              }
+          if (!href) {
+            return;
+          }
+
+          const lowerHref = href.toLowerCase().trim();
+          const dangerousProtocols = [
+            'javascript:', 'vbscript:', 'data:', 'file:', 'chrome:',
+            'resource:', 'moz-extension:', 'chrome-extension:', 'ms-appx:',
+            'about:', 'blob:', 'filesystem:'
+          ];
+          const externalProtocols = ['http:', 'https:', '//'];
+
+          let shouldRemove = false;
+
+          for (const protocol of dangerousProtocols) {
+            if (lowerHref.startsWith(protocol)) {
+              shouldRemove = true;
+              break;
             }
-            
+          }
+
+          if (!shouldRemove) {
             for (const protocol of externalProtocols) {
               if (lowerHref.startsWith(protocol)) {
                 shouldRemove = true;
@@ -255,19 +344,25 @@ export module Services {
                 break;
               }
             }
-            
-            if (shouldRemove) {
-              node.removeAttribute('href');
-              node.removeAttribute('xlink:href');
-            }
           }
-        });
 
-        // Sanitize the SVG
-        const sanitized = DOMPurify.sanitize(svg, config);
+          if (shouldRemove) {
+            node.removeAttribute('href');
+            node.removeAttribute('xlink:href');
+          }
+        };
 
-        // Remove hooks after use
-        DOMPurify.removeAllHooks();
+        DOMPurify.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
+        DOMPurify.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
+
+        let sanitized: any;
+        try {
+          sanitized = DOMPurify.sanitize(svg, config);
+        } finally {
+          // Remove hooks added in this invocation only (LIFO removal)
+          DOMPurify.removeHook('beforeSanitizeAttributes');
+          DOMPurify.removeHook('beforeSanitizeElements');
+        }
         
         // Post-sanitization validation
         // Convert TrustedHTML to string for further processing
