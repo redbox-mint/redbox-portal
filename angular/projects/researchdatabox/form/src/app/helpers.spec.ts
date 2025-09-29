@@ -56,7 +56,7 @@ export async function createFormAndWaitForReady(formConfig: FormConfig) {
   }
 }
 
-export async function createTestbedModule(moreDeclarations: any[] = [], moreProviders: any[] = []) {
+export async function createTestbedModule(moreDeclarations: any[] = [], moreProviders: any[] = [], moreImports: any[] = []) {
   const configService = getStubConfigService();
   const translationService = getStubTranslationService();
   await TestBed.configureTestingModule({
@@ -73,6 +73,7 @@ export async function createTestbedModule(moreDeclarations: any[] = [], moreProv
       ReactiveFormsModule,
       RedboxPortalCoreModule,
       I18NextPipe,
+      ...moreImports
     ],
     providers: [
       {

@@ -1,13 +1,14 @@
 import { FormConfig } from '@researchdatabox/sails-ng-common';
 import { DateInputComponent } from './date-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TestBed } from '@angular/core/testing';
 
 describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule([
       DateInputComponent,
-    ]);
+    ],[],[BsDatepickerModule.forRoot()]);
   });
 
   it('should create component', () => {
