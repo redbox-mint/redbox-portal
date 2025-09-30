@@ -8,27 +8,50 @@ import {
 import {FormConfigVisitor} from "./base.model";
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
 import {
-    GroupFieldComponentDefinitionOutline,
-    GroupFieldModelDefinitionOutline,
+    GroupFieldComponentDefinitionFrame,
+    GroupFieldComponentDefinitionOutline, GroupFieldComponentName, GroupFieldModelDefinitionFrame,
+    GroupFieldModelDefinitionOutline, GroupFieldModelName,
     GroupFormComponentDefinitionOutline
 } from "../component/group.outline";
 import {
-    RepeatableComponentName,
-    RepeatableElementFieldLayoutDefinitionOutline, RepeatableElementLayoutName,
-    RepeatableFieldComponentDefinitionOutline, RepeatableFieldModelDefinitionOutline,
+    RepeatableComponentName, RepeatableElementFieldLayoutDefinitionFrame,
+    RepeatableElementFieldLayoutDefinitionOutline, RepeatableElementLayoutName, RepeatableFieldComponentDefinitionFrame,
+    RepeatableFieldComponentDefinitionOutline,
+    RepeatableFieldModelDefinitionFrame, RepeatableFieldModelDefinitionOutline,
     RepeatableFormComponentDefinitionOutline, RepeatableModelName
 } from "../component/repeatable.outline";
-import { get as _get} from "lodash";
+import {
+    RepeatableElementFieldLayoutConfig,
+    RepeatableFieldComponentConfig,
+    RepeatableFieldModelConfig
+} from "../component/repeatable.model";
+import {
+    GroupFieldComponentConfig,
+    GroupFieldModelConfig
+} from "../component/group.model";
+import {
+    SimpleInputComponentName,
+    SimpleInputFieldComponentDefinitionFrame,
+    SimpleInputFieldComponentDefinitionOutline, SimpleInputFieldModelDefinitionFrame,
+    SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline, SimpleInputModelName
+} from "../component/simpleinput.outline";
+import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simpleinput.model";
+import {
+    DefaultFieldLayoutDefinitionFrame,
+    DefaultFieldLayoutDefinitionOutline, DefaultLayoutName
+} from "../component/default-layout.outline";
+import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
-import {isFormComponentDefinition, isFormFieldDefinition} from "../helpers";
-import {RepeatableFieldComponentConfig} from "../component/repeatable.model";
+import {isFormComponentDefinition} from "../helpers";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+
 
 /**
  * Visit each form config frame and create an instance of the associated class.
  * Populate the form config hierarchy with the class instances.
  */
 export class ConstructFormConfigVisitor extends FormConfigVisitor {
-    private result?: FormConfig;
+    private result?: FormConfigOutline;
     private data?: FormConfigFrame;
     private currentPath: string[] = [];
 
@@ -45,7 +68,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.formComponentMap = FormComponentDefinitionMap;
     }
 
-    start(data: FormConfigFrame): FormConfig {
+    start(data: FormConfigFrame): FormConfigOutline {
         this.result = new FormConfig();
         this.data = data;
         this.currentPath = [];
@@ -55,6 +78,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitFormConfig(item: FormConfigOutline): void {
         const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFormConfig(currentData)) {
+            return;
+        }
 
         // Set the simple properties
         item.name = currentData.name;
@@ -70,20 +96,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.debugValue = currentData.debugValue;
 
         // Visit the components
-        // TODO: fix the typing
-        (currentData?.componentDefinitions as any[] ?? []).forEach((componentDefinition, index) => {
-            // The class to use is identified by the class property string values in the field definitions.
-            // The form component is identifier the component field class string
-            const componentClassString = componentDefinition?.component?.class;
-
-            // Get the class from the class string name
-            const formComponentClass = this.formComponentMap?.get(componentClassString);
-
-            // Create new instance
-            if (!formComponentClass){
-                throw new Error(`Could not find class for form component class string '${formComponentClass}'.`)
-            }
-            const formComponent = new formComponentClass();
+        (currentData?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            const formComponent = this.sharedConstructFormComponent(componentDefinition);
 
             // Store the instances on the item
             item.componentDefinitions.push(formComponent);
@@ -96,6 +110,41 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     /* SimpleInput */
 
+    visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<SimpleInputFieldComponentDefinitionFrame>(currentData, SimpleInputComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new SimpleInputFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        if (config?.type) {
+            item.config.type = config?.type;
+        }
+    }
+
+    visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<SimpleInputFieldModelDefinitionFrame>(currentData, SimpleInputModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new SimpleInputFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
     /* Content */
 
     /* Repeatable  */
@@ -103,38 +152,21 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isRepeatableFieldComponentDefinition(currentData)){
-            throw new Error("Invalid RepeatableFieldComponentDefinition");
+        if (!this.isFieldDefinition<RepeatableFieldComponentDefinitionFrame>(currentData, RepeatableComponentName)) {
+            return;
         }
         const config = currentData?.config;
 
         // Create the class instance for the config
         item.config = new RepeatableFieldComponentConfig();
 
-        // Set the common field component config properties
-        item.config.readonly = config?.readonly;
-        item.config.visible = config?.visible;
-        item.config.editMode = config?.editMode;
-        item.config.label = config?.label;
-        item.config.defaultComponentCssClasses = config?.defaultComponentCssClasses;
-        item.config.hostCssClasses = config?.hostCssClasses;
-        item.config.wrapperCssClasses = config?.wrapperCssClasses;
-        item.config.disabled = config?.disabled;
-        item.config.autofocus = config?.autofocus;
-        item.config.tooltip = config?.tooltip;
+        this.sharedPopulateFieldComponentConfig(item.config, config);
 
-        // The class to use is identified by the class property string values in the field definitions.
-        const elementTemplateClassString = config?.elementTemplate?.component?.class;
-
-        // The class to use is identified by the class property string values in the field definitions.
-        // The form component is identifier the component field class string
-        const formComponentClass = this.formComponentMap?.get(elementTemplateClassString);
-
-        // Create new instance
-        if (!formComponentClass){
-            throw new Error(`Could not find repeatable field component form class string '${formComponentClass}'.`)
+        if (!config?.elementTemplate) {
+            throw new Error(`Missing elementTemplate for repeatable at '${this.currentPath}'.`)
         }
-        const formComponent = new formComponentClass();
+
+        const formComponent = this.sharedConstructFormComponent(config?.elementTemplate);
 
         // Store the instances on the item
         item.config.elementTemplate = formComponent;
@@ -147,26 +179,128 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isRepeatableFieldModelDefinition(currentData)){
-            throw new Error("Invalid RepeatableFieldModelDefinition");
+        if (!this.isFieldDefinition<RepeatableFieldModelDefinitionFrame>(currentData, RepeatableModelName)) {
+            return;
         }
-        super.visitRepeatableFieldModelDefinition(item);
+
+        // Create the class instance for the config
+        item.config = new RepeatableFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isRepeatableElementFieldLayoutDefinition(currentData)){
-            throw new Error("Invalid RepeatableElementFieldLayoutDefinition");
+        if (!this.isFieldDefinition<RepeatableElementFieldLayoutDefinitionFrame>(currentData, RepeatableElementLayoutName)) {
+            return;
         }
-        super.visitRepeatableElementFieldLayoutDefinition(item);
+
+        // Create the class instance for the config
+        item.config = new RepeatableElementFieldLayoutConfig();
+
+        this.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
+    /* Validation Summary */
+
+    /* Group */
+
+    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isRepeatableFormComponentDefinition(currentData)){
-            throw new Error("Invalid RepeatableFormComponentDefinition");
+        if (!this.isFieldDefinition<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new GroupFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        // Visit the components
+        const fieldComponentPath = [...this.currentPath];
+        (config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            const formComponent = this.sharedConstructFormComponent(componentDefinition);
+
+            // Store the instances on the item
+            item.config?.componentDefinitions.push(formComponent);
+
+            // Continue the construction
+            this.currentPath = [...fieldComponentPath, "config", "componentDefinitions", index.toString()];
+            formComponent?.accept(this);
+        });
+        this.currentPath = fieldComponentPath;
+    }
+
+    visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<GroupFieldModelDefinitionFrame>(currentData, GroupFieldModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new GroupFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
+    /* Tab  */
+
+    /* Tab Content */
+
+    /* Save Button  */
+
+    /* Text Area */
+
+    /* Default Layout  */
+
+    visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<DefaultFieldLayoutDefinitionFrame>(currentData, DefaultLayoutName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new DefaultFieldLayoutConfig();
+
+        this.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+    }
+
+
+    protected sharedConstructFormComponent(item: FormComponentDefinitionFrame) {
+        // The class to use is identified by the class property string values in the field definitions.
+        const componentClassString = item?.component?.class;
+
+        // The class to use is identified by the class property string values in the field definitions.
+        // The form component is identifier the component field class string
+        const formComponentClass = this.formComponentMap?.get(componentClassString);
+
+        // Create new instance
+        if (!formComponentClass) {
+            throw new Error(`Could not find class for form component class name '${componentClassString}' at path '${this.currentPath}'.`)
+        }
+        const formComponent = new formComponentClass(item);
+        return formComponent;
+    }
+
+    protected sharedPopulateFormComponent(item: FormComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!isFormComponentDefinition(currentData)) {
+            throw new Error("Invalid FormComponentDefinition");
         }
 
         // Set the simple properties
@@ -197,7 +331,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
 
         // Create new instances
-        if (!componentClass){
+        if (!componentClass) {
             throw new Error(`Could not find class for field component class string '${componentClassString}'.`)
         }
         const component = new componentClass();
@@ -210,7 +344,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.currentPath = [...formComponentPath, 'component'];
         item.component?.accept(this);
 
-        if (model){
+        if (model) {
             item.model = model;
             this.currentPath = [...formComponentPath, 'model'];
             item.model?.accept(this);
@@ -221,70 +355,5 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             item.layout?.accept(this);
         }
         this.currentPath = formComponentPath;
-    }
-
-    private isRepeatableFormComponentDefinition(value: unknown): value is RepeatableFormComponentDefinitionOutline {
-        return isFormComponentDefinition(value) &&
-            value?.['component']?.['class'] === RepeatableComponentName;
-    }
-
-    private isRepeatableFieldComponentDefinition(value: unknown) : value is RepeatableFieldComponentDefinitionOutline {
-        return isFormFieldDefinition(value) && value?.class === RepeatableComponentName;
-    }
-
-    private isRepeatableFieldModelDefinition(value: unknown) : value is RepeatableFieldModelDefinitionOutline {
-        return isFormFieldDefinition(value) && value?.class === RepeatableModelName;
-    }
-    private isRepeatableElementFieldLayoutDefinition(value: unknown) : value is RepeatableElementFieldLayoutDefinitionOutline {
-        return isFormFieldDefinition(value) && value?.class === RepeatableElementLayoutName;
-    }
-
-    /* Validation Summary */
-
-    /* Group */
-
-    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitGroupFieldComponentDefinition');
-    }
-
-    visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-        this.notImplemented('visitGroupFieldModelDefinition');
-    }
-
-    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.currentPath);
-
-        // Get the class string names.
-        const componentClassString = currentData?.component?.class;
-        const modelClassString = currentData?.model?.class;
-        const layoutClassString = currentData?.layout?.class;
-
-        // Get the classes
-        const componentClass = this.fieldComponentMap?.get(componentClassString);
-        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
-        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
-
-        super.visitGroupFormComponentDefinition(item);
-    }
-
-    /* Tab  */
-
-    /*  Tab Content */
-
-    /* Save Button  */
-
-    /* Text Area */
-
-    /* Default Layout  */
-
-    // TODO: fix typing
-    private getDataPath(data?: object, path?: string[]) {
-        if (!path || path.length < 1){
-            return data;
-        }
-        const pathStr = path.map((i: any) => i.toString());
-        const result = _get(data, pathStr);
-        return result;
     }
 }

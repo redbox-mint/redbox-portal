@@ -75,3 +75,12 @@ The structures and data are:
 - templates to be compiled - this is the data allowing templates and expressions to be compiled on the server-side so they can be provided to the client
 - default values for each component - this is the structure of the data model, populated with default values, which the client uses for new forms
 
+## Design Decisions
+
+### FormConfig and component class constructors
+
+The FormConfig class and each component class could have a constructor that accepts the `*Frame` interface.
+This would allow keeping some of the constructions steps in the same place as the properties are declared, which would be good.
+
+However, this is not done, because there is more than one way to construct the Form and Component classes.
+Putting part of the construction in the class constructors restricts how the class can be built.

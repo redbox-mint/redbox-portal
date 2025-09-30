@@ -33,20 +33,13 @@ export class FormConstraintAuthorizationConfig implements FormConstraintAuthoriz
  * The form component abstract class is the base for each real component definition class.
  */
 export abstract class FormComponentDefinition implements FormComponentDefinitionOutline {
-    public name: string;
-    // Using definite assignment assertion operator (!) to say that component does not need to be set in the abstract class constructor.
-    // The component property can't be set here, as FieldComponentDefinition is abstract there is no way to work out which class to use.
-    // Subclasses set the component property with a new instance of the proper class.
+    public name: string = "";
     public abstract component: FieldComponentDefinitionOutline;
     public abstract model?: FieldModelDefinitionOutline<unknown>;
     public abstract layout?: FieldLayoutDefinitionOutline;
     public expressions?: FormExpressionsConfigOutline;
     public module?: string;
     public constraints?: FormConstraintConfigOutline;
-
-    protected constructor() {
-        this.name = "";
-    }
 
     abstract accept(visitor: FormConfigVisitorOutline): void;
 }

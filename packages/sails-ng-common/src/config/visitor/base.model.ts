@@ -1,4 +1,5 @@
-import {FormConfigOutline} from "../form-config.outline";
+import {get as _get} from "lodash";
+import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
 import {FormConfigVisitorOutline} from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -58,6 +59,10 @@ import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
+import {FieldLayoutConfigFrame, FieldLayoutConfigOutline} from "../field-layout.outline";
+import {FieldModelConfigFrame, FieldModelConfigOutline} from "../field-model.outline";
+import {FieldComponentConfigFrame, FieldComponentConfigOutline} from "../field-component.outline";
+import {guessType, isFormFieldDefinition} from "../helpers";
 
 
 /**
@@ -79,7 +84,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented('visitSimpleInputFieldModelDefinition');
     }
 
-    visitSimpleInputFormComponentDefinition(param: SimpleInputFormComponentDefinitionOutline): void {
+    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
         this.notImplemented('visitSimpleInputFormComponentDefinition');
     }
 
@@ -131,7 +136,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented('visitGroupFieldModelDefinition');
     }
 
-    visitGroupFormComponentDefinition(param: GroupFormComponentDefinitionOutline): void {
+    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
         this.notImplemented('visitGroupFormComponentDefinition');
     }
 
@@ -169,7 +174,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented('visitSaveButtonFieldComponentDefinition');
     }
 
-    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinitionOutline): void {
+    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
         this.notImplemented('visitSaveButtonFormComponentDefinition');
     }
 
@@ -237,5 +242,69 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
     protected notImplemented(name: string) {
         throw new Error(`Method '${name}' is not implemented.`);
+    }
+
+    // TODO: fix typing
+    protected getDataPath(data?: FormConfigFrame, path?: string[]) {
+        const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
+        const name = result?.['name'] ?? '(none)';
+        const className = result?.['class'] ?? '(none)';
+
+        console.info(`getDataPath '${path}' with name '${name}' with class '${className}'`);
+        return result;
+    }
+
+    protected isFormConfig(value: unknown): value is FormConfigFrame {
+        // use typescript narrowing to check the value
+        const i = value as FormConfigFrame;
+        // only name and component are required
+        const outcome = 'componentDefinitions' in i && guessType(i?.componentDefinitions) === 'array';
+        if (!outcome) {
+            throw new Error("Invalid FormConfig");
+        }
+        return outcome;
+    }
+
+    protected isFieldDefinition<T>(value: unknown, name: string): value is T {
+        const outcome = isFormFieldDefinition(value) && value?.class === name;
+        if (!outcome) {
+            throw new Error(`Definition of '${name}' is invalid.`);
+        }
+        return outcome;
+    }
+
+
+    protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigOutline, config?: FieldComponentConfigFrame) {
+        // Set the common field component config properties
+        item.readonly = config?.readonly;
+        item.visible = config?.visible;
+        item.editMode = config?.editMode;
+        item.label = config?.label;
+        item.defaultComponentCssClasses = config?.defaultComponentCssClasses;
+        item.hostCssClasses = config?.hostCssClasses;
+        item.wrapperCssClasses = config?.wrapperCssClasses;
+        item.disabled = config?.disabled;
+        item.autofocus = config?.autofocus;
+        item.tooltip = config?.tooltip;
+    }
+
+    protected sharedPopulateFieldModelConfig(item: FieldModelConfigOutline<unknown>, config?: FieldModelConfigFrame<unknown>) {
+        // Set the common field model config properties
+        item.disableFormBinding = config?.disableFormBinding;
+        item.value = config?.value;
+        item.defaultValue = config?.defaultValue;
+        item.validators = config?.validators;
+        item.wrapperCssClasses = config?.wrapperCssClasses;
+        item.editCssClasses = config?.editCssClasses;
+    }
+
+    protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigOutline, config?: FieldLayoutConfigFrame) {
+        // Set the common field model config properties
+        this.sharedPopulateFieldComponentConfig(item, config);
+        item.labelRequiredStr = config?.labelRequiredStr;
+        item.helpText = config?.helpText;
+        item.cssClassesMap = config?.cssClassesMap;
+        item.helpTextVisibleOnInit = config?.helpTextVisibleOnInit;
+        item.helpTextVisible = config?.helpTextVisible;
     }
 }

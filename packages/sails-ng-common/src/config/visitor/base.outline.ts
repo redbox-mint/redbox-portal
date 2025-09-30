@@ -75,7 +75,7 @@ export interface FormConfigVisitorOutline {
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void;
 
-    visitSimpleInputFormComponentDefinition(param: SimpleInputFormComponentDefinitionOutline): void;
+    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void;
 
     /* Content */
 
@@ -105,7 +105,7 @@ export interface FormConfigVisitorOutline {
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void;
 
-    visitGroupFormComponentDefinition(param: GroupFormComponentDefinitionOutline): void;
+    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void;
 
     /* Tab  */
 
@@ -127,7 +127,7 @@ export interface FormConfigVisitorOutline {
 
     visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void;
 
-    visitSaveButtonFormComponentDefinition(param: SaveButtonFormComponentDefinitionOutline): void;
+    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void;
 
     /* Text Area */
 

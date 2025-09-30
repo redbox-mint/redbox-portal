@@ -20,16 +20,12 @@
 import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
     FormComponentDefinition,
-    FormConfig,
-    FormValidatorDefinition,
-    formValidatorsSharedDefinitions,
-    FormValidatorSummaryErrors,
-    guessType,
-    SimpleServerFormValidatorControl,
-    ValidatorsSupport
+    ValidatorsSupport,
+    guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions, SimpleServerFormValidatorControl,
+    FormValidatorDefinition, GroupFormComponentDefinitionFrame,
+    FormComponentDefinitionFrame, FormConfigFrame
 } from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
-import {default as moment} from 'moment';
 import {ClientFormContext} from "../additional/ClientFormContext";
 import {firstValueFrom} from "rxjs";
 
@@ -143,7 +139,7 @@ export module Services {
         public mergeRecordClientFormConfig(
             original: BasicRedboxRecord,
             changed: BasicRedboxRecord,
-            clientFormConfig: FormConfig,
+            clientFormConfig: FormConfigFrame,
         ): BasicRedboxRecord {
             const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig);
             const originalMetadata = original?.metadata ?? {};
@@ -312,7 +308,7 @@ export module Services {
          * Convert the form config into the matching data model with defaults.
          * @param item The top-level form config.
          */
-        public buildDataModelDefaultForFormConfig(item: FormConfig): Record<string, unknown> {
+        public buildDataModelDefaultForFormConfig(item: FormConfigFrame): Record<string, unknown> {
             // Each component definition is a property,
             // where the key is the name and the value is the model value.
             // Provides defaults from ancestors to descendants,
@@ -332,7 +328,7 @@ export module Services {
          * @param item One form config component definition.
          * @param defaultValue The default value if there is an ancestor component.
          */
-        public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition, defaultValue?: Record<string, unknown>): Record<string, unknown> {
+        public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinitionFrame, defaultValue?: Record<string, unknown>): Record<string, unknown> {
             // Use empty string as a placeholder item name. Empty string indicates that there is no name.
             const result = {};
             const itemName = item?.name ?? "";
@@ -390,11 +386,11 @@ export module Services {
          * Convert a form config into a schema describing the data model it creates.
          * @param item The form config.
          */
-        public buildSchemaForFormConfig(item: FormConfig): Record<string, unknown> {
-            const formCompDef: FormComponentDefinition = {
+        public buildSchemaForFormConfig(item: FormConfigFrame): Record<string, unknown> {
+            const formCompDef: GroupFormComponentDefinitionFrame = {
                 name: item?.name,
-                model: {class: "GroupFieldModel", config: {validators: item?.validators ?? []}},
-                component: {class: 'GroupFieldComponent', config: {componentDefinitions: item?.componentDefinitions}}
+                model: {class: "GroupModel", config: {validators: item?.validators ?? []}},
+                component: {class: 'GroupComponent', config: {componentDefinitions: item?.componentDefinitions}}
             }
             const def = this.buildSchemaForFormComponentDefinition(formCompDef);
             // remove the FormConfig level
@@ -405,7 +401,7 @@ export module Services {
          * Convert a form component definition into a schema describing the data model it creates.
          * @param item The form component definition.
          */
-        public buildSchemaForFormComponentDefinition(item: FormComponentDefinition): Record<string, unknown> {
+        public buildSchemaForFormComponentDefinition(item: FormComponentDefinitionFrame): Record<string, unknown> {
             // Using JSON Type Definition schema
             // Ref: https://jsontypedef.com/docs/jtd-in-5-minutes/
             // Ref: https://ajv.js.org/json-type-definition.html
@@ -519,7 +515,7 @@ export module Services {
         public async buildFormConfigForChanges(
             original: { redboxOid: string, [key: string]: unknown },
             changes: FormRecordConsistencyChange[],
-        ): Promise<FormConfig> {
+        ): Promise<FormConfigFrame> {
             // TODO: Use the record and form config and/or changes between the record and form config
             //  to build a new form config that displays only the changes.
             //return {};
@@ -559,16 +555,16 @@ export module Services {
             // the validation will be done on all values present in the data model, so use the form config with all fields included
             const isEditMode = true;
             // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfig;
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
             // the validator definitions are in the sails-ng-common package
             const validatorDefinitions = formValidatorsSharedDefinitions;
             const validatorDefs = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions);
             // provide the form config as a top-level group component
-            const formConfigAsFormCompDef: FormComponentDefinition = {
+            const formConfigAsFormCompDef: GroupFormComponentDefinitionFrame = {
                 name: formConfig?.name,
-                model: {class: "GroupFieldModel", config: {validators: formConfig?.validators ?? []}},
+                model: {class: "GroupModel", config: {validators: formConfig?.validators ?? []}},
                 component: {
-                    class: 'GroupFieldComponent',
+                    class: 'GroupComponent',
                     config: {componentDefinitions: formConfig?.componentDefinitions}
                 }
             }
@@ -585,7 +581,7 @@ export module Services {
          */
         public async validateRecordValueForComponentDefinition(
             record: unknown,
-            item: FormComponentDefinition,
+            item: FormComponentDefinitionFrame,
             validatorDefinitions: Map<string, FormValidatorDefinition>,
             parents?: string[],
         ): Promise<FormValidatorSummaryErrors[]> {
@@ -663,7 +659,7 @@ export module Services {
          * @param item The matching form component definition.
          * @private
          */
-        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition): unknown {
+        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinitionFrame): unknown {
             const itemName = item?.name ?? "";
             sails.log.verbose(`buildDataModelDefaultValue - name '${itemName}' current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
             const itemDefaultValue = item?.model?.config?.defaultValue;

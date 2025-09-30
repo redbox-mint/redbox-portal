@@ -1,6 +1,9 @@
 import {FieldDefinition} from "./field.model";
 import {KeyValueStringProperty} from "./shared.outline";
-import {BaseFieldComponentConfigOutline, BaseFieldComponentDefinitionOutline} from "./base-field-component.outline";
+import {
+    BaseFieldComponentConfigOutline,
+    BaseFieldComponentDefinitionOutline
+} from "./base-field-component.outline";
 
 
 /**

@@ -96,7 +96,7 @@ const formConfig: FormConfigFrame = {
                                         {
                                             name: 'dropdown_1',
                                     layout: {
-                                        class: 'DefaultLayoutComponent',
+                                        class: 'DefaultLayout',
                                         config: {
                                             label: 'Dropdown some label',
                                             helpText: 'Dropdown some help text',
@@ -123,7 +123,7 @@ const formConfig: FormConfigFrame = {
                                 {
                                     name: 'checkbox_1',
                                     layout: {
-                                        class: 'DefaultLayoutComponent',
+                                        class: 'DefaultLayout',
                                         config: {
                                             label: 'Checkbox some label (single value)',
                                             helpText: 'Checkbox some help text - single selection mode',
@@ -151,7 +151,7 @@ const formConfig: FormConfigFrame = {
                                 {
                                     name: 'checkbox_multiple',
                                     layout: {
-                                        class: 'DefaultLayoutComponent',
+                                        class: 'DefaultLayout',
                                         config: {
                                             label: 'Checkbox multiple values',
                                             helpText: 'Checkbox with multiple selection enabled',
@@ -180,7 +180,7 @@ const formConfig: FormConfigFrame = {
                                 {
                                     name: 'radio_1',
                                     layout: {
-                                        class: 'DefaultLayoutComponent',
+                                        class: 'DefaultLayout',
                                         config: {
                                             label: 'Radio some label (single value)',
                                             helpText: 'Radio some help text - single selection mode',
@@ -511,7 +511,7 @@ const formConfig: FormConfigFrame = {
                                                 class: 'RepeatableComponent',
                                                 config: {
                                                     elementTemplate: {
-
+                                                        name: null,
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
@@ -586,6 +586,7 @@ const formConfig: FormConfigFrame = {
                 class: 'RepeatableComponent',
                 config: {
                     elementTemplate: {
+                        name: null,
                         // first group component
                         model: {
                             class: 'GroupModel',

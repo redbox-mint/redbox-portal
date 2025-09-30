@@ -4,6 +4,7 @@ export * from "./report.model";
 export * from "./status.model";
 export * from "./template.outline";
 // config
+export * from "./config/helpers";
 export * from "./config/dictionary.outline";
 export * from "./config/dictionary.model";
 export * from "./config/shared.outline";
@@ -51,3 +52,8 @@ export * from "./config/component/textblock.outline";
 export * from "./config/component/textblock.model";
 export * from "./config/component/validation-summary.outline";
 export * from "./config/component/validation-summary.model";
+// validation
+export * from "./validation/form.model";
+export * from "./validation/helpers";
+export * from "./validation/validators";
+export * from "./validation/validators-support";
