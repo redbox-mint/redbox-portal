@@ -15,6 +15,10 @@ describe('DateInputComponent', () => {
     const fixture = TestBed.createComponent(DateInputComponent);
     const component = fixture.componentInstance;
     expect(component).toBeDefined();
+    
+    const input = fixture.nativeElement.querySelector('input');
+    expect(input.disabled).toBeFalse();
+    expect(input.readOnly).toBeFalse();
   });
 
   it('should render Date input component', async () => {
@@ -46,6 +50,35 @@ describe('DateInputComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('10/08/2025');
+  });
+
+  it('should have bsDatepicker directive', () => {
+    const fixture = TestBed.createComponent(DateInputComponent);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input');
+    expect(input.hasAttribute('bsdatepicker')).toBeTrue();
+  });
+
+  it('should update date format from config', () => {
+    const fixture = TestBed.createComponent(DateInputComponent);
+    const component = fixture.componentInstance;
+    component.setDateFormat('YYYY-MM-DD');
+    fixture.detectChanges();
+
+    expect(component.bsConfig.dateInputFormat).toBe('YYYY-MM-DD');
+  });
+
+  it('should set placeholder and tooltip', () => {
+    const fixture = TestBed.createComponent(DateInputComponent);
+    const component = fixture.componentInstance;
+    component.placeholder = 'YYYY-MM-DD';
+    component.tooltip = 'Select a date';
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input');
+    expect(input.getAttribute('placeholder')).toBe('YYYY-MM-DD');
+    expect(input.getAttribute('title')).toBe('Select a date');
   });
 });
 

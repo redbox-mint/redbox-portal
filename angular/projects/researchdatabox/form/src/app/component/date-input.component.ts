@@ -48,6 +48,10 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     } as BsDatepickerConfig;
   }
 
+  public setDateFormat(format: string): void {
+    this.dateFormat = format;
+  }
+
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
