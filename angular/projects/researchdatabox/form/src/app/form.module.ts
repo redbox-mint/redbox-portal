@@ -28,7 +28,7 @@ import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
-import {GroupFieldComponent} from "./component/groupfield.component";
+import {GroupFieldComponent} from "./component/group.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";

@@ -1,7 +1,7 @@
 
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
-import {GroupFieldComponent} from "./groupfield.component";
+import {GroupFieldComponent} from "./group.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
