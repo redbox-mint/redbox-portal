@@ -34,7 +34,7 @@ describe("Construct Visitor", async () => {
                             config: {
                                 elementTemplate: {
                                     // first group component
-                                    name: 'group_1_component',
+                                    name: "",
                                     model: {
                                         class: 'GroupModel',
                                         config: {

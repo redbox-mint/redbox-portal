@@ -8,7 +8,7 @@
     "./dist/src"
   ],
   "scripts": {
-    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js test/unit/**/*.test.js dist/test/unit/**/*.test.js",
+    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit/**/*.test.js",
     "pretest": "npm run test:compile && mkdir -p support/junit",
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",
@@ -78,6 +78,7 @@
     "@researchdatabox/redbox-core-types": "../../core",
     "luxon": "^3.7.2",
     "ts-json-schema-generator": "^2.4.0",
+    "lodash": "^4.17.21",
     "lodash-es": "^4.17.21"
   }
 }

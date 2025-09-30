@@ -22,7 +22,8 @@
       "node",
       "mocha",
       "lodash",
-      "moment"
+      "luxon",
+      "chai"
     ],
     "lib": [
       "es2022",
@@ -51,7 +52,8 @@
       "node",
       "mocha",
       "lodash",
-      "moment"
+      "luxon",
+      "chai"
     ]
   }
 }

@@ -6,7 +6,7 @@ module.exports = {
   slow: 2000,
   timeout: "30s",
   ui: "bdd",
-  global: ["moment", "_"],
+  global: ["lodash", "luxon", "_"],
 };
 
 if (process.env.CI === "true") {
