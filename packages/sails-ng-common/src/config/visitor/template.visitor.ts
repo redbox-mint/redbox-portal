@@ -1,5 +1,8 @@
 import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
+import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
+import {TemplateCompileInput} from "../../template.outline";
+import {ConstructFormConfigVisitor} from "./construct.visitor";
+import {data} from "jquery";
 
 
 /**
@@ -7,14 +10,23 @@ import {FormConfigOutline} from "../form-config.outline";
  * templates that need to be compiled.
  */
 export class TemplateFormConfigVisitor extends FormConfigVisitor {
-    private result?: Record<string, unknown>;
+    private constructed?: FormConfigOutline;
+    private result?: TemplateCompileInput[];
 
-    start(formConfig: FormConfigOutline): Record<string, unknown> {
-        this.result = undefined;
-        formConfig.accept(this);
-        if (this.result !== undefined) {
-            return this.result;
+    start(data: FormConfigFrame): TemplateCompileInput[] {
+        const constructVisitor = new ConstructFormConfigVisitor();
+        this.constructed = constructVisitor.start(data);
+
+        this.result = [];
+        this.constructed.accept(this);
+        return this.result;
+    }
+
+
+    visitFormConfig(item: FormConfigOutline) {
+
+        for (const template of item.templates) {
+
         }
-        throw new Error("Not implemented.");
     }
 }

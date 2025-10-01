@@ -1,13 +1,12 @@
 import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
-import {FormConfig, RepeatableFormFieldComponentConfig,} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, RepeatableFieldComponentConfig} from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {DefaultLayoutComponent} from "./default-layout.component";
-import {FieldComponentDefinition} from "@researchdatabox/sails-ng-common";
 
 /**
  * Repeatable Form Field Component
@@ -43,7 +42,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
 
 
-  private newElementFormConfig?: FormConfig;
+  private newElementFormConfig?: FormConfigFrame;
 
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
@@ -63,7 +62,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.untilViewIsInitialised();
     // Prepare the element template
     const formFieldCompDef = this.componentDefinition;
-    const elementTemplate = (formFieldCompDef?.config as RepeatableFormFieldComponentConfig)?.elementTemplate;
+    const elementTemplate = (formFieldCompDef?.config as RepeatableFieldComponentConfig)?.elementTemplate;
     if (!elementTemplate) {
       throw new Error(`${this.logName}: elementTemplate is not defined in the component definition.`);
     }
@@ -75,7 +74,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // Get the default config.
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
-    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig as FormConfig);
+    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
@@ -117,7 +116,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
-    const localUniqueId = RepeatableFormFieldComponentConfig.getLocalUID();
+    const localUniqueId = RepeatableFieldComponentConfig.getLocalUID();
 
     const elemEntry = {
       modelClass: templateEntry.modelClass,

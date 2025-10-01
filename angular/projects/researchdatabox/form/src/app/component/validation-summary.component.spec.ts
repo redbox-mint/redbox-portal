@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {SimpleInputComponent} from "./simpleinput.component";
+import {SimpleInputComponent} from "./simple-input.component";
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
@@ -18,7 +18,7 @@ describe('ValidationSummaryFieldComponent', () => {
   });
   it('should display "The form is valid."', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -43,7 +43,7 @@ describe('ValidationSummaryFieldComponent', () => {
   });
   it('should contain one failed validation for the required text field that is empty', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {

@@ -1,9 +1,8 @@
 import {Component, inject, Injector} from '@angular/core';
-import {FormFieldBaseComponent, FormFieldCompMapEntry, RecordService} from '@researchdatabox/portal-ng-common';
-import { ContentComponentConfig } from '@researchdatabox/sails-ng-common';
-import { get as _get, isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
+import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
+import {ContentFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
@@ -51,7 +50,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
-    const config = this.componentDefinition?.config as ContentComponentConfig;
+    const config = this.componentDefinition?.config as ContentFieldComponentConfigFrame;
 
     const content = config?.content ?? '';
     const template = config?.template ?? '';

@@ -1,17 +1,21 @@
-import {ClientFormConfigVisitor, FormConfig, FormConfigOutline} from "../../src";
+import {ClientFormConfigVisitor, FormConfigFrame} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
     const cases: {
-        args: FormConfigOutline;
-        expected: FormConfigOutline;
+        args: FormConfigFrame;
+        expected: FormConfigFrame;
     }[] = [
         {
             // empty
-            args: new FormConfig(),
-            expected: new FormConfig(),
+            args: {
+                componentDefinitions: []
+            },
+            expected: {
+                componentDefinitions: []
+            },
         },
     ];
     cases.forEach(({args, expected}) => {

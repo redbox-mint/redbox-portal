@@ -34,8 +34,8 @@ import {
     SimpleInputFieldComponentDefinitionFrame,
     SimpleInputFieldComponentDefinitionOutline, SimpleInputFieldModelDefinitionFrame,
     SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline, SimpleInputModelName
-} from "../component/simpleinput.outline";
-import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simpleinput.model";
+} from "../component/simple-input.outline";
+import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simple-input.model";
 import {
     DefaultFieldLayoutDefinitionFrame,
     DefaultFieldLayoutDefinitionOutline, DefaultLayoutName

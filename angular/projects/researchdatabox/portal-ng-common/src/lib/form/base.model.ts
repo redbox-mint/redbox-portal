@@ -2,7 +2,6 @@ import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
 import {
   FieldModelDefinition,
-  FieldModelDefinition,
   FormValidatorFn
 } from "@researchdatabox/sails-ng-common";
 

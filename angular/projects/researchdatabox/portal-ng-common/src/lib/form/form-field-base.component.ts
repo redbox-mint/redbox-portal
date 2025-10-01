@@ -5,19 +5,19 @@ import { LoggerService } from '../logger.service';
 import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {
-  BaseFieldComponentConfig, FieldLayoutConfig,
-  FormExpressionsConfig,
-  FormComponentDefinition,
-  FieldComponentConfig,
-  FieldComponentDefinition,
-  FormFieldComponentStatus,
-  FieldLayoutConfig,
-  FieldLayoutDefinition
+  BaseFieldComponentConfigFrame,
+  FormExpressionsConfigFrame,
+  FormComponentDefinitionFrame,
+  FieldComponentConfigFrame,
+  FieldComponentDefinitionFrame,
+  FieldLayoutDefinitionFrame,
+  FieldLayoutConfigFrame,
+  FieldComponentStatus
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
-export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinition | FieldLayoutDefinition;
-export type FormFieldComponentOrLayoutConfig = FieldComponentConfig | FieldLayoutConfig;
+export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
+export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | FieldLayoutConfigFrame;
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -33,11 +33,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public className:string = '';
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
-  public componentDefinitionCache?: FieldComponentConfig;
+  public componentDefinitionCache?: FieldComponentConfigFrame;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
   public hostBindingCssClasses?: string;
   // The status of the component
-  public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
+  public status = signal<FieldComponentStatus>(FieldComponentStatus.INIT);
 
   @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
@@ -99,7 +99,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       await this.setComponentReady();
     } catch (error) {
       this.loggerService.error(`${this.logName}: initialise component failed`, error);
-      this.status.set(FormFieldComponentStatus.ERROR);
+      this.status.set(FieldComponentStatus.ERROR);
     }
   }
 
@@ -124,7 +124,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public propagateExpressions(expressions: FormExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
+  public propagateExpressions(expressions: FormExpressionsConfigFrame, forceComponent:boolean = false, forceValue:any = undefined) {
     let expressionKeys = _keys(expressions);
     for (let key of expressionKeys) {
       try {
@@ -254,13 +254,13 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     this.loggerService.debug(`${this.logName}: View has initialised`, this.formFieldCompMapEntry);
     const s = this.status();
     // Gating the status update in case the component has been set to something else beforehand.
-    if (s === FormFieldComponentStatus.INIT) {
-      this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+    if (s === FieldComponentStatus.INIT) {
+      this.status.set(FieldComponentStatus.INIT_VIEW_READY);
     }
   }
 
   public viewInitialised(): boolean {
-    return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
+    return this.status() === FieldComponentStatus.INIT_VIEW_READY || this.status() === FieldComponentStatus.READY;
   }
 
   public buildPropertyMap(componentDefinition: FormFieldComponentOrLayoutConfig): Map<string, any> {
@@ -286,9 +286,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       if(isInit) {
         //normalise componentDefinition that is used to track property changes given these may not be present
         // Determine whether componentDefinition.config is a layout or a component.
-        let initDef = (this.componentDefinition.config instanceof FieldLayoutConfig)
-          ? new FieldLayoutConfig()
-          : new BaseFieldComponentConfig();
+        let initDef = this.componentDefinition.config;
         let initMap:Map<string, any> = this.buildPropertyMap(initDef);
         for (const key of initMap.keys()) {
           _set(this.componentDefinition.config,key,_get(this.componentDefinition.config,key,initMap.get(key)));
@@ -490,11 +488,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    */
   protected async setComponentReady() {
     this.loggerService.debug(`${this.logName}: At setComponentReady for component '${this.formFieldConfigName()}'`, this.formFieldCompMapEntry);
-    this.status.set(FormFieldComponentStatus.READY);
+    this.status.set(FieldComponentStatus.READY);
   }
 
   isStatusReady(): boolean {
-    return this.status() === FormFieldComponentStatus.READY;
+    return this.status() === FieldComponentStatus.READY;
   }
 
   protected untilViewIsInitialised(): Promise<void> {
@@ -536,7 +534,7 @@ export interface FormFieldCompMapEntry {
   modelClass?: typeof FormFieldModel<unknown>;
   layoutClass?: typeof FormFieldBaseComponent<unknown>;
   componentClass?: typeof FormFieldBaseComponent<unknown>;
-  compConfigJson: FormComponentDefinition;
+  compConfigJson: FormComponentDefinitionFrame;
   model?: FormFieldModel<unknown>;
   component?: FormFieldBaseComponent<unknown>;
   componentRef?: ComponentRef<FormFieldBaseComponent<unknown>>;

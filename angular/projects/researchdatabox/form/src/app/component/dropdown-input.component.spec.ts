@@ -17,7 +17,7 @@ describe('DropdownInputComponent', () => {
   });
 
   it('should render Dropdown input component', async () => {
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

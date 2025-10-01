@@ -535,13 +535,13 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      // const result = this.buildClientFormObject(item, context);
-      const visitor = new ClientFormConfigVisitor()
-      const formMode =  context?.current?.mode;
-      const userRoles =  context?.current?.user?.roles;
-      const recordOid =  context?.current?.model?.id;
-      const recordData =  context?.current?.model?.data;
-      const result = visitor.start(item, formMode, userRoles, recordOid, recordData);
+      const result = this.buildClientFormObject(item, context);
+      // const visitor = new ClientFormConfigVisitor()
+      // const formMode =  context?.current?.mode;
+      // const userRoles =  context?.current?.user?.roles;
+      // const recordOid =  context?.current?.model?.id;
+      // const recordData =  context?.current?.model?.data;
+      // const result = visitor.start(item, formMode, userRoles, recordOid, recordData);
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, the form config must have at least one field the current user can view.`)
       }

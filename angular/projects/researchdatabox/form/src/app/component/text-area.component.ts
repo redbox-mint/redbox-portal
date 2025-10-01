@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { TextAreaFormFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import { TextAreaFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class TextAreaModel extends FormFieldModel<string> {
@@ -42,8 +42,8 @@ export class TextAreaComponent extends FormFieldBaseComponent<string> {
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
-    let textareaConfig = this.componentDefinition?.config as TextAreaFormFieldComponentConfig;
-    let defaultConfig = new TextAreaFormFieldComponentConfig();
+    let textareaConfig = this.componentDefinition?.config as TextAreaFieldComponentConfig;
+    let defaultConfig = new TextAreaFieldComponentConfig();
     const cfg = (_isUndefined(textareaConfig) || _isEmpty(textareaConfig)) ? defaultConfig : textareaConfig;
     this.rows = cfg.rows || defaultConfig.rows;
     this.cols = cfg.cols || defaultConfig.cols;

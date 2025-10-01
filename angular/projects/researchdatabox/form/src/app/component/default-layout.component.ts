@@ -1,7 +1,7 @@
-import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
-import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type, inject} from '@angular/core';
+import { isUndefined as _isUndefined, isNull as _isNull, set as _set} from 'lodash-es';
+import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import {FieldLayoutDefinition, FormValidatorComponentErrors, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import {FieldLayoutDefinitionFrame, FormValidatorComponentErrors, FieldComponentStatus} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
 
@@ -86,7 +86,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected override logName = "DefaultLayoutComponent";
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent<ValueType>;
-  public override componentDefinition?: FieldLayoutDefinition;
+  public override componentDefinition?: FieldLayoutDefinitionFrame;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
   // @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
@@ -160,7 +160,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   override ngAfterViewInit() {
-    this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+    this.status.set(FieldComponentStatus.INIT_VIEW_READY);
   }
 
   public toggleHelpTextVisibility() {

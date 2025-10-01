@@ -42,6 +42,17 @@ export class RepeatableFieldComponentConfig extends FieldComponentConfig impleme
     constructor() {
         super();
     }
+
+    /**
+     * Create a unique ID using the current timestamp and a random number.
+     * This unique id must not be stored in the database.
+     * It will be different for each form load.
+     * It is for distinguishing the repeatable element entries.
+     */
+    public static getLocalUID(): string {
+        const randomNumber = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
+        return `${Date.now()}-${randomNumber}`;
+    }
 }
 
 

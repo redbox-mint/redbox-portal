@@ -1,8 +1,7 @@
 import { Component, inject, effect } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
-import { SaveButtonComponentDefinition } from '@researchdatabox/sails-ng-common';
-import { get as _get } from 'lodash-es';
+import { SaveButtonFieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 
 @Component({
   selector: 'redbox-form-save-button',
@@ -18,7 +17,7 @@ import { get as _get } from 'lodash-es';
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName: string = "SaveButtonComponent";
   protected override formComponent: FormComponent = inject(FormComponent);
-  public override componentDefinition?: SaveButtonComponentDefinition;
+  public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   disabled: boolean = false;
 
   constructor() {
@@ -36,7 +35,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected override async setComponentReady(): Promise<void> {
-    await super.setComponentReady(); 
+    await super.setComponentReady();
   }
 
   public async save() {

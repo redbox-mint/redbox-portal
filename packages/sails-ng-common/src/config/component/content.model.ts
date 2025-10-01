@@ -9,7 +9,7 @@ import {
     ContentComponentName,
     ContentFieldComponentConfigOutline,
     ContentFieldComponentDefinitionOutline, ContentFormComponentDefinitionOutline
-} from "./textblock.outline";
+} from "./content.outline";
 
 
 /* Content Component */

@@ -4,9 +4,9 @@ import {
 } from "./component/repeatable.outline";
 import {GroupTypes} from "./component/group.outline";
 import {SaveButtonTypes} from "./component/save-button.outline";
-import {TextAreaTypes} from "./component/textarea.outline";
-import {ContentTypes} from "./component/textblock.outline";
-import {SimpleInputTypes} from "./component/simpleinput.outline";
+import {TextAreaTypes} from "./component/text-area.outline";
+import {ContentTypes} from "./component/content.outline";
+import {SimpleInputTypes} from "./component/simple-input.outline";
 import {ValidationSummaryTypes} from "./component/validation-summary.outline";
 import {
     TabContentFormComponentDefinitionOutline,

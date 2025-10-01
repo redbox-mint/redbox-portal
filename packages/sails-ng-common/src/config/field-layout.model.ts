@@ -12,7 +12,7 @@ import {
 /**
  * The common form field layout config properties.
  */
-export abstract class FieldLayoutConfig extends BaseFieldComponentConfig implements FieldLayoutConfigOutline {
+export class FieldLayoutConfig extends BaseFieldComponentConfig implements FieldLayoutConfigOutline {
     public labelRequiredStr?: string = '*';
     public helpText?: string;
     public cssClassesMap?: Record<string, string> = {};
@@ -27,8 +27,5 @@ export abstract class FieldLayoutConfig extends BaseFieldComponentConfig impleme
  */
 export abstract class FieldLayoutDefinition extends BaseFieldComponentDefinition implements FieldLayoutDefinitionOutline {
     abstract config?: FieldLayoutConfig;
-    /**
-     * Optional name for the layout, used to reference the layout on the client-side.
-     */
     name?: string;
 }

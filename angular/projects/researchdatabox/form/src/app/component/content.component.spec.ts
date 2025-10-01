@@ -16,7 +16,7 @@ describe('ContentComponent', () => {
   });
   it('should render TextField component', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

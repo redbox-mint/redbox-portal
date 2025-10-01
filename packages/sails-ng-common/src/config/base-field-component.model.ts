@@ -9,7 +9,7 @@ import {
 /**
  * The common form field component config properties.
  */
-export abstract class BaseFieldComponentConfig implements BaseFieldComponentConfigOutline {
+export class BaseFieldComponentConfig implements BaseFieldComponentConfigOutline {
     public readonly?: boolean = false;
     public visible?: boolean = true;
     public editMode?: boolean = true;

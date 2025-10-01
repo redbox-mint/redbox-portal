@@ -21,7 +21,7 @@ import {
     TextAreaFieldComponentDefinitionOutline,
     TextAreaFieldModelConfigOutline, TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline, TextAreaModelName, TextAreaModelValueType
-} from "./textarea.outline";
+} from "./text-area.outline";
 import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 

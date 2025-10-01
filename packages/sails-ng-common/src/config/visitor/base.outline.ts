@@ -2,11 +2,11 @@ import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
     SimpleInputFormComponentDefinitionOutline,
-} from "../component/simpleinput.outline";
+} from "../component/simple-input.outline";
 import {
     ContentFieldComponentDefinitionOutline,
     ContentFormComponentDefinitionOutline,
-} from "../component/textblock.outline";
+} from "../component/content.outline";
 import {
     RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
@@ -40,7 +40,7 @@ import {
     TextAreaFieldComponentDefinitionOutline,
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline,
-} from "../component/textarea.outline";
+} from "../component/text-area.outline";
 import {
     DefaultFieldLayoutDefinitionOutline,
 } from "../component/default-layout.outline";

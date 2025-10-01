@@ -18,7 +18,7 @@ import {
     SimpleInputFormComponentDefinitionOutline,
     SimpleInputModelName,
     SimpleInputModelValueType
-} from "./simpleinput.outline";
+} from "./simple-input.outline";
 import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 

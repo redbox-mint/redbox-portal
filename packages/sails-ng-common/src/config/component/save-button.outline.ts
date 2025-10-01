@@ -17,11 +17,16 @@ export const SaveButtonComponentName = "SaveButtonComponent" as const;
 export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
 
 export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    targetStep?: string;
+    forceSave?: boolean;
+    skipValidation?: boolean;
 }
 
 
 export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {
-
+    targetStep?: string;
+    forceSave?: boolean;
+    skipValidation?: boolean;
 }
 
 export interface SaveButtonFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

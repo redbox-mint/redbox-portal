@@ -1,17 +1,21 @@
-import {FormConfig, FormConfigOutline, TemplateFormConfigVisitor} from "../../src";
+import {
+    FormConfigFrame,
+    TemplateCompileInput,
+    TemplateFormConfigVisitor
+} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Template Visitor", async () => {
     const cases: {
-        args: FormConfigOutline;
-        expected: FormConfigOutline;
+        args: FormConfigFrame;
+        expected: TemplateCompileInput[];
     }[] = [
         {
             // empty
-            args: new FormConfig(),
-            expected: new FormConfig(),
+            args: {componentDefinitions: []},
+            expected: [],
         },
     ];
     cases.forEach(({args, expected}) => {

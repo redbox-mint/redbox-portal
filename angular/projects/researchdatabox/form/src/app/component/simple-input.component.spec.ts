@@ -1,5 +1,5 @@
-import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from "./simpleinput.component";
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
@@ -16,7 +16,7 @@ describe('SimpleInputComponent', () => {
   });
   it('should render TextField component', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

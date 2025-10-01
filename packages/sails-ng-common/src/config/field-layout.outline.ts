@@ -41,4 +41,8 @@ export interface FieldLayoutDefinitionFrame extends BaseFieldComponentDefinition
 
 export interface FieldLayoutDefinitionOutline extends FieldLayoutDefinitionFrame, FieldDefinitionOutline {
     config?: FieldLayoutConfigFrame;
+    /**
+     * Optional name for the layout, used to reference the layout on the client-side.
+     */
+    name?: string;
 }
