@@ -1,13 +1,13 @@
-import { SimpleInputModel, SimpleInputComponent } from "./component/simpleinput.component";
+import { SimpleInputModel, SimpleInputComponent } from "./component/simple-input.component";
 import { RepeatableComponent, RepeatableComponentModel, RepeatableElementLayoutComponent } from "./component/repeatable.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import { each as _each, map as _map, endsWith as _endsWith } from 'lodash-es';
 import {ValidationSummaryFieldComponent, ValidationSummaryFieldModel} from "./component/validation-summary.component";
-import {GroupFieldModel, GroupFieldComponent } from "./component/groupfield.component";
+import {GroupFieldModel, GroupFieldComponent } from "./component/group.component";
 import { ContentComponent } from "./component/content.component";
 import { TabComponent, TabComponentLayout } from "./component/tab.component";
 import { SaveButtonComponent } from "./component/save-button.component";
-import { TextAreaComponent, TextAreaModel } from "./component/textarea.component";
+import { TextAreaComponent, TextAreaModel } from "./component/text-area.component";
 import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
 import { CheckboxInputComponent, CheckboxInputModel } from "./component/checkbox-input.component";
 import { RadioInputComponent, RadioInputModel } from "./component/radio-input.component";

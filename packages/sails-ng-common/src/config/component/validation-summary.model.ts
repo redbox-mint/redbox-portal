@@ -1,22 +1,62 @@
-import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
-import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
-import {FormValidatorSummaryErrors} from "../../validation";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {
+    ValidationSummaryComponentName,
+    ValidationSummaryFieldComponentConfigOutline,
+    ValidationSummaryFieldComponentDefinitionOutline, ValidationSummaryFormComponentDefinitionOutline
+} from "./validation-summary.outline";
+import {FormComponentDefinition} from "../form-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 
-export interface ValidationSummaryFormFieldComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "ValidationSummaryFieldComponent";
-    config?: ValidationSummaryFormFieldComponentConfig;
+/*  Validation Summary Component */
+
+export class ValidationSummaryFieldComponentConfig extends FieldComponentConfig implements ValidationSummaryFieldComponentConfigOutline {
+    constructor() {
+        super();
+    }
 }
 
-export class ValidationSummaryFormFieldComponentConfig extends BaseFormFieldComponentConfig {
 
+export class ValidationSummaryFieldComponentDefinition extends FieldComponentDefinition implements ValidationSummaryFieldComponentDefinitionOutline {
+    class = ValidationSummaryComponentName;
+    config?: ValidationSummaryFieldComponentConfigOutline;
+
+    constructor() {
+        super();
+    }
+
+
+    accept(visitor: FormConfigVisitorOutline): void {
+        visitor.visitValidationSummaryFieldComponentDefinition(this);
+    }
 }
 
-export interface ValidationSummaryFormFieldModelDefinition extends BaseFormFieldModelDefinition<FormValidatorSummaryErrors> {
-    class: "ValidationSummaryFieldModel";
-    config: ValidationSummaryFormFieldModelConfig;
+/* Validation Summary Form Component */
+
+
+export class ValidationSummaryFormComponentDefinition extends FormComponentDefinition implements ValidationSummaryFormComponentDefinitionOutline {
+    component!: ValidationSummaryFieldComponentDefinitionOutline;
+    model?: never;
+    layout?: AvailableFieldLayoutDefinitionOutlines;
+
+    constructor() {
+        super();
+    }
+
+    accept(visitor: FormConfigVisitorOutline) {
+        visitor.visitValidationSummaryFormComponentDefinition(this);
+    }
 }
 
-export class ValidationSummaryFormFieldModelConfig extends BaseFormFieldModelConfig<FormValidatorSummaryErrors> {
+export const ValidationSummaryMap = [
+    {kind: FieldComponentConfigKind, def: ValidationSummaryFieldComponentConfig},
+    {
+        kind: FieldComponentDefinitionKind,
+        def: ValidationSummaryFieldComponentDefinition,
+        class: ValidationSummaryComponentName
+    },
+    {kind: FormComponentDefinitionKind, def: ValidationSummaryFormComponentDefinition, class:ValidationSummaryComponentName},
+];
 
-}

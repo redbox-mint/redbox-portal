@@ -35,7 +35,7 @@ import { Location, LocationStrategy, PathLocationStrategy } from '@angular/commo
 import { FormGroup, FormControlStatus } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
-import { FormStatus, FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormStatus, FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 
@@ -88,7 +88,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
-   * The previous formGroup status 
+   * The previous formGroup status
    */
   previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
@@ -192,7 +192,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  public async downloadAndCreateFormComponents(formConfig?: FormConfig): Promise<void> {
+  public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
@@ -432,6 +432,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.statusChangesSubscription?.unsubscribe();
+  }
+
+  public async getCompiledItem(formComponentName: string | null, formConfigElement: string[]) {
+    const recordType = this.trimmedParams.recordType();
+    const features = await this.formService.getDynamicImportFormCompiledItems(recordType);
+    this.loggerService.info(`${this.logName}: getCompiledItem from getDynamicImportFormCompiledItems`,
+      {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
+    return features;
   }
 }
 

@@ -1,4 +1,4 @@
-import { FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { CheckboxInputComponent } from './checkbox-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { TestBed } from '@angular/core/testing';
@@ -17,7 +17,7 @@ describe('CheckboxInputComponent', () => {
   });
 
   it('should render Checkbox input component', async () => {
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

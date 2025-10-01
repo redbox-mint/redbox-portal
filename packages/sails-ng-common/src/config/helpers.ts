@@ -1,6 +1,8 @@
 import {FormComponentDefinition} from "./form-component.model";
-import {isBoolean as _isBoolean, isArray as _isArray, isString as _isString, isPlainObject as _isPlainObject} from "lodash-es";
+import {isBoolean as _isBoolean, isArray as _isArray, isString as _isString, isPlainObject as _isPlainObject} from "lodash";
 import { DateTime } from 'luxon';
+import { BaseFieldComponentDefinitionOutline} from "./base-field-component.outline";
+import {FormComponentDefinitionOutline} from "./form-component.outline";
 
 /**
  * Guess the type of the value.
@@ -53,7 +55,11 @@ export function guessType(value: unknown): "array" | "object" | "boolean" | "str
     return "unknown";
 }
 
-export function isFormFieldDefinition(item: unknown): item is { class: string, config?: object } {
+/**
+ * Check if the item is a field component definition (it has 'class' and optional 'config' properties).
+ * @param item
+ */
+export function isFormFieldDefinition(item: unknown): item is BaseFieldComponentDefinitionOutline {
     // use typescript narrowing to check the value
     // see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
     // not using 'BaseFormFieldComponentDefinition' because it is too general -
@@ -64,7 +70,11 @@ export function isFormFieldDefinition(item: unknown): item is { class: string, c
         (('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined);
 }
 
-export function  isFormComponentDefinition(item: unknown): item is FormComponentDefinition {
+/**
+ * Check if the item is a form component definition (it has 'name' and 'component' properties).
+ * @param item
+ */
+export function  isFormComponentDefinition(item: unknown): item is FormComponentDefinitionOutline {
     // use typescript narrowing to check the value
     const i = item as FormComponentDefinition;
     // only name and component are required

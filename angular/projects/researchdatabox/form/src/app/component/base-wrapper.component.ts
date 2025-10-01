@@ -9,7 +9,7 @@ import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
 import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
-import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import {KeyValueStringNested, FieldComponentStatus} from "@researchdatabox/sails-ng-common";
 
 
 
@@ -62,7 +62,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // If the wrapper has already been initialised, provide the component instance.
     // TODO: Does this make sense, when a different formFieldCompMapEntry might have been provided and set above?
-    if (this.status() == FormFieldComponentStatus.READY) {
+    if (this.status() == FieldComponentStatus.READY) {
       return (this.componentRef?.instance as FormFieldBaseComponent<ValueType>) || null;
     }
 
@@ -116,7 +116,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
 
     // After the component is initialised, this wrapper is now ready.
-    this.status.set(FormFieldComponentStatus.READY);
+    this.status.set(FieldComponentStatus.READY);
     return compRef.instance;
   }
 

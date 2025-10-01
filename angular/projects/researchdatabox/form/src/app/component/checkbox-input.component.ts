@@ -1,9 +1,9 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
-import { CheckboxInputComponentConfig, CheckboxOption, CheckboxModelValueType } from '@researchdatabox/sails-ng-common';
+import { CheckboxInputFieldComponentConfig, CheckboxOption, CheckboxInputModelValueType } from '@researchdatabox/sails-ng-common';
 
-export class CheckboxInputModel extends FormFieldModel<CheckboxModelValueType> {
+export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueType> {
 }
 
 @Component({
@@ -30,7 +30,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxModelValueType> {
   `,
   standalone: false
 })
-export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxModelValueType> {
+export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInputModelValueType> {
   protected override logName: string = "CheckboxInputComponent";
   public tooltip: string = '';
   public placeholder: string | undefined = '';
@@ -45,8 +45,8 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxModel
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
     this.placeholder = this.getStringProperty('placeholder');
-    let checkboxConfig = this.componentDefinition?.config as CheckboxInputComponentConfig;
-    let defaultConfig = new CheckboxInputComponentConfig();
+    let checkboxConfig = this.componentDefinition?.config as CheckboxInputFieldComponentConfig;
+    let defaultConfig = new CheckboxInputFieldComponentConfig();
     const cfg = (_isUndefined(checkboxConfig) || _isEmpty(checkboxConfig)) ? defaultConfig : checkboxConfig;
     this.placeholder = cfg.placeholder || defaultConfig.placeholder;
     this.multipleValues = cfg.multipleValues ?? defaultConfig.multipleValues ?? false;
