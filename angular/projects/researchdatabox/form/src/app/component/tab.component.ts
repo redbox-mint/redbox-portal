@@ -1,15 +1,15 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
-import { FormConfig, TabComponentEntryDefinition, TabComponentConfig, TabContentComponentConfig, TabComponentFormFieldLayoutDefinition } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, TabFieldComponentConfigFrame, TabContentFieldComponentConfigFrame, TabFieldLayoutDefinitionFrame } from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull, find as _find, merge as _merge } from 'lodash-es';
 import { FormComponent } from "../form.component";
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormComponentsMap, FormService } from '../form.service';
 import { DefaultLayoutComponent } from './default-layout.component';
 
-/** 
+/**
  * TabLayout Component. Responsible for UI management.
- * 
+ *
  * Note: Tab and related components will always be visible.
  */
 @Component({
@@ -23,29 +23,29 @@ import { DefaultLayoutComponent } from './default-layout.component';
                 [class.active]="tabInstance && tab.id == tabInstance.selectedTabId"
                 [attr.id]="tab.id + '-tab-button'"
                 type="button"
-                role="tab" 
-                [attr.aria-selected]="tabInstance && tab.id == tabInstance.selectedTabId" 
-                [attr.aria-controls]="tab.id + '-tab-content'"  
-                [innerHTML]="tab.buttonLabel" (click)="selectTab(tab.id)"> 
+                role="tab"
+                [attr.aria-selected]="tabInstance && tab.id == tabInstance.selectedTabId"
+                [attr.aria-controls]="tab.id + '-tab-content'"
+                [innerHTML]="tab.buttonLabel" (click)="selectTab(tab.id)">
         </button>
-      } 
+      }
     </div>
     <ng-container #componentContainer ></ng-container>
   `,
   standalone: false
-}) 
+})
 export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   protected override logName = "TabComponentLayout";
-  public override componentDefinition?: TabComponentFormFieldLayoutDefinition;
-  
-  protected get tabConfig(): TabComponentConfig {
-    return (this.formFieldCompMapEntry?.compConfigJson?.component?.config as TabComponentConfig) || {};
+  public override componentDefinition?: TabFieldLayoutDefinitionFrame;
+
+  protected get tabConfig(): TabFieldComponentConfigFrame {
+    return (this.formFieldCompMapEntry?.compConfigJson?.component?.config as TabFieldComponentConfigFrame) || {};
   }
 
   protected get tabInstance(): TabComponent {
     return this.formFieldCompMapEntry?.componentRef?.instance as TabComponent;
   }
-  
+
   @HostBinding('id') get hostId(): string {
     return this.formFieldCompMapEntry?.compConfigJson?.name || '';
   }
@@ -74,7 +74,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
  */
 @Component({
   selector: 'redbox-form-tab',
-  template:` 
+  template:`
     <ng-container #tabsContainer />
 `,
   standalone: false
@@ -117,7 +117,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
           }
         }
       } as FormFieldCompMapEntry;
-      
+
       try {
         await tabWrapperRef.instance.initWrapperComponent(fieldMapDefEntry, false);
       } catch (error) {
@@ -138,7 +138,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
       if (tab.selected) {
         this.selectTab(tab.id);
       }
-    }      
+    }
     await super.setComponentReady();
   }
 
@@ -196,7 +196,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   @HostBinding('id') get hostId(): string {
     return `${this.name}_tab-content`;
   }
-  
+
 }
 
 /**
@@ -236,7 +236,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       throw new Error(`${this.logName}: componentsDefinitionsContainer is not defined.`);
     }
     const formConfig = this.formComponentRef.formDefMap?.formConfig;
-    const compFormConfig: FormConfig = {
+    const compFormConfig: FormConfigFrame = {
       componentDefinitions: this.tab?.componentDefinitions || [],
       defaultComponentConfig: formConfig?.defaultComponentConfig,
     };
@@ -249,14 +249,14 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
         this.componentRefs.push(componentRef);
         this.componentInstances.push(componentRef.instance?.componentRef?.instance);
       }
-      
+
       const groupedByNameMap = this.formService.groupComponentsByName(this.formDefMap);
       if (this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
         // Populate the `formControlMap` with the controls of the content components.
         this.formFieldCompMapEntry.formControlMap = groupedByNameMap.withFormControl;
       }
     }
-        
+
     this.loggerService.debug(`${this.logName}: TabContentComponent is ready for tab: ${this.tab?.id}.`);
     await super.setComponentReady();
   }

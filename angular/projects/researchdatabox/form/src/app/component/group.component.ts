@@ -12,8 +12,8 @@ import {
   FormFieldModel,
 } from "@researchdatabox/portal-ng-common";
 import {
-  FormConfig,
-  GroupFieldModelValueType, GroupFormFieldComponentConfig,
+  FormConfigFrame,
+  GroupFieldModelValueType, GroupFieldComponentConfig,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
@@ -81,7 +81,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
   private componentContainer!: ViewContainerRef;
 
-  private elementFormConfig?: FormConfig;
+  private elementFormConfig?: FormConfigFrame;
 
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
@@ -101,7 +101,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
-    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFormFieldComponentConfig)?.componentDefinitions ?? [];
+    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
     this.elementFormConfig = {
       // Store the child component definitions.
       componentDefinitions: groupComponentDefinitions,
@@ -125,7 +125,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       const elemVal = elemVals?.[key];
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
-      wrapperRef.instance.defaultComponentConfig = this.elementFormConfig.defaultComponentConfig;
+      wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
       if (this.model?.formControl && compInstance?.model) {

@@ -1,9 +1,11 @@
 import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
 import {
-    formValidatorGetDefinitionArray, formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
+    formValidatorGetDefinitionArray,
+    formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
     formValidatorGetDefinitionNumber,
     formValidatorGetDefinitionRegexp, formValidatorGetDefinitionString, formValidatorLengthOrSize
 } from "./helpers";
+
 
 
 /**

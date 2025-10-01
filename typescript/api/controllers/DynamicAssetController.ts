@@ -19,12 +19,15 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import {TemplateCompileInput} from "../additional/TemplateCompile";
+import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {TemplateCompileInput, TemplateFormConfigVisitor} from "@researchdatabox/sails-ng-common";
+import { firstValueFrom } from "rxjs";
 
 declare var module;
 declare var sails;
 declare var TemplateService;
+declare var FormsService;
+declare var BrandingService;
 
 /**
  * Package that contains all Controllers.
@@ -42,6 +45,7 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'get',
+        'getFormCompiledItems',
         'getFormStructureValidations',
         'getFormDataValidations',
         'getFormExpressions',
@@ -68,6 +72,17 @@ export module Controllers {
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
       this.sendAssetView(res, assetId, {layout: false});
+    }
+
+    public async getFormCompiledItems(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const editMode = req.query.edit == "true";
+      const recordType = req.param("recordType") || this._recordTypeAuto;
+
+      const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+      const templateVisitor = new TemplateFormConfigVisitor();
+      const entries = templateVisitor.start(form);
+      return this.sendClientMappingJavascript(res, entries);
     }
 
     /**
