@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { RadioInputFieldComponentConfig, RadioInputModelValueType, RadioOption } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
+import { RadioInputComponentConfig, RadioInputModelValueType, RadioOption } from '@researchdatabox/sails-ng-common';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
 export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
 }
@@ -13,7 +13,7 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       @for (opt of options; track opt.value) {
         <div>
-          <input
+          <input 
             type="radio"
             [attr.name]="name"
             [formControl]="formControl"
@@ -48,17 +48,17 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
-    let radioInputConfig = this.componentDefinition?.config as RadioInputFieldComponentConfig;
-    let defaultConfig = new RadioInputFieldComponentConfig();
+    let radioInputConfig = this.componentDefinition?.config as RadioInputComponentConfig;
+    let defaultConfig = new RadioInputComponentConfig();
     const cfg = (_isUndefined(radioInputConfig) || _isEmpty(radioInputConfig)) ? defaultConfig : radioInputConfig;
-
+    
     const cfgOptions: RadioOption[] = cfg.options;
     if (!_isUndefined(cfgOptions) && !_isEmpty(cfgOptions)) {
       this.options = cfgOptions;
     } else {
       this.options = defaultConfig.options;
     }
-
+    
   }
 
   /**

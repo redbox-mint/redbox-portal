@@ -1,7 +1,7 @@
 
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './simple-input.component';
-import {GroupFieldComponent} from "./group.component";
+import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {SimpleInputComponent} from './simpleinput.component';
+import {GroupFieldComponent} from "./groupfield.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
@@ -20,7 +20,7 @@ describe('GroupFieldComponent', () => {
   });
   it('should render the group and child components', async () => {
     // arrange
-    const formConfig: FormConfigFrame = {
+    const formConfig: FormConfig = {
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -32,7 +32,7 @@ describe('GroupFieldComponent', () => {
           // first group component
           name: 'group_1_component',
           layout: {
-            class: 'DefaultLayout',
+            class: 'DefaultLayoutComponent',
             config: {
               label: 'GroupField label',
               helpText: 'GroupField help',
@@ -41,19 +41,19 @@ describe('GroupFieldComponent', () => {
             }
           },
           model: {
-            class: 'GroupModel',
+            class: 'GroupFieldModel',
             config: {
               defaultValue: {},
             }
           },
           component: {
-            class: 'GroupComponent',
+            class: 'GroupFieldComponent',
             config: {
               componentDefinitions: [
                 {
                   name: 'text_3',
                   layout: {
-                    class: 'DefaultLayout',
+                    class: 'DefaultLayoutComponent',
                     config: {
                       label: 'TextField with default wrapper defined',
                       helpText: 'This is a help text',
@@ -88,7 +88,7 @@ describe('GroupFieldComponent', () => {
                   // second group component, nested in first group component
                   name: 'group_2_component',
                   layout: {
-                    class: 'DefaultLayout',
+                    class: 'DefaultLayoutComponent',
                     config: {
                       label: 'GroupField 2 label',
                       helpText: 'GroupField 2 help',
@@ -97,19 +97,19 @@ describe('GroupFieldComponent', () => {
                     }
                   },
                   model: {
-                    class: 'GroupModel',
+                    class: 'GroupFieldModel',
                     config: {
                       defaultValue: {},
                     }
                   },
                   component: {
-                    class: 'GroupComponent',
+                    class: 'GroupFieldComponent',
                     config: {
                       componentDefinitions: [
                         {
                           name: 'text_5',
                           layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                               label: 'TextField with default wrapper defined',
                               helpText: 'This is a help text',

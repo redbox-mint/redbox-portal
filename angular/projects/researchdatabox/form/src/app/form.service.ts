@@ -19,7 +19,7 @@
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge} from 'lodash-es';
+import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, isPlainObject as _isPlainObject, get as _get} from 'lodash-es';
 import {
   FormComponentClassMap,
   FormFieldModelClassMap,
@@ -38,9 +38,9 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  FieldComponentStatus,
-  FormComponentDefinitionFrame,
-  FormConfigFrame,
+  FormComponentDefinition,
+  FormConfig,
+  FormFieldComponentStatus,
   FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
@@ -137,7 +137,7 @@ export class FormService extends HttpClientService {
    * @param formConfig The form configuration.
    * @returns The config and the components built from the config.
    */
-  public async createFormComponentsMap(formConfig: FormConfigFrame): Promise<FormComponentsMap> {
+  public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       this.loadedValidatorDefinitions = redboxClientScript.formValidatorDefinitions;
@@ -158,7 +158,7 @@ export class FormService extends HttpClientService {
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinitionFrame[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
+  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
     const fieldArr = [];
     const names = componentDefinitions?.map(i => i?.name) ?? [];
     this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${names.join(',')}`);
@@ -272,7 +272,7 @@ export class FormService extends HttpClientService {
     return componentClass
   }
 
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfigFrame): void {
+  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): void {
     const names = components?.map(i => i?.compConfigJson?.name) ?? [];
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${names.join(',')}.`);
     for (let compEntry of components) {
@@ -351,7 +351,7 @@ export class FormService extends HttpClientService {
    * @return An array of validation errors.
    */
   public getFormValidatorSummaryErrors(
-    componentDefs: FormComponentDefinitionFrame[] | null | undefined,
+    componentDefs: FormComponentDefinition[] | null | undefined,
     name: string | null | undefined = null,
     control: AbstractControl | null | undefined = null,
     parents: string[] | null = null,
@@ -411,7 +411,7 @@ export class FormService extends HttpClientService {
    *
    * @param componentDef The component definition from the form config.
    */
-  public componentIdLabel(componentDef: FormComponentDefinitionFrame | null): {
+  public componentIdLabel(componentDef: FormComponentDefinition | null): {
     id: string | null,
     labelMessage: string | null
   } {
@@ -443,10 +443,10 @@ export class FormService extends HttpClientService {
       // Set the overall loaded flag to true if all components are loaded
       const componentsCount = formDefMap.components?.length ?? 0;
       const componentsReady = formDefMap.components.filter(componentDef =>
-        componentDef.component && componentDef.component.status() === FieldComponentStatus.READY
+        componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY
       );
       const componentsNotReady = formDefMap.components.filter(componentDef =>
-        !componentDef.component || componentDef.component.status() !== FieldComponentStatus.READY
+        !componentDef.component || componentDef.component.status() !== FormFieldComponentStatus.READY
       );
       componentsLoaded.set(componentsReady.length === componentsCount);
 
@@ -507,7 +507,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await firstValueFrom(this.http.get<{data: FormConfigFrame}>(url.href, this.requestOptions));
+    const result = await firstValueFrom(this.http.get<{data: FormConfig}>(url.href, this.requestOptions));
     this.loggerService.info(`Get form fields from url: ${url}`, result);
     return result?.data;
   }
@@ -566,16 +566,6 @@ export class FormService extends HttpClientService {
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
-
-  /**
-   * Get all the compiled items for the form.
-   * @param recordType The form record type.
-   */
-  public async getDynamicImportFormCompiledItems(recordType: string) {
-    const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-    return result;
-  }
 }
 
 /**
@@ -590,14 +580,14 @@ export class FormComponentsMap {
   /**
    * The form configuration from the server.
    */
-  formConfig: FormConfigFrame;
+  formConfig: FormConfig;
   completeGroupMap: { [key: string]: FormFieldCompMapEntry } | undefined;
   /**
    * Mapping of name to angular FormControl. Used to create angular form.
    */
   withFormControl: { [key: string]: FormControl } | undefined;
 
-  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame) {
+  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfig) {
     this.components = components;
     this.formConfig = formConfig;
     this.completeGroupMap = undefined;

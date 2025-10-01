@@ -1,10 +1,12 @@
+// import {FormConfig} from '@researchdatabox/sails-ng-common';
+
 import {SaveButtonComponent} from './save-button.component';
-import {SimpleInputComponent} from './simple-input.component';
+import {SimpleInputComponent} from './simpleinput.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import {FormStatus, FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {FormStatus, FormConfig} from '@researchdatabox/sails-ng-common';
 
-let formConfig: FormConfigFrame;
+let formConfig: FormConfig;
 
 describe('SaveButtonComponent', () => {
   beforeEach(async () => {
@@ -32,7 +34,7 @@ describe('SaveButtonComponent', () => {
             class: 'SimpleInputComponent'
           }
         },
-        {
+        { 
           name: 'save_button',
           component: {
             class: 'SaveButtonComponent',
@@ -49,7 +51,7 @@ describe('SaveButtonComponent', () => {
   });
 
 
-  it('should create SaveButtonComponent', () => {
+  it('should create SaveButtonComponent', () => {    
     let fixture = TestBed.createComponent(SaveButtonComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();

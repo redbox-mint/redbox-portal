@@ -21,8 +21,8 @@ import {PopulateExportedMethods, Services as services} from '@researchdatabox/re
 import {Sails} from "sails";
 import jsonata, {Expression} from "jsonata";
 import Handlebars from "handlebars";
-import {TemplateCompileItem, TemplateCompileInput, templateCompileKind} from "@researchdatabox/sails-ng-common";
-
+import {TemplateCompileItem} from "@researchdatabox/sails-ng-common";
+import {TemplateCompileInput, templateCompileKind} from "../additional/TemplateCompile";
 
 declare var sails: Sails;
 

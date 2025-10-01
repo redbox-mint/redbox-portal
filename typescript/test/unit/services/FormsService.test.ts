@@ -1,6 +1,6 @@
 import {Services as FormsModule} from "../../../api/services/FormsService";
 import {Services as BrandingModule} from "../../../api/services/BrandingService";
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {FormConfig} from "@researchdatabox/sails-ng-common";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -121,7 +121,7 @@ describe('The FormsService', function () {
     describe("build client form config", function () {
 
         it('should build the expected config', function (done) {
-            const formConfig: FormConfigFrame = {
+            const formConfig: FormConfig = {
                 name: "basic-form",
                 type: "rdmp",
                 debugValue: true,
@@ -135,7 +135,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_2',
                         layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                                 label: 'TextField with default wrapper defined',
                                 helpText: 'This is a help text',
@@ -159,7 +159,7 @@ describe('The FormsService', function () {
                     }
                 ]
             };
-            const expected: FormConfigFrame = {
+            const expected: FormConfig = {
                 name: "basic-form",
                 type: "rdmp",
                 debugValue: true,
@@ -173,7 +173,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_2',
                         layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                                 label: 'TextField with default wrapper defined',
                                 helpText: 'This is a help text',
@@ -202,7 +202,7 @@ describe('The FormsService', function () {
             done();
         });
         it('should remove the component because the user does not have the required roles', function (done) {
-            const formConfig: FormConfigFrame = {
+            const formConfig: FormConfig = {
                 name: "remove-item-constraint-roles",
                 type: "rdmp",
                 debugValue: true,
@@ -222,7 +222,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_2',
                         layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                                 label: 'TextField with default wrapper defined',
                                 helpText: 'This is a help text',
@@ -275,7 +275,7 @@ describe('The FormsService', function () {
             done();
         });
         it('should remove the component because the client does not have the required mode', function (done) {
-            const formConfig: FormConfigFrame = {
+            const formConfig: FormConfig = {
                 name: "remove-item-constraint-mode",
                 type: "rdmp",
                 debugValue: true,
@@ -295,7 +295,7 @@ describe('The FormsService', function () {
                     {
                         name: 'text_2',
                         layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                                 label: 'TextField with default wrapper defined',
                                 helpText: 'This is a help text',
@@ -355,7 +355,7 @@ describe('The FormsService', function () {
             done();
         });
         it('should remove the components nested in repeatable and group components when the constraints are not met', function (done) {
-            const formConfig: FormConfigFrame = {
+            const formConfig: FormConfig = {
                 name: "remove-items-constrains-nested",
                 type: "rdmp",
                 debugValue: true,
@@ -369,17 +369,16 @@ describe('The FormsService', function () {
                     {
                         name: 'repeatable_group_1',
                         model: {
-                            class: 'RepeatableModel',
+                            class: 'RepeatableComponentModel',
                             config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
-                                    name: null,
-                                    model: {class: 'GroupModel', config: {defaultValue: {}}},
+                                    model: {class: 'GroupFieldModel', config: {defaultValue: {}}},
                                     component: {
-                                        class: 'GroupComponent',
+                                        class: 'GroupFieldComponent',
                                         config: {
                                             wrapperCssClasses: 'col',
                                             componentDefinitions: [
@@ -401,12 +400,11 @@ describe('The FormsService', function () {
                                                 {
                                                     // requires role 'Admin', so is removed
                                                     name: 'repeatable_for_admin',
-                                                    model: {class: 'RepeatableModel', config:{}},
+                                                    model: {class: 'RepeatableComponentModel', config:{}},
                                                     component: {
                                                         class: 'RepeatableComponent',
                                                         config: {
                                                             elementTemplate: {
-                                                                name: null,
                                                                 model: {
                                                                     class: 'SimpleInputModel',
                                                                     config: {defaultValue: 'hello world from repeatable for admin'}
@@ -421,7 +419,7 @@ describe('The FormsService', function () {
                                         }
                                     },
                                     layout: {
-                                        class: 'RepeatableElementLayout',
+                                        class: 'RepeatableElementLayoutComponent',
                                         config: {hostCssClasses: 'row align-items-start'}
                                     },
                                     // requires mode view, so is kept
@@ -430,7 +428,7 @@ describe('The FormsService', function () {
                             },
                         },
                         layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                                 label: 'Repeatable TextField with default wrapper defined',
                                 helpText: 'Repeatable component help text',
@@ -485,7 +483,7 @@ describe('The FormsService', function () {
                             },
                         },
                         layout: {
-                            class: 'DefaultLayout',
+                            class: 'DefaultLayoutComponent',
                             config: {
                                 label: 'Repeatable TextField with default wrapper defined',
                                 helpText: 'Repeatable component help text',

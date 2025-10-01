@@ -1,15 +1,15 @@
 import {
+    FORM_VALIDATOR_EMAIL_REGEXP,
     FormValidatorConfig,
     FormValidatorDefinition,
-    FormValidatorErrors, SimpleServerFormValidatorControl
-} from "../../src/validation/form.model";
-import {FORM_VALIDATOR_EMAIL_REGEXP, formValidatorsSharedDefinitions} from "../../src/validation/validators";
-import {ValidatorsSupport} from "../../src/validation/validators-support";
-
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+    FormValidatorErrors,
+    formValidatorsSharedDefinitions,
+    SimpleServerFormValidatorControl,
+    ValidatorsSupport,
+} from "../../src";
 
 describe("Validators", async () => {
+    const chai = await import("chai");
     const cases: {
         args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
         expected: FormValidatorErrors | null;
@@ -267,8 +267,8 @@ describe("Validators", async () => {
     cases.forEach(({args, expected}) => {
         it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const fns = new ValidatorsSupport().createFormValidatorInstances(args.definition, [args.block]);
-            expect(fns).to.have.length(1);
-            expect(fns[0](new SimpleServerFormValidatorControl(args.value))).to.eql(expected);
+            chai.expect(fns).to.have.length(1);
+            chai.expect(fns[0](new SimpleServerFormValidatorControl(args.value))).to.eql(expected);
         });
     });
 });

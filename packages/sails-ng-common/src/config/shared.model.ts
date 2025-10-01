@@ -1,14 +1,12 @@
-import {    FormModesConfig} from "./shared.outline";
+/**
+ * A property that can be one of a record with string keys and values,
+ * a string, null, or undefined.
+ */
+export type KeyValueStringProperty = Record<string, string> | string | null | undefined;
 
-/* Form Component */
-
-/* Form Field Component */
-
-/* Form Field Model */
-
-/* Form Field Layout */
-
-/* All Form Kinds and Types */
-
-
+/**
+ * A property that can be one of a record with string keys and record values,
+ * a string, null, or undefined.
+ */
+export type KeyValueStringNested = Record<string,  KeyValueStringProperty> | string | null | undefined;
 

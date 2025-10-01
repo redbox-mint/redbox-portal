@@ -23,14 +23,14 @@ import {BrandingModel, FormModel, Services as services} from '@researchdatabox/r
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
-    BaseFieldComponentDefinitionFrame, ClientFormConfigVisitor, FieldDefinitionFrame,
-    FieldLayoutDefinitionFrame,
-    FieldModelDefinitionFrame,
-    FormComponentDefinitionFrame,
-    FormConfigFrame,
+    BaseFormFieldComponentDefinition,
+    BaseFormFieldLayoutDefinition,
+    BaseFormFieldModelDefinition,
+    FormComponentDefinition,
+    FormConfig,
+    FormConstraintConfig, isFormComponentDefinition, isFormFieldDefinition,
 } from "@researchdatabox/sails-ng-common";
 import {ClientFormContext} from "../additional/ClientFormContext";
-import {isFormFieldDefinition} from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
 declare var Form: Model;
@@ -120,7 +120,7 @@ export module Services {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
         const formConfig = sails.config.form.forms[formName];
-        const formObj: FormModel & FormConfigFrame = {
+        const formObj: FormModel & FormConfig = {
           name: formName,
           fields: formConfig.fields,
           workflowStep: workflowStep.id,
@@ -530,22 +530,16 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormConfig(item: FormConfigFrame, context?: ClientFormContext): Record<string, unknown> {
+    public buildClientFormConfig(item: FormConfig, context?: ClientFormContext): Record<string, unknown> {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
       const result = this.buildClientFormObject(item, context);
-      // const visitor = new ClientFormConfigVisitor()
-      // const formMode =  context?.current?.mode;
-      // const userRoles =  context?.current?.user?.roles;
-      // const recordOid =  context?.current?.model?.id;
-      // const recordData =  context?.current?.model?.data;
-      // const result = visitor.start(item, formMode, userRoles, recordOid, recordData);
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, the form config must have at least one field the current user can view.`)
       }
-      return result as unknown as Record<string, unknown>;
+      return result;
     }
 
     /**
@@ -553,7 +547,7 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormComponentDefinition(item: FormComponentDefinitionFrame, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormComponentDefinition(item: FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}' and constraints ${JSON.stringify(item.constraints)} context ${JSON.stringify(context)}`);
       context = context ? ClientFormContext.from(context) : ClientFormContext.createView();
 
@@ -563,7 +557,7 @@ export module Services {
       }
       context?.build?.push({
         name: item?.name ?? "",
-        // constraints: FormConstraintConfig.from(item.constraints)
+        constraints: FormConstraintConfig.from(item.constraints)
       });
 
         // sails.log.verbose(`FormsService - build client form component definition with name '${item?.name}' and new context ${JSON.stringify(context)}`);
@@ -592,7 +586,7 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldComponentDefinition(item: BaseFieldComponentDefinitionFrame, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldComponentDefinition(item: BaseFormFieldComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field component definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -608,7 +602,7 @@ export module Services {
      * @param item The source item.
      * @param context The context for the current environment and building the client-side form config.
      */
-    public buildClientFormFieldLayoutDefinition(item: FieldLayoutDefinitionFrame, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldLayoutDefinition(item: BaseFormFieldLayoutDefinition, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field layout definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -619,7 +613,7 @@ export module Services {
       return this.buildClientFormObject(item, context);
     }
 
-    public buildClientFormFieldModelDefinition(item: FieldModelDefinitionFrame<unknown>, context: ClientFormContext): Record<string, unknown> | null {
+    public buildClientFormFieldModelDefinition(item: BaseFormFieldModelDefinition<unknown>, context: ClientFormContext): Record<string, unknown> | null {
       sails.log.verbose(`FormsService - build client form field model definition with class '${item?.['class']}'`);
       context = context ?? ClientFormContext.createView();
 
@@ -655,15 +649,13 @@ export module Services {
       return this.buildClientFormObject(result, context);
     }
 
-    private buildClientFormObject(item: FormConfigFrame | FieldDefinitionFrame | FormComponentDefinitionFrame, context: ClientFormContext): Record<string, unknown> | null {
+    private buildClientFormObject(item: FormConfig | { class: string, config?: object } | FormComponentDefinition, context: ClientFormContext): Record<string, unknown> | null {
       const result: Record<string, unknown> = {};
 
-      if (isFormFieldDefinition(item)) {
-          if (item.config === null) {
-              // if the config was removed, then remove the definition block
-              sails.log.verbose(`FormsService - removed form field definition with class '${item?.['class']}'`);
-              return null;
-          }
+      if (isFormFieldDefinition(item) && item.config === null) {
+        // if the config was removed, then remove the definition block
+        sails.log.verbose(`FormsService - removed form field definition with class '${item?.['class']}'`);
+        return null;
       }
 
       for (const [key, value] of Object.entries(item ?? {})) {
@@ -708,7 +700,7 @@ export module Services {
 
           case 'model':
               if (isFormFieldDefinition(value) && 'config' in value && value.config) {
-                  result[key] = this.buildClientFormFieldModelDefinition(value as FieldModelDefinitionFrame<unknown>, context);
+                  result[key] = this.buildClientFormFieldModelDefinition(value as BaseFormFieldModelDefinition<unknown>, context);
               } else {
                   sails.log.warn(`FormsService - invalid model form field component definition with class '${value?.['class']}'`);
               }

@@ -19,15 +19,16 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import {TemplateCompileInput, TemplateFormConfigVisitor} from "@researchdatabox/sails-ng-common";
-import { firstValueFrom } from "rxjs";
+import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {TemplateCompileInput} from "../additional/TemplateCompile";
+import {firstValueFrom} from "rxjs";
 
 declare var module;
 declare var sails;
 declare var TemplateService;
 declare var FormsService;
 declare var BrandingService;
+declare var FormRecordConsistencyService;
 
 /**
  * Package that contains all Controllers.
@@ -80,8 +81,9 @@ export module Controllers {
       const recordType = req.param("recordType") || this._recordTypeAuto;
 
       const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const templateVisitor = new TemplateFormConfigVisitor();
-      const entries = templateVisitor.start(form);
+      // const templateVisitor = new TemplateFormConfigVisitor();
+      // const entries = templateVisitor.start(form);
+      const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
       return this.sendClientMappingJavascript(res, entries);
     }
 
