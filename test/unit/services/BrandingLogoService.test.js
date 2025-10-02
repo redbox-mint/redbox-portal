@@ -37,9 +37,12 @@ describe('BrandingLogoService (Task 6)', () => {
 
   it('accepts safe minimal SVG', async () => {
     const safe = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#000"/></svg>');
-    const expectedHash = createHash('sha256').update(pngBuf).digest('hex');
     const res = await BrandingLogoService.putLogo({ branding: 'default', portal: 'default', fileBuffer: safe, contentType: 'image/svg+xml'});
     expect(res.hash).to.match(/^[0-9a-f]{64}$/);
+    expect(res.contentType).to.equal('image/svg+xml');
+  const stored = await BrandingLogoService.getBinaryAsync(res.gridFsId);
+  expect(stored).to.be.instanceOf(Buffer);
+  const expectedHash = createHash('sha256').update(stored).digest('hex');
     expect(res.hash).to.equal(expectedHash);
   });
 
