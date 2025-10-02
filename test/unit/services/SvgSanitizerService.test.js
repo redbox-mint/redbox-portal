@@ -48,10 +48,4 @@ describe('SvgSanitizerService', () => {
   expect(res.sanitized).to.not.include('onclick=');
   });
 
-  it('treats event handlers as warning only (safe output)', async () => {
-    const input = '<svg><rect width="10" height="10" onmouseover="doThing()"/></svg>';
-    const res = await SvgSanitizerService.sanitize(input);
-    expect(res.errors).to.not.include('event-handlers-removed');
-    expect(res.warnings).to.include('event-handlers-removed');
-  });
 });

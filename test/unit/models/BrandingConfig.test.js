@@ -1,5 +1,10 @@
 /* eslint-disable no-unused-expressions */
-const { expect } = require('chai');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+
+chai.use(chaiAsPromised);
+
+const { expect } = chai;
 
 describe('BrandingConfig Model (semantic variables whitelist)', () => {
   it('creates with empty variables map (defaults)', async () => {
@@ -26,37 +31,27 @@ describe('BrandingConfig Model (semantic variables whitelist)', () => {
   });
 
   it('rejects old raw color slot name (branding-color-N not allowed)', async () => {
-    let error;
-    try {
-      await BrandingConfig.create({ name: 'tenant-c', variables: { 'branding-color-1': '#123456' } }).fetch();
-    } catch (e) { error = e; }
-    expect(error).to.exist;
-  // Waterline wraps our custom error; just assert it is a validation failure without depending on message text
-  expect(String(error.message || error)).to.match(/Invalid new record|Invalid variable key|E_INVALID_NEW_RECORD/i);
+    await expect(
+      BrandingConfig.create({ name: 'tenant-c', variables: { 'branding-color-1': '#123456' } }).fetch()
+    ).to.be.rejectedWith(Error, /Invalid (new record|variable key)|E_INVALID_NEW_RECORD/i);
   });
 
   it('rejects completely unknown key', async () => {
-    let error;
-    try {
-      await BrandingConfig.create({ name: 'tenant-d', variables: { 'not-allowed-var': '#abcdef' } }).fetch();
-    } catch (e) { error = e; }
-    expect(error).to.exist;
+    await expect(
+      BrandingConfig.create({ name: 'tenant-d', variables: { 'not-allowed-var': '#abcdef' } }).fetch()
+    ).to.be.rejectedWith(Error, /Invalid (new record|variable key)|E_INVALID_NEW_RECORD/i);
   });
 
   it('rejects invalid variables type', async () => {
-    let error;
-    try {
-      await BrandingConfig.create({ name: 'tenant-e', variables: ['site-branding-area-background'] }).fetch();
-    } catch (e) { error = e; }
-    expect(error).to.exist;
+    await expect(
+      BrandingConfig.create({ name: 'tenant-e', variables: ['site-branding-area-background'] }).fetch()
+    ).to.be.rejectedWith(Error, /Invalid (new record|variable key|attributes)|E_INVALID_NEW_RECORD/i);
   });
 
   it('update enforces whitelist', async () => {
     const created = await BrandingConfig.create({ name: 'tenant-f', variables: {} }).fetch();
-    let error;
-    try {
-      await BrandingConfig.updateOne({ id: created.id }).set({ variables: { 'branding-color-2': '#fff' } });
-    } catch (e) { error = e; }
-    expect(error).to.exist;
+    await expect(
+      BrandingConfig.updateOne({ id: created.id }).set({ variables: { 'branding-color-2': '#fff' } })
+    ).to.be.rejectedWith(Error, /Invalid (new record|variable key|attributes)|E_INVALID_NEW_RECORD/i);
   });
 });

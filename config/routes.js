@@ -70,16 +70,16 @@ module.exports.routes = {
       'view': 'record/view-orig'
     }
   },
-  '/:branding/:portal/styles/theme.css': {
+  'get /:branding/:portal/styles/theme.css': {
     controller: 'BrandingController',
     action: 'renderCss'
   },
-  '/:branding/:portal/preview/:token([a-z0-9]+).css': {
+  'get /:branding/:portal/preview/:token([a-z0-9]+).css': {
     controller: 'BrandingController',
     action: 'renderPreviewCss',
     skipAssets: false
   },
-  // Fallback route without explicit .css in case the above pattern is not matched by Sails' asset middleware
+  // Fallback route without explicit regex in case the above pattern is not matched by Sails' asset middleware
   'get /:branding/:portal/preview/:token.css': {
     controller: 'BrandingController',
     action: 'renderPreviewCss',

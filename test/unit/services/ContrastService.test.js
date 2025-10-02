@@ -173,7 +173,6 @@ describe('ContrastService', () => {
                 'surface-color': bg
             });
 
-            // This should pass or fail depending on exact calculation
             expect(result).to.have.property('valid');
         });
 

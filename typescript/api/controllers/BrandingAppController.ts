@@ -4,12 +4,13 @@
  */
 import type { Request, Response } from 'sails';
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import type { Services as BrandingServices } from '../services/BrandingService';
+import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
 
 declare const sails: any;
-declare const BrandingService: any;
-declare const BrandingLogoService: any;
+declare const BrandingService: BrandingServices.Branding;
+declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
 declare const BrandingConfig: any;
-declare const BrandingConfigHistory: any;
 
 function mapError(e: Error): { status: number; body: any } {
   const msg = e.message || '';
@@ -23,9 +24,6 @@ function mapError(e: Error): { status: number; body: any } {
   return { status: 500, body: { error: 'server-error', detail: msg } };
 }
 
-// Authorization for these endpoints is now handled via the configured policy rules
-// in config/auth.js (pattern: /:branding/:portal/app/branding/*). We only map errors here.
-
 export module Controllers {
   export class BrandingApp extends controllers.Core.Controller {
     protected _exportedMethods: any = ['config','draft','preview','publish','logo'];
@@ -34,7 +32,7 @@ export module Controllers {
     async config(req: Request, res: Response) {
       try {
         const branding = req.params['branding'];
-        const brand = await BrandingConfig.findOne({ name: branding });
+        const brand = BrandingService.getBrand(branding);
         if (!brand) return res.status(404).json({ error: 'branding-not-found' });
         return res.ok({ branding: brand });
       } catch(e:any) {
@@ -47,9 +45,8 @@ export module Controllers {
   async draft(req: Request, res: Response) {
       const branding = req.params['branding'];
       try {
-    const actor = (req as any).user || (req as any).session?.user; // policy should guarantee admin
         const variables = req.body?.variables || {};
-        const updated = await BrandingService.saveDraft({ branding, variables, actor });
+        const updated = await BrandingService.saveDraft({ branding, variables });
         return res.ok({ branding: updated });
       } catch(e:any) {
         const { status, body } = mapError(e);
@@ -62,8 +59,7 @@ export module Controllers {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
-    const actor = (req as any).user || (req as any).session?.user;
-        const { token, url, hash } = await BrandingService.preview(branding, portal, actor);
+        const { token, url, hash } = await BrandingService.preview(branding, portal);
         let brandConfig: any = null;
         try { brandConfig = await BrandingService.getBrand(branding); } catch(_e){}
         return res.ok({ token, url, hash, previewToken: token, previewUrl: url, branding: brandConfig || undefined });
@@ -78,9 +74,8 @@ export module Controllers {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
-    const actor = (req as any).user || (req as any).session?.user;
         const expectedVersion = req.body?.expectedVersion;
-        const { version, hash, idempotent } = await BrandingService.publish(branding, portal, actor, { expectedVersion });
+        const { version, hash, idempotent } = await BrandingService.publish(branding, portal, { expectedVersion });
         const body: any = { version, hash };
         if (idempotent) body.idempotent = true;
         return res.ok(body);
@@ -95,7 +90,7 @@ export module Controllers {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
-    const actor = (req as any).user || (req as any).session?.user;
+    
         if (!(req._fileparser && typeof (req as any).file === 'function')) {
           return res.badRequest({ error: 'no-file' });
         }
@@ -106,7 +101,7 @@ export module Controllers {
         const f = files[0];
         const fs = require('fs');
         const buf = fs.readFileSync(f.fd);
-        const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type, actor });
+        const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
         return res.ok({ hash });
       } catch(e:any) {
         const { status, body } = mapError(e);

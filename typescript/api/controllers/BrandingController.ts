@@ -7,11 +7,11 @@ import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import type { Services as BrandingServices } from '../services/BrandingService';
+import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
 
-// Ensure we have access to the same BrandingService instance used when creating preview tokens.
-// The service module exports its instance via module.exports; fall back to global if present.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const BrandingService = (global as any).BrandingService || require('../../services/BrandingService');
+declare const BrandingService: BrandingServices.Branding;
+declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
 
 
 declare var sails: Sails;
@@ -129,7 +129,6 @@ export module Controllers {
     /** Serve temporary preview CSS using BrandingService preview token (/:branding/:portal/preview/:token.css) */
     public async renderPreviewCss(req, res) {
       try {
-        // Support both routes: /preview/:token.css and fallback /preview/:tokenCss (no .css auto-added)
         let token = req.param('token');
         if (!token) {
           const tokenCss = req.param('tokenCss');
@@ -227,11 +226,8 @@ export module Controllers {
         const id = brand.logo.gridFsId;
         // Try persistent storage first (GridFS), then in-memory cache
         let buf: Buffer | null = null;
-        if ((global as any).BrandingLogoService?.getBinaryAsync) {
-          buf = await (global as any).BrandingLogoService.getBinaryAsync(id);
-        } else {
-          buf = (global as any).BrandingLogoService.getBinary(id);
-        }
+        buf = await BrandingLogoService.getBinaryAsync(id);
+        
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);

@@ -219,7 +219,7 @@ export module Services {
     }
 
     /** Generate preview token storing compiled CSS in CacheEntry */
-    public async preview(branding: string, portal: string, actor: any): Promise<{ token: string; url: string; hash: string; }> {
+    public async preview(branding: string, portal: string): Promise<{ token: string; url: string; hash: string; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
       const { css, hash } = await SassCompilerService.compile(brand.variables || {});
