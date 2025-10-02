@@ -7,8 +7,7 @@
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
-import { FormFeatureState } from './form.state';
-import { FORM_FEATURE_KEY } from '../providers';
+import { FormFeatureState, FORM_FEATURE_KEY } from './form.state';
 
 // Base feature selector
 export const selectFormFeature = createFeatureSelector<FormFeatureState>(FORM_FEATURE_KEY);

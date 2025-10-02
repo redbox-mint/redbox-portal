@@ -10,12 +10,10 @@ import { provideState } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { formReducer } from './state/form.reducer';
 import { FormEffects } from './effects/form.effects';
+import { FORM_FEATURE_KEY } from './state/form.state';
 
-/**
- * Feature key for form state slice
- * Per R1.3
- */
-export const FORM_FEATURE_KEY = 'form';
+// Re-export for convenience
+export { FORM_FEATURE_KEY } from './state/form.state';
 
 /**
  * Provides form state feature registration with NgRx.

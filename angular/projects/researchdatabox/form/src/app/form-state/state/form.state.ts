@@ -8,6 +8,12 @@
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 
 /**
+ * Feature key for form state slice
+ * Per R1.3
+ */
+export const FORM_FEATURE_KEY = 'form';
+
+/**
  * Form feature state interface
  * Per R2.2
  */
