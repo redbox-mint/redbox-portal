@@ -49,6 +49,7 @@ import {
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
+import {LineagePaths} from "../../../portal-ng-common/src/lib/form/form-field-base.component";
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -127,24 +128,38 @@ export class FormService extends HttpClientService {
       throw new Error("Form config from server was empty.");
     }
 
+    // This form config is the top of the lineage.
+    const parentLineagePaths = this.buildLineagePaths({
+      angularComponents: [],
+      dataModel: [],
+      formConfig: ['componentDefinitions'],
+    });
+
     // Resolve the field and component pairs
-    return this.createFormComponentsMap(formConfig);
+    return this.createFormComponentsMap(formConfig, parentLineagePaths);
   }
 
   /**
    * Create form components from the form component definition configuration.
    *
    * @param formConfig The form configuration.
+   * @param parentLineagePaths The linage paths of the parent item.
    * @returns The config and the components built from the config.
    */
-  public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
+  public async createFormComponentsMap(formConfig: FormConfig, parentLineagePaths: LineagePaths): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       this.loadedValidatorDefinitions = redboxClientScript.formValidatorDefinitions;
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 
-    const components = await this.resolveFormComponentClasses(formConfig?.componentDefinitions);
+    const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
+
+    // The formConfig might be a synthetic one, built only for this method.
+    // So, don't add 'componentDefinitions' to the lineage paths.
+    // The lineage paths passed to this method are expected to reflect the real structure.
+    const components = await this.resolveFormComponentClasses(componentDefinitions, parentLineagePaths);
+
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components, formConfig);
     return new FormComponentsMap(components, formConfig);
@@ -157,13 +172,17 @@ export class FormService extends HttpClientService {
   /**
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
+   * @param parentLineagePaths The linage paths of the parent item.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
-    const fieldArr = [];
+  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
+    const fieldArr: FormFieldCompMapEntry[] = [];
     const names = componentDefinitions?.map(i => i?.name) ?? [];
     this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${names.join(',')}`);
     const components = componentDefinitions || [];
-    for (let componentConfig of components) {
+    for (let index = 0; index < components.length; index++) {
+      const componentConfig = components[index];
+      const componentName = componentConfig?.name;
+
       let modelClass: typeof FormFieldModel | undefined = undefined;
       let componentClass: typeof FormFieldBaseComponent | undefined = undefined;
       let layoutClass: typeof FormFieldBaseComponent | undefined = undefined;
@@ -243,6 +262,13 @@ export class FormService extends HttpClientService {
       //   this.logNotAvailable(modelClassName, "model class", this.modelClassMap);
       // }
       if (!_isEmpty(fieldDef)) {
+        _merge(fieldDef, {
+          lineagePaths: this.buildLineagePaths(parentLineagePaths, {
+            angularComponents: [componentName],
+            dataModel: [componentName],
+            formConfig: [index],
+          }),
+        });
         fieldArr.push(fieldDef as FormFieldCompMapEntry);
       }
     }
@@ -575,6 +601,20 @@ export class FormService extends HttpClientService {
     const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
+  }
+
+  /**
+   * Build the lineage paths from a base item,
+   * and add the entries in more as relative parts at the end of each lineage path.
+   * @param base The base paths.
+   * @param more The relative paths to append.
+   */
+  public buildLineagePaths(base?: LineagePaths, more?: LineagePaths) : LineagePaths {
+    return {
+      formConfig: [...base?.formConfig ?? [], ...more?.formConfig ?? []],
+      dataModel: [...base?.dataModel ?? [], ...more?.dataModel ?? []],
+      angularComponents: [...base?.angularComponents ?? [], ...more?.angularComponents ?? []],
+    }
   }
 }
 

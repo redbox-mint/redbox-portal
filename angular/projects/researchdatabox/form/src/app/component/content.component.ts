@@ -3,7 +3,7 @@ import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
 import {ContentComponentConfig} from "@researchdatabox/sails-ng-common";
-
+import * as Handlebars from 'handlebars';
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
@@ -57,9 +57,10 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     const template = config?.template ?? '';
 
     if (content && template) {
-      const formComponentName = this.name;
-      const formConfigElement = ['component', 'config', 'template'];
-      const compiledFn = await this.getFormComponent.getCompiledItem(formComponentName, formConfigElement);
+      const compiledItems = await this.getFormComponent.getCompiledItem();
+      const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
+      const compiledFn = compiledItems.evaluate(templateLineagePath, {libraries: {Handlebars: Handlebars}})
+
       const context = {content: content};
       this.content = compiledFn(context);
     } else if (content && !template) {

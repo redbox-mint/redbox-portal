@@ -660,12 +660,9 @@ export module Services {
             const results = [];
 
             // Try implementing form config traversal using iteration instead of recursion.
-            const formCompDef: FormComponentDefinition = {
-                name: form?.name,
-                model: {class: "GroupFieldModel", config: {validators: form?.validators ?? []}},
-                component: {class: 'GroupFieldComponent', config: {componentDefinitions: form?.componentDefinitions}}
-            }
-            let formComponents = [{path: [], def: formCompDef}];
+            let formComponents = (form?.componentDefinitions ?? []).map((def, index) => {
+                return {path: ['componentDefinitions', index], def: def}
+            });
 
             while(formComponents.length > 0) {
                 const {path, def} = formComponents.pop();
