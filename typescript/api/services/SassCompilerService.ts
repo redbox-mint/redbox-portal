@@ -1,5 +1,5 @@
 import { PopulateExportedMethods } from '@researchdatabox/redbox-core-types';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import { Services as services } from '@researchdatabox/redbox-core-types';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -35,7 +35,9 @@ export module Services {
             let v = value.trim();
             if (v.startsWith('#')) {
                 v = v.replace(/#/g, '');
-                if (v.length === 3) v = v.split('').map(c => c + c).join('');
+                if (v.length === 3) {
+                    v = '#' + v.split('').map(c => c + c).join('');
+                }
                 if (v.length === 6 || v.length === 8) return '#' + v.toLowerCase();
             }
             return value;
@@ -142,7 +144,7 @@ export module Services {
                 ],
                 optimization: {
                     minimize: false,
-                    minimizer: [ new CssMinimizerPlugin() ]
+                    minimizer: [new CssMinimizerPlugin()]
                 },
                 resolve: {
                     extensions: ['.js', '.ts', '.scss', '.css'],
@@ -170,7 +172,7 @@ export module Services {
             const cssPath = path.join(tmpOut, 'style.css');
             const css = fs.readFileSync(cssPath, 'utf8');
             // Clean up temp directory (best-effort)
-            try { fse.removeSync(tmpBase); } catch(_e) {}
+            try { fse.removeSync(tmpBase); } catch (_e) { }
 
             const hash = crypto.createHash('sha256').update(css).digest('hex').substring(0, 32);
             return { css, hash };

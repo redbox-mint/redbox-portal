@@ -5,7 +5,7 @@ import { GridFSBucket, Db } from 'mongodb';
 /**
  * BrandingLogoService
  * - sanitizeAndValidate(fileBuf, contentType)
- * - putLogo({branding, portal, fileBuf, contentType, actor}) -> GridFS path `${branding}/${portal}/images/logo.(ext)`
+ * - putLogo({branding, portal, fileBuf, contentType}) -> GridFS path `${branding}/${portal}/images/logo.(ext)`
  */
 
 declare const sails: any;
@@ -15,13 +15,49 @@ declare const SvgSanitizerService: any;
 // Using skipper-gridfs adapter pattern like BrandingController
 // We'll lazily require to avoid circular load issues.
 
+
+
 export module Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
-  
 
-  /** In-memory placeholder storage keyed by gridFsId. */
-  private _binaryById: Record<string, Buffer> = {};
+
+    /** In-memory placeholder storage keyed by gridFsId. */
+    private _binaryById: Record<string, { buffer: Buffer; storedAt: number }> = {};
+
+    private getCacheTtlMs(): number {
+      const DEFAULT_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+      // defaults to 1 day
+      const configured = _.get(sails, 'config.branding.logoCacheTtlMs',  DEFAULT_LOGO_CACHE_TTL_MS);
+      if (typeof configured === 'number' && configured > 0) {
+        return configured;
+      }
+      return DEFAULT_LOGO_CACHE_TTL_MS;
+    }
+
+    private pruneExpiredEntries(now = Date.now()): void {
+      const ttl = this.getCacheTtlMs();
+      for (const [id, entry] of Object.entries(this._binaryById)) {
+        if (now - entry.storedAt > ttl) {
+          delete this._binaryById[id];
+        }
+      }
+    }
+
+    private setCache(id: string, buffer: Buffer): void {
+      this._binaryById[id] = { buffer, storedAt: Date.now() };
+      this.pruneExpiredEntries();
+    }
+
+    private getFromCache(id: string): Buffer | null {
+      const entry = this._binaryById[id];
+      if (!entry) return null;
+      if (Date.now() - entry.storedAt > this.getCacheTtlMs()) {
+        delete this._binaryById[id];
+        return null;
+      }
+      return entry.buffer;
+    }
 
     /** Lazily create a GridFS bucket using the configured 'mongodb' datastore. */
     private getBucket(): GridFSBucket | null {
@@ -30,7 +66,7 @@ export module Services {
         const db: Db | undefined = ds?.manager; // sails-mongo exposes native Db as manager
         if (!db) return null;
         return new GridFSBucket(db, { bucketName: 'fs' });
-      } catch(_e) {
+      } catch (_e) {
         return null;
       }
     }
@@ -55,7 +91,13 @@ export module Services {
     async sanitizeAndValidate(fileBuf: Buffer, contentType: string): Promise<{ ok: boolean; sha256?: string; sanitizedBuffer?: Buffer; errors?: string[]; warnings?: string[]; finalContentType?: string; }> {
       const errors: string[] = [];
       const warnings: string[] = [];
-      if (!fileBuf || !Buffer.isBuffer(fileBuf) || fileBuf.length === 0) {
+
+      if (!fileBuf || !Buffer.isBuffer(fileBuf)) {
+        errors.push('empty');
+        return { ok: false, errors, warnings };
+      }
+
+      if (fileBuf.length === 0) {
         errors.push('empty');
       }
       if (!this.allowedContentTypes.has(contentType)) {
@@ -65,9 +107,14 @@ export module Services {
       if (fileBuf.length > max) {
         errors.push('too-large');
       }
+
+      if (errors.length) {
+        return { ok: false, errors, warnings };
+      }
+
       let outBuffer = fileBuf;
       let finalCt = contentType;
-      if (errors.length === 0 && this.isSvg(fileBuf, contentType)) {
+      if (this.isSvg(fileBuf, contentType)) {
         // Sanitize SVG using existing service
         const svg = fileBuf.toString('utf8');
         const result = await SvgSanitizerService.sanitize(svg);
@@ -85,8 +132,8 @@ export module Services {
       return { ok: true, sha256, sanitizedBuffer: outBuffer, warnings, finalContentType: finalCt };
     }
 
-  /** Write logo to storage (GridFS) and update BrandingConfig.logo metadata */
-    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; actor?: any; }): Promise<{ hash: string; gridFsId: string; contentType: string; updatedAt: string; }> {
+    /** Write logo to storage (GridFS) and update BrandingConfig.logo metadata */
+    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<{ hash: string; gridFsId: string; contentType: string; updatedAt: string; }> {
       const brand = await BrandingConfig.findOne({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(opts.fileBuffer, opts.contentType);
@@ -102,7 +149,7 @@ export module Services {
           // Delete any previous versions with same filename
           const existing = await bucket.find({ filename: gridFsId }).toArray();
           for (const f of existing) {
-            try { await bucket.delete(f._id); } catch(_e) { /* noop */ }
+            try { await bucket.delete(f._id); } catch (_e) { /* noop */ }
           }
           await new Promise<void>((resolve, reject) => {
             const up = bucket.openUploadStream(gridFsId, { metadata: { contentType: finalContentType } });
@@ -111,14 +158,12 @@ export module Services {
             up.end(sanitizedBuffer);
           });
         }
-      } catch(e) {
-        // Non-fatal: we still update config and serve from memory; log verbose only
-        sails.log && sails.log.warn && sails.log.warn('BrandingLogoService.putLogo GridFS write failed:', e);
+      } catch (e) {
+        sails.log.warn('BrandingLogoService.putLogo GridFS write failed:', e);
       }
 
       // Update in-memory cache and config metadata
-      (this as any)._lastLogoBinary = sanitizedBuffer; // legacy single ref
-      this._binaryById[gridFsId] = sanitizedBuffer!;
+      this.setCache(gridFsId, sanitizedBuffer!);
       const meta = { gridFsId, sha256, contentType: finalContentType, updatedAt: new Date().toISOString() };
       await BrandingConfig.update({ id: brand.id }, { logo: meta });
       return { hash: sha256!, gridFsId, contentType: finalContentType, updatedAt: meta.updatedAt };
@@ -126,13 +171,13 @@ export module Services {
 
     /** Retrieve stored binary (interim). */
     getBinary(id: string): Buffer | null {
-      return this._binaryById[id] || null;
+      return this.getFromCache(id);
     }
 
     /** Retrieve stored binary from persistent storage (GridFS) if available. */
     async getBinaryAsync(id: string): Promise<Buffer | null> {
       // Prefer in-memory cache first
-      const mem = this.getBinary(id);
+      const mem = this.getFromCache(id);
       if (mem) return mem;
       try {
         const bucket = this.getBucket();
@@ -147,9 +192,9 @@ export module Services {
         if (chunks.length === 0) return null;
         const buf = Buffer.concat(chunks);
         // Populate cache for subsequent reads
-        this._binaryById[id] = buf;
+        this.setCache(id, buf);
         return buf;
-      } catch(_e) {
+      } catch (_e) {
         return null;
       }
     }

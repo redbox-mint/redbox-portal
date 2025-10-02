@@ -23,6 +23,9 @@ import { PopulateExportedMethods } from '@researchdatabox/redbox-core-types';
 declare var sails: any;
 declare var _: any;
 
+const textSizes = ['normal', 'large'] as const;
+type TextSize = typeof textSizes[number];
+
 /**
  * Represents a contrast ratio violation for a color pair
  */
@@ -36,7 +39,7 @@ export interface ContrastViolation {
     /** The two colors being compared [foreground, background] */
     colors: [string, string];
     /** Text size category affecting minimum ratio */
-    textSize: 'normal' | 'large';
+    textSize: TextSize;
 }
 
 /**
@@ -192,7 +195,7 @@ export module Services {
          * Suggest a compliant color by adjusting the foreground color
          * to meet contrast requirements with the background
          */
-        suggestCompliant(foreground: string, background: string, textSize: 'normal' | 'large' = 'normal'): {
+    suggestCompliant(foreground: string, background: string, textSize: TextSize = 'normal'): {
             suggested: string;
             originalRatio: number;
             newRatio: number;

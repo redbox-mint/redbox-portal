@@ -102,7 +102,9 @@ module.exports.branding = {
   ,
   /** Preview token TTL in seconds */
   previewTtlSeconds: 300
-  ,
-  /** Maximum logo upload size in bytes (Task 6) */
-  logoMaxBytes: 512 * 1024
+,
+  /** Maximum logo upload size in bytes */
+  logoMaxBytes: 512 * 1024,
+  /** In-memory logo cache TTL in milliseconds */
+  logoCacheTtlMs: 24 * 60 * 60 * 1000
 };
