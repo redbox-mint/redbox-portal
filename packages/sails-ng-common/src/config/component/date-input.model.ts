@@ -13,6 +13,8 @@ export class DateInputComponentConfig extends BaseFormFieldComponentConfig {
     public dateFormat?: string = 'DD/MM/YYYY';
     public showWeekNumbers?: boolean = false;
     public containerClass?: string = 'theme-dark-blue';
+    public enableTimePicker?: boolean = false;
+    public bsFullConfig?: any = null;
 }
 
 export interface DateInputModelDefinition extends BaseFormFieldModelDefinition<DateInputModelValueType> {
