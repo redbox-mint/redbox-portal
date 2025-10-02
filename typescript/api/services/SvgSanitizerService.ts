@@ -105,6 +105,47 @@ export module Services {
    * This service provides secure sanitization of SVG and other DOM content using
    * configurable DOMPurify profiles defined in config/dompurify.js.
    * 
+   * Security Approach & OWASP References:
+   * ======================================
+   * This service implements defense-in-depth sanitization following OWASP recommendations:
+   * 
+   * 1. **DOMPurify Library** (OWASP Recommended):
+   *    - Uses DOMPurify, an OWASP-recommended DOM sanitization library
+   *    - Reference: https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#html-sanitization
+   *    - DOMPurify GitHub: https://github.com/cure53/DOMPurify
+   *    - Actively maintained with regular security audits
+   * 
+   * 2. **Multi-Layer Validation** (Defense in Depth):
+   *    - Pre-sanitization validation: Size limits, structural checks, dangerous pattern detection
+   *    - DOMPurify sanitization: Main sanitization pass with configurable profiles
+   *    - Post-sanitization validation: Final security checks for remaining dangerous patterns
+   *    - Reference: https://owasp.org/www-community/Defense_in_Depth
+   * 
+   * 3. **SVG-Specific Threats Addressed**:
+   *    - Script injection via <script> tags, event handlers (onclick, onload, etc.)
+   *    - JavaScript/VBScript protocols in href/xlink:href attributes
+   *    - Data URLs that could contain malicious payloads
+   *    - Foreign object elements allowing arbitrary HTML injection
+   *    - CDATA sections and processing instructions
+   *    - External resource references (http/https URLs)
+   *    - Reference: https://owasp.org/www-community/attacks/Billion_laughs_attack
+   *    - Reference: https://owasp.org/www-community/attacks/Cross-site_Scripting_(XSS)
+   * 
+   * 4. **Protocol Validation**:
+   *    - Blocks dangerous protocols: javascript:, vbscript:, data:, file:, etc.
+   *    - Blocks external references to prevent privacy leaks and SSRF
+   *    - Reference: https://cheatsheetseries.owasp.org/cheatsheets/AJAX_Security_Cheat_Sheet.html
+   * 
+   * 5. **Content Security Policy (CSP) Compatible**:
+   *    - Sanitized content is safe for use with strict CSP
+   *    - No inline scripts or event handlers in output
+   *    - Reference: https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html
+   * 
+   * 6. **Size & Complexity Limits**:
+   *    - Prevents billion laughs attacks and resource exhaustion
+   *    - Configurable maximum size limits
+   *    - Nesting depth validation
+   * 
    * Available profiles:
    * - 'svg': Strict SVG sanitization for user-uploaded SVG files
    * - 'html': General HTML content sanitization for rich text
@@ -113,6 +154,12 @@ export module Services {
    * Usage:
    * - sanitize(svg): Sanitizes SVG content with full validation and error reporting
    * - sanitizeWithProfile(content, profile): Generic sanitization with any profile
+   * 
+   * Security Notes:
+   * - Always validate sanitization results before rendering
+   * - Review errors array for blocked threats
+   * - Consider additional application-specific validation
+   * - Keep DOMPurify updated for latest security patches
    */
   export class SvgSanitizer extends coreServices.Core.Service {
 
@@ -370,11 +417,12 @@ export module Services {
         
         // Final security checks for any remaining dangerous patterns
         const dangerousPatterns = [
-          { pattern: /javascript\s*:/i, error: 'javascript-protocol-found' },
-          { pattern: /vbscript\s*:/i, error: 'vbscript-protocol-found' },
-          { pattern: /data\s*:[^#]/i, error: 'data-protocol-found' },
-          { pattern: /<script[^>]*>/i, error: 'script-element-found' },
-          { pattern: /on\w+\s*=/i, error: 'event-handler-found' }
+          { pattern: /javascript\s*:/gi, error: 'javascript-protocol-found' },
+          { pattern: /vbscript\s*:/gi, error: 'vbscript-protocol-found' },
+          { pattern: /data\s*:[^#]/gi, error: 'data-protocol-found' },
+          { pattern: /<script[\s>]/gi, error: 'script-element-found' },
+          { pattern: /<\/script\s*>/gi, error: 'script-closing-tag-found' },
+          { pattern: /on\w+\s*=/gi, error: 'event-handler-found' }
         ];
         
         dangerousPatterns.forEach(check => {

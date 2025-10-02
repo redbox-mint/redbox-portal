@@ -27,7 +27,7 @@ export module Services {
     @PopulateExportedMethods
     export class SassCompiler extends services.Core.Service {
         getWhitelist(): string[] {
-            return _.get(sails, 'config.branding.variableWhitelist', []) || [];
+            return _.get(sails, 'config.branding.variableAllowList', []) || [];
         }
 
         normaliseHex(value: string): string {

@@ -10,7 +10,7 @@ module.exports.branding = {
   /**
    * Keys (without leading $) allowed in BrandingConfig.variables
    */
-  variableWhitelist: [
+  variableAllowList: [
     // CSS-property-name variants (using 'color' to match CSS)
     'primary-color',
     'primary-text-color',

@@ -24,13 +24,29 @@ declare var sails: any;
 declare var _: any;
 
 /**
+ * Represents a contrast ratio violation for a color pair
+ */
+export interface ContrastViolation {
+    /** Name identifier for the color pair */
+    pair: string;
+    /** Actual contrast ratio calculated */
+    ratio: number;
+    /** Minimum required ratio per WCAG AA */
+    required: number;
+    /** The two colors being compared [foreground, background] */
+    colors: [string, string];
+    /** Text size category affecting minimum ratio */
+    textSize: 'normal' | 'large';
+}
+
+/**
  * ContrastService
  * 
  * Validate color contrast ratios using WCAG AA standards
  * and provide suggestions for compliant color combinations.
  *
  * Usage: await ContrastService.validate(variablesMap)
- * Returns: { valid: boolean, violations: Array<{pair, ratio, required, colors}> }
+ * Returns: { valid: boolean, violations: ContrastViolation[] }
  *
  * Usage: await ContrastService.suggestCompliant(colorA, colorB)
  * Returns: { suggested: string, originalRatio: number, newRatio: number }
@@ -108,21 +124,9 @@ export module Services {
          */
         validate(variables: Record<string, string>): {
             valid: boolean;
-            violations: Array<{
-                pair: string;
-                ratio: number;
-                required: number;
-                colors: [string, string];
-                textSize: 'normal' | 'large';
-            }>;
+            violations: ContrastViolation[];
         } {
-            const violations: Array<{
-                pair: string;
-                ratio: number;
-                required: number;
-                colors: [string, string];
-                textSize: 'normal' | 'large';
-            }> = [];
+            const violations: ContrastViolation[] = [];
 
             // Define color pairs to validate based on branding requirements
             const pairs = [

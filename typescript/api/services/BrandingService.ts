@@ -182,7 +182,7 @@ export module Services {
 
     /** Save draft variables after whitelist + contrast validation */
     public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: any; }): Promise<any> {
-      const whitelist: string[] = _.get(sails, 'config.branding.variableWhitelist', []) || [];
+      const whitelist: string[] = _.get(sails, 'config.branding.variableAllowList', []) || [];
       const normalized: Record<string, string> = {};
       for (const [k, v] of Object.entries(input.variables || {})) {
         const norm = k.startsWith('$') ? k.slice(1) : k;

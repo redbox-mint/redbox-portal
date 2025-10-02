@@ -31,6 +31,25 @@ export module Controllers {
       // dbname: sails.config.datastores.mongodb.database
       uri: this.mongoUri
     });
+
+    /**
+     * Generate a weak ETag for the given content hash or string.
+     * @param hashOrContent - Either a pre-computed hash string or content to hash
+     * @param prefix - Optional prefix for the ETag (e.g., 'logo-', 'preview-')
+     * @returns ETag string in format 'W/"[prefix]hash"'
+     */
+    private generateETag(hashOrContent: string, prefix: string = ''): string {
+      let hash: string;
+      // If it looks like a hex hash (lowercase hex chars), use it directly
+      if (/^[a-f0-9]+$/.test(hashOrContent)) {
+        hash = hashOrContent;
+      } else {
+        // Otherwise compute SHA256 hash of the content
+        hash = crypto.createHash('sha256').update(hashOrContent).digest('hex');
+      }
+      return `W/"${prefix}${hash}"`;
+    }
+
     /**
      * Exported methods, accessible from internet.
      */
@@ -74,7 +93,7 @@ export module Controllers {
           const defaultCssPath = path.join(sails.config.appPath, '.tmp/public/default/default/styles/style.min.css');
           try {
             const css = fs.readFileSync(defaultCssPath, 'utf8');
-            const etag = 'W/"' + crypto.createHash('sha256').update(css).digest('hex') + '"';
+            const etag = this.generateETag(css);
             res.set('ETag', etag);
             if (req.headers['if-none-match'] === etag) {
               return res.status(304).end();
@@ -84,7 +103,7 @@ export module Controllers {
           } catch (fsError) {
             // Fallback to minimal CSS if default file cannot be read
             const css = ':root{}';
-            const etag = 'W/"' + crypto.createHash('sha256').update(css).digest('hex') + '"';
+            const etag = this.generateETag(css);
             res.set('ETag', etag);
             if (req.headers['if-none-match'] === etag) {
               return res.status(304).end();
@@ -95,7 +114,7 @@ export module Controllers {
         }
         // Ensure hash is lowercase hex; fall back to sha256 hex of css if stored hash is missing or not hex.
         const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(brand.css).digest('hex');
-        const etag = 'W/"' + safeHash + '"';
+        const etag = this.generateETag(safeHash);
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) {
           return res.status(304).end();
@@ -126,7 +145,8 @@ export module Controllers {
         res.set('Content-Type', 'text/css');
         res.set('Cache-Control', 'no-cache, no-store');
         // Short weak etag for preview hash
-        const etag = 'W/"preview-' + (data.hash || crypto.createHash('sha256').update(data.css).digest('hex')) + '"';
+        const hash = data.hash || crypto.createHash('sha256').update(data.css).digest('hex');
+        const etag = this.generateETag(hash, 'preview-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         return res.send(data.css);
@@ -135,17 +155,12 @@ export module Controllers {
       }
     }
 
-    /** Create a preview token (JSON) so clients (Bruno tests / admin UI) can fetch temporary preview CSS. */
+    /** Create a preview token (JSON) */
     public async createPreview(req, res) {
       try {
         const branding = req.param('branding');
         const portal = req.param('portal');
-        // Basic guard – in a fuller implementation we would check req.session.user / auth policy
-        const actor = (req as any).session?.user || { isAdmin: true }; // fallback for test env
-        if (!actor.isAdmin) {
-          return res.status(403).json({ error: 'forbidden' });
-        }
-        const result = await (global as any).BrandingService.preview(branding, portal, actor);
+        const result = await BrandingService.preview(branding, portal);
         return res.json(result);
       } catch (e: any) {
         return res.status(500).json({ error: 'preview-error', message: e.message });
@@ -222,7 +237,7 @@ export module Controllers {
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         res.contentType(brand.logo.contentType || sails.config.static_assets.imageType);
-        const etag = 'W/"logo-' + brand.logo.sha256 + '"';
+        const etag = this.generateETag(brand.logo.sha256, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Cache-Control', 'public, max-age=3600');

@@ -6,14 +6,14 @@
  */
 
 // Guard access to global `sails` during model load (it is undefined pre-lift)
-const whitelist = (typeof sails !== 'undefined' && sails.config && sails.config.branding && sails.config.branding.variableWhitelist) || [];
+const allowList = (typeof sails !== 'undefined' && sails.config && sails.config.branding && sails.config.branding.variableAllowList) || [];
 
 function validateVariablesMap(val) {
   if (val == null) return true;
   if (typeof val !== 'object' || Array.isArray(val)) return false;
   return Object.keys(val).every(k => {
     const norm = k.startsWith('$') ? k.slice(1) : k;
-    return whitelist.includes(norm);
+    return allowList.includes(norm);
   });
 }
 
@@ -38,7 +38,7 @@ module.exports = {
     roles: { collection: 'role', via: 'branding' }
   },
   beforeCreate(values, proceed) {
-    if (values.variables && typeof values.variables === 'object' && !Array.isArray(values.variables)) {
+    if (values.variables && _.isPlainObject(values.variables)) {
       const normalized = {};
       Object.keys(values.variables).forEach(k => {
         const norm = k.startsWith('$') ? k.slice(1) : k;
@@ -49,7 +49,7 @@ module.exports = {
     return module.exports.beforeValidate(values, proceed);
   },
   beforeUpdate(values, proceed) {
-    if (values.variables && typeof values.variables === 'object' && !Array.isArray(values.variables)) {
+    if (values.variables && _.isPlainObject(values.variables)) {
       const normalized = {};
       Object.keys(values.variables).forEach(k => {
         const norm = k.startsWith('$') ? k.slice(1) : k;
@@ -61,7 +61,7 @@ module.exports = {
   },
   beforeValidate(values, proceed) {
     if (values.variables && !validateVariablesMap(values.variables)) {
-      return proceed(new Error('Invalid variable key supplied (not in whitelist)'));
+      return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
     }
     return proceed();
   }
