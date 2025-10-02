@@ -31,7 +31,7 @@ export const submitForm = createAction(
 
 export const submitFormSuccess = createAction(
   '[Form] Submit Form Success',
-  props<{ savedAt: string }>()
+  props<{ savedData: any }>()
 );
 
 export const submitFormFailure = createAction(
@@ -50,7 +50,10 @@ export const markPristine = createAction('[Form] Mark Pristine');
 // Validation actions (R2.13)
 export const formValidationPending = createAction('[Form] Validation Pending');
 export const formValidationSuccess = createAction('[Form] Validation Success');
-export const formValidationFailure = createAction('[Form] Validation Failure');
+export const formValidationFailure = createAction(
+  '[Form] Validation Failure',
+  props<{ error: string }>()
+);
 
 // Utility actions (R3.2)
 export const ackError = createAction('[Form] Acknowledge Error');

@@ -21,8 +21,8 @@ export interface FormFeatureState {
   /** Whether form has unsaved changes (R2.2, R2.9) */
   isDirty: boolean;
   
-  /** ISO timestamp of last successful save (R2.2, R2.8) */
-  lastSavedAt?: string;
+  /** Timestamp of last successful save (R2.2, R2.8) */
+  lastSavedAt?: Date | null;
   
   /** User-safe error message (R2.2, R2.6) */
   error?: string | null;
@@ -51,11 +51,11 @@ export const formInitialState: FormFeatureState = {
   status: FormStatus.INIT,
   initialDataLoaded: false,
   isDirty: false,
-  lastSavedAt: undefined,
+  lastSavedAt: null,
   error: null,
   pendingActions: [],
   resetToken: 0,
   submissionAttempt: 0,
   meta: {},
-  modelSnapshot: undefined,
+  modelSnapshot: null,
 };

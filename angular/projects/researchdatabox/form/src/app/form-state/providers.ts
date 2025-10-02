@@ -5,7 +5,7 @@
  * Per R1.1, R1.2, R1.3, R14.1
  */
 
-import { Provider } from '@angular/core';
+import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { provideState } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { formReducer } from './state/form.reducer';
@@ -39,9 +39,9 @@ export const FORM_FEATURE_KEY = 'form';
  * };
  * ```
  */
-export function provideFormFeature(): Provider[] {
-  return [
+export function provideFormFeature(): EnvironmentProviders {
+  return makeEnvironmentProviders([
     provideState(FORM_FEATURE_KEY, formReducer),
     provideEffects(FormEffects)
-  ];
+  ]);
 }

@@ -6,7 +6,8 @@
  */
 
 import { TestBed } from '@angular/core/testing';
-import { Store } from '@ngrx/store';
+import { provideStore, Store } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
 import { provideFormFeature, FORM_FEATURE_KEY } from './providers';
 import { FormFeatureState, formInitialState } from './state/form.state';
 import { FormEffects } from './effects/form.effects';
@@ -15,7 +16,9 @@ describe('provideFormFeature()', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideFormFeature()
+        provideStore(),        // Initialize root store
+        provideEffects(),      // Initialize effects
+        provideFormFeature()   // Register form feature
       ]
     });
   });
@@ -35,7 +38,7 @@ describe('provideFormFeature()', () => {
     // Effects are registered via provideEffects, so they should be injectable
     const effects = TestBed.inject(FormEffects);
     expect(effects).toBeDefined();
-    expect(effects.actions$).toBeDefined();
+    expect(effects).toBeInstanceOf(FormEffects);
   });
 
   it('should use the correct feature key', () => {
