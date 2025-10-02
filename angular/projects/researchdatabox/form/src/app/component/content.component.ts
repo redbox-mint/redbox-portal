@@ -59,10 +59,9 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     if (content && template) {
       const compiledItems = await this.getFormComponent.getCompiledItem();
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
-      const compiledFn = compiledItems.evaluate(templateLineagePath, {libraries: {Handlebars: Handlebars}})
-
       const context = {content: content};
-      this.content = compiledFn(context);
+      const extra = {libraries: {Handlebars: Handlebars}};
+      this.content = compiledItems.evaluate(templateLineagePath, context, extra);
     } else if (content && !template) {
       this.content = content;
     } else {
