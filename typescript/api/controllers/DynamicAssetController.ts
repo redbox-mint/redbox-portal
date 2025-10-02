@@ -19,7 +19,7 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import {TemplateCompileInput} from "../additional/TemplateCompile";
 import {firstValueFrom} from "rxjs";
 
@@ -81,8 +81,6 @@ export module Controllers {
       const recordType = req.param("recordType") || this._recordTypeAuto;
 
       const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      // const templateVisitor = new TemplateFormConfigVisitor();
-      // const entries = templateVisitor.start(form);
       const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -175,10 +173,15 @@ export module Controllers {
     private sendClientMappingJavascript(res, inputs: TemplateCompileInput[]) {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
-      const entryKeys = inputs.map(i => i.key).sort();
+      const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
       const assetId = "dynamicScriptAsset";
       sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
-      return this.sendAssetView(res, assetId, {entries: entries, layout: false})
+        return this.sendAssetView(res, assetId, {
+            entries: entries.map(i => {
+                return {key: TemplateService.buildKeyString(i.key), value: i.value}
+            }),
+            layout: false
+        });
     }
 
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {

@@ -412,6 +412,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
+  public async getCompiledItem(formComponentName: string | null, formConfigElement: string[]) {
+    const recordType = this.trimmedParams.recordType();
+    const features = await this.formService.getDynamicImportFormCompiledItems(recordType);
+    this.loggerService.info(`${this.logName}: getCompiledItem from getDynamicImportFormCompiledItems`,
+      {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
+    return features;
+  }
+
   // Expose the `form` status
   public get dataStatus(): FormGroupStatus {
     return {

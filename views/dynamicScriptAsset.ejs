@@ -1,5 +1,5 @@
 export function evaluate(key, context) {
-    key = key?.toString()?.normalize("NFKC");
+    key = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
     // TODO: more validation / normalisation of key or context?
     switch (key) {
     <% for (const entry of entries) { %>

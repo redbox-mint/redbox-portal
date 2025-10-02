@@ -34,17 +34,10 @@ export class RepeatableElementFormFieldLayoutConfig extends BaseFormFieldLayoutC
 
 }
 
-export class RepeatableFormFieldModelDefinition extends BaseFormFieldModelDefinition<RepeatableModelValueType> {
+export interface RepeatableFormFieldModelDefinition extends BaseFormFieldModelDefinition<RepeatableModelValueType> {
     class: "RepeatableComponentModel";
     config: RepeatableFormFieldModelConfig;
     // TODO: Migrate properties from `RepeatableContainer`
-
-    public getTemplates(){
-        // this will end up being available on the client side,
-        // which we don't want.
-        // We need to obtain the templates a different way.
-        // This could be moved to the template visitor.
-    }
 }
 
 export class RepeatableFormFieldModelConfig extends BaseFormFieldModelConfig<RepeatableModelValueType> {

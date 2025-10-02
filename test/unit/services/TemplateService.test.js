@@ -79,7 +79,7 @@ describe('The TemplateService', function () {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // server
                 const serverReady = TemplateService.buildServerHandlebars(args.template);
-                const serverResult = serverReady(args.context);
+                const serverResult = serverReady ? serverReady(args.context) : "";
                 expect(serverResult).to.eql(expected);
 
                 // client
