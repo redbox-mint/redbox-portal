@@ -1,0 +1,26 @@
+meta {
+  name: Webservice Publish Unauthorized
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/publish
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expectedVersion": 1
+  }
+}
+
+tests {
+  test("Status code is 403 (unauthorized)", function () {
+    expect(res.getStatus()).to.equal(403);
+  });
+}

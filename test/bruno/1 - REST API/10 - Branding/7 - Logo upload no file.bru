@@ -1,0 +1,22 @@
+meta {
+  name: Logo upload no file
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/logo
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Status 400 no file", function(){
+      expect(res.getStatus()).to.equal(400);
+  });
+}

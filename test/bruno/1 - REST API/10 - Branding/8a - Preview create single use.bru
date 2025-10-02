@@ -1,0 +1,26 @@
+meta {
+  name: Preview create single use
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/preview
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Store preview url", function(){
+    expect(res.getStatus()).to.equal(200);
+  var raw = res.getBody();
+  var body = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+  console.log(body.url)
+  bru.setVar('preview_single_url', body.url);
+  });
+}

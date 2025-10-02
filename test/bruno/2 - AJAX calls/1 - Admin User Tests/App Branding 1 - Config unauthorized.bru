@@ -1,0 +1,23 @@
+meta {
+  name: App Branding - Config unauthorized
+  type: http
+  seq: 900
+}
+
+get {
+  url: {{host}}/default/rdmp/app/branding/config
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+  content-type: application/json
+  Cookie: notarealcookie
+}
+
+tests {
+  test("Status code is 403", function(){
+    expect(res.getStatus()).to.equal(403);
+  });
+}

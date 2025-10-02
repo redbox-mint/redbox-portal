@@ -80,6 +80,9 @@ module.exports.policies = {
   'webservice/RecordController': {
     '*': noCachePlusDefaultPolicies
   },
+  'webservice/BrandingController': {
+    '*': noCachePlusDefaultPolicies
+  },
   'DynamicAssetController': {
     '*': noCachePlusDefaultPolicies
   },

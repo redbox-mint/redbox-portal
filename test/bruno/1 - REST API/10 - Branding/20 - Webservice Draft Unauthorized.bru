@@ -1,0 +1,29 @@
+meta {
+  name: Webservice Draft Unauthorized
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/draft
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "variables": {
+      "site-branding-area-background-color": "#abcdef"
+    }
+  }
+}
+
+tests {
+  test("Status code is 403 (unauthorized)", function () {
+    expect(res.getStatus()).to.equal(403);
+  });
+  
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Get history list
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/api/branding/history
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("History list ok", function () {
+    expect(res.getStatus()).to.equal(200);
+  var raw = res.getBody();
+  var body = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    if (body && body.length) {
+      bru.setVar('first_history_id', body[0].id);
+    }
+  });
+}

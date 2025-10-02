@@ -1,0 +1,18 @@
+meta {
+  name: Render CSS Success
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{host}}/default/rdmp/styles/theme.css
+  auth: none
+}
+
+tests {
+  test("Response contains CSS content", function () {
+    const body = res.getBody();
+    expect(body).to.be.a('string');
+    expect(body.length).to.be.greaterThan(0);
+  });
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Get theme stylesheet cached 304
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/styles/theme.css
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const etag = bru.getVar("theme_etag");
+  if(etag){
+    req.setHeader("If-None-Match", etag);
+  }
+}
+
+tests {
+  test("Returns 304 when ETag supplied", function () {
+      expect(res.getStatus()).to.equal(304);
+  });
+}

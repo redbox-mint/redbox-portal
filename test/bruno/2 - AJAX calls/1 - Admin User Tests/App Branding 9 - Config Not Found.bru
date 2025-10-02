@@ -1,0 +1,27 @@
+meta {
+  name: App Branding - Config Not Found (404)
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{host}}/nonexistent/rdmp/app/branding/config
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+tests {
+  test("Status code is 404", function(){
+    expect(res.getStatus()).to.equal(404);
+  });
+  
+}
