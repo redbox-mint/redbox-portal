@@ -2,7 +2,9 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 
-chai.use(chaiAsPromised);
+const chaiAsPromisedPlugin = chaiAsPromised?.default || chaiAsPromised;
+
+chai.use(chaiAsPromisedPlugin);
 
 const { expect } = chai;
 
