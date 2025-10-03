@@ -18,7 +18,8 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm install
+nvm i < .nvmrc
+npm ci --ignore-scripts --no-audit --no-fund
 
 if [ "$2" == "--watch" ]; then
   WATCH_MODE="true"

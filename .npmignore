@@ -51,3 +51,4 @@ devdata
 *.sh
 docker*
 Dockerfile
+.serve-data/

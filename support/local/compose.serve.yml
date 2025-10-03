@@ -1,0 +1,36 @@
+name: 'local-serve'
+
+services:
+
+  redbox:
+    image: qcifengineering/redbox-portal:develop
+    expose:
+      # Debugging port
+      - "9876"
+    ports:
+      # Debugging port
+      - "9876:9876"
+    volumes:
+      - './.serve-data/redbox-attachments:/attachments'
+    entrypoint: >-
+      /bin/bash -c "
+      cd /opt/redbox-portal
+      && npm install --ignore-scripts --no-audit --no-fund
+      && node --inspect=0.0.0.0:9876 app.js
+      "
+
+  minio:
+    volumes:
+      - './.serve-data/minio:/data'
+
+  mongodb:
+    volumes:
+      - './.serve-data/mongodb:/data/db'
+
+  solr:
+    volumes:
+      - './.serve-data/solr:/var/solr/data'
+
+  email:
+    volumes:
+      - './.serve-data/email:/data'
