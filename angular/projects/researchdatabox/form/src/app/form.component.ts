@@ -198,7 +198,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
     } else {
       this.loggerService.info(`${this.logName}: creating form definition from provided config`);
-      this.formDefMap = await this.formService.createFormComponentsMap(formConfig);
+      const parentLineagePaths = this.formService.buildLineagePaths({
+        angularComponents: [],
+        dataModel: [],
+        formConfig: ['componentDefinitions'],
+      });
+      this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }
     this.componentDefArr = this.formDefMap.components;
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
@@ -410,6 +415,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     } else {
       this.loggerService.info(`${this.logName}: Form is not ready/defined, dirty or forceSave is false. No action taken.`);
     }
+  }
+
+  public async getCompiledItem() {
+    const recordType = this.trimmedParams.recordType();
+    const result = await this.formService.getDynamicImportFormCompiledItems(recordType);
+    return result;
   }
 
   // Expose the `form` status

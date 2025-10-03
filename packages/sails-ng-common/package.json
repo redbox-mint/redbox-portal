@@ -8,7 +8,7 @@
     "./dist/src"
   ],
   "scripts": {
-    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js test/unit/**/*.test.js dist/test/unit/**/*.test.js",
+    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit/**/*.test.js",
     "pretest": "npm run test:compile && mkdir -p support/junit",
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",
@@ -39,7 +39,6 @@
   },
   "devDependencies": {
     "@eslint/js": "9.27.0",
-    "@researchdatabox/redbox-core-types": "../../core",
     "@stylistic/eslint-plugin": "4.2.0",
     "@stylistic/eslint-plugin-js": "4.2.0",
     "@stylistic/eslint-plugin-ts": "4.2.0",
@@ -53,10 +52,8 @@
     "@typescript-eslint/parser": "8.32.1",
     "chai": "5.2.0",
     "eslint": "9.27.0",
-    "lodash": "4.17.21",
     "mocha": "11.4.0",
     "mocha-junit-reporter": "2.2.1",
-    "moment": "2.30.1",
     "nyc": "17.1.0",
     "typescript": "5.8.3",
     "typescript-eslint": "8.32.1"
@@ -78,8 +75,10 @@
     ]
   },
   "dependencies": {
+    "@researchdatabox/redbox-core-types": "../../core",
     "luxon": "^3.7.2",
     "ts-json-schema-generator": "^2.4.0",
+    "lodash": "^4.17.21",
     "lodash-es": "^4.17.21"
   }
 }

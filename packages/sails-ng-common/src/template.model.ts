@@ -7,7 +7,7 @@ export interface TemplateCompileItem {
      *
      * Must be unique across all inputs for one call to the compiled mapping builder.
      */
-    key: string;
+    key: string[];
 
     /**
      * The value string in either the raw form or the compiled form.

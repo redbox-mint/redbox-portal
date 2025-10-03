@@ -545,4 +545,13 @@ export interface FormFieldCompMapEntry {
   componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> };
   // optional control map to support 'container' like components that don't have a model themselves
   formControlMap?: { [key: string]: FormControl };
+  lineagePaths?: LineagePaths;
+}
+
+export type LineagePath = (string | number)[];
+
+export interface LineagePaths {
+  formConfig: LineagePath;
+  dataModel: LineagePath;
+  angularComponents: LineagePath;
 }

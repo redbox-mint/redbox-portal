@@ -39,7 +39,7 @@ export module Services {
          * @param inputs
          */
         public buildClientMapping(inputs: TemplateCompileInput[]): TemplateCompileItem[] {
-            const keys = inputs.map(i => i.key);
+            const keys = inputs.map(i => this.buildKeyString(i.key));
             const keysUnique = new Set(keys);
             if (keysUnique.size != keys.length) {
                 const duplicates = keys.filter((item, index) => keys.indexOf(item) != index);
@@ -47,18 +47,18 @@ export module Services {
                 throw new Error(`Keys must be unique: '${duplicatesUnique.join(', ')}'`);
             }
 
-            const result = [];
+            const result: TemplateCompileItem[] = [];
             for (const input of inputs) {
                 switch (input.kind) {
                     case "jsonata":
                         result.push({
-                            key: input.key?.toString(),
+                            key: input.key,
                             value: `${this.buildClientJsonata(input.value)?.toString()}.evaluate(context)`,
                         })
                         break;
                     case "handlebars":
                         result.push({
-                            key: input.key?.toString(),
+                            key: input.key,
                             value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
                         });
                         break;
@@ -77,17 +77,21 @@ export module Services {
          * @param expression The JSONata expression to compile.
          */
         public buildClientJsonata(expression: string): string {
-            expression = this.normalise(expression);
-            sails.log.verbose(`Compiling client JSONata expression '${expression}'`);
-            const compiled = this.buildSharedJsonata(expression);
-
-            const result = JSON.stringify(compiled, function (key, value) {
-                if (typeof value === 'function') {
-                    return value.toString()
-                }
-                return value
-            }, 0);
-            return result?.toString();
+            try {
+                expression = this.normalise(expression);
+                const compiled = this.buildSharedJsonata(expression);
+                const result = JSON.stringify(compiled ?? "", function (key, value) {
+                    if (typeof value === 'function') {
+                        return value.toString();
+                    }
+                    return value
+                }, 0);
+                sails.log.verbose(`Compiled client JSONata expression '${expression}'`);
+                return result?.toString();
+            } catch (error) {
+                sails.log.error(`Could not compile client JSONata expression '${expression}'`, error);
+                return null;
+            }
         }
 
         /**
@@ -98,9 +102,15 @@ export module Services {
          * @param expression The JSONata expression to compile.
          */
         public buildServerJsonata(expression: string): Expression {
-            expression = this.normalise(expression);
-            sails.log.verbose(`Build server JSONata expression '${expression}'`);
-            return this.buildSharedJsonata(expression);
+            try {
+                expression = this.normalise(expression);
+                const result = this.buildSharedJsonata(expression);
+                sails.log.verbose(`Built server JSONata expression '${expression}'`);
+                return result;
+            } catch (error) {
+                sails.log.error(`Could not build server JSONata expression '${expression}'`, error);
+                return null;
+            }
         }
 
         /**
@@ -111,10 +121,16 @@ export module Services {
          * @param template
          */
         public buildClientHandlebars(template: string): string {
-            template = this.buildSharedHandlebars(template);
-            sails.log.verbose(`Building client Handlebars template '${template}'`);
-            // handlebars pre-compiled output is already a string
-            return Handlebars.precompile(template)?.toString();
+            try {
+                template = this.normalise(template);
+                // handlebars pre-compiled output is already a string
+                const result = Handlebars.precompile(template)?.toString();
+                sails.log.verbose(`Built client Handlebars template '${template}'`);
+                return result;
+            } catch (error) {
+                sails.log.error(`Could not build client Handlebars template '${template}'`, error);
+                return null;
+            }
         }
 
         /**
@@ -125,9 +141,19 @@ export module Services {
          * @param template
          */
         public buildServerHandlebars(template: string): HandlebarsTemplateDelegate {
-            template = this.buildSharedHandlebars(template);
-            sails.log.verbose(`Building server Handlebars template '${template}'`);
-            return Handlebars.compile(template);
+            try {
+                template = this.normalise(template);
+                const result = Handlebars.compile(template);
+                sails.log.verbose(`Built server Handlebars template '${template}'`);
+                return result;
+            } catch (error) {
+                sails.log.error(`Could not build server Handlebars template '${template}'`, error);
+                return null;
+            }
+        }
+
+        public buildKeyString(key: string[]): string {
+            return (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
         }
 
         private buildSharedJsonata(expression: string): Expression {
@@ -143,10 +169,6 @@ export module Services {
             // TODO: replace regex with google's re2?
 
             return compiled;
-        }
-
-        private buildSharedHandlebars(template: string) {
-            return this.normalise(template);
         }
 
         /**
