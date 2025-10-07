@@ -61,3 +61,10 @@ export const syncModelSnapshot = createAction(
   '[Form] Sync Model Snapshot',
   props<{ snapshot: any }>()
 );
+
+// Event bus promotion actions (R15.21–R15.23)
+export const dependencyEvaluated = createAction(
+  '[Form] Dependency Evaluated',
+  props<{ fieldId: string; dependentFields: string[]; reason: string }>()
+);
+
