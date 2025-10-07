@@ -19,6 +19,10 @@ import {FormConfig, formValidatorsSharedDefinitions} from "@researchdatabox/sail
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import { provideFormFeature } from './form-state/providers';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
@@ -92,6 +96,10 @@ export async function createTestbedModule(moreDeclarations: any[] = [], moreProv
       Title,
       FormService,
       provideI18Next(),
+      provideStore(),  // Root store provider required for NgRx
+      provideEffects(),  // Root effects provider required for NgRx
+      provideFormFeature(),  // Add form state providers (R16.12, AC52)
+      FormStateFacade,  // Provide the facade service
       FormComponent,
       ...moreProviders
     ]
