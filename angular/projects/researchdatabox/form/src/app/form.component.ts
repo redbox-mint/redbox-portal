@@ -105,7 +105,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The form status signal - sourced from the facade (R16.4)
    * This is the canonical signal-based interface for child components to observe form status (R16.15)
    */
-  private facade = inject(FormStateFacade);
+  public facade = inject(FormStateFacade);
   private store = inject(Store);
   status = this.facade.status;
   componentsLoaded = signal<boolean>(false);
@@ -408,6 +408,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             this.form.markAsPristine();
+            this.formGroupStatus.set(this.dataStatus);
             this.store.dispatch(FormActions.markPristine());
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);

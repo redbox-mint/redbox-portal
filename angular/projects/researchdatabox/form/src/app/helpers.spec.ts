@@ -23,6 +23,7 @@ import { provideFormFeature } from './form-state/providers';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { FormStatusSignalBridge } from './form-state/facade/form-status-signal-bridge';
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
@@ -100,6 +101,7 @@ export async function createTestbedModule(moreDeclarations: any[] = [], moreProv
       provideEffects(),  // Root effects provider required for NgRx
       provideFormFeature(),  // Add form state providers (R16.12, AC52)
       FormStateFacade,  // Provide the facade service
+      FormStatusSignalBridge,  // Provide the signal bridge for field components
       FormComponent,
       ...moreProviders
     ]

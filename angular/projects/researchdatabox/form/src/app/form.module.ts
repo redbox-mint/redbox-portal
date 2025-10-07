@@ -38,6 +38,12 @@ import { TextAreaComponent } from './component/textarea.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { provideFormFeature } from './form-state';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { FormStatusSignalBridge } from './form-state/facade/form-status-signal-bridge';
+
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -74,7 +80,12 @@ import { RadioInputComponent } from './component/radio-input.component';
     },
     Title,
     FormService,
-    provideI18Next(),
+    FormStateFacade,
+    FormStatusSignalBridge,
+    provideStore(),
+    provideEffects(),
+    provideFormFeature(),
+    provideI18Next()
   ],
   bootstrap: [
     FormComponent
