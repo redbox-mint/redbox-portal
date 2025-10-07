@@ -1,8 +1,9 @@
 /**
- * Events Module Exports (Stub)
+ * Form Component Events Module
  * 
- * Placeholder barrel export. Will be implemented in Task 5.
+ * Barrel export for event bus and types
+ * R15.15: Re-export minimal event type helpers for component import surface
  */
 
-// export * from './form-event-bus'; // Task 5
-// export * from './form-event.model'; // Task 5
+export * from './form-component-event.types';
+export * from './form-component-event-bus.service';
