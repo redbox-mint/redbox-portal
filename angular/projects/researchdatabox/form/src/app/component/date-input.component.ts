@@ -3,26 +3,47 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@
 import { DateInputComponentConfig, DateInputModelValueType } from '@researchdatabox/sails-ng-common';
 import { DateTime } from 'luxon';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
-import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
+import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
+import { AbstractControl, FormControl } from '@angular/forms';
 
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
 
-  public updateDateTimeValue(enableTimePicker:boolean, dateValue:string, timeValue:string, dateInputFormat:string) {
-    if(enableTimePicker) {
-      if (dateValue && timeValue) {
-        this.setValue(`${this.convertToISODate(dateValue,dateInputFormat)}T${timeValue}`);
-      }
-    } else {
-      this.setValue(dateValue);
+  public timeControl?: AbstractControl<DateInputModelValueType>;
+  public enableTimePicker: boolean = false;
+  public dateFormat: string = '';
+
+  override setValue(value: DateInputModelValueType): void {
+    if(!_isNull(value) || !_isUndefined(value)) {
+      let val: Date = value as Date;
+      this.setValueDontEmitEvent(val);
     }
   }
-  
-  private convertToISODate(dateStr: string, format:string): string | null {
-    if (!_isEmpty(dateStr)) {
-      const dt = DateTime.fromFormat(dateStr, format);
-      return dt.isValid ? dt.toISODate() : null;
+
+  override getValue(): DateInputModelValueType | undefined {
+    return DateTime.fromISO(this.formControl?.value as string).toJSDate();
+  }
+
+  override postCreate(): void {
+    super.postCreate();
+    if(this.enableTimePicker) {
+      this.timeControl = new FormControl<DateInputModelValueType>('');
     } 
-    return null;
+  }
+
+  public setTimeValue(value: DateInputModelValueType): void {
+    if(this.enableTimePicker) {
+      this.timeControl?.setValue(value);
+      let isoDt:string = `${this.stripTimeFromJSDate(this.formControl?.value as Date,'yyyy-MM-dd')}T${value}:00.000Z`;
+      this.setValueDontEmitEvent(DateTime.fromISO(isoDt).toJSDate());
+    }
+  }
+
+  private stripTimeFromJSDate(date: Date, format:string): string {
+    if (!_isNull(date)) {
+      let formatted = DateTime.fromJSDate(date).toFormat(format);
+      return formatted;
+    } 
+    return '';
   }
 }
 
@@ -45,7 +66,6 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           [readonly]="isReadonly"
           [title]="tooltip"
           [placeholder]="placeholder"
-          (ngModelChange)="onDateChange($event)"
         />
         <div class="input-group-append">
           <span class="input-group-text date-input-addon" >
@@ -79,28 +99,21 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   protected override logName: string = "DateInputComponent";
   public tooltip: string = '';
   public placeholder: string | undefined = 'DD/MM/YYYY';
-  private dateFormat: string = 'DD/MM/YYYY';
+  private dateFormatDefault: string = 'DD/MM/YYYY';
   private showWeekNumbers: boolean = false;
   private containerClass: string = 'theme-dark-blue';
   private bsFullConfig: any = {};
-  public enableTimePicker: boolean = false;
-  private dateValue: string = '';
-  private timeValue: string = '';
+  public enableTimePickerDefault: boolean = false;
 
-  onDateChange(event:Date) {
-    this.dateValue = event ? event.toISOString().split('T')[0] : '';
-    this.loggerService.info(`dateValue ${this.dateValue}`,'');
-    this.updateModelValue();
+  onDateChange(dateValue: DateInputModelValueType) {
+    this.loggerService.info(`dateValue ${dateValue}`,'');
+    this.model?.setValue(dateValue);
   }
 
   onTimeChange(event: Event) {
-    this.timeValue = (event.target as HTMLInputElement).value;
-    this.loggerService.info(`timeValue ${this.timeValue}`,'');
-    this.updateModelValue();
-  }
-
-  private updateModelValue() {
-    this.model?.updateDateTimeValue(this.enableTimePicker, this.dateValue, this.timeValue, this.bsConfig.dateInputFormat);
+    let timeValue = (event.target as HTMLInputElement).value as string;
+    this.loggerService.info(`timeValue ${timeValue}`,'');
+    this.model?.setTimeValue(timeValue);
   }
 
   public get bsConfig(): BsDatepickerConfig {
@@ -116,10 +129,6 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
   }
 
-  public setDateFormat(format: string): void {
-    this.dateFormat = format;
-  }
-
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
@@ -127,11 +136,29 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     let defaultConfig = new DateInputComponentConfig();
     let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
     this.placeholder = cfg.placeholder ?? defaultConfig.placeholder;
-    this.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormat;
     this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
     this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
-    this.enableTimePicker = cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePicker;
     this.bsFullConfig = cfg.bsFullConfig ?? {};
+    if(!_isUndefined(this.model)) {
+      this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
+      this.model.enableTimePicker = cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
+    }
+  }
+
+  override ngAfterViewInit() {
+    this.formControl.valueChanges.subscribe((value: DateInputModelValueType) => {
+      this.onDateChange(value); 
+    });
+    
+    super.ngAfterViewInit();
+  }
+
+  get dateFormat(): string {
+    return this.model?.dateFormat ?? this.dateFormatDefault;
+  }
+
+  get enableTimePicker(): boolean {
+    return this.model?.enableTimePicker ?? this.enableTimePickerDefault;
   }
 
   @Input() public override model?: DateInputModel;
