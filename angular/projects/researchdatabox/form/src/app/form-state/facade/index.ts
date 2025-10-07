@@ -1,8 +1,8 @@
 /**
- * Facade Module Exports (Stub)
+ * Facade Module Exports
  * 
- * Placeholder barrel export. Will be implemented in Task 7.
+ * Exports facade and signal bridge for form state management.
  */
 
-// export * from './form-state.facade'; // Task 7
-// export * from './form-status-signal-bridge'; // Task 7
+export * from './form-state.facade';
+export * from './form-status-signal-bridge';
