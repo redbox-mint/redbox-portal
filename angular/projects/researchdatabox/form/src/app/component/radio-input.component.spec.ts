@@ -5,9 +5,7 @@ import {TestBed} from "@angular/core/testing";
 
 describe('RadioInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      RadioInputComponent,
-    ]);
+    await createTestbedModule({declarations: {"RadioInputComponent": RadioInputComponent}});
   });
   
   it('should create component', () => {

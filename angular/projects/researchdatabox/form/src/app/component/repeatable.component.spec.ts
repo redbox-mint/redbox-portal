@@ -7,11 +7,13 @@ import {TestBed} from "@angular/core/testing";
 
 describe('RepeatableComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      RepeatableComponent,
-      RepeatableElementLayoutComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(RepeatableComponent);

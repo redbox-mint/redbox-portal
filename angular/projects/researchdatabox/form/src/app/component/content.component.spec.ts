@@ -2,13 +2,18 @@ import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
+import { UtilityService } from "@researchdatabox/portal-ng-common";
+import * as Handlebars from "handlebars";
+
+
 
 describe('ContentComponent', () => {
+  let utilityService: UtilityService;
   beforeEach(async () => {
-    await createTestbedModule([
-      ContentComponent,
-    ]);
-  });
+    await createTestbedModule({
+      declarations: {"ContentComponent": ContentComponent},
+      providers: {"UtilityService": null}
+    });
   it('should create component', () => {
     let fixture = TestBed.createComponent(ContentComponent);
     let component = fixture.componentInstance;

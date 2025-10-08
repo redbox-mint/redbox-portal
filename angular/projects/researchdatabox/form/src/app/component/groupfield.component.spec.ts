@@ -8,10 +8,12 @@ import {TestBed} from "@angular/core/testing";
 
 describe('GroupFieldComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      GroupFieldComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "GroupFieldComponent": GroupFieldComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(GroupFieldComponent);
