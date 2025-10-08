@@ -107,8 +107,8 @@ describe('The TemplateService', function () {
                         {key: ['test2'], kind: "jsonata", value: "$sum(example.value)"}
                     ],
                     contexts: [
-                        {key: ["test1"], context: {doesWhat: "testing"}, extra: {libraries: {Handlebars: Handlebars}}},
-                        {key: ["test1"], context: {doesWhat: "another one"}, extra: {libraries: {Handlebars: Handlebars}}},
+                        {key: ["test1"], context: {doesWhat: "testing"}},
+                        {key: ["test1"], context: {doesWhat: "another one"}},
                         {key: ["test2"], context: {example: [{value: 4}, {value: 7}, {value: 13}]}, extra: {}},
                         {key: ["test2"], context: {example: [{value: 52}, {value: 185}]}, extra: {}},
                     ]
@@ -133,7 +133,8 @@ describe('The TemplateService', function () {
                     for (let i = 0; i < args.contexts; i++) {
                         const context = args.contexts[i];
                         const expected = args.expected[i];
-                        const result = clientReady.evaluate(context.key, context.context, context.extra);
+                        const extra = Object.assign({}, {libraries: {Handlebars: Handlebars}}, context.extra ?? {});
+                        const result = clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expected);
                     }
                 });
