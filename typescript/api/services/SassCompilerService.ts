@@ -81,7 +81,8 @@ export module Services {
                 if (/[{}();]/.test(value)) {
                     throw new Error(`Invalid characters in variable value: ${normKey}`);
                 }
-                overrideLines.push(`${normKey}: ${value}; // tenant override`);
+                const variableName = normKey.startsWith('$') ? normKey : `$${normKey}`;
+                overrideLines.push(`${variableName}: ${value}; // tenant override`);
             }
             const scss = this.buildRootScss(overrideLines);
 
