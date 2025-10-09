@@ -18,6 +18,7 @@ import { map, throttleTime, tap, filter } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import { FormComponentEventType } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
 
 /**
  * Configuration for the adapter
@@ -59,8 +60,8 @@ enum PromotionCriterion {
 /**
  * Logs promotion decisions in diagnostic mode (R15.26)
  */
-function logPromotion(eventType: string, criterion: PromotionCriterion, actionType: string): void {
-  console.debug(
+function logPromotion(logger: LoggerService, eventType: string, criterion: PromotionCriterion, actionType: string): void {
+  logger.debug(
     `[FormEventBusAdapter] Promoting event → action`,
     { eventType, criterion, actionType }
   );
@@ -69,8 +70,8 @@ function logPromotion(eventType: string, criterion: PromotionCriterion, actionTy
 /**
  * Logs skipped events in diagnostic mode
  */
-function logSkipped(eventType: string, reason: string): void {
-  console.debug(
+function logSkipped(logger: LoggerService, eventType: string, reason: string): void {
+  logger.debug(
     `[FormEventBusAdapter] Skipped event`,
     { eventType, reason }
   );
@@ -87,6 +88,7 @@ export class FormEventBusAdapterEffects {
   private readonly actions$ = inject(Actions);
   private readonly store = inject(Store);
   private readonly eventBus = inject(FormComponentEventBus);
+  private readonly logger = inject(LoggerService);
   
   /** Configuration injected via token */
   private readonly config: Required<FormEventBusAdapterConfig> = {
@@ -146,7 +148,7 @@ export class FormEventBusAdapterEffects {
       this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).pipe(
         tap((event) => {
           if (this.config.diagnosticsEnabled) {
-            logSkipped(event.type, 'Field value changes not promoted by default (R15.24)');
+            logSkipped(this.logger, event.type, 'Field value changes not promoted by default (R15.24)');
           }
         })
       ),
@@ -175,7 +177,7 @@ export class FormEventBusAdapterEffects {
       filter(() => {
         if (this.config.disabled) {
           if (this.config.diagnosticsEnabled) {
-            logSkipped(eventType, 'Adapter disabled');
+            logSkipped(this.logger, eventType, 'Adapter disabled');
           }
           return false;
         }
@@ -190,7 +192,7 @@ export class FormEventBusAdapterEffects {
       tap((event) => {
         if (this.config.diagnosticsEnabled) {
           const action = actionMapper(event);
-          logPromotion(eventType, criterion, action.type);
+          logPromotion(this.logger, eventType, criterion, action.type);
         }
       }),
       // R15.23: Map to clearly named action

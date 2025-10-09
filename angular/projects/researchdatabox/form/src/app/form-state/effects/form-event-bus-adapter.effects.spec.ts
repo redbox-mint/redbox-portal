@@ -12,6 +12,7 @@ import { Observable, ReplaySubject } from 'rxjs';
 import { Provider } from '@angular/core';
 import { FormEventBusAdapterEffects, FORM_EVENT_BUS_ADAPTER_CONFIG, FormEventBusAdapterConfig } from './form-event-bus-adapter.effects';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
 import {
   FormComponentEventType,
   FieldDependencyTriggerEvent,
@@ -32,6 +33,7 @@ describe('FormEventBusAdapterEffects', () => {
     const providers: Provider[] = [
       FormEventBusAdapterEffects,
       FormComponentEventBus,
+      LoggerService,
       provideMockActions(() => actionsSubject),
       provideMockStore(),
     ];
@@ -234,8 +236,9 @@ describe('FormEventBusAdapterEffects', () => {
      */
 
     it('should log promotion decisions when diagnostics enabled (R15.26)', fakeAsync(() => {
-      spyOn(console, 'debug');
       setupTestBed({ diagnosticsEnabled: true });
+      const logger = TestBed.inject(LoggerService);
+      spyOn(logger, 'debug');
 
       const promoted: any[] = [];
       effects.promoteValidationBroadcast$.subscribe(action => promoted.push(action));
@@ -248,7 +251,7 @@ describe('FormEventBusAdapterEffects', () => {
 
       tick(10);
 
-      expect(console.debug).toHaveBeenCalledWith(
+      expect(logger.debug).toHaveBeenCalledWith(
         jasmine.stringMatching(/promoting/i),
         jasmine.objectContaining({
           eventType: FormComponentEventType.FORM_VALIDATION_BROADCAST,
@@ -258,8 +261,9 @@ describe('FormEventBusAdapterEffects', () => {
     }));
 
     it('should NOT log when diagnostics disabled (default)', fakeAsync(() => {
-      spyOn(console, 'debug');
       setupTestBed(); // Defaults: diagnostics=false
+      const logger = TestBed.inject(LoggerService);
+      spyOn(logger, 'debug');
 
       const promoted: any[] = [];
       effects.promoteValidationBroadcast$.subscribe(action => promoted.push(action));
@@ -272,12 +276,13 @@ describe('FormEventBusAdapterEffects', () => {
 
       tick(10);
 
-      expect(console.debug).not.toHaveBeenCalled();
+      expect(logger.debug).not.toHaveBeenCalled();
     }));
 
     it('should log skipped events when disabled with diagnostics (R15.26)', fakeAsync(() => {
-      spyOn(console, 'debug');
       setupTestBed({ disabled: true, diagnosticsEnabled: true });
+      const logger = TestBed.inject(LoggerService);
+      spyOn(logger, 'debug');
 
       const promoted: any[] = [];
       effects.promoteValidationBroadcast$.subscribe(action => promoted.push(action));
@@ -290,7 +295,7 @@ describe('FormEventBusAdapterEffects', () => {
 
       tick(10);
 
-      expect(console.debug).toHaveBeenCalledWith(
+      expect(logger.debug).toHaveBeenCalledWith(
         jasmine.stringMatching(/skipped/i),
         jasmine.objectContaining({
           eventType: FormComponentEventType.FORM_VALIDATION_BROADCAST,

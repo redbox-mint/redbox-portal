@@ -9,6 +9,7 @@ import { TestBed } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { TestScheduler } from 'rxjs/testing';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
 import {
   FormComponentEventType,
   FieldValueChangedEvent,
@@ -28,7 +29,7 @@ describe('FormComponentEventBus', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [FormComponentEventBus]
+      providers: [FormComponentEventBus, LoggerService]
     });
 
     bus = TestBed.inject(FormComponentEventBus);
