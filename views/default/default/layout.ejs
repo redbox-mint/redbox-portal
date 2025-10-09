@@ -154,20 +154,24 @@
 
     // Helper to find the first anchor matching an exact path
     function findLinkByPath(path) {
+      // Escape quotes and backslashes for safe selector usage
+      var escapedPath = path.replace(/["\\]/g, '\\    function findLinkByPath(path) {
       return document.querySelector('a[href="' + path + '"]');
+    }');
+      return document.querySelector('a[href="' + escapedPath + '"]');
     }
-
-    var curHref = findLinkByPath(location.pathname);
-    if (!curHref) {
-      // Try to match progressively shorter path prefixes
       var segments = location.pathname.split('/');
-      for (var i = segments.length - 1; i >= 0; i--) {
+      for (var i = segments.length - 1; i > 0; i--) {
         var candidate = segments.slice(0, i).join('/');
         curHref = findLinkByPath(candidate);
         if (curHref) {
           var liForCandidate = curHref.closest('li');
           if (liForCandidate) {
             liForCandidate.classList.add('nav-active-item');
+          }
+          break;
+        }
+      }
           }
           break;
         }

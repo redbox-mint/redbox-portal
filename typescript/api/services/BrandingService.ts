@@ -51,6 +51,7 @@ export module Services {
       'getFullPath',
       'getRootContext',
       'getBrandById',
+      'getBrandingFromDB',
       'saveDraft',
       'preview',
       'fetchPreview',
@@ -103,6 +104,10 @@ export module Services {
 
     public getBrandById = (id): BrandingModel => {
       return _.find(this.brandings, (o) => { return o.id == id });
+    }
+
+    public async getBrandingFromDB(name): BrandingModel {
+      return BrandingConfig.findOne({ name: name });
     }
 
     public getAvailable = () => {
@@ -171,13 +176,6 @@ export module Services {
       }
 
       return portal;
-    }
-
-    /** Ensure actor is allowed (simple admin flag check placeholder) */
-    private assertAdmin(actor) {
-      if (!actor || !actor.isAdmin) {
-        throw new Error('unauthorized');
-      }
     }
 
     /** Save draft variables after whitelist + contrast validation */

@@ -9,6 +9,34 @@ import { BrandingAdminService } from './branding-admin.service';
 import { BrandingPreviewComponent } from './branding-preview.component';
 import { I18NextPipe } from 'angular-i18next';
 
+/**
+ * Represents a single colour/styling variable with its metadata
+ */
+interface ColourVariable {
+  key: string;
+  label: string;
+  default: string;
+  help: string;
+}
+
+/**
+ * Represents a group of related colour/styling variables
+ */
+interface ColourGroup {
+  name: string;
+  help: string;
+  variables: ColourVariable[];
+}
+
+/**
+ * Represents the branding configuration structure
+ */
+interface BrandingConfig {
+  variables?: Record<string, string>;
+  version?: string; // Version for optimistic concurrency control
+  [key: string]: any; // Allow additional properties from server response
+}
+
 @Component({
   selector: 'branding-admin-root',
   templateUrl: './branding-admin.component.html',
@@ -22,6 +50,9 @@ export class BrandingAdminComponent extends BaseComponent {
   previewCssUrl?: string;
   previewBaseCssUrl?: string;
   logoUrl?: string;
+  
+  // Track component initialization state without casting
+  private componentReady: boolean = false;
 
 
 
@@ -29,8 +60,8 @@ export class BrandingAdminComponent extends BaseComponent {
   appName = 'branding';
 
   // current config state
-  draftConfig: any = {};
-  publishedConfig: any = {};
+  draftConfig: Record<string, string> = {};
+  publishedConfig: BrandingConfig = {};
   previewToken?: string;
   savingDraft = false;
   publishing = false;
@@ -42,7 +73,7 @@ export class BrandingAdminComponent extends BaseComponent {
 
   // Variables sourced exclusively from assets/styles/custom-variables.scss
   // Keys align exactly with SCSS variable names (without the leading $)
-  colourGroups: any[] = [];
+  colourGroups: ColourGroup[] = [];
 
   fontVariables = [
     { key: 'branding-font-family', label: 'Main Font Family', default: '' },
@@ -92,8 +123,6 @@ export class BrandingAdminComponent extends BaseComponent {
     // Set logo URL
     const base = this.brandingService.getBrandingAndPortalUrl();
     this.logoUrl = `${base}/images/logo`;
-    // mark component ready via BaseComponent's internal flag
-    (this as any).isReady = true;
     // Initialize Bootstrap tooltips for all elements with data-bs-toggle="tooltip"
     setTimeout(() => {
       const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -103,6 +132,8 @@ export class BrandingAdminComponent extends BaseComponent {
         }
       });
     }, 0);
+    // Mark component as ready
+    this.componentReady = true;
   }
 
   async loadConfig() {
@@ -216,8 +247,8 @@ export class BrandingAdminComponent extends BaseComponent {
     this.savingDraft = true; this.message = this.error = undefined;
     try {
       const res: any = await this.brandingService.saveDraft(this.draftConfig);
-      this.message = 'Draft saved';
-      this.logger.debug(`Draft saved ${JSON.stringify(res)}`);
+        this.previewCssUrl = undefined;
+        this.previewBaseCssUrl = undefined;
       // Update published config if response contains branding data
       if (res?.branding) {
         this.publishedConfig = res.branding;
@@ -246,8 +277,8 @@ export class BrandingAdminComponent extends BaseComponent {
         this.previewCssUrl = `${base}/preview/${this.previewToken}.css`;
       } else {
         this.previewUrl = undefined;
-        this.previewCssUrl = undefined as any;
-        this.previewBaseCssUrl = undefined as any;
+        this.previewCssUrl = undefined;
+        this.previewBaseCssUrl = undefined;
       }
       this.message = 'Preview generated';
     } catch (e: any) {
@@ -259,7 +290,7 @@ export class BrandingAdminComponent extends BaseComponent {
   async publish() {
     this.publishing = true; this.message = this.error = undefined;
     try {
-      const res: any = await this.brandingService.publish(this.draftConfig);
+      const res: any = await this.brandingService.publish(this.draftConfig, this.publishedConfig.version);
       this.message = 'Branding published';
       // Reload the full configuration after publish
       await this.loadConfig();
@@ -326,5 +357,5 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   // Expose readiness to template
-  get initialized() { return (this as any).isReady; }
+  get initialized() { return this.componentReady; }
 }

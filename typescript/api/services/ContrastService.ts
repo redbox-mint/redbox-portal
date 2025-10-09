@@ -143,9 +143,12 @@ export module Services {
                 // Secondary text on secondary background
                 {
                     name: 'secondary-text-on-secondary-bg',
-                    fg: variables['secondary-text-color'] || '#6c757d',
-                    bg: variables['secondary-color'] || '#6c757d',
-                    textSize: 'normal' as const
+{
+    name: 'secondary-text-on-secondary-bg',
+    fg: variables['secondary-text-color'] || '#ffffff',
+    bg: variables['secondary-color'] || '#6c757d',
+    textSize: 'normal' as const
+},
                 },
                 // Accent text on accent background
                 {
@@ -257,29 +260,7 @@ export module Services {
             return { suggested: bestHex, originalRatio, newRatio: bestRatio, adjustments };
         }
 
-        /**
-         * Approximate RGB values for a target luminance
-         * This is a simplified approach for suggesting compliant colors
-         */
-        private luminanceToRgbApproximation(targetLuminance: number, baseRgb: { r: number; g: number; b: number }): { r: number; g: number; b: number } {
-            // Scale the base color towards white or black to achieve target luminance
-            const currentLuminance = this.getLuminance(`#${baseRgb.r.toString(16).padStart(2, '0')}${baseRgb.g.toString(16).padStart(2, '0')}${baseRgb.b.toString(16).padStart(2, '0')}`);
-
-            if (Math.abs(currentLuminance - targetLuminance) < 0.01) {
-                return baseRgb; // Close enough
-            }
-
-            // Simple interpolation towards white (for darker colors) or black (for lighter colors)
-            const factor = targetLuminance > currentLuminance ? 0.1 : -0.1; // Adjust in small steps
-
-            const newRgb = {
-                r: Math.max(0, Math.min(255, Math.round(baseRgb.r + (255 - baseRgb.r) * factor))),
-                g: Math.max(0, Math.min(255, Math.round(baseRgb.g + (255 - baseRgb.g) * factor))),
-                b: Math.max(0, Math.min(255, Math.round(baseRgb.b + (255 - baseRgb.b) * factor)))
-            };
-
-            return newRgb;
-        }
+    }
     }
 }
 

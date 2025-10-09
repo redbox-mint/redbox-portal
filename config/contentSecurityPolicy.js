@@ -28,6 +28,10 @@ module.exports.csp = {
     'default-src': ["'self'"],
     'script-src': ["'self'"],
     'worker-src': ["'self'"],
+    'img-src': ["'self'", 'data:', 'https:'],
+    'connect-src': ["'self'"],
+    'media-src': ["'self'"],
+    'frame-src': ["'self'"],
     // elements controlled by object-src are legacy, so set this to none
     'object-src': ["'none'"],
     'manifest-src': ["'self'"],

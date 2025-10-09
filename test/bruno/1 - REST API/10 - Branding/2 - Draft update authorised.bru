@@ -42,9 +42,9 @@ tests {
       var raw = res.getBody();
       var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
       expect(body).to.have.property('branding');
-      if (body.branding && body.branding.variables) {
-        expect(body.branding.variables['site-branding-area-background-color']).to.equal('#123123');
-      }
+      expect(body.branding).to.exist;
+      expect(body.branding.variables).to.exist;
+      expect(body.branding.variables['site-branding-area-background-color']).to.equal('#123123');
     }
   });
   

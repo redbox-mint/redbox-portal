@@ -26,7 +26,7 @@ function mapError(e: Error): { status: number; body: any } {
 
 export module Controllers {
   export class BrandingApp extends controllers.Core.Controller {
-    protected _exportedMethods: any = ['config','draft','preview','publish','logo'];
+    protected _exportedMethods: any = ['config', 'draft', 'preview', 'publish', 'logo'];
 
     /** 9.1 Return current draft/active branding config + logo meta */
     async config(req: Request, res: Response) {
@@ -35,42 +35,75 @@ export module Controllers {
         const brand = BrandingService.getBrand(branding);
         if (!brand) return res.status(404).json({ error: 'branding-not-found' });
         return res.ok({ branding: brand });
-      } catch(e:any) {
+      } catch (e: any) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
     }
 
     /** 9.2 Save draft variables */
-  async draft(req: Request, res: Response) {
+    async draft(req: Request, res: Response) {
       const branding = req.params['branding'];
+      
+      // Validate variables if provided
+      const variablesInput = req.body?.variables;
+      if (variablesInput !== undefined && variablesInput !== null) {
+        if (typeof variablesInput !== 'object' || Array.isArray(variablesInput)) {
+          return res.status(400).json({ error: 'Invalid variables in request body' });
+        }
+      }
+      
+      // Coerce variables to empty object if missing
+      const variables = variablesInput || {};
+      
       try {
-        const variables = req.body?.variables || {};
         const updated = await BrandingService.saveDraft({ branding, variables });
         return res.ok({ branding: updated });
-      } catch(e:any) {
+      } catch (e: any) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
     }
 
     /** 9.3 Create preview token */
-  async preview(req: Request, res: Response) {
+    async preview(req: Request, res: Response) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
         const { token, url, hash } = await BrandingService.preview(branding, portal);
         let brandConfig: any = null;
-        try { brandConfig = await BrandingService.getBrand(branding); } catch(_e){}
+        try {
+          brandConfig = await BrandingService.getBrandingFromDB(branding);
+
+        } catch (_e) {
+          sails.log.warn('Failed to fetch brand config for preview:', _e);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         return res.ok({ token, url, hash, previewToken: token, previewUrl: url, branding: brandConfig || undefined });
-      } catch(e:any) {
+      } catch (e: any) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
     }
 
     /** 9.4 Publish draft */
-  async publish(req: Request, res: Response) {
+    async publish(req: Request, res: Response) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
@@ -79,31 +112,37 @@ export module Controllers {
         const body: any = { version, hash };
         if (idempotent) body.idempotent = true;
         return res.ok(body);
-      } catch(e:any) {
+      } catch (e: any) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
     }
 
     /** 9.5 Upload logo */
-  async logo(req: Request, res: Response) {
+    async logo(req: Request, res: Response) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
-    
         if (!(req._fileparser && typeof (req as any).file === 'function')) {
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<any[]>((resolve, reject) => {
-          try { (req as any).file('logo').upload((err, uploaded) => err ? reject(err) : resolve(uploaded)); } catch(e) { resolve([]); }
+          try { (req as any).file('logo').upload((err, uploaded) => err ? reject(err) : resolve(uploaded)); } catch (e) { resolve([]); }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
-        const fs = require('fs');
-        const buf = fs.readFileSync(f.fd);
-        const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
+        const fs = require('fs').promises;
+        const buf = await fs.readFile(f.fd);
+        try {
+          const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
+          await fs.unlink(f.fd);
+          return res.ok({ hash });
+        } catch (e) {
+          await fs.unlink(f.fd);
+          throw e;
+        }
         return res.ok({ hash });
-      } catch(e:any) {
+      } catch (e: any) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }

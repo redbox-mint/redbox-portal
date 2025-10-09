@@ -4,10 +4,12 @@
  */
 import type { Request, Response } from 'sails';
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import type { Services as BrandingServices } from '../services/BrandingService';
+import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
 
 declare const sails: any;
-declare const BrandingService: any;
-declare const BrandingLogoService: any;
+declare const BrandingService: BrandingServices.Branding;
+declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
 declare const BrandingVersion: any;
@@ -30,7 +32,6 @@ export module Controllers {
 
     async draft(req: Request, res: Response) {
       const branding = req.params['branding'];
-      const portal = req.params['portal'];
       const actor = req.user;
       try {
         const variables = req.body?.variables || {};
@@ -49,9 +50,8 @@ export module Controllers {
     async preview(req: Request, res: Response) {
       const branding = BrandingService.getBrandFromReq(req);
       const portal = req.params['portal'];
-      const actor = req.user;
       try {
-        const { token, url, hash } = await BrandingService.preview(branding, portal, actor);
+        const { token, url, hash } = await BrandingService.preview(branding, portal);
         // Fetch current draft (variables) so response matches test expectation body.branding.variables
         let brandConfig: any = null;
         try {
@@ -60,7 +60,9 @@ export module Controllers {
             brandConfig = await BrandingService.getBrand(branding);
           }
         
-        } catch(_e) { /* non-fatal */ }
+        } catch (_e) {
+          sails.log.debug('Failed to fetch brand config for preview:', _e);
+        }
         // Provide both legacy (token/url) and expected (previewToken/previewUrl) keys
         return res.ok({
           token,
@@ -104,7 +106,6 @@ export module Controllers {
     async logo(req: Request, res: Response) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
-      const actor = req.user;
       try {
         if (!(req._fileparser && typeof req.file === 'function')) {
           return res.badRequest({ error: 'no-file' });
@@ -114,9 +115,9 @@ export module Controllers {
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
-        const fs = require('fs');
-        const buf = fs.readFileSync(f.fd);
-        const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type, actor });
+        const fs = require('fs').promises;
++       const buf = await fs.readFile(f.fd);
+        const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
         return res.ok({ hash });
       } catch(e: any){
         const { status, body } = mapError(e);
@@ -125,7 +126,7 @@ export module Controllers {
     }
     async history(req: Request, res: Response){
       const branding = req.params['branding'];
-      const actor = req.user;
+      
       try {
         const brand = await BrandingService.getBrand(branding);
         if(!brand) throw new Error('branding-not-found');

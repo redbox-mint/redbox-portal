@@ -13,6 +13,6 @@
   </div>
   <div class="col-xs-2"></div>
 </div>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module"></script>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js" type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module" <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js" type="module" <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css" <% if (contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>

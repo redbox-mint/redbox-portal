@@ -7,7 +7,7 @@ export * from './lib/config.service';
 export * from './lib/logger.service';
 export * from './lib/utility.service';
 export * from './lib/translation.service';
-export * from './lib/httpClient.service';
+
 export * from './lib/csrf.interceptor';
 export * from './lib/appconfig.service';
 export * from './lib/user.service';

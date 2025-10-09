@@ -31,7 +31,10 @@ export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDes
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['baseCssHref'] || changes['cssHref']) {
-      this.applyStylesheets(this.baseCssHref || undefined, this.cssHref || undefined);
+      // Only apply if view is initialized (shadow root exists)
+      if (this.host.nativeElement.shadowRoot) {
+        this.applyStylesheets(this.baseCssHref || undefined, this.cssHref || undefined);
+      }
     }
   }
 

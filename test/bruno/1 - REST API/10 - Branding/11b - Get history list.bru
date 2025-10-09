@@ -6,12 +6,11 @@ meta {
 
 get {
   url: {{host}}/default/rdmp/api/branding/history
-  auth: none
+  auth: bearer
 }
 
 headers {
      Authorization: Bearer {{token}}
-     ~Content-Type: application/json
 }
 
 tests {

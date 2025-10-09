@@ -65,15 +65,15 @@ module.exports = function (req, res, next) {
     // For any directive configured in addNonceTo, ensure the nonce token is prepended
     addNonceTo.forEach((name) => {
         const arr = directives[name];
-        if (arr) {
-            // Avoid duplicating if a nonce was somehow provided explicitly
+        if (Array.isArray(arr)) {
             const token = `'nonce-${generatedNonce}'`;
-            if (!arr.some((v) => typeof v === 'string' && v.startsWith("'nonce-"))) {
-                directives[name] = [token, ...arr];
-            }
+            // Remove any existing nonces and prepend the fresh one
+            const filtered = arr.filter((v) => typeof v !== 'string' || !v.startsWith("'nonce-"));
+            directives[name] = [token, ...filtered];
         }
     });
 
+    // Build the header value
     // Build the header value
     const parts = [];
     Object.keys(directives).forEach((key) => {
@@ -90,6 +90,16 @@ module.exports = function (req, res, next) {
         }
     });
 
+    const headerValue = parts.join('; ');
+
+    if (parts.length === 0) {
+        sails.log.warn('CSP is enabled but no directives or extras are configured. Skipping CSP header.');
+        return next();
+    }
+
+    // set the CSP header and value; add trailing semicolon for readability consistency with previous code
+    res.set('Content-Security-Policy', `${headerValue};`);
+    return next();
     const headerValue = parts.join('; ');
 
     // set the CSP header and value; add trailing semicolon for readability consistency with previous code

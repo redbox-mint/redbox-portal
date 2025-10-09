@@ -31,12 +31,11 @@ export module Services {
         }
 
         normaliseHex(value: string): string {
-            if (!_.isString(value)) return value;
             let v = value.trim();
             if (v.startsWith('#')) {
                 v = v.replace(/#/g, '');
                 if (v.length === 3) {
-                    v = '#' + v.split('').map(c => c + c).join('');
+                    v = v.split('').map(c => c + c).join('');
                 }
                 if (v.length === 6 || v.length === 8) return '#' + v.toLowerCase();
             }
@@ -76,9 +75,118 @@ export module Services {
             if (invalid.length) throw new Error('Invalid variable(s): ' + invalid.join(', '));
             const overrideLines: string[] = [];
             for (const [key, rawVal] of Object.entries(variables || {})) {
-                const normKey = key.startsWith('$') ? key.substring(1) : key;
+                const normKey = key.startsWith('
+            const scss = this.buildRootScss(overrideLines);
+
+            // Build a temporary workspace for webpack to compile our injected SCSS using the project loader chain
+            const tmpBase = path.join(process.cwd(), '.tmp', 'branding-webpack', crypto.randomBytes(8).toString('hex'));
+            const tmpOut = path.join(tmpBase, 'dist');
+            fse.mkdirpSync(tmpBase);
+            // Write a temporary root.scss and entry.js that imports it
+            const rootScssPath = path.join(tmpBase, 'root.scss');
+            const entryJsPath = path.join(tmpBase, 'entry.js');
+            fs.writeFileSync(rootScssPath, scss, 'utf8');
+            fs.writeFileSync(entryJsPath, `require('./root.scss');\n`, 'utf8');
+
+            // Minimal webpack config aligned with project's sass/css pipeline
+            const wpConfig = {
+                mode: 'production',
+                devtool: false,
+                entry: entryJsPath,
+                output: {
+                    path: tmpOut,
+                    filename: 'bundle.js',
+                    publicPath: '/',
+                    clean: true
+                },
+                module: {
+                    rules: [
+                        {
+                            test: /\.(sa|sc|c)ss$/,
+                            exclude: /\.\.\/angular/,
+                            use: [
+                                MiniCssExtractPlugin.loader,
+                                'css-loader',
+                                'resolve-url-loader',
+                                {
+                                    loader: 'sass-loader',
+                                    options: {
+                                        sourceMap: true, // Required for resolve-url-loader
+                                        sassOptions: {
+                                            loadPaths: [
+                                                path.resolve(process.cwd(), 'assets/styles'),
+                                                path.resolve(process.cwd(), 'node_modules')
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            test: /\.(woff2?|ttf|otf|eot|svg)$/,
+                            type: 'asset/resource',
+                            exclude: /\.\.\/angular/
+                        },
+                        {
+                            mimetype: 'image/svg+xml',
+                            scheme: 'data',
+                            type: 'asset/resource',
+                            generator: { filename: 'icons/[hash].svg' }
+                        }
+                    ]
+                },
+                plugins: [
+                    new MiniCssExtractPlugin({ filename: 'style.css' })
+                ],
+optimization: {
+    minimize: true,
+    minimizer: [new CssMinimizerPlugin()]
+},
+                },
+                resolve: {
+                    extensions: ['.js', '.ts', '.scss', '.css'],
+                    modules: [path.resolve(process.cwd(), 'node_modules'), 'node_modules']
+                },
+                resolveLoader: {
+                    modules: [path.resolve(process.cwd(), 'node_modules'), 'node_modules']
+                },
+                stats: 'errors-warnings'
+            };
+
+            const compiler = webpack(wpConfig);
+            const stats = await new Promise<any>((resolve, reject) => {
+                compiler.run((err: any, stats: any) => {
+                    if (err) return reject(err);
+                    const info = stats.toJson({ all: false, errors: true, warnings: true });
+                    if (stats.hasErrors()) {
+                        const errorMsg = info.errors
+                            ?.map((e: any) => e.message || JSON.stringify(e))
+                            .join('; ') || 'unknown error';
+                        return reject(new Error('Webpack SCSS compile failed: ' + errorMsg));
+                    }
+                    resolve(stats);
+                });
+            });
+
+            // Read the emitted CSS
+            const cssPath = path.join(tmpOut, 'style.css');
+            const css = fs.readFileSync(cssPath, 'utf8');
+            // Clean up temp directory (best-effort)
+            try { fse.removeSync(tmpBase); } catch (_e) { }
+
+            const hash = crypto.createHash('sha256').update(css).digest('hex').substring(0, 32);
+            return { css, hash };
+        }
+    }
+}
+module.exports = new Services.SassCompiler().exports();
+) ? key.substring(1) : key;
                 const value = this.normaliseHex(rawVal as string);
-                overrideLines.push(`$${normKey}: ${value}; // tenant override`);
+                // Sanitize value to prevent SCSS injection
+                if (/[{}();]/.test(value)) {
+                    throw new Error(`Invalid characters in variable value: ${normKey}`);
+                }
+                overrideLines.push(`${normKey}: ${value}; // tenant override`);
             }
             const scss = this.buildRootScss(overrideLines);
 
@@ -142,9 +250,10 @@ export module Services {
                 plugins: [
                     new MiniCssExtractPlugin({ filename: 'style.css' })
                 ],
-                optimization: {
-                    minimize: false,
-                    minimizer: [new CssMinimizerPlugin()]
+optimization: {
+    minimize: true,
+    minimizer: [new CssMinimizerPlugin()]
+},
                 },
                 resolve: {
                     extensions: ['.js', '.ts', '.scss', '.css'],
@@ -162,7 +271,10 @@ export module Services {
                     if (err) return reject(err);
                     const info = stats.toJson({ all: false, errors: true, warnings: true });
                     if (stats.hasErrors()) {
-                        return reject(new Error('Webpack SCSS compile failed: ' + (info.errors && info.errors[0] && info.errors[0].message || 'unknown error')));
+                        const errorMsg = info.errors
+                            ?.map((e: any) => e.message || JSON.stringify(e))
+                            .join('; ') || 'unknown error';
+                        return reject(new Error('Webpack SCSS compile failed: ' + errorMsg));
                     }
                     resolve(stats);
                 });

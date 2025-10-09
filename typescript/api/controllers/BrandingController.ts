@@ -122,6 +122,7 @@ export module Controllers {
         res.set('Cache-Control', 'public, max-age=300');
         return res.send(brand.css);
       } catch (e) {
+        sails.log.error('Error serving CSS:', e);
         res.status(500).send('/* error serving theme */');
       }
     }
@@ -138,6 +139,11 @@ export module Controllers {
         }
         if (!token) {
           return res.status(404).send('/* preview token missing */');
+        }
+
+        // Validate token format (e.g., alphanumeric, reasonable length)
+        if (!/^[a-zA-Z0-9_-]{1,128}$/.test(token)) {
+          return res.status(400).send('/* invalid preview token */');
         }
 
         const data = await BrandingService.fetchPreview(token);

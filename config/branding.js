@@ -66,16 +66,13 @@ module.exports.branding = {
     'surface-colour',
     'body-text-colour',
     'heading-text-colour',
-    'site-branding-area-background-color',
     'header-branding-link-color',
     'header-branding-background-color',
     'header-branding-text-color',
     'body-background-color',
-    'body-text-color',
     'footer-bottom-area-branding-background-color',
     'footer-bottom-area-branding-color',
     'panel-branding-background-color',
-    'panel-branding-color',
     'panel-branding-border-color',
     'anchor-color',
     'anchor-color-hover',
@@ -99,9 +96,6 @@ module.exports.branding = {
     // Bootstrap contextual theme variables
     'primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'
   ]
-  ,
-  /** Preview token TTL in seconds */
-  previewTtlSeconds: 300
 ,
   /** Maximum logo upload size in bytes */
   logoMaxBytes: 512 * 1024,

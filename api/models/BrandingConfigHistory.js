@@ -13,5 +13,17 @@ module.exports = {
     // autoCreatedAt provides timestamp for when publish occurred
     dateCreated: { type: 'string', autoCreatedAt: true }
   },
+  // Composite unique index to prevent duplicate versions for the same branding
+  indexes: [
+    {
+      attributes: {
+        branding: 1,
+        version: 1
+      },
+      options: {
+        unique: true
+      }
+    }
+  ],
   datastore: 'redboxStorage'
 };

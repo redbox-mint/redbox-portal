@@ -233,11 +233,15 @@ export module Services {
       // Check for external references (http/https/protocol-relative)
       const externalProtocols = ['http:', 'https:', '//'];
       
-      const hrefPattern = /(?:href|xlink:href)\s*=\s*["']([^"']*)["']/gi;
+      // Match href attributes with both quoted and unquoted values
+      // Group 1: quoted value (single or double quotes)
+      // Group 2: unquoted value (non-whitespace, non->)
+      const hrefPattern = /(?:href|xlink:href)\s*=\s*(?:["']([^"']*)["']|([^\s>]+))/gi;
       let match;
       
       while ((match = hrefPattern.exec(svg)) !== null) {
-        const url = match[1].toLowerCase().trim();
+        // Use whichever capture group matched (quoted = group 1, unquoted = group 2)
+        const url = (match[1] !== undefined ? match[1] : match[2]).toLowerCase().trim();
         
         // Check for dangerous protocols
         for (const protocol of dangerousProtocols) {
@@ -327,7 +331,8 @@ export module Services {
       // Pre-validation: Check for dangerous patterns before sanitization
       const hrefValidation = this.validateHrefAttributes(svg);
       if (!hrefValidation.valid) {
-        errors.push(...hrefValidation.errors);
+        // Filter out 'external-ref' as it will be caught by hooks
+        errors.push(...hrefValidation.errors.filter(e => e !== 'external-ref'));
       }
 
       // Check for script elements
@@ -419,7 +424,10 @@ export module Services {
         const dangerousPatterns = [
           { pattern: /javascript\s*:/gi, error: 'javascript-protocol-found' },
           { pattern: /vbscript\s*:/gi, error: 'vbscript-protocol-found' },
-          { pattern: /data\s*:[^#]/gi, error: 'data-protocol-found' },
+          // Block all data URLs - they can be used to embed malicious content
+          // Pattern matches "data:" followed by any content (MIME type, encoding, data)
+          // Examples blocked: data:text/html, data:image/svg+xml, data:application/javascript, etc.
+          { pattern: /data\s*:[^,\s]*[,\s]/gi, error: 'unsafe-data-url-found' },
           { pattern: /<script[\s>]/gi, error: 'script-element-found' },
           { pattern: /<\/script\s*>/gi, error: 'script-closing-tag-found' },
           { pattern: /on\w+\s*=/gi, error: 'event-handler-found' }
