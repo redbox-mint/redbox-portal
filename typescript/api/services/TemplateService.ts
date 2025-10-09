@@ -120,7 +120,7 @@ export module Services {
          *
          * @param template
          */
-        public buildClientHandlebars(template: string): string {
+        public buildClientHandlebars(template: string): string | null {
             try {
                 template = this.normalise(template);
                 // handlebars pre-compiled output is already a string
