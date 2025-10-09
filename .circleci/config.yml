@@ -196,7 +196,7 @@ jobs:
           when: always
       - store_test_results:
           path: .tmp/junit
-  test-ng-sails-common:
+  test-sails-ng-common:
     machine:
       image: ubuntu-2004:current
     resource_class: large
@@ -225,7 +225,6 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd ./packages/sails-ng-common
-            npm ci
             npm run pretest
             npx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \
               npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js
@@ -337,7 +336,7 @@ workflows:
       - test-mocha:
           requires:
             - build
-      - test-ng-sails-common:
+      - test-sails-ng-common:
           requires:
             - build
       - test-angular:
@@ -348,7 +347,7 @@ workflows:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
-            - test-ng-sails-common
+            - test-sails-ng-common
             - test-angular
           filters:
             branches:
@@ -358,7 +357,7 @@ workflows:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
-            - test-ng-sails-common
+            - test-sails-ng-common
             - test-angular
           filters:
             branches:
@@ -380,7 +379,7 @@ workflows:
       - test-mocha:
           requires:
             - build
-      - test-ng-sails-common:
+      - test-sails-ng-common:
           requires:
             - build
       - test-angular:
@@ -391,7 +390,7 @@ workflows:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
-            - test-ng-sails-common
+            - test-sails-ng-common
             - test-angular
           filters:
             branches:
@@ -401,7 +400,7 @@ workflows:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
-            - test-ng-sails-common
+            - test-sails-ng-common
             - test-angular
           filters:
             branches:
@@ -430,7 +429,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test-ng-sails-common:
+      - test-sails-ng-common:
           requires:
             - build
           filters:
@@ -459,7 +458,7 @@ workflows:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
-            - test-ng-sails-common
+            - test-sails-ng-common
             - test-angular
           filters:
             tags:
