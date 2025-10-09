@@ -19,12 +19,16 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import {TemplateCompileInput} from "../additional/TemplateCompile";
+import {firstValueFrom} from "rxjs";
 
 declare var module;
 declare var sails;
 declare var TemplateService;
+declare var FormsService;
+declare var BrandingService;
+declare var FormRecordConsistencyService;
 
 /**
  * Package that contains all Controllers.
@@ -42,6 +46,7 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'get',
+        'getFormCompiledItems',
         'getFormStructureValidations',
         'getFormDataValidations',
         'getFormExpressions',
@@ -68,6 +73,21 @@ export module Controllers {
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
       this.sendAssetView(res, assetId, {layout: false});
+    }
+
+    public async getFormCompiledItems(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const editMode = req.query.edit == "true";
+      const recordType = req.param("recordType") || this._recordTypeAuto;
+
+      try {
+        const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+        const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build compiled items from form config:", error);
+        return res.serverError();
+      }
     }
 
     /**
@@ -158,10 +178,15 @@ export module Controllers {
     private sendClientMappingJavascript(res, inputs: TemplateCompileInput[]) {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
-      const entryKeys = inputs.map(i => i.key).sort();
+      const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
       const assetId = "dynamicScriptAsset";
       sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
-      return this.sendAssetView(res, assetId, {entries: entries, layout: false})
+        return this.sendAssetView(res, assetId, {
+            entries: entries.map(i => {
+                return {key: TemplateService.buildKeyString(i.key), value: i.value}
+            }),
+            layout: false
+        });
     }
 
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {

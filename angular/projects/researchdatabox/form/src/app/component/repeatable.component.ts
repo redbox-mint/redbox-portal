@@ -75,7 +75,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // Get the default config.
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
-    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig as FormConfig);
+    const parentLineagePaths = this.formService.buildLineagePaths(
+      this.formFieldCompMapEntry?.lineagePaths,
+      {
+        angularComponents: [],
+        dataModel: [],
+        formConfig: ['component', 'config', 'elementTemplate'],
+      });
+    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig as FormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);

@@ -265,11 +265,12 @@ export class RecordService extends HttpClientService {
     return _isEmpty(targetStep) ? '' : `${delim}targetStep=${targetStep}`;
   }
 
-  public async getDynamicImportRecordDashboardTemplates(recordType: string, workflowStage: string){
-    const path = ['dynamicAsset', 'recordDashboardTemplates', recordType?.toString(), workflowStage?.toString()];
-    const result = await this.utilService.getDynamicImport(this.brandingAndPortalUrl, path);
-    return result;
-  }
+  // TODO:
+  // public async getDynamicImportRecordDashboardTemplates(recordType: string, workflowStage: string){
+  //   const path = ['dynamicAsset', 'recordDashboardTemplates', recordType?.toString(), workflowStage?.toString()];
+  //   const result = await this.utilService.getDynamicImport(this.brandingAndPortalUrl, path);
+  //   return result;
+  // }
 }
 
 export class RecordActionResult {

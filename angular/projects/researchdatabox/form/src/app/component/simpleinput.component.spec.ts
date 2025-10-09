@@ -5,9 +5,7 @@ import {TestBed} from "@angular/core/testing";
 
 describe('SimpleInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({declarations: {"SimpleInputComponent": SimpleInputComponent}});
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(SimpleInputComponent);

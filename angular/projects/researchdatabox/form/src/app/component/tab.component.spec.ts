@@ -10,10 +10,12 @@ let formConfig: FormConfig;
 
 describe('TabComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      TabComponent
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent,": SimpleInputComponent,
+        "TabComponent": TabComponent,
+      }
+    });
 
     formConfig = {
       debugValue: true,

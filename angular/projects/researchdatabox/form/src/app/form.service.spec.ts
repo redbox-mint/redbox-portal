@@ -26,7 +26,7 @@ describe('The FormService', () => {
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'http://localhost'
         },
         LoggerService,
         UtilityService,
