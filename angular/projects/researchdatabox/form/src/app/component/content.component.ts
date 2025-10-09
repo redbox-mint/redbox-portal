@@ -2,7 +2,7 @@ import {Component, inject, Injector} from '@angular/core';
 import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {ContentComponentConfig} from "@researchdatabox/sails-ng-common";
+import {ContentComponentConfig, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
 import * as Handlebars from 'handlebars';
 
 // *** Migration Notes ***
@@ -57,11 +57,17 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     const template = config?.template ?? '';
 
     if (content && template) {
-      const compiledItems = await this.getFormComponent.getCompiledItem();
-      const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
-      const context = {content: content};
-      const extra = {libraries: {Handlebars: Handlebars}};
-      this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+      try {
+        const compiledItems = await this.getFormComponent.getCompiledItem();
+        const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
+        const context = {content: content};
+        const extra = {libraries: {Handlebars: Handlebars}};
+        this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+      } catch (error) {
+        this.loggerService.error(`${this.logName}: Error loading content component`, error);
+        this.status.set(FormFieldComponentStatus.ERROR);
+        this.content = '';
+      }
     } else if (content && !template) {
       this.content = content;
     } else {

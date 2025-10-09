@@ -80,9 +80,14 @@ export module Controllers {
       const editMode = req.query.edit == "true";
       const recordType = req.param("recordType") || this._recordTypeAuto;
 
-      const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
-      return this.sendClientMappingJavascript(res, entries);
+      try {
+        const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+        const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build compiled items from form config:", error);
+        return res.serverError();
+      }
     }
 
     /**
