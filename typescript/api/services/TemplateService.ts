@@ -140,7 +140,7 @@ export module Services {
          *
          * @param template
          */
-        public buildServerHandlebars(template: string): HandlebarsTemplateDelegate {
+        public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
             try {
                 template = this.normalise(template);
                 const result = Handlebars.compile(template);
