@@ -29,8 +29,6 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     // Monitor form status to update disabled state
     effect(() => {
       const dataStatus = this.formComponent.formGroupStatus();
-      // TODO: determine under what circumstances will we need to listen to the FormStatusSignalBridge signals.
-
       // Disable if the form is invalid, pristine, or not ready (including VALIDATION_PENDING or SAVING)
       this.disabled.set(!dataStatus.valid ||
       dataStatus.pristine ||
