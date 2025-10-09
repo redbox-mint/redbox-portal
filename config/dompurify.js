@@ -106,7 +106,6 @@ module.exports.dompurify = {
      * the required rel attribute to any anchor tag with target="_blank".
      */
     html: {
-    minimal: {
       ALLOWED_TAGS: [
         'p', 'br', 'strong', 'em', 'u', 'i', 'b', 'span', 'div',
         'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
@@ -120,15 +119,6 @@ module.exports.dompurify = {
         'onload', 'onerror', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur',
         'onchange', 'onsubmit', 'onreset', 'onselect', 'onkeydown', 'onkeypress', 'onkeyup',
         'onmousedown', 'onmouseup', 'onmousemove', 'onmouseenter', 'onmouseleave',
-        'ondblclick', 'oncontextmenu', 'onwheel', 'ondrag', 'ondrop', 'ondragover'
-      ],
-      ALLOW_DATA_ATTR: true,
-      ALLOW_UNKNOWN_PROTOCOLS: false,
-      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-      SANITIZE_DOM: true,
-      KEEP_CONTENT: true,
-      IN_PLACE: false
-    }
         'ondblclick', 'oncontextmenu', 'onwheel', 'ondrag', 'ondrop', 'ondragover'
       ],
       ALLOW_DATA_ATTR: false,

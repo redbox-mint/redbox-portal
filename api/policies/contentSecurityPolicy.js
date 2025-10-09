@@ -74,7 +74,6 @@ module.exports = function (req, res, next) {
     });
 
     // Build the header value
-    // Build the header value
     const parts = [];
     Object.keys(directives).forEach((key) => {
         const values = directives[key];
@@ -90,21 +89,16 @@ module.exports = function (req, res, next) {
         }
     });
 
-    const headerValue = parts.join('; ');
-
     if (parts.length === 0) {
         sails.log.warn('CSP is enabled but no directives or extras are configured. Skipping CSP header.');
         return next();
     }
 
-    // set the CSP header and value; add trailing semicolon for readability consistency with previous code
-    res.set('Content-Security-Policy', `${headerValue};`);
-    return next();
     const headerValue = parts.join('; ');
 
-    // set the CSP header and value; add trailing semicolon for readability consistency with previous code
+    // Set the appropriate CSP header; add trailing semicolon for readability consistency with previous code
     const headerName = reportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
-    res.setHeader(headerName, headerValue + ';');
+    res.set(headerName, `${headerValue};`);
 
     // provide the nonce to the view, so it can be set in the angular app and scripts
     if (req.options.locals == null) {
