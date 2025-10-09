@@ -266,7 +266,7 @@ export class BrandingAdminComponent extends BaseComponent {
   async createPreview() {
     this.generatingPreview = true; this.message = this.error = undefined;
     try {
-      const res: any = await this.brandingService.createPreview(this.draftConfig);
+  const res: any = await this.brandingService.createPreview();
       this.previewToken = res?.token || res?.previewToken;
       if (this.previewToken) {
         // Existing full-page preview URL (no longer used in iframe)
