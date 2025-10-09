@@ -141,7 +141,6 @@ export module Controllers {
           await fs.unlink(f.fd);
           throw e;
         }
-        return res.ok({ hash });
       } catch (e: any) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);

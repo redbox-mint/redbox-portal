@@ -106,7 +106,7 @@ export module Services {
       return _.find(this.brandings, (o) => { return o.id == id });
     }
 
-    public async getBrandingFromDB(name): BrandingModel {
+    public async getBrandingFromDB(name: string): Promise<BrandingModel> {
       return BrandingConfig.findOne({ name: name });
     }
 

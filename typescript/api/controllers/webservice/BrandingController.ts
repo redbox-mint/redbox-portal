@@ -4,11 +4,13 @@
  */
 import type { Request, Response } from 'sails';
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
-import type { Services as BrandingServices } from '../services/BrandingService';
-import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
+import type { Services as BrandingServices } from '../../services/BrandingService';
+import type { Services as BrandingLogoServices } from '../../services/BrandingLogoService';
 
 declare const sails: any;
-declare const BrandingService: BrandingServices.Branding;
+declare const BrandingService: BrandingServices.Branding & {
+  saveLogo?: (file: any, branding: string, actor: any) => Promise<any>;
+};
 declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
@@ -116,7 +118,7 @@ export module Controllers {
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
         const fs = require('fs').promises;
-+       const buf = await fs.readFile(f.fd);
+        const buf = await fs.readFile(f.fd);
         const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
         return res.ok({ hash });
       } catch(e: any){

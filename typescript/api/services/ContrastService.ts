@@ -143,12 +143,9 @@ export module Services {
                 // Secondary text on secondary background
                 {
                     name: 'secondary-text-on-secondary-bg',
-{
-    name: 'secondary-text-on-secondary-bg',
-    fg: variables['secondary-text-color'] || '#ffffff',
-    bg: variables['secondary-color'] || '#6c757d',
-    textSize: 'normal' as const
-},
+                    fg: variables['secondary-text-color'] || '#ffffff',
+                    bg: variables['secondary-color'] || '#6c757d',
+                    textSize: 'normal' as const
                 },
                 // Accent text on accent background
                 {
@@ -259,8 +256,6 @@ export module Services {
             // Could not reach required; return best effort
             return { suggested: bestHex, originalRatio, newRatio: bestRatio, adjustments };
         }
-
-    }
     }
 }
 
