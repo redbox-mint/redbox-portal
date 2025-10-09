@@ -87,7 +87,7 @@ export module Services {
                     return value
                 }, 0);
                 sails.log.verbose(`Compiled client JSONata expression '${expression}'`);
-                return result?.toString();
+                return result;
             } catch (error) {
                 sails.log.error(`Could not compile client JSONata expression '${expression}'`, error);
                 return null;
