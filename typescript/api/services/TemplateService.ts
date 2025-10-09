@@ -101,7 +101,7 @@ export module Services {
          *
          * @param expression The JSONata expression to compile.
          */
-        public buildServerJsonata(expression: string): Expression {
+        public buildServerJsonata(expression: string): Expression | null {
             try {
                 expression = this.normalise(expression);
                 const result = this.buildSharedJsonata(expression);
