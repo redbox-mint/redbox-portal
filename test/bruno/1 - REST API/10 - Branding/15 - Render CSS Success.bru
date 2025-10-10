@@ -11,8 +11,11 @@ get {
 
 tests {
   test("Response contains CSS content", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getHeader('content-type')).to.include('text/css');
     const body = res.getBody();
     expect(body).to.be.a('string');
     expect(body.length).to.be.greaterThan(0);
   });
+}
 }

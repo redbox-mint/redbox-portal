@@ -275,7 +275,8 @@ export module Services {
       await BrandingConfig.update({ id: branding.id }, {
         variables: historyEntry.variables,
         css: historyEntry.css,
-        hash: historyEntry.hash
+        hash: historyEntry.hash,
+        version: historyEntry.version
       });
       const refreshed = await this.refreshBrandingCache(branding.id);
       return {

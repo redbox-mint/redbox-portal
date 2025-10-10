@@ -317,12 +317,18 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   copyToClipboard(text: string) {
+    if (!navigator.clipboard) {
+      this.error = 'Clipboard not available';
+      return;
+    }
     navigator.clipboard.writeText(text).then(() => {
       this.message = 'Preview token copied to clipboard';
     }).catch(() => {
       this.error = 'Failed to copy to clipboard';
     });
   }
+  
+
 
   updateVariable(key: string, event: any) {
     const value = event.target.value;

@@ -28,7 +28,7 @@ describe('BrandingPreviewComponent', () => {
     expect(btn('btn-dark')).withContext('dark button').not.toBeNull();
   });
 
-  it('injects base and preview stylesheets into Shadow DOM when inputs change', async () => {
+  it('injects base and preview stylesheets into Shadow DOM when inputs change', () => {
     const fixture = TestBed.createComponent(BrandingPreviewComponent);
     const comp = fixture.componentInstance;
 

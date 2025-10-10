@@ -16,8 +16,13 @@ tests {
   });
   
   test("Stores preview token", function () {
-  const raw = res.getBody();
-  const body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const raw = res.getBody();
+    let body;
+    try {
+      body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+      throw new Error(`Failed to parse response body as JSON: ${e.message}`);
+    }
       expect(body).to.have.property('token');
       expect(body).to.have.property('url');
       bru.setVar('preview_token', body.token);

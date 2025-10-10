@@ -29,7 +29,7 @@ body:json {
 tests {
   test("Status code is 409 for publish conflict or 200 if no conflict", function () {
     const status = res.getStatus();
-    expect([409, 200]).to.include(status);
+    expect(409).to.equal(status);
     
     if (status === 409) {
       var raw = res.getBody();

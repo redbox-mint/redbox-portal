@@ -41,11 +41,11 @@ describe('SvgSanitizerService', () => {
   it('flags and strips event handlers', async () => {
     const input = '<svg><rect width="10" height="10" onclick="alert(1)"/></svg>';
     const res = await SvgSanitizerService.sanitize(input);
-  // Event handlers are stripped and reported as a warning only; sanitized output should be considered safe
-  expect(res.safe).to.be.true;
-  expect(res.warnings).to.include('event-handlers-removed');
-  expect(res.errors).to.not.include('event-handlers-removed');
-  expect(res.sanitized).to.not.include('onclick=');
+    // Event handlers are stripped and reported as a warning only; sanitized output should be considered safe
+    expect(res.safe).to.be.true;
+    expect(res.warnings).to.include('event-handlers-removed');
+    expect(res.errors).to.not.include('event-handlers-removed');
+    expect(res.sanitized).to.not.include('onclick=');
   });
 
 });

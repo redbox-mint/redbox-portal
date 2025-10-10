@@ -79,22 +79,6 @@ export module Controllers {
           sails.log.warn('Failed to fetch brand config for preview:', _e);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         return res.ok({ token, url, hash, previewToken: token, previewUrl: url, branding: brandConfig || undefined });
       } catch (e: any) {
         const { status, body } = mapError(e);

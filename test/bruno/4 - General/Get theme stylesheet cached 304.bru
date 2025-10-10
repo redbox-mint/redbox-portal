@@ -18,7 +18,12 @@ script:pre-request {
 }
 
 tests {
+  test("ETag variable is set", function () {
+    const etag = bru.getVar("theme_etag");
+    expect(etag).to.be.a('string').and.not.be.empty;
+  });
+
   test("Returns 304 when ETag supplied", function () {
-      expect(res.getStatus()).to.equal(304);
+    expect(res.getStatus()).to.equal(304);
   });
 }

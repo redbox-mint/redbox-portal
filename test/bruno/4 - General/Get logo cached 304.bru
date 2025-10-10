@@ -12,9 +12,10 @@ get {
 
 script:pre-request {
   const etag = bru.getVar("logo_etag");
-  if(etag){
-    req.setHeader("If-None-Match", etag);
+  if (!etag) {
+    throw new Error("logo_etag variable must be set by a previous test. Run 'Get logo' test first.");
   }
+  req.setHeader("If-None-Match", etag);
 }
 
 tests {

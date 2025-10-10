@@ -39,10 +39,11 @@ describe('The BrandingService', function () {
     // Ensure each test runs with a clean branding state to avoid version/history interference
     beforeEach(async () => {
       const brand = await BrandingConfig.findOne({ name: 'default' });
-      if (brand) {
-        await BrandingConfig.update({ id: brand.id }).set({ css: '', hash: '', version: 0 });
-        await BrandingConfigHistory.destroy({ branding: brand.id });
+      if (!brand) {
+        throw new Error('Default brand not found - tests require a default brand to exist');
       }
+      await BrandingConfig.update({ id: brand.id }).set({ css: '', hash: '', version: 0 });
+      await BrandingConfigHistory.destroy({ branding: brand.id });
     });
 
     it('saveDraft accepts valid variables', async () => {

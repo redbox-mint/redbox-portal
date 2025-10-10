@@ -21,6 +21,8 @@ export module Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
 
+    /** Cached GridFS bucket to avoid repeated initialization. */
+    private cachedBucket: GridFSBucket | null = null;
 
     /** In-memory placeholder storage keyed by gridFsId. */
     private _binaryById: Record<string, { buffer: Buffer; storedAt: number }> = {};
@@ -61,11 +63,19 @@ export module Services {
 
     /** Lazily create a GridFS bucket using the configured 'mongodb' datastore. */
     private getBucket(): GridFSBucket | null {
+      // Return cached bucket if already initialized
+      if (this.cachedBucket) {
+        return this.cachedBucket;
+      }
+
       try {
         const ds = (sails as any).getDatastore ? (sails as any).getDatastore('mongodb') : null;
         const db: Db | undefined = ds?.manager; // sails-mongo exposes native Db as manager
         if (!db) return null;
-        return new GridFSBucket(db, { bucketName: 'fs' });
+        
+        // Create and cache the bucket for subsequent calls
+        this.cachedBucket = new GridFSBucket(db, { bucketName: 'fs' });
+        return this.cachedBucket;
       } catch (_e) {
         return null;
       }

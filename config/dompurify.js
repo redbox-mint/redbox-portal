@@ -107,10 +107,10 @@ module.exports.dompurify = {
      */
     html: {
       ALLOWED_TAGS: [
-        'p', 'br', 'strong', 'em', 'u', 'i', 'b', 'span', 'div',
+        'a','p', 'br', 'strong', 'em', 'u', 'i', 'b', 'span', 'div',
         'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
       ],
-      ALLOWED_ATTR: ['class', 'id', 'title'],
+      ALLOWED_ATTR: ['class', 'id', 'title', 'href', 'target', 'rel'],
       FORBID_TAGS: [
         'script', 'iframe', 'embed', 'object', 'applet'
       ],

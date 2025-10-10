@@ -32,13 +32,18 @@ export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDes
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['baseCssHref'] || changes['cssHref']) {
       // Only apply if view is initialized (shadow root exists)
-      if (this.host.nativeElement.shadowRoot) {
+      if (this.host?.nativeElement?.shadowRoot) {
         this.applyStylesheets(this.baseCssHref || undefined, this.cssHref || undefined);
       }
     }
   }
 
   ngAfterViewInit(): void {
+    // Guard against missing or non-shadow-capable host element
+    if (!this.host?.nativeElement?.shadowRoot) {
+      return; // Bail out of setup in SSR or non-shadow environments
+    }
+
     const root = this.host.nativeElement.shadowRoot as ShadowRoot;
     // Ensure stylesheets are attached on first render even if inputs were bound before view init
     this.applyStylesheets(this.baseCssHref || undefined, this.cssHref || undefined);
@@ -59,14 +64,34 @@ export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDes
   }
 
   ngOnDestroy(): void {
-    const root = this.host.nativeElement.shadowRoot as ShadowRoot | null;
+    const root = this.host?.nativeElement?.shadowRoot as ShadowRoot | null;
     if (root && this.clickListener) {
       root.removeEventListener('click', this.clickListener);
     }
   }
 
   private applyStylesheets(baseHref?: string, previewHref?: string) {
-    const root = (this.host.nativeElement.shadowRoot || this.host.nativeElement.attachShadow({ mode: 'open' })) as ShadowRoot;
+    // Guard against missing host element or non-shadow-capable environment
+    if (!this.host?.nativeElement) {
+      return; // Skip stylesheet attachment in SSR or invalid state
+    }
+
+    let root: ShadowRoot | null = null;
+    
+    if (this.host.nativeElement.shadowRoot) {
+      root = this.host.nativeElement.shadowRoot;
+    } else if (this.host.nativeElement.attachShadow) {
+      // Only call attachShadow if the method exists (not in SSR)
+      root = this.host.nativeElement.attachShadow({ mode: 'open' });
+    } else {
+      return; // Skip if shadow DOM is not supported
+    }
+
+    // Additional null check for TypeScript safety
+    if (!root) {
+      return;
+    }
+
     // Remove prior links if present
     if (this.baseLinkEl && this.baseLinkEl.parentNode) {
       this.baseLinkEl.parentNode.removeChild(this.baseLinkEl);

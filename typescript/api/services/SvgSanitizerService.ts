@@ -201,15 +201,15 @@ export module Services {
       const dompurifyConfig = _.get(sails.config, 'dompurify', {});
       const profiles = dompurifyConfig.profiles || {};
       const globalSettings = dompurifyConfig.globalSettings || {};
-      
+
       // Get the requested profile or fall back to default
       const profile = profiles[profileName] || profiles[dompurifyConfig.defaultProfile] || profiles.svg;
-      
+
       if (!profile) {
         sails.log.error(`SvgSanitizerService: DOMPurify profile '${profileName}' not found and no fallback available`);
         throw new Error(`DOMPurify configuration profile '${profileName}' not found`);
       }
-      
+
       // Merge profile settings with global settings
       return {
         ...globalSettings,
@@ -222,27 +222,27 @@ export module Services {
      */
     private validateHrefAttributes(svg: string): { valid: boolean; errors: string[] } {
       const errors: string[] = [];
-      
+
       // Check for dangerous protocols in href attributes
       const dangerousProtocols = [
         'javascript:', 'vbscript:', 'data:', 'file:', 'ftp:', 'ftps:',
         'chrome:', 'resource:', 'moz-extension:', 'chrome-extension:',
         'ms-appx:', 'ms-appx-web:', 'about:', 'blob:', 'filesystem:'
       ];
-      
+
       // Check for external references (http/https/protocol-relative)
       const externalProtocols = ['http:', 'https:', '//'];
-      
+
       // Match href attributes with both quoted and unquoted values
       // Group 1: quoted value (single or double quotes)
       // Group 2: unquoted value (non-whitespace, non->)
       const hrefPattern = /(?:href|xlink:href)\s*=\s*(?:["']([^"']*)["']|([^\s>]+))/gi;
       let match;
-      
+
       while ((match = hrefPattern.exec(svg)) !== null) {
         // Use whichever capture group matched (quoted = group 1, unquoted = group 2)
         const url = (match[1] !== undefined ? match[1] : match[2]).toLowerCase().trim();
-        
+
         // Check for dangerous protocols
         for (const protocol of dangerousProtocols) {
           if (url.startsWith(protocol)) {
@@ -258,7 +258,7 @@ export module Services {
             break;
           }
         }
-        
+
         // Check for external references
         for (const protocol of externalProtocols) {
           if (url.startsWith(protocol)) {
@@ -267,7 +267,7 @@ export module Services {
           }
         }
       }
-      
+
       return { valid: errors.length === 0, errors };
     }
 
@@ -284,29 +284,30 @@ export module Services {
     } {
       const errors: string[] = [];
       const warnings: string[] = [];
-      
+
       // Enhanced input validation
       if (!_.isString(svg)) {
         errors.push('not-a-string');
         return { safe: false, sanitized: '', errors, warnings, info: { originalBytes: 0, sanitizedBytes: 0 } };
       }
-      
+
       // Check for null bytes and other control characters
       if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(svg)) {
         errors.push('contains-control-characters');
       }
-      
+
       const originalBytes = Buffer.byteLength(svg, 'utf8');
       const max = this.getMaxBytes();
-      if (originalBytes > max) {
-        errors.push('too-large');
+      if (originalBytes > max || svg.length > max) {
+        if (originalBytes > max) {
+          errors.push('too-large');
+        }
+        if (svg.length > max) {
+          errors.push('string-too-long');
+        }
+        return { safe: false, sanitized: '', errors, warnings, info: { originalBytes, sanitizedBytes: 0 } };
       }
-      
-      // Additional size check - prevent extremely long strings
-      if (svg.length > max) {
-        errors.push('string-too-long');
-      }
-      
+
       // Basic structural check
       if (!/<svg[\s>]/i.test(svg)) {
         errors.push('missing-svg-root');
@@ -339,7 +340,7 @@ export module Services {
       if (/<script[\s>]/i.test(svg)) {
         errors.push('script-element');
       }
-      
+
       // Check for foreign object elements
       if (/<foreignObject[\s>]/i.test(svg)) {
         errors.push('foreign-object');
@@ -415,11 +416,11 @@ export module Services {
           DOMPurify.removeHook('beforeSanitizeAttributes');
           DOMPurify.removeHook('beforeSanitizeElements');
         }
-        
+
         // Post-sanitization validation
         // Convert TrustedHTML to string for further processing
         let working = String(sanitized);
-        
+
         // Final security checks for any remaining dangerous patterns
         const dangerousPatterns = [
           { pattern: /javascript\s*:/gi, error: 'javascript-protocol-found' },
@@ -432,7 +433,7 @@ export module Services {
           { pattern: /<\/script\s*>/gi, error: 'script-closing-tag-found' },
           { pattern: /on\w+\s*=/gi, error: 'event-handler-found' }
         ];
-        
+
         dangerousPatterns.forEach(check => {
           if (check.pattern.test(working)) {
             errors.push(check.error);
@@ -440,32 +441,32 @@ export module Services {
             working = working.replace(check.pattern, '');
           }
         });
-        
+
         // Collapse excessive whitespace
         working = working.replace(/\s{2,}/g, ' ').trim();
 
         const sanitizedBytes = Buffer.byteLength(working, 'utf8');
         const safe = errors.length === 0;
-        
-        return { 
-          safe, 
-          sanitized: working, 
-          errors, 
-          warnings, 
-          info: { originalBytes, sanitizedBytes } 
+
+        return {
+          safe,
+          sanitized: working,
+          errors,
+          warnings,
+          info: { originalBytes, sanitizedBytes }
         };
-        
+
       } catch (error) {
         // Handle any DOMPurify errors
         errors.push('sanitization-error');
         sails.log.error('SVG sanitization error:', error);
-        
-        return { 
-          safe: false, 
-          sanitized: '', 
-          errors, 
-          warnings, 
-          info: { originalBytes, sanitizedBytes: 0 } 
+
+        return {
+          safe: false,
+          sanitized: '',
+          errors,
+          warnings,
+          info: { originalBytes, sanitizedBytes: 0 }
         };
       }
     }

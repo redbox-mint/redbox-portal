@@ -10,11 +10,11 @@ get {
 }
 
 headers {
-  If-None-Match: W/"logo-test-hash"
+  If-None-Match: W/"<not-a-valid-tag>"
 }
 
 tests {
-  test("Status code is 200 (depending on ETag match)", function () {
+  test("Status code is 200 when ETag doesn't match", function () {
     const status = res.getStatus();
     expect(status).to.equal(200);
   });

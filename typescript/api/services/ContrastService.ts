@@ -195,7 +195,7 @@ export module Services {
          * Suggest a compliant color by adjusting the foreground color
          * to meet contrast requirements with the background
          */
-    suggestCompliant(foreground: string, background: string, textSize: TextSize = 'normal'): {
+        suggestCompliant(foreground: string, background: string, textSize: TextSize = 'normal'): {
             suggested: string;
             originalRatio: number;
             newRatio: number;
@@ -222,7 +222,16 @@ export module Services {
             // Determine adjustment direction: if background is light, darken foreground; if dark, lighten foreground
             const bgLum = this.getLuminance(background);
             const fgLum = this.getLuminance(foreground);
-            const makeDarker = bgLum > fgLum; // if fg lighter than bg we need to darken; with light bg typical
+            let makeDarker = bgLum > fgLum; // if fg lighter than bg we need to darken; with light bg typical
+
+            const maxLightRatio = this.calculateRatio('#ffffff', background);
+            const maxDarkRatio = this.calculateRatio('#000000', background);
+            const chosenMax = makeDarker ? maxDarkRatio : maxLightRatio;
+            const alternateMax = makeDarker ? maxLightRatio : maxDarkRatio;
+
+            if (chosenMax < required && alternateMax > chosenMax) {
+                makeDarker = !makeDarker;
+            }
 
             let currentRgb = this.hexToRgb(foreground)!;
             let adjustments = 0;

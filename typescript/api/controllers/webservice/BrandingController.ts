@@ -8,9 +8,7 @@ import type { Services as BrandingServices } from '../../services/BrandingServic
 import type { Services as BrandingLogoServices } from '../../services/BrandingLogoService';
 
 declare const sails: any;
-declare const BrandingService: BrandingServices.Branding & {
-  saveLogo?: (file: any, branding: string, actor: any) => Promise<any>;
-};
+declare const BrandingService: BrandingServices.Branding;
 declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
@@ -38,10 +36,6 @@ export module Controllers {
       try {
         const variables = req.body?.variables || {};
         const updated = await BrandingService.saveDraft({ branding, variables, actor });
-        let logoRes = null;
-        if (req.files && req.files.logo) {
-          logoRes = await BrandingService.saveLogo(req.files.logo, branding, actor);
-        }
         return res.ok({ branding: updated, logoRes });
       } catch(e: any){
         const { status, body } = mapError(e);

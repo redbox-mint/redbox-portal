@@ -78,7 +78,7 @@ export module Services {
                 const normKey = key.startsWith('$') ? key.substring(1) : key;
                 const value = this.normaliseHex(rawVal as string);
                 // Sanitize value to prevent SCSS injection
-                if (/[{}();]/.test(value)) {
+                if (/[{}();@"'\\\/\n\r!]/.test(value)) {
                     throw new Error(`Invalid characters in variable value: ${normKey}`);
                 }
                 const variableName = normKey.startsWith('$') ? normKey : `$${normKey}`;

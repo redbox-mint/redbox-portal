@@ -20,7 +20,7 @@ body:json {
 }
 
 tests {
-  test("Publish idempotent returns same version & hash", function(){
+  test("Publish idempotent returns same version", function(){
     expect(res.getStatus()).to.equal(200);
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;

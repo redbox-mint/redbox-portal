@@ -1,5 +1,5 @@
 meta {
-  name: Render Preview CSS Success
+  name: Render Preview CSS - Invalid Token
   type: http
   seq: 29
 }
@@ -12,7 +12,7 @@ get {
 tests {
   test("Status code is 404 depending on token validity", function () {
     const status = res.getStatus();
-    expect(404).to.equal(status);
+    expect(status).to.equal(404);
   });
   
 }
