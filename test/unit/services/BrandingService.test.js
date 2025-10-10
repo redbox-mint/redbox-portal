@@ -1,33 +1,34 @@
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
+const _ = require('lodash');
 
 describe('The BrandingService', function () {
 
   before(function (done) {
-      done();
+    done();
   });
 
   it('should have one brand', function (done) {
-     var brands = BrandingService.getAvailable();
-     brands.should.have.length(1);
-     done();
+    var brands = BrandingService.getAvailable();
+    brands.should.have.length(1);
+    done();
   });
 
   it('should return the default brand', function (done) {
-     var defBrand = BrandingService.getDefault();
-     defBrand.should.have.property('name', 'default');
-     defBrand = BrandingService.getBrand('default');
-     defBrand.should.have.property('name', 'default');
-     done();
+    var defBrand = BrandingService.getDefault();
+    defBrand.should.have.property('name', 'default');
+    defBrand = BrandingService.getBrand('default');
+    defBrand.should.have.property('name', 'default');
+    done();
   });
 
   it('should resolve the correct brand and portal', function (done) {
-    var req = {'params': {'branding': sails.config.auth.defaultBrand, 'portal': sails.config.auth.defaultPortal}};
+    var req = { 'params': { 'branding': sails.config.auth.defaultBrand, 'portal': sails.config.auth.defaultPortal } };
     var rootContext = BrandingService.getRootContext();
     var path = BrandingService.getBrandAndPortalPath(req);
-    path.should.equal(rootContext+'/'+req.params.branding + '/' + req.params.portal);
-    path = BrandingService.getBrandAndPortalPath({params:{}});
-    path.should.equal(rootContext+'/'+req.params.branding + '/' + req.params.portal);
+    path.should.equal(rootContext + '/' + req.params.branding + '/' + req.params.portal);
+    path = BrandingService.getBrandAndPortalPath({ params: {} });
+    path.should.equal(rootContext + '/' + req.params.branding + '/' + req.params.portal);
     done();
   });
 
@@ -50,7 +51,7 @@ describe('The BrandingService', function () {
     });
 
     it('saveDraft rejects invalid variable key', async () => {
-      let err; try { await BrandingService.saveDraft({ branding: 'default', variables: { 'not-allowed-var': '#fff' }, actor: admin }); } catch(e){ err = e; }
+      let err; try { await BrandingService.saveDraft({ branding: 'default', variables: { 'not-allowed-var': '#fff' }, actor: admin }); } catch (e) { err = e; }
       expect(err).to.exist;
       expect(err.message).to.match(/Invalid variable key/);
     });
@@ -59,7 +60,7 @@ describe('The BrandingService', function () {
       // Provide two very similar colors for a validated pair
       let err; try {
         await BrandingService.saveDraft({ branding: 'default', variables: { 'primary-color': '#ffffff', 'primary-text-color': '#fefefe' }, actor: admin });
-      } catch(e){ err = e; }
+      } catch (e) { err = e; }
       expect(err).to.exist;
       expect(err.message).to.match(/contrast-violation/);
     });
@@ -80,39 +81,40 @@ describe('The BrandingService', function () {
       const name = 'branding-preview:' + token;
       const entry = await CacheEntry.findOne({ name });
       // Manually age the entry beyond TTL
-      const expiredTs = Math.floor(Date.now()/1000) - (sails.config.branding.previewTtlSeconds + 10);
-      await CacheEntry.update({ id: entry.id }, { ts_added: expiredTs });
-      let err; try { await BrandingService.fetchPreview(token); } catch(e){ err = e; }
+      const ttlSeconds = Number.isFinite(_.get(sails, 'config.branding.previewTtlSeconds')) ? sails.config.branding.previewTtlSeconds : 300;
+      const expiredTs = Math.floor(Date.now() / 1000) - (ttlSeconds + 10);
+      await CacheEntry.update({ id: entry.id }).set({ ts_added: expiredTs });
+      let err; try { await BrandingService.fetchPreview(token); } catch (e) { err = e; }
       expect(err).to.exist;
       expect(err.message).to.match(/preview-expired/);
     });
 
     it('publish bumps version, changes hash, creates history + rollback works', async () => {
-    // Capture starting version in case other suites have already published
-    const starting = await BrandingConfig.findOne({ name: 'default' });
-    const baseVersion = (starting && starting.version) || 0;
-    // First draft & publish
-    await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#aabbcc' }, actor: admin });
-    const pub1 = await BrandingService.publish('default', 'default', admin);
-    expect(pub1.version).to.equal(baseVersion + 1);
-    const brandAfterFirst = await BrandingConfig.findOne({ name: 'default' });
+      // Capture starting version in case other suites have already published
+      const starting = await BrandingConfig.findOne({ name: 'default' });
+      const baseVersion = (starting && starting.version) || 0;
+      // First draft & publish
+      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#aabbcc' }, actor: admin });
+      const pub1 = await BrandingService.publish('default', 'default', admin);
+      expect(pub1.version).to.equal(baseVersion + 1);
+      const brandAfterFirst = await BrandingConfig.findOne({ name: 'default' });
       const firstHash = brandAfterFirst.hash;
       const histories1 = await BrandingConfigHistory.find({ branding: brandAfterFirst.id });
-    expect(histories1).to.have.length(1 + baseVersion); // include any pre-existing history entries
+      expect(histories1).to.have.length(1 + baseVersion); // include any pre-existing history entries
 
       // Second draft & publish with different value
       await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#112233' }, actor: admin });
       const pub2 = await BrandingService.publish('default', 'default', admin);
-    expect(pub2.version).to.equal(baseVersion + 2);
+      expect(pub2.version).to.equal(baseVersion + 2);
       const brandAfterSecond = await BrandingConfig.findOne({ name: 'default' });
       expect(brandAfterSecond.hash).to.not.equal(firstHash);
-    const histories2 = await BrandingConfigHistory.find({ branding: brandAfterSecond.id }).sort('version ASC');
-    // histories may include earlier versions; find the first version we created in this test
-    const firstHistory = histories2.find(h => h.version === baseVersion + 1);
+      const histories2 = await BrandingConfigHistory.find({ branding: brandAfterSecond.id }).sort('version ASC');
+      // histories may include earlier versions; find the first version we created in this test
+      const firstHistory = histories2.find(h => h.version === baseVersion + 1);
 
       // Rollback to first version
       const rollbackRes = await BrandingService.rollback(firstHistory.id, admin);
-    expect(rollbackRes.version).to.equal(baseVersion + 1);
+      expect(rollbackRes.version).to.equal(baseVersion + 1);
       const brandAfterRollback = await BrandingConfig.findOne({ name: 'default' });
       expect(brandAfterRollback.variables['site-branding-area-background-color']).to.equal('#aabbcc');
       expect(brandAfterRollback.hash).to.equal(firstHash);
