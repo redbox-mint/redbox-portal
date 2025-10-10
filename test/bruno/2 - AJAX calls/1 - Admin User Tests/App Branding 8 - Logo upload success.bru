@@ -1,7 +1,7 @@
 meta {
   name: App Branding - Logo upload success
   type: http
-  seq: 907
+  seq: 51
 }
 
 post {
@@ -28,11 +28,11 @@ tests {
   test("Status code is 200", function(){
     expect(res.getStatus()).to.equal(200);
   });
-
+  
   test("JSON content type", function(){
     expect(res.getHeader('content-type')).to.contain('application/json');
   });
-
+  
   test("Logo hash returned", function(){
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;

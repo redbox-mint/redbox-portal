@@ -1,7 +1,7 @@
 meta {
   name: App Branding - Draft Contrast Violation (400)
   type: http
-  seq: 19
+  seq: 41
 }
 
 post {
@@ -15,11 +15,6 @@ headers {
   Content-Type: application/json
 }
 
-script:pre-request {
-  const cookie = bru.getVar("cookie");
-  if(cookie) { req.setHeader("Cookie", cookie); }
-}
-
 body:json {
   {
     "variables": {
@@ -27,6 +22,11 @@ body:json {
       "site-branding-area-text-color": "#ffff00"
     }
   }
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
 }
 
 tests {

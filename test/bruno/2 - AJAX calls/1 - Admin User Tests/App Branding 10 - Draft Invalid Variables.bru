@@ -1,7 +1,7 @@
 meta {
   name: App Branding - Draft Invalid Variables (400)
   type: http
-  seq: 18
+  seq: 40
 }
 
 post {
@@ -15,11 +15,6 @@ headers {
   Content-Type: application/json
 }
 
-script:pre-request {
-  const cookie = bru.getVar("cookie");
-  if(cookie) { req.setHeader("Cookie", cookie); }
-}
-
 body:json {
   {
     "variables": {
@@ -29,11 +24,16 @@ body:json {
   }
 }
 
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
 tests {
   test("Status code is 400 for invalid variable key", function () {
     const status = res.getStatus();
     expect(status).to.equal(400);
-
+  
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
     expect(body.error).to.equal('invalid-variable');

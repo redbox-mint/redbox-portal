@@ -1,7 +1,7 @@
 meta {
   name: App Branding - Publish Conflict (409)
   type: http
-  seq: 20
+  seq: 42
 }
 
 post {
@@ -15,15 +15,15 @@ headers {
   Content-Type: application/json
 }
 
-script:pre-request {
-  const cookie = bru.getVar("cookie");
-  if(cookie) { req.setHeader("Cookie", cookie); }
-}
-
 body:json {
   {
     "expectedVersion": 999999
   }
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
 }
 
 tests {
