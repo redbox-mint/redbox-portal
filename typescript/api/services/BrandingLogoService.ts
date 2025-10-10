@@ -145,9 +145,12 @@ export module Services {
     }
 
     /** Write logo to storage (GridFS) and update BrandingConfig.logo metadata */
-    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<
-      | { ok: false; errors: string[]; warnings: string[]; }
-      | { ok: true; sha256: string; sanitizedBuffer: Buffer; warnings: string[]; finalContentType: string; }> {
+    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<{
+      hash: string;
+      gridFsId: string;
+      contentType: string;
+      updatedAt: string;
+    }> {
       const brand = await BrandingConfig.findOne({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(opts.fileBuffer, opts.contentType);
