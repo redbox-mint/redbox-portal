@@ -36,7 +36,7 @@ export module Controllers {
       try {
         const variables = req.body?.variables || {};
         const updated = await BrandingService.saveDraft({ branding, variables, actor });
-        return res.ok({ branding: updated, logoRes });
+        return res.ok({ branding: updated });
       } catch(e: any){
         const { status, body } = mapError(e);
         return res.status(status).json(body);

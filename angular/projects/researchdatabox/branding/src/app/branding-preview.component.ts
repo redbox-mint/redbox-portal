@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 /**
  * Shadow DOM based branding preview component.
  * Loads an external CSS (from same-origin) via <link> and renders a small preview shell.
- * CSP-friendly: no inline styles, no script execution.
  */
 @Component({
   selector: 'branding-preview',
