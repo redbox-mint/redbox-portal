@@ -253,6 +253,7 @@ export class BrandingAdminComponent extends BaseComponent {
       if (res?.branding) {
         this.publishedConfig = res.branding;
       }
+      this.message = 'Draft saved';
     } catch (e: any) {
       // Prefer server-provided message (e.error.message) when available to surface
       // validation details like 'contrast-violation'. Fallback to generic error.

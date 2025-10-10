@@ -67,7 +67,7 @@ describe('BrandingAdminComponent', () => {
     const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
     cfgReq.flush({ branding: { variables: { 'primary-color': '#123456' }, version: 1 } });
     await loadPromise;
-    expect(component.publishedConfig.variables['primary-color']).toBe('#123456');
+  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#123456');
     httpMock.verify();
   });
 
@@ -84,7 +84,7 @@ describe('BrandingAdminComponent', () => {
     saveReq.flush({ branding: { variables: { 'primary-color': '#abcdef' }, version: 1 } });
     await savePromise;
     expect(component.message).toBe('Draft saved');
-    expect(component.publishedConfig.variables['primary-color']).toBe('#abcdef');
+  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#abcdef');
     httpMock.verify();
   });
 
@@ -148,7 +148,7 @@ describe('BrandingAdminComponent', () => {
   const reloadReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
   reloadReq.flush({ branding: { variables: { 'primary-color': '#fff000' }, version: 2 } });
   await reloadPromise;
-  expect(component.publishedConfig.variables['primary-color']).toBe('#fff000');
+  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#fff000');
   httpMock.verify();
   });
 });
