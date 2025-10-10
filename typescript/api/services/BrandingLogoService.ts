@@ -107,9 +107,11 @@ export module Services {
         return { ok: false, errors, warnings };
       }
 
-      if (fileBuf.length === 0) {
+      if (!fileBuf || !Buffer.isBuffer(fileBuf) || fileBuf.length === 0) {
         errors.push('empty');
+        return { ok: false, errors, warnings };
       }
+      
       if (!this.allowedContentTypes.has(contentType)) {
         errors.push('unsupported-type');
       }
@@ -143,7 +145,9 @@ export module Services {
     }
 
     /** Write logo to storage (GridFS) and update BrandingConfig.logo metadata */
-    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<{ hash: string; gridFsId: string; contentType: string; updatedAt: string; }> {
+    async putLogo(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<
+      | { ok: false; errors: string[]; warnings: string[]; }
+      | { ok: true; sha256: string; sanitizedBuffer: Buffer; warnings: string[]; finalContentType: string; }> {
       const brand = await BrandingConfig.findOne({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(opts.fileBuffer, opts.contentType);

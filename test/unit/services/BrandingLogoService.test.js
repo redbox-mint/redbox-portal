@@ -22,8 +22,11 @@ describe('BrandingLogoService (Task 6)', () => {
   });
 
   it('rejects oversized file', async () => {
-    const big = Buffer.alloc(sails.config.branding.logoMaxBytes + 10, 0);
+    const originalLimit = sails.config.branding.logoMaxBytes;
+    sails.config.branding.logoMaxBytes = 100;
+    const big = Buffer.alloc(110, 0);
     let err; try { await BrandingLogoService.putLogo({ branding: 'default', portal: 'default', fileBuffer: big, contentType: 'image/png' }); } catch(e){ err = e; }
+    sails.config.branding.logoMaxBytes = originalLimit;
     expect(err).to.exist;
     expect(err.message).to.match(/logo-invalid: .*too-large/);
   });

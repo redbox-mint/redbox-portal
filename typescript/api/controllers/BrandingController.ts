@@ -227,7 +227,7 @@ export module Controllers {
         if (!brand || !brand.logo || !brand.logo.gridFsId) {
           // fallback to static
           res.contentType(sails.config.static_assets.imageType);
-          return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
+          return res.sendFile(`${sails.config.appPath}/assets/images/${sails.config.static_assets.logoName}`);
         }
         const id = brand.logo.gridFsId;
         // Try persistent storage first (GridFS), then in-memory cache
