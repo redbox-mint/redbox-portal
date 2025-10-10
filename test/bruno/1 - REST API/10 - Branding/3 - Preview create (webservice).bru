@@ -21,9 +21,6 @@ tests {
   });
   test("Preview variables returned", function(){
     var raw = res.getBody();
-    console.log("&*^*&^*()^*&*^*^*&*^*^*^*&*^raw")
-    console.log(raw)
-    console.log("&*^*&^*()^*&*^*^*&*^*^*^*&*^raw")
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
     expect(body.branding.variables['site-branding-area-background-color']).to.equal('#123123');
   });

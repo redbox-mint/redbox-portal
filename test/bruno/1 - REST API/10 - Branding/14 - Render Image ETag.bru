@@ -1,5 +1,5 @@
 meta {
-  name: Render Image with ETag (304)
+  name: Render Image with ETag (200)
   type: http
   seq: 14
 }
@@ -14,8 +14,8 @@ headers {
 }
 
 tests {
-  test("Status code is 200 or 304 (depending on ETag match)", function () {
+  test("Status code is 200 (depending on ETag match)", function () {
     const status = res.getStatus();
-    expect([200, 304]).to.include(status);
+    expect(status).to.equal(200);
   });
 }

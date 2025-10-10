@@ -34,7 +34,7 @@ services:
       --bail;
       status=$?;
       wget -qO- http://redboxportal:1599 || true;
-      sleep 180;
+      sleep ${BRUNO_POST_SLEEP_SECONDS:-30};
       exit $status"
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
