@@ -1,5 +1,5 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './simpleinput.component';
+import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -7,11 +7,13 @@ import {TestBed} from "@angular/core/testing";
 
 describe('RepeatableComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      RepeatableComponent,
-      RepeatableElementLayoutComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(RepeatableComponent);

@@ -581,10 +581,6 @@ a:not([href]):not([class]), a:not([href]):not([class]):hover {
     padding: 0
 }
 
-.input-group {
-    width:auto !important
-}
-
 .form-control {
     appearance: auto !important
 }
@@ -4756,18 +4752,6 @@ tbody.collapse.in {
     position: absolute;
     clip: rect(0,0,0,0);
     pointer-events: none
-}
-
-.input-group {
-    position: relative;
-    display: table;
-    border-collapse: separate
-}
-
-.input-group[class*=col-] {
-    float: none;
-    padding-right: 0;
-    padding-left: 0
 }
 
 .input-group .form-control {

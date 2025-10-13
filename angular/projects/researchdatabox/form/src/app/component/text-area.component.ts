@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { TextAreaComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/textarea.model';
+import { TextAreaComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/text-area.model';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class TextAreaModel extends FormFieldModel<string> {

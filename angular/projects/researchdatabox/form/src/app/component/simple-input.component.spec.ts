@@ -1,21 +1,19 @@
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {TextAreaComponent} from "./textarea.component";
+import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
-describe('TextAreaComponent', () => {
+describe('SimpleInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      TextAreaComponent,
-    ]);
+    await createTestbedModule({declarations: {"SimpleInputComponent": SimpleInputComponent}});
   });
   it('should create component', () => {
-    let fixture = TestBed.createComponent(TextAreaComponent);
+    let fixture = TestBed.createComponent(SimpleInputComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
-  it('should render Textarea component', async () => {
-
+  it('should render TextField component', async () => {
+    // arrange
     const formConfig: FormConfig = {
       debugValue: true,
       defaultComponentConfig: {
@@ -24,25 +22,24 @@ describe('TextAreaComponent', () => {
       editCssClasses: "redbox-form form",
       componentDefinitions: [
         {
-          name: 'textarea_test',
+          name: 'text_1_event',
           model: {
-            class: 'TextAreaModel',
+            class: 'SimpleInputModel',
             config: {
-              defaultValue: 'Text area hello world test text'
+              defaultValue: 'hello world saved!'
             }
           },
           component: {
-            class: 'TextAreaComponent'
+            class: 'SimpleInputComponent'
           }
         }
       ]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
-
+    const {fixture} = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
-    const inputElement = compiled.querySelector('textarea');
-    expect((inputElement as HTMLTextAreaElement).value).toEqual('Text area hello world test text');
+    const inputElement = compiled.querySelector('input[type="text"]');
+    expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
   });
 
 });

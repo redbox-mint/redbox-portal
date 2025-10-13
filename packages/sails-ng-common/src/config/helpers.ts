@@ -1,5 +1,5 @@
 import {FormComponentDefinition} from "./form-component.model";
-import {isBoolean as _isBoolean, isArray as _isArray, isString as _isString, isPlainObject as _isPlainObject} from "lodash-es";
+import {isBoolean as _isBoolean, isArray as _isArray, isString as _isString, isPlainObject as _isPlainObject} from "lodash";
 import { DateTime } from 'luxon';
 
 /**
