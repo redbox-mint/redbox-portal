@@ -145,11 +145,11 @@ describe('FormStateFacade', () => {
     it('should expose lastSavedAt signal (R7.1)', () => {
       expect(facade.lastSavedAt()).toBeNull();
 
-      const now = new Date();
-      store.overrideSelector(FormSelectors.selectLastSavedAt, now);
+      const nowIso = new Date().toISOString();
+      store.overrideSelector(FormSelectors.selectLastSavedAt, nowIso);
       store.refreshState();
 
-      expect(facade.lastSavedAt()).toBe(now);
+      expect(facade.lastSavedAt()).toBe(nowIso);
     });
   });
 

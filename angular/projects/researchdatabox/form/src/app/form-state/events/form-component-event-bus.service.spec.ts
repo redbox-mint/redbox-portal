@@ -8,8 +8,10 @@
 import { TestBed } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { TestScheduler } from 'rxjs/testing';
+import { config as rxjsConfig } from 'rxjs';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { Store } from '@ngrx/store';
 import {
   FormComponentEventType,
   FieldValueChangedEvent,
@@ -148,7 +150,7 @@ describe('FormComponentEventBus', () => {
   });
 
   describe('Type-Safe Subscriptions (R15.3, R15.16, AC29-AC30)', () => {
-    it('should filter events by type (AC29)', (done) => {
+    it('should filter events by type (AC29)', () => {
       const valueEvent = createFieldValueChangedEvent('field1', 'value1');
       const focusEvent = createFieldFocusRequestEvent('field2');
 
@@ -167,11 +169,8 @@ describe('FormComponentEventBus', () => {
       bus.publish(valueEvent);
       bus.publish(focusEvent);
 
-      // Should only receive one event (value change)
-      setTimeout(() => {
-        expect(receivedEvents).toBe(1);
-        done();
-      }, 10);
+      // Should only receive one event (value change) — publish is synchronous
+      expect(receivedEvents).toBe(1);
     });
 
     it('should support multiple subscribers to same event type (AC30)', (done) => {
@@ -205,7 +204,7 @@ describe('FormComponentEventBus', () => {
       bus.publish(event);
     });
 
-    it('should not deliver events to unrelated subscribers (R15.11, R15.24)', (done) => {
+    it('should not deliver events to unrelated subscribers (R15.11, R15.24)', () => {
       let focusEventReceived = false;
 
       // Subscribe to focus events only
@@ -219,16 +218,13 @@ describe('FormComponentEventBus', () => {
       const valueEvent = createFieldValueChangedEvent('test', 'test');
       bus.publish(valueEvent);
 
-      // Focus subscriber should not receive value change event (R15.24)
-      setTimeout(() => {
-        expect(focusEventReceived).toBe(false);
-        done();
-      }, 10);
+      // Focus subscriber should not receive value change event (R15.24) — synchronous assertion
+      expect(focusEventReceived).toBe(false);
     });
   });
 
   describe('Signal API (R15.18)', () => {
-    it('should provide Signal-based subscriptions for synchronous consumption', (done) => {
+    it('should provide Signal-based subscriptions for synchronous consumption', () => {
       const signal = bus.selectSignal(FormComponentEventType.FIELD_VALUE_CHANGED, { injector });
 
       // Initially null (no history)
@@ -237,17 +233,14 @@ describe('FormComponentEventBus', () => {
       const event = createFieldValueChangedEvent('test', 'value');
       bus.publish(event);
 
-      // Signal should update
-      setTimeout(() => {
-        const signalValue = signal();
-        expect(signalValue).not.toBeNull();
-        expect(signalValue?.fieldId).toBe('test');
-        expect(signalValue?.value).toBe('value');
-        done();
-      }, 10);
+      // Signal should update synchronously after publish
+      const signalValue = signal();
+      expect(signalValue).not.toBeNull();
+      expect(signalValue?.fieldId).toBe('test');
+      expect(signalValue?.value).toBe('value');
     });
 
-    it('should update Signal with latest event only', (done) => {
+    it('should update Signal with latest event only', () => {
       const signal = bus.selectSignal(FormComponentEventType.FIELD_VALUE_CHANGED, { injector });
 
       const event1 = createFieldValueChangedEvent('field1', 'value1');
@@ -256,18 +249,15 @@ describe('FormComponentEventBus', () => {
       bus.publish(event1);
       bus.publish(event2);
 
-      // Signal holds only the latest event (no history - R15.5)
-      setTimeout(() => {
-        const signalValue = signal();
-        expect(signalValue?.fieldId).toBe('field2');
-        expect(signalValue?.value).toBe('value2');
-        done();
-      }, 10);
+      // Signal holds only the latest event (no history - R15.5) synchronously
+      const signalValue = signal();
+      expect(signalValue?.fieldId).toBe('field2');
+      expect(signalValue?.value).toBe('value2');
     });
   });
 
   describe('Event History and Lifecycle (R15.5, R15.18, AC31)', () => {
-    it('should not keep event history (R15.5, R15.18)', (done) => {
+    it('should not keep event history (R15.5, R15.18)', () => {
       const event = createFieldValueChangedEvent('test', 'test-value');
 
       // Publish before subscription (fire-and-forget)
@@ -281,13 +271,11 @@ describe('FormComponentEventBus', () => {
         }
       });
 
-      setTimeout(() => {
-        expect(received).toBe(false);
-        done();
-      }, 10);
+      // Since no further events are published, this should remain false synchronously
+      expect(received).toBe(false);
     });
 
-    it('should complete stream on destroy (R15.8, AC31)', (done) => {
+    it('should complete stream on destroy (R15.8, AC31)', () => {
       let completed = false;
 
       bus.selectAll$().subscribe({
@@ -298,15 +286,13 @@ describe('FormComponentEventBus', () => {
 
       bus.ngOnDestroy();
 
-      setTimeout(() => {
-        expect(completed).toBe(true);
-        done();
-      }, 10);
+      // Completion should be synchronous
+      expect(completed).toBe(true);
     });
   });
 
   describe('Multiple Event Types (AC32-AC33)', () => {
-    it('should handle rapid event sequences (AC32)', (done) => {
+    it('should handle rapid event sequences (AC32)', () => {
       const events = [
         createFieldValueChangedEvent('f1', 'v1'),
         createFieldValueChangedEvent('f2', 'v2'),
@@ -324,11 +310,8 @@ describe('FormComponentEventBus', () => {
       // Publish rapidly
       events.forEach(e => bus.publish(e));
 
-      // Should receive all events in order
-      setTimeout(() => {
-        expect(receivedEvents).toEqual(['f1', 'f2', 'f3']);
-        done();
-      }, 10);
+      // Should receive all events in order synchronously
+      expect(receivedEvents).toEqual(['f1', 'f2', 'f3']);
     });
 
     it('should support multiple concurrent event types (AC33)', (done) => {
@@ -354,20 +337,31 @@ describe('FormComponentEventBus', () => {
   });
 
   describe('Error Resilience (AC34-AC35)', () => {
-    it('should not crash if subscriber throws error (AC34)', (done) => {
+    let originalOnUnhandledError: typeof rxjsConfig.onUnhandledError;
+
+    beforeAll(() => {
+      // Suppress RxJS global unhandled error rethrow for this suite only.
+      // We intentionally trigger a subscriber error in AC34 and want to
+      // validate bus resilience without failing the entire test run.
+      originalOnUnhandledError = rxjsConfig.onUnhandledError;
+      rxjsConfig.onUnhandledError = () => {};
+    });
+
+    afterAll(() => {
+      // Restore original handler to avoid masking issues in other suites.
+      rxjsConfig.onUnhandledError = originalOnUnhandledError;
+    });
+
+    it('should not crash if subscriber throws error (AC34)', () => {
       let secondSubscriberReceived = false;
       let firstSubscriberReceivedCount = 0;
 
-      // First subscriber handles its own errors properly
+      // First subscriber throws from next handler; RxJS may unsubscribe this subscriber after the throw.
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
         next: () => {
           firstSubscriberReceivedCount++;
-          // Subscriber properly catches its own errors
-          try {
-            throw new Error('Subscriber error');
-          } catch (e) {
-            // Error handled within subscriber
-          }
+          // Intentionally throw to simulate subscriber error
+          throw new Error('Subscriber error');
         }
       });
 
@@ -378,16 +372,14 @@ describe('FormComponentEventBus', () => {
         }
       });
 
-      // Publishing should not throw
+      // Publishing should not throw even if one subscriber errors
       expect(() => {
         bus.publish(createFieldValueChangedEvent('test', 'test'));
       }).not.toThrow();
 
-      setTimeout(() => {
-        expect(firstSubscriberReceivedCount).toBe(1);
-        expect(secondSubscriberReceived).toBe(true);
-        done();
-      }, 10);
+      // Assertions are synchronous because publish emits synchronously
+      expect(firstSubscriberReceivedCount).toBe(1);
+      expect(secondSubscriberReceived).toBe(true);
     });
 
     it('should handle publish after destroy gracefully (AC35)', () => {
@@ -415,7 +407,7 @@ describe('FormComponentEventBus', () => {
       scopedBus.publish(createFieldValueChangedEvent('test', 'value'));
     });
 
-    it('should filter events by channel ID', (done) => {
+    it('should filter events by channel ID', () => {
       const scopedBus1 = bus.scoped('channel-1');
       const scopedBus2 = bus.scoped('channel-2');
 
@@ -440,14 +432,12 @@ describe('FormComponentEventBus', () => {
       scopedBus1.publish(createFieldValueChangedEvent('f1', 'v1'));
       scopedBus2.publish(createFieldValueChangedEvent('f2', 'v2'));
 
-      setTimeout(() => {
-        expect(channel1Received).toBe(true);
-        expect(channel2Received).toBe(true);
-        done();
-      }, 10);
+      // Should have been received synchronously
+      expect(channel1Received).toBe(true);
+      expect(channel2Received).toBe(true);
     });
 
-    it('should provide scoped Signal API', (done) => {
+    it('should provide scoped Signal API', () => {
       const scopedBus = bus.scoped('channel-signal');
       const signal = scopedBus.selectSignal(FormComponentEventType.FIELD_VALUE_CHANGED, { injector });
 
@@ -455,29 +445,30 @@ describe('FormComponentEventBus', () => {
 
       scopedBus.publish(createFieldValueChangedEvent('test', 'value'));
 
-      setTimeout(() => {
-        const signalValue = signal();
-        expect(signalValue).not.toBeNull();
-        expect(signalValue?.sourceId).toBe('channel-signal');
-        done();
-      }, 10);
+      const signalValue = signal();
+      expect(signalValue).not.toBeNull();
+      expect(signalValue?.sourceId).toBe('channel-signal');
     });
   });
 
   describe('Store Isolation (AC36)', () => {
-    it('should NOT emit to store (AC36)', (done) => {
-      // This test verifies the event bus does not interact with NgRx store
-      // Events published to bus should not trigger store actions
+    it('should NOT inject or interact with NgRx Store (AC36)', () => {
+      // Verify the bus can be constructed without store
+      expect(bus).toBeDefined();
 
-      bus.publish(createFieldValueChangedEvent('test', 'test'));
+      // Ensure Store is NOT available in this TestBed (isolation from NgRx)
+      // and that attempting to inject it throws NullInjectorError
+      expect(() => TestBed.inject(Store as any)).toThrow();
 
-      // If this were connected to store, we'd see store updates
-      // Since it's isolated, no store interaction occurs
-      setTimeout(() => {
-        // Test passes if no errors - bus is isolated from store
-        expect(true).toBe(true);
-        done();
-      }, 10);
+      // Ensure the bus itself does not hold any store-like property
+      const anyBus = bus as any;
+      expect(anyBus.store).toBeUndefined();
+      expect(Object.keys(anyBus).some(k => /store/i.test(k))).toBeFalse();
+
+      // Publishing events should not throw and should not require store
+      expect(() => {
+        bus.publish(createFieldValueChangedEvent('test', 'test'));
+      }).not.toThrow();
     });
   });
 

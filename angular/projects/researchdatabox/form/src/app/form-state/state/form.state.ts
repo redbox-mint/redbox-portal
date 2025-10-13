@@ -28,7 +28,8 @@ export interface FormFeatureState {
   isDirty: boolean;
   
   /** Timestamp of last successful save (R2.2, R2.8) */
-  lastSavedAt?: Date | null;
+  // Note: Use ISO string for serializability; parse to Date only at UI boundary
+  lastSavedAt?: string | null;
   
   /** User-safe error message (R2.2, R2.6) */
   error?: string | null;

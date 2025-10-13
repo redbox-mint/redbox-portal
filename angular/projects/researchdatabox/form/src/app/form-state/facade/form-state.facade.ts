@@ -32,7 +32,7 @@ export class FormStateFacade {
   /** Current form status (INIT, READY, SAVING, etc.) */
   readonly status: Signal<FormStatus> = toSignal(
     this.store.select(FormSelectors.selectStatus),
-    { requireSync: true }
+    { initialValue: FormStatus.INIT }
   );
 
   /** Whether form has unsaved changes */
@@ -89,8 +89,8 @@ export class FormStateFacade {
     { initialValue: false }
   );
 
-  /** Timestamp of last successful save */
-  readonly lastSavedAt: Signal<Date | null | undefined> = toSignal(
+  /** Timestamp of last successful save (ISO string); parse at UI boundary if needed */
+  readonly lastSavedAt: Signal<string | null | undefined> = toSignal(
     this.store.select(FormSelectors.selectLastSavedAt),
     { initialValue: null }
   );
@@ -112,6 +112,7 @@ export class FormStateFacade {
    * Note: Requires storing load params in state or passing them again
    */
   reload(oid: string, recordType: string, formName: string): void {
+    // TODO: this is just the same as load() for now, but consider use cases where a reload (either full or maybe partial?) is needed
     this.store.dispatch(FormActions.loadInitialData({ oid, recordType, formName }));
   }
 

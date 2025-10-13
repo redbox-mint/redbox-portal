@@ -13,6 +13,7 @@
  */
 
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { Subscription } from 'rxjs';
 import { FormComponent } from './form.component';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
@@ -27,6 +28,8 @@ describe('FormComponent Integration Tests', () => {
   let component: FormComponent;
   let facade: FormStateFacade;
   let store: Store;
+  let statusSub: Subscription | undefined;
+  let resetTokenSub: Subscription | undefined;
 
   const basicFormConfig: FormConfig = {
     debugValue: true,
@@ -63,6 +66,14 @@ describe('FormComponent Integration Tests', () => {
     store = TestBed.inject(Store);
   });
 
+  afterEach(() => {
+    // Ensure any test subscriptions are cleaned up to avoid memory leaks
+    statusSub?.unsubscribe();
+    statusSub = undefined;
+    resetTokenSub?.unsubscribe();
+    resetTokenSub = undefined;
+  });
+
   /**
    * AC52, AC59: Verify FormComponent initializes without errors and transitions INIT -> READY
    * R16.12: Integration test with real FormComponent and facade
@@ -92,7 +103,7 @@ describe('FormComponent Integration Tests', () => {
     
     // Get initial reset token
     let currentResetToken: number | undefined;
-    store.select(selectResetToken).subscribe(token => {
+    resetTokenSub = store.select(selectResetToken).subscribe(token => {
       currentResetToken = token;
     });
     tick();
@@ -119,7 +130,7 @@ describe('FormComponent Integration Tests', () => {
   }));
 
   /**
-   * R12.5: Simulate submit success and failure
+   * R12.5: Simulate submit success 
    * Verify facade submit method works correctly
    */
   it('should handle submit success flow via facade', fakeAsync(async () => {
@@ -133,7 +144,7 @@ describe('FormComponent Integration Tests', () => {
     
     // Track status changes
     const statusChanges: FormStatus[] = [];
-    store.select(selectStatus).subscribe(status => {
+    statusSub = store.select(selectStatus).subscribe(status => {
       statusChanges.push(status);
     });
     tick();

@@ -6,7 +6,7 @@
  * Task 4: Effects tests with marble diagrams
  */
 
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action, provideStore, Store } from '@ngrx/store';
 import { Observable, of, throwError } from 'rxjs';
@@ -23,6 +23,8 @@ describe('FormEffects', () => {
   let effects: FormEffects;
   let store: Store;
   let testScheduler: TestScheduler;
+  // Allow tests to control async behavior of submit
+  let submitHandler: (action: any) => Observable<any>;
 
   beforeEach(() => {
     // Initialize actions$ before TestBed configuration
@@ -34,7 +36,11 @@ describe('FormEffects', () => {
         provideMockActions(() => actions$),
         provideStore(),
         provideEffects(),
-        provideFormFeature()
+        provideFormFeature(),
+        {
+          provide: FormEffects.SUBMIT_DRIVER,
+          useFactory: () => ({ handler: (action: any) => submitHandler(action) })
+        }
       ]
     });
 
@@ -44,6 +50,8 @@ describe('FormEffects', () => {
     testScheduler = new TestScheduler((actual, expected) => {
       expect(actual).toEqual(expected);
     });
+    // Default submit handler is synchronous success
+    submitHandler = () => of({});
   });
 
   describe('loadInitialData$ Effect', () => {
@@ -71,31 +79,34 @@ describe('FormEffects', () => {
       });
     });
 
-    it('should gate load when status is not INIT (R10.3)', (done) => {
+    it('should gate load when status is not INIT (R10.3)', fakeAsync(() => {
       // Manually set state to READY (not INIT)
       store.dispatch(FormActions.loadInitialDataSuccess({ data: {} }));
 
-      // Wait a tick for state to update
-      setTimeout(() => {
-        actions$ = of(FormActions.loadInitialData({
-          oid: 'test-123',
-          recordType: 'rdmp',
-          formName: 'default'
-        }));
+      // Flush state updates
+      tick(0);
 
-        let emitted = false;
-        effects.loadInitialData$.subscribe({
-          next: () => {
-            emitted = true;
-          },
-          complete: () => {
-            // Should not emit when not in INIT status
-            expect(emitted).toBe(false);
-            done();
-          }
-        });
-      }, 10);
-    });
+      actions$ = of(FormActions.loadInitialData({
+        oid: 'test-123',
+        recordType: 'rdmp',
+        formName: 'default'
+      }));
+
+      let emitted = false;
+      const sub = effects.loadInitialData$.subscribe({
+        next: () => {
+          emitted = true;
+        }
+      });
+
+      // Let effects process the action
+      tick(0);
+
+      // Should not emit when not in INIT status
+      expect(emitted).toBe(false);
+
+      sub.unsubscribe();
+    }));
 
     it('should handle load errors with sanitization (R5.4, R11.1)', () => {
       testScheduler.run(({ hot, cold, expectObservable }) => {
@@ -148,7 +159,7 @@ describe('FormEffects', () => {
     });
 
     it('should use exhaustMap to prevent concurrent saves (R5.3)', () => {
-      testScheduler.run(({ hot, expectObservable }) => {
+      testScheduler.run(({ hot, cold, expectObservable }) => {
         const action1 = FormActions.submitForm({
           force: false,
           skipValidation: false
@@ -161,33 +172,35 @@ describe('FormEffects', () => {
 
         const completion = FormActions.submitFormSuccess({ savedData: {} });
 
-        // Two submit actions in quick succession
-        // With stub's synchronous completion, both will complete
-        // In production with async service calls, exhaustMap would ignore the second
+        // Simulate async operation with delayed completion so exhaustMap stays busy
+        submitHandler = () => cold('--r|', { r: {} });
         actions$ = hot('-a-b', { a: action1, b: action2 });
-        
-        // Both complete since stub is synchronous (in production only first would emit)
-        const expected = '-c-d';
 
-        expectObservable(effects.submitForm$).toBe(expected, { c: completion, d: completion });
+        // With exhaustMap, only first action should complete; second is ignored while first is inflight
+        const expected = '---c';
+
+        expectObservable(effects.submitForm$).toBe(expected, { c: completion });
       });
     });
 
-    it('should handle save errors with sanitization (AC8, R5.4)', () => {
+    it('should emit submitFormFailure with sanitized error on save error (AC8, R5.4)', () => {
       testScheduler.run(({ hot, cold, expectObservable }) => {
-        // Note: Stub implementation returns success
-        // In production, this would test actual service failures
+        // Make submit driver error with a nested error.message to exercise sanitization
+        const rawError = { error: { message: 'Service down' } } as any;
+        submitHandler = () => cold('#', {}, rawError);
+
         const action = FormActions.submitForm({
           force: false,
           skipValidation: false
         });
 
-        const completion = FormActions.submitFormSuccess({ savedData: {} });
+        // Expect sanitized error string propagated via failure action
+        const failure = FormActions.submitFormFailure({ error: 'Service down' });
 
         actions$ = hot('-a', { a: action });
         const expected = '-b';
 
-        expectObservable(effects.submitForm$).toBe(expected, { b: completion });
+        expectObservable(effects.submitForm$).toBe(expected, { b: failure });
       });
     });
 
@@ -229,32 +242,35 @@ describe('FormEffects', () => {
       });
     });
 
-    it('should gate reset when status is SAVING (R2.10)', (done) => {
+    it('should gate reset when status is SAVING (R2.10)', fakeAsync(() => {
       // Transition to SAVING state
       store.dispatch(FormActions.submitForm({
         force: false,
         skipValidation: false
       }));
 
-      // Wait for state to update
-      setTimeout(() => {
-        actions$ = of(FormActions.resetAllFields());
+      // Advance timers to allow state to reflect SAVING
+      tick(10);
 
-        let emitted = false;
-        effects.resetAllFields$.subscribe({
-          next: () => {
-            emitted = true;
-          },
-          complete: () => {
-            // Should not emit when SAVING
-            expect(emitted).toBe(false);
-            done();
-          }
-        });
-      }, 10);
-    });
+      actions$ = of(FormActions.resetAllFields());
 
-    it('should complete reset even on errors', () => {
+      let emitted = false;
+      const sub = effects.resetAllFields$.subscribe({
+        next: () => {
+          emitted = true;
+        }
+      });
+
+      // Flush any pending work
+      tick(0);
+
+      // Should not emit when SAVING
+      expect(emitted).toBe(false);
+
+      sub.unsubscribe();
+    }));
+
+    it('should complete reset', () => {
       testScheduler.run(({ hot, cold, expectObservable }) => {
         const action = FormActions.resetAllFields();
         const completion = FormActions.resetAllFieldsComplete();
@@ -262,7 +278,7 @@ describe('FormEffects', () => {
         actions$ = hot('-a', { a: action });
         const expected = '-b';
 
-        // Reset should always complete
+        // Reset should complete normally
         expectObservable(effects.resetAllFields$).toBe(expected, { b: completion });
       });
     });
@@ -392,35 +408,30 @@ describe('FormEffects', () => {
 
   describe('Error Sanitization', () => {
     it('should sanitize string errors', () => {
-      // Test the sanitizeError function indirectly through effects
-      // In production, you'd test the actual service error responses
+      // Exercise error sanitization by making the actions stream error with a raw string
+      // The effect-level catchError should sanitize and emit submitFormFailure with the same string
       testScheduler.run(({ hot, expectObservable }) => {
-        const action = FormActions.submitForm({
-          force: false,
-          skipValidation: false
-        });
+        const failure = FormActions.submitFormFailure({ error: 'raw string error' });
 
-        const completion = FormActions.submitFormSuccess({ savedData: {} });
+        // Actions stream errors with a raw string
+        actions$ = hot('-#', undefined, 'raw string error');
+        // Effect emits failure then completes due to catchError returning a single value
+        const expected = '-(b|)';
 
-        actions$ = hot('-a', { a: action });
-        const expected = '-b';
-        
-        // Stub returns success, verify proper success handling
-        expectObservable(effects.submitForm$).toBe(expected, { b: completion });
+        expectObservable(effects.submitForm$).toBe(expected, { b: failure });
       });
     });
 
     it('should handle error objects with message property', () => {
+      const action = FormActions.loadInitialData({
+        oid: 'test',
+        recordType: 'rdmp',
+        formName: 'default'
+      });
+
+      store.dispatch(action); // Set INIT state
       // Verify error handling structure is in place
       testScheduler.run(({ hot, expectObservable }) => {
-        const action = FormActions.loadInitialData({
-          oid: 'test',
-          recordType: 'rdmp',
-          formName: 'default'
-        });
-
-        store.dispatch(action); // Set INIT state
-
         const completion = FormActions.loadInitialDataSuccess({ data: {} });
 
         actions$ = hot('-a', { a: action });
@@ -433,28 +444,34 @@ describe('FormEffects', () => {
   });
 
   describe('Integration Scenarios', () => {
-    it('should handle complete load-submit-reset workflow', (done) => {
+    it('should handle complete load-submit-reset workflow', fakeAsync(() => {
       // Set INIT state first
       const loadAction = FormActions.loadInitialData({
         oid: 'test',
         recordType: 'rdmp',
         formName: 'default'
       });
-      
+
       store.dispatch(loadAction);
 
-      // Wait for state to update
-      setTimeout(() => {
-        actions$ = of(loadAction);
-        
-        effects.loadInitialData$.subscribe({
-          next: (action) => {
-            expect(action.type).toBe('[Form] Load Initial Data Success');
-            done();
-          }
-        });
-      }, 10);
-    });
+      // Simulate passage of time for any async state updates
+      tick(10);
+
+      // Dispatch load action through the actions stream
+      actions$ = of(loadAction);
+
+      let emittedType: string | undefined;
+      const sub = effects.loadInitialData$.subscribe((action) => {
+        emittedType = action.type;
+      });
+
+      // Allow effects to process synchronously queued work
+      tick(0);
+
+      expect(emittedType).toBe('[Form] Load Initial Data Success');
+
+      sub.unsubscribe();
+    }));
 
     it('should handle rapid action sequences', () => {
       testScheduler.run(({ hot, expectObservable }) => {

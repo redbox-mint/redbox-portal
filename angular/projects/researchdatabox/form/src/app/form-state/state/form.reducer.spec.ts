@@ -186,7 +186,7 @@ describe('formReducer', () => {
     });
 
     it('should preserve lastSavedAt timestamp on submitFormSuccess', () => {
-      const timestamp = new Date();
+  const timestamp = new Date();
       const savingState: FormFeatureState = {
         ...formInitialState,
         status: FormStatus.SAVING,
@@ -199,8 +199,11 @@ describe('formReducer', () => {
       
       const result = formReducer(savingState, action);
       
-      expect(result.lastSavedAt).not.toBeNull();
-      expect(result.lastSavedAt).toBeInstanceOf(Date);
+  expect(result.lastSavedAt).not.toBeNull();
+  // lastSavedAt should be an ISO string
+  expect(typeof result.lastSavedAt).toBe('string');
+  // Parse back to Date only at UI boundary; here we verify it is a valid ISO string
+  expect(() => new Date(result.lastSavedAt as string).toISOString()).not.toThrow();
     });
   });
 

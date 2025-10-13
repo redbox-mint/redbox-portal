@@ -13,8 +13,8 @@
 import { Injectable, inject, InjectionToken, Optional, Inject } from '@angular/core';
 import { Actions, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
-import { map, throttleTime, tap, filter } from 'rxjs/operators';
+import { Observable, EMPTY } from 'rxjs';
+import { map, throttleTime, tap, filter, catchError } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import { FormComponentEventType } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
@@ -78,6 +78,38 @@ function logSkipped(logger: LoggerService, eventType: string, reason: string): v
 }
 
 /**
+ * Formats validation errors for readable messages in actions
+ * - If errors is an object: "key: message" pairs joined by ", "
+ * - If errors is an array: messages joined by "; "
+ * - If errors is a string: returned as-is
+ * - Otherwise: JSON stringified
+ */
+function formatErrorsForMessage(errors: any): string {
+  if (!errors) return '';
+  try {
+    if (typeof errors === 'string') return errors;
+    if (Array.isArray(errors)) {
+      return errors
+        .map((e) => (typeof e === 'string' ? e : JSON.stringify(e)))
+        .join('; ');
+    }
+    if (typeof errors === 'object') {
+      const entries = Object.entries(errors as Record<string, any>).map(([key, value]) => {
+        if (value == null) return key;
+        if (typeof value === 'string') return `${key}: ${value}`;
+        if (Array.isArray(value))
+          return `${key}: ${value.map((v) => (typeof v === 'string' ? v : JSON.stringify(v))).join('; ')}`;
+        return `${key}: ${JSON.stringify(value)}`;
+      });
+      if (entries.length) return entries.join(', ');
+    }
+    return JSON.stringify(errors);
+  } catch {
+    return String(errors);
+  }
+}
+
+/**
  * FormEventBusAdapterEffects
  * 
  * Subscribes to selected bus events and promotes them to actions when criteria are met.
@@ -128,7 +160,7 @@ export class FormEventBusAdapterEffects {
         event.isValid
           ? FormActions.formValidationSuccess()
           : FormActions.formValidationFailure({
-              error: Object.keys(event.errors || {}).join(', ')
+              error: formatErrorsForMessage(event.errors)
             })
     )
   );
@@ -188,15 +220,21 @@ export class FormEventBusAdapterEffects {
         leading: true,
         trailing: false
       }),
-      // R15.26: Log promotion decision
-      tap((event) => {
+      // R15.23 & R15.26: Map to action and (optionally) log promotion in one step
+      map((event) => {
+        const action = actionMapper(event);
         if (this.config.diagnosticsEnabled) {
-          const action = actionMapper(event);
           logPromotion(this.logger, eventType, criterion, action.type);
         }
+        return action;
       }),
-      // R15.23: Map to clearly named action
-      map(actionMapper)
+      // Ensure errors in the stream do not terminate the effect
+      catchError((err) => {
+        if (this.config.diagnosticsEnabled) {
+          this.logger.error('[FormEventBusAdapter] Promotion stream error', err);
+        }
+        return EMPTY; // swallow error to keep effect alive
+      })
     );
   }
 }

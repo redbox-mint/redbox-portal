@@ -33,11 +33,6 @@ export class FormComponentEventBus implements OnDestroy {
         this.logger.debug('[FormComponentEventBus] Event published', event);
       });
     }
-
-    // R15.8: Auto-cleanup on destroy
-    this.destroyRef.onDestroy(() => {
-      this.eventStream$.complete();
-    });
   }
 
   /**

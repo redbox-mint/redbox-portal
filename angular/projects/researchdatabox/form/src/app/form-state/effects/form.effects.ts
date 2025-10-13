@@ -5,14 +5,19 @@
  * Per R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4
  */
 
-import { Injectable, inject } from '@angular/core';
+import { Injectable, InjectionToken, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { of } from 'rxjs';
+import { of, Observable } from 'rxjs';
 import { map, catchError, switchMap, exhaustMap, tap, withLatestFrom, filter } from 'rxjs/operators';
 import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
+
+// Abstraction for submit to allow async mocking in tests
+export interface SubmitDriver {
+  handler: (action: ReturnType<typeof FormActions.submitForm>) => Observable<any>;
+}
 
 /**
  * Sanitizes errors into user-safe messages
@@ -54,6 +59,15 @@ function logDiagnostics(context: string, data: any): void {
 export class FormEffects {
   private actions$ = inject(Actions);
   private store = inject(Store);
+  
+  /**
+   * Submit driver allows tests to control async behavior of submit workflow.
+   * Default handler is synchronous; tests can override with delayed cold observables.
+   */
+  static readonly SUBMIT_DRIVER = new InjectionToken<SubmitDriver>('SUBMIT_DRIVER', {
+    factory: () => ({ handler: () => of({}) })
+  });
+  private submitDriver = inject(FormEffects.SUBMIT_DRIVER);
 
   /**
    * Load Initial Data Effect
@@ -114,19 +128,15 @@ export class FormEffects {
       ofType(FormActions.submitForm),
       exhaustMap(action => {
         logDiagnostics('submitForm started', action);
-        
-        // TODO: Replace with actual service call
-        // return this.recordService.save(formData, action.force, action.targetStep).pipe(
-        //   map(response => FormActions.submitFormSuccess({ savedData: response })),
-        //   catchError(error => {
-        //     const sanitized = sanitizeError(error);
-        //     logDiagnostics('submitForm failed', { error: sanitized });
-        //     return of(FormActions.submitFormFailure({ error: sanitized }));
-        //   })
-        // );
-        
-        // Stub implementation - returns empty saved data
-        return of(FormActions.submitFormSuccess({ savedData: {} }));
+        // Use submit driver (service abstraction) to allow async mocking in tests
+        return this.submitDriver.handler(action).pipe(
+          map(response => FormActions.submitFormSuccess({ savedData: response })),
+          catchError(error => {
+            const sanitized = sanitizeError(error);
+            logDiagnostics('submitForm failed', { error: sanitized });
+            return of(FormActions.submitFormFailure({ error: sanitized }));
+          })
+        );
       }),
       catchError(error => {
         const sanitized = sanitizeError(error);

@@ -16,8 +16,6 @@ describe('Form Selectors', () => {
         ...formInitialState,
         status: FormStatus.READY
       };
-      const mockRootState = { form: state };
-      
       const result = FormSelectors.selectStatus.projector(state);
       
       expect(result).toBe(FormStatus.READY);
@@ -79,7 +77,7 @@ describe('Form Selectors', () => {
     });
 
     it('should select lastSavedAt', () => {
-      const timestamp = new Date('2025-10-02T10:00:00Z');
+      const timestamp = '2025-10-02T10:00:00.000Z';
       const state: FormFeatureState = {
         ...formInitialState,
         lastSavedAt: timestamp
@@ -240,68 +238,83 @@ describe('Form Selectors', () => {
   });
 
   describe('Memoization (R6.2)', () => {
-    it('should memoize base selectors', () => {
+    it('should memoize base selectors (call via selector with root state)', () => {
       const state: FormFeatureState = {
         ...formInitialState,
         status: FormStatus.READY,
         isDirty: true
       };
-      
-      // Call selector twice with same state
-      const result1 = FormSelectors.selectStatus.projector(state);
-      const result2 = FormSelectors.selectStatus.projector(state);
-      
-      // Should return same reference (memoized)
+      const rootState = { form: state } as any;
+
+      // Call selector twice with the same root state – should return the same value
+      const result1 = FormSelectors.selectStatus(rootState);
+      const result2 = FormSelectors.selectStatus(rootState);
+
       expect(result1).toBe(result2);
     });
 
-    it('should recompute derived selectors only when inputs change', () => {
-      const status1 = FormStatus.SAVING;
-      const status2 = FormStatus.SAVING;
-      
-      // Same input should return same result
-      const result1 = FormSelectors.selectIsSaving.projector(status1);
-      const result2 = FormSelectors.selectIsSaving.projector(status2);
-      
-      expect(result1).toBe(result2);
+    it('should not recompute derived selector when inputs are unchanged (isSaving)', () => {
+      const state: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.SAVING
+      };
+      const rootState = { form: state } as any;
+
+      const result1 = FormSelectors.selectIsSaving(rootState);
+      const result2 = FormSelectors.selectIsSaving(rootState);
+
       expect(result1).toBe(true);
+      expect(result1).toBe(result2);
     });
 
-    it('should recompute when input changes', () => {
-      const status1 = FormStatus.SAVING;
-      const status2 = FormStatus.READY;
-      
-      const result1 = FormSelectors.selectIsSaving.projector(status1);
-      const result2 = FormSelectors.selectIsSaving.projector(status2);
-      
+    it('should recompute derived selector when inputs change (isSaving)', () => {
+      const state1: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.SAVING
+      };
+      const state2: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.READY
+      };
+      const rootState1 = { form: state1 } as any;
+      const rootState2 = { form: state2 } as any;
+
+      const result1 = FormSelectors.selectIsSaving(rootState1);
+      const result2 = FormSelectors.selectIsSaving(rootState2);
+
       expect(result1).toBe(true);
       expect(result2).toBe(false);
     });
 
-    it('should memoize complex derived selectors', () => {
-      const status = FormStatus.INIT;
-      const loaded = false;
-      
-      // Call twice with same inputs
-      const result1 = FormSelectors.selectIsInitializing.projector(status, loaded);
-      const result2 = FormSelectors.selectIsInitializing.projector(status, loaded);
-      
+    it('should memoize complex derived selectors (isInitializing)', () => {
+      const state: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.INIT,
+        initialDataLoaded: false
+      };
+      const rootState = { form: state } as any;
+
+      // Call twice with same inputs via root state
+      const result1 = FormSelectors.selectIsInitializing(rootState);
+      const result2 = FormSelectors.selectIsInitializing(rootState);
+
       expect(result1).toBe(result2);
       expect(result1).toBe(true);
     });
 
-    it('should memoize debug info selector', () => {
+    it('should memoize debug info selector (returns stable reference)', () => {
       const state: FormFeatureState = {
         ...formInitialState,
         status: FormStatus.READY,
         isDirty: true,
-        submissionAttempt: 1
+        submissionAttempt: 1,
+        error: null
       };
-      
-      // Call twice
-      const result1 = FormSelectors.selectDebugInfo.projector(state);
-      const result2 = FormSelectors.selectDebugInfo.projector(state);
-      
+      const rootState = { form: state } as any;
+
+      const result1 = FormSelectors.selectDebugInfo(rootState);
+      const result2 = FormSelectors.selectDebugInfo(rootState);
+
       // Should return same object reference (deep memoization)
       expect(result1).toBe(result2);
     });

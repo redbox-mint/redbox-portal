@@ -7,7 +7,7 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
-import { FormFeatureState, formInitialState } from './form.state';
+import { formInitialState } from './form.state';
 import * as FormActions from './form.actions';
 
 /**
@@ -54,7 +54,7 @@ export const formReducer = createReducer(
   on(FormActions.submitFormSuccess, (state, { savedData }) => ({
     ...state,
     status: FormStatus.READY,
-    lastSavedAt: new Date(),
+    lastSavedAt: new Date().toISOString(),
     modelSnapshot: savedData,
     isDirty: false,
     error: null,
