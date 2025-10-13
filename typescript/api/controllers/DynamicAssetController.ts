@@ -22,12 +22,14 @@
 import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import {TemplateCompileInput, TemplateFormConfigVisitor} from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
+import {firstValueFrom} from "rxjs";
 
 declare var module;
 declare var sails;
 declare var TemplateService;
 declare var FormsService;
 declare var BrandingService;
+declare var FormRecordConsistencyService;
 
 /**
  * Package that contains all Controllers.
@@ -79,10 +81,14 @@ export module Controllers {
       const editMode = req.query.edit == "true";
       const recordType = req.param("recordType") || this._recordTypeAuto;
 
-      const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const templateVisitor = new TemplateFormConfigVisitor();
-      const entries = templateVisitor.start(form);
-      return this.sendClientMappingJavascript(res, entries);
+      try {
+        const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+        const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build compiled items from form config:", error);
+        return res.serverError();
+      }
     }
 
     /**
@@ -173,10 +179,15 @@ export module Controllers {
     private sendClientMappingJavascript(res, inputs: TemplateCompileInput[]) {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
-      const entryKeys = inputs.map(i => i.key).sort();
+      const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
       const assetId = "dynamicScriptAsset";
       sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
-      return this.sendAssetView(res, assetId, {entries: entries, layout: false})
+        return this.sendAssetView(res, assetId, {
+            entries: entries.map(i => {
+                return {key: TemplateService.buildKeyString(i.key), value: i.value}
+            }),
+            layout: false
+        });
     }
 
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {

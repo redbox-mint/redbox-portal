@@ -7,9 +7,10 @@ describe('The CoreService', function () {
             return super.metTriggerCondition(oid, record, options, user);
         }
     }
-    const testCoreService = new TestCoreService();
+    let testCoreService;
 
     before(function (done) {
+        testCoreService = new TestCoreService();
         done();
     });
 

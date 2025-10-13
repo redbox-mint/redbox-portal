@@ -5,9 +5,7 @@ import {TestBed} from "@angular/core/testing";
 
 describe('TextAreaComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      TextAreaComponent,
-    ]);
+    await createTestbedModule({declarations: {"TextAreaComponent": TextAreaComponent}});
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(TextAreaComponent);

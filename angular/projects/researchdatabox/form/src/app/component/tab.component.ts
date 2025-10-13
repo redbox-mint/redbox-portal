@@ -87,7 +87,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   componentInstances: any[] = [];
   componentFormMapEntries: FormFieldCompMapEntry[] = [];
   @ViewChild('tabsContainer', { read: ViewContainerRef, static: true }) private tabsContainer!: ViewContainerRef;
-
+  protected formService = inject(FormService);
   protected get tabConfig(): TabComponentConfig {
     return (this.componentDefinition?.config as TabComponentConfig);
   }
@@ -115,7 +115,12 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
               tab: tab
             }
           }
-        }
+        },
+        lineagePaths: this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
+          angularComponents: [],
+          dataModel: [],
+          formConfig: ['component', 'config', 'tabs', i],
+        }),
       } as FormFieldCompMapEntry;
 
       try {
@@ -241,7 +246,14 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       defaultComponentConfig: formConfig?.defaultComponentConfig,
     };
 
-    this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig);
+    const parentLineagePaths = this.formService.buildLineagePaths(
+      this.formFieldCompMapEntry?.lineagePaths,
+      {
+        angularComponents: [],
+        dataModel: [],
+        formConfig: ['componentDefinitions'],
+      });
+    this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig, parentLineagePaths);
     if (this.formDefMap != null && this.formDefMap != undefined) {
       for (const formFieldDef of this.formDefMap.components) {
         const componentRef = this.componentsDefinitionsContainerRef.createComponent(FormBaseWrapperComponent<unknown>);

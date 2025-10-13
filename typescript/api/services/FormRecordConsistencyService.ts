@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
+import {FormModel, PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
     FormComponentDefinition,
     ValidatorsSupport,
@@ -28,6 +28,7 @@ import {
 import {Sails} from "sails";
 import {ClientFormContext} from "../additional/ClientFormContext";
 import {firstValueFrom} from "rxjs";
+import {TemplateCompileInput} from "../additional/TemplateCompile";
 
 
 
@@ -651,6 +652,78 @@ export module Services {
             }
 
             return result;
+        }
+
+        public buildCompiledTemplates(form: FormModel & FormConfig): TemplateCompileInput[]{
+            const results = [];
+
+            // Try implementing form config traversal using iteration instead of recursion.
+            let formComponents = (form?.componentDefinitions ?? []).map((def, index) => {
+                return {path: ['componentDefinitions', index], def: def}
+            });
+
+            while(formComponents.length > 0) {
+                const {path, def} = formComponents.pop();
+                sails.log.warn(`buildCompiledTemplates name '${def?.name}' path '${path}'`);
+
+                // add compiled templates from component config
+                switch (def?.component?.class) {
+                    case "ContentComponent":
+                        results.push({
+                            key: [...path, "component", "config", "template"],
+                            value: def?.component?.config?.template,
+                            kind: "handlebars"
+                        })
+                        break;
+                    default:
+
+                        break;
+                }
+
+                // add compiled expression from form component def
+                Object.entries(def?.expressions ?? {}).forEach((expression, index) => {
+                    const [key, value] = expression;
+                    results.push({
+                        key: [...path, "expressions", index, key],
+                        value: value?.template,
+                        kind: "jsonata"
+                    })
+                });
+
+                // add compiled validations from form component def
+                // This is not needed - validators are provided via a compiled javascript file.
+                // (formComponent.model?.config?.validators ?? []).forEach((validator, index) => {
+                //     results.push({
+                //         key: [...currentPath, "model", "config", "validators", index],
+                //         value: validator.template,
+                //         kind: "jsonata"
+                //     })
+                // })
+
+                // add any child form components to the form components array
+                (def?.component?.config?.['componentDefinitions'] ?? []).forEach((subDef, subIndex) => {
+                    formComponents.push({
+                        path: [...path, 'component', 'config', 'componentDefinitions', subIndex],
+                        def: subDef,
+                    })
+                });
+                if(Object.keys(def?.component?.config?.['elementTemplate'] ?? {}).length > 0){
+                    formComponents.push({
+                        path: [...path, 'component', 'config', 'elementTemplate'],
+                        def: def?.component?.config?.['elementTemplate'],
+                    })
+                }
+                (def?.component?.config?.['tabs'] ?? []).forEach((tabDef, tabIndex) => {
+                    (tabDef?.['componentDefinitions'] ?? []).forEach((subDef, subIndex) => {
+                        formComponents.push({
+                            path: [...path, 'component', 'config', 'tabs', tabIndex, "componentDefinitions", subIndex],
+                            def: subDef,
+                        })
+                    });
+                });
+            }
+
+            return results;
         }
 
         /**

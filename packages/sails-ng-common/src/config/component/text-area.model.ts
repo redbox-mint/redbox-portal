@@ -62,7 +62,6 @@ export class TextAreaFieldModelConfig extends FieldModelConfig<TextAreaModelValu
     }
 }
 
-
 export class TextAreaFieldModelDefinition extends FieldModelDefinition<TextAreaModelValueType> implements TextAreaFieldModelDefinitionOutline {
     class = TextAreaModelName;
     config?: TextAreaFieldModelConfigOutline;

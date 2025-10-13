@@ -5,9 +5,7 @@ import { TestBed } from '@angular/core/testing';
 
 describe('CheckboxInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      CheckboxInputComponent,
-    ]);
+    await createTestbedModule({declarations: {"CheckboxInputComponent": CheckboxInputComponent}});
   });
 
   it('should create component', () => {

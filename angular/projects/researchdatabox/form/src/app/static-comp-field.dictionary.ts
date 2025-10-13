@@ -11,6 +11,7 @@ import { TextAreaComponent, TextAreaModel } from "./component/text-area.componen
 import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
 import { CheckboxInputComponent, CheckboxInputModel } from "./component/checkbox-input.component";
 import { RadioInputComponent, RadioInputModel } from "./component/radio-input.component";
+import { DateInputComponent, DateInputModel } from "./component/date-input.component";
 
 /** Field related */
 export interface FormFieldModelClassMap {
@@ -45,6 +46,10 @@ export const StaticModelCompClassMap = {
   'RadioInput': {
     model: RadioInputModel,
     component: RadioInputComponent
+  },
+  'DateInput': {
+    model: DateInputModel,
+    component: DateInputComponent
   },
   'DefaultLayoutComponent': {
     component: DefaultLayoutComponent

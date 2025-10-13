@@ -6,9 +6,7 @@ import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
 
 describe('FormComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({declarations: {"SimpleInputComponent": SimpleInputComponent}});
   });
 
   it('should create the app', () => {

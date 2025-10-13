@@ -2,7 +2,8 @@ import {Component, inject, Injector} from '@angular/core';
 import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {ContentFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
+import {ContentFieldComponentConfigFrame, ContentComponentConfig, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import * as Handlebars from 'handlebars';
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
@@ -14,15 +15,15 @@ import {ContentFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common
 // - set on load / init, if needs to be changed, that's what expressions are for
 //
 @Component({
-    selector: 'redbox-content',
-    template: `
+  selector: 'redbox-content',
+  template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <span [innerHtml]="content"></span>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
-    `,
-    standalone: false
+  `,
+  standalone: false
 })
 export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = "ContentComponent";
@@ -50,17 +51,23 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
-    const config = this.componentDefinition?.config as ContentFieldComponentConfigFrame;
+    const config = this.componentDefinition?.config as ContentComponentConfig;
 
     const content = config?.content ?? '';
     const template = config?.template ?? '';
 
     if (content && template) {
-      const formComponentName = this.name;
-      const formConfigElement = ['component', 'config', 'template'];
-      const compiledFn = await this.getFormComponent.getCompiledItem(formComponentName, formConfigElement);
-      const context = {content: content};
-      this.content = compiledFn(context);
+      try {
+        const compiledItems = await this.getFormComponent.getCompiledItem();
+        const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
+        const context = {content: content};
+        const extra = {libraries: {Handlebars: Handlebars}};
+        this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+      } catch (error) {
+        this.loggerService.error(`${this.logName}: Error loading content component`, error);
+        this.status.set(FormFieldComponentStatus.ERROR);
+        this.content = '';
+      }
     } else if (content && !template) {
       this.content = content;
     } else {

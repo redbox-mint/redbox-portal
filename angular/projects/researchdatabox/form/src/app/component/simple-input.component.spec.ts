@@ -5,9 +5,7 @@ import {TestBed} from "@angular/core/testing";
 
 describe('SimpleInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({declarations: {"SimpleInputComponent": SimpleInputComponent}});
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(SimpleInputComponent);
@@ -38,10 +36,7 @@ describe('SimpleInputComponent', () => {
       ]
     };
 
-    // act
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
-
-    // Now run your expectations
+    const {fixture} = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
