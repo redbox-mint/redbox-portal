@@ -18,26 +18,29 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { NgModule } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
-import { SimpleInputComponent } from './component/simpleinput.component';
+import { SimpleInputComponent } from './component/simple-input.component';
 import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
-import {GroupFieldComponent} from "./component/groupfield.component";
+import {GroupFieldComponent} from "./component/group.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
-import { TextAreaComponent } from './component/textarea.component';
+import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { DateInputComponent } from './component/date-input.component';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -57,14 +60,17 @@ import { RadioInputComponent } from './component/radio-input.component';
     TabComponentLayout,
     DropdownInputComponent,
     CheckboxInputComponent,
-    RadioInputComponent
+    RadioInputComponent,
+    DateInputComponent
   ],
   imports: [
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
     RedboxPortalCoreModule,
-    I18NextPipe
+    I18NextPipe,
+    BrowserAnimationsModule,
+    BsDatepickerModule.forRoot()
   ],
   providers: [
     {
