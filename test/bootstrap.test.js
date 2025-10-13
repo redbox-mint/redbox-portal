@@ -13,7 +13,7 @@ before(function (done) {
     global.expect = chai.expect;
     
     // Increase the Mocha timeout so that Sails has enough time to lift.
-    this.timeout(120000);
+    this.timeout(5 * 60 * 1000);
     sails.lift({
       log: {
         level: 'verbose'

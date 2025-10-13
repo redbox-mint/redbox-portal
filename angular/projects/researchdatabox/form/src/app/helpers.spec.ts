@@ -19,19 +19,45 @@ import {FormConfig, formValidatorsSharedDefinitions} from "@researchdatabox/sail
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import { provideHttpClient } from "@angular/common/http";
+import {provideHttpClientTesting} from "@angular/common/http/testing";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
 
-export async function createFormAndWaitForReady(formConfig: FormConfig) {
+export interface FormComponentProps {
+  oid: string;
+  recordType: string;
+  editMode: boolean;
+  formName: string;
+  downloadAndCreateOnInit: boolean;
+}
+
+export async function createFormAndWaitForReady(formConfig: FormConfig, formComponentProps?: FormComponentProps) {
   console.log('createFormAndWaitForReady - starting');
   // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
 
+  // set the attributes on the nativeElement
+  // this is necessary to properly initialise the form component
+  formComponentProps = Object.assign({}, {
+    oid: `oid-generated-${Date.now()}`,
+    recordType: 'rdmp',
+    editMode: false,
+    formName: 'default-1.0-draft',
+    downloadAndCreateOnInit: false,
+  }, formComponentProps);
+
   // Set the form component to not download the form config on init.
   // Each test will provide a form config.
-  formComponent.downloadAndCreateOnInit.set(false);
+  formComponent.downloadAndCreateOnInit.set(formComponentProps['downloadAndCreateOnInit']);
+
+  // Set the form component properties needed for initialisation.
+  formComponent.oid.set(formComponentProps['oid']);
+  formComponent.recordType.set(formComponentProps['recordType']);
+  formComponent.editMode.set(formComponentProps['editMode']);
+  formComponent.formName.set(formComponentProps['formName']);
 
   // Turn on angular's automatic change detection.
   // This reduces the need to call fixture.detectChanges,
@@ -56,67 +82,61 @@ export async function createFormAndWaitForReady(formConfig: FormConfig) {
   }
 }
 
-export async function createTestbedModule(moreDeclarations: any[] = [], moreProviders: any[] = [], moreImports: any[] = []) {
+export interface CreateTestbedModuleArgs {
+  declarations?: Record<string, any>;
+  providers?: Record<string, any>;
+  imports?: Record<string, any>;
+}
+
+async function createTestBedModuleConfig(defaults: Record<string, any>, custom: Record<string, any>) {
+  const result: any[] = [];
+  const merged = Object.assign({}, defaults, custom);
+  const includedKeys: string[] = [];
+  Object.entries(merged).forEach(([key, value]) => {
+    if (key && value) {
+      // Add the value to the array if both the key and value exist.
+      // This allows for removing items from the defaults by adding an entry with the same key and null value.
+      includedKeys.push(key);
+      result.push(value);
+    }
+  });
+  console.log(`createTestBedModuleConfig defaults ${Object.keys(defaults)} custom ${Object.keys(custom)} result ${includedKeys}`);
+  return result;
+}
+
+export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
   const configService = getStubConfigService();
   const translationService = getStubTranslationService();
   await TestBed.configureTestingModule({
-    declarations: [
-      DefaultLayoutComponent,
-      FormBaseWrapperComponent,
-      FormBaseWrapperDirective,
-      FormComponent,
-      ...moreDeclarations,
-    ],
-    imports: [
-      CommonModule,
-      BrowserModule,
-      ReactiveFormsModule,
-      RedboxPortalCoreModule,
-      I18NextPipe,
-      ...moreImports
-    ],
-    providers: [
-      {
-        provide: APP_BASE_HREF,
-        useValue: 'base'
-      },
-      LoggerService,
-      UtilityService,
-      {
-        provide: TranslationService,
-        useValue: translationService
-      },
-      {
-        provide: ConfigService,
-        useValue: configService
-      },
-      Title,
-      FormService,
-      provideI18Next(),
-      FormComponent,
-      ...moreProviders
-    ]
+    declarations: await createTestBedModuleConfig({
+      "DefaultLayoutComponent": DefaultLayoutComponent,
+      "FormBaseWrapperComponent": FormBaseWrapperComponent,
+      "FormBaseWrapperDirective": FormBaseWrapperDirective,
+      "FormComponent": FormComponent,
+    }, testConfig.declarations ?? {}),
+    imports: await createTestBedModuleConfig({
+      "CommonModule": CommonModule,
+      "BrowserModule": BrowserModule,
+      "ReactiveFormsModule": ReactiveFormsModule,
+      "RedboxPortalCoreModule": RedboxPortalCoreModule,
+      "I18NextPipe": I18NextPipe,
+    }, testConfig.imports ?? {}),
+    providers: await createTestBedModuleConfig({
+      "APP_BASE_HREF": {provide: APP_BASE_HREF, useValue: 'http://localhost'},
+      "LoggerService": LoggerService,
+      "UtilityService": UtilityService,
+      "TranslationService": {provide: TranslationService, useValue: translationService},
+      "ConfigService": {provide: ConfigService, useValue: configService},
+      "Title": Title,
+      "FormService": FormService,
+      "provideI18Next": provideI18Next(),
+      "FormComponent": FormComponent,
+      "provideHttpClient": provideHttpClient(),
+      "provideHttpClientTesting": provideHttpClientTesting(),
+    }, testConfig.providers ?? {}),
   }).compileComponents();
   return {
     configService: configService,
     translationService: translationService,
   }
 }
-
-/*
-export class FormComponentHarness extends ComponentHarness {
-  static hostSelector = 'redbox-form';
-}
-
-export class TextFieldComponentHarness extends ComponentHarness {
-  static hostSelector = 'redbox-textfield';
-}
-
-export class RepeatableComponentHarness extends ContentContainerComponentHarness<string> {
-  static hostSelector = 'redbox-form-repeatable';
-}
-
-export class GroupFieldComponentHarness extends ContentContainerComponentHarness<string> {
-  static hostSelector = 'redbox-groupfield';
-}
-*/

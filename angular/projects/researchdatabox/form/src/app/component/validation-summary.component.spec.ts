@@ -6,10 +6,12 @@ import {SimpleInputComponent} from "./simple-input.component";
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
-   await createTestbedModule([
-      ValidationSummaryFieldComponent,
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
+        "SimpleInputComponent": SimpleInputComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
@@ -80,6 +82,6 @@ describe('ValidationSummaryFieldComponent', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-event"></a>');
+    expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
   });
 });

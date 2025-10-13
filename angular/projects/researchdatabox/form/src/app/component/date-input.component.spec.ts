@@ -6,9 +6,10 @@ import { TestBed } from '@angular/core/testing';
 
 describe('DateInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      DateInputComponent,
-    ],[],[BsDatepickerModule.forRoot()]);
+    await createTestbedModule({ 
+      declarations: [DateInputComponent]
+     ,imports: [BsDatepickerModule.forRoot()]
+    });
   });
 
   it('should create component', () => {

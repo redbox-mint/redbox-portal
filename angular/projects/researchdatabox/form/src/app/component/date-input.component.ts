@@ -15,8 +15,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
     //information loaded from the database and therefore it's assumed that the framework has to convert as required. Also
     //ngx bootstrap datepicker seems to be better suited to work with template driven forms rather than reactive forms and
     //the workaround below of not emitting an event is required to avoid infinite loop. I didn't find a specific github
-    //issue for this one therefore but I tested it doesn't happen when using (ngModelChange) template driven forms approach
-    //intead of formControl.
+    //issue for this one but this doesn't happen when using (ngModelChange) template driven forms approach instead of formControl.
     if(!_isUndefined(value) && !_isNull(value)) {
       let val: Date = value as Date;
       this.setValueDontEmitEvent(val);
@@ -25,8 +24,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
 
   public setTimeValue(timeValue: string): void {
     if(this.enableTimePicker) {
-      //TODO: Implementation of time input requires more work to handle timezones properly and this will 
-      //be done in a later PR if/when required
+      //TODO: Implementation of time input requires more work to handle timezones properly and this will be done in a later PR if/when required
       let isoDts:string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
       let jsDate = DateTime.fromISO(isoDts).toJSDate();
       this.setValueDontEmitEvent(jsDate);
@@ -131,12 +129,12 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.model?.setValue(dateValue);
   }
 
-  //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input
-  //doesn't align with ReDBox standard field's layout and doesn't look good and hence ngx timepicker is not used in the
+  //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input field
+  //boxes doesn't align with ReDBox standard field's layout and doesn't look good and hence ngx timepicker is not used in the
   //implementation just for reference see the github issues here:
   //1. TimepickerComponent gets corrupted after disabling and enabling https://github.com/valor-software/ngx-bootstrap/issues/6673
-  //2. Time Picker Component - Change event not working https://github.com/valor-software/ngx-bootstrap/issues/2209?utm_source=chatgpt.com
-  //Although numer 2 is a seemingly old issue it still seems to be present in the latest version of ngx-bootstrap as of June 2024.
+  //2. Time Picker Component - Change event not working https://github.com/valor-software/ngx-bootstrap/issues/2209
+  //Although numer 2 is a seemingly old issue it's still present in the latest version of ngx-bootstrap as of June 2024.
   onTimeChange(event: Event) {
     let timeValue = (event.target as HTMLInputElement).value as string;
     this.loggerService.info(`timeValue ${timeValue}`,'');

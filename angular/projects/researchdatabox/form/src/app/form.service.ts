@@ -41,13 +41,15 @@ import {
   FormComponentDefinition,
   FormConfig,
   FormFieldComponentStatus,
-  FormStatus, FormValidatorConfig, FormValidatorDefinition,
+  FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
+import {firstValueFrom} from "rxjs";
+import {LineagePaths} from "../../../portal-ng-common/src/lib/form/form-field-base.component";
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -126,24 +128,38 @@ export class FormService extends HttpClientService {
       throw new Error("Form config from server was empty.");
     }
 
+    // This form config is the top of the lineage.
+    const parentLineagePaths = this.buildLineagePaths({
+      angularComponents: [],
+      dataModel: [],
+      formConfig: ['componentDefinitions'],
+    });
+
     // Resolve the field and component pairs
-    return this.createFormComponentsMap(formConfig);
+    return this.createFormComponentsMap(formConfig, parentLineagePaths);
   }
 
   /**
    * Create form components from the form component definition configuration.
    *
    * @param formConfig The form configuration.
+   * @param parentLineagePaths The linage paths of the parent item.
    * @returns The config and the components built from the config.
    */
-  public async createFormComponentsMap(formConfig: FormConfig): Promise<FormComponentsMap> {
+  public async createFormComponentsMap(formConfig: FormConfig, parentLineagePaths: LineagePaths): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       this.loadedValidatorDefinitions = redboxClientScript.formValidatorDefinitions;
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 
-    const components = await this.resolveFormComponentClasses(formConfig?.componentDefinitions);
+    const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
+
+    // The formConfig might be a synthetic one, built only for this method.
+    // So, don't add 'componentDefinitions' to the lineage paths.
+    // The lineage paths passed to this method are expected to reflect the real structure.
+    const components = await this.resolveFormComponentClasses(componentDefinitions, parentLineagePaths);
+
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components, formConfig);
     return new FormComponentsMap(components, formConfig);
@@ -156,13 +172,17 @@ export class FormService extends HttpClientService {
   /**
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
+   * @param parentLineagePaths The linage paths of the parent item.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[] | null | undefined): Promise<FormFieldCompMapEntry[]> {
-    const fieldArr = [];
+  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
+    const fieldArr: FormFieldCompMapEntry[] = [];
     const names = componentDefinitions?.map(i => i?.name) ?? [];
     this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${names.join(',')}`);
     const components = componentDefinitions || [];
-    for (let componentConfig of components) {
+    for (let index = 0; index < components.length; index++) {
+      const componentConfig = components[index];
+      const componentName = componentConfig?.name;
+
       let modelClass: typeof FormFieldModel | undefined = undefined;
       let componentClass: typeof FormFieldBaseComponent | undefined = undefined;
       let layoutClass: typeof FormFieldBaseComponent | undefined = undefined;
@@ -242,6 +262,13 @@ export class FormService extends HttpClientService {
       //   this.logNotAvailable(modelClassName, "model class", this.modelClassMap);
       // }
       if (!_isEmpty(fieldDef)) {
+        _merge(fieldDef, {
+          lineagePaths: this.buildLineagePaths(parentLineagePaths, {
+            angularComponents: [componentName],
+            dataModel: [componentName],
+            formConfig: [index],
+          }),
+        });
         fieldArr.push(fieldDef as FormFieldCompMapEntry);
       }
     }
@@ -367,18 +394,9 @@ export class FormService extends HttpClientService {
 
     // control
     name = name || null;
-    const componentDef = componentDefs
-      ?.find(i => !!name && i?.name === name) ?? null;
+    const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
     const {id, labelMessage} = this.componentIdLabel(componentDef);
-    const errors = Object.entries(control?.errors ?? {})
-        .map(([key, item]) => {
-          return {
-            name: key,
-            message: item.message ?? null,
-            params: {validatorName: key, ...item.params},
-          }
-        })
-      ?? [];
+    const errors = this.getFormValidatorComponentErrors(control);
 
     // Only add the result if there are errors.
     if (errors.length > 0) {
@@ -399,6 +417,22 @@ export class FormService extends HttpClientService {
   }
 
   /**
+   * Get the form validator errors for a component's control.
+   * @param control
+   */
+  public getFormValidatorComponentErrors(control: AbstractControl | null | undefined): FormValidatorComponentErrors[] {
+    return Object.entries(control?.errors ?? {})
+        .map(([key, item]) => {
+          return {
+            name: key,
+            message: item.message ?? null,
+            params: {...item.params},
+          }
+        })
+      ?? [];
+  }
+
+  /**
    * Get the component id and translatable label message.
    *
    * @param componentDef The component definition from the form config.
@@ -409,10 +443,6 @@ export class FormService extends HttpClientService {
   } {
     const idParts = ["form", "item", "id"];
 
-    // id is built from the first of these that exists:
-    // - componentDefinition.model.name
-    // - componentDefinition.name
-    // const modelName = componentDef?.model?.name;
     const itemName = componentDef?.name;
 
     // construct the id so it is different to the model name
@@ -503,7 +533,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await this.http.get<{data: FormConfig}>(url.href, this.requestOptions).toPromise();
+    const result = await firstValueFrom(this.http.get<{data: FormConfig}>(url.href, this.requestOptions));
     this.loggerService.info(`Get form fields from url: ${url}`, result);
     return result?.data;
   }
@@ -525,30 +555,66 @@ export class FormService extends HttpClientService {
       : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
-    const result = await this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions).toPromise();
+    const result = await firstValueFrom(this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions));
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
   }
 
-  public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
-    // TODO: Use this script to validate the form data model structure matches the form config.
-    const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
+  // /**
+  //  * TODO: Use this script to validate the form data model structure matches the form config.
+  //  * @param recordType
+  //  * @param oid
+  //  */
+  // public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
+  //   const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
+  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+  //   return result;
+  // }
+
+  // /**
+  //  * TODO: Use this script to validate the form data model values match the form config.
+  //  * @param recordType
+  //  * @param oid
+  //  */
+  // public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
+  //   const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
+  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+  //   return result;
+  // }
+
+  // /**
+  //  * TODO: Use this script to run the form data model expressions.
+  //  * @param recordType
+  //  * @param oid
+  //  */
+  // public async getDynamicImportFormExpressions(recordType: string, oid: string) {
+  //   const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
+  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+  //   return result;
+  // }
+
+  /**
+   * Get all the compiled items for the form.
+   * @param recordType The form record type.
+   */
+  public async getDynamicImportFormCompiledItems(recordType: string) {
+    const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
     return result;
   }
 
-  public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
-    // TODO: Use this script to validate the form data model values match the form config.
-    const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-    return result;
-  }
-
-  public async getDynamicImportFormExpressions(recordType: string, oid: string) {
-    // TODO: Use this script to run the form data model expressions.
-    const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-    return result;
+  /**
+   * Build the lineage paths from a base item,
+   * and add the entries in more as relative parts at the end of each lineage path.
+   * @param base The base paths.
+   * @param more The relative paths to append.
+   */
+  public buildLineagePaths(base?: LineagePaths, more?: LineagePaths) : LineagePaths {
+    return {
+      formConfig: [...base?.formConfig ?? [], ...more?.formConfig ?? []],
+      dataModel: [...base?.dataModel ?? [], ...more?.dataModel ?? []],
+      angularComponents: [...base?.angularComponents ?? [], ...more?.angularComponents ?? []],
+    }
   }
 }
 

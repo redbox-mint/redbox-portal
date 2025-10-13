@@ -10,10 +10,12 @@ let formConfig: FormConfig;
 
 describe('SaveButtonComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      SaveButtonComponent
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "SaveButtonComponent": SaveButtonComponent,
+      }
+    });
     formConfig = {
       debugValue: true,
       domElementType: 'form',
