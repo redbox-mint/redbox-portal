@@ -28,7 +28,7 @@ module.exports.csp = {
     'default-src': ["'self'"],
     'script-src': ["'self'"],
     'worker-src': ["'self'"],
-    'img-src': ["'self'", 'data:', 'https:'],
+    'img-src': ["'self'"],
     'connect-src': ["'self'"],
     'media-src': ["'self'"],
     'frame-src': ["'self'"],
