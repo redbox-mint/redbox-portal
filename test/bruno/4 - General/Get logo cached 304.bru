@@ -1,0 +1,25 @@
+meta {
+  name: Get logo cached 304
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/rdmp/images/logo
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const etag = bru.getVar("logo_etag");
+  if (!etag) {
+    throw new Error("logo_etag variable must be set by a previous test. Run 'Get logo' test first.");
+  }
+  req.setHeader("If-None-Match", etag);
+}
+
+tests {
+  test("Returns 304 for logo with matching ETag", function () {
+      expect(res.getStatus()).to.equal(304);
+  });
+}

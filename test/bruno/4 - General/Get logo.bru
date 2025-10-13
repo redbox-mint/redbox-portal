@@ -20,5 +20,9 @@ tests {
       expect(res.getHeader("content-type")).to.equal("image/png")
     const sizeInBytes = Buffer.byteLength(res.getBody(),"utf-8")
       expect(sizeInBytes).to.be.greaterThan(0);
+      const etag = res.getHeader("etag");
+      if(etag){
+        bru.setVar("logo_etag", etag);
+      }
   });
 }

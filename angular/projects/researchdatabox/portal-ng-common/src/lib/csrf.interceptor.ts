@@ -22,6 +22,7 @@ import { get as _get, isEmpty as _isEmpty, set as _set, clone as _clone } from '
 
 
 export const RB_HTTP_INTERCEPTOR_AUTH_CSRF = new HttpContextToken(() => '');
+export const RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE = new HttpContextToken(() => false);
 /**
  * Interceptor for CSRF, etc.
  *
@@ -41,9 +42,17 @@ export const RB_HTTP_INTERCEPTOR_AUTH_CSRF = new HttpContextToken(() => '');
   intercept(req: HttpRequest<any>, next: HttpHandler) {
     const headers = _clone(this.headers);
     const csrfToken = req.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF);
+    const skipJsonContentType = req.context.get(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE);
+    
     if (!_isEmpty(csrfToken) && _isEmpty(_get(this.headers, 'X-CSRF-Token'))) {
       _set(headers, 'X-CSRF-Token', csrfToken);
     }
+    
+    // For FormData uploads, don't set the JSON content-type
+    if (skipJsonContentType || req.body instanceof FormData) {
+      delete headers['Content-Type'];
+    }
+    
     const authReq = req.clone({
       setHeaders: headers
     });

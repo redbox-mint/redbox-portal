@@ -10,7 +10,7 @@ get {
   auth: none
 }
 
-query {
+params:query {
   before: 
   after: 
   recType: rdmp
@@ -26,11 +26,9 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: {{host}}/default/rdmp/export
-  
   X-Source: jsclient
   Cache-Control: no-cache
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");
