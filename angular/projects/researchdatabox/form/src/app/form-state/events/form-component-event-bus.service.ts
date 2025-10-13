@@ -5,7 +5,7 @@
  * Per R15.1–R15.29, events do NOT persist in store.
  */
 
-import { Injectable, OnDestroy, computed, signal, Signal, DestroyRef, inject, Injector } from '@angular/core';
+import { Injectable, OnDestroy, Signal, inject, Injector } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, share } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -22,7 +22,6 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
 export class FormComponentEventBus implements OnDestroy {
   private readonly eventStream$ = new Subject<FormComponentEvent>();
   private readonly diagnosticsEnabled = false; // R15.13, R15.26: toggle via environment flag
-  private readonly destroyRef = inject(DestroyRef);
   private readonly eventLoopBatching = false; // R15.19: optional performance optimization
   private readonly logger = inject(LoggerService);
 

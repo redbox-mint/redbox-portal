@@ -10,7 +10,7 @@
  * (c) Event requires replay capability for debugging
  */
 
-import { Injectable, inject, InjectionToken, Optional, Inject } from '@angular/core';
+import { Injectable, inject, InjectionToken } from '@angular/core';
 import { Actions, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { Observable, EMPTY } from 'rxjs';

@@ -2,7 +2,6 @@ import { Component, inject, effect, signal } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import { SaveButtonComponentDefinition } from '@researchdatabox/sails-ng-common';
-import { get as _get } from 'lodash-es';
 import { FormStatusSignalBridge } from '../form-state/facade/form-status-signal-bridge';
 
 @Component({
