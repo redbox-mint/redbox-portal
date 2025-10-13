@@ -1,7 +1,7 @@
 import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
 import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
 
-export type DateInputModelValueType = string | Date | null;
+export type DateInputModelValueType = Date | null;
 
 export interface DateInputComponentDefinition extends BaseFormFieldComponentDefinition {
     class: "DateInputComponent";

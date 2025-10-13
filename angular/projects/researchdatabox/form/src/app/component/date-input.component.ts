@@ -1,46 +1,41 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ViewChild } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import { DateInputComponentConfig, DateInputModelValueType } from '@researchdatabox/sails-ng-common';
 import { DateTime } from 'luxon';
-import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
+import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
-import { AbstractControl, FormControl } from '@angular/forms';
 
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
 
-  public timeControl?: AbstractControl<DateInputModelValueType>;
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
 
   override setValue(value: DateInputModelValueType): void {
-    if(!_isNull(value) || !_isUndefined(value)) {
+    //ngx bootstrap datepicker requires a JS Date object. Therefore the model class it's not concerned with transformation of
+    //information loaded from the database and therefore it's assumed that the framework has to convert as required. Also
+    //ngx bootstrap datepicker seems to be better suited to work with template driven forms rather than reactive forms and
+    //the workaround below of not emitting an event is required to avoid infinite loop. I didn't find a specific github
+    //issue for this one therefore but I tested it doesn't happen when using (ngModelChange) template driven forms approach
+    //intead of formControl.
+    if(!_isUndefined(value) && !_isNull(value)) {
       let val: Date = value as Date;
       this.setValueDontEmitEvent(val);
     }
   }
 
-  override getValue(): DateInputModelValueType | undefined {
-    return DateTime.fromISO(this.formControl?.value as string).toJSDate();
-  }
-
-  override postCreate(): void {
-    super.postCreate();
+  public setTimeValue(timeValue: string): void {
     if(this.enableTimePicker) {
-      this.timeControl = new FormControl<DateInputModelValueType>('');
-    } 
-  }
-
-  public setTimeValue(value: DateInputModelValueType): void {
-    if(this.enableTimePicker) {
-      this.timeControl?.setValue(value);
-      let isoDt:string = `${this.stripTimeFromJSDate(this.formControl?.value as Date,'yyyy-MM-dd')}T${value}:00.000Z`;
-      this.setValueDontEmitEvent(DateTime.fromISO(isoDt).toJSDate());
+      //TODO: Implementation of time input requires more work to handle timezones properly and this will 
+      //be done in a later PR if/when required
+      let isoDts:string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
+      let jsDate = DateTime.fromISO(isoDts).toJSDate();
+      this.setValueDontEmitEvent(jsDate);
     }
   }
 
-  private stripTimeFromJSDate(date: Date, format:string): string {
-    if (!_isNull(date)) {
-      let formatted = DateTime.fromJSDate(date).toFormat(format);
+  private stripTimeFromJSDate(date: Date): string {
+    if (!_isUndefined(date) && !_isNull(date)) {
+      let formatted = DateTime.fromJSDate(date).toFormat('yyyy-MM-dd');
       return formatted;
     } 
     return '';
@@ -68,7 +63,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           [placeholder]="placeholder"
         />
         <div class="input-group-append">
-          <span class="input-group-text date-input-addon" >
+          <span class="input-group-text date-input-addon" (click)="toggleDatepicker()" >
             <i class="fa fa-calendar"></i>
           </span>
         </div>
@@ -104,12 +99,44 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private containerClass: string = 'theme-dark-blue';
   private bsFullConfig: any = {};
   public enableTimePickerDefault: boolean = false;
+  
+  @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
+
+  override ngAfterViewInit() {
+    this.formControl.valueChanges.subscribe((value: DateInputModelValueType) => {
+      this.onDateChange(value); 
+    });
+    
+    super.ngAfterViewInit();
+  }
+
+  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
+    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
+    this.tooltip = this.getStringProperty('tooltip');
+    let dateConfig = this.componentDefinition?.config as DateInputComponentConfig;
+    let defaultConfig = new DateInputComponentConfig();
+    let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
+    this.placeholder = cfg.placeholder ?? defaultConfig.placeholder;
+    this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
+    this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
+    this.bsFullConfig = cfg.bsFullConfig ?? {};
+    if(!_isUndefined(this.model)) {
+      this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
+      this.model.enableTimePicker = cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
+    }
+  }
 
   onDateChange(dateValue: DateInputModelValueType) {
     this.loggerService.info(`dateValue ${dateValue}`,'');
     this.model?.setValue(dateValue);
   }
 
+  //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input
+  //doesn't align with ReDBox standard field's layout and doesn't look good and hence ngx timepicker is not used in the
+  //implementation just for reference see the github issues here:
+  //1. TimepickerComponent gets corrupted after disabling and enabling https://github.com/valor-software/ngx-bootstrap/issues/6673
+  //2. Time Picker Component - Change event not working https://github.com/valor-software/ngx-bootstrap/issues/2209?utm_source=chatgpt.com
+  //Although numer 2 is a seemingly old issue it still seems to be present in the latest version of ngx-bootstrap as of June 2024.
   onTimeChange(event: Event) {
     let timeValue = (event.target as HTMLInputElement).value as string;
     this.loggerService.info(`timeValue ${timeValue}`,'');
@@ -129,28 +156,12 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
   }
 
-  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
-    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.tooltip = this.getStringProperty('tooltip');
-    let dateConfig = this.componentDefinition?.config as DateInputComponentConfig;
-    let defaultConfig = new DateInputComponentConfig();
-    let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
-    this.placeholder = cfg.placeholder ?? defaultConfig.placeholder;
-    this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
-    this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
-    this.bsFullConfig = cfg.bsFullConfig ?? {};
-    if(!_isUndefined(this.model)) {
-      this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
-      this.model.enableTimePicker = cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
+  public toggleDatepicker(): void {
+    if (this.datepicker.isOpen) {
+      this.datepicker.hide();
+    } else {
+      this.datepicker.show();
     }
-  }
-
-  override ngAfterViewInit() {
-    this.formControl.valueChanges.subscribe((value: DateInputModelValueType) => {
-      this.onDateChange(value); 
-    });
-    
-    super.ngAfterViewInit();
   }
 
   get dateFormat(): string {
