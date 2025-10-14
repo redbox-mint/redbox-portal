@@ -10,16 +10,13 @@ import {
 } from "./tab.outline";
 import {FormComponentDefinition} from "../form-component.model";
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
-import {FieldComponentDefinition} from "../field-component.model";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
-import { FormComponentDefinitionOutline } from "../form-component.outline";
 import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
 import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 
 
 /* Tab Component */
-class FieldComponentConfig {
-}
 
 export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigOutline {
     tabs: TabContentFormComponentDefinitionOutline[];

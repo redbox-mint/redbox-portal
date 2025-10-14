@@ -15,7 +15,7 @@ import {
     FieldComponentConfigOutline,
     FieldComponentDefinitionFrame, FieldComponentDefinitionOutline
 } from "../field-component.outline";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
     FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
@@ -65,7 +65,7 @@ export interface GroupFieldModelDefinitionFrame extends FieldModelDefinitionFram
     config?: GroupFieldModelConfigFrame;
 }
 
-export interface GroupFieldModelDefinitionOutline extends GroupFieldModelDefinitionFrame, FieldModelDefinitionOutline<GroupFieldModelValueType>, HasChildren {
+export interface GroupFieldModelDefinitionOutline extends GroupFieldModelDefinitionFrame, FieldModelDefinitionOutline<GroupFieldModelValueType> {
     class: GroupFieldModelNameType;
     config?: GroupFieldModelConfigOutline;
 }

@@ -3,17 +3,7 @@ import {FieldModelDefinitionFrame, FieldModelDefinitionOutline} from "./field-mo
 import {FieldComponentDefinitionFrame, FieldComponentDefinitionOutline} from "./field-component.outline";
 import {FormModesConfig} from "./shared.outline";
 import {FieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline} from "./field-layout.outline";
-import {AllFormComponentDefinitionOutlines} from "./dictionary.outline";
 
-/**
- * An interface for classes that might have children.
- */
-export interface HasChildren {
-    /**
-     * Get all the components that are directly contained by this component.
-     */
-    get children(): AllFormComponentDefinitionOutlines[];
-}
 
 /**
  * The expressions for a component.

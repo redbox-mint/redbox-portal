@@ -56,6 +56,11 @@ import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
+import {
+    DateInputFieldComponentDefinitionOutline,
+    DateInputFieldModelDefinitionOutline,
+    DateInputFormComponentDefinitionOutline
+} from "../component/date-input.outline";
 
 
 export interface CanVisit {
@@ -164,4 +169,13 @@ export interface FormConfigVisitorOutline {
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void;
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void;
+
+    /* Date Input */
+
+    visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void;
+
+    visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void;
+
+    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void;
+
 }

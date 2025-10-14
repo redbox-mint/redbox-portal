@@ -10,24 +10,10 @@ const formConfig: FormConfigFrame = {
     },
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
-
-    // TODO: a way to crate groups of validators
-    // This is not implemented yet.
-    // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
-    // validatorProfiles: {
-    //     // all: All validators (exclude none).
-    //     all: {exclude: []},
-    //     // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
-    //     minimumSave: {include: ['project_title']},
-    // },
-
     // Validators that operate on multiple fields.
     validators: [
         {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
-    // componentTemplates: [
-    //     // TODO - server-side only, replaced in componentDefinitions
-    // ],
     componentDefinitions: [
         {
             name: 'main_tab',
@@ -207,7 +193,7 @@ const formConfig: FormConfigFrame = {
                                 {
                                     name: 'date_1',
                                     layout: {
-                                        class: 'DefaultLayoutComponent',
+                                        class: 'DefaultLayout',
                                         config: {
                                             label: 'Date some label',
                                             helpText: 'Date some help text',
@@ -225,7 +211,7 @@ const formConfig: FormConfigFrame = {
                                 {
                                     name: 'date_2',
                                     layout: {
-                                        class: 'DefaultLayoutComponent',
+                                        class: 'DefaultLayout',
                                         config: {
                                             label: 'Date some label',
                                             helpText: 'Date some help text',

@@ -1,7 +1,12 @@
 import {FormComponentDefinition} from "./form-component.model";
-import {isBoolean as _isBoolean, isArray as _isArray, isString as _isString, isPlainObject as _isPlainObject} from "lodash";
-import { DateTime } from 'luxon';
-import { BaseFieldComponentDefinitionOutline} from "./base-field-component.outline";
+import {
+    isBoolean as _isBoolean,
+    isArray as _isArray,
+    isString as _isString,
+    isPlainObject as _isPlainObject
+} from "lodash";
+import {DateTime} from 'luxon';
+import {BaseFieldComponentDefinitionOutline} from "./base-field-component.outline";
 import {FormComponentDefinitionOutline} from "./form-component.outline";
 
 /**
@@ -60,6 +65,9 @@ export function guessType(value: unknown): "array" | "object" | "boolean" | "str
  * @param item
  */
 export function isFormFieldDefinition(item: unknown): item is BaseFieldComponentDefinitionOutline {
+    if (item === undefined || item === null) {
+        throw new Error(`Item provided to isFormFieldDefinition was undefined or null.`);
+    }
     // use typescript narrowing to check the value
     // see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
     // not using 'BaseFormFieldComponentDefinition' because it is too general -
@@ -74,10 +82,16 @@ export function isFormFieldDefinition(item: unknown): item is BaseFieldComponent
  * Check if the item is a form component definition (it has 'name' and 'component' properties).
  * @param item
  */
-export function  isFormComponentDefinition(item: unknown): item is FormComponentDefinitionOutline {
+export function isFormComponentDefinition(item: unknown): item is FormComponentDefinitionOutline {
+    if (item === undefined || item === null) {
+        return false;
+    }
     // use typescript narrowing to check the value
     const i = item as FormComponentDefinition;
     // only name and component are required
-    return 'name' in i && guessType(i?.name) === 'string' &&
-        'component' in i && isFormFieldDefinition(i?.component);
+    const hasName = 'name' in i;
+    const hasExpectedNameValue = ["null", "string"].includes(guessType(i?.name));
+    const hasComponent = 'component' in i;
+    const isFormFieldComponent = isFormFieldDefinition(i?.component);
+    return hasName && hasExpectedNameValue && hasComponent && isFormFieldComponent;
 }

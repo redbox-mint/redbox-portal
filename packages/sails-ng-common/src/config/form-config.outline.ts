@@ -1,9 +1,8 @@
 import {FormValidatorConfig} from "../validation/form.model";
-import {AvailableFormComponentDefinitionFrames} from "./dictionary.outline";
-import {HasCompilableTemplates} from "../template.outline";
+import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
 import {CanVisit} from "./visitor/base.outline";
 import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
-import {HasChildren} from "./form-component.outline";
+
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
@@ -53,16 +52,6 @@ export interface FormConfigFrame {
      */
     validators?: FormValidatorConfig[];
 
-    // TODO: a way to create groups of validators
-    // This is not implemented yet.
-    // each group has a name, plus either which validators to 'exclude' or 'include', but not both.
-    // validatorProfiles: {
-    //     // all: All validators (exclude none).
-    //     all: {exclude: []},
-    //     // minimumSave: The minimum set of validators that must pass to be able to save (create or update).
-    //     minimumSave: {include: ['project_title']},
-    // },
-
     // -- Component-related config --
 
     /**
@@ -80,5 +69,6 @@ export interface FormConfigFrame {
     debugValue?: boolean;
 }
 
-export interface FormConfigOutline extends FormConfigFrame, HasChildren, HasCompilableTemplates, CanVisit {
+export interface FormConfigOutline extends FormConfigFrame, CanVisit {
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[];
 }

@@ -37,9 +37,6 @@ export interface CheckboxInputFieldComponentConfigFrame extends FieldComponentCo
 }
 
 export interface CheckboxInputFieldComponentConfigOutline extends CheckboxInputFieldComponentConfigFrame, FieldComponentConfigOutline {
-    placeholder?: string;
-    options: CheckboxOption[];
-    multipleValues?: boolean;
 }
 
 export interface CheckboxInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

@@ -4,6 +4,9 @@ import {
     FormConfigFrame,
 } from "../../src";
 
+// @ts-ignore
+import * as default_1_0_draft_form_config from "./../../../../../form-config/default-1.0-draft.js";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
@@ -96,6 +99,10 @@ describe("Construct Visitor", async () => {
                 return form;
             }(),
         },
+        {
+            args: default_1_0_draft_form_config,
+            expected: new FormConfig(),
+        }
     ];
     cases.forEach(({args, expected}) => {
         it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {

@@ -1,6 +1,6 @@
 import {get as _get} from "lodash";
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {FormConfigVisitorOutline} from "./base.outline";
+import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -63,6 +63,12 @@ import {FieldLayoutConfigFrame, FieldLayoutConfigOutline} from "../field-layout.
 import {FieldModelConfigFrame, FieldModelConfigOutline} from "../field-model.outline";
 import {FieldComponentConfigFrame, FieldComponentConfigOutline} from "../field-component.outline";
 import {guessType, isFormFieldDefinition} from "../helpers";
+import {
+    DateInputFieldComponentDefinitionOutline,
+    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
+} from "../component/date-input.outline";
+import {TemplateCompileKey} from "../../template.outline";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
 
 
 /**
@@ -70,7 +76,18 @@ import {guessType, isFormFieldDefinition} from "../helpers";
  */
 export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
+    /* Form Config */
+
     visitFormConfig(item: FormConfigOutline): void {
+        // HasChildren, HasCompilableTemplates
+        //     /**
+        //      * Get all the components that are directly contained by this component.
+        //      */
+        //     get children(): AllFormComponentDefinitionOutlines[];
+        //     /**
+        //      * Get all the templates for this component.
+        //      */
+        //     get templates(): TemplateCompileInput[];
         this.notImplemented('visitFormConfig');
     }
 
@@ -240,6 +257,22 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented('visitRadioInputFormComponentDefinition');
     }
 
+    /* Date Input */
+
+    visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
+        this.notImplemented('visitDateInputFieldComponentDefinition');
+    }
+
+    visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+        this.notImplemented('visitDateInputFieldModelDefinition');
+    }
+
+    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.notImplemented('visitDateInputFormComponentDefinition');
+    }
+
+    /* Shared */
+
     protected notImplemented(name: string) {
         throw new Error(`Method '${name}' is not implemented.`);
     }
@@ -273,38 +306,95 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         return outcome;
     }
 
-
     protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigOutline, config?: FieldComponentConfigFrame) {
         // Set the common field component config properties
-        item.readonly = config?.readonly;
-        item.visible = config?.visible;
-        item.editMode = config?.editMode;
-        item.label = config?.label;
-        item.defaultComponentCssClasses = config?.defaultComponentCssClasses;
-        item.hostCssClasses = config?.hostCssClasses;
-        item.wrapperCssClasses = config?.wrapperCssClasses;
-        item.disabled = config?.disabled;
-        item.autofocus = config?.autofocus;
-        item.tooltip = config?.tooltip;
+        this.setProp('readonly', item, config);
+        this.setProp('visible', item, config);
+        this.setProp('editMode', item, config);
+        this.setProp('label', item, config);
+        this.setProp('defaultComponentCssClasses', item, config);
+        this.setProp('hostCssClasses', item, config);
+        this.setProp('wrapperCssClasses', item, config);
+        this.setProp('disabled', item, config);
+        this.setProp('autofocus', item, config);
+        this.setProp('tooltip', item, config);
     }
 
     protected sharedPopulateFieldModelConfig(item: FieldModelConfigOutline<unknown>, config?: FieldModelConfigFrame<unknown>) {
         // Set the common field model config properties
-        item.disableFormBinding = config?.disableFormBinding;
-        item.value = config?.value;
-        item.defaultValue = config?.defaultValue;
-        item.validators = config?.validators;
-        item.wrapperCssClasses = config?.wrapperCssClasses;
-        item.editCssClasses = config?.editCssClasses;
+        this.setProp('disableFormBinding', item, config);
+        this.setProp('value', item, config);
+        this.setProp('defaultValue', item, config);
+        this.setProp('validators', item, config);
+        this.setProp('wrapperCssClasses', item, config);
+        this.setProp('editCssClasses', item, config);
     }
 
     protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigOutline, config?: FieldLayoutConfigFrame) {
         // Set the common field model config properties
         this.sharedPopulateFieldComponentConfig(item, config);
-        item.labelRequiredStr = config?.labelRequiredStr;
-        item.helpText = config?.helpText;
-        item.cssClassesMap = config?.cssClassesMap;
-        item.helpTextVisibleOnInit = config?.helpTextVisibleOnInit;
-        item.helpTextVisible = config?.helpTextVisible;
+        this.setProp('labelRequiredStr', item, config);
+        this.setProp('helpText', item, config);
+        this.setProp('cssClassesMap', item, config);
+        this.setProp('helpTextVisibleOnInit', item, config);
+        this.setProp('helpTextVisible', item, config);
+    }
+
+    protected setProp(name: string, item: { [x: string]: any; }, config?: { [x: string]: any; },) {
+        if (item === undefined || item === null){
+            throw new Error("Item provided to setProp was undefined or null.");
+        }
+        if (!(name in item)){
+            throw new Error(`Item provided to setProp does not have property '${name}': ${JSON.stringify(item)}`);
+        }
+        const itemValue = item[name];
+        const configValue = config?.[name] ?? undefined;
+        item[name] = configValue ?? itemValue;
+    }
+}
+
+export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
+    protected currentPath: TemplateCompileKey = [];
+
+    /**
+     * Reset the current path to an empty array.
+     * @protected
+     */
+    protected resetCurrentPath(): void {
+        this.currentPath = [];
+    }
+
+    /**
+     * Call accept on the provided item and set the current path with the given suffix.
+     * Set the current path to the previous value after the accept method is done.
+     * @param item
+     * @param suffixPath
+     * @protected
+     */
+    protected acceptCurrentPath(item: CanVisit, suffixPath: TemplateCompileKey): void {
+        const itemCurrentPath = [...(this.currentPath ?? [])];
+        try {
+            this.currentPath = [...itemCurrentPath, ...(suffixPath ?? [])];
+            item.accept(this);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            this.currentPath = itemCurrentPath;
+        }
+    }
+
+    /**
+     * Call accept on the properties of the form component definition outline that can be visited.
+     * @param item The form component definition outline.
+     * @protected
+     */
+    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
+        this.acceptCurrentPath(item.component, ['component']);
+        if (item.model) {
+            this.acceptCurrentPath(item.model, ['model']);
+        }
+        if (item.layout) {
+            this.acceptCurrentPath(item.layout, ['layout']);
+        }
     }
 }

@@ -16,7 +16,6 @@ import {
     TabContentFieldLayoutConfigOutline,
     TabContentFieldLayoutDefinitionOutline, TabContentFormComponentDefinitionOutline, TabContentLayoutName
 } from "./tab-content.outline";
-import { FormComponentDefinitionOutline } from "../form-component.outline";
 
 
 /* Tab Content Component */

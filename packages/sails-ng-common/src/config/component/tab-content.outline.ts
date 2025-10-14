@@ -9,7 +9,7 @@ import {
     FieldLayoutDefinitionFrame,
     FieldLayoutDefinitionOutline
 } from "../field-layout.outline";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
     FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
@@ -75,7 +75,7 @@ export interface TabContentFieldLayoutDefinitionFrame extends FieldLayoutDefinit
     config?: TabContentFieldLayoutConfigFrame;
 }
 
-export interface TabContentFieldLayoutDefinitionOutline extends TabContentFieldLayoutDefinitionFrame, HasChildren, FieldLayoutDefinitionOutline {
+export interface TabContentFieldLayoutDefinitionOutline extends TabContentFieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline {
     class: TabContentLayoutNameType;
     config?: TabContentFieldLayoutConfigOutline;
 }

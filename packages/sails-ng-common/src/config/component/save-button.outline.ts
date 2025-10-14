@@ -22,11 +22,7 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
     skipValidation?: boolean;
 }
 
-
 export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {
-    targetStep?: string;
-    forceSave?: boolean;
-    skipValidation?: boolean;
 }
 
 export interface SaveButtonFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

@@ -5,7 +5,7 @@ import {
     FieldModelDefinitionMap,
     FormComponentDefinitionMap,
 } from "../dictionary.model";
-import {FormConfigVisitor} from "./base.model";
+import {CurrentPathFormConfigVisitor} from "./base.model";
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
 import {
     GroupFieldComponentDefinitionFrame,
@@ -44,16 +44,83 @@ import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
 import {isFormComponentDefinition} from "../helpers";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {
+    ContentComponentName, ContentFieldComponentDefinitionFrame,
+    ContentFieldComponentDefinitionOutline,
+    ContentFormComponentDefinitionOutline
+} from "../component/content.outline";
+import {
+    TabComponentName, TabFieldComponentDefinitionFrame,
+    TabFieldComponentDefinitionOutline, TabFieldLayoutDefinitionFrame,
+    TabFieldLayoutDefinitionOutline,
+    TabFormComponentDefinitionOutline, TabLayoutName
+} from "../component/tab.outline";
+import {TabFieldComponentConfig, TabFieldLayoutConfig} from "../component/tab.model";
+import {
+    TabContentComponentName,
+    TabContentFieldComponentDefinitionFrame,
+    TabContentFieldComponentDefinitionOutline, TabContentFieldLayoutDefinitionFrame,
+    TabContentFieldLayoutDefinitionOutline, TabContentFormComponentDefinitionOutline, TabContentLayoutName
+} from "../component/tab-content.outline";
+import {TabContentFieldComponentConfig, TabContentFieldLayoutConfig} from "../component/tab-content.model";
+import {
+    TextAreaComponentName,
+    TextAreaFieldComponentDefinitionFrame,
+    TextAreaFieldComponentDefinitionOutline, TextAreaFieldModelDefinitionFrame,
+    TextAreaFieldModelDefinitionOutline, TextAreaFormComponentDefinitionOutline, TextAreaModelName
+} from "../component/text-area.outline";
+import {TextAreaFieldComponentConfig, TextAreaFieldModelConfig} from "../component/text-area.model";
+import {ContentFieldComponentConfig} from "../component/content.model";
+import {
+    DropdownInputComponentName,
+    DropdownInputFieldComponentDefinitionFrame,
+    DropdownInputFieldComponentDefinitionOutline, DropdownInputFieldModelDefinitionFrame,
+    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline, DropdownInputModelName
+} from "../component/dropdown-input.outline";
+import {DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig} from "../component/dropdown-input.model";
+import {
+    CheckboxInputComponentName,
+    CheckboxInputFieldComponentDefinitionFrame,
+    CheckboxInputFieldComponentDefinitionOutline, CheckboxInputFieldModelDefinitionFrame,
+    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline, CheckboxInputModelName
+} from "../component/checkbox-input.outline";
+import {CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig} from "../component/checkbox-input.model";
+import {
+    RadioInputComponentName, RadioInputFieldComponentDefinitionFrame,
+    RadioInputFieldComponentDefinitionOutline, RadioInputFieldModelDefinitionFrame,
+    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline, RadioInputModelName
+} from "../component/radio-input.outline";
+import {RadioInputFieldComponentConfig, RadioInputFieldModelConfig} from "../component/radio-input.model";
+import {
+    DateInputComponentName,
+    DateInputFieldComponentDefinitionFrame,
+    DateInputFieldComponentDefinitionOutline, DateInputFieldModelDefinitionFrame,
+    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline, DateInputModelName
+} from "../component/date-input.outline";
+import {DateInputFieldComponentConfig, DateInputFieldModelConfig} from "../component/date-input.model";
+import {
+    SaveButtonComponentName,
+    SaveButtonFieldComponentDefinitionFrame,
+    SaveButtonFieldComponentDefinitionOutline,
+    SaveButtonFormComponentDefinitionOutline
+} from "../component/save-button.outline";
+import {SaveButtonFieldComponentConfig} from "../component/save-button.model";
+import {
+    ValidationSummaryComponentName,
+    ValidationSummaryFieldComponentDefinitionFrame,
+    ValidationSummaryFieldComponentDefinitionOutline,
+    ValidationSummaryFormComponentDefinitionOutline
+} from "../component/validation-summary.outline";
+import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
 
 
 /**
  * Visit each form config frame and create an instance of the associated class.
  * Populate the form config hierarchy with the class instances.
  */
-export class ConstructFormConfigVisitor extends FormConfigVisitor {
+export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private result?: FormConfigOutline;
     private data?: FormConfigFrame;
-    private currentPath: string[] = [];
 
     private fieldComponentMap?;
     private fieldModelMap?;
@@ -71,10 +138,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     start(data: FormConfigFrame): FormConfigOutline {
         this.result = new FormConfig();
         this.data = data;
-        this.currentPath = [];
+        this.resetCurrentPath();
         this.result.accept(this);
         return this.result;
     }
+
+    /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
         const currentData = this.getDataPath(this.data, this.currentPath);
@@ -82,18 +151,18 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             return;
         }
 
-        // Set the simple properties
-        item.name = currentData.name;
-        item.type = currentData.type;
-        item.domElementType = currentData.domElementType;
-        item.domId = currentData.domId;
-        item.viewCssClasses = currentData.viewCssClasses;
-        item.editCssClasses = currentData.editCssClasses;
-        item.defaultComponentConfig = currentData.defaultComponentConfig;
-        item.skipValidationOnSave = currentData.skipValidationOnSave;
-        item.validators = currentData.validators;
-        item.defaultLayoutComponent = currentData.defaultLayoutComponent;
-        item.debugValue = currentData.debugValue;
+        // Set the simple properties, using the class instance property values as the defaults.
+        item.name = currentData.name ?? item.name;
+        item.type = currentData.type ?? item.type;
+        item.domElementType = currentData.domElementType ?? item.domElementType;
+        item.domId = currentData.domId ?? item.domId;
+        item.viewCssClasses = currentData.viewCssClasses ?? item.viewCssClasses;
+        item.editCssClasses = currentData.editCssClasses ?? item.editCssClasses;
+        item.defaultComponentConfig = currentData.defaultComponentConfig ?? item.defaultComponentConfig;
+        item.skipValidationOnSave = currentData.skipValidationOnSave ?? item.skipValidationOnSave;
+        item.validators = currentData.validators ?? item.validators;
+        item.defaultLayoutComponent = currentData.defaultLayoutComponent ?? item.defaultLayoutComponent;
+        item.debugValue = currentData.debugValue ?? item.debugValue;
 
         // Visit the components
         (currentData?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
@@ -103,8 +172,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             item.componentDefinitions.push(formComponent);
 
             // Continue the construction
-            this.currentPath = [...this.currentPath, "componentDefinitions", index.toString()];
-            formComponent?.accept(this);
+            this.acceptCurrentPath(formComponent, ["componentDefinitions", index.toString()]);
         });
     }
 
@@ -123,9 +191,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedPopulateFieldComponentConfig(item.config, config);
 
-        if (config?.type) {
-            item.config.type = config?.type;
-        }
+        this.setProp('type', item.config, config);
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
@@ -146,6 +212,27 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     /* Content */
+
+    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<ContentFieldComponentDefinitionFrame>(currentData, ContentComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new ContentFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('content', item.config, config);
+        this.setProp('template', item.config, config);
+    }
+
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
 
     /* Repeatable  */
 
@@ -172,8 +259,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config.elementTemplate = formComponent;
 
         // Continue the construction
-        this.currentPath = [...this.currentPath, "config", "elementTemplate"];
-        formComponent?.accept(this);
+        this.acceptCurrentPath(formComponent, ["config", "elementTemplate"]);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -209,6 +295,24 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     /* Validation Summary */
 
+    visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<ValidationSummaryFieldComponentDefinitionFrame>(currentData, ValidationSummaryComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new ValidationSummaryFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+    }
+
+    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
     /* Group */
 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
@@ -225,7 +329,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, config);
 
         // Visit the components
-        const fieldComponentPath = [...this.currentPath];
         (config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             const formComponent = this.sharedConstructFormComponent(componentDefinition);
 
@@ -233,10 +336,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             item.config?.componentDefinitions.push(formComponent);
 
             // Continue the construction
-            this.currentPath = [...fieldComponentPath, "config", "componentDefinitions", index.toString()];
-            formComponent?.accept(this);
+            this.acceptCurrentPath(formComponent, ["config", "componentDefinitions", index.toString()]);
         });
-        this.currentPath = fieldComponentPath;
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
@@ -258,11 +359,163 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     /* Tab  */
 
+    visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new TabFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        // Visit the components
+        (config?.tabs ?? []).forEach((componentDefinition, index) => {
+            const formComponent = this.sharedConstructFormComponent(componentDefinition);
+
+            // Store the instances on the item
+            item.config?.tabs.push(formComponent);
+
+            // Continue the construction
+            this.acceptCurrentPath(formComponent, ["config", "tabs", index.toString()]);
+        });
+    }
+
+    visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<TabFieldLayoutDefinitionFrame>(currentData, TabLayoutName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new TabFieldLayoutConfig();
+
+        this.sharedPopulateFieldLayoutConfig(item.config, config);
+
+        this.setProp('buttonSectionCssClass', item.config, config);
+        this.setProp('tabPaneCssClass', item.config, config);
+        this.setProp('tabPaneActiveCssClass', item.config, config);
+        this.setProp('buttonSectionAriaOrientation', item.config, config);
+    }
+
+    visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
     /* Tab Content */
+
+    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new TabContentFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('selected', item.config, config);
+
+        // Visit the components
+        (config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            const formComponent = this.sharedConstructFormComponent(componentDefinition);
+
+            // Store the instances on the item
+            item.config?.componentDefinitions.push(formComponent);
+
+            // Continue the construction
+            this.acceptCurrentPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+        });
+    }
+
+    visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<TabContentFieldLayoutDefinitionFrame>(currentData, TabContentLayoutName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new TabContentFieldLayoutConfig();
+
+        this.sharedPopulateFieldLayoutConfig(item.config, config);
+
+        this.setProp('buttonLabel', item.config, config);
+    }
+
+    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
 
     /* Save Button  */
 
+    visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<SaveButtonFieldComponentDefinitionFrame>(currentData, SaveButtonComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new SaveButtonFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('targetStep', item.config, config);
+        this.setProp('forceSave', item.config, config);
+        this.setProp('skipValidation', item.config, config);
+    }
+
+    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
     /* Text Area */
+
+    visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<TextAreaFieldComponentDefinitionFrame>(currentData, TextAreaComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new TextAreaFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('rows', item.config, config);
+        this.setProp('cols', item.config, config);
+        this.setProp('placeholder', item.config, config);
+    }
+
+    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<TextAreaFieldModelDefinitionFrame>(currentData, TextAreaModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new TextAreaFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
 
     /* Default Layout  */
 
@@ -279,6 +532,155 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
     }
 
+    /* Checkbox Input */
+
+    visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<CheckboxInputFieldComponentDefinitionFrame>(currentData, CheckboxInputComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new CheckboxInputFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('placeholder', item.config, config);
+        this.setProp('options', item.config, config);
+        this.setProp('multipleValues', item.config, config);
+    }
+
+    visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<CheckboxInputFieldModelDefinitionFrame>(currentData, CheckboxInputModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new CheckboxInputFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
+    /* Dropdown Input */
+
+    visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<DropdownInputFieldComponentDefinitionFrame>(currentData, DropdownInputComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new DropdownInputFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('placeholder', item.config, config);
+        this.setProp('options', item.config, config);
+    }
+
+    visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<DropdownInputFieldModelDefinitionFrame>(currentData, DropdownInputModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new DropdownInputFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
+    /* Radio Input */
+
+    visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<RadioInputFieldComponentDefinitionFrame>(currentData, RadioInputComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new RadioInputFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('options', item.config, config);
+    }
+
+    visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<RadioInputFieldModelDefinitionFrame>(currentData, RadioInputModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new RadioInputFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+    
+    /* Date Input */
+
+    visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<DateInputFieldComponentDefinitionFrame>(currentData, DateInputComponentName)) {
+            return;
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new DateInputFieldComponentConfig();
+
+        this.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.setProp('placeholder', item.config, config);
+        this.setProp('dateFormat', item.config, config);
+        this.setProp('showWeekNumbers', item.config, config);
+        this.setProp('containerClass', item.config, config);
+        this.setProp('enableTimePicker', item.config, config);
+        this.setProp('bsFullConfig', item.config, config);
+    }
+
+    visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getDataPath(this.data, this.currentPath);
+        if (!this.isFieldDefinition<DateInputFieldModelDefinitionFrame>(currentData, DateInputModelName)) {
+            return;
+        }
+
+        // Create the class instance for the config
+        item.config = new DateInputFieldModelConfig();
+
+        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    }
+
+    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.sharedPopulateFormComponent(item);
+    }
+
+    /* Shared */
 
     protected sharedConstructFormComponent(item: FormComponentDefinitionFrame) {
         // The class to use is identified by the class property string values in the field definitions.
@@ -300,7 +702,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
         if (!isFormComponentDefinition(currentData)) {
-            throw new Error("Invalid FormComponentDefinition");
+            throw new Error(`Invalid FormComponentDefinition at '${this.currentPath}': ${JSON.stringify(currentData)}`);
         }
 
         // Set the simple properties
@@ -338,22 +740,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const model = modelClass ? new modelClass() : null;
         const layout = layoutClass ? new layoutClass() : null;
 
-        // Set the instances and then continue the construction
-        const formComponentPath = [...this.currentPath];
+        // Set the instances
         item.component = component;
-        this.currentPath = [...formComponentPath, 'component'];
-        item.component?.accept(this);
+        item.model = model || undefined;
+        item.layout = layout || undefined;
 
-        if (model) {
-            item.model = model;
-            this.currentPath = [...formComponentPath, 'model'];
-            item.model?.accept(this);
-        }
-        if (layout) {
-            item.layout = layout;
-            this.currentPath = [...formComponentPath, 'layout'];
-            item.layout?.accept(this);
-        }
-        this.currentPath = formComponentPath;
+        // Continue visiting
+        this.acceptFormComponentDefinition(item);
     }
 }

@@ -6,7 +6,7 @@ import {
     FieldModelDefinitionOutline
 } from "../field-model.outline";
 import {
-    FieldComponentConfigFrame,
+    FieldComponentConfigFrame, FieldComponentConfigOutline,
     FieldComponentDefinitionFrame,
     FieldComponentDefinitionOutline
 } from "../field-component.outline";
@@ -29,9 +29,6 @@ export interface TextAreaFieldComponentConfigFrame extends FieldComponentConfigF
     rows: number;
     cols: number;
     placeholder?: string;
-}
-
-interface FieldComponentConfigOutline {
 }
 
 export interface TextAreaFieldComponentConfigOutline extends TextAreaFieldComponentConfigFrame, FieldComponentConfigOutline {

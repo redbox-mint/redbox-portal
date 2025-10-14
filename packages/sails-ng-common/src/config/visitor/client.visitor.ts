@@ -1,5 +1,5 @@
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {FormConfigVisitor} from "./base.model";
+import {CurrentPathFormConfigVisitor} from "./base.model";
 import {FormConfig} from "../form-config.model";
 import {
     FieldComponentDefinitionMap,
@@ -16,7 +16,7 @@ import {FormModesConfig} from "../shared.outline";
 /**
  * Visit each form config class type and build the form config for the client-side.
  */
-export class ClientFormConfigVisitor extends FormConfigVisitor {
+export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private formMode?: FormModesConfig;
     private userRoles?: string[];
     private recordOid?: string;
@@ -24,7 +24,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     private result?: FormConfigOutline;
     private data?: FormConfigFrame;
-    private currentPath: string[] = [];
 
     private fieldComponentMap?;
     private fieldModelMap?;
@@ -46,7 +45,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         this.result = new FormConfig();
         this.data = data;
-        this.currentPath = [];
+        this.resetCurrentPath();
 
         this.result.accept(this);
         return this.result;
@@ -79,8 +78,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             item.componentDefinitions.push(formComponent);
 
             // Continue the construction
-            this.currentPath = [...this.currentPath, "componentDefinitions", index.toString()];
-            formComponent?.accept(this);
+            this.acceptCurrentPath(formComponent, ["componentDefinitions", index.toString()]);
         });
     }
 
@@ -105,7 +103,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
         if (!isFormComponentDefinition(currentData)) {
-            throw new Error("Invalid FormComponentDefinition");
+            throw new Error(`Invalid FormComponentDefinition at '${this.currentPath}': ${JSON.stringify(currentData)}`);
         }
 
         // Set the simple properties
@@ -143,22 +141,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const model = modelClass ? new modelClass() : null;
         const layout = layoutClass ? new layoutClass() : null;
 
-        // Set the instances and then continue the construction
-        const formComponentPath = [...this.currentPath];
+        // Set the instances
         item.component = component;
-        this.currentPath = [...formComponentPath, 'component'];
-        item.component?.accept(this);
+        item.model = model || undefined;
+        item.layout = layout || undefined;
 
-        if (model) {
-            item.model = model;
-            this.currentPath = [...formComponentPath, 'model'];
-            item.model?.accept(this);
-        }
-        if (layout) {
-            item.layout = layout;
-            this.currentPath = [...formComponentPath, 'layout'];
-            item.layout?.accept(this);
-        }
-        this.currentPath = formComponentPath;
+        // Continue visiting
+        this.acceptFormComponentDefinition(item);
     }
 }

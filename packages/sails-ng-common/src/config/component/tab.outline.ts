@@ -1,4 +1,4 @@
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     FieldLayoutConfigFrame, FieldLayoutConfigOutline,
     FieldLayoutDefinitionFrame,
@@ -37,7 +37,7 @@ export interface TabFieldComponentDefinitionFrame extends FieldComponentDefiniti
     config?: TabFieldComponentConfigFrame;
 }
 
-export interface TabFieldComponentDefinitionOutline extends TabFieldComponentDefinitionFrame, HasChildren, FieldComponentDefinitionOutline {
+export interface TabFieldComponentDefinitionOutline extends TabFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: TabComponentNameType;
     config?: TabFieldComponentConfigOutline;
 }
@@ -70,10 +70,6 @@ export interface TabFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
 }
 
 export interface TabFieldLayoutConfigOutline extends TabFieldLayoutConfigFrame, FieldLayoutConfigOutline {
-    buttonSectionCssClass?: string;
-    tabPaneCssClass?: string;
-    tabPaneActiveCssClass?: string;
-    buttonSectionAriaOrientation?: ButtonSectionAriaOrientationOptionsType;
 }
 
 export interface TabFieldLayoutDefinitionFrame extends FieldLayoutDefinitionFrame {

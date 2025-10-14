@@ -32,7 +32,6 @@ export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConf
 }
 
 export interface SimpleInputFieldComponentConfigOutline extends SimpleInputFieldComponentConfigFrame, FieldComponentConfigOutline {
-    type: SimpleInputFieldComponentConfigType;
 }
 
 export interface SimpleInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

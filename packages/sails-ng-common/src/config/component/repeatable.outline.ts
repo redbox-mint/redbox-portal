@@ -10,7 +10,7 @@ import {
     AvailableFormComponentDefinitionFrames,
     AvailableFormComponentDefinitionOutlines
 } from "../dictionary.outline";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline, HasChildren} from "../form-component.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     FieldModelConfigFrame,
     FieldModelConfigOutline,
@@ -51,7 +51,7 @@ export interface RepeatableFieldComponentDefinitionFrame extends FieldComponentD
     config?: RepeatableFieldComponentConfigFrame;
 }
 
-export interface RepeatableFieldComponentDefinitionOutline extends RepeatableFieldComponentDefinitionFrame, HasChildren, FieldComponentDefinitionOutline {
+export interface RepeatableFieldComponentDefinitionOutline extends RepeatableFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: RepeatableComponentNameType;
     config?: RepeatableFieldComponentConfigOutline;
 }

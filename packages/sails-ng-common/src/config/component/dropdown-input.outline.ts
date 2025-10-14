@@ -36,8 +36,6 @@ export interface DropdownInputFieldComponentConfigFrame extends FieldComponentCo
 }
 
 export interface DropdownInputFieldComponentConfigOutline extends DropdownInputFieldComponentConfigFrame, FieldComponentConfigOutline {
-    placeholder?: string;
-    options: DropdownOption[];
 }
 
 export interface DropdownInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

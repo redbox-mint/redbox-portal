@@ -35,7 +35,6 @@ export interface RadioInputFieldComponentConfigFrame extends FieldComponentConfi
 }
 
 export interface RadioInputFieldComponentConfigOutline extends RadioInputFieldComponentConfigFrame, FieldComponentConfigOutline {
-    options: RadioOption[];
 }
 
 export interface RadioInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

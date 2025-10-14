@@ -1,6 +1,4 @@
-/* Content Component */
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
-import {HasCompilableTemplates} from "../../template.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     FieldComponentConfigFrame,
@@ -12,6 +10,8 @@ import {
     FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType, FormComponentDefinitionFrameKindType,
     FormComponentDefinitionKindType
 } from "../shared.outline";
+
+/* Content Component */
 
 export const ContentComponentName = `ContentComponent` as const;
 export type ContentComponentNameType = typeof ContentComponentName;
@@ -28,8 +28,6 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {
-    template?: string;
-    content?: string;
 }
 
 export interface ContentFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
@@ -38,7 +36,7 @@ export interface ContentFieldComponentDefinitionFrame extends FieldComponentDefi
 }
 
 
-export interface ContentFieldComponentDefinitionOutline extends ContentFieldComponentDefinitionFrame, HasCompilableTemplates, FieldComponentDefinitionOutline {
+export interface ContentFieldComponentDefinitionOutline extends ContentFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
     class: ContentComponentNameType;
     config?: ContentFieldComponentConfigOutline;
 }
@@ -51,7 +49,7 @@ export interface ContentFormComponentDefinitionFrame extends FormComponentDefini
 }
 
 
-export interface ContentFormComponentDefinitionOutline extends ContentFormComponentDefinitionFrame, HasCompilableTemplates, FormComponentDefinitionOutline {
+export interface ContentFormComponentDefinitionOutline extends ContentFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: ContentFieldComponentDefinitionOutline;
     model?: never;
     layout?: AvailableFieldLayoutDefinitionOutlines;
