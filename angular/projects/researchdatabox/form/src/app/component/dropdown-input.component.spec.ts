@@ -5,9 +5,7 @@ import { TestBed } from '@angular/core/testing';
 
 describe('DropdownInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      DropdownInputComponent,
-    ]);
+    await createTestbedModule({declarations: {"DropdownInputComponent": DropdownInputComponent}});
   });
 
   it('should create component', () => {

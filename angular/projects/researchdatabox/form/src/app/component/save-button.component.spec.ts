@@ -1,5 +1,5 @@
 import {SaveButtonComponent} from './save-button.component';
-import {SimpleInputComponent} from './simpleinput.component';
+import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import {FormStatus, FormConfig} from '@researchdatabox/sails-ng-common';
@@ -10,10 +10,12 @@ let formConfig: FormConfig;
 
 describe('SaveButtonComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      SaveButtonComponent
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "SaveButtonComponent": SaveButtonComponent,
+      }
+    });
     formConfig = {
       debugValue: true,
       domElementType: 'form',

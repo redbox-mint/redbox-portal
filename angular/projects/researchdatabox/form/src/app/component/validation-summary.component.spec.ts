@@ -2,14 +2,16 @@ import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
 import {FormConfig} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {SimpleInputComponent} from "./simpleinput.component";
+import {SimpleInputComponent} from "./simple-input.component";
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
-   await createTestbedModule([
-      ValidationSummaryFieldComponent,
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
+        "SimpleInputComponent": SimpleInputComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);

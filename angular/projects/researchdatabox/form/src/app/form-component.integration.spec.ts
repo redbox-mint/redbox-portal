@@ -22,7 +22,7 @@ import * as FormActions from './form-state/state/form.actions';
 import { selectResetToken, selectStatus } from './form-state/state/form.selectors';
 import { FormConfig } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
-import { SimpleInputComponent } from './component/simpleinput.component';
+import { SimpleInputComponent } from './component/simple-input.component';
 
 describe('FormComponent Integration Tests', () => {
   let component: FormComponent;
@@ -58,9 +58,11 @@ describe('FormComponent Integration Tests', () => {
   };
 
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent
+      }
+    });
 
     facade = TestBed.inject(FormStateFacade);
     store = TestBed.inject(Store);

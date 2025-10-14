@@ -197,6 +197,45 @@ const formConfig: FormConfig = {
                                     }
                                 },
                                 {
+                                    name: 'date_1',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Date some label',
+                                            helpText: 'Date some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'DateInputModel',
+                                        config: {
+                                        }
+                                    },
+                                    component: {
+                                        class: 'DateInputComponent'
+                                    }
+                                },
+                                {
+                                    name: 'date_2',
+                                    layout: {
+                                        class: 'DefaultLayoutComponent',
+                                        config: {
+                                            label: 'Date some label',
+                                            helpText: 'Date some help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'DateInputModel',
+                                        config: {
+                                        }
+                                    },
+                                    component: {
+                                        class: 'DateInputComponent',
+                                        config: {
+                                            enableTimePicker: true
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'text_1_event',
                                     model: {
                                         class: 'SimpleInputModel',

@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
+const Handlebars = require('handlebars');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -79,7 +80,7 @@ describe('The TemplateService', function () {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // server
                 const serverReady = TemplateService.buildServerHandlebars(args.template);
-                const serverResult = serverReady(args.context);
+                const serverResult = serverReady ? serverReady(args.context) : "";
                 expect(serverResult).to.eql(expected);
 
                 // client
@@ -102,14 +103,14 @@ describe('The TemplateService', function () {
             {
                 args: {
                     inputs: [
-                        {key: 'test1', kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!"},
-                        {key: 'test2', kind: "jsonata", value: "$sum(example.value)"}
+                        {key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!"},
+                        {key: ['test2'], kind: "jsonata", value: "$sum(example.value)"}
                     ],
                     contexts: [
-                        {key: "test1", context: {doesWhat: "testing"}},
-                        {key: "test1", context: {doesWhat: "another one"}},
-                        {key: "test2", context: {example: [{value: 4}, {value: 7}, {value: 13}]}},
-                        {key: "test2", context: {example: [{value: 52}, {value: 185}]}},
+                        {key: ["test1"], context: {doesWhat: "testing"}},
+                        {key: ["test1"], context: {doesWhat: "another one"}},
+                        {key: ["test2"], context: {example: [{value: 4}, {value: 7}, {value: 13}]}, extra: {}},
+                        {key: ["test2"], context: {example: [{value: 52}, {value: 185}]}, extra: {}},
                     ]
                 },
                 expected: [
@@ -132,7 +133,8 @@ describe('The TemplateService', function () {
                     for (let i = 0; i < args.contexts; i++) {
                         const context = args.contexts[i];
                         const expected = args.expected[i];
-                        const result = clientReady.evaluate(context.key, context.context);
+                        const extra = Object.assign({}, {libraries: {Handlebars: Handlebars}}, context.extra ?? {});
+                        const result = clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expected);
                     }
                 });

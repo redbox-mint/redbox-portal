@@ -1,5 +1,5 @@
 import {FormConfig, KeyValueStringNested, KeyValueStringProperty} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './simpleinput.component';
+import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { TabComponent, TabSelectionErrorType } from './tab.component';
@@ -10,10 +10,12 @@ let formConfig: FormConfig;
 
 describe('TabComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      TabComponent
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent,": SimpleInputComponent,
+        "TabComponent": TabComponent,
+      }
+    });
 
     formConfig = {
       debugValue: true,

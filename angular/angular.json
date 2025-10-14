@@ -669,7 +669,8 @@
               "projects/researchdatabox/form/src/assets"
             ],
             "styles": [
-              "projects/researchdatabox/form/src/styles.scss"
+              "projects/researchdatabox/form/src/styles.scss",
+              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/form/src/main.ts"
@@ -679,8 +680,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
                 },
                 {
                   "type": "anyComponentStyle",

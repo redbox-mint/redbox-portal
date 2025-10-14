@@ -1,17 +1,19 @@
 
 import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './simpleinput.component';
-import {GroupFieldComponent} from "./groupfield.component";
+import {SimpleInputComponent} from './simple-input.component';
+import {GroupFieldComponent} from "./group.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
 
 describe('GroupFieldComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      GroupFieldComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "GroupFieldComponent": GroupFieldComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(GroupFieldComponent);
