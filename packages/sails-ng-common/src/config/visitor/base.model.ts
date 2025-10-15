@@ -88,202 +88,204 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         //      * Get all the templates for this component.
         //      */
         //     get templates(): TemplateCompileInput[];
-        this.notImplemented('visitFormConfig');
+        this.notImplemented();
     }
 
     /* SimpleInput */
 
     visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitSimpleInputFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-        this.notImplemented('visitSimpleInputFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.notImplemented('visitSimpleInputFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Content */
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitContentFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.notImplemented('visitContentFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitRepeatableFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.notImplemented('visitRepeatableFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
-        this.notImplemented('visitRepeatableElementFieldLayoutDefinition');
+        this.notImplemented();
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.notImplemented('visitRepeatableFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Validation Summary */
 
     visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitValidationSummaryFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.notImplemented('visitValidationSummaryFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Group */
 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitGroupFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-        this.notImplemented('visitGroupFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.notImplemented('visitGroupFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Tab  */
 
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitTabFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
-        this.notImplemented('visitTabFieldLayoutDefinition');
+        this.notImplemented();
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.notImplemented('visitTabFormComponentDefinition');
+        this.notImplemented();
     }
 
     /*  Tab Content */
 
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitTabContentFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
-        this.notImplemented('visitTabContentFieldLayoutDefinition');
+        this.notImplemented();
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.notImplemented('visitTabContentFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Save Button  */
 
     visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitSaveButtonFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.notImplemented('visitSaveButtonFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Text Area */
 
     visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitTextAreaFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-        this.notImplemented('visitTextAreaFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.notImplemented('visitTextAreaFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Default Layout  */
 
     visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
-        this.notImplemented('visitDefaultFieldLayoutDefinition');
+        this.notImplemented();
     }
 
     /* Checkbox Input */
 
     visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitCheckboxInputFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-        this.notImplemented('visitCheckboxInputFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.notImplemented('visitCheckboxInputFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Dropdown Input */
 
     visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitDropdownInputFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-        this.notImplemented('visitDropdownInputFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.notImplemented('visitDropdownInputFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Radio Input */
 
     visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitRadioInputFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-        this.notImplemented('visitRadioInputFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.notImplemented('visitRadioInputFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Date Input */
 
     visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
-        this.notImplemented('visitDateInputFieldComponentDefinition');
+        this.notImplemented();
     }
 
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-        this.notImplemented('visitDateInputFieldModelDefinition');
+        this.notImplemented();
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.notImplemented('visitDateInputFormComponentDefinition');
+        this.notImplemented();
     }
 
     /* Shared */
 
-    protected notImplemented(name: string) {
-        throw new Error(`Method '${name}' is not implemented.`);
+    protected notImplemented() {
+        throw new Error(`Visitor method must be implemented.`);
     }
 
     // TODO: fix typing
     protected getDataPath(data?: FormConfigFrame, path?: string[]) {
         const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
-        const name = result?.['name'] ?? '(none)';
-        const className = result?.['class'] ?? '(none)';
 
-        console.info(`getDataPath '${path}' with name '${name}' with class '${className}'`);
+        const msg = [
+            result?.['name'] ? `with name '${result?.['name']}'` : '',
+            result?.['class'] ? `with class '${result?.['class']}'` : '',
+        ];
+        console.info(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
         return result;
     }
 
