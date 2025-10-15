@@ -20,9 +20,8 @@
 //<reference path='./../../typings/loader.d.ts'/>
 
 import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import {TemplateCompileInput, TemplateFormConfigVisitor} from "@researchdatabox/sails-ng-common";
+import {TemplateCompileInput} from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
-import {firstValueFrom} from "rxjs";
 
 declare var module;
 declare var sails;

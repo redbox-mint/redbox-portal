@@ -65,6 +65,12 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 
 /**
  * Visit each form config class type and extract the default value for each field.
+ *
+ * Each component definition is a property,
+ * where the key is the name and the value is the model value.
+ *
+ * Provides defaults from ancestors to descendants,
+ * so the descendants can either use their default or an ancestors default.
  */
 export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private result: Record<string, unknown> = {};
