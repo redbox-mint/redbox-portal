@@ -18,5 +18,5 @@ if (process.env.CI === "true") {
   console.log("Mocha running in local dev.");
   // (For development) Run mocha and show the results on stdout:
   module.exports["reporter"] = "spec";
-  module.exports["reporter-option"] = "maxDiffSize=0";
+  // module.exports["reporter-option"] = "maxDiffSize=0";
 }

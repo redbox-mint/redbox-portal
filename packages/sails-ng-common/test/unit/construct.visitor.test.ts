@@ -12,16 +12,17 @@ import("chai").then(mod => expect = mod.expect);
 
 describe("Construct Visitor", async () => {
     const cases: {
+        title: string,
         args: FormConfigFrame;
         expected: { useArgs: boolean, value?: FormConfig };
     }[] = [
         {
-            // empty
+            title: "create empty item",
             args: {name: '', componentDefinitions: []},
             expected: {useArgs: false, value: new FormConfig()},
         },
         {
-            // simple example
+            title: "create simple example",
             args: {
                 name: '',
                 componentDefinitions: [
@@ -97,12 +98,13 @@ describe("Construct Visitor", async () => {
             expected: {useArgs: true},
         },
         {
+            title: "create full example",
             args: default_1_0_draft_form_config,
             expected: {useArgs: true},
         }
     ];
-    cases.forEach(({args, expected}) => {
-        it(`should '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
+    cases.forEach(({title, args, expected}) => {
+        it(`should ${title}`, async function () {
             const visitor = new ConstructFormConfigVisitor();
             const actual = visitor.start(args);
             if (expected.useArgs) {

@@ -14,7 +14,6 @@ import {
     RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
     RepeatableFieldModelDefinitionOutline, RepeatableFormComponentDefinitionOutline,
-    RepeatableModelName
 } from "../component/repeatable.outline";
 import {
     ValidationSummaryFieldComponentDefinitionOutline,
@@ -59,7 +58,7 @@ import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 
 
@@ -81,12 +80,16 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
         const constructVisitor = new ConstructFormConfigVisitor();
         const constructed = constructVisitor.start(data);
 
+        return this.startExisting(constructed);
+    }
+
+    startExisting(data: FormConfigOutline): Record<string, unknown> {
         this.resetCurrentPath();
         this.result = {};
         this.resultPath = [];
         this.defaultValues = {};
-        constructed.accept(this);
-        return this.result ?? {};
+        data.accept(this);
+        return this.result;
     }
 
 

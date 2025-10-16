@@ -8,11 +8,12 @@ import("chai").then(mod => expect = mod.expect);
 
 describe("JSON Type Def Schema Visitor", async () => {
     const cases: {
+        title: string;
         args: FormConfigFrame;
         expected: Record<string, unknown>;
     }[] = [
         {
-            // example
+            title: "create basic example",
             args: {
                 name: "default-1.0-draft",
                 type: "rdmp",
@@ -214,6 +215,7 @@ describe("JSON Type Def Schema Visitor", async () => {
             },
         },
         {
+            title: "create full example",
             args: default_1_0_draft_form_config,
             expected: {
                 "properties": {
@@ -294,8 +296,8 @@ describe("JSON Type Def Schema Visitor", async () => {
             }
         }
     ];
-    cases.forEach(({args, expected}) => {
-        it(`should '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
+    cases.forEach(({title, args, expected}) => {
+        it(`should ${title}`, async function () {
             const visitor = new JsonTypeDefSchemaFormConfigVisitor();
             const actual = visitor.start(args);
             expect(actual).to.eql(expected);

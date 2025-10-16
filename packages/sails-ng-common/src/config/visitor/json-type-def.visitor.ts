@@ -60,7 +60,8 @@ import {
 } from "../component/date-input.outline";
 import {guessType} from "../helpers";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
+
 
 /**
  * Visit each form config class type to build the JSON TypeDef schema that represents the form config.
@@ -77,20 +78,19 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
         this.result = {};
         this.resultPath = [];
         constructed.accept(this);
-        return this.result ?? {};
+        return this.result;
     }
 
     /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
-        const itemResultPath = [...this.resultPath];
-        this.resultPath = [...itemResultPath, "properties"];
-        _set(this.result, this.resultPath, {});
-        (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
-        });
-        this.resultPath = [...itemResultPath];
+        const that = this;
+        this.acceptCurrentResultPath(function () {
+            (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+                // Visit children
+                that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            });
+        }, ["properties"]);
     }
 
     /* SimpleInput */
@@ -118,11 +118,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        const itemResultPath = [...this.resultPath];
-        this.resultPath = [...itemResultPath, "elements"];
-        _set(this.result, this.resultPath, {});
-        item.config?.elementTemplate?.accept(this);
-        this.resultPath = [...itemResultPath];
+        const that = this;
+        this.acceptCurrentResultPath(function () {
+            item.config?.elementTemplate?.accept(that);
+        }, ["elements"]);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -148,14 +147,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
     /* Group */
 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-        const itemResultPath = [...this.resultPath];
-        this.resultPath = [...itemResultPath, "properties"];
-        _set(this.result, this.resultPath, {});
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
-        });
-        this.resultPath = [...itemResultPath];
+        const that = this;
+        this.acceptCurrentResultPath(function () {
+            (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+                // Visit children
+                that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            });
+        }, ["properties"]);
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
@@ -296,5 +294,18 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
         }
         this.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
+    }
+
+    protected acceptCurrentResultPath(action: () => void, keys: string[]): void {
+        const theCurrentPath = [...(this.resultPath ?? [])];
+        try {
+            this.resultPath = [...theCurrentPath, ...(keys ?? [])];
+            _set(this.result, this.resultPath, {});
+            action();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            this.resultPath = [...theCurrentPath];
+        }
     }
 }

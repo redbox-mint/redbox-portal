@@ -694,8 +694,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         if (!formComponentClass) {
             throw new Error(`Could not find class for form component class name '${componentClassString}' at path '${this.currentPath}'.`)
         }
-        const formComponent = new formComponentClass(item);
-        return formComponent;
+        return new formComponentClass(item);
     }
 
     protected sharedPopulateFormComponent(item: FormComponentDefinitionOutline): void {
