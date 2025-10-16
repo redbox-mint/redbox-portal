@@ -10,18 +10,6 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
 
-  override setValue(value: DateInputModelValueType): void {
-    //ngx bootstrap datepicker requires a JS Date object. Therefore the model class it's not concerned with transformation of
-    //information loaded from the database and therefore it's assumed that the framework has to convert as required. Also
-    //ngx bootstrap datepicker seems to be better suited to work with template driven forms rather than reactive forms and
-    //the workaround below of not emitting an event is required to avoid infinite loop. I didn't find a specific github
-    //issue for this one but this doesn't happen when using (ngModelChange) template driven forms approach instead of formControl.
-    if(!_isUndefined(value) && !_isNull(value)) {
-      let val: Date = value as Date;
-      this.setValueDontEmitEvent(val);
-    }
-  }
-
   public setTimeValue(timeValue: string): void {
     if(this.enableTimePicker) {
       //TODO: Implementation of time input requires more work to handle timezones properly and this will be done in a later PR if/when required
