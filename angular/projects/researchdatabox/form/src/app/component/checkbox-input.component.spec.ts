@@ -16,6 +16,7 @@ describe('CheckboxInputComponent', () => {
 
   it('should render Checkbox input component', async () => {
     const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

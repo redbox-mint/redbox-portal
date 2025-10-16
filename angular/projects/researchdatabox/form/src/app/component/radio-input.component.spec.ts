@@ -16,6 +16,7 @@ describe('RadioInputComponent', () => {
 
   it('should render RadioInput component with options', async () => {
     const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

@@ -32,7 +32,7 @@ export interface FormComponentProps {
   downloadAndCreateOnInit: boolean;
 }
 
-export async function createFormAndWaitForReady(formConfig: FormConfig, formComponentProps?: FormComponentProps) {
+export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps) {
   console.log('createFormAndWaitForReady - starting');
   // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);

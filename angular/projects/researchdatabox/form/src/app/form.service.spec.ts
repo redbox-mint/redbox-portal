@@ -1,6 +1,5 @@
 import {TestBed} from "@angular/core/testing";
 import {FormService} from "./form.service";
-import {FormConfig} from "@researchdatabox/sails-ng-common";
 import {
   ConfigService,
   getStubConfigService,

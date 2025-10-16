@@ -15,6 +15,7 @@ describe('SaveButtonComponent', () => {
       }
     });
     formConfig = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {

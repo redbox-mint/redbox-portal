@@ -16,6 +16,7 @@ describe('TabComponent', () => {
     });
 
     formConfig = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -218,9 +219,9 @@ describe('TabComponent', () => {
     expect(selectionResult?.errorType).toBe(TabSelectionErrorType.NONE);
     expect(selectionResult?.selectedWrapper).toBeDefined();
 
-    const tabSelected = mainTab?.tabs?.find(tab => tab.selected);
+    const tabSelected = mainTab?.tabs?.find(tab => tab.component?.config?.selected);
     expect(tabSelected).toBeDefined();
-    expect(tabSelected?.id).toBe('tab1');
+    expect(tabSelected?.name).toBe('tab1');
     // Trigger change detection
     fixture.detectChanges();
     await fixture.whenStable();

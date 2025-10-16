@@ -15,6 +15,7 @@ describe('SimpleInputComponent', () => {
   it('should render TextField component', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

@@ -22,6 +22,7 @@ describe('RepeatableComponent', () => {
   });
   it('should render the repeatable and array components', async () => {
     const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {

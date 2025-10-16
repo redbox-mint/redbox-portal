@@ -23,6 +23,7 @@ describe('GroupFieldComponent', () => {
   it('should render the group and child components', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
