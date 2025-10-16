@@ -62,7 +62,6 @@ import {
 import {FieldLayoutConfigFrame, FieldLayoutConfigOutline} from "../field-layout.outline";
 import {FieldModelConfigFrame, FieldModelConfigOutline} from "../field-model.outline";
 import {FieldComponentConfigFrame, FieldComponentConfigOutline} from "../field-component.outline";
-import {guessType, isFormFieldDefinition} from "../helpers";
 import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
@@ -281,31 +280,14 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     protected getDataPath(data?: FormConfigFrame, path?: string[]) {
         const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
 
-        const msg = [
-            result?.['name'] ? `with name '${result?.['name']}'` : '',
-            result?.['class'] ? `with class '${result?.['class']}'` : '',
-        ];
-        console.info(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
+        // for debugging:
+        // const msg = [
+        //     result?.['name'] ? `with name '${result?.['name']}'` : '',
+        //     result?.['class'] ? `with class '${result?.['class']}'` : '',
+        // ];
+        // console.debug(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
+
         return result;
-    }
-
-    protected isFormConfig(value: unknown): value is FormConfigFrame {
-        // use typescript narrowing to check the value
-        const i = value as FormConfigFrame;
-        // only name and component are required
-        const outcome = 'componentDefinitions' in i && guessType(i?.componentDefinitions) === 'array';
-        if (!outcome) {
-            throw new Error("Invalid FormConfig");
-        }
-        return outcome;
-    }
-
-    protected isFieldDefinition<T>(value: unknown, name: string): value is T {
-        const outcome = isFormFieldDefinition(value) && value?.class === name;
-        if (!outcome) {
-            throw new Error(`Definition of '${name}' is invalid.`);
-        }
-        return outcome;
     }
 
     protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigOutline, config?: FieldComponentConfigFrame) {

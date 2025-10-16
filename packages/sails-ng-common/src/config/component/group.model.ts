@@ -69,10 +69,6 @@ export class GroupFieldModelDefinition extends FieldModelDefinition<GroupFieldMo
         super();
     }
 
-    get children(): AllFormComponentDefinitionOutlines[] {
-        throw new Error("Method not implemented.");
-    }
-
     accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitGroupFieldModelDefinition(this);
     }

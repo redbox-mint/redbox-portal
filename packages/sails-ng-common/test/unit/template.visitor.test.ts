@@ -5,7 +5,7 @@ import {
 } from "../../src";
 
 // @ts-ignore
-import * as default_1_0_draft_form_config from "./../../../../../form-config/default-1.0-draft.js";
+import {default as default_1_0_draft_form_config} from "./../../../../../form-config/default-1.0-draft.js";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -51,7 +51,7 @@ describe("Template Visitor", async () => {
         }
     ];
     cases.forEach(({args, expected}) => {
-        it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
+        it(`should '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const visitor = new TemplateFormConfigVisitor();
             const actual = visitor.start(args);
 

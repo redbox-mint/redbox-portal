@@ -5,7 +5,7 @@ import {
     FieldLayoutConfigKind,
     FieldLayoutDefinitionKind, FormComponentDefinitionKind
 } from "../shared.outline";
-import {AllFormComponentDefinitionOutlines, AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
 import {FormComponentDefinition} from "../form-component.model";
@@ -63,10 +63,6 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
 
     constructor() {
         super();
-    }
-
-    get children(): AllFormComponentDefinitionOutlines[] {
-        throw new Error("Method not implemented.");
     }
 
     accept(visitor: FormConfigVisitorOutline): void {

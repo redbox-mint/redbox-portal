@@ -1,4 +1,3 @@
-import {FormComponentDefinition} from "./form-component.model";
 import {
     isBoolean as _isBoolean,
     isArray as _isArray,
@@ -6,8 +5,9 @@ import {
     isPlainObject as _isPlainObject
 } from "lodash";
 import {DateTime} from 'luxon';
-import {BaseFieldComponentDefinitionOutline} from "./base-field-component.outline";
-import {FormComponentDefinitionOutline} from "./form-component.outline";
+import {FormComponentDefinitionFrame} from "./form-component.outline";
+import {FormConfigFrame} from "./form-config.outline";
+import {FieldDefinitionFrame} from "./field.outline";
 
 /**
  * Guess the type of the value.
@@ -60,38 +60,91 @@ export function guessType(value: unknown): "array" | "object" | "boolean" | "str
     return "unknown";
 }
 
-/**
- * Check if the item is a field component definition (it has 'class' and optional 'config' properties).
- * @param item
+/*
+ * The functions starting with 'isType*' use typescript narrowing to check the value
+ * see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
  */
-export function isFormFieldDefinition(item: unknown): item is BaseFieldComponentDefinitionOutline {
+
+/**
+ * Check if the item is a field definition (it has at least 'class' and optional 'config' properties).
+ * @param item The item to check.
+ */
+export function isTypeFieldDefinition(item: unknown): item is FieldDefinitionFrame {
     if (item === undefined || item === null) {
-        throw new Error(`Item provided to isFormFieldDefinition was undefined or null.`);
+        return false;
     }
-    // use typescript narrowing to check the value
-    // see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
-    // not using 'BaseFormFieldComponentDefinition' because it is too general -
-    // it does not include the class and config
-    const i = item as { class: string, config?: object };
-    // note that 'config' can be null or object or not set
-    return 'class' in i && guessType(i?.class) === 'string' &&
-        (('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined);
+    const i = item as FieldDefinitionFrame;
+
+    const hasExpectedPropClass = 'class' in i && guessType(i?.class) === 'string';
+    // 'config' can be null or object or not set
+    const hasExpectedPropConfig = ('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined;
+
+    return hasExpectedPropClass && hasExpectedPropConfig;
 }
 
 /**
- * Check if the item is a form component definition (it has 'name' and 'component' properties).
- * @param item
+ * Check if the item is a form component definition (it has at least 'name' and 'component' properties).
+ * @param item The item to check.
  */
-export function isFormComponentDefinition(item: unknown): item is FormComponentDefinitionOutline {
+export function isTypeFormComponentDefinition(item: unknown): item is FormComponentDefinitionFrame {
     if (item === undefined || item === null) {
         return false;
     }
     // use typescript narrowing to check the value
-    const i = item as FormComponentDefinition;
+    const i = item as FormComponentDefinitionFrame;
     // only name and component are required
     const hasName = 'name' in i;
     const hasExpectedNameValue = ["null", "string"].includes(guessType(i?.name));
     const hasComponent = 'component' in i;
-    const isFormFieldComponent = isFormFieldDefinition(i?.component);
+    const isFormFieldComponent = isTypeFieldDefinition(i?.component);
+
     return hasName && hasExpectedNameValue && hasComponent && isFormFieldComponent;
+}
+
+/**
+ * Check if the item is a FormConfig (it has a name and componentDefinitions array property).
+ * @param item The item to check.
+ */
+export function isTypeFormConfig<T extends FormConfigFrame>(item: unknown): item is T {
+    if (item === undefined || item === null) {
+        return false;
+    }
+
+    const i = item as FormConfigFrame;
+
+    const hasExpectedPropName = 'name' in i && guessType(i.name) === 'string';
+    const hasExpectedPropCompDefs = isTypeWithComponentDefinitions<FormConfigFrame>(item);
+
+    return hasExpectedPropName && hasExpectedPropCompDefs;
+}
+
+/**
+ * Check if the item has a componentDefinitions array property.
+ * @param item The item to check.
+ */
+export function isTypeWithComponentDefinitions<T extends {componentDefinitions: unknown[]}>(item: unknown): item is T {
+    if (item === undefined || item === null) {
+        return false;
+    }
+    // use typescript narrowing to check the value
+    const i = item as {componentDefinitions: unknown[]};
+
+    const hasExpectedPropCompDefs = 'componentDefinitions' in i && guessType(i?.componentDefinitions) === 'array';
+
+    return hasExpectedPropCompDefs;
+}
+
+/**
+ * Check if the item is a field definition of a particular type by comparing the name (name is the discriminator in the type union).
+ * @param item The item to check.
+ * @param name The name to check.
+ */
+export function isTypeFieldDefinitionName<T extends FieldDefinitionFrame>(item: unknown, name: string): item is T {
+    if (item === undefined || item === null) {
+        return false;
+    }
+
+    const hasExpectedFieldDefClass = isTypeFieldDefinition(item) && item?.class === name;
+
+    return hasExpectedFieldDefClass;
 }

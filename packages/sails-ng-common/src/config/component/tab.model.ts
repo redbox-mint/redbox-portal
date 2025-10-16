@@ -36,10 +36,6 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
         super();
     }
 
-    get children(): AllFormComponentDefinitionOutlines[] {
-        throw new Error("Method not implemented.");
-    }
-
     accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitTabFieldComponentDefinition(this);
     }

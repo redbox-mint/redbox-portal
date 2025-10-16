@@ -8,7 +8,6 @@ export * from "./config/helpers";
 export * from "./config/dictionary.outline";
 export * from "./config/dictionary.model";
 export * from "./config/shared.outline";
-export * from "./config/shared.model";
 export * from "./config/form-config.outline";
 export * from "./config/form-config.model";
 export * from "./config/form-component.outline";
@@ -58,6 +57,8 @@ export * from "./config/component/content.model";
 export * from "./config/component/content.outline";
 export * from "./config/component/validation-summary.model";
 export * from "./config/component/validation-summary.outline";
+export * from "./config/component/date-input.model";
+export * from "./config/component/date-input.outline";
 // validation
 export * from "./validation/helpers";
 export * from "./validation/form.model";

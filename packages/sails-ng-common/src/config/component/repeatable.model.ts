@@ -30,7 +30,6 @@ import {
     RepeatableModelValueType
 } from "./repeatable.outline";
 import {
-    AllFormComponentDefinitionOutlines,
     AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines
 } from "../dictionary.outline";
 
@@ -62,10 +61,6 @@ export class RepeatableFieldComponentDefinition extends FieldComponentDefinition
 
     constructor() {
         super();
-    }
-
-    get children(): AllFormComponentDefinitionOutlines[] {
-        throw new Error("Method not implemented.");
     }
 
     accept(visitor: FormConfigVisitorOutline) {

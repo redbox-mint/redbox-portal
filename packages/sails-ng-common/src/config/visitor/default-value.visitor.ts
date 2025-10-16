@@ -333,8 +333,8 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
         }
 
         // For debugging:
-        // console.log(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
-        // console.log(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
+        // console.debug(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
+        // console.debug(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
 
         this.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];

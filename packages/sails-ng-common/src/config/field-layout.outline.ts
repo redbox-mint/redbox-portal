@@ -37,12 +37,13 @@ export interface FieldLayoutConfigOutline extends FieldLayoutConfigFrame {
  */
 export interface FieldLayoutDefinitionFrame extends BaseFieldComponentDefinitionFrame {
     config?: FieldLayoutConfigFrame;
-}
-
-export interface FieldLayoutDefinitionOutline extends FieldLayoutDefinitionFrame, FieldDefinitionOutline {
-    config?: FieldLayoutConfigFrame;
     /**
      * Optional name for the layout, used to reference the layout on the client-side.
      */
     name?: string;
+}
+
+export interface FieldLayoutDefinitionOutline extends FieldLayoutDefinitionFrame, FieldDefinitionOutline {
+    config?: FieldLayoutConfigFrame;
+
 }

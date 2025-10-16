@@ -17,5 +17,5 @@ export interface FieldComponentDefinitionFrame extends BaseFieldComponentDefinit
 }
 
 export interface FieldComponentDefinitionOutline extends BaseFieldComponentDefinitionOutline, FieldComponentDefinitionFrame {
-
+    config?: FieldComponentConfigOutline;
 }

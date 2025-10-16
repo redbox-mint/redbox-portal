@@ -7,10 +7,9 @@ import {
     FieldModelDefinitionMap,
     FormComponentDefinitionMap
 } from "../dictionary.model";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
-import {isFormComponentDefinition} from "../helpers";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
+import {FormComponentDefinitionFrame} from "../form-component.outline";
 import {FormModesConfig} from "../shared.outline";
+import {isTypeFormConfig, isTypeWithComponentDefinitions} from "../helpers";
 
 
 /**
@@ -53,7 +52,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitFormConfig(item: FormConfigOutline): void {
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFormConfig(currentData)) {
+        if (!isTypeFormConfig(currentData)) {
             return;
         }
 
@@ -97,56 +96,5 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
         const formComponent = new formComponentClass(item);
         return formComponent;
-    }
-
-    protected sharedPopulateFormComponent(item: FormComponentDefinitionOutline): void {
-        // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!isFormComponentDefinition(currentData)) {
-            throw new Error(`Invalid FormComponentDefinition at '${this.currentPath}': ${JSON.stringify(currentData)}`);
-        }
-
-        // Set the simple properties
-        item.name = currentData.name;
-        item.module = currentData.module;
-
-        // Set the constraints
-        item.constraints = new FormConstraintConfig();
-        item.constraints.allowModes = currentData?.constraints?.allowModes ?? [];
-
-        item.constraints.authorization = new FormConstraintAuthorizationConfig();
-        item.constraints.authorization.allowRoles = currentData?.constraints?.authorization?.allowRoles ?? [];
-
-        // Set the expressions
-        item.expressions = new FormExpressionsConfig();
-        for (const [key, value] of Object.entries(currentData.expressions ?? {})) {
-            item.expressions[key] = value;
-        }
-
-        // Get the class string names.
-        const componentClassString = currentData?.component?.class;
-        const modelClassString = currentData?.model?.class;
-        const layoutClassString = currentData?.layout?.class;
-
-        // Get the classes
-        const componentClass = this.fieldComponentMap?.get(componentClassString);
-        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
-        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
-
-        // Create new instances
-        if (!componentClass) {
-            throw new Error(`Could not find class for field component class string '${componentClassString}'.`)
-        }
-        const component = new componentClass();
-        const model = modelClass ? new modelClass() : null;
-        const layout = layoutClass ? new layoutClass() : null;
-
-        // Set the instances
-        item.component = component;
-        item.model = model || undefined;
-        item.layout = layout || undefined;
-
-        // Continue visiting
-        this.acceptFormComponentDefinition(item);
     }
 }

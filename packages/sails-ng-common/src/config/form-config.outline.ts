@@ -11,7 +11,7 @@ export interface FormConfigFrame {
     /**
      * optional form name, will be used to identify the form in the config
      */
-    name?: string;
+    name: string;
     /**
      * the record type
      */

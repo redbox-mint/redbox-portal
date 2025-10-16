@@ -5,7 +5,7 @@ import {
 } from "../../src";
 
 // @ts-ignore
-import * as default_1_0_draft_form_config from "./../../../../../form-config/default-1.0-draft.js";
+import {default as default_1_0_draft_form_config} from "./../../../../../form-config/default-1.0-draft.js";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -13,16 +13,17 @@ import("chai").then(mod => expect = mod.expect);
 describe("Construct Visitor", async () => {
     const cases: {
         args: FormConfigFrame;
-        expected: FormConfig;
+        expected: { useArgs: boolean, value?: FormConfig };
     }[] = [
         {
             // empty
-            args: {componentDefinitions: []},
-            expected: new FormConfig(),
+            args: {name: '', componentDefinitions: []},
+            expected: {useArgs: false, value: new FormConfig()},
         },
         {
             // simple example
             args: {
+                name: '',
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',
@@ -93,22 +94,22 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             },
-            expected: function () {
-                const form = new FormConfig();
-                form.componentDefinitions = [];
-                return form;
-            }(),
+            expected: {useArgs: true},
         },
         {
             args: default_1_0_draft_form_config,
-            expected: new FormConfig(),
+            expected: {useArgs: true},
         }
     ];
     cases.forEach(({args, expected}) => {
-        it(`should validate '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
+        it(`should '${JSON.stringify(args)}' = ${JSON.stringify(expected)}`, async function () {
             const visitor = new ConstructFormConfigVisitor();
             const actual = visitor.start(args);
-            expect(actual).to.eql(expected);
+            if (expected.useArgs) {
+                expect(actual).to.containSubset(args);
+            } else {
+                expect(actual).to.eql(expected.value);
+            }
         });
     });
 });

@@ -42,7 +42,6 @@ import {
 } from "../component/default-layout.outline";
 import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
-import {isFormComponentDefinition} from "../helpers";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     ContentComponentName, ContentFieldComponentDefinitionFrame,
@@ -112,6 +111,7 @@ import {
     ValidationSummaryFormComponentDefinitionOutline
 } from "../component/validation-summary.outline";
 import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
+import {isTypeFieldDefinitionName, isTypeFormComponentDefinition, isTypeFormConfig} from "../helpers";
 
 
 /**
@@ -147,7 +147,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitFormConfig(item: FormConfigOutline): void {
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFormConfig(currentData)) {
+        if (!isTypeFormConfig(currentData)) {
             return;
         }
 
@@ -181,7 +181,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<SimpleInputFieldComponentDefinitionFrame>(currentData, SimpleInputComponentName)) {
+        if (!isTypeFieldDefinitionName<SimpleInputFieldComponentDefinitionFrame>(currentData, SimpleInputComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -197,7 +197,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<SimpleInputFieldModelDefinitionFrame>(currentData, SimpleInputModelName)) {
+        if (!isTypeFieldDefinitionName<SimpleInputFieldModelDefinitionFrame>(currentData, SimpleInputModelName)) {
             return;
         }
 
@@ -216,7 +216,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<ContentFieldComponentDefinitionFrame>(currentData, ContentComponentName)) {
+        if (!isTypeFieldDefinitionName<ContentFieldComponentDefinitionFrame>(currentData, ContentComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -239,7 +239,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<RepeatableFieldComponentDefinitionFrame>(currentData, RepeatableComponentName)) {
+        if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(currentData, RepeatableComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -265,7 +265,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<RepeatableFieldModelDefinitionFrame>(currentData, RepeatableModelName)) {
+        if (!isTypeFieldDefinitionName<RepeatableFieldModelDefinitionFrame>(currentData, RepeatableModelName)) {
             return;
         }
 
@@ -278,7 +278,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<RepeatableElementFieldLayoutDefinitionFrame>(currentData, RepeatableElementLayoutName)) {
+        if (!isTypeFieldDefinitionName<RepeatableElementFieldLayoutDefinitionFrame>(currentData, RepeatableElementLayoutName)) {
             return;
         }
 
@@ -298,7 +298,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<ValidationSummaryFieldComponentDefinitionFrame>(currentData, ValidationSummaryComponentName)) {
+        if (!isTypeFieldDefinitionName<ValidationSummaryFieldComponentDefinitionFrame>(currentData, ValidationSummaryComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -318,7 +318,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
+        if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -343,7 +343,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<GroupFieldModelDefinitionFrame>(currentData, GroupFieldModelName)) {
+        if (!isTypeFieldDefinitionName<GroupFieldModelDefinitionFrame>(currentData, GroupFieldModelName)) {
             return;
         }
 
@@ -362,7 +362,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
+        if (!isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -387,7 +387,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<TabFieldLayoutDefinitionFrame>(currentData, TabLayoutName)) {
+        if (!isTypeFieldDefinitionName<TabFieldLayoutDefinitionFrame>(currentData, TabLayoutName)) {
             return;
         }
         const config = currentData?.config;
@@ -412,7 +412,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
+        if (!isTypeFieldDefinitionName<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -439,7 +439,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<TabContentFieldLayoutDefinitionFrame>(currentData, TabContentLayoutName)) {
+        if (!isTypeFieldDefinitionName<TabContentFieldLayoutDefinitionFrame>(currentData, TabContentLayoutName)) {
             return;
         }
         const config = currentData?.config;
@@ -461,7 +461,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<SaveButtonFieldComponentDefinitionFrame>(currentData, SaveButtonComponentName)) {
+        if (!isTypeFieldDefinitionName<SaveButtonFieldComponentDefinitionFrame>(currentData, SaveButtonComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -485,7 +485,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<TextAreaFieldComponentDefinitionFrame>(currentData, TextAreaComponentName)) {
+        if (!isTypeFieldDefinitionName<TextAreaFieldComponentDefinitionFrame>(currentData, TextAreaComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -503,7 +503,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<TextAreaFieldModelDefinitionFrame>(currentData, TextAreaModelName)) {
+        if (!isTypeFieldDefinitionName<TextAreaFieldModelDefinitionFrame>(currentData, TextAreaModelName)) {
             return;
         }
 
@@ -522,7 +522,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<DefaultFieldLayoutDefinitionFrame>(currentData, DefaultLayoutName)) {
+        if (!isTypeFieldDefinitionName<DefaultFieldLayoutDefinitionFrame>(currentData, DefaultLayoutName)) {
             return;
         }
 
@@ -537,7 +537,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<CheckboxInputFieldComponentDefinitionFrame>(currentData, CheckboxInputComponentName)) {
+        if (!isTypeFieldDefinitionName<CheckboxInputFieldComponentDefinitionFrame>(currentData, CheckboxInputComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -555,7 +555,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<CheckboxInputFieldModelDefinitionFrame>(currentData, CheckboxInputModelName)) {
+        if (!isTypeFieldDefinitionName<CheckboxInputFieldModelDefinitionFrame>(currentData, CheckboxInputModelName)) {
             return;
         }
 
@@ -574,7 +574,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<DropdownInputFieldComponentDefinitionFrame>(currentData, DropdownInputComponentName)) {
+        if (!isTypeFieldDefinitionName<DropdownInputFieldComponentDefinitionFrame>(currentData, DropdownInputComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -591,7 +591,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<DropdownInputFieldModelDefinitionFrame>(currentData, DropdownInputModelName)) {
+        if (!isTypeFieldDefinitionName<DropdownInputFieldModelDefinitionFrame>(currentData, DropdownInputModelName)) {
             return;
         }
 
@@ -610,7 +610,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<RadioInputFieldComponentDefinitionFrame>(currentData, RadioInputComponentName)) {
+        if (!isTypeFieldDefinitionName<RadioInputFieldComponentDefinitionFrame>(currentData, RadioInputComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -626,7 +626,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<RadioInputFieldModelDefinitionFrame>(currentData, RadioInputModelName)) {
+        if (!isTypeFieldDefinitionName<RadioInputFieldModelDefinitionFrame>(currentData, RadioInputModelName)) {
             return;
         }
 
@@ -645,7 +645,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<DateInputFieldComponentDefinitionFrame>(currentData, DateInputComponentName)) {
+        if (!isTypeFieldDefinitionName<DateInputFieldComponentDefinitionFrame>(currentData, DateInputComponentName)) {
             return;
         }
         const config = currentData?.config;
@@ -666,7 +666,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!this.isFieldDefinition<DateInputFieldModelDefinitionFrame>(currentData, DateInputModelName)) {
+        if (!isTypeFieldDefinitionName<DateInputFieldModelDefinitionFrame>(currentData, DateInputModelName)) {
             return;
         }
 
@@ -701,7 +701,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     protected sharedPopulateFormComponent(item: FormComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getDataPath(this.data, this.currentPath);
-        if (!isFormComponentDefinition(currentData)) {
+        if (!isTypeFormComponentDefinition(currentData)) {
             throw new Error(`Invalid FormComponentDefinition at '${this.currentPath}': ${JSON.stringify(currentData)}`);
         }
 
