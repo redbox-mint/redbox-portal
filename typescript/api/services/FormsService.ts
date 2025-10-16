@@ -23,14 +23,14 @@ import {BrandingModel, FormModel, Services as services} from '@researchdatabox/r
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
-    BaseFieldComponentDefinitionFrame, ClientFormConfigVisitor, FieldDefinitionFrame,
+    BaseFieldComponentDefinitionFrame, FieldDefinitionFrame,
     FieldLayoutDefinitionFrame,
     FieldModelDefinitionFrame,
     FormComponentDefinitionFrame,
     FormConfigFrame,
+    isTypeFieldDefinition,
 } from "@researchdatabox/sails-ng-common";
 import {ClientFormContext} from "../additional/ClientFormContext";
-import {isFormFieldDefinition} from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
 declare var Form: Model;
@@ -597,7 +597,7 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      if (!isFormFieldDefinition(item)) {
+      if (!isTypeFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field component definition ${JSON.stringify(item)}`);
       }
       return this.buildClientFormObject(item, context);
@@ -613,7 +613,7 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      if (!isFormFieldDefinition(item)) {
+      if (!isTypeFieldDefinition(item)) {
         throw new Error(`FormsService - item is not a form field layout definition ${JSON.stringify(item)}`);
       }
       return this.buildClientFormObject(item, context);
@@ -624,7 +624,7 @@ export module Services {
       context = context ?? ClientFormContext.createView();
 
       // create the client form config
-      if (!isFormFieldDefinition(item)) {
+      if (!isTypeFieldDefinition(item)) {
           throw new Error(`FormsService - item is not a form field model definition ${JSON.stringify(item)}`);
       }
       if (item?.config?.value !== undefined) {
@@ -658,7 +658,7 @@ export module Services {
     private buildClientFormObject(item: FormConfigFrame | FieldDefinitionFrame | FormComponentDefinitionFrame, context: ClientFormContext): Record<string, unknown> | null {
       const result: Record<string, unknown> = {};
 
-      if (isFormFieldDefinition(item)) {
+      if (isTypeFieldDefinition(item)) {
           if (item.config === null) {
               // if the config was removed, then remove the definition block
               sails.log.verbose(`FormsService - removed form field definition with class '${item?.['class']}'`);
@@ -693,7 +693,7 @@ export module Services {
             break;
 
           case 'component':
-              if (isFormFieldDefinition(value)) {
+              if (isTypeFieldDefinition(value)) {
                   result[key] = this.buildClientFormFieldComponentDefinition(value, context);
                   if (result[key] === null || result[key]?.['config'] === null) {
                       // if a component or component config is set to null,
@@ -707,7 +707,7 @@ export module Services {
             break;
 
           case 'model':
-              if (isFormFieldDefinition(value) && 'config' in value && value.config) {
+              if (isTypeFieldDefinition(value) && 'config' in value && value.config) {
                   result[key] = this.buildClientFormFieldModelDefinition(value as FieldModelDefinitionFrame<unknown>, context);
               } else {
                   sails.log.warn(`FormsService - invalid model form field component definition with class '${value?.['class']}'`);
@@ -715,7 +715,7 @@ export module Services {
               break;
 
           case 'layout':
-              //if (isFormFieldDefinition(value)) {
+              //if (isTypeFieldDefinition(value)) {
                   result[key] = this.buildClientFormFieldLayoutDefinition(value, context);
               //}
             break;
