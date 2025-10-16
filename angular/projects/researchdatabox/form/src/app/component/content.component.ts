@@ -2,7 +2,7 @@ import {Component, inject, Injector} from '@angular/core';
 import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {ContentFieldComponentConfigFrame, ContentComponentConfig, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import {ContentFieldComponentConfig, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
 import * as Handlebars from 'handlebars';
 
 // *** Migration Notes ***
@@ -51,7 +51,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
-    const config = this.componentDefinition?.config as ContentComponentConfig;
+    const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
     const content = config?.content ?? '';
     const template = config?.template ?? '';

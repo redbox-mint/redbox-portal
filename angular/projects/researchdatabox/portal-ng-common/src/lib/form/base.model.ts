@@ -1,15 +1,12 @@
 import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
-import {
-  FieldModelDefinition,
-  FormValidatorFn
-} from "@researchdatabox/sails-ng-common";
+import {FieldModelDefinitionFrame, FormValidatorFn} from "@researchdatabox/sails-ng-common";
 
 /**
  * Core model for form elements.
  *
  */
-export abstract class FormModel<ValueType, DefinitionType extends FieldModelDefinition<ValueType>> {
+export abstract class FormModel<ValueType, DefinitionType extends FieldModelDefinitionFrame<ValueType>> {
   protected logName = "FormModel";
   // The configuration when the field is created
   public initConfig: DefinitionType;
@@ -32,7 +29,7 @@ export abstract class FormModel<ValueType, DefinitionType extends FieldModelDefi
  * Model for the form field configuration.
  *
  */
-export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDefinition<ValueType>> {
+export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDefinitionFrame<ValueType>> {
   protected override logName = "FormFieldModel";
   // The value when the field is created
   public initValue?: ValueType;
@@ -41,7 +38,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
 
   public validators?: FormValidatorFn[];
 
-  constructor(initConfig: FieldModelDefinition<ValueType>, validators?: FormValidatorFn[]) {
+  constructor(initConfig: FieldModelDefinitionFrame<ValueType>, validators?: FormValidatorFn[]) {
     super(initConfig);
     this.validators = validators;
     this.setValidators();

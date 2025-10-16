@@ -69,6 +69,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     // Resolve the classes using the FormService
     this.newElementFormConfig = {
+      name: `form-config-generated-repeatable-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
       // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
       componentDefinitions: [{...elementTemplate, name: ""}],
       // Get the default config.
@@ -81,7 +82,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         dataModel: [],
         formConfig: ['component', 'config', 'elementTemplate'],
       });
-    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig as FormConfig, parentLineagePaths);
+    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);

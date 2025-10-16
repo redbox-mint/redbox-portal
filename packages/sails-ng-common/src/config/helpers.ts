@@ -83,6 +83,22 @@ export function isTypeFieldDefinition(item: unknown): item is FieldDefinitionFra
 }
 
 /**
+ * Check if the item is a field definition of a particular type by comparing the class name
+ * (class name is the discriminator in the type union).
+ * @param item The item to check.
+ * @param name The class name to check.
+ */
+export function isTypeFieldDefinitionName<T extends FieldDefinitionFrame>(item: unknown, name: string): item is T {
+    if (item === undefined || item === null) {
+        return false;
+    }
+
+    const hasExpectedFieldDefClass = isTypeFieldDefinition(item) && item?.class === name;
+
+    return hasExpectedFieldDefClass;
+}
+
+/**
  * Check if the item is a form component definition (it has at least 'name' and 'component' properties).
  * @param item The item to check.
  */
@@ -102,6 +118,40 @@ export function isTypeFormComponentDefinition(item: unknown): item is FormCompon
 }
 
 /**
+ * Check if the item is a form definition of a particular type by comparing the component class
+ * (component class name is the discriminator in the type union).
+ * @param item The item to check.
+ * @param name The class name to check.
+ */
+export function isTypeFormComponentDefinitionName<T extends FormComponentDefinitionFrame>(item: unknown, name: string): item is T {
+    if (item === undefined || item === null) {
+        return false;
+    }
+
+    const hasExpectedFormDefClass = isTypeFormComponentDefinition(item) && item?.component?.class === name;
+
+    return hasExpectedFormDefClass;
+}
+
+/**
+ * Check if the item has a componentDefinitions array property.
+ * @param item The item to check.
+ */
+export function isTypeWithComponentDefinitions<T extends {
+    componentDefinitions: unknown[]
+}>(item: unknown): item is T {
+    if (item === undefined || item === null) {
+        return false;
+    }
+    // use typescript narrowing to check the value
+    const i = item as { componentDefinitions: unknown[] };
+
+    const hasExpectedPropCompDefs = 'componentDefinitions' in i && guessType(i?.componentDefinitions) === 'array';
+
+    return hasExpectedPropCompDefs;
+}
+
+/**
  * Check if the item is a FormConfig (it has a name and componentDefinitions array property).
  * @param item The item to check.
  */
@@ -116,35 +166,4 @@ export function isTypeFormConfig<T extends FormConfigFrame>(item: unknown): item
     const hasExpectedPropCompDefs = isTypeWithComponentDefinitions<FormConfigFrame>(item);
 
     return hasExpectedPropName && hasExpectedPropCompDefs;
-}
-
-/**
- * Check if the item has a componentDefinitions array property.
- * @param item The item to check.
- */
-export function isTypeWithComponentDefinitions<T extends {componentDefinitions: unknown[]}>(item: unknown): item is T {
-    if (item === undefined || item === null) {
-        return false;
-    }
-    // use typescript narrowing to check the value
-    const i = item as {componentDefinitions: unknown[]};
-
-    const hasExpectedPropCompDefs = 'componentDefinitions' in i && guessType(i?.componentDefinitions) === 'array';
-
-    return hasExpectedPropCompDefs;
-}
-
-/**
- * Check if the item is a field definition of a particular type by comparing the name (name is the discriminator in the type union).
- * @param item The item to check.
- * @param name The name to check.
- */
-export function isTypeFieldDefinitionName<T extends FieldDefinitionFrame>(item: unknown, name: string): item is T {
-    if (item === undefined || item === null) {
-        return false;
-    }
-
-    const hasExpectedFieldDefClass = isTypeFieldDefinition(item) && item?.class === name;
-
-    return hasExpectedFieldDefClass;
 }

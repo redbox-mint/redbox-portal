@@ -38,7 +38,7 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  FieldComponentStatus,
+  FormFieldComponentStatus,
   FormComponentDefinitionFrame,
   FormConfigFrame,
   FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
@@ -469,10 +469,10 @@ export class FormService extends HttpClientService {
       // Set the overall loaded flag to true if all components are loaded
       const componentsCount = formDefMap.components?.length ?? 0;
       const componentsReady = formDefMap.components.filter(componentDef =>
-        componentDef.component && componentDef.component.status() === FieldComponentStatus.READY
+        componentDef.component && componentDef.component.status() === FormFieldComponentStatus.READY
       );
       const componentsNotReady = formDefMap.components.filter(componentDef =>
-        !componentDef.component || componentDef.component.status() !== FieldComponentStatus.READY
+        !componentDef.component || componentDef.component.status() !== FormFieldComponentStatus.READY
       );
       componentsLoaded.set(componentsReady.length === componentsCount);
 
@@ -615,16 +615,6 @@ export class FormService extends HttpClientService {
       dataModel: [...base?.dataModel ?? [], ...more?.dataModel ?? []],
       angularComponents: [...base?.angularComponents ?? [], ...more?.angularComponents ?? []],
     }
-  }
-
-  /**
-   * Get all the compiled items for the form.
-   * @param recordType The form record type.
-   */
-  public async getDynamicImportFormCompiledItems(recordType: string) {
-    const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-    return result;
   }
 }
 

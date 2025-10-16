@@ -103,6 +103,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
     const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
     this.elementFormConfig = {
+      name: `form-config-generated-group-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
       // Store the child component definitions.
       componentDefinitions: groupComponentDefinitions,
       // Get the default config.

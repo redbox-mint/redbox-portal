@@ -444,14 +444,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.statusChangesSubscription?.unsubscribe();
   }
-
-  public async getCompiledItem(formComponentName: string | null, formConfigElement: string[]) {
-    const recordType = this.trimmedParams.recordType();
-    const features = await this.formService.getDynamicImportFormCompiledItems(recordType);
-    this.loggerService.info(`${this.logName}: getCompiledItem from getDynamicImportFormCompiledItems`,
-      {features: features, formComponentName: formComponentName, formConfigElement: formConfigElement});
-    return features;
-  }
 }
 
 export interface FormGroupStatus {
