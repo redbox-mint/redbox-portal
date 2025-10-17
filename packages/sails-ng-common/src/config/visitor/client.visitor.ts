@@ -77,7 +77,11 @@ import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 
 
-export type NameConstraints = { name: string, constraints: FormConstraintConfig };
+export type NameConstraints = {
+    name: string,
+    constraints: FormConstraintConfig,
+    model: boolean,
+};
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -137,15 +141,10 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const items: AvailableFormComponentDefinitionOutlines[] = [];
         const that = this;
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            this.acceptCheckConstraintsCurrentPath(
-                componentDefinition,
-                () => {
-                    items.push(componentDefinition);
-                    that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
-                }
-            )
+            items.push(componentDefinition);
+            that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
-        item.componentDefinitions = items.filter(i => !!i);
+        item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
 
         // if there are no components, this is an invalid form
         // indicate this by deleting all properties on item
@@ -161,7 +160,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -198,18 +196,10 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         this.processFieldComponentDefinition(item);
 
-        if (item.config?.elementTemplate) {
-            this.acceptCheckConstraintsCurrentPath(
-                item.config?.elementTemplate,
-                () => {
-                    item.config?.elementTemplate?.accept(this);
-                }
-            )
-        }
+        item.config?.elementTemplate?.accept(this);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -229,7 +219,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         // if the element template is empty, this is an invalid component
         // indicate this by deleting all properties on item
-        if (Object.keys(item.component?.config?.elementTemplate ?? {}).length === 0) {
+        if (!this.hasObjectProps(item.component?.config?.elementTemplate)) {
             this.removePropsAll(item);
         }
     }
@@ -259,21 +249,15 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const items: AvailableFormComponentDefinitionOutlines[] = [];
         const that = this;
         (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            this.acceptCheckConstraintsCurrentPath(
-                componentDefinition,
-                () => {
-                    items.push(componentDefinition);
-                    that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
-                }
-            )
+            items.push(componentDefinition);
+            that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
         if (item.config) {
-            item.config.componentDefinitions = items.filter(i => Object.keys(i ?? {}).length > 0);
+            item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
         }
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -382,7 +366,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -410,7 +393,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -432,7 +414,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -454,7 +435,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -476,7 +456,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-        this.setModelValue(item);
         this.processFieldModelDefinition(item);
     }
 
@@ -509,6 +488,8 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected processFieldModelDefinition(item: FieldModelDefinitionOutline<unknown>) {
+        this.setModelValue(item);
+
         this.removePropsUndefined(item);
         this.removePropsUndefined(item?.config ?? {});
     }
@@ -548,11 +529,12 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             return (isArray && hasElements && hasAtLeastOneUserRole) || !isArray || !hasElements;
         });
 
-        if (!isAllowed) {
-            const c = currentUserRoles.sort().join(', ');
-            const r = requiredRoles.sort().join(', ');
-            console.debug(`ClientFormConfigVisitor - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
-        }
+        // for debugging:
+        // if (!isAllowed) {
+        //     const c = currentUserRoles.sort().join(', ');
+        //     const r = requiredRoles.sort().join(', ');
+        //     console.debug(`ClientFormConfigVisitor - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
+        // }
 
         return isAllowed;
     }
@@ -572,10 +554,11 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             return (isArray && hasElements && hasMode) || !isArray || !hasElements;
         });
 
-        if (!isAllowed) {
-            const r = requiredModes.sort().join(', ');
-            console.debug(`ClientFormConfigVisitor - access denied for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
-        }
+        // for debugging:
+        // if (!isAllowed) {
+        //     const r = requiredModes.sort().join(', ');
+        //     console.debug(`ClientFormConfigVisitor - access denied for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
+        // }
 
         return isAllowed;
     }
@@ -590,11 +573,16 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             // if the component has constraints
             if (
                 item.constraints !== undefined
-                && Object.getOwnPropertyNames(item.constraints ?? {}).length > 0
+                && this.hasObjectProps(item.constraints)
+                && this.hasObjectProps(item.model)
             ) {
                 this.constraintPath = [
-                    ...this.constraintPath,
-                    {name: item.name, constraints: item.constraints},
+                    ...currentConstraintPath,
+                    {
+                        name: item.name,
+                        constraints: item.constraints,
+                        model: this.hasObjectProps(item.model)
+                    },
                 ];
             }
 
@@ -624,12 +612,23 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         // Set the config value from the record values.
         const recordValues = this.recordValues && _isPlainObject(this.recordValues) ? this.recordValues : {};
-        const path = this.constraintPath?.map(i => i?.name)?.filter(i => !!i) ?? [];
-        item.config.value = _get(recordValues, path, undefined);
+        const path = this.constraintPath?.filter(i => !!i && i.model)?.map(i => i?.name) ?? [];
+        const value = _get(recordValues, path, undefined);
+        item.config.value = value;
+
+        // for debugging:
+        // console.debug(`ClientFormConfigVisitor setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
 
         // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
             delete item.config.defaultValue;
         }
+    }
+
+    protected hasObjectProps(item: any) {
+        if (item === null || item === undefined){
+            return false;
+        }
+        return Object.keys(item).length > 0;
     }
 }

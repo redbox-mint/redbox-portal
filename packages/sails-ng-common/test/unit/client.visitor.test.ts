@@ -351,7 +351,7 @@ describe("Client Visitor", async () => {
                                 elementTemplate: {
                                     name: "",
                                     model: {
-                                        class: 'GroupModel', config: {defaultValue: {}}
+                                        class: 'GroupModel',
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -470,7 +470,7 @@ describe("Client Visitor", async () => {
                                 visible: true,
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {value: {}}},
+                                    model: {class: 'GroupModel', config: {}},
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
@@ -486,9 +486,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {
-                                                            value: 'hello world 2!'
-                                                        }
+                                                        config: {}
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',
