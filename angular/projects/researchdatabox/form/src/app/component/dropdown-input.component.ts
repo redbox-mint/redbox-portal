@@ -1,9 +1,16 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { DropdownInputFieldComponentConfig, DropdownInputModelValueType, DropdownOption } from '@researchdatabox/sails-ng-common';
+import {
+  DropdownInputComponentName,
+  DropdownInputFieldComponentConfig,
+  DropdownInputModelName,
+  DropdownInputModelValueType,
+  DropdownOption
+} from '@researchdatabox/sails-ng-common';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
 export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueType> {
+  protected override logName = DropdownInputModelName;
 }
 
 @Component({
@@ -31,7 +38,7 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
   standalone: false
 })
 export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInputModelValueType> {
-  protected override logName: string = "DropdownInputComponent";
+  protected override logName = DropdownInputComponentName;
   public tooltip: string = '';
   public placeholder: string | undefined = '';
   public options: DropdownOption[] = [];

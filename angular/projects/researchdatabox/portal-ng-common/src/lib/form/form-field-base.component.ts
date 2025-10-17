@@ -27,7 +27,7 @@ export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | Field
  */
 @Directive()
 export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
-  protected logName: string | null = "FormFieldBaseComponent";
+  protected logName: string = "FormFieldBaseComponent";
   public name:string | null = '';
   public className:string = '';
   public model?: FormFieldModel<ValueType>;

@@ -2,10 +2,11 @@ import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector,
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
+  TabComponentName,
   TabContentComponentName, TabContentFieldComponentDefinitionFrame,
   TabContentFormComponentDefinitionFrame,
   TabFieldComponentConfigFrame, TabFieldComponentDefinitionFrame,
-  TabFieldLayoutDefinitionFrame
+  TabFieldLayoutDefinitionFrame, TabLayoutName
 } from '@researchdatabox/sails-ng-common';
 import { find as _find, merge as _merge } from 'lodash-es';
 import { FormComponent } from "../form.component";
@@ -41,7 +42,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
   standalone: false
 })
 export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
-  protected override logName = "TabComponentLayout";
+  protected override logName = TabLayoutName;
   public override componentDefinition?: TabFieldLayoutDefinitionFrame;
 
   protected get tabConfig(): TabFieldComponentConfigFrame {
@@ -53,12 +54,14 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   }
 
   protected get tabInstance(): TabComponent {
-    const instance = this.formFieldCompMapEntry?.componentRef?.instance;
-    if (!instance){
+    const instance = this.formFieldCompMapEntry?.component;
+    if (!instance) {
       throw new Error("Could not get instance of TabComponent for TabComponentLayout.");
     }
-    // TODO: use type narrowing instead of type assertion to get the TabComponent instance
-    return instance as TabComponent;
+    if (instance instanceof TabComponent) {
+      return instance;
+    }
+    throw new Error(`Expected instance to be TabComponent for TabComponentLayout, but instance was '${instance.constructor.name}'.`);
   }
 
   @HostBinding('id') get hostId(): string {
@@ -95,7 +98,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   standalone: false
 })
 export class TabComponent extends FormFieldBaseComponent<undefined> {
-  protected override logName: string | null = "TabComponent";
+  protected override logName = TabComponentName;
   tabs: TabContentFormComponentDefinitionFrame[] = [];
   selectedTabId: string | null = null;
   wrapperRefs: ComponentRef<FormBaseWrapperComponent<unknown>>[] = [];
@@ -226,7 +229,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   standalone: false,
 })
 export class TabContentComponent extends FormFieldBaseComponent<undefined> {
-  protected override logName: string | null = "TabContentComponent";
+  protected override logName = TabContentComponentName;
   public override componentDefinition?: TabContentFieldComponentDefinitionFrame;
   tab?: TabContentFormComponentDefinitionFrame;
    @ViewChild('componentContainer', {

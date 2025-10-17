@@ -460,9 +460,9 @@ describe('The FormsService', function () {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
-                                    model: {class: 'GroupFieldModel', config: {value: {}}},
+                                    model: {class: 'GroupModel', config: {value: {}}},
                                     component: {
-                                        class: 'GroupFieldComponent',
+                                        class: 'GroupComponent',
                                         config: {
                                             wrapperCssClasses: 'col',
                                             componentDefinitions: [

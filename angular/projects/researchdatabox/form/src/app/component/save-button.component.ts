@@ -1,7 +1,7 @@
 import { Component, inject, effect } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
-import { SaveButtonFieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 
 @Component({
   selector: 'redbox-form-save-button',
@@ -15,7 +15,7 @@ import { SaveButtonFieldComponentDefinitionOutline } from '@researchdatabox/sail
   standalone: false
 })
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
-  public override logName: string = "SaveButtonComponent";
+  public override logName = SaveButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   disabled: boolean = false;

@@ -13,7 +13,7 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfigFrame,
-  GroupFieldModelValueType, GroupFieldComponentConfig,
+  GroupFieldModelValueType, GroupFieldComponentConfig, GroupFieldModelName, GroupFieldComponentName,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
@@ -30,7 +30,7 @@ import {FormBaseWrapperComponent} from "./base-wrapper.component";
  * The model for the Group Component.
  */
 export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
-  protected override logName = "GroupFieldModel";
+  protected override logName = GroupFieldModelName;
   public override formControl?: FormGroup;
 
   override postCreate(): void {
@@ -71,7 +71,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   standalone: false
 })
 export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {
-  protected override logName: string = "GroupFieldComponent";
+  protected override logName: string = GroupFieldComponentName;
   public override model?: GroupFieldModel;
 
   private formService = inject(FormService);

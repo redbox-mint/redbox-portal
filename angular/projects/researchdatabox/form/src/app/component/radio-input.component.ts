@@ -1,9 +1,11 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { RadioInputFieldComponentConfig, RadioInputModelValueType, RadioOption } from '@researchdatabox/sails-ng-common';
+import {
+  RadioInputComponentName, RadioInputFieldComponentConfig, RadioInputModelName, RadioInputModelValueType, RadioOption } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
 export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
+  protected override logName = RadioInputModelName;
 }
 
 @Component({
@@ -36,7 +38,7 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   standalone: false
 })
 export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelValueType> {
-  protected override logName: string = "RadioInputComponent";
+  protected override logName: string = RadioInputComponentName;
   public tooltip: string = '';
   public options: RadioOption[] = [];
 

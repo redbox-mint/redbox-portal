@@ -2,7 +2,11 @@ import {Component, inject, Injector} from '@angular/core';
 import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
-import {ContentFieldComponentConfig, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import {
+  ContentComponentName,
+  ContentFieldComponentConfig,
+  FormFieldComponentStatus
+} from "@researchdatabox/sails-ng-common";
 import * as Handlebars from 'handlebars';
 
 // *** Migration Notes ***
@@ -26,7 +30,7 @@ import * as Handlebars from 'handlebars';
   standalone: false
 })
 export class ContentComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "ContentComponent";
+  protected override logName: string = ContentComponentName;
   public content:string = '';
 
   private injector = inject(Injector);

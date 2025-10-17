@@ -25,6 +25,7 @@ import {RadioInputMap} from "./component/radio-input.model";
 import {DateInputMap} from "./component/date-input.model";
 
 
+
 /**
  * The static array of all available classes and the kind of class.
  * Other convenience mappings are built from this.
@@ -52,7 +53,7 @@ export const AllDefs = [
  */
 
 export type AllDefsArrayType = typeof AllDefs;
-export type AllDefsUnionType = typeof AllDefs[number];
+// export type AllDefsUnionType = typeof AllDefs[number];
 
 // type MapKey<BaseType> = BaseType extends Map<infer KeyType, unknown> ? KeyType : never;
 // type MapValue<BaseType> = BaseType extends Map<unknown, infer ValueType> ? ValueType : never;
@@ -118,3 +119,23 @@ export const FormComponentDefinitionMap = buildMap(AllDefs, [FormComponentDefini
 
 // export const AllFieldComponentDefinitionMap = buildMap(AllDefs, [FieldComponentDefinitionKind, FieldModelDefinitionKind, FieldLayoutDefinitionKind]);
 // export const AllDefMap = buildMap(AllDefs);
+
+/*
+ * Define types for the class names of the components, models, layouts.
+ *
+ * This allows typing the static class maps to ensure all defined items are also
+ * present in the angular mapping.
+ */
+export type StaticClassMapType<K extends string, T> = Record<K, T>;
+
+export const ComponentClassNames = AllDefs.filter(i => i.kind === FieldComponentDefinitionKind).map(i => i.class);
+export type ComponentClassNamesType = typeof ComponentClassNames[number];
+export type StaticComponentClassMapGenType<T> = StaticClassMapType<ComponentClassNamesType, T>;
+
+export const ModelClassNames = AllDefs.filter(i => i.kind === FieldModelDefinitionKind).map(i => i.class);
+export type ModelClassNamesType = typeof ModelClassNames[number];
+export type StaticModelClassMapGenType<T> = StaticClassMapType<ModelClassNamesType, T>;
+
+export const LayoutClassNames = AllDefs.filter(i => i.kind === FieldLayoutDefinitionKind).map(i => i.class);
+export type LayoutClassNamesType = typeof LayoutClassNames[number];
+export type StaticLayoutClassMapGenType<T> = StaticClassMapType<LayoutClassNamesType, T>;

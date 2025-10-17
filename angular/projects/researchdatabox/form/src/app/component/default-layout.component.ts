@@ -1,7 +1,12 @@
 import { isUndefined as _isUndefined, isNull as _isNull, set as _set} from 'lodash-es';
 import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import {FieldLayoutDefinitionFrame, FormValidatorComponentErrors, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import {
+  FieldLayoutDefinitionFrame,
+  FormValidatorComponentErrors,
+  FormFieldComponentStatus,
+  DefaultLayoutName
+} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
 
@@ -83,7 +88,7 @@ import {FormService} from "../form.service";
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
-  protected override logName = "DefaultLayoutComponent";
+  protected override logName: string = DefaultLayoutName;
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent<ValueType>;
   public override componentDefinition?: FieldLayoutDefinitionFrame;

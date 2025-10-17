@@ -66,7 +66,7 @@ import { FormComponentsMap, FormService } from './form.service';
     standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
-  private logName = "FormComponent";
+  private logName: string = "FormComponent";
   appName: string;
   oid = model<string>('');
   recordType = model<string>('');

@@ -1,9 +1,10 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { TextAreaFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {TextAreaComponentName, TextAreaFieldComponentConfig, TextAreaModelName} from '@researchdatabox/sails-ng-common';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class TextAreaModel extends FormFieldModel<string> {
+  protected override logName = TextAreaModelName;
 }
 
 @Component({
@@ -28,7 +29,7 @@ export class TextAreaModel extends FormFieldModel<string> {
   standalone: false
 })
 export class TextAreaComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "TextAreaComponent";
+  protected override logName = TextAreaComponentName;
   public tooltip:string = '';
   public rows: number | undefined = undefined;
   public cols: number | undefined = undefined;

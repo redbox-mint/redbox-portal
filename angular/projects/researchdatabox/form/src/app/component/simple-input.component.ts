@@ -1,9 +1,14 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { SimpleInputFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  SimpleInputComponentName,
+  SimpleInputFieldComponentConfig,
+  SimpleInputModelName
+} from '@researchdatabox/sails-ng-common';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class SimpleInputModel extends FormFieldModel<string> {
+  protected override logName = SimpleInputModelName;
 }
 
 @Component({
@@ -25,7 +30,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
     standalone: false
 })
 export class SimpleInputComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "SimpleInputComponent";
+  protected override logName = SimpleInputComponentName;
   public tooltip:string = '';
   public inputType:string = 'text';
 

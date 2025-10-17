@@ -1,7 +1,13 @@
 import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
-import {FormConfigFrame, RepeatableFieldComponentConfig} from '@researchdatabox/sails-ng-common';
+import {
+  FormConfigFrame,
+  RepeatableComponentName,
+  RepeatableElementLayoutName,
+  RepeatableFieldComponentConfig,
+  RepeatableModelName
+} from '@researchdatabox/sails-ng-common';
 import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
@@ -29,7 +35,7 @@ import {DefaultLayoutComponent} from "./default-layout.component";
   standalone: false
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
-  protected override logName: string | null = "RepeatableComponent";
+  protected override logName = RepeatableComponentName;
   public override model?: RepeatableComponentModel;
 
   protected formService = inject(FormService);
@@ -236,7 +242,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
-  protected override logName = "RepeatableComponentModel";
+  protected override logName = RepeatableModelName;
   public override formControl?: FormArray;
 
   public override postCreate(): void {
@@ -319,7 +325,7 @@ export interface RepeatableElementEntry {
   standalone: false,
 })
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
-  protected override logName = "RepeatableElementLayoutComponent";
+  protected override logName = RepeatableElementLayoutName;
   public removeFn?: () => void;
 
   protected clickedRemove() {

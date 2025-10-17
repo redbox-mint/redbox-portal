@@ -1,12 +1,17 @@
 import { Component, Input, ViewChild } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { DateInputFieldComponentConfigFrame, DateInputFieldComponentConfig, DateInputModelValueType } from '@researchdatabox/sails-ng-common';
+import {
+  DateInputFieldComponentConfigFrame,
+  DateInputFieldComponentConfig,
+  DateInputModelValueType,
+  DateInputModelName, DateInputComponentName,
+} from '@researchdatabox/sails-ng-common';
 import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
 
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
-
+  public override logName = DateInputModelName;
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
 
@@ -77,7 +82,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   standalone: false
 })
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
-  protected override logName: string = "DateInputComponent";
+  protected override logName = DateInputComponentName;
   public tooltip: string = '';
   public placeholder: string | undefined = 'DD/MM/YYYY';
   private dateFormatDefault: string = 'DD/MM/YYYY';
