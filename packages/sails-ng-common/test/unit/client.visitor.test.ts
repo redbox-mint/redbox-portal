@@ -1,4 +1,7 @@
-import {ClientFormConfigVisitor, FormConfig, FormConfigFrame} from "../../src";
+import {
+    ClientFormConfigVisitor, FormConfig, FormConfigFrame,
+    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
+} from "../../src";
 
 // @ts-ignore
 import {default as default_1_0_draft_form_config} from "./../../../../../form-config/default-1.0-draft.js";
@@ -7,26 +10,73 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
+    it(`should create full example form config`, async function () {
+        const args = default_1_0_draft_form_config;
+        const expected: FormConfigFrame = {
+            name: "default-1.0-draft",
+            componentDefinitions: [
+                {
+                    name: "main_tab",
+                    component: {
+                        class: "TabComponent",
+                        config: {
+                            tabs: [
+                                {
+                                    name: '',
+                                    component: {
+                                        class: "TabContentComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {name: "text_block", component: {class: "ContentComponent"}},
+                                                {name: "textarea_1", component: {class: "TextAreaComponent"}},
+                                                {name: "dropdown_1", component: {class: "DropdownInputComponent"}}
+                                            ],
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        };
+        const visitor = new ClientFormConfigVisitor();
+        const actual = visitor.startNewRecord(args);
+
+        const stringified = JSON.stringify(actual);
+        expect(stringified).to.not.contain("expressions");
+        expect(stringified).to.not.contain("constraints");
+        expect(stringified).to.not.contain("defaultValue");
+
+        // top-level form config components
+        const formCompDefs = actual.componentDefinitions;
+        expect(formCompDefs).to.have.length(4);
+
+        // tab count
+        const formCompDefFirstTabs = actual.componentDefinitions[0].component;
+        expect(formCompDefFirstTabs.class).to.eql("TabComponent");
+        expect((formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs).to.have.length(2);
+
+        // tab 1 component count
+        const tabFirst = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[0];
+        expect(tabFirst.component.class).to.eql("TabContentComponent");
+        expect((tabFirst.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(15);
+
+        // tab 2 component count
+        const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
+        expect(tabSecond.component.class).to.eql("TabContentComponent");
+        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(2);
+    });
+
     const cases: {
         title: string,
         args: FormConfigFrame;
-        expected: FormConfigFrame;
+        expected: FormConfigFrame | {};
     }[] = [
         {
             title: "create empty form config",
             args: {name: '', componentDefinitions: []},
-            expected: {
-                name: '',
-                debugValue: false,
-                skipValidationOnSave: false,
-                validators: [],
-                componentDefinitions: [],
-            },
-        },
-        {
-            title: "create example form config",
-            args: default_1_0_draft_form_config,
-            expected: {name: '', componentDefinitions: []},
+            expected: {},
         },
         {
             title: "create basic form config",
@@ -261,6 +311,14 @@ describe("Client Visitor", async () => {
                         name: 'text_1',
                         component: {
                             class: 'SimpleInputComponent',
+                            config: {
+                                autofocus: false,
+                                disabled: false,
+                                editMode: true,
+                                readonly: false,
+                                type: "text",
+                                visible: true,
+                            },
                         },
                     },
                 ]
@@ -283,14 +341,18 @@ describe("Client Visitor", async () => {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableModel',
-                            config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
+                            config: {
+                                defaultValue: [{text_1: "hello world from repeating groups"}]
+                            }
                         },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {defaultValue: {}}},
+                                    model: {
+                                        class: 'GroupModel', config: {defaultValue: {}}
+                                    },
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
@@ -315,7 +377,7 @@ describe("Client Visitor", async () => {
                                                     component: {class: 'SimpleInputComponent'},
                                                 },
                                                 {
-                                                    // requires role 'Admin', so is removed
+                                                    // elementTemplate requires role 'Admin', so repeatable is removed
                                                     name: 'repeatable_for_admin',
                                                     model: {class: 'RepeatableModel', config: {}},
                                                     component: {
@@ -332,6 +394,31 @@ describe("Client Visitor", async () => {
                                                             }
                                                         }
                                                     },
+                                                },
+                                                {
+                                                    // all group components are removed, so group is removed
+                                                    name: "removed_group",
+                                                    model: {
+                                                        class: 'GroupModel', config: {defaultValue: {}}
+                                                    },
+                                                    component: {
+                                                        class: 'GroupComponent',
+                                                        config: {
+                                                            wrapperCssClasses: 'col',
+                                                            componentDefinitions: [
+                                                                {
+                                                                    // requires mode edit, so expect to be removed
+                                                                    name: 'removed_group_text',
+                                                                    model: {
+                                                                        class: 'SimpleInputModel',
+                                                                        config: {defaultValue: 'hello world 1!',}
+                                                                    },
+                                                                    component: {class: 'SimpleInputComponent'},
+                                                                    constraints: {allowModes: ['edit']},
+                                                                },
+                                                            ]
+                                                        }
+                                                    }
                                                 }
                                             ]
                                         }
@@ -376,12 +463,22 @@ describe("Client Visitor", async () => {
                         component: {
                             class: 'RepeatableComponent',
                             config: {
+                                autofocus: false,
+                                disabled: false,
+                                editMode: true,
+                                readonly: false,
+                                visible: true,
                                 elementTemplate: {
                                     name: "",
                                     model: {class: 'GroupModel', config: {value: {}}},
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
+                                            autofocus: false,
+                                            disabled: false,
+                                            editMode: true,
+                                            readonly: false,
+                                            visible: true,
                                             wrapperCssClasses: 'col',
                                             componentDefinitions: [
                                                 // <-- requires mode edit, so expect to be removed
@@ -389,9 +486,21 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {value: 'hello world 2!'}
+                                                        config: {
+                                                            value: 'hello world 2!'
+                                                        }
                                                     },
-                                                    component: {class: 'SimpleInputComponent'},
+                                                    component: {
+                                                        class: 'SimpleInputComponent',
+                                                        config: {
+                                                            autofocus: false,
+                                                            disabled: false,
+                                                            editMode: true,
+                                                            readonly: false,
+                                                            type: "text",
+                                                            visible: true,
+                                                        }
+                                                    },
                                                 },
                                                 // <-- requires role 'Admin', so is removed
                                             ]
@@ -399,7 +508,18 @@ describe("Client Visitor", async () => {
                                     },
                                     layout: {
                                         class: 'RepeatableElementLayout',
-                                        config: {hostCssClasses: 'row align-items-start'}
+                                        config: {
+                                            hostCssClasses: 'row align-items-start',
+                                            autofocus: false,
+                                            cssClassesMap: {},
+                                            disabled: false,
+                                            editMode: true,
+                                            helpTextVisible: false,
+                                            helpTextVisibleOnInit: false,
+                                            labelRequiredStr: '*',
+                                            readonly: false,
+                                            visible: true,
+                                        }
                                     },
                                     // <-- requires mode view, so is kept, constraints removed
                                 }
@@ -410,6 +530,15 @@ describe("Client Visitor", async () => {
                             config: {
                                 label: 'Repeatable TextField with default wrapper defined',
                                 helpText: 'Repeatable component help text',
+                                autofocus: false,
+                                cssClassesMap: {},
+                                disabled: false,
+                                editMode: true,
+                                helpTextVisible: false,
+                                helpTextVisibleOnInit: false,
+                                labelRequiredStr: '*',
+                                readonly: false,
+                                visible: true,
                             }
                         },
                     },
@@ -420,8 +549,52 @@ describe("Client Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const visitor = new ClientFormConfigVisitor();
-            const actual = visitor.start(args);
+            const actual = visitor.startNewRecord(args);
             expect(actual).to.eql(expected);
         });
+    });
+
+    it(`should result in an empty form config`, async function () {
+        const formConfig: FormConfigFrame = {
+            name: "basic-form",
+            type: "rdmp",
+            debugValue: true,
+            domElementType: 'form',
+            defaultComponentConfig: {
+                defaultComponentCssClasses: 'row',
+            },
+            editCssClasses: "redbox-form form",
+            skipValidationOnSave: false,
+            componentDefinitions: [
+                {
+                    name: 'text_2',
+                    layout: {
+                        class: 'DefaultLayout',
+                        config: {
+                            label: 'TextField with default wrapper defined',
+                            helpText: 'This is a help text',
+                        }
+                    },
+                    model: {
+                        class: 'SimpleInputModel',
+                        config: {
+                            defaultValue: 'hello world 2!',
+                        }
+                    },
+                    component: {
+                        class: 'SimpleInputComponent',
+                    },
+                    constraints: {
+                        authorization: {
+                            allowRoles: ['Admin'],
+                        },
+                        allowModes: [],
+                    },
+                }
+            ]
+        };
+        const visitor = new ClientFormConfigVisitor();
+        const actual = visitor.startExistingRecord(formConfig, "view", ["Librarian"], "record-oid-1", {metadata: {text_2: "text_2_value"}});
+        expect(actual).to.eql({});
     });
 });
