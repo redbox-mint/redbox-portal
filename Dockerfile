@@ -1,4 +1,4 @@
-FROM node:24.10.0
+FROM node:25.0.0
 ENV node_env=production
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin
