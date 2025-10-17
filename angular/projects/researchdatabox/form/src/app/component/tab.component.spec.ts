@@ -1,12 +1,10 @@
-import {FormConfig, KeyValueStringNested, KeyValueStringProperty} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, KeyValueStringNested, KeyValueStringProperty, TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame } from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { TabComponent, TabSelectionErrorType } from './tab.component';
-// Import TabComponentConfig type
-import type { TabComponentConfig, TabComponentFormFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
 
-let formConfig: FormConfig;
+let formConfig: FormConfigFrame;
 
 describe('TabComponent', () => {
   beforeEach(async () => {
@@ -18,6 +16,7 @@ describe('TabComponent', () => {
     });
 
     formConfig = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -28,7 +27,7 @@ describe('TabComponent', () => {
         {
           name: 'main_tab',
           layout: {
-            class: 'TabComponentLayout',
+            class: 'TabLayout',
             config: {
                 // layout-specific config goes here
                 hostCssClasses: 'd-flex align-items-start',
@@ -43,43 +42,63 @@ describe('TabComponent', () => {
               hostCssClasses: 'tab-content',
               tabs: [
                 {
-                  id: 'tab1',
-                  buttonLabel: 'Tab 1',
-                  componentDefinitions: [
-                    {
-                      name: 'textfield_1',
-                      model: {
-                        class: 'SimpleInputModel',
-                        config: {
-                          value: 'Hello from Tab 1!',
-                          defaultValue: 'Default value for Tab 1'
-                        }
-                      },
-                      component: {
-                        class: 'SimpleInputComponent'
-                      }
+                  name: 'tab1',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 1',
                     }
-                  ]
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_1',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Hello from Tab 1!',
+                              defaultValue: 'Default value for Tab 1'
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
                 },
                 {
-                  id: 'tab2',
-                  buttonLabel: 'Tab 2',
-                  selected: true,
-                  componentDefinitions: [
-                    {
-                      name: 'textfield_2',
-                      model: {
-                        class: 'SimpleInputModel',
-                        config: {
-                          value: 'Hello from Tab 2!',
-                          defaultValue: 'Default value for Tab 2'
-                        }
-                      },
-                      component: {
-                        class: 'SimpleInputComponent'
-                      }
+                  name: 'tab2',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 2',
                     }
-                  ]
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: true,
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_2',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Hello from Tab 2!',
+                              defaultValue: 'Default value for Tab 2'
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
                 }
               ]
             }
@@ -113,11 +132,11 @@ describe('TabComponent', () => {
     }
 
     const compiled = fixture.nativeElement as HTMLElement;
-    
-    const tabConfig: TabComponentConfig | undefined =  componentDefinitions?.component?.config as TabComponentConfig;
-    const tabLayoutConfig: TabComponentFormFieldLayoutConfig | undefined = componentDefinitions?.layout?.config as TabComponentFormFieldLayoutConfig;
+
+    const tabConfig =  componentDefinitions?.component?.config as TabFieldComponentConfigFrame;
+    const tabLayoutConfig= componentDefinitions?.layout?.config as TabFieldLayoutConfigFrame;
     expect(tabConfig).toBeDefined();
-    
+
     // Get the element with the tab's id equal to the `formConfig.componentDefinitions[0].name`
     const mainTabElement = compiled.querySelector(`#${componentDefinitions.name}`);
     expect(mainTabElement).toBeTruthy();
@@ -149,7 +168,7 @@ describe('TabComponent', () => {
       expect(classList).toContain(expectedClass);
     });
   });
-  
+
   it('should select the last tab with an "selected" equal to true on init and do the same on the new tab selected', async () => {
     const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
     if (!componentDefinitions?.component) {
@@ -158,13 +177,13 @@ describe('TabComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
-    const tabConfig: TabComponentConfig | undefined =  componentDefinitions?.component?.config as TabComponentConfig;
+    const tabConfig =  componentDefinitions?.component?.config as TabFieldComponentConfigFrame;
     expect(tabConfig).toBeDefined();
 
-    const tabSelected = tabConfig.tabs?.find(tab => tab.selected);
+    const tabSelected = tabConfig.tabs?.find(tab => tab.component.config?.selected);
     expect(tabSelected).toBeDefined();
-    expect(tabSelected?.id).toBe('tab2');
-    
+    expect(tabSelected?.name).toBe('tab2');
+
 
     // check if the second tab is selected
     const secondTabButton = compiled.querySelector(`#tab2-tab-button`);
@@ -185,7 +204,7 @@ describe('TabComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
-    const tabConfig: TabComponentConfig | undefined =  componentDefinitions?.component?.config as TabComponentConfig;
+    const tabConfig =  componentDefinitions?.component?.config as TabFieldComponentConfigFrame;
     expect(tabConfig).toBeDefined();
 
     const mainTabDef = formComponent.getComponentDefByName('main_tab');
@@ -200,9 +219,9 @@ describe('TabComponent', () => {
     expect(selectionResult?.errorType).toBe(TabSelectionErrorType.NONE);
     expect(selectionResult?.selectedWrapper).toBeDefined();
 
-    const tabSelected = mainTab?.tabs?.find(tab => tab.selected);
+    const tabSelected = mainTab?.tabs?.find(tab => tab.component?.config?.selected);
     expect(tabSelected).toBeDefined();
-    expect(tabSelected?.id).toBe('tab1');
+    expect(tabSelected?.name).toBe('tab1');
     // Trigger change detection
     fixture.detectChanges();
     await fixture.whenStable();
@@ -230,7 +249,7 @@ describe('TabComponent', () => {
       throw new Error("Component definition is not defined");
     }
     const compiled = fixture.nativeElement as HTMLElement;
-    const tabConfig: TabComponentConfig | undefined =  componentDefinitions?.component?.config as TabComponentConfig;
+    const tabConfig =  componentDefinitions?.component?.config as TabFieldComponentConfigFrame;
     expect(tabConfig).toBeDefined();
 
     const mainTabDef = formComponent.getComponentDefByName('main_tab');
@@ -238,7 +257,7 @@ describe('TabComponent', () => {
     if (mainTabDef === undefined) {
       throw new Error("Main tab component is not defined");
     }
-    
+
     const mainTab = (mainTabDef.component as TabComponent);
     const selectionResult = mainTab?.selectTab('tab-invalid-id');
     expect(selectionResult).toBeDefined();

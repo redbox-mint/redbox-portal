@@ -413,7 +413,7 @@ export class UtilityService {
     }
     const path = (urlPath || []).join('/');
     const rawUrl = `${brandingAndPortalUrl}/${path}`;
-    console.log(`getDynamicImport rawUrl ${rawUrl}`);
+    console.debug(`getDynamicImport rawUrl ${rawUrl}`);
     const url = new URL(`${brandingAndPortalUrl}/${path}`);
 
     const ts = new Date().getTime().toString();

@@ -35,7 +35,7 @@ import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/s
     standalone: false
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
-  protected override logName: string | null = "FormBaseWrapperComponent";
+  protected override logName = "FormBaseWrapperComponent";
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 

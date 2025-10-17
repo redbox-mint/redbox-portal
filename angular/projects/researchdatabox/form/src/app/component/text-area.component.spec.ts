@@ -1,4 +1,4 @@
-import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {TextAreaComponent} from "./text-area.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -14,7 +14,8 @@ describe('TextAreaComponent', () => {
   });
   it('should render Textarea component', async () => {
 
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

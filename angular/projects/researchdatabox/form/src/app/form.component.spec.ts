@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {FormComponent} from './form.component';
-import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './component/simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
 
@@ -16,7 +16,8 @@ describe('FormComponent', () => {
   });
 
   it('should render basic form config', async () => {
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

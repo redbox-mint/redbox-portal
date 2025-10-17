@@ -12,8 +12,8 @@ import {
   FormFieldModel,
 } from "@researchdatabox/portal-ng-common";
 import {
-  FormConfig,
-  GroupFieldModelValueType, GroupFormFieldComponentConfig,
+  FormConfigFrame,
+  GroupFieldModelValueType, GroupFieldComponentConfig, GroupFieldModelName, GroupFieldComponentName,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
@@ -30,7 +30,7 @@ import {FormBaseWrapperComponent} from "./base-wrapper.component";
  * The model for the Group Component.
  */
 export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
-  protected override logName = "GroupFieldModel";
+  protected override logName = GroupFieldModelName;
   public override formControl?: FormGroup;
 
   override postCreate(): void {
@@ -71,7 +71,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   standalone: false
 })
 export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {
-  protected override logName: string = "GroupFieldComponent";
+  protected override logName: string = GroupFieldComponentName;
   public override model?: GroupFieldModel;
 
   private formService = inject(FormService);
@@ -81,7 +81,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
   private componentContainer!: ViewContainerRef;
 
-  private elementFormConfig?: FormConfig;
+  private elementFormConfig?: FormConfigFrame;
 
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
@@ -101,8 +101,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
-    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFormFieldComponentConfig)?.componentDefinitions ?? [];
+    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
     this.elementFormConfig = {
+      name: `form-config-generated-group-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
       // Store the child component definitions.
       componentDefinitions: groupComponentDefinitions,
       // Get the default config.
@@ -132,7 +133,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       const elemVal = elemVals?.[key];
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
-      wrapperRef.instance.defaultComponentConfig = this.elementFormConfig.defaultComponentConfig;
+      wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
       if (this.model?.formControl && compInstance?.model) {

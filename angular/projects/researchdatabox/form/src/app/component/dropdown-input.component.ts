@@ -1,9 +1,16 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { DropdownInputComponentConfig, DropdownModelValueType, DropdownOption } from '@researchdatabox/sails-ng-common';
+import {
+  DropdownInputComponentName,
+  DropdownInputFieldComponentConfig,
+  DropdownInputModelName,
+  DropdownInputModelValueType,
+  DropdownOption
+} from '@researchdatabox/sails-ng-common';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
-export class DropdownInputModel extends FormFieldModel<DropdownModelValueType> {
+export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueType> {
+  protected override logName = DropdownInputModelName;
 }
 
 @Component({
@@ -30,8 +37,8 @@ export class DropdownInputModel extends FormFieldModel<DropdownModelValueType> {
   `,
   standalone: false
 })
-export class DropdownInputComponent extends FormFieldBaseComponent<DropdownModelValueType> {
-  protected override logName: string = "DropdownInputComponent";
+export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInputModelValueType> {
+  protected override logName = DropdownInputComponentName;
   public tooltip: string = '';
   public placeholder: string | undefined = '';
   public options: DropdownOption[] = [];
@@ -45,8 +52,8 @@ export class DropdownInputComponent extends FormFieldBaseComponent<DropdownModel
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
     this.placeholder = this.getStringProperty('placeholder');
-    let dropdownInputConfig = this.componentDefinition?.config as DropdownInputComponentConfig;
-    let defaultConfig = new DropdownInputComponentConfig();
+    let dropdownInputConfig = this.componentDefinition?.config as DropdownInputFieldComponentConfig;
+    let defaultConfig = new DropdownInputFieldComponentConfig();
     const cfg = (_isUndefined(dropdownInputConfig) || _isEmpty(dropdownInputConfig)) ? defaultConfig : dropdownInputConfig;
     const cfgOptions:DropdownOption[] = cfg.options;
     if (!_isUndefined(cfgOptions) && !_isEmpty(cfgOptions)) {

@@ -17,21 +17,18 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {FormModel, PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
+import { PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
     FormComponentDefinition,
-    FormConfig,
-    FormValidatorDefinition,
-    formValidatorsSharedDefinitions,
-    FormValidatorSummaryErrors,
-    guessType,
-    SimpleServerFormValidatorControl,
-    ValidatorsSupport
+    ValidatorsSupport,
+    guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions, SimpleServerFormValidatorControl,
+    FormValidatorDefinition, GroupFormComponentDefinitionFrame,
+    FormComponentDefinitionFrame, FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
+    TemplateFormConfigVisitor, TemplateCompileInput
 } from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
 import {ClientFormContext} from "../additional/ClientFormContext";
 import {firstValueFrom} from "rxjs";
-import {TemplateCompileInput} from "../additional/TemplateCompile";
 
 
 
@@ -143,7 +140,7 @@ export module Services {
         public mergeRecordClientFormConfig(
             original: BasicRedboxRecord,
             changed: BasicRedboxRecord,
-            clientFormConfig: FormConfig,
+            clientFormConfig: FormConfigFrame,
         ): BasicRedboxRecord {
             const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig);
             const originalMetadata = original?.metadata ?? {};
@@ -312,130 +309,18 @@ export module Services {
          * Convert the form config into the matching data model with defaults.
          * @param item The top-level form config.
          */
-        public buildDataModelDefaultForFormConfig(item: FormConfig): Record<string, unknown> {
-            // Each component definition is a property,
-            // where the key is the name and the value is the model value.
-            // Provides defaults from ancestors to descendants,
-            // so the descendants can either use their default or an ancestors default.
-            const result = {};
-            for (const componentDefinition of item?.componentDefinitions) {
-                const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition);
-                for (const [key, value] of Object.entries(def ?? {})) {
-                    result[key] = value;
-                }
-            }
-            return result;
-        }
-
-        /**
-         * Convert a form component definition into the matching data model with defaults.
-         * @param item One form config component definition.
-         * @param defaultValue The default value if there is an ancestor component.
-         */
-        public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition, defaultValue?: Record<string, unknown>): Record<string, unknown> {
-            // Use empty string as a placeholder item name. Empty string indicates that there is no name.
-            const result = {};
-            const itemName = item?.name ?? "";
-            const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
-            const componentDefinitions = item?.component?.config?.['componentDefinitions'];
-            const elementTemplate = item?.component?.config?.['elementTemplate'];
-
-            sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - start - item ${JSON.stringify(item)} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-
-            // NOTE: To maintain object property values in child components in elementTemplate arrays, the name defaults to empty string.
-            //       Empty string is used as a placeholder name for the elementTemplate component definition.
-
-            if (elementTemplate !== undefined) {
-                // For each element in the default value array, build the component from any ancestor defaultValues.
-                // The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
-                // Build the array of components from any ancestor defaultValues.
-                const componentName = elementTemplate?.name ?? "";
-                result[itemName] = (itemDefaultValue ?? []).map(arrayElementDefaultValue => {
-                    const elementTemplateDefaultValue = {"": arrayElementDefaultValue};
-                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - elementTemplate - component ${componentName} - elementTemplateDefaultValue ${JSON.stringify(elementTemplateDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-                    // The elementTemplate does not have a name, so use the placeholder name (empty string) to populate the array.
-                    // Don't provide the default from the elementTemplate - it is only the default for new items, not for existing items.
-                    const elementTemplateNoDefault = {...elementTemplate};
-                    _.unset(elementTemplateNoDefault, 'model.config.defaultValue');
-                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplateNoDefault, elementTemplateDefaultValue)[""];
-                });
-
-            } else if (componentDefinitions !== undefined) {
-                // apply the default value to each element in a component definition
-                result[itemName] = {};
-                for (const componentDefinition of (componentDefinitions ?? [])) {
-                    const componentName = componentDefinition?.name;
-                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - componentDefinitions - component ${componentName} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-                    const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition, itemDefaultValue);
-                    for (const [key, value] of Object.entries(def ?? {})) {
-                        result[itemName][key] = value;
-                    }
-                }
-
-            } else if (itemDefaultValue !== undefined) {
-                result[itemName] = itemDefaultValue;
-                sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - itemDefaultValue !== undefined`, {result: result, itemName: itemName, defaultValue: defaultValue, itemDefaultValue:itemDefaultValue});
-            } else if (itemName) {
-                result[itemName] = _.get(defaultValue, itemName, undefined) ?? defaultValue;
-                sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - itemName`, {result: result, itemName: itemName, defaultValue: defaultValue});
-            } else {
-                result[itemName] = defaultValue ?? undefined;
-                sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - else`, {result: result, itemName: itemName, defaultValue: defaultValue});
-            }
-            return result;
+        public buildDataModelDefaultForFormConfig(item: FormConfigFrame): Record<string, unknown> {
+            const visitor = new DefaultValueFormConfigVisitor();
+            return visitor.start(item);
         }
 
         /**
          * Convert a form config into a schema describing the data model it creates.
          * @param item The form config.
          */
-        public buildSchemaForFormConfig(item: FormConfig): Record<string, unknown> {
-            const formCompDef: FormComponentDefinition = {
-                name: item?.name,
-                model: {class: "GroupFieldModel", config: {validators: item?.validators ?? []}},
-                component: {class: 'GroupFieldComponent', config: {componentDefinitions: item?.componentDefinitions}}
-            }
-            const def = this.buildSchemaForFormComponentDefinition(formCompDef);
-            // remove the FormConfig level
-            return def[item?.name] as Record<string, unknown>;
-        }
-
-        /**
-         * Convert a form component definition into a schema describing the data model it creates.
-         * @param item The form component definition.
-         */
-        public buildSchemaForFormComponentDefinition(item: FormComponentDefinition): Record<string, unknown> {
-            // Using JSON Type Definition schema
-            // Ref: https://jsontypedef.com/docs/jtd-in-5-minutes/
-            // Ref: https://ajv.js.org/json-type-definition.html
-            const result: Record<string, unknown>  = {};
-            if (item?.component?.config?.['elementTemplate'] !== undefined) {
-                // array elements: https://jsontypedef.com/docs/jtd-in-5-minutes/#elements-schemas
-                // For array elements, the key is 'elements', not the name.
-                // So use a placeholder name of "", then get the value using the placeholder name as the key.
-                const elementTemplateItem = {
-                    ...item?.component?.config?.['elementTemplate'],
-                    name: "",
-                };
-                result[item?.name] = {
-                    elements: this.buildSchemaForFormComponentDefinition(elementTemplateItem)[""],
-                };
-            } else if (item?.component?.config?.['componentDefinitions'] !== undefined) {
-                // object properties: https://jsontypedef.com/docs/jtd-in-5-minutes/#properties-schemas
-                result[item?.name] = {properties: {}};
-                for (const componentDefinition of item?.component?.config?.['componentDefinitions'] ?? []) {
-                    const def = this.buildSchemaForFormComponentDefinition(componentDefinition);
-                    // Add the def object to the existing proeperties.
-                    Object.assign(result[item?.name]['properties'], def);
-                }
-            } else if (item?.model?.config?.defaultValue !== undefined) {
-                // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-                result[item?.name] = {type: guessType(item?.model?.config?.defaultValue)};
-            } else {
-                // default to a type of string
-                result[item?.name] = {type: "string"};
-            }
-            return result;
+        public buildSchemaForFormConfig(item: FormConfigFrame): Record<string, unknown> {
+            const visitor = new JsonTypeDefSchemaFormConfigVisitor();
+            return visitor.start(item);
         }
 
         /**
@@ -518,7 +403,7 @@ export module Services {
         public async buildFormConfigForChanges(
             original: { redboxOid: string, [key: string]: unknown },
             changes: FormRecordConsistencyChange[],
-        ): Promise<FormConfig> {
+        ): Promise<FormConfigFrame> {
             // TODO: Use the record and form config and/or changes between the record and form config
             //  to build a new form config that displays only the changes.
             //return {};
@@ -558,16 +443,16 @@ export module Services {
             // the validation will be done on all values present in the data model, so use the form config with all fields included
             const isEditMode = true;
             // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfig;
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
             // the validator definitions are in the sails-ng-common package
             const validatorDefinitions = formValidatorsSharedDefinitions;
             const validatorDefs = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions);
             // provide the form config as a top-level group component
-            const formConfigAsFormCompDef: FormComponentDefinition = {
+            const formConfigAsFormCompDef: GroupFormComponentDefinitionFrame = {
                 name: formConfig?.name,
-                model: {class: "GroupFieldModel", config: {validators: formConfig?.validators ?? []}},
+                model: {class: "GroupModel", config: {validators: formConfig?.validators ?? []}},
                 component: {
-                    class: 'GroupFieldComponent',
+                    class: 'GroupComponent',
                     config: {componentDefinitions: formConfig?.componentDefinitions}
                 }
             }
@@ -584,7 +469,7 @@ export module Services {
          */
         public async validateRecordValueForComponentDefinition(
             record: unknown,
-            item: FormComponentDefinition,
+            item: FormComponentDefinitionFrame,
             validatorDefinitions: Map<string, FormValidatorDefinition>,
             parents?: string[],
         ): Promise<FormValidatorSummaryErrors[]> {
@@ -656,109 +541,9 @@ export module Services {
             return result;
         }
 
-        public buildCompiledTemplates(form: FormModel & FormConfig): TemplateCompileInput[]{
-            const results = [];
-
-            // Try implementing form config traversal using iteration instead of recursion.
-            let formComponents = (form?.componentDefinitions ?? []).map((def, index) => {
-                return {path: ['componentDefinitions', index], def: def}
-            });
-
-            while(formComponents.length > 0) {
-                const {path, def} = formComponents.pop();
-                sails.log.warn(`buildCompiledTemplates name '${def?.name}' path '${path}'`);
-
-                // add compiled templates from component config
-                switch (def?.component?.class) {
-                    case "ContentComponent":
-                        results.push({
-                            key: [...path, "component", "config", "template"],
-                            value: def?.component?.config?.template,
-                            kind: "handlebars"
-                        })
-                        break;
-                    default:
-
-                        break;
-                }
-
-                // add compiled expression from form component def
-                Object.entries(def?.expressions ?? {}).forEach((expression, index) => {
-                    const [key, value] = expression;
-                    results.push({
-                        key: [...path, "expressions", index, key],
-                        value: value?.template,
-                        kind: "jsonata"
-                    })
-                });
-
-                // add compiled validations from form component def
-                // This is not needed - validators are provided via a compiled javascript file.
-                // (formComponent.model?.config?.validators ?? []).forEach((validator, index) => {
-                //     results.push({
-                //         key: [...currentPath, "model", "config", "validators", index],
-                //         value: validator.template,
-                //         kind: "jsonata"
-                //     })
-                // })
-
-                // add any child form components to the form components array
-                (def?.component?.config?.['componentDefinitions'] ?? []).forEach((subDef, subIndex) => {
-                    formComponents.push({
-                        path: [...path, 'component', 'config', 'componentDefinitions', subIndex],
-                        def: subDef,
-                    })
-                });
-                if(Object.keys(def?.component?.config?.['elementTemplate'] ?? {}).length > 0){
-                    formComponents.push({
-                        path: [...path, 'component', 'config', 'elementTemplate'],
-                        def: def?.component?.config?.['elementTemplate'],
-                    })
-                }
-                (def?.component?.config?.['tabs'] ?? []).forEach((tabDef, tabIndex) => {
-                    (tabDef?.['componentDefinitions'] ?? []).forEach((subDef, subIndex) => {
-                        formComponents.push({
-                            path: [...path, 'component', 'config', 'tabs', tabIndex, "componentDefinitions", subIndex],
-                            def: subDef,
-                        })
-                    });
-                });
-            }
-
-            return results;
-        }
-
-        /**
-         * Build the default value using the default from the form config and the form component definition.
-         * @param current The form config item.
-         * @param item The matching form component definition.
-         * @private
-         */
-        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition): unknown {
-            const itemName = item?.name ?? "";
-            sails.log.verbose(`buildDataModelDefaultValue - name '${itemName}' current ${JSON.stringify(current)} - item ${JSON.stringify(item)}`);
-            const itemDefaultValue = item?.model?.config?.defaultValue;
-            const outcome = _.mergeWith(
-                {},
-                current ?? {},
-                // only include the item default value if 'defaultValue' is not undefined
-                itemDefaultValue === undefined ? {} : {[itemName]: itemDefaultValue},
-                (objValue, srcValue, key, object, source, stack) => {
-                    // merge approach for arrays is to choose the source array,
-                    // or the one that is an array if the other isn't
-                    if (Array.isArray(objValue) && Array.isArray(srcValue)) {
-                        return srcValue;
-                    } else if (Array.isArray(objValue) && !Array.isArray(srcValue)) {
-                        return objValue;
-                    } else if (!Array.isArray(objValue) && Array.isArray(srcValue)) {
-                        return srcValue;
-                    }
-                    // undefined = use the default merge approach
-                    return undefined;
-                }
-            );
-            sails.log.verbose(`buildDataModelDefaultValue - name '${item?.name}' outcome ${JSON.stringify(outcome)}`);
-            return outcome;
+        public buildCompiledTemplates(form: FormConfigFrame): TemplateCompileInput[] {
+            const visitor = new TemplateFormConfigVisitor();
+            return visitor.start(form);
         }
 
         /**
