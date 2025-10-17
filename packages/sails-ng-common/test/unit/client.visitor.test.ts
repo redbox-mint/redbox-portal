@@ -594,7 +594,7 @@ describe("Client Visitor", async () => {
             ]
         };
         const visitor = new ClientFormConfigVisitor();
-        const actual = visitor.startExistingRecord(formConfig, "view", ["Librarian"], "record-oid-1", {metadata: {text_2: "text_2_value"}});
+        const actual = visitor.startExistingRecord(formConfig, "view", ["Librarian"], {metadata: {text_2: "text_2_value"}});
         expect(actual).to.eql({});
     });
 });

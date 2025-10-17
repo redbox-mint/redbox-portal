@@ -91,22 +91,17 @@ export type NameConstraints = { name: string, constraints: FormConstraintConfig 
 export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private formMode: FormModesConfig = "view";
     private userRoles: string[] = [];
-    private recordOid: string | null = null;
-    private recordData: unknown = null;
-    private defaultValues: Record<string, unknown> | null = null;
+    private recordValues: Record<string, unknown> | null = null;
 
     private result: FormConfigFrame = {name: '', componentDefinitions: []};
     private constraintPath: NameConstraints[] = [];
 
-    startExistingRecord(data: FormConfigFrame, formMode?: FormModesConfig, userRoles?: string[], recordOid?: string, recordData?: unknown): FormConfigFrame {
+    startExistingRecord(data: FormConfigFrame, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigFrame {
         const constructVisitor = new ConstructFormConfigVisitor();
         const constructed = constructVisitor.start(data);
 
-        // The current record oid, default to null.
-        this.recordOid = recordOid || null;
-
         // The current record data, default to null.
-        this.recordData = recordData ?? null;
+        this.recordValues = recordData ?? null;
 
         return this.start(constructed, formMode, userRoles);
     }
@@ -115,8 +110,9 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const constructVisitor = new ConstructFormConfigVisitor();
         const constructed = constructVisitor.start(data);
 
+        // Use the defaultValues from the form config as the record values.
         const defaultValueVisitor = new DefaultValueFormConfigVisitor();
-        this.defaultValues = defaultValueVisitor.startExisting(constructed);
+        this.recordValues = defaultValueVisitor.startExisting(constructed);
 
         return this.start(constructed, formMode, userRoles);
     }
@@ -618,33 +614,20 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     protected setModelValue(item: FieldModelDefinition<unknown>) {
         if (item?.config?.value !== undefined) {
-            throw new Error(`ClientFormConfigVisitor - 'value' in the base form field model definition config is for the client-side, use 'defaultValue' instead ${JSON.stringify(item)}`);
+            throw new Error(`ClientFormConfigVisitor - in the field model config '{config:{value: "[some value]"}}', 'value' is for the client only, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
         }
 
-        // Populate model.config.value from either model.config.defaultValue or context.current.model.data.
-        // Use the context to decide where to obtain any existing data model value.
-        // If there is a model id, use the context current model data.
-        // If there isn't a model id, use the model.config.defaultValue.
-        const hasContextModelId = (this.recordOid?.toString()?.trim() ?? "").length > 0;
-        const hasContextModelData = this.recordData && _isPlainObject(this.recordData);
-        if ((hasContextModelId && !hasContextModelData) || (!hasContextModelId && hasContextModelData)) {
-            throw new Error(`ClientFormConfigVisitor - cannot populate client form data model values due to inconsistent context current model id and data. Either provide both id and data, or neither.`);
+        // Set an empty config if the form config didn't include one.
+        if (item.config === undefined || !_isPlainObject(item.config)) {
+            item.config = {};
         }
 
-        if (hasContextModelId && hasContextModelData) {
-            // set the model.config.value using the value from the record
-            const path = this.constraintPath?.map(i => i?.name)?.filter(i => !!i) ?? [];
-            const modelValue = _get(this.recordData, path, undefined);
-            if (item.config === undefined || !_isPlainObject(item.config)) {
-                item.config = {};
-            }
-            item.config.value = modelValue;
-        } else if (item?.config?.defaultValue !== undefined) {
-            // set the model.config.value using the defaultValue property
-            item.config.value = item.config.defaultValue;
-        }
+        // Set the config value from the record values.
+        const recordValues = this.recordValues && _isPlainObject(this.recordValues) ? this.recordValues : {};
+        const path = this.constraintPath?.map(i => i?.name)?.filter(i => !!i) ?? [];
+        item.config.value = _get(recordValues, path, undefined);
 
-        // remove the defaultValue property
+        // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
             delete item.config.defaultValue;
         }
