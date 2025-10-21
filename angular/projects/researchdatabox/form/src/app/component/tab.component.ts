@@ -53,15 +53,14 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
     return component?.config || {tabs:[]};
   }
 
-  protected get tabInstance(): TabComponent {
-    const instance = this.formFieldCompMapEntry?.component;
-    if (!instance) {
-      throw new Error("Could not get instance of TabComponent for TabComponentLayout.");
-    }
-    if (instance instanceof TabComponent) {
+  protected get tabInstance(): TabComponent | null {
+    // The tab component layout is created before the tab component, so the component ref can be undefined.
+    const instance = this.formFieldCompMapEntry?.componentRef?.instance;
+    if (instance && instance instanceof TabComponent) {
       return instance;
     }
-    throw new Error(`Expected instance to be TabComponent for TabComponentLayout, but instance was '${instance.constructor.name}'.`);
+    this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent in TabComponentLayout, but instance was '${instance?.constructor?.name}'.`);
+    return null;
   }
 
   @HostBinding('id') get hostId(): string {
@@ -69,7 +68,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   }
 
   public selectTab(tabId: string) {
-    const selectionResult = this.tabInstance.selectTab(tabId);
+    const selectionResult = this.tabInstance?.selectTab(tabId);
     if (selectionResult && selectionResult.changed) {
       this.loggerService.debug(`${this.logName}: Tab selection changed`, selectionResult);
       // remove the 'show active' classes from all tabs
@@ -270,7 +269,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       {
         angularComponents: [],
         dataModel: [],
-        formConfig: ['componentDefinitions'],
+        formConfig: ['component', 'config', 'componentDefinitions'],
       });
     this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig, parentLineagePaths);
     if (this.formDefMap !== null && this.formDefMap != undefined) {
