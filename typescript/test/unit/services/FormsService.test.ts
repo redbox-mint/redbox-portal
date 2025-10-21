@@ -245,7 +245,8 @@ describe('The FormsService', function () {
                         },
                     }
                 ]
-            };const expected = {
+            };
+            const expected: FormConfigFrame = {
                 name: "remove-item-constraint-roles",
                 type: "rdmp",
                 debugValue: true,
@@ -324,7 +325,7 @@ describe('The FormsService', function () {
                     }
                 ]
             };
-            const expected = {
+            const expected: FormConfigFrame = {
                 name: "remove-item-constraint-mode",
                 type: "rdmp",
                 debugValue: true,
@@ -439,7 +440,7 @@ describe('The FormsService', function () {
                     },
                 ]
             };
-            const expected = {
+            const expected: FormConfigFrame = {
                 name: "remove-items-constrains-nested",
                 type: "rdmp",
                 debugValue: true,
@@ -453,13 +454,14 @@ describe('The FormsService', function () {
                     {
                         name: 'repeatable_group_1',
                         model: {
-                            class: 'RepeatableComponentModel',
+                            class: 'RepeatableModel',
                             config: {value: [{text_1: "hello world from repeating groups"}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
+                                    name: "",
                                     model: {class: 'GroupModel', config: {value: {}}},
                                     component: {
                                         class: 'GroupComponent',
@@ -477,7 +479,7 @@ describe('The FormsService', function () {
                                         }
                                     },
                                     layout: {
-                                        class: 'RepeatableElementLayoutComponent',
+                                        class: 'RepeatableElementLayout',
                                         config: {hostCssClasses: 'row align-items-start'}
                                     },
                                     // <-- requires mode view, so is kept, constraints removed

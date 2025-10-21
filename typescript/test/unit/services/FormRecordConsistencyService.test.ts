@@ -530,7 +530,6 @@ describe('The FormRecordConsistencyService', function () {
                             "text_rpt_2 default 1",
                             "text_rpt_2 default 2",
                         ],
-                        repeatable_3: [],
                     },
                 },
                 repeatable_1: [

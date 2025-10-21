@@ -66,7 +66,7 @@ export type ClientFormCurrentUserContext = {
 
 export type ClientFormCurrentModelContext = {
   id?: string;
-  data?: unknown;
+  data?: Record<string, unknown>;
 };
 
 
