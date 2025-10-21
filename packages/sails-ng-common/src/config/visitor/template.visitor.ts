@@ -64,6 +64,9 @@ import {FormExpressionsConfigFrame} from "../form-component.outline";
 /**
  * Visit each form config class type and extract information about any
  * templates that need to be compiled.
+ *
+ * This is the data allowing templates and expressions to be compiled on the server-side
+ * so they can be provided to the client.
  */
 export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private constructed?: FormConfigOutline;

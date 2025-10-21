@@ -65,6 +65,8 @@ import {FormComponentDefinitionOutline} from "../form-component.outline";
 
 /**
  * Visit each form config class type to build the JSON TypeDef schema that represents the form config.
+ *
+ * One use for this is to enable merging two records.
  */
 export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private result: Record<string, unknown> = {};

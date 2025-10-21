@@ -87,9 +87,8 @@ export type NameConstraints = {
  * Visit each form config class type and build the form config for the client-side.
  *
  * This process does a few things:
- * - removes fields the user does not have permissions to access
- * - removes fields that have the value undefined
- * - removes fields that are not supposed to be accessed on the client
+ * - removes fields the user does not have permissions to access, or are not relevant to the client, or where the property value is 'undefined'
+ * - generates client-side fields that are constructed from the server-side fields
  * - populate the value from the defaultValue properties if no record or the provided record metadata
  */
 export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {

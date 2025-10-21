@@ -63,7 +63,8 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 
 
 /**
- * Visit each form config class type and extract the default value for each field.
+ * Visit each form config component and extract the default value for each field.
+ * This is used for new records to populate the value defaults.
  *
  * Each component definition is a property,
  * where the key is the name and the value is the model value.

@@ -29,9 +29,6 @@ import {RadioInputTypes} from "./component/radio-input.outline";
 import {DateInputTypes} from "./component/date-input.outline";
 
 
-/* Ensure all available types, interfaces, and classes are added here. */
-
-
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
  * Other convenience mappings are built from this.

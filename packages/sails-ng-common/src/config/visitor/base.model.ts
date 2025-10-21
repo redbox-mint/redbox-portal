@@ -78,15 +78,6 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
-        // HasChildren, HasCompilableTemplates
-        //     /**
-        //      * Get all the components that are directly contained by this component.
-        //      */
-        //     get children(): AllFormComponentDefinitionOutlines[];
-        //     /**
-        //      * Get all the templates for this component.
-        //      */
-        //     get templates(): TemplateCompileInput[];
         this.notImplemented();
     }
 
