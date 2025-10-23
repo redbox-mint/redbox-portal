@@ -6,7 +6,7 @@ module.exports = {
   slow: 2000,
   timeout: "30s",
   ui: "bdd",
-  global: ["moment", "_"],
+  global: ["lodash", "luxon", "_"],
 };
 
 if (process.env.CI === "true") {
@@ -18,4 +18,5 @@ if (process.env.CI === "true") {
   console.log("Mocha running in local dev.");
   // (For development) Run mocha and show the results on stdout:
   module.exports["reporter"] = "spec";
+  // module.exports["reporter-option"] = "maxDiffSize=0";
 }

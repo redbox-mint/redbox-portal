@@ -1,13 +1,11 @@
-import {Component, Injector, Input} from '@angular/core';
+import {Component, inject, Injector, Input} from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldModel,
 } from "@researchdatabox/portal-ng-common";
 import {FormComponent} from "../form.component";
-import { FormValidatorSummaryErrors } from "@researchdatabox/sails-ng-common";
+import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@researchdatabox/sails-ng-common";
 
-export class ValidationSummaryFieldModel extends FormFieldModel<string> {
-}
 
 // TODO: use item.parents to reveal the parent components on click
 @Component({
@@ -51,6 +49,7 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
   standalone: false
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
+  protected override logName = ValidationSummaryComponentName;
 
   /**
    * The model associated with this component.
@@ -58,11 +57,9 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
    * @type {FieldModel<any>}
    * @memberof FieldComponent
    */
-  @Input() public override model?: ValidationSummaryFieldModel;
+  @Input() public override model?: never;
 
-  constructor(private _injector: Injector) {
-    super();
-  }
+  private _injector = inject(Injector);
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
     return  this.getFormComponent?.getValidationErrors() ?? [];

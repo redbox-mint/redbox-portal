@@ -1,7 +1,12 @@
-import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
-import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type, inject} from '@angular/core';
+import { isUndefined as _isUndefined, isNull as _isNull, set as _set} from 'lodash-es';
+import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import {FormFieldLayoutDefinition, FormValidatorComponentErrors, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import {
+  FieldLayoutDefinitionFrame,
+  FormValidatorComponentErrors,
+  FormFieldComponentStatus,
+  DefaultLayoutName
+} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
 
@@ -83,10 +88,10 @@ import {FormService} from "../form.service";
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
-  protected override logName = "DefaultLayoutComponent";
+  protected override logName: string = DefaultLayoutName;
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent<ValueType>;
-  public override componentDefinition?: FormFieldLayoutDefinition;
+  public override componentDefinition?: FieldLayoutDefinitionFrame;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
   // @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;

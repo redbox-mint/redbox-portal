@@ -1,23 +1,97 @@
-import {BaseFormFieldModelConfig, BaseFormFieldModelDefinition} from "../form-field-model.model";
-import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
+
+import {    FieldModelConfig,    FieldModelDefinition} from "../field-model.model";
+import {FormComponentDefinition} from "../form-component.model";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind,
+    FieldModelConfigKind,
+    FieldModelDefinitionKind, FormComponentDefinitionKind
+} from "../shared.outline";
+import {
+    SimpleInputComponentName,
+    SimpleInputFieldComponentConfigOutline,
+    SimpleInputFieldComponentConfigType,
+    SimpleInputFieldComponentDefinitionOutline,
+    SimpleInputFieldModelConfigOutline,
+    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFormComponentDefinitionOutline,
+    SimpleInputModelName,
+    SimpleInputModelValueType
+} from "./simple-input.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 
-export type SimpleInputModelValueType = string;
+/* Simple Input Component */
 
-export interface SimpleInputComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "SimpleInputComponent";
-    config?: SimpleInputComponentConfig;
+
+export class SimpleInputFieldComponentConfig extends FieldComponentConfig implements SimpleInputFieldComponentConfigOutline {
+    type: SimpleInputFieldComponentConfigType = "text";
+
+    constructor() {
+        super();
+    }
 }
 
-export class SimpleInputComponentConfig extends BaseFormFieldComponentConfig {
-    type: "email" | "text" | "tel" | "number" | "password" | "url" = "text";
+
+export class SimpleInputFieldComponentDefinition extends FieldComponentDefinition implements SimpleInputFieldComponentDefinitionOutline {
+    class = SimpleInputComponentName;
+    config?: SimpleInputFieldComponentConfigOutline;
+
+    constructor() {
+        super();
+    }
+
+    accept(visitor: FormConfigVisitorOutline): void {
+        visitor.visitSimpleInputFieldComponentDefinition(this);
+    }
 }
 
-export interface SimpleInputModelDefinition extends BaseFormFieldModelDefinition<SimpleInputModelValueType> {
-    class: "SimpleInputModel";
-    config: SimpleInputModelConfig;
+
+/* Simple Input Model */
+
+
+export class SimpleInputFieldModelConfig extends FieldModelConfig<SimpleInputModelValueType> implements SimpleInputFieldModelConfigOutline {
+    constructor() {
+        super();
+    }
 }
 
-export class SimpleInputModelConfig extends BaseFormFieldModelConfig<SimpleInputModelValueType> {
 
+export class SimpleInputFieldModelDefinition extends FieldModelDefinition<SimpleInputModelValueType> implements SimpleInputFieldModelDefinitionOutline {
+    class = SimpleInputModelName;
+    config?: SimpleInputFieldModelConfigOutline;
+
+    constructor() {
+        super();
+    }
+
+    accept(visitor: FormConfigVisitorOutline): void {
+        visitor.visitSimpleInputFieldModelDefinition(this);
+    }
 }
+
+/* Simple Input Form Component */
+
+export class SimpleInputFormComponentDefinition extends FormComponentDefinition implements SimpleInputFormComponentDefinitionOutline {
+    public component!: SimpleInputFieldComponentDefinitionOutline;
+    public model?: SimpleInputFieldModelDefinitionOutline;
+    public layout?: AvailableFieldLayoutDefinitionOutlines;
+
+    constructor() {
+        super();
+    }
+
+    accept(visitor: FormConfigVisitorOutline) {
+        visitor.visitSimpleInputFormComponentDefinition(this);
+    }
+}
+
+export const SimpleInputMap = [
+    {kind: FieldComponentConfigKind, def: SimpleInputFieldComponentConfig},
+    {kind: FieldComponentDefinitionKind, def: SimpleInputFieldComponentDefinition, class: SimpleInputComponentName},
+    {kind: FieldModelConfigKind, def: SimpleInputFieldModelConfig},
+    {kind: FieldModelDefinitionKind, def: SimpleInputFieldModelDefinition, class: SimpleInputModelName},
+    {kind: FormComponentDefinitionKind, def: SimpleInputFormComponentDefinition, class:SimpleInputComponentName},
+];

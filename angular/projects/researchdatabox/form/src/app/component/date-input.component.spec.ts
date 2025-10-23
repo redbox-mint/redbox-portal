@@ -1,4 +1,4 @@
-import { FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { DateInputComponent } from './date-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
@@ -6,7 +6,7 @@ import { TestBed } from '@angular/core/testing';
 
 describe('DateInputComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule({ 
+    await createTestbedModule({
       declarations: [DateInputComponent]
      ,imports: [BsDatepickerModule.forRoot()]
     });
@@ -19,7 +19,8 @@ describe('DateInputComponent', () => {
   });
 
   it('should render Date input component from default value', async () => {
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -50,7 +51,8 @@ describe('DateInputComponent', () => {
   });
 
   it('should render Date input component from value', async () => {
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

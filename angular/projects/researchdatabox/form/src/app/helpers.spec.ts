@@ -15,7 +15,7 @@ import {APP_BASE_HREF, CommonModule} from "@angular/common";
 import {BrowserModule, Title} from "@angular/platform-browser";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
 import {FormService} from "./form.service";
-import {FormConfig, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
@@ -24,7 +24,6 @@ import {provideHttpClientTesting} from "@angular/common/http/testing";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
-
 export interface FormComponentProps {
   oid: string;
   recordType: string;
@@ -33,7 +32,7 @@ export interface FormComponentProps {
   downloadAndCreateOnInit: boolean;
 }
 
-export async function createFormAndWaitForReady(formConfig: FormConfig, formComponentProps?: FormComponentProps) {
+export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps) {
   console.log('createFormAndWaitForReady - starting');
   // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);

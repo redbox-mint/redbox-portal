@@ -1,9 +1,10 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { TextAreaComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/text-area.model';
+import {TextAreaComponentName, TextAreaFieldComponentConfig, TextAreaModelName} from '@researchdatabox/sails-ng-common';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class TextAreaModel extends FormFieldModel<string> {
+  protected override logName = TextAreaModelName;
 }
 
 @Component({
@@ -28,7 +29,7 @@ export class TextAreaModel extends FormFieldModel<string> {
   standalone: false
 })
 export class TextAreaComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "TextAreaComponent";
+  protected override logName = TextAreaComponentName;
   public tooltip:string = '';
   public rows: number | undefined = undefined;
   public cols: number | undefined = undefined;
@@ -42,14 +43,14 @@ export class TextAreaComponent extends FormFieldBaseComponent<string> {
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
-    let textareaConfig = this.componentDefinition?.config as TextAreaComponentConfig;
-    let defaultConfig = new TextAreaComponentConfig();
+    let textareaConfig = this.componentDefinition?.config as TextAreaFieldComponentConfig;
+    let defaultConfig = new TextAreaFieldComponentConfig();
     const cfg = (_isUndefined(textareaConfig) || _isEmpty(textareaConfig)) ? defaultConfig : textareaConfig;
     this.rows = cfg.rows || defaultConfig.rows;
     this.cols = cfg.cols || defaultConfig.cols;
     this.placeholder = cfg.placeholder || defaultConfig.placeholder;
   }
-  
+
   /**
    * The model associated with this component.
    */
