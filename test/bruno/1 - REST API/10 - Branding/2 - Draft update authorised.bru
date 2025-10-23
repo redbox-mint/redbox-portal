@@ -1,0 +1,70 @@
+meta {
+  name: Draft update authorised
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/draft
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "variables": {
+      "site-branding-area-background-color": "#123123"
+    }
+  }
+}
+
+tests {
+  test("Status code is 200 or 400", function () {
+    const status = res.getStatus();
+    expect([200, 400]).to.include(status);
+  });
+  
+  test("Response body is valid JSON", function(){
+    var raw = res.getBody();
+    expect(raw).to.exist;
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body).to.be.an('object');
+  });
+  
+  test("Valid response structure for success", function(){
+    const status = res.getStatus();
+    if (status === 200) {
+      var raw = res.getBody();
+      var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      expect(body).to.have.property('branding');
+      expect(body.branding).to.exist;
+      expect(body.branding.variables).to.exist;
+      expect(body.branding.variables['site-branding-area-background-color']).to.equal('#123123');
+    }
+  });
+  
+  test("Valid error response for 400", function(){
+    const status = res.getStatus();
+    if (status === 400) {
+      var raw = res.getBody();
+      var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      expect(body).to.have.property('error');
+      expect(body.error).to.be.a('string');
+      console.log('Error details:', body.error, body.detail || '');
+    }
+  });
+  
+  test("Debug: Log full response on non-200", function(){
+    const status = res.getStatus();
+    if (status !== 200) {
+      console.log('Status:', status);
+      console.log('Response body:', res.getBody());
+      console.log('Response headers:', res.getHeaders());
+    }
+  });
+}

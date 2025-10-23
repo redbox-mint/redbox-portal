@@ -1,0 +1,27 @@
+meta {
+  name: Second publish
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/publish
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Second publish increments version", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    var v1 = parseInt(bru.getVar('branding_version1') || '0', 10);
+    expect(body.version).to.be.greaterThan(v1);
+    bru.setVar('branding_version2', body.version);
+  });
+}

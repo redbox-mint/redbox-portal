@@ -26,7 +26,7 @@
     display:inherit;
   }
   .site-branding-area {
-    background-color: $site-branding-area-background !important;
+    background-color: $site-branding-area-background-color !important;
   }
 
   div.panel {
@@ -43,7 +43,7 @@
   }
 
   .panel-title > a{
-    color: #FFF !important;
+    color: $print-panel-title-link-color !important;
   }
   .navbar-fixed-bottom {
     position: relative !important;
@@ -106,13 +106,13 @@
 }
 
 .navbar-toggle {
-    border-color: #fff;
+    border-color: $navbar-toggle-border-color;
     float: none;
     margin: 10px auto;
 }
-.navbar-toggle .icon-bar { background: none repeat scroll 0 0 #fff }
+.navbar-toggle .icon-bar { background: none repeat scroll 0 0 $navbar-toggle-icon-color }
 .navbar-collapse.collapse.in {
-  background: none repeat scroll 0 0 #222;
+  background: none repeat scroll 0 0 $navbar-collapse-bg;
   position: relative;
   z-index: 99;
 }

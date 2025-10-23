@@ -1,0 +1,27 @@
+meta {
+  name: App Branding - Logo upload no file
+  type: http
+  seq: 50
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/logo
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+tests {
+  test("Status code is 400", function(){
+    expect(res.getStatus()).to.equal(400);
+  });
+}

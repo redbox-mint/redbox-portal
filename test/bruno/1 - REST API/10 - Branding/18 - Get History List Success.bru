@@ -1,0 +1,37 @@
+meta {
+  name: Get History List Success
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/default/rdmp/api/branding/history
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is an array", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body).to.be.an('array');
+  });
+  
+  test("Each history item has required fields", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (body.length > 0) {
+      body.forEach(function(item) {
+        expect(item).to.have.property('version');
+        expect(item).to.have.property('branding');
+      });
+    }
+  });
+}
