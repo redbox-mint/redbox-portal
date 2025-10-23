@@ -90,6 +90,13 @@ export type NameConstraints = {
  * - removes fields the user does not have permissions to access, or are not relevant to the client, or where the property value is 'undefined'
  * - generates client-side fields that are constructed from the server-side fields
  * - populate the value from the defaultValue properties if no record or the provided record metadata
+ *
+ * TODO:
+ * - use the field component config property 'defaultComponentCssClasses' to set the component css classes, then remove the property
+ * - use the form config property 'defaultLayoutComponent' to set the default layout, then remove the property
+ * - use the form config property 'defaultComponentConfig' to set the default component config, then remove the property
+ * - use the various 'viewCssClasses' and 'editCssClasses' to set the css classes depending on the form mode, then remove these properties
+ * - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
  */
 export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private formMode: FormModesConfig = "view";
