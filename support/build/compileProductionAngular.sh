@@ -6,8 +6,19 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm install
+nvm i < .nvmrc && npm ci
+# TODO: resolve index.d.ts issue with angular-i18next: https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/6522/workflows/5fecfd02-1eee-4493-97c7-ddf72e236807/jobs/15925?invite=true#step-107-2409_63
+# Inlined error: 
+# ------------------------------------------------------------------------------
+# Building entry point '@researchdatabox/portal-ng-form-custom'
+# ------------------------------------------------------------------------------
+# - Compiling with Angular sources in partial compilation mode.
+# ✖ Compiling with Angular sources in partial compilation mode.
+# node_modules/angular-i18next/index.d.ts:7:39 - error TS2307: Cannot find module 'node_modules/i18next' or its corresponding type declarations.
 
+# 7 import * as node_modules_i18next from 'node_modules/i18next';
+#                           ~~~~~~~~~~~~~~~~~~~~~~
+cp ../support/build/angular-i18next-index.d.ts node_modules/angular-i18next/index.d.ts
 if [ $# -ne 0 ]
   then
     echo "Bundling ${1}"

@@ -62,6 +62,16 @@ module.exports.auth = {
       role: 'Librarians',
       can_update:true
     },
+     {
+      path: '/:branding/:portal/admin/translation',
+      role: 'Librarians',
+      can_update:true
+    },
+     {
+      path: '/:branding/:portal/app/i18n(/*)',
+      role: 'Librarians',
+      can_update:true
+    },
     {
       path: '/:branding/:portal/admin/reports',
       role: 'Librarians',
@@ -191,6 +201,12 @@ module.exports.auth = {
       path: '/:branding/:portal/home',
       role: 'Guest',
       can_read: true
+    },
+    // Task 9: App branding admin-only endpoints (now policy enforced, controller no longer checks directly)
+    {
+      path: '/:branding/:portal/app/branding(/*)',
+      role: 'Admin',
+      can_update: true
     }
   ],
   // Bootstrap END

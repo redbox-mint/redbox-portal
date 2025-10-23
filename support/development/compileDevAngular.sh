@@ -5,10 +5,14 @@ function buildAngularApp() {
   echo "Building angular app ${1}"
   echo "-------------------------------------------"
   NG_BUILD_PREFIX=""
-  if [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
+  NG_BUILD_WATCH=""
+  if [ "$WATCH_MODE" == "true" ]; then
+    NG_BUILD_PREFIX="--output-path=../.tmp/public/angular/${1}"
+    NG_BUILD_WATCH="--watch"
+  elif [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
     NG_BUILD_PREFIX="--output-path=${NG_BUILD_TEMP_OUTPUT}/${1}"
   fi
-  (node_modules/.bin/ng build --configuration=development $NG_BUILD_PREFIX @researchdatabox/${1} )
+  (node_modules/.bin/ng build --configuration=development $NG_BUILD_WATCH $NG_BUILD_PREFIX @researchdatabox/${1} )
 }
 
 export NVM_DIR="$HOME/.nvm"
@@ -16,6 +20,14 @@ export NVM_DIR="$HOME/.nvm"
 cd angular
 nvm i < .nvmrc && npm install
 
+if [ "$2" == "--watch" ]; then
+  WATCH_MODE="true"
+else
+  WATCH_MODE="false"
+fi
+
+# TODO: resolve index.d.ts issue with angular-i18next: https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/6522/workflows/5fecfd02-1eee-4493-97c7-ddf72e236807/jobs/15925?invite=true#step-107-2409_63
+cp ../support/build/angular-i18next-index.d.ts node_modules/angular-i18next/index.d.ts
 if [ $# -ne 0 ]
   then
     buildAngularApp "$1"

@@ -1,77 +1,88 @@
 version: 2
 updates:
-- package-ecosystem: "docker"
-  directory: "/"
-  schedule:
-    interval: "daily"
-    time: "19:30"
-  target-branch: "develop"
-# TODO: how to group angular prs but not the rest?
-# - package-ecosystem: npm
-#   directory: "/angular" 
-#   schedule:
-#     interval: "weekly"  
-#   labels:
-#     - "dependencies"
-#     - "angular"
-#   grouping:
-#     grouping_strategy: "label"
-#   allow:
-#     - dependency-name: "@angular/*"
-#   open-pull-requests-limit: 10
-#   target-branch: "develop"
-- package-ecosystem: npm
-  directory: "/angular"
-  schedule:
-    interval: daily
-    time: "07:00"
-  open-pull-requests-limit: 10
-  target-branch: "develop"
-- package-ecosystem: npm
-  directory: "/core"
-  schedule:
-    interval: weekly
-  open-pull-requests-limit: 10
-  target-branch: "develop"
-- package-ecosystem: npm
-  directory: "/"
-  schedule:
-    interval: daily
-    time: "19:30"
-  open-pull-requests-limit: 10
-  target-branch: "develop"
-  ignore:
-  - dependency-name: typescript
-    versions:
-    - "< 4, >= 3.a"
-  - dependency-name: y18n
-    versions:
-    - 4.0.1
-  - dependency-name: rxjs
-    versions:
-    - 6.6.3
-    - 6.6.6
-  - dependency-name: fs-extra
-    versions:
-    - 9.1.0
-  - dependency-name: typescript-require
-    versions:
-    - 0.3.0
-  - dependency-name: sails
-    versions:
-    - 1.4.0
-  - dependency-name: mocha
-    versions:
-    - 8.2.1
-  - dependency-name: "@types/jquery"
-    versions:
-    - 3.5.5
-  - dependency-name: sails-hook-sockets
-    versions:
-    - 2.0.0
-  - dependency-name: ng2-completer
-    versions:
-    - 9.0.1
-  - dependency-name: redux
-    versions:
-    - 4.0.5
+
+  # Update Dockerfile files
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+
+  # Update docker compose files
+  - package-ecosystem: "docker-compose"
+    directories:
+      - "/support/development"
+      - "/support/integration-testing"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+
+  # Update github actions files
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+
+  # Update npm files
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/core"
+      - "/support/build/api-descriptors"
+      - "/support/raido"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+
+  # Update npm files
+  # Update angular dependencies as a group,
+  #  with one PR having minor & patch changes,
+  #  and separate PR for major version changes
+  - package-ecosystem: "npm"
+    directories:
+      - "/angular"
+      - "/angular/projects/researchdatabox/portal-ng-common"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+    groups:
+      angular:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+          - "ngx-bootstrap"
+          - "angular-i18next"
+          - "@schematics/angular"
+        update-types:
+          - "minor"
+          - "patch"
+      angular-major:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+          - "ngx-bootstrap"
+          - "angular-i18next"
+          - "@schematics/angular"
+        update-types:
+          - "major"
+
+  - package-ecosystem: "npm"
+    directory: "/angular-legacy"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+    groups:
+      angular-legacy:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+        update-types:
+          - "minor"
+          - "patch"
+      angular-legacy-major:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+        update-types:
+          - "major"

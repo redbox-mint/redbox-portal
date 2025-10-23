@@ -12,7 +12,7 @@
 <%
 var currentMinute = sails.config.startupMinute;
 %>
-
+<script type="text/javascript" src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/scripts.bundle.js?ts=<%= currentMinute %>"></script>
@@ -25,5 +25,5 @@ var currentMinute = sails.config.startupMinute;
 <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/dmp/styles.bundle.css?ts=<%= currentMinute %>">
 <% } %>
-<!-- validation and expression functions -->
+<!-- app js and css bundle -->
 <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>

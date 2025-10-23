@@ -46,7 +46,7 @@ export function i18AppInit() {
   });
 }
 
-describe('AppComponent', () => {
+describe('ManageUsersComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
     translationService = getStubTranslationService();
@@ -114,6 +114,66 @@ describe('AppComponent', () => {
     expect(app.currentUser.roles.length).toBeGreaterThan(0);
     app.newUserSubmit(usersData[0], true);
     expect(app.currentUser.roles.length).toBeGreaterThan(0);
+  });
+
+  it('should filter users by name', async () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    app.searchFilter.name = 'Local Admin';
+    app.onFilterChange();
+    expect(app.filteredUsers.length).toBeGreaterThan(0);
+    expect(app.filteredUsers[0].name).toBe('Local Admin');
+  });
+
+  it('should map roles correctly', () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    const roles = [
+      { key: '123', value: 'Admin', checked: true },
+      { key: '456', value: 'User', checked: false }
+    ];
+    const mapped = app.mapRoles(roles);
+    expect(mapped.length).toBe(1);
+    expect(mapped[0].name).toBe('Admin');
+  });
+
+  it('should show and hide modals', async () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    app.isDetailsModalShown = false;
+    app.showDetailsModal();
+    expect(app.isDetailsModalShown).toBeTrue();
+    app.onDetailsModalHidden();
+    expect(app.isDetailsModalShown).toBeFalse();
+    app.isNewUserModalShown = false;
+    app.showNewUserModal();
+    expect(app.isNewUserModalShown).toBeTrue();
+    app.onNewUserHidden();
+    expect(app.isNewUserModalShown).toBeFalse();
+  });
+
+  it('should set update and new user messages', () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    app.setUpdateMessage('msg', 'danger');
+    expect(app.updateDetailsMsg).toBe('msg');
+    expect(app.updateDetailsMsgType).toBe('danger');
+    app.setNewUserMessage('msg2', 'primary');
+    expect(app.newUserMsg).toBe('msg2');
+    expect(app.newUserMsgType).toBe('primary');
+  });
+
+  it('should handle invalid user submit', async () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    spyOn(app, 'setUpdateMessage');
+    await app.updateUserSubmit({} as any, false);
+    expect(app.setUpdateMessage).toHaveBeenCalled();
+    spyOn(app, 'setNewUserMessage');
+    await app.newUserSubmit({} as any, false);
+    expect(app.setNewUserMessage).toHaveBeenCalled();
   });
 
 });

@@ -1,0 +1,147 @@
+<div class="px-3 px-lg-4" *ngIf="initialized">
+  <div class="row mx-0">
+    <!-- Draft Configuration Card - Full Width -->
+    <div class="col-12 px-0 mb-4">
+      <div class="card panel-style panel-default">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            {{ 'branding-configuration-title' | i18next }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Color Variables -->
+          <div class="mb-4">
+            <ng-container *ngFor="let group of colourGroups; let i = index">
+              <div class="mb-3">
+                <h6 class="text-secondary mb-2">{{ group.name }}</h6>
+                <div class="alert alert-info py-2 px-3 mb-3" role="alert">
+                  <span [innerHTML]="group.help"></span>
+                </div>
+                <div class="row g-3">
+                  <div class="col-lg-3 col-md-4 col-sm-6" *ngFor="let colourVar of group.variables">
+                    <div class="mb-3">
+                      <label [for]="colourVar.key" class="form-label small">
+                        {{ colourVar.label }}
+                        <i *ngIf="colourVar.help" class="fas fa-question-circle ms-1 text-muted"
+                          tabindex="0"
+                          data-bs-toggle="tooltip"
+                          [attr.data-bs-title]="colourVar.help"
+                          [attr.aria-label]="colourVar.help"></i>
+                      </label>
+                      <div class="input-group input-group-sm">
+                        <input 
+                          type="color" 
+                          class="form-control form-control-colour colour-picker-narrow" 
+                          [id]="colourVar.key"
+                          [value]="draftConfig[colourVar.key] || colourVar.default"
+                          (input)="updateVariable(colourVar.key, $event)">
+                        <input 
+                          type="text" 
+                          class="form-control" 
+                          [value]="draftConfig[colourVar.key] || colourVar.default"
+                          (input)="updateVariable(colourVar.key, $event)"
+                          placeholder="#000000">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+
+         <div class="row mt-3 border-top">
+            <div class="col-md-6 mt-3">
+              <div class="mb-3">
+                <label for="logoUpload" class="form-label">
+                  <i class="fas fa-image me-2"></i>
+                  {{ 'branding-logo-upload-label' | i18next }}
+                </label>
+                <input type="file" class="form-control" id="logoUpload" (change)="uploadLogo($event)" accept="image/*" />
+              </div>
+            </div>
+           
+          </div>
+ 
+
+          <div class="row mt-3 border-top pt-3">
+            <div class="col-12">
+              <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-primary" (click)="saveDraft()" [disabled]="savingDraft">
+                  <i class="fas fa-save me-2"></i>
+                  <span *ngIf="!savingDraft">{{ 'branding-save-draft-button' | i18next }}</span>
+                  <span *ngIf="savingDraft">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    {{ 'branding-save-draft-saving' | i18next }}
+                  </span>
+                </button>
+                <button class="btn btn-info" (click)="createPreview()" [disabled]="generatingPreview">
+                  <i class="fas fa-eye me-2"></i>
+                  <span *ngIf="!generatingPreview">{{ 'branding-generate-preview-button' | i18next }}</span>
+                  <span *ngIf="generatingPreview">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    {{ 'branding-generate-preview-generating' | i18next }}
+                  </span>
+                </button>
+                <button class="btn btn-success" (click)="publish()" [disabled]="publishing">
+                  <i class="fas fa-rocket me-2"></i>
+                  <span *ngIf="!publishing">{{ 'branding-publish-button' | i18next }}</span>
+                  <span *ngIf="publishing">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    {{ 'branding-publish-publishing' | i18next }}
+                  </span>
+                </button>
+                <button class="btn btn-outline-secondary" (click)="resetDraft()">
+                  <i class="fas fa-undo me-2"></i>
+                  {{ 'branding-reset-draft-button' | i18next }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Messages -->
+  <div class="row mx-0" *ngIf="message || error">
+    <div class="col-12 px-0">
+      <div class="alert alert-success alert-dismissible fade show" *ngIf="message" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
+      </div>
+      <div class="alert alert-danger alert-dismissible fade show" *ngIf="error" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Iframe -->
+  <div class="row mx-0" *ngIf="previewToken">
+    <div class="col-12 px-0">
+      <div class="card panel-default panel-style">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-eye me-2"></i>
+            {{ 'branding-preview-title' | i18next }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <branding-preview *ngIf="previewCssUrl" [baseCssHref]="previewBaseCssUrl" [cssHref]="previewCssUrl" [logoSrc]="logoUrl"></branding-preview>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="d-flex justify-content-center align-items-center loading-min-height" *ngIf="!initialized">
+  <div class="text-center">
+  <div class="spinner-border text-primary spinner-lg" role="status">
+      <span class="visually-hidden"></span>
+    </div>
+    <p class="mt-3 text-muted"></p>
+  </div>
+</div>

@@ -1,0 +1,22 @@
+meta {
+  name: Get History for Non-existent Branding (404)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/nonexistent/rdmp/api/branding/history
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 404 for non-existent branding", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+  
+
+}

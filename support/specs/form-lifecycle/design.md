@@ -1,0 +1,48 @@
+
+# Design: Form Lifecycle Enhancement
+
+## 1. `FormStatus` Enum
+
+- Add a new status: `VALIDATION_PENDING` to the existing `FormStatus` enum in `status.model.ts`.
+- Define `READY` explicitly as: form.valid && !form.pending && !isSaving.
+- Enum values SHOULD include:
+  - `INIT`, `READY`, `SAVING`, `SAVE_ERROR`, `LOAD_ERROR`, `VALIDATION_ERROR`, `VALIDATION_PENDING`.
+- Map Angular control status to enum:
+  - Angular `PENDING` -> `VALIDATION_PENDING`
+  - Angular `INVALID` -> `VALIDATION_ERROR` (when not saving/loading)
+## 2. FormComponent Status Management
+
+- The `FormComponent` will monitor the `form` (FormGroup) for async validation state.
+- When `form.pending` is `true`, set status to `FormStatus.VALIDATION_PENDING`.
+- When async validation completes (`form.pending` becomes `false`), revert to the appropriate status (`READY`, etc.).
+- Use Angular’s `statusChanges` observable to detect changes in validation state.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant FormComponent
+  participant FormComponent.FormGroup
+  participant SaveButtonComponent
+  User->>FormComponent: Edit form fields
+  FormComponent->>FormComponent.FormGroup: Triggers async validation
+  FormComponent.FormGroup-->>FormComponent: Validation pending (pending=true)
+  FormComponent->>FormComponent.FormStatus: Set VALIDATION_PENDING
+  FormComponent.FormStatus-->>SaveButtonComponent: Disable Save
+  FormComponent.FormGroup-->>FormComponent: Validation pass (pending=false)
+  FormComponent->>FormComponent.FormStatus: Set READY
+  FormComponent.FormStatus-->>SaveButtonComponent: Enable Save
+```
+
+## 3. SaveButtonComponent Enhancement
+
+- The Save button will receive a `formReady` or `canSave` input (boolean).
+- The button will be disabled if:
+  - The form is invalid,
+  - The form is in a non-ready state (e.g., `VALIDATION_PENDING`, `SAVING`),
+  - Or any other custom logic as required.
+- The button’s disabled state will be bound to this input.
+
+## 4. Component Interaction
+
+- `FormComponent` exposes a property or observable indicating readiness (not pending, valid, etc.).
+- `SaveButtonComponent` consumes this property to determine its enabled/disabled state.

@@ -1,6 +1,6 @@
 <% include('../../functions') %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>">
 
 <head>
   <base href="<%= BrandingService.getRootContext() ? BrandingService.getRootContext() : '/'  %>">
@@ -22,8 +22,11 @@
 
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
+  <% if (req.query && req.query.previewToken) { %>
+    <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/preview/<%= req.query.previewToken %>.css">
+  <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
+  <% } %>
 
   <!-- Current latest jQuery -->
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
@@ -57,24 +60,25 @@
           <div class="mt-3" >
             <div class="dropdown pull-right">
                 <% 
-                  // remove the cimode
-                  const langCodes = _.filter(sails.config.i18n.next.init.supportedLngs, (lng) => {
-                    return lng != 'cimode';                    
-                  });
-                  if (langCodes.length > 1) { %>
+                  // Use available languages from the i18nLanguages policy
+                  const languages = (typeof availableLanguages !== 'undefined' && availableLanguages) ? availableLanguages : [{ code: 'en', displayName: 'English' }];
+                  if (languages.length > 1) { 
+                    // Find current language display name
+                    const currentLang = languages.find(l => l.code === lang) || languages[0];
+                  %>
                   <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
-                    <%= TranslationService.t('lang-' + lang) %>
+                    <%= currentLang.displayName %>
                   </a>
                   <ul class="dropdown-menu">
                     <%
-                    for (const langCode of langCodes) {
-                      if (langCode != lang) {
+                    for (const language of languages) {
+                      if (language.code !== lang) {
                         const langUrl = new URL(`${req.protocol}://${req.get('host')}${req.originalUrl}`);
                         const params = new URLSearchParams(langUrl.search);
-                        params.set('lng', langCode);
+                        params.set('lng', language.code);
                         langUrl.search = params;
                         %>
-                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= TranslationService.t('lang-' + langCode) %></a></li>
+                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= language.displayName %></a></li>
                         <%
                       }
                     } 
@@ -142,56 +146,81 @@
 
   
   <script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-  jQuery(document).ready(function() {
-    $('li.active').removeClass('active');
-    var findFn = function(path) {
-      return $('a[href="' + path + '"]');
-    };
-    var curHref = findFn(location.pathname);
-    if (curHref.length === 0) {
-      // try to match the path ...
-      var paths = location.pathname.split('/');
-      for (var i=paths.length - 1; i >= 0; i--) {
-        curHref = findFn(paths.splice(0, i).join('/'));
-        if (curHref.length !== 0) {
-          curHref.closest('li').addClass('site-branding-area');
+  document.addEventListener('DOMContentLoaded', function () {
+    // Remove any pre-existing active classes from nav items
+    document.querySelectorAll('li.active').forEach(function (li) {
+      li.classList.remove('active');
+    });
+
+    // Helper to find the first anchor matching an exact path
+    function findLinkByPath(path) {
+      // Escape quotes and backslashes for safe selector usage
+      var escapedPath = path.replace(/["\\]/g, '\\$&');
+      return document.querySelector('a[href="' + escapedPath + '"]');
+    }
+
+    // Try to find and highlight the active navigation item
+    var curHref = findLinkByPath(location.pathname);
+    if (!curHref) {
+      // Try progressively shorter paths if exact match fails
+      var segments = location.pathname.split('/');
+      for (var i = segments.length - 1; i > 0; i--) {
+        var candidate = segments.slice(0, i).join('/');
+        curHref = findLinkByPath(candidate);
+        if (curHref) {
           break;
         }
       }
-    } else {
-      if (curHref.closest('.dropdown').length === 0) {
-        curHref.closest('li').addClass('site-branding-area');
+    }
+
+    if (curHref) {
+      var dropdown = curHref.closest('.dropdown');
+      var li = curHref.closest('li');
+      if (!dropdown) {
+        if (li) {
+          li.classList.add('nav-active-item');
+        }
       } else {
-        curHref.closest('li').addClass('active').closest('.dropdown').addClass('site-branding-area');
+        if (li) {
+          li.classList.add('active');
+        }
+        dropdown.classList.add('nav-active-item');
       }
     }
 
-    const storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
+    // System message show/hide and dismissal persistence
+    var storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
+    var systemMessageArea = document.getElementById('system-message-area');
 
-   if (storedsystemMessageDismissalTime) {
-    const currentsystemMessageDismissalTime = Date.now();
-    const eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-    if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
-     //Already been dismissed in the past 8 hours so close it
-      $('#system-message-area').show()
-    }  else {
-      //remove the system message area as it takes up space even when hidden
-      const systemMessageArea = document.getElementById('system-message-area');
-      systemMessageArea.parentNode.removeChild(systemMessageArea)
+    if (systemMessageArea) {
+      if (storedsystemMessageDismissalTime) {
+        var currentsystemMessageDismissalTime = Date.now();
+        var eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+        if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
+          // Show it (mirror jQuery .show())
+          systemMessageArea.style.display = 'block';
+        } else {
+          // Remove the system message area as it takes up space even when hidden
+          systemMessageArea.remove();
+        }
+      } else {
+        // Ensure visible on first load
+        systemMessageArea.style.display = 'block';
+      }
     }
-  }  else {
-    $('#system-message-area').show()
-  }
 
-    $('#system-message').on('closed.bs.alert', function () {
-
-    const currentEpochMillis = Date.now();
-
-    localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
-    //remove the system message area as it takes up space even when hidden
-    const systemMessageArea = document.getElementById('system-message-area');
-      systemMessageArea.parentNode.removeChild(systemMessageArea)
-  })
+    var systemMessage = document.getElementById('system-message');
+    if (systemMessage) {
+      systemMessage.addEventListener('closed.bs.alert', function () {
+        var currentEpochMillis = Date.now();
+        localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
+        // Remove the system message area as it takes up space even when hidden
+        var area = document.getElementById('system-message-area');
+        if (area) {
+          area.remove();
+        }
+      });
+    }
   });
   </script>
 </body>

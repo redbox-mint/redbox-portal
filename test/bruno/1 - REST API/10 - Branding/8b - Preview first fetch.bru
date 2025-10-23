@@ -1,0 +1,20 @@
+meta {
+  name: Preview first fetch
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}{{preview_single_url}}
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("First fetch 200", function(){ expect(res.getStatus()).to.equal(200); });
+}

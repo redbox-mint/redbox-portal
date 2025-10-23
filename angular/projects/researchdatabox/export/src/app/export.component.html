@@ -1,37 +1,39 @@
 <!-- ngIf is needed so init completes and view has all the information it needs -->
-<ng-container *ngIf="isReady"> 
+@if (isReady) {
   <div class="row">
     <div class="col-xs-1">
     </div>
     <div class="col-xs-10">
       <div class="form-horizontal">
         <div class="form-group">
-          <label class="col-xs-2 control-label">{{ 'export-modified-after' | i18next }}</label>
+          <label class="col-xs-2 control-label" for="after">{{ 'export-modified-after' | i18next }}</label>
           <span class="col-xs-2">
-            <input type="text" id="after" 
-            [bsConfig]="datePickerOpts"
-            [placeholder] = "datePickerPlaceHolder"
-            [(ngModel)] = "modAfter"
-            bsDatepicker />
+            <input type="text" id="after"
+              [bsConfig]="datePickerOpts"
+              [placeholder] = "datePickerPlaceHolder"
+              [(ngModel)] = "modAfter"
+              bsDatepicker />
           </span>
         </div>
         <div class="form-group">
-          <label class="col-xs-2 control-label">{{ 'export-modified-before' | i18next }}</label>
+          <label class="col-xs-2 control-label" for="before">{{ 'export-modified-before' | i18next }}</label>
           <span class="col-xs-2">
-            <input type="text" id="before" 
-            [bsConfig]="datePickerOpts"
-            [placeholder] = "datePickerPlaceHolder"
-            [(ngModel)] = "modBefore"
-            bsDatepicker />
+            <input type="text" id="before"
+              [bsConfig]="datePickerOpts"
+              [placeholder] = "datePickerPlaceHolder"
+              [(ngModel)] = "modBefore"
+              bsDatepicker />
           </span>
         </div>
         <div class="form-group">
           <label class="col-xs-2 control-label">{{ 'export-format' | i18next }} </label>
           <span class="col-xs-2">
-            <div *ngFor="let recExportFormat of getExportFormatNames()"  >
-              <input [checked]="recExportFormat.checked" (change)="setExportFormat(recExportFormat.id, $event)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" >
-              <label for="format-{{recExportFormat.name}}" >&nbsp;{{ recExportFormat.name }}</label>
-            </div>
+            @for (recExportFormat of getExportFormatNames(); track recExportFormat) {
+              <div  >
+                <input [checked]="recExportFormat.checked" (change)="setExportFormat(recExportFormat.id, $event)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" >
+                <label for="format-{{recExportFormat.id}}" >&nbsp;{{ recExportFormat.name }}</label>
+              </div>
+            }
           </span>
         </div>
         <div class="form-group">
@@ -45,11 +47,13 @@
                 <span class="visually-hidden">Toggle Dropdown</span>
               </button>
               <ul class="dropdown-menu">
-                <li *ngFor="let recTypeName of getRecordTypeNames()">
-                  <a class="dropdown-item" href="#" (click)="setRecordType(recTypeName, $event)">
-                    {{ 'export-'+ recTypeName  | i18next }}
-                  </a>
-                </li>
+                @for (recTypeName of getRecordTypeNames(); track recTypeName) {
+                  <li>
+                    <a class="dropdown-item" href="#" (click)="setRecordType(recTypeName, $event)">
+                      {{ 'export-'+ recTypeName  | i18next }}
+                    </a>
+                  </li>
+                }
               </ul>
             </span>
           </div>
@@ -59,4 +63,4 @@
     <div class="col-xs-1">
     </div>
   </div>
-</ng-container>
+}

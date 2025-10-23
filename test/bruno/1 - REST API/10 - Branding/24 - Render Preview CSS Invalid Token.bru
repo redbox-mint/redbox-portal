@@ -1,0 +1,16 @@
+meta {
+  name: Render Preview CSS Invalid Token
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{host}}/default/rdmp/branding/preview/css?token=invalid-token-123
+  auth: none
+}
+
+tests {
+  test("Status code is 404 for invalid preview token", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

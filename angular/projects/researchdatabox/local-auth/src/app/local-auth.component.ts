@@ -18,8 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
-import { DOCUMENT } from "@angular/common"
+
 import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 /**
  * Local Authentication  Component

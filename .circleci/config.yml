@@ -1,16 +1,16 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:20.19.2'
+      - image: 'cimg/node:24.2.0'
     resource_class: large
     steps:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: npm run compile:core:prod
+          command: npm run compile:core
       - run:
           name: Install npm packages and compile for sails-ng-common
-          command: npm run compile:sails-ng-common:prod
+          command: npm run compile:sails-ng-common
       - run:
           name: Build generated api library for raido
           command: |
@@ -22,11 +22,11 @@ jobs:
             cd -
             cd support/raido
             npm init -y
-            npm install
+            npm ci
             /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc   
       - run:
           name: Install npm packages and compile for project
-          command: npm run compile:sails:prod
+          command: npm run compile:sails
       - run:
           name: Install nvm
           command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -55,18 +55,18 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:20.19.2'
+      - image: 'cimg/node:24.2.0'
     steps:
       - checkout
       - run:
           name: Install npm packages and compile for core
-          command: npm run compile:core:prod
+          command: npm run compile:core
       - run:
           name: Install npm packages and compile for sails-ng-common
-          command: npm run compile:sails-ng-common:prod
+          command: npm run compile:sails-ng-common
       - run:
           name: Install npm packages and compile for project
-          command: npm run compile:sails:prod
+          command: npm run compile:sails
       - run:
           name: Compile sails app using webpack
           command: npm run webpack
@@ -74,7 +74,7 @@ jobs:
           root: .
           paths:
             - .
-  test:
+  test-bruno-general:
     machine:
       image: ubuntu-2004:current
     resource_class: large
@@ -83,7 +83,6 @@ jobs:
           at: /home/circleci/project
       - run:
           name: Install codecov
-          # https://github.com/codecov/codecov-cli?tab=readme-ov-file#usage
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
@@ -95,44 +94,188 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Bruno and Mocha tests with code coverage
+          name: Setup test directories
           command: |
             sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Bruno General tests
+          no_output_timeout: 30m
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general
+      - run:
+          name: Clean up Bruno containers
+          command: npm run test:bruno:clean || true
+          when: always
+      - run:
+          name: Upload Bruno General code coverage
+          command: |
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+  test-bruno-oidc:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Bruno OIDC tests
+          no_output_timeout: 30m
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:oidc
+      - run:
+          name: Clean up Bruno containers
+          command: npm run test:bruno:clean || true
+          when: always
+      - run:
+          name: Upload Bruno OIDC code coverage
+          command: |
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+              --flag "backend-bruno-oidc" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+  test-mocha:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Setup test directories
+          command: |
             sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            cd support/integration-testing
-            npm run test:bruno
-            npm run test:bruno:clean
-            npm run test:mocha
-            npm run test:mocha:clean
       - run:
-          name: Upload Bruno and mocha code coverage
+          name: Run Mocha tests
+          no_output_timeout: 30m
+          command: timeout 1800s npm run test:mocha
+      - run:
+          name: Upload Mocha code coverage
           command: |
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno" --file "./coverage/bruno/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
+      - store_test_results:
+          path: .tmp/junit
+  test-sails-ng-common:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Run angular tests
-          # uses the codecov binary installed in previous step
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install packages
+          command: |
+            cd ./packages/sails-ng-common
+            npm ci
+      - run:
+          name: Run Mocha tests
+          no_output_timeout: 30m
+          command: |
+            cd ./packages/sails-ng-common
+            npm run pretest
+            npx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \
+              npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js
+      - run:
+          name: Upload Mocha code coverage
+          command: |
+            cd ./packages/sails-ng-common
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-sails-ng-common" --file "./coverage/sails-ng-common/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: packages/sails-ng-common/support/junit
+  test-angular:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Angular tests
+          no_output_timeout: 30m
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
-          when: always
       - run:
           name: Install npm packages for project
           command: |
             sudo chmod -R 777 .
-            npm i
-      - store_test_results:
-          path: .tmp/junit
+            npm ci
   deploy:
     docker:
-      - image: 'cimg/node:18.12'
+      - image: 'cimg/node:24.2.0'
     steps:
       - setup_remote_docker
       - attach_workspace:
@@ -184,18 +327,38 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - test:
+      - test-bruno-general:
+          requires:
+            - build
+      - test-bruno-oidc:
+          requires:
+            - build
+      - test-mocha:
+          requires:
+            - build
+      - test-sails-ng-common:
+          requires:
+            - build
+      - test-angular:
           requires:
             - build
       - deploy:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-sails-ng-common
+            - test-angular
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-sails-ng-common
+            - test-angular
           filters:
             branches:
               only: 'master'
@@ -207,18 +370,38 @@ workflows:
               only: /^dependabot.*/
             tags:
               ignore: /.*/
-      - test:
+      - test-bruno-general:
+          requires:
+            - build
+      - test-bruno-oidc:
+          requires:
+            - build
+      - test-mocha:
+          requires:
+            - build
+      - test-sails-ng-common:
+          requires:
+            - build
+      - test-angular:
           requires:
             - build
       - deploy:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-sails-ng-common
+            - test-angular
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-sails-ng-common
+            - test-angular
           filters:
             branches:
               only: 'master'
@@ -230,7 +413,39 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test:
+      - test-bruno-general:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-bruno-oidc:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-sails-ng-common:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-mocha:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-angular:
           requires:
             - build
           filters:
@@ -240,7 +455,11 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
-            - test
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-sails-ng-common
+            - test-angular
           filters:
             tags:
               only: /^v.*/

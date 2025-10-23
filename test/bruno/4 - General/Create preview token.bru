@@ -1,0 +1,30 @@
+meta {
+  name: Create preview token
+  type: http
+  seq: 2.5
+}
+
+post {
+  url: {{host}}/default/rdmp/preview
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Stores preview token", function () {
+    const raw = res.getBody();
+    let body;
+    try {
+      body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+      throw new Error(`Failed to parse response body as JSON: ${e.message}`);
+    }
+      expect(body).to.have.property('token');
+      expect(body).to.have.property('url');
+      bru.setVar('preview_token', body.token);
+  });
+}

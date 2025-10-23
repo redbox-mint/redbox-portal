@@ -20,6 +20,7 @@ import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { LoDashTemplateUtilityService } from './lodash-template-utility.service';
+import { Settings } from 'luxon';
 
 
 
@@ -41,6 +42,16 @@ import { LoDashTemplateUtilityService } from './lodash-template-utility.service'
  */
 describe('Lodash Template Utility Service testing', () => {
   let loDashTemplateUtilityService: LoDashTemplateUtilityService;
+
+  // Force a deterministic timezone for date-related tests so output is stable across developer machines.
+  beforeAll(() => {
+    Settings.defaultZone = 'UTC';
+  });
+
+  afterAll(() => {
+    // Reset to system zone after tests complete to avoid side effects.
+    Settings.defaultZone = 'system';
+  });
 
   beforeEach(function () {
     TestBed.configureTestingModule({
@@ -68,12 +79,13 @@ describe('Lodash Template Utility Service testing', () => {
   )
 
   it('Should format 2023-05-11T00:00:00.000Z using DATETIME_MED', function (done: any) {
-    const dateString = "2023-05-11T00:00:00.000Z";
+    const dateString = "2023-05-11T00:00:00.000Z"; // Midnight UTC
     const sourceDate: Date = new Date(Date.parse(dateString));
-
-    const formattedString = loDashTemplateUtilityService.formatDateLocale(sourceDate, "DATETIME_MED")
-    expect(formattedString).toBe("May 11, 2023, 12:00 AM");
-    done()
+    const formattedString = loDashTemplateUtilityService.formatDateLocale(sourceDate, "DATETIME_MED", 'en');
+  // Some environments introduce a narrow no-break space before AM/PM; normalise spaces for a stable assertion.
+  const normalised = formattedString.replace(/\u202F/g, ' ');
+  expect(normalised).toBe("May 11, 2023, 12:00 AM");
+    done();
     }
   )
 

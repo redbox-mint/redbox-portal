@@ -3,6 +3,7 @@ declare var _;
 declare var sails;
 
 import {existsSync} from 'fs';
+import { ILogger } from './Logger';
 import {APIErrorResponse, ApiVersion, ApiVersionStrings, DataResponseV2, ErrorResponseV2} from "./model";
 export module Controllers.Core {
 
@@ -60,9 +61,25 @@ export module Controllers.Core {
       '_config',
     ];
     
+    // Namespaced logger for controllers
+    private _logger: ILogger;
+    
+    /**
+     * Get a namespaced logger for this controller class.
+     * Uses the class constructor name as the namespace.
+     * Falls back to this.logger if pino namespaced logging is not available.
+     */
+    protected get logger() {
+      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+        const controllerName = this.constructor.name + 'Controller';
+        this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
+      }
+      return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
+    }
+    
     constructor() {
       this.processDynamicImports().then(result => {
-        sails.log.verbose("Dynamic imports imported");
+        this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
       })
     }
@@ -112,10 +129,10 @@ export module Controllers.Core {
               exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            console.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
           }
         } else {
-          console.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
         }
       }
 
@@ -251,10 +268,10 @@ export module Controllers.Core {
       let fullViewPath = sails.config.appPath + "/views/"+resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0,fullViewPath.lastIndexOf('/') + 1);
 
-      sails.log.debug("resolvedView");
-      sails.log.debug(resolvedView);
-      sails.log.debug("mergedLocal");
-      sails.log.debug(mergedLocal);
+      this.logger.debug("resolvedView");
+      this.logger.debug(resolvedView);
+      // this.logger.debug("mergedLocal");
+      // this.logger.debug(mergedLocal);
 
 
 
@@ -300,7 +317,7 @@ export module Controllers.Core {
       var ajaxMsg = "Got ajax request, don't know what do...";
       this.respond(req, res,
         (req, res)=> {
-        sails.log.verbose(ajaxMsg);
+        this.logger.verbose(ajaxMsg);
         res.notFound(ajaxMsg);
         },
         (req, res) => {
@@ -320,7 +337,7 @@ export module Controllers.Core {
         res.set('Expires', 0);
         return res.json(jsonObj);
       }, (req, res)=> {
-        sails.log.verbose(notAjaxMsg);
+        this.logger.verbose(notAjaxMsg);
         res.notFound(notAjaxMsg);
       }, forceAjax);
     }

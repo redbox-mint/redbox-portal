@@ -1,2 +1,10 @@
 .dev
+.git
+.github
+.tmp
+.vscode
+node_modules
+*.log
+.DS_Store
+Thumbs.db
 support/development

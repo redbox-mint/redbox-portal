@@ -1,0 +1,30 @@
+meta {
+  name: Publish idempotent
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/publish
+  body: json
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+body:json {
+  {"expectedVersion": {{branding_version2}} }
+}
+
+tests {
+  test("Publish idempotent returns same version", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body).to.have.property('idempotent', true);
+    expect(body.version).to.equal(parseInt(bru.getVar('branding_version2'),10));
+  });
+}

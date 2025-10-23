@@ -22,7 +22,6 @@ headers {
   Accept: application/json, text/plain, */*
   Cache-Control: no-cache
   Referer: {{host}}/default/rdmp/admin/roles
-  
   Connection: keep-alive
 }
 
@@ -35,7 +34,6 @@ body:json {
       ]
   }
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");

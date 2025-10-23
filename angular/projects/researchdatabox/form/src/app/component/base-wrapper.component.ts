@@ -35,7 +35,7 @@ import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/s
     standalone: false
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
-  protected override logName: string | null = "FormBaseWrapperComponent";
+  protected override logName = "FormBaseWrapperComponent";
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
@@ -49,8 +49,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     formFieldCompMapEntry?: FormFieldCompMapEntry,
     omitLayout: boolean = false
   ): Promise<FormFieldBaseComponent<ValueType> | null> {
-    const name = this.utilityService.getNameClass(this.formFieldCompMapEntry);
-    this.loggerService.info(`${this.logName}: Starting initWrapperComponent for '${name}'.`);
+    this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${this.formFieldConfigName()}'.`, this.formFieldCompMapEntry);
 
     // Ensure the initialisation details are available.
     if (!formFieldCompMapEntry) {
@@ -107,7 +106,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Initialise the component.
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
-    this.loggerService.info(`${this.logName}: initComponent done for '${name}'.`);
+    this.loggerService.debug(`${this.logName}: Finished initComponent for '${name}'.`, this.formFieldCompMapEntry);
 
     // Set the host binding CSS classes for the wrapper element.
     const wrapperCssClasses = this.formFieldCompMapEntry.compConfigJson?.component?.config?.wrapperCssClasses;
