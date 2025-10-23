@@ -70,7 +70,7 @@ This is needed to enable a range of type checks, server-side processing, and api
 
 Then, 'register' the new component with the server-side processing.
 
-Add the `visit` methods to `FormConfigVisitorOutline` and ``FormConfigVisitor.
+Add the `visit` methods to `FormConfigVisitorOutline` and `FormConfigVisitor`.
 This enables the component to be transformed for various purposes.
 
 An implementation is needed for each visitor class.
@@ -106,7 +106,7 @@ There are two aspects to this:
 
 To create a visitor:
 
-1. Determine the input and how it will be transformed into the output. THis is usually the server-side form config.
+1. Determine the input and how it will be transformed into the output. This is usually the server-side form config.
 2. Create a new visitor. Extend either the base `FormConfigVisitor` or `CurrentPathFormConfigVisitor` to use the `currentPath` tree traversal approach.
 3. Use the visitor-specific approach to starting the visiting process. This is usually a method on the visitor class, such as `start`.
 
