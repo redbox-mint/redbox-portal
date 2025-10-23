@@ -802,5 +802,15 @@
 	"deleted-records-item-confirm-delete-message": "Do you want to delete this record? This cannot be undone.",
 	"deleted-records-item-confirm-delete-confirm": "Yes, please DELETE",
 	"deleting": "Deleting...",
-	"deleteSuccess": "Deleted successfully"
+	"deleteSuccess": "Deleted successfully",
+	"@validator-error-custom-text_2": "Custom value must be at least {{requiredLength}} characters long.",
+	"@validator-error-min": "Value must be at least {{requiredThreshold}}.",
+	"@validator-error-max": "Value must be at most {{requiredThreshold}}.",
+	"@validator-error-min-length": "Value must be at least {{requiredLength}} characters long.",
+	"@validator-error-max-length": "Value must be at most {{requiredLength}} characters long.",
+	"@validator-error-required": "This field requires a value.",
+	"@validator-error-required-true": "This field must be completed.",
+	"@validator-error-email": "Please enter a valid email address.",
+	"@validator-error-pattern": "Value does not match the pattern: {{description}}.",
+	"@validator-error-different-values": "The {{controlCount}} field(s) must have different values."
 }
