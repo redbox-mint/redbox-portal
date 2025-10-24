@@ -19,6 +19,7 @@ import {CheckboxInputMap} from "./component/checkbox-input.model";
 import {DropdownInputMap} from "./component/dropdown-input.model";
 import {RadioInputMap} from "./component/radio-input.model";
 import {DateInputMap} from "./component/date-input.model";
+import {ReusableMap} from "./component/reusable.model";
 
 
 /**
@@ -40,6 +41,7 @@ export const AllDefs = [
     ...DropdownInputMap,
     ...RadioInputMap,
     ...DateInputMap,
+    ...ReusableMap,
 ] as const;
 
 

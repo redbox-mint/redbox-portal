@@ -24,7 +24,7 @@ import {
     guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions, SimpleServerFormValidatorControl,
     FormValidatorDefinition, GroupFormComponentDefinitionFrame,
     FormComponentDefinitionFrame, FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
-    TemplateFormConfigVisitor, TemplateCompileInput
+    TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor
 } from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
 import {ClientFormContext} from "../additional/ClientFormContext";
@@ -310,8 +310,11 @@ export module Services {
          * @param item The top-level form config.
          */
         public buildDataModelDefaultForFormConfig(item: FormConfigFrame): Record<string, unknown> {
-            const visitor = new DefaultValueFormConfigVisitor();
-            return visitor.start(item);
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item);
+
+            const visitor = new DefaultValueFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**
@@ -319,8 +322,11 @@ export module Services {
          * @param item The form config.
          */
         public buildSchemaForFormConfig(item: FormConfigFrame): Record<string, unknown> {
-            const visitor = new JsonTypeDefSchemaFormConfigVisitor();
-            return visitor.start(item);
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item);
+
+            const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**
@@ -541,9 +547,12 @@ export module Services {
             return result;
         }
 
-        public buildCompiledTemplates(form: FormConfigFrame): TemplateCompileInput[] {
-            const visitor = new TemplateFormConfigVisitor();
-            return visitor.start(form);
+        public buildCompiledTemplates(item: FormConfigFrame): TemplateCompileInput[] {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item);
+
+            const visitor = new TemplateFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**

@@ -13,7 +13,6 @@ import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {FieldLayoutConfig, FieldLayoutDefinition} from "../field-layout.model";
 import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
-import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 
 
 /* Tab Component */
