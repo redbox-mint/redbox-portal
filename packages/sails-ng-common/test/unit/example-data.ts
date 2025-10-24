@@ -1,4 +1,4 @@
-import {FormConfigFrame, ReusableFormDefinitions} from "src";
+import {FormConfigFrame, ReusableFormDefinitions} from "../../src";
 
 
 export const reusableDefinitionsExample1: ReusableFormDefinitions = {

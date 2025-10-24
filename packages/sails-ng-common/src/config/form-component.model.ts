@@ -43,20 +43,3 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
 
     abstract accept(visitor: FormConfigVisitorOutline): void;
 }
-
-
-/**
- *
- */
-export interface FormComponentDefinitionTemplate {
-    /**
-     * The component template to use as defaults for properties not defined in the definitions.
-     */
-    templateName: string;
-    /**
-     * Override any properties from the component template.
-     * Overrides are done by matching the 'name' property in
-     * the component template and the components defined here.
-     */
-    componentDefinitions?: FormComponentDefinition[];
-}
