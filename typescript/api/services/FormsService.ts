@@ -22,7 +22,7 @@ import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import {BrandingModel, FormModel, Services as services} from '@researchdatabox/redbox-core-types';
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
-import {ClientFormConfigVisitor, FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {ClientFormConfigVisitor, ConstructFormConfigVisitor, FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {ClientFormContext} from "../additional/ClientFormContext";
 
 declare var sails: Sails;
@@ -338,11 +338,11 @@ export module Services {
       ];
 
       for(let fieldKey of fieldKeys) {
-        
+
         let schemaProperty = schema.properties[fieldKey];
 
         if(_.get(schemaProperty,'type','') == 'string') {
-          
+
           let textField = _.cloneDeep(textFieldTemplate);
           _.set(textField.definition,'name',fieldKey);
           _.set(textField.definition,'label',fieldKey);
@@ -386,11 +386,11 @@ export module Services {
           }
 
         } else if(_.get(schemaProperty,'type','') == 'object') {
-          
+
           let objectFieldKeys = _.keys(schemaProperty.properties);
           let groupField = _.cloneDeep(groupComponentTemplate);
           let groupFieldList = [];
-          
+
           for(let objectFieldKey of objectFieldKeys) {
             let innerProperty = schemaProperty.properties[objectFieldKey];
             if(_.get(innerProperty,'type','') == 'string') {
@@ -510,18 +510,21 @@ export module Services {
      */
     public buildClientFormConfig(item: FormConfigFrame, context?: ClientFormContext): Record<string, unknown> {
       sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
-      // create the client form config
-      const visitor = new ClientFormConfigVisitor();
       const formMode =  context?.current?.mode;
       const userRoles =  context?.current?.user?.roles;
       const recordOid =  context?.current?.model?.id;
       const recordData =  context?.current?.model?.data;
 
+      const constructor = new ConstructFormConfigVisitor(this.logger);
+      const constructed = constructor.start(item, undefined, formMode);
+
+      // create the client form config
+      const visitor = new ClientFormConfigVisitor(this.logger);
       let result: FormConfigFrame;
       if (recordOid && recordData){
-          result = visitor.startExistingRecord(item, formMode, userRoles, recordData);
+          result = visitor.startExistingRecord(constructed, formMode, userRoles, recordData);
       } else {
-          result = visitor.startNewRecord(item, formMode, userRoles);
+          result = visitor.startNewRecord(constructed, formMode, userRoles);
       }
 
       if (!result) {

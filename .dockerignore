@@ -8,3 +8,6 @@ node_modules
 .DS_Store
 Thumbs.db
 support/development
+**/coverage
+**/dist
+**/.angular

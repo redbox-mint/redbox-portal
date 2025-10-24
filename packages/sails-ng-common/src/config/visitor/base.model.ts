@@ -68,12 +68,19 @@ import {
 } from "../component/date-input.outline";
 import {TemplateCompileKey} from "../../template.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
+import {ILogger} from "@researchdatabox/redbox-core-types";
 
 
 /**
  * The form config visitor definition.
  */
 export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
+    protected logName = "FormConfigVisitor";
+    protected logger: ILogger;
+
+    protected constructor(logger: ILogger) {
+        this.logger = logger;
+    }
 
     /* Form Config */
 
@@ -276,7 +283,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         //     result?.['name'] ? `with name '${result?.['name']}'` : '',
         //     result?.['class'] ? `with class '${result?.['class']}'` : '',
         // ];
-        // console.debug(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
+        // this.logger.debug(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
 
         return result;
     }
@@ -350,9 +357,14 @@ export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
         const itemCurrentPath = [...(this.currentPath ?? [])];
         try {
             this.currentPath = [...itemCurrentPath, ...(suffixPath ?? [])];
+
+            // for debugging
+            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
+
             item.accept(this);
         } catch (error) {
-            console.error(error);
+            // rethrow error - the finally block will ensure the currentPath is correct
+            throw error;
         } finally {
             this.currentPath = itemCurrentPath;
         }

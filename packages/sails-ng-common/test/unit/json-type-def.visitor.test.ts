@@ -1,7 +1,7 @@
-import {FormConfigFrame, JsonTypeDefSchemaFormConfigVisitor} from "../../src";
+import {ConstructFormConfigVisitor, FormConfigFrame, JsonTypeDefSchemaFormConfigVisitor} from "../../src";
 
-// @ts-ignore
-import {default as default_1_0_draft_form_config} from "./../../../../../form-config/default-1.0-draft.js";
+import {formConfigExample1, reusableDefinitionsExample1} from "./example-data";
+import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -216,7 +216,7 @@ describe("JSON Type Def Schema Visitor", async () => {
         },
         {
             title: "create full example",
-            args: default_1_0_draft_form_config,
+            args: formConfigExample1,
             expected: {
                 "properties": {
                     "checkbox_1": {
@@ -298,8 +298,11 @@ describe("JSON Type Def Schema Visitor", async () => {
     ];
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
-            const visitor = new JsonTypeDefSchemaFormConfigVisitor();
-            const actual = visitor.start(args);
+            const constructor = new ConstructFormConfigVisitor(logger);
+            const constructed = constructor.start(args);
+
+            const visitor = new JsonTypeDefSchemaFormConfigVisitor(logger);
+            const actual = visitor.start(constructed);
             expect(actual).to.eql(expected);
         });
     });
