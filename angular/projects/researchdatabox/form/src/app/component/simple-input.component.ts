@@ -45,7 +45,7 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     let simpleInputConfig = this.componentDefinition?.config as SimpleInputFieldComponentConfig;
     let defaultConfig = new SimpleInputFieldComponentConfig();
     const cfg = (_isUndefined(simpleInputConfig) || _isEmpty(simpleInputConfig)) ? defaultConfig : simpleInputConfig;
-    this.inputType = cfg.type || defaultConfig.type;
+    this.inputType = cfg.type || defaultConfig.type || 'text';
   }
 
   /**
