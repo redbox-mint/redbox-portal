@@ -3,6 +3,8 @@ import {FormComponent} from './form.component';
 import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './component/simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { createFormSaveExecuteEvent } from './form-state/events/form-component-event.types';
 
 describe('FormComponent', () => {
   beforeEach(async () => {
@@ -49,6 +51,20 @@ describe('FormComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect(inputElement).toBeTruthy();
+  });
+
+  it('should call saveForm when form.save.execute is published (Task 15)', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const component = fixture.componentInstance;
+    const bus = TestBed.inject(FormComponentEventBus);
+
+    const spy = spyOn(component, 'saveForm').and.stub();
+
+    // Publish execute command
+    bus.publish(createFormSaveExecuteEvent({ force: true, skipValidation: true, targetStep: 'S1' }));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(true, 'S1', true);
   });
 
 });

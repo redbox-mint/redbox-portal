@@ -38,6 +38,7 @@ import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFi
 import { FormStatus, FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
@@ -107,9 +108,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   public facade = inject(FormStateFacade);
   private store = inject(Store);
+  // Subscribe to EventBus execute command (Task 15)
+  private eventBus = inject(FormComponentEventBus);
   status = this.facade.status;
   componentsLoaded = signal<boolean>(false);
   statusChangesSubscription?: Subscription;
+  private saveExecuteSubscription?: Subscription;
 
   debugFormComponents = signal<Record<string, unknown>>({});
 
@@ -177,6 +181,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.previousFormGroupStatus.set(formGroupStatus);
     });
+
+    // Listen for execute save command and invoke saveForm (Task 15)
+    // Note: Use string literal to avoid hard ref import cycles in this file context
+    this.saveExecuteSubscription = this.eventBus
+      .select$('form.save.execute')
+      .subscribe(evt => {
+        // Default payload handling with safe fallbacks
+        const force = !!evt.force;
+        const targetStep = evt.targetStep ?? '';
+        const skipValidation = !!evt.skipValidation;
+        this.saveForm(force, targetStep, skipValidation);
+      });
   }
 
   protected get getFormService(){
@@ -463,6 +479,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.statusChangesSubscription?.unsubscribe();
+    this.saveExecuteSubscription?.unsubscribe();
   }
 }
 

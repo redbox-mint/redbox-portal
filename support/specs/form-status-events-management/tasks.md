@@ -35,7 +35,7 @@
 	- In `FormEffects`, add a non-dispatching effect that listens to `submitForm` and publishes `form.save.execute` back to the EventBus carrying `{ force, skipValidation, targetStep }`.
 	- Acceptance: Effects spec spies on EventBus.publish and asserts it’s called on `submitForm`.
 
-15. [ ] FormComponent invokes saveForm on execute command (R16.1, R16.12)
+15. [X] FormComponent invokes saveForm on execute command (R16.1, R16.12)
 	- Subscribe to `form.save.execute` in `FormComponent` and call `this.saveForm(force, targetStep, skipValidation)`.
 	- Ensure proper teardown in `ngOnDestroy` and avoid duplicate subscriptions.
 	- Acceptance: Component unit test spies on `saveForm` and verifies it’s invoked when the execute event is published; no changes to the NgRx state model.

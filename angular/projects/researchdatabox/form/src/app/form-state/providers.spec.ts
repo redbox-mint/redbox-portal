@@ -11,6 +11,7 @@ import { provideEffects } from '@ngrx/effects';
 import { provideFormFeature, FORM_FEATURE_KEY } from './providers';
 import { FormFeatureState, formInitialState } from './state/form.state';
 import { FormEffects } from './effects/form.effects';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
 
 describe('provideFormFeature()', () => {
   beforeEach(() => {
@@ -18,7 +19,18 @@ describe('provideFormFeature()', () => {
       providers: [
         provideStore(),        // Initialize root store
         provideEffects(),      // Initialize effects
-        provideFormFeature()   // Register form feature
+        provideFormFeature(),  // Register form feature
+        // Minimal logger to satisfy FormComponentEventBus dependency chain (FormEffects -> EventBus -> LoggerService)
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: () => {},
+            info: () => {},
+            warn: () => {},
+            error: () => {},
+            log: () => {}
+          }
+        }
       ]
     });
   });
