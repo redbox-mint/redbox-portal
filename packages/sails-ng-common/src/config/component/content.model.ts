@@ -1,32 +1,67 @@
-import {BaseFormFieldComponentConfig, BaseFormFieldComponentDefinition} from "../form-field-component.model";
+import { TemplateCompileInput} from "../../template.outline";
+import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
+import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
+import {FormComponentDefinition} from "../form-component.model";
+import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import {
+    ContentComponentName,
+    ContentFieldComponentConfigOutline,
+    ContentFieldComponentDefinitionOutline, ContentFormComponentDefinitionOutline
+} from "./content.outline";
 
 
-export interface ContentComponentDefinition extends BaseFormFieldComponentDefinition {
-    class: "ContentComponent";
-    config?: ContentComponentConfig;
+/* Content Component */
 
-    // TODO: some way to obtain the path to the property that contains a template that needs to be compiled
-    //       should include the type of template
-    // or in the Config class
-    // this is a way to allow custom components to provide their templates for compilation
-    // static getTemplates();
+export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigOutline {
+    template?: string;
+    content?: string;
 
-    // e.g. in the form config
-    // template: {
-    //     class: '',
-    //     template: '<h3>{{content}}</h3>',
-    // }
+    constructor() {
+        super();
+    }
 }
 
-export class ContentComponentConfig extends BaseFormFieldComponentConfig {
-    
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    public template?: string = '';
-    /**
-     * The template that can be used for setting content in innerHtml.
-     */
-    public content?: string = '';
+
+
+
+export class ContentFieldComponentDefinition extends FieldComponentDefinition implements ContentFieldComponentDefinitionOutline {
+    class = ContentComponentName;
+    config?: ContentFieldComponentConfig;
+
+    constructor() {
+        super();
+    }
+
+    accept(visitor: FormConfigVisitorOutline) {
+        visitor.visitContentFieldComponentDefinition(this);
+    }
 }
+
+
+/* Content Form Component */
+
+export class ContentFormComponentDefinition extends FormComponentDefinition implements ContentFormComponentDefinitionOutline {
+    component!: ContentFieldComponentDefinitionOutline;
+    model?: never;
+    layout?: AvailableFieldLayoutDefinitionOutlines;
+
+    constructor() {
+        super();
+    }
+
+    accept(visitor: FormConfigVisitorOutline) {
+        visitor.visitContentFormComponentDefinition(this);
+    }
+}
+
+export const ContentMap = [
+    {kind: FieldComponentConfigKind, def: ContentFieldComponentConfig},
+    {
+        kind: FieldComponentDefinitionKind,
+        def: ContentFieldComponentDefinition,
+        class: ContentComponentName
+    },
+    {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition, class:ContentComponentName},
+];
 

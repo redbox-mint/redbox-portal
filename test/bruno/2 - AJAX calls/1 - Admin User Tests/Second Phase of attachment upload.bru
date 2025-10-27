@@ -16,7 +16,6 @@ headers {
   X-CSRF-Token: 
   Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
   Tus-Resumable: 1.0.0
-  
   Connection: keep-alive
   Pragma: no-cache
   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
@@ -37,7 +36,7 @@ script:pre-request {
   const attachmentLength = attachment.length;
   
   req.setBody(attachment);
-
+  
   const cookie = bru.getVar("cookie");
   
   if(cookie) {

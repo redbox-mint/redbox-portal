@@ -1,0 +1,18 @@
+meta {
+  name: Render Preview CSS - Invalid Token
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{host}}/default/rdmp/branding/preview/css?token=test-token
+  auth: none
+}
+
+tests {
+  test("Status code is 404 depending on token validity", function () {
+    const status = res.getStatus();
+    expect(status).to.equal(404);
+  });
+  
+}

@@ -1,9 +1,14 @@
 import { Component, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
-import { SimpleInputComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  SimpleInputComponentName,
+  SimpleInputFieldComponentConfig,
+  SimpleInputModelName
+} from '@researchdatabox/sails-ng-common';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class SimpleInputModel extends FormFieldModel<string> {
+  protected override logName = SimpleInputModelName;
 }
 
 @Component({
@@ -25,7 +30,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
     standalone: false
 })
 export class SimpleInputComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = "SimpleInputComponent";
+  protected override logName = SimpleInputComponentName;
   public tooltip:string = '';
   public inputType:string = 'text';
 
@@ -37,8 +42,8 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.tooltip = this.getStringProperty('tooltip');
-    let simpleInputConfig = this.componentDefinition?.config as SimpleInputComponentConfig;
-    let defaultConfig = new SimpleInputComponentConfig();
+    let simpleInputConfig = this.componentDefinition?.config as SimpleInputFieldComponentConfig;
+    let defaultConfig = new SimpleInputFieldComponentConfig();
     const cfg = (_isUndefined(simpleInputConfig) || _isEmpty(simpleInputConfig)) ? defaultConfig : simpleInputConfig;
     this.inputType = cfg.type || defaultConfig.type;
   }

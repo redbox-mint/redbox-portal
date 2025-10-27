@@ -1,8 +1,8 @@
 import { Component, inject, effect, signal } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
-import { SaveButtonComponentDefinition } from '@researchdatabox/sails-ng-common';
 import { FormStatusSignalBridge } from '../form-state/facade/form-status-signal-bridge';
+import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 
 @Component({
   selector: 'redbox-form-save-button',
@@ -16,12 +16,12 @@ import { FormStatusSignalBridge } from '../form-state/facade/form-status-signal-
   standalone: false
 })
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
-  public override logName: string = "SaveButtonComponent";
+  public override logName = SaveButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
-  public override componentDefinition?: SaveButtonComponentDefinition;
   disabled = signal<boolean>(false);
   
   protected formStatusSignalBridge = inject(FormStatusSignalBridge);
+  public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
 
   constructor() {
     super();
@@ -37,7 +37,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected override async setComponentReady(): Promise<void> {
-    await super.setComponentReady(); 
+    await super.setComponentReady();
   }
 
   public async save() {

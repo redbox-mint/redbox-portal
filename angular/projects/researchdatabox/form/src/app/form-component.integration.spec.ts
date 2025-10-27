@@ -20,7 +20,7 @@ import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
 import { selectResetToken, selectStatus } from './form-state/state/form.selectors';
-import { FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
 
@@ -31,7 +31,8 @@ describe('FormComponent Integration Tests', () => {
   let statusSub: Subscription | undefined;
   let resetTokenSub: Subscription | undefined;
 
-  const basicFormConfig: FormConfig = {
+  const basicFormConfig: FormConfigFrame = {
+    name: 'testing',
     debugValue: true,
     defaultComponentConfig: {
       defaultComponentCssClasses: 'form-control'

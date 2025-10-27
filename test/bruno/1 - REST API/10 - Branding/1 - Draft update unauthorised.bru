@@ -1,0 +1,28 @@
+meta {
+  name: Draft update unauthorised
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/draft
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "variables": {
+      "site-branding-area-background-color": "#abcdef"
+    }
+  }
+}
+
+tests {
+  test("Status code is 403 (non-admin rejected)", function () {
+    expect(res.getStatus()).to.equal(403);
+  });
+}

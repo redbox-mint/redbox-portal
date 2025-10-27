@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
-import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {SimpleInputComponent} from "./simple-input.component";
 
@@ -20,7 +20,8 @@ describe('ValidationSummaryFieldComponent', () => {
   });
   it('should display "The form is valid."', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -30,8 +31,7 @@ describe('ValidationSummaryFieldComponent', () => {
       componentDefinitions: [
         {
           name: 'validation_summary_1',
-          model: {class: 'ValidationSummaryFieldModel', config: {}},
-          component: {class: "ValidationSummaryFieldComponent"}
+          component: {class: "ValidationSummaryComponent"}
         },
       ]
     };
@@ -45,7 +45,8 @@ describe('ValidationSummaryFieldComponent', () => {
   });
   it('should contain one failed validation for the required text field that is empty', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -70,8 +71,7 @@ describe('ValidationSummaryFieldComponent', () => {
         },
         {
           name: 'validation_summary_1',
-          model: { class: 'ValidationSummaryFieldModel', config: {}},
-          component: {class: "ValidationSummaryFieldComponent"}
+          component: {class: "ValidationSummaryComponent"}
         },
       ]
     };

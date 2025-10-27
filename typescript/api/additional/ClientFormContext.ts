@@ -41,7 +41,10 @@ export class ClientFormContext {
       }
     };
     newInstance.build = (other?.build ?? [])?.map(b => {
-      return {name: b?.name, constraints: FormConstraintConfig.from(b?.constraints)}
+      return {
+          name: b?.name,
+          // constraints: FormConstraintConfig.from(b?.constraints),
+      }
     });
     return newInstance;
   }
@@ -63,7 +66,7 @@ export type ClientFormCurrentUserContext = {
 
 export type ClientFormCurrentModelContext = {
   id?: string;
-  data?: unknown;
+  data?: Record<string, unknown>;
 };
 
 

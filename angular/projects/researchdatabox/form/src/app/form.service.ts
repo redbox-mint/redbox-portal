@@ -19,12 +19,14 @@
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, isPlainObject as _isPlainObject, get as _get} from 'lodash-es';
+import {isEmpty as _isEmpty,  merge as _merge} from 'lodash-es';
 import {
-  FormComponentClassMap,
-  FormFieldModelClassMap,
   StaticComponentClassMap,
-  StaticModelClassMap
+  StaticModelClassMap,
+  StaticLayoutClassMap,
+  AllComponentClassMapType,
+  AllModelClassMapType,
+  AllLayoutClassMapType,
 } from './static-comp-field.dictionary';
 import {
   ConfigService,
@@ -38,9 +40,9 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormComponentDefinition,
-  FormConfig,
   FormFieldComponentStatus,
+  FormComponentDefinitionFrame,
+  FormConfigFrame,
   FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
@@ -70,8 +72,9 @@ declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinit
 )
 export class FormService extends HttpClientService {
   protected logName = "FormService";
-  protected compClassMap:FormComponentClassMap = {};
-  protected modelClassMap:FormFieldModelClassMap = {};
+  protected compClassMap: AllComponentClassMapType = {};
+  protected modelClassMap: AllModelClassMapType = {};
+  protected layoutClassMap: AllLayoutClassMapType = {};
   protected validatorsSupport: ValidatorsSupport;
 
   private requestOptions: Record<string, unknown> = {};
@@ -89,9 +92,19 @@ export class FormService extends HttpClientService {
     super(http, rootContext, utilityService, configService)
     // start with the static version, will dynamically merge any custom components later
     _merge(this.modelClassMap, StaticModelClassMap);
+    this.loggerService.debug(`${this.logName}: Static component classes:`,
+      Object.fromEntries(Object.entries(this.compClassMap).map(([key, value]) => [key, value.name]))
+    );
+
     _merge(this.compClassMap, StaticComponentClassMap);
-    this.loggerService.debug(`${this.logName}: Static component classes:`, this.compClassMap);
-    this.loggerService.debug(`${this.logName}: Static model classes:`, this.modelClassMap);
+    this.loggerService.debug(`${this.logName}: Static model classes:`,
+      Object.fromEntries(Object.entries(this.modelClassMap).map(([key, value]) => [key, value.name]))
+    );
+
+    _merge(this.layoutClassMap, StaticLayoutClassMap);
+    this.loggerService.debug(`${this.logName}: Static layout classes:`,
+      Object.fromEntries(Object.entries(this.layoutClassMap).map(([key, value]) => [key, value?.constructor?.name]))
+    );
 
     this.validatorsSupport = new ValidatorsSupport();
   }
@@ -146,7 +159,7 @@ export class FormService extends HttpClientService {
    * @param parentLineagePaths The linage paths of the parent item.
    * @returns The config and the components built from the config.
    */
-  public async createFormComponentsMap(formConfig: FormConfig, parentLineagePaths: LineagePaths): Promise<FormComponentsMap> {
+  public async createFormComponentsMap(formConfig: FormConfigFrame, parentLineagePaths: LineagePaths): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       this.loadedValidatorDefinitions = redboxClientScript.formValidatorDefinitions;
@@ -165,7 +178,7 @@ export class FormService extends HttpClientService {
     return new FormComponentsMap(components, formConfig);
   }
 
-  public appendFormFieldType(additionalTypes: FormComponentClassMap) {
+  public appendFormFieldType(additionalTypes: AllComponentClassMapType) {
     _merge(this.compClassMap, additionalTypes);
   }
 
@@ -174,58 +187,84 @@ export class FormService extends HttpClientService {
    * @param componentDefinitions The config for the components.
    * @param parentLineagePaths The linage paths of the parent item.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinition[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
+  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinitionFrame[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
     const fieldArr: FormFieldCompMapEntry[] = [];
-    const names = componentDefinitions?.map(i => i?.name) ?? [];
-    this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${names.join(',')}`);
+    const compDefInfo = componentDefinitions?.map(i => `'${i?.name}':${i?.component?.class}`) ?? [];
+    this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${compDefInfo.join(',')}`);
     const components = componentDefinitions || [];
     for (let index = 0; index < components.length; index++) {
       const componentConfig = components[index];
+
       const componentName = componentConfig?.name;
+      const isModuleCustom = componentConfig.module === 'custom';
 
-      let modelClass: typeof FormFieldModel | undefined = undefined;
-      let componentClass: typeof FormFieldBaseComponent | undefined = undefined;
-      let layoutClass: typeof FormFieldBaseComponent | undefined = undefined;
-      const modelClassName:string = componentConfig.model?.class || '';
-      let componentClassName:string = componentConfig.component?.class || '';
-      let layoutClassName:string = componentConfig.layout?.class || '';
+      let modelClass: typeof FormFieldModel<unknown> | undefined = undefined;
+      let componentClass: typeof FormFieldBaseComponent<unknown> | undefined = undefined;
+      let layoutClass: typeof FormFieldBaseComponent<unknown> | undefined = undefined;
 
-      if (!_isEmpty(componentConfig.module)) {
-        // TODO:
-        // 1. for statically imported (e.g. modules) class doesn't have to be resolved here
-        // 2. deal with genuine lazy-loading enabled components
-        if (componentConfig.module == 'custom') {
-          try {
-            // try the static version first
-            modelClass = this.modelClassMap[modelClassName];
-            if (_isUndefined(modelClass) && !_isEmpty(componentClassName)) {
-              // resolve the field class
-              modelClass = await this.customModuleFormCmpResolverService.getFieldClass(modelClassName);
-            }
-            // try the static version first
-            componentClass = this.compClassMap[componentClassName || modelClassName];
-            if (_isUndefined(componentClass)) {
-              // resolve the component class using the component class name and if unspecified, use the field class name
-              componentClass = await this.getComponentClass(componentClassName || modelClassName, componentConfig.module);
-              this.compClassMap[componentClassName || modelClassName] = componentClass;
-            }
-            if (!_isEmpty(layoutClassName)) {
-              layoutClass = await this.getComponentClass(layoutClassName, componentConfig.module);
-            }
-          } catch (e) {
-            this.loggerService.error(`${this.logName}: failed to resolve component.`,{componentClassName: componentClassName, modelClassName: modelClassName});
+      const modelClassName = componentConfig.model?.class || '';
+      const componentClassName = componentConfig.component?.class || '';
+      const layoutClassName = componentConfig.layout?.class || '';
+
+      try {
+        // Resolve the model. The model is only available for some components.
+        // TODO: If the model is available for a component, it must be resolved. Can this be enforced?
+        if (modelClassName && modelClassName in this.modelClassMap) {
+          modelClass = this.modelClassMap[modelClassName];
+          if (modelClass) {
+            this.loggerService.debug(`${this.logName}: found static map model '${modelClassName}': '${modelClass.name}'.`);
           }
         }
-      } else {
-        // should be resolved already
-        modelClass = this.modelClassMap[modelClassName];
-        // if the compClass isn't explicitly defined, use the field class name, make sure a 'default' component is defined for each field
-        componentClass = this.compClassMap[componentClassName || modelClassName];
-
-        if (!_isEmpty(layoutClassName)) {
-          layoutClass = this.compClassMap[layoutClassName];
+        if (modelClassName && modelClass === undefined && isModuleCustom) {
+          modelClass = await this.customModuleFormCmpResolverService.getFieldClass(modelClassName);
+          if (modelClass) {
+            this.loggerService.debug(`${this.logName}: found custom module model '${modelClassName}': '${modelClass.name}'.`);
+            // If the custom model was found, cache it in the class map
+            this.modelClassMap[modelClassName] = modelClass;
+          }
         }
+
+        // Resolve the component. A component is required.
+        // TODO: make sure a 'default' component is defined for each field - this will be done on the server-side
+        if (componentClassName && componentClassName in this.compClassMap) {
+          componentClass = this.compClassMap[componentClassName];
+          if (componentClass) {
+            this.loggerService.debug(`${this.logName}: found static map component '${componentClassName}': '${componentClass.name}'.`);
+          }
+        }
+        if (componentClassName && componentClass === undefined && isModuleCustom) {
+          // Check for a custom component.
+          componentClass = await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
+          if (componentClass) {
+            this.loggerService.debug(`${this.logName}: found custom module component '${componentClassName}': '${componentClass.name}'.`);
+            // If the custom component was found, cache it in the class map
+            this.compClassMap[componentClassName] = componentClass;
+          }
+        }
+
+        // Resolve the layout. A layout is optional.
+        if (layoutClassName && layoutClassName in this.layoutClassMap) {
+          layoutClass = this.layoutClassMap[layoutClassName] ?? undefined;
+          if (layoutClass) {
+            this.loggerService.debug(`${this.logName}: found static map layout '${layoutClassName}': '${layoutClass.name}'.`);
+          }
+        }
+        if (layoutClassName && layoutClass === undefined && isModuleCustom) {
+          // Check for a custom component.
+          layoutClass = await this.customModuleFormCmpResolverService.getComponentClass(layoutClassName);
+          if (layoutClass) {
+            this.loggerService.debug(`${this.logName}: found custom module layout '${layoutClassName}': '${layoutClass.name}'.`);
+            // If the custom component was found, cache it in the class map
+            this.layoutClassMap[layoutClassName] = layoutClass;
+          }
+        }
+
+      } catch (error) {
+        this.loggerService.error(`${this.logName}: failed to resolve '${componentName}' ` +
+          `with component '${componentClassName}' model '${modelClassName}' layout '${layoutClassName}'`, error);
       }
+
+      // Compose the field definition.
       // Components may not have a model class, e.g. a static text component.
       let fieldDef = {};
       if (modelClass) {
@@ -243,24 +282,11 @@ export class FormService extends HttpClientService {
         });
       } else if (componentClassName) {
         this.logNotAvailable(componentClassName, "component class", this.compClassMap);
-        // Dont' add to the array if the component class is not available
+        // Don't add to the array if the component class is not available
         fieldDef = {};
       }
-      // if (modelClass) {
-      //   if (componentClass) {
 
-      //     fieldArr.push({
-      //       modelClass: modelClass,
-      //       componentClass: componentClass,
-      //       compConfigJson: componentConfig,
-      //       layoutClass: layoutClass,
-      //     } as FormFieldCompMapEntry);
-      //   } else {
-      //     this.logNotAvailable(componentClassName, "component class", this.compClassMap);
-      //   }
-      // } else {
-      //   this.logNotAvailable(modelClassName, "model class", this.modelClassMap);
-      // }
+      // Add the field definition to the list if it has the minimum requirements.
       if (!_isEmpty(fieldDef)) {
         _merge(fieldDef, {
           lineagePaths: this.buildLineagePaths(parentLineagePaths, {
@@ -272,33 +298,11 @@ export class FormService extends HttpClientService {
         fieldArr.push(fieldDef as FormFieldCompMapEntry);
       }
     }
-    this.loggerService.debug(`${this.logName}: resolved form component types:`, fieldArr);
+    this.loggerService.info(`${this.logName}: resolved form component types:`, fieldArr);
     return fieldArr;
   }
 
-  /**
-   * Get a component class from the class name.
-   * @param componentClassName The name of the component class.
-   * @param module
-   */
-  public async getComponentClass(componentClassName: string, module?:string | null): Promise<typeof FormFieldBaseComponent | undefined> {
-    if (_isEmpty(componentClassName)) {
-      throw new Error(`${this.logName}: cannot get component class because the class name is empty.`);
-    }
-    this.loggerService.debug(`${this.logName}: get component class for name '${componentClassName}'.`);
-
-    let componentClass = this.compClassMap[componentClassName];
-    if (_isUndefined(componentClass) && !_isEmpty(module)) {
-      componentClass = await this.customModuleFormCmpResolverService.getComponentClass(componentClassName);
-    }
-    if (_isUndefined(componentClass)) {
-      this.logNotAvailable(componentClassName, "component class", this.compClassMap);
-      throw new Error(`${this.logName}: cannot get component class with name '${componentClassName}' because it was not found in class list.`);
-    }
-    return componentClass
-  }
-
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfig): void {
+  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfigFrame): void {
     const names = components?.map(i => i?.compConfigJson?.name) ?? [];
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${names.join(',')}.`);
     for (let compEntry of components) {
@@ -315,6 +319,8 @@ export class FormService extends HttpClientService {
       compMapEntry.model = new ModelType(modelConfig, validators);
       return compMapEntry.model;
     } else {
+      // TODO: Is there some way to indicate which components must have a model, and which ones must not?
+      //       Then this could throw an error instead of warning about components that can't have a model.
       // Model is now optional, so we can return null if the model is not defined. Add appropriate warning to catch config errors.
       this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component. If this is unexpected, check your form configuration.`, compMapEntry);
     }
@@ -377,7 +383,7 @@ export class FormService extends HttpClientService {
    * @return An array of validation errors.
    */
   public getFormValidatorSummaryErrors(
-    componentDefs: FormComponentDefinition[] | null | undefined,
+    componentDefs: FormComponentDefinitionFrame[] | null | undefined,
     name: string | null | undefined = null,
     control: AbstractControl | null | undefined = null,
     parents: string[] | null = null,
@@ -437,7 +443,7 @@ export class FormService extends HttpClientService {
    *
    * @param componentDef The component definition from the form config.
    */
-  public componentIdLabel(componentDef: FormComponentDefinition | null): {
+  public componentIdLabel(componentDef: FormComponentDefinitionFrame | null): {
     id: string | null,
     labelMessage: string | null
   } {
@@ -533,7 +539,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await firstValueFrom(this.http.get<{data: FormConfig}>(url.href, this.requestOptions));
+    const result = await firstValueFrom(this.http.get<{data: FormConfigFrame}>(url.href, this.requestOptions));
     this.loggerService.info(`Get form fields from url: ${url}`, result);
     return result?.data;
   }
@@ -630,14 +636,14 @@ export class FormComponentsMap {
   /**
    * The form configuration from the server.
    */
-  formConfig: FormConfig;
+  formConfig: FormConfigFrame;
   completeGroupMap: { [key: string]: FormFieldCompMapEntry } | undefined;
   /**
    * Mapping of name to angular FormControl. Used to create angular form.
    */
   withFormControl: { [key: string]: FormControl } | undefined;
 
-  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfig) {
+  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame) {
     this.components = components;
     this.formConfig = formConfig;
     this.completeGroupMap = undefined;
