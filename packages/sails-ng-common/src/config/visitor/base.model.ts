@@ -59,9 +59,9 @@ import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
-import {FieldLayoutConfigFrame, FieldLayoutConfigOutline} from "../field-layout.outline";
-import {FieldModelConfigFrame, FieldModelConfigOutline} from "../field-model.outline";
-import {FieldComponentConfigFrame, FieldComponentConfigOutline} from "../field-component.outline";
+import {FieldLayoutConfigFrame} from "../field-layout.outline";
+import {FieldModelConfigFrame} from "../field-model.outline";
+import {FieldComponentConfigFrame} from "../field-component.outline";
 import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
@@ -77,9 +77,11 @@ import {ILogger} from "@researchdatabox/redbox-core-types";
 export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     protected logName = "FormConfigVisitor";
     protected logger: ILogger;
+    protected sharedProps: PopulateProperties;
 
     protected constructor(logger: ILogger) {
         this.logger = logger;
+        this.sharedProps = new PopulateProperties();
     }
 
     /* Form Config */
@@ -288,51 +290,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         return result;
     }
 
-    protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigOutline, config?: FieldComponentConfigFrame) {
-        // Set the common field component config properties
-        this.setProp('readonly', item, config);
-        this.setProp('visible', item, config);
-        this.setProp('editMode', item, config);
-        this.setProp('label', item, config);
-        this.setProp('defaultComponentCssClasses', item, config);
-        this.setProp('hostCssClasses', item, config);
-        this.setProp('wrapperCssClasses', item, config);
-        this.setProp('disabled', item, config);
-        this.setProp('autofocus', item, config);
-        this.setProp('tooltip', item, config);
-    }
 
-    protected sharedPopulateFieldModelConfig(item: FieldModelConfigOutline<unknown>, config?: FieldModelConfigFrame<unknown>) {
-        // Set the common field model config properties
-        this.setProp('disableFormBinding', item, config);
-        this.setProp('value', item, config);
-        this.setProp('defaultValue', item, config);
-        this.setProp('validators', item, config);
-        this.setProp('wrapperCssClasses', item, config);
-        this.setProp('editCssClasses', item, config);
-    }
-
-    protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigOutline, config?: FieldLayoutConfigFrame) {
-        // Set the common field model config properties
-        this.sharedPopulateFieldComponentConfig(item, config);
-        this.setProp('labelRequiredStr', item, config);
-        this.setProp('helpText', item, config);
-        this.setProp('cssClassesMap', item, config);
-        this.setProp('helpTextVisibleOnInit', item, config);
-        this.setProp('helpTextVisible', item, config);
-    }
-
-    protected setProp(name: string, item: { [x: string]: any; }, config?: { [x: string]: any; },) {
-        if (item === undefined || item === null){
-            throw new Error("Item provided to setProp was undefined or null.");
-        }
-        if (!(name in item)){
-            throw new Error(`Item provided to setProp does not have property '${name}': ${JSON.stringify(item)}`);
-        }
-        const itemValue = item[name];
-        const configValue = config?.[name] ?? undefined;
-        item[name] = configValue ?? itemValue;
-    }
 }
 
 export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
@@ -383,5 +341,53 @@ export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
         if (item.layout) {
             this.acceptCurrentPath(item.layout, ['layout']);
         }
+    }
+}
+
+export class PopulateProperties {
+    public sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, config?: FieldComponentConfigFrame) {
+        // Set the common field component config properties
+        this.setProp('readonly', item, config);
+        this.setProp('visible', item, config);
+        this.setProp('editMode', item, config);
+        this.setProp('label', item, config);
+        this.setProp('defaultComponentCssClasses', item, config);
+        this.setProp('hostCssClasses', item, config);
+        this.setProp('wrapperCssClasses', item, config);
+        this.setProp('disabled', item, config);
+        this.setProp('autofocus', item, config);
+        this.setProp('tooltip', item, config);
+    }
+
+    public sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, config?: FieldModelConfigFrame<unknown>) {
+        // Set the common field model config properties
+        this.setProp('disableFormBinding', item, config);
+        this.setProp('value', item, config);
+        this.setProp('defaultValue', item, config);
+        this.setProp('validators', item, config);
+        this.setProp('wrapperCssClasses', item, config);
+        this.setProp('editCssClasses', item, config);
+    }
+
+    public sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, config?: FieldLayoutConfigFrame) {
+        // Set the common field model config properties
+        this.sharedPopulateFieldComponentConfig(item, config);
+        this.setProp('labelRequiredStr', item, config);
+        this.setProp('helpText', item, config);
+        this.setProp('cssClassesMap', item, config);
+        this.setProp('helpTextVisibleOnInit', item, config);
+        this.setProp('helpTextVisible', item, config);
+    }
+
+    public setProp(name: string, item: { [x: string]: any; }, config?: { [x: string]: any; },) {
+        if (item === undefined || item === null){
+            throw new Error("Item provided to setProp was undefined or null.");
+        }
+        if (!(name in item)){
+            throw new Error(`Item provided to setProp does not have property '${name}': ${JSON.stringify(item)}`);
+        }
+        const itemValue = item[name];
+        const configValue = config?.[name] ?? undefined;
+        item[name] = configValue ?? itemValue;
     }
 }

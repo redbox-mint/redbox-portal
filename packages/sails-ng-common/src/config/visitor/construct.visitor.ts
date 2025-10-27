@@ -1,10 +1,11 @@
 import {cloneDeep as _cloneDeep, mergeWith as _mergeWith} from "lodash";
 import {FormConfig} from "../form-config.model";
 import {
+    ComponentClassDefMapType,
     FieldComponentDefinitionMap,
     FieldLayoutDefinitionMap,
-    FieldModelDefinitionMap,
-    FormComponentDefinitionMap,
+    FieldModelDefinitionMap, FormComponentClassDefMapType,
+    FormComponentDefinitionMap, LayoutClassDefMapType, ModelClassDefMapType,
 } from "../dictionary.model";
 import {CurrentPathFormConfigVisitor} from "./base.model";
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
@@ -63,7 +64,11 @@ import {
     TabContentFieldLayoutDefinitionOutline,
     TabContentFormComponentDefinitionFrame, TabContentFormComponentDefinitionOutline, TabContentLayoutName
 } from "../component/tab-content.outline";
-import {TabContentFieldComponentConfig, TabContentFieldLayoutConfig} from "../component/tab-content.model";
+import {
+    TabContentFieldComponentConfig,
+    TabContentFieldLayoutConfig,
+    TabContentFormComponentDefinition
+} from "../component/tab-content.model";
 import {
     TextAreaComponentName,
     TextAreaFieldComponentDefinitionFrame,
@@ -136,10 +141,10 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private reusableFormConfig: ReusableFormDefinitions = {};
     private reusableFormConfigNames: string[] = [];
 
-    private fieldComponentMap?;
-    private fieldModelMap?;
-    private fieldLayoutMap?;
-    private formComponentMap?;
+    private fieldComponentMap?: ComponentClassDefMapType;
+    private fieldModelMap?: ModelClassDefMapType;
+    private fieldLayoutMap?: LayoutClassDefMapType;
+    private formComponentMap?: FormComponentClassDefMapType;
 
     constructor(logger: ILogger) {
         super(logger);
@@ -169,17 +174,17 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
 
         // Set the simple properties, using the class instance property values as the defaults.
-        this.setProp('name', item, currentData);
-        this.setProp('type', item, currentData);
-        this.setProp('domElementType', item, currentData);
-        this.setProp('domId', item, currentData);
-        this.setProp('viewCssClasses', item, currentData);
-        this.setProp('editCssClasses', item, currentData);
-        this.setProp('defaultComponentConfig', item, currentData);
-        this.setProp('skipValidationOnSave', item, currentData);
-        this.setProp('validators', item, currentData);
-        this.setProp('defaultLayoutComponent', item, currentData);
-        this.setProp('debugValue', item, currentData);
+        this.sharedProps.setProp('name', item, currentData);
+        this.sharedProps.setProp('type', item, currentData);
+        this.sharedProps.setProp('domElementType', item, currentData);
+        this.sharedProps.setProp('domId', item, currentData);
+        this.sharedProps.setProp('viewCssClasses', item, currentData);
+        this.sharedProps.setProp('editCssClasses', item, currentData);
+        this.sharedProps.setProp('defaultComponentConfig', item, currentData);
+        this.sharedProps.setProp('skipValidationOnSave', item, currentData);
+        this.sharedProps.setProp('validators', item, currentData);
+        this.sharedProps.setProp('defaultLayoutComponent', item, currentData);
+        this.sharedProps.setProp('debugValue', item, currentData);
 
         currentData.componentDefinitions = this.applyOverrides(currentData?.componentDefinitions ?? []);
 
@@ -208,9 +213,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new SimpleInputFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('type', item.config, config);
+        this.sharedProps.setProp('type', item.config, config);
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
@@ -223,7 +228,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new SimpleInputFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
@@ -243,10 +248,10 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new ContentFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('content', item.config, config);
-        this.setProp('template', item.config, config);
+        this.sharedProps.setProp('content', item.config, config);
+        this.sharedProps.setProp('template', item.config, config);
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
@@ -266,7 +271,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new RepeatableFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, frame);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
         if (!isTypeFormComponentDefinition(frame?.elementTemplate)) {
             throw new Error(`Invalid elementTemplate for repeatable at '${this.currentPath}'.`);
@@ -298,7 +303,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new RepeatableFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
@@ -311,7 +316,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new RepeatableElementFieldLayoutConfig();
 
-        this.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
 
     }
 
@@ -332,7 +337,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new ValidationSummaryFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
@@ -352,7 +357,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new GroupFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, frame);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
         frame.componentDefinitions = this.applyOverrides(frame?.componentDefinitions ?? []);
 
@@ -378,7 +383,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new GroupFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
@@ -398,7 +403,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new TabFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, frame);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
         const compDefs = this.applyOverrides(frame?.tabs ?? []);
         const tabs: TabContentFormComponentDefinitionFrame[] = [];
@@ -411,13 +416,19 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         // Visit the components
         frame?.tabs.forEach((componentDefinition, index) => {
-            const formComponent = this.sharedConstructFormComponent(componentDefinition);
 
-            // Store the instances on the item
-            item.config?.tabs.push(formComponent);
+            if (isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(componentDefinition, TabContentComponentName)) {
+                // TODO: Use type assert for now.
+                //  The Map<string,T> type in dictionary.model.ts should map specific string -> specific type.
+                //  It currently maps string -> type union, which is too loose, as it doesn't imply that a particular string key maps to one type.
+                const formComponent = this.sharedConstructFormComponent(componentDefinition) as TabContentFormComponentDefinition;
 
-            // Continue the construction
-            this.acceptCurrentPath(formComponent, ["config", "tabs", index.toString()]);
+                // Store the instances on the item
+                item.config?.tabs.push(formComponent);
+
+                // Continue the construction
+                this.acceptCurrentPath(formComponent, ["config", "tabs", index.toString()]);
+            }
         });
     }
 
@@ -432,12 +443,12 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new TabFieldLayoutConfig();
 
-        this.sharedPopulateFieldLayoutConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
 
-        this.setProp('buttonSectionCssClass', item.config, config);
-        this.setProp('tabPaneCssClass', item.config, config);
-        this.setProp('tabPaneActiveCssClass', item.config, config);
-        this.setProp('buttonSectionAriaOrientation', item.config, config);
+        this.sharedProps.setProp('buttonSectionCssClass', item.config, config);
+        this.sharedProps.setProp('tabPaneCssClass', item.config, config);
+        this.sharedProps.setProp('tabPaneActiveCssClass', item.config, config);
+        this.sharedProps.setProp('buttonSectionAriaOrientation', item.config, config);
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
@@ -457,9 +468,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new TabContentFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('selected', item.config, config);
+        this.sharedProps.setProp('selected', item.config, config);
 
         config.componentDefinitions = this.applyOverrides(config?.componentDefinitions ?? []);
 
@@ -486,9 +497,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new TabContentFieldLayoutConfig();
 
-        this.sharedPopulateFieldLayoutConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
 
-        this.setProp('buttonLabel', item.config, config);
+        this.sharedProps.setProp('buttonLabel', item.config, config);
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
@@ -508,11 +519,11 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new SaveButtonFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('targetStep', item.config, config);
-        this.setProp('forceSave', item.config, config);
-        this.setProp('skipValidation', item.config, config);
+        this.sharedProps.setProp('targetStep', item.config, config);
+        this.sharedProps.setProp('forceSave', item.config, config);
+        this.sharedProps.setProp('skipValidation', item.config, config);
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
@@ -532,11 +543,11 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new TextAreaFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('rows', item.config, config);
-        this.setProp('cols', item.config, config);
-        this.setProp('placeholder', item.config, config);
+        this.sharedProps.setProp('rows', item.config, config);
+        this.sharedProps.setProp('cols', item.config, config);
+        this.sharedProps.setProp('placeholder', item.config, config);
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
@@ -549,7 +560,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new TextAreaFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
@@ -568,7 +579,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new DefaultFieldLayoutConfig();
 
-        this.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
     }
 
     /* Checkbox Input */
@@ -584,11 +595,11 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new CheckboxInputFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('placeholder', item.config, config);
-        this.setProp('options', item.config, config);
-        this.setProp('multipleValues', item.config, config);
+        this.sharedProps.setProp('placeholder', item.config, config);
+        this.sharedProps.setProp('options', item.config, config);
+        this.sharedProps.setProp('multipleValues', item.config, config);
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -601,7 +612,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new CheckboxInputFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
@@ -621,10 +632,10 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new DropdownInputFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('placeholder', item.config, config);
-        this.setProp('options', item.config, config);
+        this.sharedProps.setProp('placeholder', item.config, config);
+        this.sharedProps.setProp('options', item.config, config);
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -637,7 +648,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new DropdownInputFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
@@ -657,9 +668,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new RadioInputFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('options', item.config, config);
+        this.sharedProps.setProp('options', item.config, config);
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
@@ -672,7 +683,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new RadioInputFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
@@ -692,14 +703,14 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new DateInputFieldComponentConfig();
 
-        this.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.setProp('placeholder', item.config, config);
-        this.setProp('dateFormat', item.config, config);
-        this.setProp('showWeekNumbers', item.config, config);
-        this.setProp('containerClass', item.config, config);
-        this.setProp('enableTimePicker', item.config, config);
-        this.setProp('bsFullConfig', item.config, config);
+        this.sharedProps.setProp('placeholder', item.config, config);
+        this.sharedProps.setProp('dateFormat', item.config, config);
+        this.sharedProps.setProp('showWeekNumbers', item.config, config);
+        this.sharedProps.setProp('containerClass', item.config, config);
+        this.sharedProps.setProp('enableTimePicker', item.config, config);
+        this.sharedProps.setProp('bsFullConfig', item.config, config);
     }
 
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
@@ -712,7 +723,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // Create the class instance for the config
         item.config = new DateInputFieldModelConfig();
 
-        this.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
@@ -733,7 +744,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         if (!formComponentClass) {
             throw new Error(`Could not find class for form component class name '${componentClassString}' at path '${this.currentPath}'.`)
         }
-        return new formComponentClass(item);
+        return new formComponentClass();
     }
 
     protected sharedPopulateFormComponent(item: FormComponentDefinitionOutline): void {
@@ -828,7 +839,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
                 item.name = item.overrides?.replaceName;
             }
 
-            // Remove the 'override' property, as it has been applied and so should not be present in the form config.
+            // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
             if ('overrides' in item) {
                 delete item['overrides'];
             }

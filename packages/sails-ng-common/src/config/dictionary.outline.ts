@@ -63,6 +63,13 @@ export type AllTypes = DefaultLayoutTypes
  */
 
 /**
+ * All form component definition frames.
+ */
+export type AllFormComponentDefinitionFrames = Extract<AllTypes, {
+    kind: FormComponentDefinitionFrameKindType
+}>['class'];
+
+/**
  * The form component definition frames available for use in any list of form components.
  */
 export type AvailableFormComponentDefinitionFrames = Exclude<Extract<AllTypes, {
