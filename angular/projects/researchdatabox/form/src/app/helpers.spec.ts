@@ -29,6 +29,7 @@ import { FormStatusSignalBridge } from './form-state/facade/form-status-signal-b
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
+
 export interface FormComponentProps {
   oid: string;
   recordType: string;
@@ -139,7 +140,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "provideHttpClientTesting": provideHttpClientTesting(),
       "provideStore": provideStore(),  // Root store provider required for NgRx
       "provideEffects": provideEffects(),  // Root effects provider required for NgRx
-      "provideFormFeature": provideFormFeature(),  // Add form state providers (R16.12, AC52)
+      "provideFormFeature": provideFormFeature(),  // Add form state providers 
       "FormStateFacade": FormStateFacade,  // Provide the facade service
       "FormStatusSignalBridge": FormStatusSignalBridge,  // Provide the signal bridge for field components,
     }, testConfig.providers ?? {}),

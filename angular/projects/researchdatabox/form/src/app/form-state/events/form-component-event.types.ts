@@ -66,6 +66,28 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
 }
 
 /**
+ * Form save requested event
+ * Published by UI (e.g., SaveButton) to request a save
+ */
+export interface FormSaveRequestedEvent extends FormComponentEventBase {
+  readonly type: 'form.save.requested';
+  readonly force?: boolean;
+  readonly skipValidation?: boolean;
+  readonly targetStep?: string;
+}
+
+/**
+ * Form save execute command event
+ * Published by effects to instruct the component to execute saveForm
+ */
+export interface FormSaveExecuteEvent extends FormComponentEventBase {
+  readonly type: 'form.save.execute';
+  readonly force?: boolean;
+  readonly skipValidation?: boolean;
+  readonly targetStep?: string;
+}
+
+/**
  * Discriminated union of all form component events
  */
 export type FormComponentEvent =
@@ -73,7 +95,9 @@ export type FormComponentEvent =
   | FieldMetaChangedEvent
   | FieldDependencyTriggerEvent
   | FieldFocusRequestEvent
-  | FormValidationBroadcastEvent;
+  | FormValidationBroadcastEvent
+  | FormSaveRequestedEvent
+  | FormSaveExecuteEvent;
 
 /**
  * Event type literals for type-safe subscriptions (R15.17)
@@ -83,7 +107,9 @@ export const FormComponentEventType = {
   FIELD_META_CHANGED: 'field.meta.changed' as const,
   FIELD_DEPENDENCY_TRIGGER: 'field.dependency.trigger' as const,
   FIELD_FOCUS_REQUEST: 'field.request.focus' as const,
-  FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const
+  FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const,
+  FORM_SAVE_REQUESTED: 'form.save.requested' as const,
+  FORM_SAVE_EXECUTE: 'form.save.execute' as const
 } as const;
 
 /**
@@ -95,6 +121,8 @@ export interface FormComponentEventMap {
   'field.dependency.trigger': FieldDependencyTriggerEvent;
   'field.request.focus': FieldFocusRequestEvent;
   'form.validation.broadcast': FormValidationBroadcastEvent;
+  'form.save.requested': FormSaveRequestedEvent;
+  'form.save.execute': FormSaveExecuteEvent;
 }
 
 /**
@@ -144,5 +172,45 @@ export function createFieldFocusRequestEvent(
     type: FormComponentEventType.FIELD_FOCUS_REQUEST,
     fieldId,
     sourceId
+  };
+}
+
+/**
+ * Helper factory for creating save requested events (R15.15)
+ */
+export function createFormSaveRequestedEvent(
+  options?: {
+    force?: boolean;
+    skipValidation?: boolean;
+    targetStep?: string;
+    sourceId?: string;
+  }
+): Omit<FormSaveRequestedEvent, 'timestamp'> {
+  return {
+    type: FormComponentEventType.FORM_SAVE_REQUESTED,
+    force: options?.force,
+    skipValidation: options?.skipValidation,
+    targetStep: options?.targetStep,
+    sourceId: options?.sourceId
+  };
+}
+
+/**
+ * Helper factory for creating save execute command events (R15.15)
+ */
+export function createFormSaveExecuteEvent(
+  options?: {
+    force?: boolean;
+    skipValidation?: boolean;
+    targetStep?: string;
+    sourceId?: string;
+  }
+): Omit<FormSaveExecuteEvent, 'timestamp'> {
+  return {
+    type: FormComponentEventType.FORM_SAVE_EXECUTE,
+    force: options?.force,
+    skipValidation: options?.skipValidation,
+    targetStep: options?.targetStep,
+    sourceId: options?.sourceId
   };
 }

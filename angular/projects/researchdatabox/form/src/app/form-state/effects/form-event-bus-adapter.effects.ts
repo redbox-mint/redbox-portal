@@ -166,6 +166,24 @@ export class FormEventBusAdapterEffects {
   );
 
   /**
+   * Promote save-request events to submitForm actions
+   * Criterion: (b) Triggers side-effect (save orchestration)
+   * R15.20–R15.23
+   */
+  promoteSaveRequested$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_SAVE_REQUESTED,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: any) =>
+        FormActions.submitForm({
+          force: event.force,
+          skipValidation: event.skipValidation,
+          targetStep: event.targetStep,
+        })
+    )
+  );
+
+  /**
    * Promote field value changed events (selective)
    * Criterion: (c) Requires replay for debugging critical field changes
    * 

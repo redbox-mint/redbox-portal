@@ -3,6 +3,7 @@ import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import { FormStatusSignalBridge } from '../form-state/facade/form-status-signal-bridge';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import { FormComponentEventBus, createFormSaveRequestedEvent } from '../form-state/events';
 
 @Component({
   selector: 'redbox-form-save-button',
@@ -19,6 +20,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName = SaveButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
   disabled = signal<boolean>(false);
+  private readonly eventBus = inject(FormComponentEventBus);
   
   protected formStatusSignalBridge = inject(FormStatusSignalBridge);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
@@ -42,7 +44,15 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
 
   public async save() {
     if (this.formComponent && !this.disabled()) {
-      await this.formComponent.saveForm(this.componentDefinition?.config?.forceSave, this.componentDefinition?.config?.targetStep, this.componentDefinition?.config?.skipValidation);
+      // Publish a typed event to request save; NgRx effects will orchestrate execution
+      this.eventBus.publish(
+        createFormSaveRequestedEvent({
+          force: this.componentDefinition?.config?.forceSave,
+          targetStep: this.componentDefinition?.config?.targetStep,
+          skipValidation: this.componentDefinition?.config?.skipValidation,
+          sourceId: this.name ?? undefined
+        })
+      );
     } else {
       this.loggerService.debug(`Save button clicked but form is pristine, currently saving, not valid or dirty`);
     }

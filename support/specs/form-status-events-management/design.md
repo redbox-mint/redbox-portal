@@ -30,6 +30,11 @@ graph TD
   SimpleInputComponent -->|observe status| FormStatusBridge
   SimpleInputComponent -->|publish| FormEventBus
   FormStatusBridge -->|mirror status| FormComponent
+  SaveButton -->|publish form.save.requested| FormEventBus
+  EventBusAdapter -->|promote to Form - submitForm| FormActions
+  FormEffects -->|publish form.save.execute| FormEventBus
+  FormEventBus -->|command| FormComponent
+  FormComponent -->|invoke| saveForm
 ```
 
 ### 2.2 Module wiring (R1.1–R1.3, R14.1)
@@ -62,7 +67,7 @@ graph TD
 
 ### 3.3 Effects (R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4)
 - `loadInitialData$`: `switchMap` to `FormService.downloadFormComponents` honoring INIT guard; success dispatches ready state and writes `modelSnapshot` for diffing.
-- `submitForm$`: `exhaustMap` to `RecordService.save` (or `FormService.submit`). Adds action id to `pendingActions`, emits success/failure, updates `lastSavedAt`, and logs via `LoggerService`.
+- `submitForm$`: `exhaustMap` to `RecordService.save` (or `FormService.submit`). Adds action id to `pendingActions`, emits success/failure, updates `lastSavedAt`, and logs via `LoggerService`. Additionally, a non-dispatching command effect publishes `form.save.execute` to instruct `FormComponent` to run `saveForm` when orchestration requires component-driven code paths. No new state fields are introduced by this flow.
 - `resetAllFields$`: `filter` to skip when `status === SAVING` (R2.10) else increments `resetToken` and optionally notifies event bus via `form.reset` event for manual listeners.
 - Validation effects translate facade dispatches into state transitions while respecting `status === SAVING` guard (R2.14, R4.6).
 - Error channel centralizes sanitization and ensures `ackError` resets `error`.
@@ -93,12 +98,12 @@ graph TD
   ```
 - Takes `DestroyRef` to auto-clean subscriptions (R15.8) and batches emission with `queueMicrotask` when `eventLoopBatching` flag enabled (R15.19).
 - Canonical event naming documented inside README snippet, and helper factories (`createFieldValueChangedEvent`) exported via facade (R15.15–R15.17).
-- Promotion adapter subscribes to high-value events (dependency triggers, validation broadcast) and dispatches actions only when criteria are met (R15.20–R15.29).
+- Promotion adapter subscribes to high-value events (dependency triggers, validation broadcast, save-request) and dispatches actions only when criteria are met (R15.20–R15.29). `form.save.requested` is promoted to `[Form] submitForm`.
 
 ### 3.7 `FormComponent` integration (R16.1–R16.16)
 - Constructor injects `FormStateFacade`, `FormStatusSignalBridge`, and `FormComponentEventBus` via providers.
 - `initComponent` dispatches `loadInitialData` instead of directly mutating `status`; effect success updates `componentsLoaded` signal (maintained locally).
-- `saveForm` becomes thin wrapper: `this.formState.submitForm({ form: this.form, metadata: ... })` and the resulting success/failure updates prior `saveResponse` signal (facade writes to existing `saveResponse` via adapter method to limit blast radius, R16.9).
+- `saveForm` no longer receives direct invocations from `SaveButton`. Instead, `SaveButton` publishes `form.save.requested`; the adapter promotes it to `submitForm`; an effect publishes `form.save.execute`, which the `FormComponent` subscribes to and then calls `saveForm(force, targetStep, skipValidation)`. This preserves existing component logic without adding state fields.
 - FormGroup status `effect` now dispatches validation lifecycle actions rather than toggling `status` locally (R16.3).
 - Reset button uses `facade.resetAllFields('user-request')`. Field components continue to watch `resetToken()` and remain store-agnostic.
 - Existing template bindings keep using `status()` via injected bridge; fallback default value ensures optional components do not throw (R14.4).

@@ -17,7 +17,9 @@ import {
   FormComponentEventType,
   FieldDependencyTriggerEvent,
   FormValidationBroadcastEvent,
-  FieldValueChangedEvent
+  FieldValueChangedEvent,
+  FormSaveRequestedEvent,
+  createFormSaveRequestedEvent
 } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
 
@@ -461,6 +463,46 @@ describe('FormEventBusAdapterEffects', () => {
       expect(dependencyPromoted.length).toBe(1);
       expect(validationPromoted[0].type).toBe(FormActions.formValidationSuccess.type);
       expect(dependencyPromoted[0].type).toBe(FormActions.dependencyEvaluated.type);
+    }));
+  });
+
+  describe('Save Requested Promotion', () => {
+    it('should promote save-requested to submitForm action', fakeAsync(() => {
+      setupTestBed();
+
+      const promoted: any[] = [];
+      effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
+
+      eventBus.publish<FormSaveRequestedEvent>({
+        ...createFormSaveRequestedEvent({ force: true, skipValidation: true, targetStep: 'next' })
+      });
+
+      tick(10);
+
+      expect(promoted.length).toBe(1);
+      expect(promoted[0].type).toBe(FormActions.submitForm.type);
+      expect(promoted[0]).toEqual(jasmine.objectContaining({
+        force: true,
+        skipValidation: true,
+        targetStep: 'next'
+      }));
+    }));
+
+    it('should throttle duplicate save-requested events within window', fakeAsync(() => {
+      setupTestBed({ throttleWindowMs: 250 });
+
+      const promoted: any[] = [];
+      effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
+
+      for (let i = 0; i < 3; i++) {
+        eventBus.publish<FormSaveRequestedEvent>({
+          ...createFormSaveRequestedEvent({ force: false, skipValidation: false, targetStep: undefined })
+        });
+        tick(50);
+      }
+
+      expect(promoted.length).toBe(1);
+      expect(promoted[0].type).toBe(FormActions.submitForm.type);
     }));
   });
 });

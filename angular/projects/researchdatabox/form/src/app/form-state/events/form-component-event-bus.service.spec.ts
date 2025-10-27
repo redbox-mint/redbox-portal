@@ -21,7 +21,9 @@ import {
   FormValidationBroadcastEvent,
   createFieldValueChangedEvent,
   createFieldDependencyTriggerEvent,
-  createFieldFocusRequestEvent
+  createFieldFocusRequestEvent,
+  createFormSaveRequestedEvent,
+  createFormSaveExecuteEvent
 } from './form-component-event.types';
 
 describe('FormComponentEventBus', () => {
@@ -126,6 +128,52 @@ describe('FormComponentEventBus', () => {
         next: (received) => {
           expect(received.isValid).toBe(false);
           expect(received.errors).toEqual({ title: ['Required field'] });
+          done();
+        }
+      });
+
+      bus.publish(event);
+    });
+
+    it('should publish form save requested events (R15.17.1)', (done) => {
+      const event = createFormSaveRequestedEvent({
+        force: true,
+        skipValidation: false,
+        targetStep: 'review',
+        sourceId: 'save-button'
+      });
+
+      bus.select$(FormComponentEventType.FORM_SAVE_REQUESTED).subscribe({
+        next: (received) => {
+          expect(received.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
+          expect(received.force).toBe(true);
+          expect(received.skipValidation).toBe(false);
+          expect(received.targetStep).toBe('review');
+          expect(received.sourceId).toBe('save-button');
+          expect(received.timestamp).toBeGreaterThan(0);
+          done();
+        }
+      });
+
+      bus.publish(event);
+    });
+
+    it('should publish form save execute events (R15.30)', (done) => {
+      const event = createFormSaveExecuteEvent({
+        force: false,
+        skipValidation: true,
+        targetStep: 'submit',
+        sourceId: 'effect'
+      });
+
+      bus.select$(FormComponentEventType.FORM_SAVE_EXECUTE).subscribe({
+        next: (received) => {
+          expect(received.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
+          expect(received.force).toBe(false);
+          expect(received.skipValidation).toBe(true);
+          expect(received.targetStep).toBe('submit');
+          expect(received.sourceId).toBe('effect');
+          expect(received.timestamp).toBeGreaterThan(0);
           done();
         }
       });
@@ -505,6 +553,36 @@ describe('FormComponentEventBus', () => {
       expect(event.fieldId).toBe('email');
       expect(event.sourceId).toBe('validation-component');
     });
+
+    it('should create form save requested events via helper', () => {
+      const event = createFormSaveRequestedEvent({
+        force: true,
+        skipValidation: true,
+        targetStep: 'review',
+        sourceId: 'button-1'
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
+      expect(event.force).toBe(true);
+      expect(event.skipValidation).toBe(true);
+      expect(event.targetStep).toBe('review');
+      expect(event.sourceId).toBe('button-1');
+    });
+
+    it('should create form save execute events via helper', () => {
+      const event = createFormSaveExecuteEvent({
+        force: false,
+        skipValidation: false,
+        targetStep: 'submit',
+        sourceId: 'effect-1'
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
+      expect(event.force).toBe(false);
+      expect(event.skipValidation).toBe(false);
+      expect(event.targetStep).toBe('submit');
+      expect(event.sourceId).toBe('effect-1');
+    });
   });
 
   describe('Naming Convention (R15.16)', () => {
@@ -514,6 +592,8 @@ describe('FormComponentEventBus', () => {
       expect(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).toBe('field.dependency.trigger');
       expect(FormComponentEventType.FIELD_FOCUS_REQUEST).toBe('field.request.focus');
       expect(FormComponentEventType.FORM_VALIDATION_BROADCAST).toBe('form.validation.broadcast');
+      expect(FormComponentEventType.FORM_SAVE_REQUESTED).toBe('form.save.requested');
+      expect(FormComponentEventType.FORM_SAVE_EXECUTE).toBe('form.save.execute');
     });
   });
 

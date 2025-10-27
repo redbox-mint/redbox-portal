@@ -10,3 +10,61 @@
 8. [X] Refactor `FormComponent` to consume the facade/bridge for load, submit, reset, and validation workflows, dispatch dirty/pristine actions, and remove direct status mutations while keeping existing templates intact; extend component tests to assert new dispatch paths. (R16.1–R16.16, AC52–AC56)
 9. [X] Add an Angular TestBed integration spec bootstrapping `FormComponent` with the new providers to verify INIT→READY, reset propagation, and facade observability without runtime errors. (R12.4, R12.5, R16.12, AC52, AC59)
 10. [X] Update developer docs (e.g., form README snippet) describing facade/event bus consumption and event naming diagnostics to satisfy documentation requirements. (R11.4, R13.1–R13.3, R15.26)
+
+
+## Delta Tasks: Save via EventBus → NgRx Effect
+
+11. [X] Add save events and helpers in EventBus (R15.2–R15.5)
+	- Add new typed events: `form.save.requested` (publish from UI) and `form.save.execute` (command back to component).
+	- Extend the `FormComponentEvent` discriminated union and export factory helpers:
+	  - `createFormSaveRequestedEvent({ force?, skipValidation?, targetStep?, sourceId? })`
+	  - `createFormSaveExecuteEvent({ force?, skipValidation?, targetStep?, sourceId? })`
+	- Acceptance: TypeScript compiles; event factories are unit-tested (happy path + payload passthrough); no state shape changes; no state additions.
+
+12. [X] SaveButton publishes save-request instead of calling component (R7.1, R15.2)
+	- Update `SaveButtonComponent.save()` to publish `form.save.requested` via `FormComponentEventBus`.
+	- Preserve existing guard conditions (disabled, status gating) and logging.
+	- Acceptance: Component spec asserts bus.publish is called with the expected event; remove/adjust any tests that mocked `FormComponent.saveForm` directly from the button.
+
+13. [X] Promote save-request event to NgRx action (R15.20–R15.23)
+	- In `FormEventBusAdapterEffects`, add a promotion stream mapping `form.save.requested` → `[Form] submitForm` (payload: `{ force, skipValidation, targetStep }`).
+	- Include diagnostics logging behind the existing toggle and keep `catchError(() => EMPTY)`.
+	- Acceptance: Adapter effects spec verifies a single `submitForm` dispatch for a published event and throttling/no duplication if applicable.
+
+14. [ ] Emit execute command on submitForm (no dispatch) (R5.1, R15.3)
+	- In `FormEffects`, add a non-dispatching effect that listens to `submitForm` and publishes `form.save.execute` back to the EventBus carrying `{ force, skipValidation, targetStep }`.
+	- Acceptance: Effects spec spies on EventBus.publish and asserts it’s called on `submitForm`.
+
+15. [ ] FormComponent invokes saveForm on execute command (R16.1, R16.12)
+	- Subscribe to `form.save.execute` in `FormComponent` and call `this.saveForm(force, targetStep, skipValidation)`.
+	- Ensure proper teardown in `ngOnDestroy` and avoid duplicate subscriptions.
+	- Acceptance: Component unit test spies on `saveForm` and verifies it’s invoked when the execute event is published; no changes to the NgRx state model.
+
+16. [ ] Integration test: end-to-end button → event → action → execute (R12.5, R16.12)
+	- Boot real `FormComponent` in TestBed; trigger SaveButton.save(); assert:
+	  - `form.save.requested` was published,
+	  - `submitForm` action observed (via spy/mock store), and
+	  - `FormComponent.saveForm` was called via `form.save.execute`.
+	- Keep assertions synchronous where possible; avoid timers.
+
+17. [ ] Backward-compatibility shim (optional)
+	- Confirm `FormComponent.saveForm` remains callable programmatically; document that buttons should no longer call it directly.
+	- Acceptance: No public API break for existing consumers beyond SaveButton behavior change.
+
+18. [ ] Requirements update (wording only; no new state)
+	- Amend requirements to clarify: SaveButton publishes `form.save.requested`; adapter promotes to `submitForm`; effects publish `form.save.execute`; `FormComponent.saveForm` is called in response to the execute event.
+	- Reference: R8.3 tweak, add R15.30 (promotion of save-request), and note no changes to state shape in R2.*.
+
+19. [ ] Design update (runtime flow simplification)
+	- Update the sequence in the design doc to reflect: SaveButton → EventBus(`form.save.requested`) → Adapter → `submitForm` → Effect → EventBus(`form.save.execute`) → `FormComponent.saveForm`.
+	- Remove any mention of the button calling `saveForm` directly.
+
+20. [ ] Verify, lint, and document
+	- Run full test suite for the form package; fix any spec coupling that assumed direct invocation.
+	- Lint/format changed files; add a short migration note in the form README.
+	- Acceptance: Tests PASS; no TS errors; minimal log noise.
+
+Notes
+- Constraint: Do not introduce new form state—only events, promotion, and effects wiring change.
+- Security/observability: Keep logging inside effects; sanitize payloads if logged.
+- Performance: No additional reducer churn; bus remains O(1) per channel; effects use `catchError(() => EMPTY)` to avoid stream termination.

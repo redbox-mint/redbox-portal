@@ -5,6 +5,7 @@ import {TestBed} from "@angular/core/testing";
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
 import {FormStatus, FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import { FormComponentEventBus } from '../form-state/events';
 
 let formConfig: FormConfigFrame;
 
@@ -95,49 +96,71 @@ describe('SaveButtonComponent', () => {
     expect(saveButton.disabled).toBeFalse();
   });
 
-  it('should not call saveForm when disabled', async () => {
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+  it('should not publish save requested when disabled', async () => {
+    const {fixture} = await createFormAndWaitForReady(formConfig);
     const store = TestBed.inject(Store);
-    // Set status to VALIDATION_PENDING to disable button
-    store.dispatch(FormActions.formValidationPending());
-    fixture.detectChanges();
-    spyOn<any>(formComponent, 'saveForm');
-    const saveButton = fixture.nativeElement.querySelector('button');
-    saveButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(formComponent.saveForm).not.toHaveBeenCalled();
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.select$('form.save.requested').subscribe(e => events.push(e));
+    try {
+      // Set status to VALIDATION_PENDING to disable button
+      store.dispatch(FormActions.formValidationPending());
+      fixture.detectChanges();
+      const saveButton = fixture.nativeElement.querySelector('button');
+      saveButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(events.length).toBe(0);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
-  it('clicking save button should save form', async () => {
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
-    // Intercept the formComponent.saveForm method
-    spyOn<any>(formComponent, 'saveForm');
-    // Simulate a change in the text field
-    const textField = fixture.nativeElement.querySelector('input');
-    textField.value = 'new value';
-    textField.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    await fixture.whenStable();
-    // Simulate the save button click
-    const saveButton = fixture.nativeElement.querySelector('button');
-    saveButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    // Assert that saveForm was called with the expected params
-    expect(formComponent.saveForm).toHaveBeenCalledWith(true, 'next_step', true);
+  it('clicking save button should publish form.save.requested with config options', async () => {
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.select$('form.save.requested').subscribe(e => events.push(e));
+    try {
+      // Simulate a change in the text field to make form dirty
+      const textField = fixture.nativeElement.querySelector('input');
+      textField.value = 'new value';
+      textField.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      // Simulate the save button click
+      const saveButton = fixture.nativeElement.querySelector('button');
+      saveButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      // Assert the event payload
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe('form.save.requested');
+      expect(events[0].force).toBe(true);
+      expect(events[0].targetStep).toBe('next_step');
+      expect(events[0].skipValidation).toBe(true);
+      // name configured for the component in formConfig
+      expect(events[0].sourceId).toBe('save_button');
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
-  it('clicking save button should be disabled when the form is unchanged', async () => {
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
-    // Intercept the formComponent.saveForm method
-    spyOn<any>(formComponent, 'saveForm');
-    // Simulate the save button click
-    const saveButton = fixture.nativeElement.querySelector('button');
-    saveButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    // Assert that saveForm was not called
-    expect(formComponent.saveForm).not.toHaveBeenCalled();
+  it('clicking save button should not publish when the form is unchanged', async () => {
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.select$('form.save.requested').subscribe(e => events.push(e));
+    try {
+      // Simulate the save button click without changing inputs (pristine)
+      const saveButton = fixture.nativeElement.querySelector('button');
+      saveButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      // Assert that no event was published
+      expect(events.length).toBe(0);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 });

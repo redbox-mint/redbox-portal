@@ -144,7 +144,7 @@ R8.1 `FormComponent` SHALL replace its `status` signal with facade `status()` re
 
 R8.2 `FormComponent` SHALL dispatch `loadInitialData` on initialization with parameters derived from existing initialization logic (oid, recordType, formName).  
 
-R8.3 `FormComponent.saveForm` logic SHALL be moved/refactored to dispatch `submitForm` with support for existing parameters (forceSave, targetStep, skipValidation).  
+R8.3 The Save pathway SHALL be initiated from UI by publishing `form.save.requested` via the EventBus or by invoking `facade.submit(...)`. The adapter SHALL promote `form.save.requested` to `[Form] submitForm` and the `FormEffects` SHALL invoke the legacy `FormComponent.saveForm` via a `form.save.execute` EventBus command (no new state fields introduced). `FormComponent.saveForm` MAY remain as a thin wrapper for backward compatibility.  
 
 R8.4 `FormComponent` SHALL call `facade.resetAllFields()` on reset button click.  
 
@@ -238,6 +238,7 @@ R15.15 The facade SHALL re-export minimal event type helpers to keep component i
 R15.16 The system SHALL document canonical event naming scheme: `namespace.domain.action` (dot-delimited, lower-case).  
 
 R15.17 The bus SHALL support at least these initial event types: `field.value.changed`, `field.meta.changed`, `field.dependency.trigger`, `field.request.focus`, `form.validation.broadcast`.  
+R15.17.1 Additionally, the bus SHALL support `form.save.requested` (published by UI) and `form.save.execute` (published by effects to command the component to run save).  
 
 R15.18 The bus SHALL allow synchronous consumption in components (Signals) and asynchronous (Observable) in effects for flexibility.  
 
@@ -250,6 +251,8 @@ R15.21 Promotion logic SHALL reside in a dedicated adapter effect (`FormEventBus
 R15.22 The adapter effect SHALL implement guard logic to prevent duplicate dispatches for identical idempotent events within a throttling window (configurable, default 250ms).  
 
 R15.23 Promoted events SHALL be mapped to clearly named actions (e.g., `[Form] Dependency Evaluated`) rather than reusing ephemeral event type strings.  
+
+R15.30 Publishing `form.save.requested` SHALL be promoted by the adapter to `[Form] submitForm`. The `submitForm` effect SHALL publish `form.save.execute` back to the EventBus to trigger `FormComponent.saveForm` without introducing new state fields.  
 
 R15.24 Non-promoted events SHALL never reach the global store to avoid action noise.  
 

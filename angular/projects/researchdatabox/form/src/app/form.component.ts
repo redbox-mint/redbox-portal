@@ -69,7 +69,7 @@ import * as FormActions from './form-state/state/form.actions';
     standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
-  private logName: string = "FormComponent";
+  private logName = "FormComponent";
   appName: string;
   oid = model<string>('');
   recordType = model<string>('');
@@ -91,7 +91,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
-   * The previous formGroup status
+   * The previous formGroup status 
    */
   previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
