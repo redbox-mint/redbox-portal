@@ -10,6 +10,7 @@ import { provideState } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { formReducer } from './state/form.reducer';
 import { FormEffects } from './effects/form.effects';
+import { FormEventBusAdapterEffects } from './effects/form-event-bus-adapter.effects';
 import { FORM_FEATURE_KEY } from './state/form.state';
 
 // Re-export for convenience
@@ -40,6 +41,6 @@ export { FORM_FEATURE_KEY } from './state/form.state';
 export function provideFormFeature(): EnvironmentProviders {
   return makeEnvironmentProviders([
     provideState(FORM_FEATURE_KEY, formReducer),
-    provideEffects(FormEffects)
+    provideEffects(FormEffects, FormEventBusAdapterEffects)
   ]);
 }

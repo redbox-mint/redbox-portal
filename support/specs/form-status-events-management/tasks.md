@@ -40,7 +40,7 @@
 	- Ensure proper teardown in `ngOnDestroy` and avoid duplicate subscriptions.
 	- Acceptance: Component unit test spies on `saveForm` and verifies it’s invoked when the execute event is published; no changes to the NgRx state model.
 
-16. [ ] Integration test: end-to-end button → event → action → execute (R12.5, R16.12)
+16. [X] Integration test: end-to-end button → event → action → execute (R12.5, R16.12)
 	- Boot real `FormComponent` in TestBed; trigger SaveButton.save(); assert:
 	  - `form.save.requested` was published,
 	  - `submitForm` action observed (via spy/mock store), and
