@@ -13,6 +13,8 @@ import { map, catchError, switchMap, exhaustMap, tap, withLatestFrom, filter } f
 import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
+import { FormComponentEventBus } from '../events/form-component-event-bus.service';
+import { createFormSaveExecuteEvent } from '../events/form-component-event.types';
 
 // Abstraction for submit to allow async mocking in tests
 export interface SubmitDriver {
@@ -59,6 +61,7 @@ function logDiagnostics(context: string, data: any): void {
 export class FormEffects {
   private actions$ = inject(Actions);
   private store = inject(Store);
+  private eventBus = inject(FormComponentEventBus);
   
   /**
    * Submit driver allows tests to control async behavior of submit workflow.
@@ -218,6 +221,33 @@ export class FormEffects {
           FormActions.formValidationFailure
         ),
         tap(action => logDiagnostics('Failure action', { type: action.type, action }))
+      ),
+    { dispatch: false }
+  );
+
+  /**
+   * Publish Execute Command on Submit
+   *
+   * Listens to submitForm and publishes form.save.execute to the EventBus carrying
+   * { force, skipValidation, targetStep }. Non-dispatching effect.
+   * Per R5.1, R15.3 (Task 14)
+   */
+  publishSaveExecuteOnSubmit$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(FormActions.submitForm),
+        tap(action => {
+          logDiagnostics('publishSaveExecuteOnSubmit', action);
+          this.eventBus.publish(
+            createFormSaveExecuteEvent({
+              force: action.force,
+              skipValidation: action.skipValidation,
+              targetStep: action.targetStep
+            })
+          );
+        }),
+        // Keep stream resilient
+        catchError(() => of(void 0))
       ),
     { dispatch: false }
   );

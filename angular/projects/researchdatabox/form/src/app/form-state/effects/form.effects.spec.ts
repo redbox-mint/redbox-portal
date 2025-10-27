@@ -9,14 +9,14 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action, provideStore, Store } from '@ngrx/store';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { TestScheduler } from 'rxjs/testing';
 import { FormEffects } from './form.effects';
 import * as FormActions from '../state/form.actions';
-import { provideFormFeature, FORM_FEATURE_KEY } from '../providers';
-import { FormStatus } from '@researchdatabox/sails-ng-common';
-import { FormFeatureState } from '../state/form.state';
+import { provideFormFeature } from '../providers';
 import { provideEffects } from '@ngrx/effects';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 
 describe('FormEffects', () => {
   let actions$: Observable<Action>;
@@ -37,10 +37,11 @@ describe('FormEffects', () => {
         provideStore(),
         provideEffects(),
         provideFormFeature(),
+        LoggerService,
         {
           provide: FormEffects.SUBMIT_DRIVER,
           useFactory: () => ({ handler: (action: any) => submitHandler(action) })
-        }
+        },
       ]
     });
 
@@ -487,6 +488,35 @@ describe('FormEffects', () => {
           c: FormActions.resetAllFieldsComplete(),
           d: FormActions.resetAllFieldsComplete()
         });
+      });
+    });
+  });
+
+  describe('publishSaveExecuteOnSubmit$ Effect (Task 14)', () => {
+    it('should publish form.save.execute on submitForm', (done) => {
+      const bus = TestBed.inject(FormComponentEventBus);
+      const publishSpy = spyOn(bus, 'publish').and.callThrough();
+
+      const action = FormActions.submitForm({
+        force: true,
+        skipValidation: true,
+        targetStep: 'S2'
+      });
+
+      actions$ = of(action);
+
+      effects.publishSaveExecuteOnSubmit$.subscribe({
+        complete: () => {
+          expect(publishSpy).toHaveBeenCalledTimes(1);
+          const arg = publishSpy.calls.mostRecent().args[0] as any;
+          expect(arg).toEqual(jasmine.objectContaining({
+            type: 'form.save.execute',
+            force: true,
+            skipValidation: true,
+            targetStep: 'S2'
+          }));
+          done();
+        }
       });
     });
   });

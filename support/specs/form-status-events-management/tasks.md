@@ -31,7 +31,7 @@
 	- Include diagnostics logging behind the existing toggle and keep `catchError(() => EMPTY)`.
 	- Acceptance: Adapter effects spec verifies a single `submitForm` dispatch for a published event and throttling/no duplication if applicable.
 
-14. [ ] Emit execute command on submitForm (no dispatch) (R5.1, R15.3)
+14. [X] Emit execute command on submitForm (no dispatch) (R5.1, R15.3)
 	- In `FormEffects`, add a non-dispatching effect that listens to `submitForm` and publishes `form.save.execute` back to the EventBus carrying `{ force, skipValidation, targetStep }`.
 	- Acceptance: Effects spec spies on EventBus.publish and asserts it’s called on `submitForm`.
 
