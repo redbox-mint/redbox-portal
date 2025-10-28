@@ -38,10 +38,6 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     });
   }
 
-  protected override async setComponentReady(): Promise<void> {
-    await super.setComponentReady();
-  }
-
   public async save() {
     if (this.formComponent && !this.disabled()) {
       // Publish a typed event to request save; NgRx effects will orchestrate execution
