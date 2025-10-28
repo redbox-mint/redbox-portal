@@ -51,7 +51,7 @@
 	- Confirm `FormComponent.saveForm` remains callable programmatically; document that buttons should no longer call it directly.
 	- Acceptance: No public API break for existing consumers beyond SaveButton behavior change.
 
-18. [ ] Requirements update (wording only; no new state)
+18. [X] Requirements update (wording only; no new state)
 	- Amend requirements to clarify: SaveButton publishes `form.save.requested`; adapter promotes to `submitForm`; effects publish `form.save.execute`; `FormComponent.saveForm` is called in response to the execute event.
 	- Reference: R8.3 tweak, add R15.30 (promotion of save-request), and note no changes to state shape in R2.*.
 
