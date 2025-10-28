@@ -159,7 +159,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.constructOverrides = new ConstructOverrides();
     }
 
-    start(data: FormConfigFrame, reusableFormConfig?: ReusableFormDefinitions, formMode?: FormModesConfig): FormConfigOutline {
+    start(data: FormConfigFrame, formMode?: FormModesConfig, reusableFormConfig?: ReusableFormDefinitions): FormConfigOutline {
         this.reusableFormConfig = reusableFormConfig ?? {};
         this.reusableFormConfigNames = Object.keys(this.reusableFormConfig).sort();
         this.formMode = formMode ?? "view";

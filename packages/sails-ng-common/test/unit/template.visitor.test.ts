@@ -56,7 +56,7 @@ describe("Template Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start(args, undefined, "edit");
+            const constructed = constructor.start(args, "edit");
 
             const visitor = new TemplateFormConfigVisitor(logger);
             const actual = visitor.start(constructed);

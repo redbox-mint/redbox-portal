@@ -516,7 +516,7 @@ export module Services {
       const recordData =  context?.current?.model?.data;
 
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start(item, undefined, formMode);
+      const constructed = constructor.start(item, formMode);
 
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
