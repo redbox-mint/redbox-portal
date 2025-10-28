@@ -80,13 +80,13 @@ describe('Form Save Flow Integration', () => {
     try {
       // Make the form dirty so the Save button is enabled
       // Prefer setting the FormControl programmatically to ensure valueChanges and dirty state propagate reliably
-  formComponent.form?.get('text_input')?.setValue('new value');
-  // Explicitly mark the form dirty to satisfy SaveButton gating
-  formComponent.form?.markAsDirty();
-  formComponent.form?.updateValueAndValidity();
-  
-  fixture.detectChanges();
-  await fixture.whenStable();
+      formComponent.form?.get('text_input')?.setValue('new value');
+      // Explicitly mark the form dirty to satisfy SaveButton gating
+      formComponent.form?.markAsDirty();
+      formComponent.form?.updateValueAndValidity();
+      
+      fixture.detectChanges();
+      await fixture.whenStable();
 
       // Sanity check: button should be enabled now
       const preClickButton: HTMLButtonElement = fixture.nativeElement.querySelector('button');

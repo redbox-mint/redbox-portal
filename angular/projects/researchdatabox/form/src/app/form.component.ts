@@ -162,20 +162,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Monitor async validation state and dispatch actions (R16.3, AC56)
     effect(() => {
       const formGroupStatus = this.formGroupStatus();
-      const currentPending = formGroupStatus?.pending || false;
-      const wasPending = this.previousFormGroupStatus()?.pending || false;
-      const isValid = formGroupStatus?.valid || false;
-      const wasValid = this.previousFormGroupStatus()?.valid || false;
-      const inSaving = this.status() === FormStatus.SAVING;
+      const formGroupIsPending = formGroupStatus?.pending || false;
+      const formGroupWasPending = this.previousFormGroupStatus()?.pending || false;
+      const formGroupIsValid = formGroupStatus?.valid || false;
+      const formGroupWasValid = this.previousFormGroupStatus()?.valid || false;
+      const formIsSaving = this.status() === FormStatus.SAVING;
 
       // Dispatch validation lifecycle actions instead of direct status mutation
-      if (currentPending && !inSaving && !wasPending) {
+      if (formGroupIsPending && !formIsSaving && !formGroupWasPending) {
         this.store.dispatch(FormActions.formValidationPending());
-      } else if (wasPending && !currentPending && !isValid && !inSaving) {
+      } else if (formGroupWasPending && !formGroupIsPending && !formGroupIsValid && !formIsSaving) {
         this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
-      } else if (wasPending && !currentPending && isValid && this.status() === FormStatus.VALIDATION_PENDING) {
+      } else if (formGroupWasPending && !formGroupIsPending && formGroupIsValid && this.status() === FormStatus.VALIDATION_PENDING) {
         this.store.dispatch(FormActions.formValidationSuccess());
-      } else if (!wasValid && isValid && !currentPending && wasPending) {
+      } else if (!formGroupWasValid && formGroupIsValid && !formGroupIsPending && formGroupWasPending) {
         this.store.dispatch(FormActions.formValidationSuccess());
       }
 
@@ -409,13 +409,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public async saveForm(forceSave: boolean = false, targetStep: string = '', skipValidation: boolean = false) {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
-    if (this.status() === FormStatus.READY && this.form && (this.form.dirty || forceSave)) {
-      if (this.form.valid || skipValidation) {
+    const formIsReady = this.status() === FormStatus.READY;
+    const formIsSaving = this.status() === FormStatus.SAVING;
+    const formIsModified = this.form?.dirty || forceSave;
+    const formIsValid = this.form?.valid || skipValidation;
+
+    if (this.form && formIsModified) {
+      if (formIsValid && (formIsReady || formIsSaving)) {
         this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, skipValidation: ${skipValidation}. Submitting via facade...`);
         this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
-        
+
         // Dispatch submit via facade (R16.9, AC54)
-        this.facade.submit({ force: forceSave, targetStep, skipValidation });
+        // this.facade.submit({ force: forceSave, targetStep, skipValidation });
         
         try {
           let response: RecordActionResult;

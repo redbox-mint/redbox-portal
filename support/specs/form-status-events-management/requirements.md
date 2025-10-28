@@ -144,7 +144,7 @@ R8.1 `FormComponent` SHALL replace its `status` signal with facade `status()` re
 
 R8.2 `FormComponent` SHALL dispatch `loadInitialData` on initialization with parameters derived from existing initialization logic (oid, recordType, formName).  
 
-R8.3 The Save pathway SHALL be initiated from UI by publishing `form.save.requested` via the EventBus or by invoking `facade.submit(...)`. The adapter SHALL promote `form.save.requested` to `[Form] submitForm` and the `FormEffects` SHALL invoke the legacy `FormComponent.saveForm` via a `form.save.execute` EventBus command (no new state fields introduced). `FormComponent.saveForm` MAY remain as a thin wrapper for backward compatibility.  
+R8.3 The Save pathway SHALL be initiated from UI by publishing `form.save.requested` via the EventBus or by invoking `facade.submit(...)`. The adapter SHALL promote `form.save.requested` to `[Form] submitForm` and the `FormEffects` SHALL invoke the  `FormComponent.saveForm` via a `form.save.execute` EventBus command (no new state fields introduced). `FormComponent.saveForm` MAY remain as a thin wrapper for backward compatibility.  
 
 R8.4 `FormComponent` SHALL call `facade.resetAllFields()` on reset button click.  
 

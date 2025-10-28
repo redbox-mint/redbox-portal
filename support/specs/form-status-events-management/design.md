@@ -104,6 +104,7 @@ graph TD
 - Constructor injects `FormStateFacade`, `FormStatusSignalBridge`, and `FormComponentEventBus` via providers.
 - `initComponent` dispatches `loadInitialData` instead of directly mutating `status`; effect success updates `componentsLoaded` signal (maintained locally).
 - `saveForm` no longer receives direct invocations from `SaveButton`. Instead, `SaveButton` publishes `form.save.requested`; the adapter promotes it to `submitForm`; an effect publishes `form.save.execute`, which the `FormComponent` subscribes to and then calls `saveForm(force, targetStep, skipValidation)`. This preserves existing component logic without adding state fields.
+- Legacy consumers may continue calling `formComponent.saveForm(...)` directly for custom workflows; the method remains public and retains its behaviour for compatibility. UI buttons must publish `form.save.requested` rather than invoking the method to stay aligned with the event-driven flow.
 - FormGroup status `effect` now dispatches validation lifecycle actions rather than toggling `status` locally (R16.3).
 - Reset button uses `facade.resetAllFields('user-request')`. Field components continue to watch `resetToken()` and remain store-agnostic.
 - Existing template bindings keep using `status()` via injected bridge; fallback default value ensures optional components do not throw (R14.4).

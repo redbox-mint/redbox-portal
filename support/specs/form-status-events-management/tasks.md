@@ -47,7 +47,7 @@
 	  - `FormComponent.saveForm` was called via `form.save.execute`.
 	- Keep assertions synchronous where possible; avoid timers.
 
-17. [ ] Backward-compatibility shim (optional)
+17. [X] Backward-compatibility shim (optional)
 	- Confirm `FormComponent.saveForm` remains callable programmatically; document that buttons should no longer call it directly.
 	- Acceptance: No public API break for existing consumers beyond SaveButton behavior change.
 

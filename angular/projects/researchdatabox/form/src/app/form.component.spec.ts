@@ -67,4 +67,35 @@ describe('FormComponent', () => {
     expect(spy).toHaveBeenCalledWith(true, 'S1', true);
   });
 
+  it('allows legacy callers to invoke saveForm directly (Task 17)', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'legacy-save',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_legacy',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'legacy value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const submitSpy = spyOn(formComponent, 'saveForm').and.stub();
+    await formComponent.saveForm(true, 'legacy-step', true);
+    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step',  true);
+    expect(formComponent.form?.pristine).toBeTrue();
+  });
+
 });
