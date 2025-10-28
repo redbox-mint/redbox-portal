@@ -53,11 +53,11 @@
 
 18. [X] Requirements update (wording only; no new state)
 	- Amend requirements to clarify: SaveButton publishes `form.save.requested`; adapter promotes to `submitForm`; effects publish `form.save.execute`; `FormComponent.saveForm` is called in response to the execute event.
-	- Reference: R8.3 tweak, add R15.30 (promotion of save-request), and note no changes to state shape in R2.*.
+	- Reference: R8.3 updated to detail full EventBus → NgRx → EventBus orchestration; R15.30 already present; R2.2–R2.8 confirm no new state fields introduced.
 
-19. [ ] Design update (runtime flow simplification)
+19. [X] Design update (runtime flow simplification)
 	- Update the sequence in the design doc to reflect: SaveButton → EventBus(`form.save.requested`) → Adapter → `submitForm` → Effect → EventBus(`form.save.execute`) → `FormComponent.saveForm`.
-	- Remove any mention of the button calling `saveForm` directly.
+	- Acceptance: Section 3.3 now explicitly describes `publishSaveExecuteOnSubmit$` effect and adapter promotion of `form.save.requested`; section 3.7 already correctly documents the full flow; section 2.1 diagram already shows complete event routing.
 
 20. [ ] Verify, lint, and document
 	- Run full test suite for the form package; fix any spec coupling that assumed direct invocation.

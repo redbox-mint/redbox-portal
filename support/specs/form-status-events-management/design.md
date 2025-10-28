@@ -67,11 +67,12 @@ graph TD
 
 ### 3.3 Effects (R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4)
 - `loadInitialData$`: `switchMap` to `FormService.downloadFormComponents` honoring INIT guard; success dispatches ready state and writes `modelSnapshot` for diffing.
-- `submitForm$`: `exhaustMap` to `RecordService.save` (or `FormService.submit`). Adds action id to `pendingActions`, emits success/failure, updates `lastSavedAt`, and logs via `LoggerService`. Additionally, a non-dispatching command effect publishes `form.save.execute` to instruct `FormComponent` to run `saveForm` when orchestration requires component-driven code paths. No new state fields are introduced by this flow.
+- `submitForm$`: `exhaustMap` to ensure single in-flight save. Sets `status = SAVING`, adds action id to `pendingActions`, emits success/failure, updates `lastSavedAt`, and logs via `LoggerService`.
+- `publishSaveExecuteOnSubmit$`: Non-dispatching effect that listens to `submitForm` action and publishes `form.save.execute` command event to the EventBus, carrying `{ force, skipValidation, targetStep }`. This instructs `FormComponent` to invoke its existing `saveForm` method, preserving component-driven persistence logic. No new state fields are introduced by this orchestration.
 - `resetAllFields$`: `filter` to skip when `status === SAVING` (R2.10) else increments `resetToken` and optionally notifies event bus via `form.reset` event for manual listeners.
 - Validation effects translate facade dispatches into state transitions while respecting `status === SAVING` guard (R2.14, R4.6).
 - Error channel centralizes sanitization and ensures `ackError` resets `error`.
-- `FormEventBusAdapterEffects`: listens to promotion-worthy events (criteria a–c) using `auditTime(250ms)` to dedupe (R15.20–R15.28). Logging toggled by `environment.devTools`.
+- `FormEventBusAdapterEffects`: listens to promotion-worthy events (criteria a–c) using `auditTime(250ms)` to dedupe (R15.20–R15.28). Includes promotion of `form.save.requested` → `[Form] submitForm`. Logging toggled by `environment.devTools`.
 
 ### 3.4 FormStateFacade (Bridge) (R7.1–R7.6, R8.1–R8.7, R16.2–R16.15)
 - Provides readonly signals `status()`, `isInitializing()`, `isSaving()`, `isDirty()`, `error()`, `pendingActions()`, `resetToken()` via `toSignal(store.select(selector), { initialValue })`.
