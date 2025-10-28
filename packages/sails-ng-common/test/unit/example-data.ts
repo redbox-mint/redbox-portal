@@ -46,7 +46,7 @@ export const reusableDefinitionsExample1: ReusableFormDefinitions = {
                             // merge all other properties, preferring the definitions here
                             overrides: {replaceName: "contributor_ci_name"},
                             name: "name",
-                            component: {class: "SimpleInputComponent", config: {}},
+                            component: {class: "SimpleInputComponent", config: {type: "tel"}},
                         },
                         {
                             // refer to the item without changing it
@@ -788,7 +788,7 @@ export const formConfigExample2: FormConfigFrame = {
                             // note that the 'name' used here must be the name after previous reusable form config process is done, not the original name
                             overrides: {
                                 replaceName: "contributor_data_manager2",
-                                formModeClasses: {"view": {component: "ContentComponent"}}
+                                formModeClasses: {"view": {component: "SimpleInputComponent"}}
                             },
                             name: "contributor_data_manager",
                             component: {class: "SimpleInputComponent", config: {}}

@@ -107,7 +107,7 @@ describe("Construct Visitor", async () => {
         cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start(args);
+                const actual = visitor.start(args, undefined, "edit");
                 if (expected.useArgs) {
                     expect(actual).to.containSubset(args);
                 } else {
@@ -138,8 +138,8 @@ describe("Construct Visitor", async () => {
                 expected: {
                     name: "default-1.0-draft",
                     componentDefinitions: [
-                        {name: "contributor_ci_name", component: {class: "SimpleInputComponent"}},
-                        {name: "contributor_data_manager_email", component: {class: "SimpleInputComponent"}},
+                        {name: "contributor_ci_name", component: {class: "ContentComponent"}},
+                        {name: "contributor_data_manager_email", component: {class: "ContentComponent"}},
                         {
                             name: "orcid",
                             component: {
@@ -151,7 +151,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         },
-                        {name: "contributor_data_manager2", component: {class: "ContentComponent"}},
+                        {name: "contributor_data_manager2", component: {class: "SimpleInputComponent"}},
                     ]
                 },
             },
@@ -212,7 +212,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, 'Repeatable element template overrides must result in exactly one item, got 3');
         });
@@ -239,7 +239,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, "Could not find class for form component class name 'NotAClass'");
         });
@@ -265,7 +265,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, "Invalid FormComponentDefinition at ");
         });
@@ -293,7 +293,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "Override for component name '' class 'ReusableComponent' must contain only 'reusableFormName', " +
@@ -320,7 +320,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc1).to.throw(Error, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
 
@@ -347,7 +347,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc2).to.throw(Error, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
         });
@@ -377,7 +377,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "Each item in the ReusableComponent componentDefinitions must have a name that matches an item in the reusable form config 'standard-contributor-field'. " +
@@ -416,7 +416,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
@@ -448,7 +448,7 @@ describe("Construct Visitor", async () => {
                             }
                         }
                     ]
-                }, reusableDefinitionsExample1, "view");
+                }, reusableDefinitionsExample1, "edit");
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "The class must match the reusable form config. " +

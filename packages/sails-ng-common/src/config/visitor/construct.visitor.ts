@@ -127,6 +127,7 @@ import {AvailableFormComponentDefinitionFrames, ReusableFormDefinitions} from ".
 import {FormModesConfig} from "../shared.outline";
 import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "../component/reusable.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ConstructOverrides} from "./construct.overrides";
 
 
 /**
@@ -146,12 +147,16 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private fieldLayoutMap?: LayoutClassDefMapType;
     private formComponentMap?: FormComponentClassDefMapType;
 
+    private constructOverrides: ConstructOverrides;
+
     constructor(logger: ILogger) {
         super(logger);
         this.fieldComponentMap = FieldComponentDefinitionMap;
         this.fieldModelMap = FieldModelDefinitionMap;
         this.fieldLayoutMap = FieldLayoutDefinitionMap;
         this.formComponentMap = FormComponentDefinitionMap;
+
+        this.constructOverrides = new ConstructOverrides();
     }
 
     start(data: FormConfigFrame, reusableFormConfig?: ReusableFormDefinitions, formMode?: FormModesConfig): FormConfigOutline {
@@ -174,17 +179,17 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
 
         // Set the simple properties, using the class instance property values as the defaults.
-        this.sharedProps.setProp('name', item, currentData);
-        this.sharedProps.setProp('type', item, currentData);
-        this.sharedProps.setProp('domElementType', item, currentData);
-        this.sharedProps.setProp('domId', item, currentData);
-        this.sharedProps.setProp('viewCssClasses', item, currentData);
-        this.sharedProps.setProp('editCssClasses', item, currentData);
-        this.sharedProps.setProp('defaultComponentConfig', item, currentData);
-        this.sharedProps.setProp('skipValidationOnSave', item, currentData);
-        this.sharedProps.setProp('validators', item, currentData);
-        this.sharedProps.setProp('defaultLayoutComponent', item, currentData);
-        this.sharedProps.setProp('debugValue', item, currentData);
+        this.sharedProps.setPropOverride('name', item, currentData);
+        this.sharedProps.setPropOverride('type', item, currentData);
+        this.sharedProps.setPropOverride('domElementType', item, currentData);
+        this.sharedProps.setPropOverride('domId', item, currentData);
+        this.sharedProps.setPropOverride('viewCssClasses', item, currentData);
+        this.sharedProps.setPropOverride('editCssClasses', item, currentData);
+        this.sharedProps.setPropOverride('defaultComponentConfig', item, currentData);
+        this.sharedProps.setPropOverride('skipValidationOnSave', item, currentData);
+        this.sharedProps.setPropOverride('validators', item, currentData);
+        this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
+        this.sharedProps.setPropOverride('debugValue', item, currentData);
 
         currentData.componentDefinitions = this.applyOverrides(currentData?.componentDefinitions ?? []);
 
@@ -215,7 +220,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('type', item.config, config);
+        this.sharedProps.setPropOverride('type', item.config, config);
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
@@ -250,8 +255,8 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('content', item.config, config);
-        this.sharedProps.setProp('template', item.config, config);
+        this.sharedProps.setPropOverride('content', item.config, config);
+        this.sharedProps.setPropOverride('template', item.config, config);
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
@@ -445,10 +450,10 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
 
-        this.sharedProps.setProp('buttonSectionCssClass', item.config, config);
-        this.sharedProps.setProp('tabPaneCssClass', item.config, config);
-        this.sharedProps.setProp('tabPaneActiveCssClass', item.config, config);
-        this.sharedProps.setProp('buttonSectionAriaOrientation', item.config, config);
+        this.sharedProps.setPropOverride('buttonSectionCssClass', item.config, config);
+        this.sharedProps.setPropOverride('tabPaneCssClass', item.config, config);
+        this.sharedProps.setPropOverride('tabPaneActiveCssClass', item.config, config);
+        this.sharedProps.setPropOverride('buttonSectionAriaOrientation', item.config, config);
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
@@ -470,7 +475,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('selected', item.config, config);
+        this.sharedProps.setPropOverride('selected', item.config, config);
 
         config.componentDefinitions = this.applyOverrides(config?.componentDefinitions ?? []);
 
@@ -499,7 +504,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
 
-        this.sharedProps.setProp('buttonLabel', item.config, config);
+        this.sharedProps.setPropOverride('buttonLabel', item.config, config);
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
@@ -521,9 +526,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('targetStep', item.config, config);
-        this.sharedProps.setProp('forceSave', item.config, config);
-        this.sharedProps.setProp('skipValidation', item.config, config);
+        this.sharedProps.setPropOverride('targetStep', item.config, config);
+        this.sharedProps.setPropOverride('forceSave', item.config, config);
+        this.sharedProps.setPropOverride('skipValidation', item.config, config);
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
@@ -545,9 +550,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('rows', item.config, config);
-        this.sharedProps.setProp('cols', item.config, config);
-        this.sharedProps.setProp('placeholder', item.config, config);
+        this.sharedProps.setPropOverride('rows', item.config, config);
+        this.sharedProps.setPropOverride('cols', item.config, config);
+        this.sharedProps.setPropOverride('placeholder', item.config, config);
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
@@ -597,9 +602,9 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('placeholder', item.config, config);
-        this.sharedProps.setProp('options', item.config, config);
-        this.sharedProps.setProp('multipleValues', item.config, config);
+        this.sharedProps.setPropOverride('placeholder', item.config, config);
+        this.sharedProps.setPropOverride('options', item.config, config);
+        this.sharedProps.setPropOverride('multipleValues', item.config, config);
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -634,8 +639,8 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('placeholder', item.config, config);
-        this.sharedProps.setProp('options', item.config, config);
+        this.sharedProps.setPropOverride('placeholder', item.config, config);
+        this.sharedProps.setPropOverride('options', item.config, config);
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -670,7 +675,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('options', item.config, config);
+        this.sharedProps.setPropOverride('options', item.config, config);
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
@@ -705,12 +710,12 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setProp('placeholder', item.config, config);
-        this.sharedProps.setProp('dateFormat', item.config, config);
-        this.sharedProps.setProp('showWeekNumbers', item.config, config);
-        this.sharedProps.setProp('containerClass', item.config, config);
-        this.sharedProps.setProp('enableTimePicker', item.config, config);
-        this.sharedProps.setProp('bsFullConfig', item.config, config);
+        this.sharedProps.setPropOverride('placeholder', item.config, config);
+        this.sharedProps.setPropOverride('dateFormat', item.config, config);
+        this.sharedProps.setPropOverride('showWeekNumbers', item.config, config);
+        this.sharedProps.setPropOverride('containerClass', item.config, config);
+        this.sharedProps.setPropOverride('enableTimePicker', item.config, config);
+        this.sharedProps.setPropOverride('bsFullConfig', item.config, config);
     }
 
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
@@ -799,53 +804,32 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected applyOverrides(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
-
-
         // NOTE: The order the overrides are actioned matters - different orders will produce different results.
 
         // Replace the 'ReusableComponent' with the definitions from the 'reusableFormName'.
         // This must be done first, as the other overrides don't make sense without this step.
-        const result = this.applyOverrideReusable(items);
+        const itemsReusableExpanded = this.applyOverrideReusable(items);
 
         // Apply the rest of the overrides.
-        for (const item of result) {
-            // Use 'formModeClasses' to update the class names.
-            if (item.overrides?.formModeClasses && this.formMode in item.overrides.formModeClasses) {
-                const newClasses = item.overrides?.formModeClasses[this.formMode] ?? {};
+        return itemsReusableExpanded.map(item => {
+            // Update the class names using 'formModeClasses' and the default transforms.
+            const itemTransformed = this.constructOverrides.transform(item, this.formMode);
 
-                // for debugging:
-                // const originalClasses = {
-                //     component: item.component.class,
-                //     model: item.model?.class,
-                //     layout: item.layout?.class,
-                // }
-                // this.logger.debug(`Classes for '${item.name}' changed from ${JSON.stringify(originalClasses)} to ${JSON.stringify(Object.assign({}, originalClasses, newClasses))}`);
-
-                if (newClasses.component) {
-                    item.component.class = newClasses.component;
-                }
-                if (newClasses.model && item.model) {
-                    item.model.class = newClasses.model;
-                }
-                if (newClasses.layout && item.layout) {
-                    item.layout.class = newClasses.layout;
-                }
-            }
             // Use 'replaceName' to update the form component name.
-            if (item.overrides?.replaceName) {
+            if (itemTransformed.overrides?.replaceName) {
                 // for debugging:
                 // this.logger.debug(`Name changed from '${item.name}' to '${item.overrides?.replaceName}'.`);
 
-                item.name = item.overrides?.replaceName;
+                itemTransformed.name = itemTransformed.overrides?.replaceName;
             }
 
             // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-            if ('overrides' in item) {
-                delete item['overrides'];
+            if ('overrides' in itemTransformed) {
+                delete itemTransformed['overrides'];
             }
-        }
 
-        return result;
+            return itemTransformed;
+        });
     }
 
     protected applyOverrideReusable(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {

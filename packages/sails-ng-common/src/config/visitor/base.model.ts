@@ -296,6 +296,10 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
     protected currentPath: TemplateCompileKey = [];
 
+    protected constructor(logger: ILogger) {
+        super(logger);
+    }
+
     /**
      * Reset the current path to an empty array.
      * @protected
@@ -347,47 +351,89 @@ export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
 export class PopulateProperties {
     public sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, config?: FieldComponentConfigFrame) {
         // Set the common field component config properties
-        this.setProp('readonly', item, config);
-        this.setProp('visible', item, config);
-        this.setProp('editMode', item, config);
-        this.setProp('label', item, config);
-        this.setProp('defaultComponentCssClasses', item, config);
-        this.setProp('hostCssClasses', item, config);
-        this.setProp('wrapperCssClasses', item, config);
-        this.setProp('disabled', item, config);
-        this.setProp('autofocus', item, config);
-        this.setProp('tooltip', item, config);
+        this.setPropOverride('readonly', item, config);
+        this.setPropOverride('visible', item, config);
+        this.setPropOverride('editMode', item, config);
+        this.setPropOverride('label', item, config);
+        this.setPropOverride('defaultComponentCssClasses', item, config);
+        this.setPropOverride('hostCssClasses', item, config);
+        this.setPropOverride('wrapperCssClasses', item, config);
+        this.setPropOverride('disabled', item, config);
+        this.setPropOverride('autofocus', item, config);
+        this.setPropOverride('tooltip', item, config);
     }
 
     public sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, config?: FieldModelConfigFrame<unknown>) {
         // Set the common field model config properties
-        this.setProp('disableFormBinding', item, config);
-        this.setProp('value', item, config);
-        this.setProp('defaultValue', item, config);
-        this.setProp('validators', item, config);
-        this.setProp('wrapperCssClasses', item, config);
-        this.setProp('editCssClasses', item, config);
+        this.setPropOverride('disableFormBinding', item, config);
+        this.setPropOverride('value', item, config);
+        this.setPropOverride('defaultValue', item, config);
+        this.setPropOverride('validators', item, config);
+        this.setPropOverride('wrapperCssClasses', item, config);
+        this.setPropOverride('editCssClasses', item, config);
     }
 
     public sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, config?: FieldLayoutConfigFrame) {
         // Set the common field model config properties
         this.sharedPopulateFieldComponentConfig(item, config);
-        this.setProp('labelRequiredStr', item, config);
-        this.setProp('helpText', item, config);
-        this.setProp('cssClassesMap', item, config);
-        this.setProp('helpTextVisibleOnInit', item, config);
-        this.setProp('helpTextVisible', item, config);
+        this.setPropOverride('labelRequiredStr', item, config);
+        this.setPropOverride('helpText', item, config);
+        this.setPropOverride('cssClassesMap', item, config);
+        this.setPropOverride('helpTextVisibleOnInit', item, config);
+        this.setPropOverride('helpTextVisible', item, config);
     }
 
-    public setProp(name: string, item: { [x: string]: any; }, config?: { [x: string]: any; },) {
-        if (item === undefined || item === null){
-            throw new Error("Item provided to setProp was undefined or null.");
+    /**
+     * Set the property on target.
+     * Retain the target property value if it is not undefined.
+     * Use the value of the property from the first source with a non-undefined property of the same name.
+     *
+     * @param target Set the name property on the target.
+     * @param name The property to set.
+     * @param sources The sources that might have the name property.
+     */
+    public setPropDefault(
+        name: string,
+        target: { [x: string]: any },
+        ...sources: ({ [x: string]: any; } | null | undefined)[]
+    ) {
+        if (target === undefined || target === null) {
+            throw new Error("Target provided to setProp was undefined or null.");
         }
-        if (!(name in item)){
-            throw new Error(`Item provided to setProp does not have property '${name}': ${JSON.stringify(item)}`);
+        if (name === undefined || name === null) {
+            throw new Error("Property name provided to setProp was undefined or null.");
         }
-        const itemValue = item[name];
-        const configValue = config?.[name] ?? undefined;
-        item[name] = configValue ?? itemValue;
+
+        const propValue = [target, ...sources].find(val => val?.[name] !== undefined)?.[name];
+        if (propValue !== undefined) {
+            target[name] = propValue;
+        }
     }
+
+    /**
+     * Set the property on target.
+     * Override the value of the property from the last source with a non-undefined property of the same name.
+     * @param target Set the name property on the target.
+     * @param name The property to set.
+     * @param sources The sources that might have the name property.
+     */
+    public setPropOverride(
+        name: string,
+        target: { [x: string]: any },
+        ...sources: ({ [x: string]: any; } | null | undefined)[]
+    ) {
+        if (target === undefined || target === null) {
+            throw new Error("Target provided to setProp was undefined or null.");
+        }
+        if (name === undefined || name === null) {
+            throw new Error("Property name provided to setProp was undefined or null.");
+        }
+
+        const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];
+        if (propValue !== undefined) {
+            target[name] = propValue;
+        }
+    }
+
+
 }
