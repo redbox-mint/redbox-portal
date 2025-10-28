@@ -78,7 +78,7 @@ export class FormEffects {
    * Handles initial form data loading with INIT guard.
    * Per R5.1, R5.2, R10.3
    * 
-   * Note: This is a stub that returns mock success. In production,
+   * TODO: This is a stub that returns mock success. In production,
    * this would call FormService.getModelData() or similar.
    */
   loadInitialData$ = createEffect(() =>
@@ -123,7 +123,7 @@ export class FormEffects {
    * Handles form submission with exhaustMap to prevent concurrent saves.
    * Per R5.1, R5.3, R10.3
    * 
-   * Note: This is a stub that returns mock success. In production,
+   * TODO: This is a stub that returns mock success. In production,
    * this would call RecordService.save() or FormService.submit().
    */
   submitForm$ = createEffect(() =>
@@ -175,7 +175,7 @@ export class FormEffects {
       // Small delay to allow field components to process resetToken
       switchMap(() => {
         // In production, this might wait for field components to acknowledge reset
-        // or emit a form event bus notification
+        // or emit a form event bus notification? For now, just proceed immediately.
         return of(FormActions.resetAllFieldsComplete());
       }),
       catchError(error => {
@@ -231,6 +231,8 @@ export class FormEffects {
    * Listens to submitForm and publishes form.save.execute to the EventBus carrying
    * { force, skipValidation, targetStep }. Non-dispatching effect.
    * Per R5.1, R15.3 (Task 14)
+   * 
+   * TODO: Determine if we need to execute additional pluggable logic here in future.
    */
   publishSaveExecuteOnSubmit$ = createEffect(
     () =>

@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { NgModule } from '@angular/core';
+import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -47,6 +47,7 @@ import { FormStatusSignalBridge } from './form-state/facade/form-status-signal-b
 
 import { DateInputComponent } from './component/date-input.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -91,7 +92,8 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
     provideStore(),
     provideEffects(),
     provideFormFeature(),
-    provideI18Next()
+    provideI18Next(),
+    provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
   ],
   bootstrap: [
     FormComponent
