@@ -59,11 +59,6 @@
 	- Update the sequence in the design doc to reflect: SaveButton → EventBus(`form.save.requested`) → Adapter → `submitForm` → Effect → EventBus(`form.save.execute`) → `FormComponent.saveForm`.
 	- Acceptance: Section 3.3 now explicitly describes `publishSaveExecuteOnSubmit$` effect and adapter promotion of `form.save.requested`; section 3.7 already correctly documents the full flow; section 2.1 diagram already shows complete event routing.
 
-20. [ ] Verify, lint, and document
-	- Run full test suite for the form package; fix any spec coupling that assumed direct invocation.
-	- Lint/format changed files; add a short migration note in the form README.
-	- Acceptance: Tests PASS; no TS errors; minimal log noise.
-
 Notes
 - Constraint: Do not introduce new form state—only events, promotion, and effects wiring change.
 - Security/observability: Keep logging inside effects; sanitize payloads if logged.
