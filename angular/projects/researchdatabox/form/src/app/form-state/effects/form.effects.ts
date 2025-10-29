@@ -15,6 +15,7 @@ import * as FormSelectors from '../state/form.selectors';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import { createFormSaveExecuteEvent } from '../events/form-component-event.types';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
 
 // Abstraction for submit to allow async mocking in tests
 export interface SubmitDriver {
@@ -24,6 +25,8 @@ export interface SubmitDriver {
 /**
  * Sanitizes errors into user-safe messages
  * Per R5.4, R11.1–R11.3
+ * 
+ * TODO: What is sensitive info? Enhance to remove this.
  */
 function sanitizeError(error: any): string {
   if (typeof error === 'string') {
@@ -42,16 +45,6 @@ function sanitizeError(error: any): string {
 }
 
 /**
- * Logs diagnostic information
- * Per R11.4
- */
-function logDiagnostics(context: string, data: any): void {
-  if (typeof console !== 'undefined' && console.debug) {
-    console.debug(`[FormEffects] ${context}`, data);
-  }
-}
-
-/**
  * FormEffects
  * 
  * Orchestrates load, submit, and reset side effects.
@@ -62,6 +55,14 @@ export class FormEffects {
   private actions$ = inject(Actions);
   private store = inject(Store);
   private eventBus = inject(FormComponentEventBus);
+  private logger = inject(LoggerService);
+  /**
+    * Logs diagnostic information
+    * Per R11.4
+    */
+  private logDiagnostics(context: string, data: any): void {
+    this.logger.debug(`[FormEffects] ${context}`, data);
+  }
   
   /**
    * Submit driver allows tests to control async behavior of submit workflow.
@@ -88,14 +89,14 @@ export class FormEffects {
       filter(([action, status]) => {
         // Only proceed if status is INIT (guard)
         if (status !== FormStatus.INIT) {
-          logDiagnostics('loadInitialData aborted - not in INIT status', { status });
+          this.logDiagnostics('loadInitialData aborted - not in INIT status', { status });
           return false;
         }
         return true;
       }),
       switchMap(([action]) => {
-        logDiagnostics('loadInitialData started', action);
-        
+        this.logDiagnostics('loadInitialData started', action);
+
         // TODO: Replace with actual service call
         // return this.formService.getModelData(action.oid, action.recordType, action.formName).pipe(
         //   map(data => FormActions.loadInitialDataSuccess({ data })),
@@ -111,7 +112,7 @@ export class FormEffects {
       }),
       catchError(error => {
         const sanitized = sanitizeError(error);
-        logDiagnostics('loadInitialData effect error', { error: sanitized });
+        this.logDiagnostics('loadInitialData effect error', { error: sanitized });
         return of(FormActions.loadInitialDataFailure({ error: sanitized }));
       })
     )
@@ -130,20 +131,20 @@ export class FormEffects {
     this.actions$.pipe(
       ofType(FormActions.submitForm),
       exhaustMap(action => {
-        logDiagnostics('submitForm started', action);
+        this.logDiagnostics('submitForm started', action);
         // Use submit driver (service abstraction) to allow async mocking in tests
         return this.submitDriver.handler(action).pipe(
           map(response => FormActions.submitFormSuccess({ savedData: response })),
           catchError(error => {
             const sanitized = sanitizeError(error);
-            logDiagnostics('submitForm failed', { error: sanitized });
+            this.logDiagnostics('submitForm failed', { error: sanitized });
             return of(FormActions.submitFormFailure({ error: sanitized }));
           })
         );
       }),
       catchError(error => {
         const sanitized = sanitizeError(error);
-        logDiagnostics('submitForm effect error', { error: sanitized });
+        this.logDiagnostics('submitForm effect error', { error: sanitized });
         return of(FormActions.submitFormFailure({ error: sanitized }));
       })
     )
@@ -166,12 +167,12 @@ export class FormEffects {
       filter(([action, status]) => {
         // The reducer handles SAVING guard, but we double-check here
         if (status === FormStatus.SAVING) {
-          logDiagnostics('resetAllFields ignored - form is SAVING', { status });
+          this.logDiagnostics('resetAllFields ignored - form is SAVING', { status });
           return false;
         }
         return true;
       }),
-      tap(() => logDiagnostics('resetAllFields triggered', {})),
+      tap(() => this.logDiagnostics('resetAllFields triggered', {})),
       // Small delay to allow field components to process resetToken
       switchMap(() => {
         // In production, this might wait for field components to acknowledge reset
@@ -180,7 +181,7 @@ export class FormEffects {
       }),
       catchError(error => {
         const sanitized = sanitizeError(error);
-        logDiagnostics('resetAllFields effect error', { error: sanitized });
+        this.logDiagnostics('resetAllFields effect error', { error: sanitized });
         // Reset should always complete even on error
         return of(FormActions.resetAllFieldsComplete());
       })
@@ -201,7 +202,7 @@ export class FormEffects {
           FormActions.submitFormSuccess,
           FormActions.resetAllFieldsComplete
         ),
-        tap(action => logDiagnostics('Success action', { type: action.type }))
+        tap(action => this.logDiagnostics('Success action', { type: action.type }))
       ),
     { dispatch: false }
   );
@@ -220,7 +221,7 @@ export class FormEffects {
           FormActions.submitFormFailure,
           FormActions.formValidationFailure
         ),
-        tap(action => logDiagnostics('Failure action', { type: action.type, action }))
+        tap(action => this.logDiagnostics('Failure action', { type: action.type, action }))
       ),
     { dispatch: false }
   );
@@ -239,7 +240,7 @@ export class FormEffects {
       this.actions$.pipe(
         ofType(FormActions.submitForm),
         tap(action => {
-          logDiagnostics('publishSaveExecuteOnSubmit', action);
+          this.logDiagnostics('publishSaveExecuteOnSubmit', action);
           this.eventBus.publish(
             createFormSaveExecuteEvent({
               force: action.force,

@@ -88,6 +88,24 @@ export interface FormSaveExecuteEvent extends FormComponentEventBase {
 }
 
 /**
+ * Form save success event
+ * Published when a save operation completed successfully
+ */
+export interface FormSaveSuccessEvent extends FormComponentEventBase {
+  readonly type: 'form.save.success';
+  readonly savedData?: any;
+}
+
+/**
+ * Form save failure event
+ * Published when a save operation failed
+ */
+export interface FormSaveFailureEvent extends FormComponentEventBase {
+  readonly type: 'form.save.failure';
+  readonly error?: string;
+}
+
+/**
  * Discriminated union of all form component events
  */
 export type FormComponentEvent =
@@ -97,7 +115,9 @@ export type FormComponentEvent =
   | FieldFocusRequestEvent
   | FormValidationBroadcastEvent
   | FormSaveRequestedEvent
-  | FormSaveExecuteEvent;
+  | FormSaveExecuteEvent
+  | FormSaveSuccessEvent
+  | FormSaveFailureEvent;
 
 /**
  * Event type literals for type-safe subscriptions (R15.17)
@@ -109,7 +129,9 @@ export const FormComponentEventType = {
   FIELD_FOCUS_REQUEST: 'field.request.focus' as const,
   FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const,
   FORM_SAVE_REQUESTED: 'form.save.requested' as const,
-  FORM_SAVE_EXECUTE: 'form.save.execute' as const
+  FORM_SAVE_EXECUTE: 'form.save.execute' as const,
+  FORM_SAVE_SUCCESS: 'form.save.success' as const,
+  FORM_SAVE_FAILURE: 'form.save.failure' as const
 } as const;
 
 /**
@@ -123,6 +145,8 @@ export interface FormComponentEventMap {
   'form.validation.broadcast': FormValidationBroadcastEvent;
   'form.save.requested': FormSaveRequestedEvent;
   'form.save.execute': FormSaveExecuteEvent;
+  'form.save.success': FormSaveSuccessEvent;
+  'form.save.failure': FormSaveFailureEvent;
 }
 
 /**
@@ -211,6 +235,38 @@ export function createFormSaveExecuteEvent(
     force: options?.force,
     skipValidation: options?.skipValidation,
     targetStep: options?.targetStep,
+    sourceId: options?.sourceId
+  };
+}
+
+/**
+ * Helper factory for creating save success events (R15.15)
+ */
+export function createFormSaveSuccessEvent(
+  options?: {
+    savedData?: any;
+    sourceId?: string;
+  }
+): Omit<FormSaveSuccessEvent, 'timestamp'> {
+  return {
+    type: FormComponentEventType.FORM_SAVE_SUCCESS,
+    savedData: options?.savedData,
+    sourceId: options?.sourceId
+  };
+}
+
+/**
+ * Helper factory for creating save failure events (R15.15)
+ */
+export function createFormSaveFailureEvent(
+  options?: {
+    error?: string;
+    sourceId?: string;
+  }
+): Omit<FormSaveFailureEvent, 'timestamp'> {
+  return {
+    type: FormComponentEventType.FORM_SAVE_FAILURE,
+    error: options?.error,
     sourceId: options?.sourceId
   };
 }

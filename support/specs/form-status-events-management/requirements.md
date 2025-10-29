@@ -283,7 +283,7 @@ R16.7 A permanent adapter service (`FormStatusAdapter` or `FormStatusSignalBridg
 
 R16.8 The first integration milestone SHALL wire only load + submit flows through NgRx, leaving advanced behaviors (e.g., dependency evaluation) untouched until subsequent tasks.
 
-R16.9 The design SHALL document how `saveForm` in `FormComponent` maps to `submitForm` action dispatch and how `saveResponse` is reconciled with store state (`lastSavedAt`, `error`).
+R16.9 The design SHALL allow `saveForm` in `FormComponent` to be called directly or through a `form.save.execute` event. Also, the action will result in producing either `form.save.success` or `form.save.failure` events.
 
 R16.10 The dynamic component loading sequence SHALL remain synchronous w.r.t the existing initialization order; store initialization SHALL NOT delay component instantiation.
 
@@ -435,7 +435,7 @@ AC52 (Ubiquitous) The existing FormComponent shall initialize without runtime er
 
 AC53 (Event-driven) When FormComponent completes dynamic component loading, the facade-backed status shall become READY. (R16.2, R16.12)
 
-AC54 (Event-driven) Invoking the legacy save method (`saveForm`) shall dispatch `submitForm` via the facade. (R16.9)
+AC54 (Event-driven) Invoking the legacy save method (`saveForm`) shall dispatch the necessary events. (R16.9)
 
 AC55 (Unwanted) No public API (inputs/outputs) of SimpleInputComponent shall change after integration. (R16.5, R16.6)
 

@@ -39,6 +39,7 @@ import { FormStatus, FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { createFormSaveFailureEvent, createFormSaveSuccessEvent } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
@@ -424,20 +425,32 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         
         try {
           let response: RecordActionResult;
+          const currentFormValue = structuredClone(this.form.value);
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
-            response = await this.recordService.create(this.form.value, this.trimmedParams.recordType(), targetStep);
+            response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
             // Actual record update via RecordService call
-            response = await this.recordService.update(this.trimmedParams.oid(), this.form.value, targetStep);
+            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep);
           }
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             this.form.markAsPristine();
             this.formGroupStatus.set(this.dataStatus);
+            // At the moment, we are firing all state actions and events in the FormComponent instead of the effect, revisit later.
             this.store.dispatch(FormActions.markPristine());
+            this.store.dispatch(FormActions.submitFormSuccess({ savedData: currentFormValue }));
+            // Emit success event
+            this.eventBus.publish(
+              createFormSaveSuccessEvent({ savedData: currentFormValue })
+            );
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
+            this.store.dispatch(FormActions.submitFormFailure({ error: _get(response, 'message', 'Unknown error')}));
+            // Emit failure event
+            this.eventBus.publish(
+              createFormSaveFailureEvent({ error: String(_get(response, 'message', 'Unknown error')) })
+            );
           }
           this.saveResponse.set(response);
         } catch (error: unknown) {
@@ -448,6 +461,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             errorMsg = error.message;
           }
           this.saveResponse.set({ success: false, oid: this.trimmedParams.oid(), message: errorMsg } as RecordActionResult);
+          this.store.dispatch(FormActions.submitFormFailure({ error: errorMsg }));
+          // emit failure event
+          this.eventBus.publish(
+            createFormSaveFailureEvent({ error: errorMsg })
+          );
         }
       } else {
         this.loggerService.warn(`${this.logName}: Form is invalid. Cannot submit.`);

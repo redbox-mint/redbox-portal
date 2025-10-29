@@ -9,7 +9,6 @@ import { createReducer, on } from '@ngrx/store';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { formInitialState } from './form.state';
 import * as FormActions from './form.actions';
-
 /**
  * Form feature reducer
  * Per R4.1-R4.6
@@ -60,13 +59,25 @@ export const formReducer = createReducer(
     error: null,
     pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
   })),
-  
-  on(FormActions.submitFormFailure, (state, { error }) => ({
-    ...state,
-    status: FormStatus.VALIDATION_ERROR,
-    error,
-    pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
-  })),
+
+  on(FormActions.submitFormFailure, (state, { error }) => {
+    // TODO: Condition is a bit loose here, defined a better way to communicate server-side validation failures 
+    if (error?.toLocaleLowerCase().includes("validation")) {
+      return {
+        ...state,
+        status: FormStatus.VALIDATION_ERROR,
+        error,
+        pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
+      };
+    } else {
+      return {
+        ...state,
+        status: FormStatus.READY,
+        error,
+        pendingActions: state.pendingActions.filter(a => a !== 'submitForm'),
+      };
+    }
+  }),
   
   // Reset actions (R3.4, R2.10: increment resetToken, ignore if SAVING)
   on(FormActions.resetAllFields, (state) => {
