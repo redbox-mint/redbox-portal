@@ -132,7 +132,7 @@ export class ConstructOverrides {
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
         // Start with the properties that are simple to define.
-        const item: ContentFormComponentDefinitionFrame = {
+        const target: ContentFormComponentDefinitionFrame = {
             name: source.name,
             component: {
                 class: "ContentComponent",
@@ -146,13 +146,15 @@ export class ConstructOverrides {
 
         if (source.component.config) {
             // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
-            this.sharedProps.sharedPopulateFieldComponentConfig(source.component.config, item.component.config);
+            this.sharedProps.sharedPopulateFieldComponentConfig(source.component.config, target.component.config);
         }
 
         // The SimpleInputComponent has a model.
         // The ContentComponent has no model.
         // Use the source model to construct the target 'content' property.
-        // At this point, there is no record data, so the component content cannot be set here.
+        if (source.model?.config?.value !== undefined && target.component.config) {
+            target.component.config.content = source.model.config.value;
+        }
 
         // TODO: The default values don't usually make sense to apply to the ContentComponent:
         //   Do we want to be able to show a form, with the default values, where the values can't be edited? Unlikely, but possible?
@@ -160,10 +162,10 @@ export class ConstructOverrides {
 
         // Set the layout only if the source has a layout.
         if (source.layout) {
-            item.layout = source.layout;
+            target.layout = source.layout;
         }
 
-        return item;
+        return target;
     }
 
     public sourceContentComponentTargetContentComponent(
@@ -178,7 +180,7 @@ export class ConstructOverrides {
         formMode: FormModesConfig
     ): SimpleInputFormComponentDefinitionFrame {
         // Start with the properties that are simple to define.
-        const item: SimpleInputFormComponentDefinitionFrame = {
+        const target: SimpleInputFormComponentDefinitionFrame = {
             name: source.name,
             component: {
                 class: "SimpleInputComponent",
@@ -195,20 +197,21 @@ export class ConstructOverrides {
         };
 
         if (source.component.config) {
-            this.sharedProps.sharedPopulateFieldComponentConfig(source.component.config, item.component.config);
+            this.sharedProps.sharedPopulateFieldComponentConfig(source.component.config, target.component.config);
         }
 
         // Set the layout only if the source has a layout.
         if (source.layout) {
-            item.layout = source.layout;
+            target.layout = source.layout;
         }
 
         // Set the model value from the ContentComponent's component.config.content.
-        // TODO: What to do about the ContentComponent's 'template'? Does it need to be rendered and used as the model value?
-        if (item.model?.config && source.component.config?.content) {
-            item.model.config.value = source.component.config?.content;
+        // TODO: What to do about the ContentComponent's 'template'?
+        //   Does it need to be rendered and used as the model value?
+        if (source.component.config?.content !== undefined && target.model?.config) {
+            target.model.config.value = source.component.config.content;
         }
 
-        return item;
+        return target;
     }
 }

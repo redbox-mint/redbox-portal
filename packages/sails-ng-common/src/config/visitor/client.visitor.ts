@@ -76,10 +76,21 @@ import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 
-
+/**
+ * The details needed to evaluate the constraint config.
+ */
 export type NameConstraints = {
+    /**
+     * The form component name.
+     */
     name: string,
+    /**
+     * The form component constraints.
+     */
     constraints: FormConstraintConfig,
+    /**
+     * Whether the form component has a model definition or not.
+     */
     model: boolean,
 };
 
@@ -550,7 +561,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             ?.map(b => b?.constraints?.allowModes ?? [])
             ?.filter(i => i.length > 0) ?? []));
 
-        // The current user must have at least one of the roles required by each component.
+        // The allowed modes must include the form mode.
         const isAllowed = requiredModes?.every(i => {
             const isArray = Array.isArray(i);
             const hasElements = i.length > 0;
@@ -559,10 +570,8 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         });
 
         // for debugging:
-        // if (!isAllowed) {
-        //     const r = requiredModes.sort().join(', ');
-        //     this.logger.debug(`ClientFormConfigVisitor - access denied for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
-        // }
+        // const r = requiredModes.sort().join(', ');
+        // this.logger.debug(`ClientFormConfigVisitor - access ${isAllowed ? 'allowed' : 'denied'} for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
 
         return isAllowed;
     }
@@ -578,7 +587,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             if (
                 item.constraints !== undefined
                 && this.hasObjectProps(item.constraints)
-                && this.hasObjectProps(item.model)
             ) {
                 this.constraintPath = [
                     ...currentConstraintPath,

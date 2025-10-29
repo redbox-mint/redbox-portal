@@ -333,7 +333,8 @@ describe('The FormRecordConsistencyService', function () {
                 const result = FormRecordConsistencyService.mergeRecordClientFormConfig(
                     args.original,
                     args.changed,
-                    clientFormConfig
+                    clientFormConfig,
+                    "edit",
                 );
                 expect(result).to.eql(expected);
                 done();
@@ -536,7 +537,7 @@ describe('The FormRecordConsistencyService', function () {
                     {text_group_repeatable_1: "hello world from repeating groups"},
                 ],
             };
-            const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig);
+            const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, "edit");
             expect(result).to.eql(expected);
         });
     });
@@ -1201,7 +1202,7 @@ describe('The FormRecordConsistencyService', function () {
                 }
             };
 
-            const actual = FormRecordConsistencyService.buildSchemaForFormConfig(formConfig);
+            const actual = FormRecordConsistencyService.buildSchemaForFormConfig(formConfig, "edit");
             expect(actual).to.eql(expected);
         });
     })
