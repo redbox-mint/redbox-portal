@@ -1,0 +1,39 @@
+meta {
+  name: App Branding - Preview create
+  type: http
+  seq: 47
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+  ~Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+tests {
+  test("Status code is 200", function(){
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Preview token stored", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    var token = body.previewToken || body.token;
+    expect(!!token).to.equal(true);
+    bru.setVar('appPreviewToken', token);
+  });
+}

@@ -1,0 +1,40 @@
+meta {
+  name: App Branding - Publish Conflict (409)
+  type: http
+  seq: 42
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/publish
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expectedVersion": 999999
+  }
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  if(cookie) { req.setHeader("Cookie", cookie); }
+}
+
+tests {
+  test("Status code is 409 for publish conflict", function () {
+    const status = res.getStatus();
+    expect(409).to.equal(status);
+    
+    if (status === 409) {
+      var raw = res.getBody();
+      var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      expect(body.error).to.equal('publish-conflict');
+    }
+  });
+}

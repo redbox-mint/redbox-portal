@@ -1,4 +1,5 @@
-<div class="col-md-offset-2 col-md-8" *ngIf="isReady">
+@if (isReady) {
+  <div class="col-md-offset-2 col-md-8">
     <div class="panel panel-default">
       <div class="panel-heading">
         <span class="panel-title">
@@ -21,10 +22,12 @@
           <div class="col-xs-4" >
             <fieldset>
               <legend [hidden]="true"><span></span></legend>
-              <div *ngFor="let roleFilter of searchFilter.roles"  >
-                <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" >
-                <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>
-              </div>
+              @for (roleFilter of searchFilter.roles; track roleFilter) {
+                <div  >
+                  <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" >
+                  <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>
+                </div>
+              }
             </fieldset>
           </div>
           <div class="col-xs-4" ></div>
@@ -43,22 +46,26 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let user of filteredUsers">
-                <td>{{user.name}}</td>
-                <td>{{user.email}}</td>
-                <td>{{user.roleStr}}</td>
-                <td>
-                  <a style="cursor:pointer" (click)="editUser(user.username)" >Edit</a>
-                </td>
-              </tr>
+              @for (user of filteredUsers; track user) {
+                <tr>
+                  <td>{{user.name}}</td>
+                  <td>{{user.email}}</td>
+                  <td>{{user.roleStr}}</td>
+                  <td>
+                    <a style="cursor:pointer" (click)="editUser(user.username)" >Edit</a>
+                  </td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
-  <!-- Modal -->
-  <div *ngIf="isDetailsModalShown" [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #roleDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
+}
+<!-- Modal -->
+@if (isDetailsModalShown) {
+  <div [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #roleDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
     <div class="modal-dialog modal-md">
       <!-- Modal content-->
       <div class="modal-content">
@@ -81,12 +88,14 @@
                   <tr>
                     <td>{{ 'manage-roles-role' | i18next }}</td>
                     <td>
-                      <div *ngFor="let role of currentUser.newRoles">
-                        <label class="checkbox-inline" for="cb_{{role.id}}">
-                          <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
-                          {{role.name}}
-                        </label>
-                      </div>
+                      @for (role of currentUser.newRoles; track role) {
+                        <div>
+                          <label class="checkbox-inline" for="cb_{{role.id}}">
+                            <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
+                            {{role.name}}
+                          </label>
+                        </div>
+                      }
                     </td>
                   </tr>
                 </tbody>
@@ -102,3 +111,4 @@
       </div>
     </div>
   </div>
+}

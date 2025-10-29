@@ -1,15 +1,22 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
-import { FormConfig, TabComponentEntryDefinition, TabComponentConfig, TabContentComponentConfig, TabComponentFormFieldLayoutDefinition } from '@researchdatabox/sails-ng-common';
-import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull, find as _find, merge as _merge } from 'lodash-es';
+import {
+  FormConfigFrame, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
+  TabComponentName,
+  TabContentComponentName, TabContentFieldComponentDefinitionFrame,
+  TabContentFormComponentDefinitionFrame,
+  TabFieldComponentConfigFrame, TabFieldComponentDefinitionFrame,
+  TabFieldLayoutDefinitionFrame, TabLayoutName
+} from '@researchdatabox/sails-ng-common';
+import { find as _find, merge as _merge } from 'lodash-es';
 import { FormComponent } from "../form.component";
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormComponentsMap, FormService } from '../form.service';
 import { DefaultLayoutComponent } from './default-layout.component';
 
-/** 
+/**
  * TabLayout Component. Responsible for UI management.
- * 
+ *
  * Note: Tab and related components will always be visible.
  */
 @Component({
@@ -20,38 +27,48 @@ import { DefaultLayoutComponent } from './default-layout.component';
       <!-- Loop through tabs and create buttons -->
       @for (tab of tabConfig.tabs; track $index) {
         <button class="nav-link"
-                [class.active]="tabInstance && tab.id == tabInstance.selectedTabId"
-                [attr.id]="tab.id + '-tab-button'"
+                [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
+                [attr.id]="tab.name + '-tab-button'"
                 type="button"
-                role="tab" 
-                [attr.aria-selected]="tabInstance && tab.id == tabInstance.selectedTabId" 
-                [attr.aria-controls]="tab.id + '-tab-content'"  
-                [innerHTML]="tab.buttonLabel" (click)="selectTab(tab.id)"> 
+                role="tab"
+                [attr.aria-selected]="tabInstance && tab.name == tabInstance.selectedTabId"
+                [attr.aria-controls]="tab.name + '-tab-content'"
+                [innerHTML]="tab.layout?.config?.buttonLabel" (click)="selectTab(tab.name)">
         </button>
-      } 
+      }
     </div>
     <ng-container #componentContainer ></ng-container>
   `,
   standalone: false
-}) 
+})
 export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
-  protected override logName = "TabComponentLayout";
-  public override componentDefinition?: TabComponentFormFieldLayoutDefinition;
-  
-  protected get tabConfig(): TabComponentConfig {
-    return (this.formFieldCompMapEntry?.compConfigJson?.component?.config as TabComponentConfig) || {};
+  protected override logName = TabLayoutName;
+  public override componentDefinition?: TabFieldLayoutDefinitionFrame;
+
+  protected get tabConfig(): TabFieldComponentConfigFrame {
+    const component = this.formFieldCompMapEntry?.compConfigJson?.component;
+    if (!component || !isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(component, component.class)){
+      throw new Error();
+    }
+    return component?.config || {tabs:[]};
   }
 
-  protected get tabInstance(): TabComponent {
-    return this.formFieldCompMapEntry?.componentRef?.instance as TabComponent;
+  protected get tabInstance(): TabComponent | null {
+    // The tab component layout is created before the tab component, so the component ref can be undefined.
+    const instance = this.formFieldCompMapEntry?.componentRef?.instance;
+    if (instance && instance instanceof TabComponent) {
+      return instance;
+    }
+    this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent in TabComponentLayout, but instance was '${instance?.constructor?.name}'.`);
+    return null;
   }
-  
+
   @HostBinding('id') get hostId(): string {
     return this.formFieldCompMapEntry?.compConfigJson?.name || '';
   }
 
   public selectTab(tabId: string) {
-    const selectionResult = this.tabInstance.selectTab(tabId);
+    const selectionResult = this.tabInstance?.selectTab(tabId);
     if (selectionResult && selectionResult.changed) {
       this.loggerService.debug(`${this.logName}: Tab selection changed`, selectionResult);
       // remove the 'show active' classes from all tabs
@@ -59,7 +76,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
         instance.hostBindingCssClasses = this.componentDefinition?.config?.tabPaneCssClass;
       });
       // add the 'show active' class to the selected tab
-      if (selectionResult.selectedWrapper != null && selectionResult.selectedWrapper !== undefined) {
+      if (selectionResult.selectedWrapper !== null && selectionResult.selectedWrapper !== undefined) {
         selectionResult.selectedWrapper.hostBindingCssClasses = `${this.componentDefinition?.config?.tabPaneCssClass} ${this.componentDefinition?.config?.tabPaneActiveCssClass}`;
       }
     }
@@ -74,26 +91,28 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
  */
 @Component({
   selector: 'redbox-form-tab',
-  template:` 
+  template:`
     <ng-container #tabsContainer />
 `,
   standalone: false
 })
 export class TabComponent extends FormFieldBaseComponent<undefined> {
-  protected override logName: string | null = "TabComponent";
-  tabs: TabComponentEntryDefinition[] = [];
+  protected override logName = TabComponentName;
+  tabs: TabContentFormComponentDefinitionFrame[] = [];
   selectedTabId: string | null = null;
   wrapperRefs: ComponentRef<FormBaseWrapperComponent<unknown>>[] = [];
   componentInstances: any[] = [];
   componentFormMapEntries: FormFieldCompMapEntry[] = [];
   @ViewChild('tabsContainer', { read: ViewContainerRef, static: true }) private tabsContainer!: ViewContainerRef;
+  protected formService = inject(FormService);
+  public override componentDefinition?: TabFieldComponentDefinitionFrame;
 
-  protected get tabConfig(): TabComponentConfig {
-    return (this.componentDefinition?.config as TabComponentConfig);
+  protected get tabConfig(): TabFieldComponentConfigFrame {
+    return this.componentDefinition?.config || {tabs: []};
   }
 
   protected override async initData() {
-    this.tabs = this.tabConfig.tabs || [];
+    this.tabs = this.tabConfig?.tabs || [];
   }
 
   protected override async setComponentReady(): Promise<void> {
@@ -101,23 +120,20 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     this.loggerService.debug(`${this.logName}: Initializing TabComponent with ${this.tabs.length} tabs.`);
     this.tabsContainer.clear();
 
-    for (let i = 0; i < this.tabs.length; i++) {
-      const tab = this.tabs[i];
+    for (let index = 0; index < this.tabs.length; index++) {
+      const tab = this.tabs[index];
       const tabWrapperRef = this.tabsContainer.createComponent(FormBaseWrapperComponent<null>);
-      tab.id = `${tab.id || i}`;
-      const fieldMapDefEntry = {
+      tab.name = `${tab.name || index}`;
+      const fieldMapDefEntry: FormFieldCompMapEntry = {
         componentClass: TabContentComponent,
-        compConfigJson: {
-          name: tab.id,
-          component: {
-            class: 'TabContentComponent',
-            config: {
-              tab: tab
-            }
-          }
-        }
-      } as FormFieldCompMapEntry;
-      
+        compConfigJson: tab,
+        lineagePaths: this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
+          angularComponents: [],
+          dataModel: [],
+          formConfig: ['component', 'config', 'tabs', index],
+        }),
+      };
+
       try {
         await tabWrapperRef.instance.initWrapperComponent(fieldMapDefEntry, false);
       } catch (error) {
@@ -135,10 +151,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         }
         _merge(this.formFieldCompMapEntry.formControlMap, fieldMapDefEntry.formControlMap);
       }
-      if (tab.selected) {
-        this.selectTab(tab.id);
+      if (tab.component?.config?.selected) {
+        this.selectTab(tab.name);
       }
-    }      
+    }
     await super.setComponentReady();
   }
 
@@ -159,7 +175,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
       selectionResult.selectedWrapper = alreadySelected ? alreadySelected.instance : null;
       return selectionResult;
     }
-    const tab = this.tabs.find(t => t.id === tabId);
+    const tab = this.tabs.find(t => t.name === tabId);
     if (!tab) {
       this.loggerService.error(`${this.logName}: Tab with ID ${tabId} not found.`);
       selectionResult.errorType = TabSelectionErrorType.INVALID_TAB;
@@ -175,7 +191,9 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     }
 
     this.selectedTabId = tabId;
-    tab.selected = true;
+    if (tab.component?.config) {
+      tab.component.config.selected = true;
+    }
     selectionResult.changed = true;
     selectionResult.selectedWrapper = wrapperInst.instance;
     return selectionResult;
@@ -196,7 +214,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   @HostBinding('id') get hostId(): string {
     return `${this.name}_tab-content`;
   }
-  
+
 }
 
 /**
@@ -210,8 +228,9 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   standalone: false,
 })
 export class TabContentComponent extends FormFieldBaseComponent<undefined> {
-  protected override logName: string | null = "TabContentComponent";
-  tab?: TabComponentEntryDefinition;
+  protected override logName = TabContentComponentName;
+  public override componentDefinition?: TabContentFieldComponentDefinitionFrame;
+  tab?: TabContentFormComponentDefinitionFrame;
    @ViewChild('componentContainer', {
     read: ViewContainerRef,
     static: false
@@ -224,42 +243,51 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   protected formDefMap?: FormComponentsMap;
 
   protected override async initData() {
-    this.tab = (this.componentDefinition?.config as TabContentComponentConfig)?.tab;
-    if (!this.tab) {
-      this.loggerService.error(`${this.logName}: No tab defined in component configuration.`);
+    const formCompDef = this.formFieldCompMapEntry?.compConfigJson;
+    if (isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(formCompDef, TabContentComponentName)) {
+      this.tab = formCompDef;
+      if (!this.tab) {
+        this.loggerService.error(`${this.logName}: No tab defined in component configuration.`);
+      }
     }
   }
 
   protected override async setComponentReady(): Promise<void> {
     await this.untilViewIsInitialised();
-    if (this.componentsDefinitionsContainerRef == null || this.componentsDefinitionsContainerRef == undefined) {
+    if (this.componentsDefinitionsContainerRef === null || this.componentsDefinitionsContainerRef === undefined) {
       throw new Error(`${this.logName}: componentsDefinitionsContainer is not defined.`);
     }
     const formConfig = this.formComponentRef.formDefMap?.formConfig;
-    const compFormConfig: FormConfig = {
-      componentDefinitions: this.tab?.componentDefinitions || [],
+    const compFormConfig: FormConfigFrame = {
+      name: `form-config-generated-tab-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
+      componentDefinitions: this.tab?.component?.config?.componentDefinitions || [],
       defaultComponentConfig: formConfig?.defaultComponentConfig,
-      // Get the validator definitions so the child components can use them.
-      validatorDefinitions: formConfig?.validatorDefinitions ?? [],
     };
-    
-    this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig);
-    if (this.formDefMap != null && this.formDefMap != undefined) {
+
+    const parentLineagePaths = this.formService.buildLineagePaths(
+      this.formFieldCompMapEntry?.lineagePaths,
+      {
+        angularComponents: [],
+        dataModel: [],
+        formConfig: ['component', 'config', 'componentDefinitions'],
+      });
+    this.formDefMap = await this.formService.createFormComponentsMap(compFormConfig, parentLineagePaths);
+    if (this.formDefMap !== null && this.formDefMap != undefined) {
       for (const formFieldDef of this.formDefMap.components) {
         const componentRef = this.componentsDefinitionsContainerRef.createComponent(FormBaseWrapperComponent<unknown>);
         await componentRef.instance.initWrapperComponent(formFieldDef);
         this.componentRefs.push(componentRef);
         this.componentInstances.push(componentRef.instance?.componentRef?.instance);
       }
-      
+
       const groupedByNameMap = this.formService.groupComponentsByName(this.formDefMap);
-      if (this.formFieldCompMapEntry != null && this.formFieldCompMapEntry != undefined) {
+      if (this.formFieldCompMapEntry !== null && this.formFieldCompMapEntry !== undefined) {
         // Populate the `formControlMap` with the controls of the content components.
         this.formFieldCompMapEntry.formControlMap = groupedByNameMap.withFormControl;
       }
     }
-        
-    this.loggerService.debug(`${this.logName}: TabContentComponent is ready for tab: ${this.tab?.id}.`);
+
+    this.loggerService.debug(`${this.logName}: TabContentComponent is ready for tab: ${this.tab?.name}.`);
     await super.setComponentReady();
   }
 
@@ -276,7 +304,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   }
 
   @HostBinding('id') get hostId(): string {
-    return this.tab?.id + '-tab-content';
+    return this.tab?.name + '-tab-content';
   }
 }
 

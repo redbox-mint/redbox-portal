@@ -1,5 +1,6 @@
-import _ from "lodash";
-import { FormValidatorCreateConfig } from "./form.model";
+import {get as _get} from "lodash";
+import {FormValidatorCreateConfig} from "./form.model";
+
 
 /**
  * Extract the length property in case it's an array or a string.
@@ -8,8 +9,7 @@ import { FormValidatorCreateConfig } from "./form.model";
  * @param value Either an array, set or undefined.
  */
 export function formValidatorLengthOrSize(value: null | string | unknown[] | Set<unknown> | unknown): number | null {
-  // non-strict comparison is intentional, to check for both `null` and `undefined` values
-  if (value == null) {
+  if (value === null || value === undefined) {
     return null;
   } else if (Array.isArray(value) || typeof value === "string") {
     return value.length;
@@ -25,7 +25,7 @@ export function formValidatorGetDefinitionItem(
   key: string,
   defaultValue: unknown = undefined,
 ): unknown {
-  const value = _.get(config ?? {}, key, defaultValue);
+  const value = _get(config ?? {}, key, defaultValue);
   if (value === undefined) {
     throw new Error(`Must define '${key}' in validator config.`);
   }

@@ -1,0 +1,29 @@
+meta {
+  name: App Branding - Draft update unauthorized
+  type: http
+  seq: 49
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/draft
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+  ~Content-Type: application/json
+}
+
+body:json {
+  {
+    "variables": { "primary-color": "#abcdef" }
+  }
+}
+
+tests {
+  test("Status code is 403", function(){
+    expect(res.getStatus()).to.equal(403);
+  });
+}

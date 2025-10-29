@@ -18,7 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject } from '@angular/core';
-import { DOCUMENT } from "@angular/common"
+import { DOCUMENT } from '@angular/common';
+
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
 import { map as _map, get as _get } from 'lodash-es';
 import { DateTime } from 'luxon';

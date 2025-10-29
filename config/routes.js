@@ -70,9 +70,24 @@ module.exports.routes = {
       'view': 'record/view-orig'
     }
   },
-  '/:branding/:portal/styles/theme.css': {
+  'get /:branding/:portal/styles/theme.css': {
     controller: 'BrandingController',
     action: 'renderCss'
+  },
+  'get /:branding/:portal/preview/:token([a-z0-9]+).css': {
+    controller: 'BrandingController',
+    action: 'renderPreviewCss',
+    skipAssets: false
+  },
+  // Fallback route without explicit regex in case the above pattern is not matched by Sails' asset middleware
+  'get /:branding/:portal/preview/:token.css': {
+    controller: 'BrandingController',
+    action: 'renderPreviewCss',
+    skipAssets: false
+  },
+  'post /:branding/:portal/preview': {
+    controller: 'BrandingController',
+    action: 'createPreview'
   },
   '/:branding/:portal/images/logo': {
     controller: 'BrandingController',
@@ -83,6 +98,13 @@ module.exports.routes = {
     action: 'render',
     locals: {
       'view': 'admin/home'
+    }
+  },
+  '/:branding/:portal/admin/translation': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: {
+      'view': 'admin/translation'
     }
   },
   '/:branding/:portal/admin/roles': {
@@ -130,6 +152,12 @@ module.exports.routes = {
   // 'get /dynamic/': 'UserController.info',
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
+  'get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType': 'DynamicAssetController.getFormCompiledItems',
+  'get /:branding/:portal/dynamicAsset/formStructureValidations/:recordType/:oid?': 'DynamicAssetController.getFormStructureValidations',
+  'get /:branding/:portal/dynamicAsset/formDataValidations/:recordType/:oid?': 'DynamicAssetController.getFormDataValidations',
+  'get /:branding/:portal/dynamicAsset/formExpressions/:recordType/:oid?': 'DynamicAssetController.getFormExpressions',
+  'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
+  'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
   'post /user/login_local': 'UserController.localLogin',
   'post /user/login_aaf': {
     controller: 'UserController',
@@ -159,6 +187,27 @@ module.exports.routes = {
   'get /:branding/:portal/user/login': 'UserController.login',
   'get /:branding/:portal/user/logout': 'UserController.logout',
   'get /:branding/:portal/user/find': 'UserController.find',
+  // App Branding (Task 9)
+  'get /:branding/:portal/app/branding/config': {
+    controller: 'BrandingAppController',
+    action: 'config'
+  },
+  'post /:branding/:portal/app/branding/draft': {
+    controller: 'BrandingAppController',
+    action: 'draft'
+  },
+  'post /:branding/:portal/app/branding/preview': {
+    controller: 'BrandingAppController',
+    action: 'preview'
+  },
+  'post /:branding/:portal/app/branding/publish': {
+    controller: 'BrandingAppController',
+    action: 'publish'
+  },
+  'post /:branding/:portal/app/branding/logo': {
+    controller: 'BrandingAppController',
+    action: 'logo'
+  },
   'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
   'post /:branding/:portal/admin/users/update': 'AdminController.updateUserDetails',
   'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
@@ -244,6 +293,11 @@ module.exports.routes = {
     action: 'editAppConfig'
   },
   'get /:branding/:portal/admin/deletedRecords': 'RecordController.renderDeletedRecords',
+  'get /:branding/:portal/admin/branding': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { 'view': 'admin/branding' }
+  },
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *
@@ -514,6 +568,87 @@ module.exports.routes = {
     action: 'saveAppConfig',
     csrf: false
   },
+  // Branding webservice endpoints (Task 8)
+  'post /:branding/:portal/api/branding/draft': { controller: 'webservice/BrandingController', action: 'draft', csrf: false },
+  'post /:branding/:portal/api/branding/preview': { controller: 'webservice/BrandingController', action: 'preview', csrf: false },
+  'post /:branding/:portal/api/branding/publish': { controller: 'webservice/BrandingController', action: 'publish', csrf: false },
+  'post /:branding/:portal/api/branding/rollback/:versionId': { controller: 'webservice/BrandingController', action: 'rollback', csrf: false },
+  'post /:branding/:portal/api/branding/logo': { controller: 'webservice/BrandingController', action: 'logo', csrf: false },
+  'get /:branding/:portal/api/branding/history': { controller: 'webservice/BrandingController', action: 'history', csrf: false },
+  // i18next http-backend compatible route to fetch namespaces
+  // Example: /default/rdmp/locales/en/translation.json
+  'get /:branding/:portal/locales/:lng/:ns.json': {
+    controller: 'TranslationController',
+    action: 'getNamespace',
+    csrf: false
+  },
+  // TODO: Fix pattern so above route works.
+  'get /:branding/:portal/locales/:lng/translation.json': {
+    controller: 'TranslationController',
+    action: 'getNamespace',
+    csrf: false
+  },
+  // Languages list for Translation app
+  'get /:branding/:portal/locales': {
+    controller: 'TranslationController',
+    action: 'getLanguages',
+    csrf: false
+  },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
+  ,
+  // Translation management API (webservice)
+  'get /:branding/:portal/api/i18n/entries': {
+    controller: 'webservice/TranslationController',
+    action: 'listEntries',
+    csrf: false
+  },
+  // Allow dots in keys via * slug
+  'get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'getEntry',
+    csrf: false
+  },
+  'post /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'setEntry',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'webservice/TranslationController',
+    action: 'deleteEntry',
+    csrf: false
+  },
+  'get /:branding/:portal/api/i18n/bundles/:locale/:namespace': {
+    controller: 'webservice/TranslationController',
+    action: 'getBundle',
+    csrf: false
+  },
+  'post /:branding/:portal/api/i18n/bundles/:locale/:namespace': {
+    controller: 'webservice/TranslationController',
+    action: 'setBundle',
+    csrf: false
+  }
+  ,
+  // Angular app i18n endpoints (CSRF enabled)
+  'get /:branding/:portal/app/i18n/entries': {
+    controller: 'TranslationController',
+    action: 'listEntriesApp'
+  },
+  'post /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*': {
+    controller: 'TranslationController',
+    action: 'setEntryApp'
+  },
+  'get /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
+    controller: 'TranslationController',
+    action: 'getBundleApp'
+  },
+  'post /:branding/:portal/app/i18n/bundles/:locale/:namespace': {
+    controller: 'TranslationController',
+    action: 'setBundleApp'
+  },
+  'post /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled': {
+    controller: 'webservice/TranslationController',
+    action: 'updateBundleEnabled'
+  }
 };

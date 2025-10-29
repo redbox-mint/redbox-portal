@@ -1,0 +1,125 @@
+<div class="preview-root">
+  <!-- Login/User bar -->
+  <div class="header-area">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="user-menu">
+            <ul>
+              <li><i class="fa fa-user"></i> Welcome User</li>
+              <li><a href="#">Logout</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-md-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branding bar -->
+  <div class="site-branding-area">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-10">
+          <div class="logo" *ngIf="logoSrc; else textFallback">
+            <h1><img [src]="logoSrc" alt="Logo" /></h1>
+          </div>
+          <ng-template #textFallback>
+            <h1 class="site-title">Portal Branding</h1>
+            <p class="site-subtitle">Branding subtitle</p>
+          </ng-template>
+        </div>
+        <div class="col-sm-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu bar -->
+  <div class="mainmenu-area">
+    <div class="container">
+      <nav class="navbar navbar-expand-lg">
+        <ul class="nav navbar-nav d-flex">
+          <li><a href="#">Home</a></li>
+          <li><a href="#">Search</a></li>
+          <li class="active"><a class="active" href="#">Workspaces</a></li>
+          <!-- Sample dropdown (shown open for preview without JS) -->
+          <li class="dropdown show">
+            <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="true">Admin</a>
+            <ul class="dropdown-menu show">
+              <li><a class="dropdown-item" href="#">Users</a></li>
+              <li><a class="dropdown-item active" href="#">Roles</a></li>
+              <li><a class="dropdown-item" href="#">Config</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Typography / Letters -->
+  <div class="container-fluid mt-3">
+    <h1>Heading 1</h1>
+    <h2>Heading 2</h2>
+    <h3>Heading 3</h3>
+    <p>
+      Body text example with <a href="#">link</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    </p>
+  </div>
+
+  <!-- Home Panel Example -->
+  <div class="container-fluid mt-3">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="panel panel-default">
+          <div class="panel-heading text-center">
+            <div><i class="fa fa-laptop fa-3x"></i></div>
+            <span class="panel-title">Manage Data</span>
+          </div>
+          <div class="panel-body">
+            <div><a href="#">Create Data Record</a></div>
+            <div><a href="#">View & Update Records</a></div>
+            <div><a href="#">Export Data</a></div>
+            <div><a href="#">Archive Records</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <p class="mt-2"><small class="text-muted">Sample home panel layout to preview panel styling including background, text, and border colors.</small></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Button Color Bar -->
+  <div class="container-fluid mt-3">
+    <div class="row">
+      <div class="col-md-12">
+        <h4>Bootstrap Theme Colors</h4>
+        <div class="btn-toolbar" role="toolbar">
+          <div class="btn-group me-2" role="group">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-success">Success</button>
+            <button class="btn btn-info">Info</button>
+            <button class="btn btn-warning">Warning</button>
+            <button class="btn btn-danger">Danger</button>
+            <button class="btn btn-light">Light</button>
+            <button class="btn btn-dark">Dark</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bottom-area navbar-bottom mt-4">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <p class="text-center">Footer area</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

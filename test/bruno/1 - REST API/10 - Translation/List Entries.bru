@@ -1,0 +1,27 @@
+meta {
+  name: List Entries
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/rdmp/api/i18n/entries?locale=ar&namespace=translation
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Includes hello.world2 entry", function () {
+      var data = res.getBody();
+      var keys = data.map(function (e) { return e.key; });
+      expect(keys).to.include("hello.world2");
+  });
+}

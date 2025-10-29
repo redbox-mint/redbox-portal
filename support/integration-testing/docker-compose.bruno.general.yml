@@ -1,0 +1,159 @@
+
+networks:
+  main:
+
+services:
+  bruno:
+    image: node:24-bullseye
+    pull_policy: 'missing'
+    volumes:
+      - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
+      - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
+      - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
+      - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
+      - "../../test/bruno/environments:/opt/bruno-tests/environments"
+      - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
+      - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
+      - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
+      - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
+    working_dir: /opt/bruno-tests
+    stop_grace_period: 30m
+    depends_on:
+      redboxportal:
+        condition: service_healthy
+    networks:
+     main:
+       aliases:
+         - bruno
+    entrypoint: >-
+      /bin/sh -lc "cd /opt/bruno-tests &&
+      npm install &&
+      npx @usebruno/cli@1.34.1 run
+      --env int-test
+      --format junit
+      --output /opt/junit/backend-bruno/backend-bruno-general.xml
+      --bail;
+      status=$?;
+      wget -qO- http://redboxportal:1599 || true;
+      sleep ${BRUNO_POST_SLEEP_SECONDS:-30};
+      exit $status"
+  redboxportal:
+    image: qcifengineering/redbox-portal:feature-node24
+    pull_policy: 'missing'
+    user: root
+      # Debugging port (publish only when debugging locally)
+      # ports:
+      #   - "9876:9876"
+    volumes:
+       - "../..:/opt/redbox-portal"
+       - "../../.tmp/attachments:/attachments"
+       - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    stop_grace_period: 30m
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '60s'
+    depends_on:
+      keycloak:
+        condition: 'service_healthy'
+      mongodb:
+        condition: 'service_healthy'
+      solr:
+        condition: 'service_healthy'
+      email:
+        condition: 'service_healthy'
+    expose:
+       - "1500"
+    environment:
+      - NODE_ENV=integrationtest
+      - PORT=1500
+      - NODE_OPTIONS=--max-old-space-size=1024
+      - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
+      - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+      - sails_record__baseUrl_mint=http://203.101.226.160/mint
+      # - sails_log__level=verbose
+      - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+      - sails_security__csrf=false
+    networks:
+     main:
+       aliases:
+         - redboxportal
+    # add 'node --inspect=0.0.0.0:9876' for debugging locally
+    init: true
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc --no-clean --report-dir /opt/redbox-portal/coverage/bruno-general --reporter=lcov --exclude-after-remap=false node app.integrationtest.js"
+  mongodb:
+    image: mongo:latest
+    pull_policy: 'missing'
+    networks:
+      main:
+        aliases:
+          - mongodb
+    # No published ports needed in CI
+    healthcheck:
+      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+  solr:
+    image: solr:latest
+    pull_policy: 'missing'
+    expose:
+      - "8983"
+    # No published ports needed in CI
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    networks:
+      main:
+       aliases:
+         - solr
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox
+  keycloak:
+    image: quay.io/keycloak/keycloak:17.0.1
+    pull_policy: 'missing'
+    expose:
+      - "8080"
+    # No published ports needed in CI
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:8080"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    volumes:
+      - "./keycloakdb/data:/opt/keycloak/data"
+    networks:
+      main:
+       aliases:
+         - keycloak
+    command:
+      - start-dev
+  email:
+    image: axllent/mailpit:latest
+    pull_policy: 'missing'
+    expose:
+      - '1025'
+      - '8025'
+    # No published ports needed in CI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: '/data/mailpit.db'
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      TZ: 'Australia/Brisbane'
+    volumes:
+      - '../../.tmp/email:/data'
+    networks:
+      main:
+        aliases:
+          - 'email'

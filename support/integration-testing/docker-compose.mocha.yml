@@ -4,8 +4,9 @@ networks:
 
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
-    pull_policy: 'always'
+    image: qcifengineering/redbox-portal:feature-node24
+    pull_policy: 'missing'
+    user: root
     ports:
        - "1500:1500"
       # Debugging port
@@ -47,21 +48,12 @@ services:
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-      npm install -g nyc &&
-      npm install &&
-      nyc
-      --no-clean
-      --report-dir coverage/mocha
-      --reporter=lcov
-      --exclude-after-remap=false
-      node
-      ./node_modules/mocha/bin/mocha
-      --config test/unit/.mocharc.js
-      --exit test/bootstrap.test.js
-      test/unit/**/*.test.js"
+      npm ci &&
+      npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
+      npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
     image: mongo:latest
-    pull_policy: 'always'
+    pull_policy: 'missing'
     networks:
       main:
         aliases:
@@ -76,7 +68,7 @@ services:
       start_period: '30s'
   solr:
     image: solr:latest
-    pull_policy: 'always'
+    pull_policy: 'missing'
     expose:
       - "8983"
     ports:
@@ -99,7 +91,7 @@ services:
       - redbox
   keycloak:
     image: quay.io/keycloak/keycloak:17.0.1
-    pull_policy: 'always'
+    pull_policy: 'missing'
     expose:
       - "8080"
     ports:
@@ -120,7 +112,7 @@ services:
       - start-dev
   email:
     image: axllent/mailpit:latest
-    pull_policy: 'always'
+    pull_policy: 'missing'
     expose:
       - '1025'
       - '8025'

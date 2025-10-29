@@ -1,0 +1,31 @@
+meta {
+  name: Get preview stylesheet
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/preview/{{preview_token}}.css
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // For CI this assumes another step created {{preview_token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(200).to.include(res.getStatus());
+  });
+
+  test("Caches preview ETag when 200", function(){
+      if(res.getStatus() === 200){
+          const etag = res.getHeader("etag");
+          expect(etag).to.exist;
+          expect(etag).to.match(/^W\/\"preview-[a-f0-9]+\"$/);
+          bru.setVar("preview_etag", etag);
+       }
+          bru.setVar("preview_etag", etag);
+      });
+}

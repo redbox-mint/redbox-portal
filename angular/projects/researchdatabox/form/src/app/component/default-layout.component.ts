@@ -1,8 +1,14 @@
-import { isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, set as _set, get as _get, cloneDeep as _cloneDeep} from 'lodash-es';
-import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, Type } from '@angular/core';
+import { isUndefined as _isUndefined, isNull as _isNull, set as _set} from 'lodash-es';
+import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject} from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
-import {FormFieldLayoutDefinition, FormValidatorComponentErrors} from "@researchdatabox/sails-ng-common";
+import {
+  FieldLayoutDefinitionFrame,
+  FormValidatorComponentErrors,
+  FormFieldComponentStatus,
+  DefaultLayoutName
+} from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import {FormService} from "../form.service";
 
 /**
  * Default Form Component Layout
@@ -30,16 +36,17 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
   template: `
   @if (model && componentDefinition) {
     @if (getStringProperty('label')) {
-      @if (getBooleanProperty('visible')) {
+      @if (isVisible) {
         <label class="form-label">
-          <span [innerHtml]="getStringProperty('label')" [attr.title]="getTooltip()"></span>
-          <span
-            *ngIf="isRequired"
-            class="form-field-required-indicator"
+          <span [innerHtml]="getStringProperty('label')" [title]="tooltip"></span>
+          @if (isRequired) {
+            <span
+              class="form-field-required-indicator"
             [innerHTML]="getStringProperty('labelRequiredStr')"></span>
+          }
           @if (getStringProperty('helpText')) {
             <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
           }
         </label>
@@ -47,44 +54,44 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/
           <span class="help-block" [innerHtml]="getStringProperty('helpText')"></span>
         }
         <br>
-      }
-    }
-    <ng-container #componentContainer  ></ng-container>
-    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
-    <ng-template #beforeComponentTemplate>
-      @if (getBooleanProperty('visible')) {
-        Before {{ componentName }}
-        <br>
-      }
-    </ng-template>
-    <ng-template #afterComponentTemplate>
-      @if (getBooleanProperty('visible')) {
-        After {{ componentName }}
-        @let componentValidationList = getFormValidatorComponentErrors;
-        @if (componentValidationList.length > 0) {
-          <div class="invalid-feedback">
-            Field validation errors:
-            <ul>
-              @for (error of componentValidationList; track $index) {
-                <li>{{ error.message ?? "(no message)" | i18next: error.params }}</li>
-              }
-            </ul>
-          </div>
         }
-        <div class="valid-feedback">The field is valid.</div>
-        <br>
       }
-    </ng-template>
-  }
+      <ng-container #componentContainer  ></ng-container>
+      <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+      <ng-template #beforeComponentTemplate>
+        @if (isVisible) {
+          Before {{ componentName }}
+          <br>
+          }
+        </ng-template>
+        <ng-template #afterComponentTemplate>
+          @if (isVisible) {
+            After {{ componentName }}
+            @let componentValidationList = getFormValidatorComponentErrors;
+            @if (componentValidationList.length > 0) {
+              <div class="invalid-feedback">
+                Field validation errors:
+                <ul>
+                  @for (error of componentValidationList; track $index) {
+                    <li>{{ error.message | i18next: error.params }}</li>
+                  }
+                </ul>
+              </div>
+            }
+            <div class="valid-feedback">The field is valid.</div>
+            <br>
+            }
+          </ng-template>
+        }
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
-  protected override logName = "DefaultLayoutComponent";
+  protected override logName: string = DefaultLayoutName;
   helpTextVisible: boolean = false;
   componentClass?: typeof FormFieldBaseComponent<ValueType>;
-  public override componentDefinition?: FormFieldLayoutDefinition;
+  public override componentDefinition?: FieldLayoutDefinitionFrame;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
   // @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
@@ -94,10 +101,13 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
   afterComponentTemplate!: TemplateRef<any>;
 
+  private formService = inject(FormService);
+
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   public helpTextVisibleOnInit:boolean = false;
   public labelRequiredStr:string = '';
+  public tooltip:string = '';
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -107,6 +117,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
+    this.tooltip = this.getStringProperty('tooltip');
     //normalise componentDefinition that is used to track property changes given these may not be present
     this.buildPropertyCache(true);
     if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
@@ -114,7 +125,8 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     }
 
     if (_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name) && this.formFieldCompMapEntry) {
-      _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${this.formFieldCompMapEntry?.compConfigJson?.name || this.formFieldCompMapEntry?.name || 'default'}-layout`);
+      const compConfigName = this.formFieldConfigName('default');
+      _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${compConfigName}-layout`);
     }
 
     if(!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
@@ -153,7 +165,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   override ngAfterViewInit() {
-    this.viewInitialised.set(true);
+    this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
   }
 
   public toggleHelpTextVisibility() {
@@ -164,17 +176,11 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.helpTextVisible = true;
   }
 
-  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[]{
-    return Object.entries(this.model?.formControl?.errors ?? {}).map(([key, item]) => {
-      return {
-        name: key,
-        message: item.message ?? null,
-        params: {validatorName: key, ...item.params},
-      };
-    })
+  protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[] {
+    return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
   protected get componentName(){
-    return this.utilityService.getNameClass(this.formFieldCompMapEntry);
+    return this.formFieldConfigName();
   }
 }
