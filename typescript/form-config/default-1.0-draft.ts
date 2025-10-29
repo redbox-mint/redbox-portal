@@ -11,10 +11,6 @@ const formConfig: FormConfigFrame = {
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
 
-    // validatorDefinitions is the combination of redbox core validator definitions and
-    // the validator definitions from the client hook form config.
-    validatorDefinitions: formValidatorsSharedDefinitions,
-
     // A validator profile is a list of the field names that will be validated (all other fields won't be validated).
     validatorProfiles: {
         all: {description: "Validate all fields with validators.", exclude: []},

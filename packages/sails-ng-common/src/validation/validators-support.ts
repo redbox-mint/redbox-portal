@@ -5,7 +5,9 @@ export class ValidatorsSupport {
      * Create validator definition mapping from the validator definitions.
      * @param definition The form validator definitions.
      */
-    public createValidatorDefinitionMapping(definition: FormValidatorDefinition[] | null | undefined) {
+    public createValidatorDefinitionMapping(
+        definition: FormValidatorDefinition[] | null | undefined
+    ): Map<string, FormValidatorDefinition> {
         const defMap = new Map<string, FormValidatorDefinition>();
         for (const definitionItem of (definition ?? [])) {
             const name = definitionItem?.name;
@@ -28,7 +30,7 @@ export class ValidatorsSupport {
     public createFormValidatorInstancesFromMapping(
         defMap: Map<string, FormValidatorDefinition>,
         config: FormValidatorConfig[] | null | undefined,
-    ) {
+    ): FormValidatorFn[] {
         const result: FormValidatorFn[] = [];
         for (const validatorConfigItem of (config ?? [])) {
             const name = validatorConfigItem?.name;

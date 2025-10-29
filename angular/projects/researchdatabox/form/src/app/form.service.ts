@@ -400,6 +400,9 @@ export class FormService extends HttpClientService {
 
     // control
     name = name || null;
+
+    // TODO: Find the component definition that matches the angular form control using the path instead of only name.
+    //  Using name only might find the wrong form component definition, as names are only unique at the same level of nesting.
     const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
     const {id, labelMessage} = this.componentIdLabel(componentDef);
     const errors = this.getFormValidatorComponentErrors(control);
@@ -420,6 +423,23 @@ export class FormService extends HttpClientService {
 
     // output
     return results;
+  }
+
+  /**
+   * Set validators on each nested form control to match the validator profile.
+   * @param formConfig The form config.
+   * @param formControl The form control to start from. Usually the top-level FormGroup.
+   * @param validatorProfileName The name of the validator profile to enable.
+   *    Provide falsy value to enable all validators.
+   */
+  public setValidatorProfile(formConfig: FormConfigFrame, formControl: AbstractControl, validatorProfileName?: string): void {
+    const profiles = formConfig.validatorProfiles ?? {};
+    if (validatorProfileName && !(validatorProfileName in profiles)) {
+      const availableNames = Object.keys(profiles).sort();
+      throw new Error(`Invalid validator profile '${validatorProfileName}'. Available names are '${availableNames.join(', ')}'.`)
+    }
+    // TODO: use the angularComponents lineagePaths to find the form controls
+    // TODO: set the form control validators according to the validatorProfile
   }
 
   /**
@@ -611,7 +631,7 @@ export class FormService extends HttpClientService {
 
   /**
    * Build the lineage paths from a base item,
-   * and add the entries in more as relative parts at the end of each lineage path.
+   * and add the entries as relative parts at the end of each lineage path.
    * @param base The base paths.
    * @param more The relative paths to append.
    */
