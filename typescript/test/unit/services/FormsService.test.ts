@@ -210,7 +210,7 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig, "edit");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
@@ -293,7 +293,7 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig, "edit");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
@@ -319,6 +319,12 @@ describe('The FormsService', function () {
                         component: {
                             class: 'SimpleInputComponent',
                         },
+                        model:{
+                            class: "SimpleInputModel",
+                            config: {
+                                value: 'text_1_value'
+                            }
+                        }
                     },
                     {
                         name: 'text_2',
@@ -367,14 +373,14 @@ describe('The FormsService', function () {
                     {
                         name: 'text_1',
                         component: {
-                            class: 'SimpleInputComponent',
+                            class: 'ContentComponent',
                             config: {
                                 autofocus: false,
                                 disabled: false,
                                 editMode: true,
                                 readonly: false,
-                                type: "text",
                                 visible: true,
+                                content: "text_1_value",
                             },
                         },
                     },
@@ -382,7 +388,7 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig, "view");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
@@ -521,18 +527,13 @@ describe('The FormsService', function () {
                                                 // <-- requires mode edit, so expect to be removed
                                                 {
                                                     name: 'text_2',
-                                                    model: {
-                                                        class: 'SimpleInputModel',
-                                                        config: {}
-                                                    },
                                                     component: {
-                                                        class: 'SimpleInputComponent',
+                                                        class: 'ContentComponent',
                                                         config: {
                                                             autofocus: false,
                                                             disabled: false,
                                                             editMode: true,
                                                             readonly: false,
-                                                            type: "text",
                                                             visible: true,
                                                         },
                                                     },
@@ -580,7 +581,7 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig, "view");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);

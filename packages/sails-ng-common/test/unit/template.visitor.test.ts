@@ -1,11 +1,12 @@
 import {
+    ConstructFormConfigVisitor,
     FormConfigFrame,
     TemplateCompileInput,
     TemplateFormConfigVisitor
 } from "../../src";
 
-// @ts-ignore
-import {default as default_1_0_draft_form_config} from "./../../../../../form-config/default-1.0-draft.js";
+import {formConfigExample1, reusableDefinitionsExample1} from "./example-data";
+import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -18,12 +19,12 @@ describe("Template Visitor", async () => {
     }[] = [
         {
             title: "create empty item",
-            args: {componentDefinitions: []},
+            args: {name: "", componentDefinitions: []},
             expected: [],
         },
         {
             title: "create full example",
-            args: default_1_0_draft_form_config,
+            args: formConfigExample1,
             expected: [
                 {
                     key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "0", "component", "config", "template"],
@@ -54,8 +55,11 @@ describe("Template Visitor", async () => {
     ];
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
-            const visitor = new TemplateFormConfigVisitor();
-            const actual = visitor.start(args);
+            const constructor = new ConstructFormConfigVisitor(logger);
+            const constructed = constructor.start(args, "edit");
+
+            const visitor = new TemplateFormConfigVisitor(logger);
+            const actual = visitor.start(constructed);
 
             actual.forEach((actualItem, index) => {
                 const expectedItem = expected[index];

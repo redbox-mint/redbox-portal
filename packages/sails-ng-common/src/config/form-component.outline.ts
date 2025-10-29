@@ -3,6 +3,7 @@ import {FieldModelDefinitionFrame, FieldModelDefinitionOutline} from "./field-mo
 import {FieldComponentDefinitionFrame, FieldComponentDefinitionOutline} from "./field-component.outline";
 import {FormModesConfig} from "./shared.outline";
 import {FieldLayoutDefinitionFrame, FieldLayoutDefinitionOutline} from "./field-layout.outline";
+import {ComponentClassNamesType, LayoutClassNamesType, ModelClassNamesType} from "./dictionary.model";
 
 
 /**
@@ -50,6 +51,49 @@ export interface FormConstraintAuthorizationConfigOutline extends FormConstraint
 
 }
 
+/**
+ * The classes to transform to for each item that requires a class.
+ */
+export type FormOverrideModeClassesConfigFrame = {
+    component?: ComponentClassNamesType;
+    model?: ModelClassNamesType;
+    layout?: LayoutClassNamesType;
+}
+
+/**
+ * The form mode to class name mapping.
+ */
+export type FormOverrideModesClassConfigFrame = Partial<{
+    /**
+     * Optional entries where the key is a form mode,
+     * and the value is the class to use for each item that requires a class.
+     */
+    [key in FormModesConfig]: FormOverrideModeClassesConfigFrame;
+}>;
+
+/**
+ * The available options for overriding the form config.
+ */
+export interface FormOverrideConfigFrame {
+    /**
+     * Replace the form component name property value with the value of this property.
+     */
+    replaceName?: string;
+
+    /**
+     * When the form mode is the object key (one of the form modes), set the class as per the value object.
+     */
+    formModeClasses?: FormOverrideModesClassConfigFrame;
+
+    /**
+     * The name of the reusable form config to insert in place of this element.
+     */
+    reusableFormName?: string;
+}
+
+export interface FormOverrideConfigOutline extends FormOverrideConfigFrame {
+
+}
 
 /**
  * The form component interface that provides typing for the object literal and schema.
@@ -86,6 +130,10 @@ export interface FormComponentDefinitionFrame {
      * Constraints / prerequisites for this component to be included in the form definition.
      */
     constraints?: FormConstraintConfigFrame;
+    /**
+     * Optional ways to extend or replace parts of the form config.
+     */
+    overrides?: FormOverrideConfigFrame;
 }
 
 export interface FormComponentDefinitionOutline extends FormComponentDefinitionFrame, CanVisit {
@@ -94,5 +142,6 @@ export interface FormComponentDefinitionOutline extends FormComponentDefinitionF
     layout?: FieldLayoutDefinitionOutline;
     expressions?: FormExpressionsConfigOutline;
     constraints?: FormConstraintConfigOutline;
+    overrides?: FormOverrideConfigOutline;
 }
 

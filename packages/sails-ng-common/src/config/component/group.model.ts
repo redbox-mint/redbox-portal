@@ -20,10 +20,8 @@ import {
     GroupFormComponentDefinitionOutline,
 } from "./group.outline";
 import {
-    AllFormComponentDefinitionOutlines,
     AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines
 } from "../dictionary.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
 
 
 /* Group Component */

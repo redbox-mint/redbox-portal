@@ -1,4 +1,3 @@
-import { TemplateCompileInput} from "../../template.outline";
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
 import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
@@ -21,8 +20,6 @@ export class ContentFieldComponentConfig extends FieldComponentConfig implements
         super();
     }
 }
-
-
 
 
 export class ContentFieldComponentDefinition extends FieldComponentDefinition implements ContentFieldComponentDefinitionOutline {
@@ -62,6 +59,6 @@ export const ContentMap = [
         def: ContentFieldComponentDefinition,
         class: ContentComponentName
     },
-    {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition, class:ContentComponentName},
+    {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition, class: ContentComponentName},
 ];
 

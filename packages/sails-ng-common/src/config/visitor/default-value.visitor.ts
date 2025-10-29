@@ -60,6 +60,7 @@ import {
 } from "../component/date-input.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
+import {ILogger} from "@researchdatabox/redbox-core-types";
 
 
 /**
@@ -73,23 +74,21 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
  * so the descendants can either use their default or an ancestors default.
  */
 export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor {
+    protected override logName = "DefaultValueFormConfigVisitor";
     private result: Record<string, unknown> = {};
     private resultPath: string[] = [];
     private defaultValues: Record<string, unknown> = {};
 
-    start(data: FormConfigFrame): Record<string, unknown> {
-        const constructVisitor = new ConstructFormConfigVisitor();
-        const constructed = constructVisitor.start(data);
-
-        return this.startExisting(constructed);
+    constructor(logger: ILogger) {
+        super(logger);
     }
 
-    startExisting(data: FormConfigOutline): Record<string, unknown> {
+    start(form: FormConfigOutline): Record<string, unknown> {
         this.resetCurrentPath();
         this.result = {};
         this.resultPath = [];
         this.defaultValues = {};
-        data.accept(this);
+        form.accept(this);
         return this.result;
     }
 
@@ -337,8 +336,8 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
         }
 
         // For debugging:
-        // console.debug(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
-        // console.debug(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
+        // this.logger.debug(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
+        // this.logger.debug(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
 
         this.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
