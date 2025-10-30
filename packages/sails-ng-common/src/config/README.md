@@ -27,6 +27,34 @@ This can be used to generate JSON schema for validating the JSON structure, both
 
 The 'Outline' interfaces are to avoid circular import issues. See below for more details.
 
+## Form field validation
+
+The form config includes specifying the validators to apply to each form field.
+
+### Available validators
+
+The available form field validators are defined in `packages/sails-ng-common/src/validation/validators.ts`.
+Each one has a name, error message, and function that creates the form validation function.
+This approach allows these validators to be used both on the client side with angular components and on the server.
+
+### Form config
+
+In the form config, each component with a `model` can specify an array of validators in the `model.config.validators` property.
+
+It is also possible to specify `validationGroups`, which give a name and description to a group of validators.
+Each validator can specify the `groups` it is a member of.
+
+### Client - angular components
+
+Validators in a validation group can be enabled and disabled as a group.
+
+*TODO* How can validators for form fields be enabled and disabled? Options:
+- add / remove validators to angular components
+- implement validators to be aware of form config (only on client side)
+
+### Server - validator form config visitor
+
+The server side can use a form config visitor to run validators that are in the specified groups.
 
 ## How to define a component
 
