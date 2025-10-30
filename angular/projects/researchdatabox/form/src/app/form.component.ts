@@ -39,7 +39,7 @@ import { FormStatus, FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFormSaveFailureEvent, createFormSaveSuccessEvent } from './form-state/events/form-component-event.types';
+import { createFormSaveFailureEvent, createFormSaveSuccessEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
@@ -115,6 +115,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   componentsLoaded = signal<boolean>(false);
   statusChangesSubscription?: Subscription;
   private saveExecuteSubscription?: Subscription;
+  private saveSuccessSubscription?: Subscription;
 
   debugFormComponents = signal<Record<string, unknown>>({});
 
@@ -186,7 +187,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Listen for execute save command and invoke saveForm (Task 15)
     // Note: Use string literal to avoid hard ref import cycles in this file context
     this.saveExecuteSubscription = this.eventBus
-      .select$('form.save.execute')
+      .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
       .subscribe(evt => {
         // Default payload handling with safe fallbacks
         const force = !!evt.force;
