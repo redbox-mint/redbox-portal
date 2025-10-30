@@ -1,0 +1,105 @@
+<div class="main container clearfix">
+    <div class="row">
+        <div class="col-xs-12">
+            <h2>
+                <%= TranslationService.t('support-agreement-title') %>
+            </h2>
+
+            <!-- Year Selector -->
+            <div class="row" style="margin-bottom: 20px;">
+                <div class="col-md-12">
+                    <form method="GET" id="yearSelectorForm">
+                        <div class="form-group">
+                            <label for="yearSelector" class="control-label">
+                                <%= TranslationService.t('select-year') %>:
+                            </label>
+                            <select id="yearSelector" name="year" class="form-control" style="display: inline-block; width: auto; margin-left: 10px;" onchange="this.form.submit()">
+                                <% availableYears.forEach(function(year) { %>
+                                    <option value="<%= year %>" <%= year === selectedYear ? 'selected' : '' %>>
+                                        <%= year %><%= year === currentYear ? ' (' + TranslationService.t('current-year') + ')' : '' %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <span class="panel-title">
+                        <%= TranslationService.t('support-agreement-details') %> - <%= selectedYear %>
+                    </span>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="well">
+                                <h4>
+                                    <%= TranslationService.t('agreed-support-days') %>
+                                </h4>
+                                <p class="lead text-info">
+                                    <%= agreedSupportDays %> days
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="well">
+                                <h4>
+                                    <%= TranslationService.t('used-support-days') %>
+                                </h4>
+                                <p class="lead text-warning">
+                                    <%= usedSupportDays %> days
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p class="text-muted">
+                                <% if (agreedSupportDays> 0) { %>
+                                     <% var remainingDays=Math.max(0, agreedSupportDays - usedSupportDays); var
+                                    percentage=agreedSupportDays> 0 ? (remainingDays / agreedSupportDays) * 100 : 0;
+                                    var progressClass = percentage > 50 ? 'progress-bar-success' :
+                                    percentage > 20 ? 'progress-bar-warning' : 'progress-bar-danger';
+                                    %>
+                                    <%= TranslationService.t('remaining-support-days') %>: <strong>
+                                            <%= remainingDays %>
+                                        </strong> days
+                                        <% } else { %>
+                                            <%= TranslationService.t('no-agreement-configured') %>
+                                                <% } %>
+                            </p>
+                            <div class="progress">
+                               
+                                    <div class="progress-bar <%= progressClass %>" role="progressbar"
+                                        aria-valuenow="<%= percentage %>" aria-valuemin="0" aria-valuemax="100"
+                                        style="width: <%= percentage.toFixed(1) %>%">
+                                        <%= Math.round(percentage) %>% available
+                                    </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info" role="alert">
+                        <strong>
+                            <%= TranslationService.t('note') %>:
+                        </strong>
+                        <%= TranslationService.t('support-agreement-note') %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin" class="btn btn-primary">
+                        <i class="fa fa-arrow-left"></i>
+                        <%= TranslationService.t('back-to-admin') %>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
