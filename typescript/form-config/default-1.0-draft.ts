@@ -10,12 +10,23 @@ const formConfig: FormConfigFrame = {
     },
     editCssClasses: "redbox-form form",
     skipValidationOnSave: false,
-
-    // A validator profile is a list of the field names that will be validated (all other fields won't be validated).
-    validatorProfiles: {
-        all: {description: "Validate all fields with validators.", exclude: []},
-        none: {description: "Validate none of the fields.", include: []},
-        minimumCreate: {description: "Fields that must be valid to create a new record.", include: ['text_1_event']},
+    validationGroups: {
+        all: {
+            description: "Validate all fields with validators.",
+            initialMembership: "all"
+        },
+        none: {
+            description: "Validate none of the fields.",
+            initialMembership: "none",
+        },
+        minimumCreate: {
+            description: "Fields that must be valid to create a new record.",
+            initialMembership: "none",
+        },
+        transitionDraftToSubmitted: {
+            description: "Fields that must be valid to transition from draft to submitted.",
+            initialMembership: "all",
+        },
     },
 
     // Validators that operate on multiple fields.
@@ -294,7 +305,8 @@ const formConfig: FormConfigFrame = {
                                                             config: {
                                                                 pattern: /prefix.*/,
                                                                 description: "must start with prefix"
-                                                            }
+                                                            },
+                                                            groups: {include: ['minimumCreate']},
                                                         },
                                                         {
                                                             name: 'minLength',
@@ -642,7 +654,8 @@ const formConfig: FormConfigFrame = {
                                                     {
                                                         name: 'minLength',
                                                         message: "@validator-error-custom-text_3",
-                                                        config: {minLength: 3}
+                                                        config: {minLength: 3},
+                                                        groups: {exclude: ['transitionDraftToSubmitted']},
                                                     }
                                                 ]
                                             }

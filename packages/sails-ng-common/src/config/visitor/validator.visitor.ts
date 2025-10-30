@@ -10,26 +10,26 @@ import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
  * This visitor is for the server-side.
  * On the client, use the standard angular component validator methods.
  *
- * Be default, all validators are run.
- * A validator profile can be used to control which validators are run.
+ * By default, all validators are run: ['all'].
+ * Specify which validators are run by providing validationGroupNames.
  */
 export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private formConfig: FormConfigOutline | undefined = undefined;
-    private validatorProfileName: string | undefined = undefined;
+    private validationGroupNames: string[] = [];
     private recordValues: Record<string, unknown> | undefined = undefined;
 
     private result: FormValidatorSummaryErrors[] = [];
 
-    startExistingRecord(data: FormConfigFrame, validatorProfileName?: string, recordData?: Record<string, unknown>): FormValidatorSummaryErrors[] {
+    startExistingRecord(data: FormConfigFrame, validationGroupNames?: string[], recordData?: Record<string, unknown>): FormValidatorSummaryErrors[] {
         const constructVisitor = new ConstructFormConfigVisitor();
         const constructed = constructVisitor.start(data);
 
         this.recordValues = recordData ?? undefined;
 
-        return this.start(constructed, validatorProfileName);
+        return this.start(constructed, validationGroupNames);
     }
 
-    startNewRecord(data: FormConfigFrame, validatorProfileName?: string): FormValidatorSummaryErrors[] {
+    startNewRecord(data: FormConfigFrame, validationGroupNames?: string[]): FormValidatorSummaryErrors[] {
         const constructVisitor = new ConstructFormConfigVisitor();
         const constructed = constructVisitor.start(data);
 
@@ -37,12 +37,12 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const defaultValueVisitor = new DefaultValueFormConfigVisitor();
         this.recordValues = defaultValueVisitor.startExisting(constructed);
 
-        return this.start(constructed, validatorProfileName);
+        return this.start(constructed, validationGroupNames);
     }
 
-    protected start(formConfig: FormConfigOutline, validatorProfileName?: string): FormValidatorSummaryErrors[] {
+    protected start(formConfig: FormConfigOutline, validationGroupNames?: string[]): FormValidatorSummaryErrors[] {
         this.formConfig = formConfig;
-        this.validatorProfileName = validatorProfileName;
+        this.validationGroupNames = validationGroupNames || ['all'];
 
         this.resetCurrentPath();
         this.result = [];

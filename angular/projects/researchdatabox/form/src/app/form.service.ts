@@ -426,20 +426,25 @@ export class FormService extends HttpClientService {
   }
 
   /**
-   * Set validators on each nested form control to match the validator profile.
+   * Set validators on each nested form control to match the validation group names.
    * @param formConfig The form config.
    * @param formControl The form control to start from. Usually the top-level FormGroup.
-   * @param validatorProfileName The name of the validator profile to enable.
-   *    Provide falsy value to enable all validators.
+   * @param validationGroupNames The names of the validation groups to run. Defaults to ['all'] if not provided.
    */
-  public setValidatorProfile(formConfig: FormConfigFrame, formControl: AbstractControl, validatorProfileName?: string): void {
-    const profiles = formConfig.validatorProfiles ?? {};
-    if (validatorProfileName && !(validatorProfileName in profiles)) {
-      const availableNames = Object.keys(profiles).sort();
-      throw new Error(`Invalid validator profile '${validatorProfileName}'. Available names are '${availableNames.join(', ')}'.`)
-    }
-    // TODO: use the angularComponents lineagePaths to find the form controls
-    // TODO: set the form control validators according to the validatorProfile
+  public setValidationGroups(formConfig: FormConfigFrame, formControl: AbstractControl, validationGroupNames?: string[]): void {
+    validationGroupNames = validationGroupNames || ['all'];
+    const groups = formConfig.validationGroups ?? {};
+
+    // TODO: check validation group names are available
+    // validationGroupNames
+
+
+    // if (validationGroupName && !(validationGroupName in groups)) {
+    //   const availableNames = Object.keys(groups).sort();
+    //   throw new Error(`Invalid validation group '${validationGroupName}'. Available names are '${availableNames.join(', ')}'.`)
+    // }
+    // TODO: traverse through the angular form controls
+    // TODO: set the form control validators according to the validationGroupNames
   }
 
   /**

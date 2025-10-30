@@ -129,6 +129,12 @@ export interface FormValidatorConfig {
    * Can be left out if the validator takes no config.
    */
   config?: FormValidatorCreateConfig;
+
+  /**
+   * Zero or more validation group names this validator belongs to.
+   * Validation groups make it easier to run a subset of validators on a form.
+   */
+  groups?: FormFieldValidationGroup;
 }
 
 /**
@@ -190,36 +196,54 @@ export interface FormValidatorSummaryErrors {
 }
 
 /**
- * Form validator profiles, where the key is the identifier, and the value is the definition.
+ * Form validation groups, where the key is the name, and the value is the definition.
  */
-export interface FormValidatorProfiles {
+export interface FormValidationGroups {
     /**
-     * The key is the name of the validator profile.
+     * The key is the name of the validation group.
      */
-    [key: string] : FormValidatorProfile
+    [key: string]: FormValidationGroup;
 }
 
 /**
- * A form validator profile, which specifies which fields to validate (include) or not validate (exclude),
- * and describes the purpose or usage of the profile.
+ * A form validation group,
+ * which describes the purpose or usage of the group and the initial membership of the group.
  */
-export interface FormValidatorProfile {
+export interface FormValidationGroup {
     /**
-     * A short description of the purpose or usage of the validation profile.
+     * A short description of the purpose or usage of the validation group.
      */
-    description?: string;
+    description: string;
+
     /**
-     * A list of the field paths to validate.
-     * This list defines the maximum possible list of fields.
-     * Processed before the exclude list, which means some fields might be filtered out by the exclude list.
-     * Use 'include: []' by itself to validate none of the fields.
+     * The approach this validation group uses to specify which validators are included.
+     * Options are:
+     * - 'all': Start with all validators included
+     * - 'none' Start with no validators
+     */
+    initialMembership?: FormValidationGroupMembership;
+}
+
+/**
+ * The available form validation group membership approaches.
+ */
+export const formValidationGroupMembership = ["all", "none"] as const;
+/**
+ * The available form validation group membership approaches as a typescript type.
+ */
+export type FormValidationGroupMembership = typeof formValidationGroupMembership[number];
+
+/**
+ * Specify which validation groups the validator is part of or is not part of.
+ * All the validation groups used here must also be present in the top-level validationGroups property.
+ */
+export interface FormFieldValidationGroup {
+    /**
+     * A list of the validation groups this field is included in.
      */
     include?: string[];
     /**
-     * A list of the field paths to not validate.
-     * This list defines the minimum fields to remove.
-     * Processed after the include list, which means some fields might be validated due to the include list.
-     * Use 'exclude: []' by itself to validate all fields.
+     * A list of the validation groups this field is excluded from.
      */
     exclude?: string[];
 }

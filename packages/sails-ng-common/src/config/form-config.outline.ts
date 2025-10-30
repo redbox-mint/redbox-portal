@@ -1,4 +1,4 @@
-import {FormValidatorConfig, FormValidatorProfiles} from "../validation/form.model";
+import {FormValidatorConfig, FormValidationGroups} from "../validation/form.model";
 import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
 import {CanVisit} from "./visitor/base.outline";
 import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
@@ -53,9 +53,10 @@ export interface FormConfigFrame {
     validators?: FormValidatorConfig[];
 
     /**
-     * The validation profiles that define groups of fields and validators to include and/or exclude.
+     * The validation groups available in this form.
+     * These are the only validation group names that can be used in the validator config.
      */
-    validatorProfiles?: FormValidatorProfiles;
+    validationGroups?: FormValidationGroups;
 
     // -- Component-related config --
 
