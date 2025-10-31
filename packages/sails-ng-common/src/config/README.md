@@ -175,3 +175,64 @@ which does not depend on or import any of the other items.
 
 The most common way to do this in Typescript is to create an interface in a new file,
 and use that for typing instead of the class.
+
+
+### Validation groups and conditional validation
+
+We want to be able to control whether form field validation should run or not, based on a number of states.
+
+The conditional and group-based validation must be able to function on the client and server, which increases the complexity.
+
+Running validators on the server is straightforward, as we have full control of when and how the validators are run.
+This allows us to incorporate validators however is best. At the moment, this would be as a validator visitor.
+
+#### Validation group considerations
+
+Similar things in other frameworks:
+
+- ASP.Net ValidationGroup: https://learn.microsoft.com/en-us/previous-versions/aspnet/ms227424(v=vs.100)
+- Java Bean Validation groups: https://www.baeldung.com/javax-validation-groups
+- Symfony validation groups: https://symfony.com/doc/current/validation/groups.html
+
+All of these work by specifying the validation group where the validator is applied to the form field, rather than somewhere else.
+This makes sense. I think I'll try to implement something very similar to these, and see how that goes.
+
+#### Client-side considerations
+
+On the client, using the angular components, there are a range of issues that are not easy to resolve.
+
+Given these issues, it is best to wait for some of the other features to be functional first, to explore if they help solve these problems.
+
+Some of the issues are:
+
+*Changing the visibility / display / presence / other attributes of Angular components does not interact well with validators*
+
+I haven't seen this directly myself, but there's a bug report that conditional rendering with @if still needs the updateValueAndValidity method call. 
+Which is required when adding and removing validators, too.
+https://github.com/angular/angular/issues/62318
+
+If we ever need to change a control's updateOn, that will cause problems with adding or removing validators
+https://angular.dev/api/forms/AbstractControl#updateOn
+https://github.com/angular/angular/issues/24003
+
+The key method in all of this, which updates the value and validity after changing a validator updateValueAndValidity, only updates itself and ancestors, not descendants. 
+Which means iterating through FormGroup / FormArray controls to ensure everything has been updated.
+https://angular.dev/api/forms/AbstractControl#updateValueAndValidity
+
+All of this seems to push towards adding validators when the form is built, and never changing them.
+Then the check for whether to run is in the validator. That will require an interface, to be able to work for client & server.
+
+*We don't have a clear approach for setting which validators to run*
+
+Implementing the definitions of the validator groups is straightforward.
+There are open questions for how to actually make the change between a validator that runs or does not run.
+
+The most likely approach is to combine the upcoming event bus with expressions, but those two features are
+not yet far enough along.
+
+Given that we're operating in an area that appears to be on the edges of what angular supports,
+it might be better to create an interface that each angular component can implement to perform the actions needed to
+enable or disable validators, e.g.:
+- each component may need to update layout or model or other things before or after a validator is toggled
+- toggling a validator on a component that has been removed from the DOM can end up with a validator that cannot be changed - order of operations can differ and is important
+- we're using both angular signals and observables to do things, which mostly works, but has edge cases that each component might need to handle differently
