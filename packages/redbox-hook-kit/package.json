@@ -1,0 +1,36 @@
+{
+  "name": "redbox-hook-kit",
+  "version": "4.5.1",
+  "description": "ReDBox customisation hook development kit",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redbox-mint/redbox-portal.git#v4.5.1"
+  },
+  "keywords": [
+    "Kit",
+    "Dev",
+    "Hook"
+  ],
+  "author": "Alejandro Bulgaris",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/redbox-mint/redbox-portal/issues"
+  },
+  "homepage": "https://github.com/redbox-mint/redbox-portal/tree/v4.5.1#readme",
+  "dependencies": {
+    "@types/lodash": "4.17.20",
+    "@types/node": "20.19.4",
+    "chai": "5.2.0",
+    "deepdash": "^5.3.9",
+    "ejs-cli": "^2.2.3",
+    "mocha": "11.7.1",
+    "mocha-junit-reporter": "2.2.1",
+    "supertest": "^7.0.0",
+    "typescript": "^5.8.3",
+    "xmlbuilder": "^15.1.1"
+  }
+}
