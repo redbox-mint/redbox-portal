@@ -1,10 +1,17 @@
+import {existsSync} from 'fs';
+import { ILogger } from './Logger';
+import {
+  APIErrorResponse,
+  ApiVersion,
+  ApiVersionStrings,
+  DataResponseV2,
+  ErrorResponseItemV2,
+  ErrorResponseV2
+} from "./model";
 
 declare var _;
 declare var sails;
 
-import {existsSync} from 'fs';
-import { ILogger } from './Logger';
-import {APIErrorResponse, ApiVersion, ApiVersionStrings, DataResponseV2, ErrorResponseV2} from "./model";
 export module Controllers.Core {
 
   /**
@@ -60,10 +67,10 @@ export module Controllers.Core {
       // Sails controller custom config.
       '_config',
     ];
-    
+
     // Namespaced logger for controllers
     private _logger: ILogger;
-    
+
     /**
      * Get a namespaced logger for this controller class.
      * Uses the class constructor name as the namespace.
@@ -76,15 +83,15 @@ export module Controllers.Core {
       }
       return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
     }
-    
+
     constructor() {
       this.processDynamicImports().then(result => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
       })
     }
-    
-    /** 
+
+    /**
      * Function that allows async dynamic imports of modules (such as ECMAScript modules).
      * Called in the constructor and intended to be overridden in sub class to allow imports.
      */
@@ -92,7 +99,7 @@ export module Controllers.Core {
       // Override in sub class as needed
     }
 
-    /** 
+    /**
      * Function that is called during the construction of the Controller after the dynamic imports are completed.
      * Intended to be overridden in the sub class
      */
@@ -105,7 +112,7 @@ export module Controllers.Core {
      **************************************** Public methods ******************************************
      **************************************************************************************************
      */
-     
+
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
@@ -372,7 +379,8 @@ export module Controllers.Core {
       const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
 
       if (qsValue && headerValue && qsValue !== headerValue) {
-        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match.`);
+        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match. ` +
+          `Using default API version (${defaultVersion}).`);
         return defaultVersion;
       }
 
@@ -381,7 +389,8 @@ export module Controllers.Core {
 
       const available = Array.from(Object.values(ApiVersion));
       if (!available.includes(version)) {
-        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
+        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
+          `Using default API version (${defaultVersion}).`);
         return defaultVersion;
       }
 
@@ -395,7 +404,7 @@ export module Controllers.Core {
      * @param meta The metadata for the response.
      * @protected
      */
-    protected buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
+    private buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
       // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
       return {
         data: data,
@@ -409,7 +418,7 @@ export module Controllers.Core {
      * @param meta The metadata for the response.
      * @protected
      */
-    protected buildResponseError(errors: { title?: string, detail?: string }[], meta: Record<string, unknown>): ErrorResponseV2 {
+    private buildResponseError(errors: ErrorResponseItemV2[], meta: Record<string, unknown>): ErrorResponseV2 {
       // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
       return {
         errors: errors,
