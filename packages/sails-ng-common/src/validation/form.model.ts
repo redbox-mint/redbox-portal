@@ -129,6 +129,12 @@ export interface FormValidatorConfig {
    * Can be left out if the validator takes no config.
    */
   config?: FormValidatorCreateConfig;
+
+  /**
+   * Zero or more validation group names this validator belongs to.
+   * Validation groups make it easier to run a subset of validators on a form.
+   */
+  groups?: FormFieldValidationGroup;
 }
 
 /**
@@ -187,4 +193,57 @@ export interface FormValidatorSummaryErrors {
    * The parent names are in order from top-most to direct parent of this form control.
    */
   parents: string[];
+}
+
+/**
+ * Form validation groups, where the key is the name, and the value is the definition.
+ */
+export interface FormValidationGroups {
+    /**
+     * The key is the name of the validation group.
+     */
+    [key: string]: FormValidationGroup;
+}
+
+/**
+ * A form validation group,
+ * which describes the purpose or usage of the group and the initial membership of the group.
+ */
+export interface FormValidationGroup {
+    /**
+     * A short description of the purpose or usage of the validation group.
+     */
+    description: string;
+
+    /**
+     * The approach this validation group uses to specify which validators are included.
+     * Options are:
+     * - 'all': Start with all validators included
+     * - 'none' Start with no validators
+     */
+    initialMembership?: FormValidationGroupMembership;
+}
+
+/**
+ * The available form validation group membership approaches.
+ */
+export const formValidationGroupMembership = ["all", "none"] as const;
+/**
+ * The available form validation group membership approaches as a typescript type.
+ */
+export type FormValidationGroupMembership = typeof formValidationGroupMembership[number];
+
+/**
+ * Specify which validation groups the validator is part of or is not part of.
+ * All the validation groups used here must also be present in the top-level validationGroups property.
+ */
+export interface FormFieldValidationGroup {
+    /**
+     * A list of the validation groups this field is included in.
+     */
+    include?: string[];
+    /**
+     * A list of the validation groups this field is excluded from.
+     */
+    exclude?: string[];
 }
