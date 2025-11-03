@@ -1,6 +1,7 @@
 import {existsSync} from 'fs';
 import { ILogger } from './Logger';
 import {
+  BuildResponseType,
   APIErrorResponse,
   ApiVersion,
   ApiVersionStrings,
@@ -8,9 +9,11 @@ import {
   ErrorResponseItemV2,
   ErrorResponseV2
 } from "./model";
+import type {Request as SailsRequest, Response as SailsResponse} from 'sails';
 
 declare var _;
 declare var sails;
+declare var TranslationService;
 
 export module Controllers.Core {
 
@@ -362,9 +365,9 @@ export module Controllers.Core {
      * Defaults to v1.
      * @param req The sails request.
      * @return The API version string.
-     * @protected
+     * @private
      */
-    protected getApiVersion(req): ApiVersionStrings {
+    private getApiVersion(req): ApiVersionStrings {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;
@@ -397,6 +400,201 @@ export module Controllers.Core {
       sails.log.verbose(`Using API version '${version}' for url '${req.url}'.`);
       return version;
     }
+
+    /**
+     * Send a response built from the properties.
+     *
+     * Defaults / Conventions:
+     * - The default response format is json.
+     * - If only 'data' is provided, it will be returned with status 200.
+     * - If there are any 'errors', the 'status' code will default to 500.
+     * - Any 'detailErrors' missing a 'status' will use the top-level 'status'.
+     * - The response will be in the format matching the request kind (e.g. API, ajax).
+     * - If the detailError.code is set, it should be a translation message identifier.
+     *   It will be updated in the detailError.code to add the prefix 'redbox-error-'.
+     * - API v1 will return 'data' as the body on 'status' 200.
+     * - API v1 will return the first 'detailError.detail' as the body for an error response if no 'v1' is supplied.
+     *
+     * @param req The sails request.
+     * @param res The sails response.
+     * @param buildResponse Build the response from these properties.
+     * @protected
+     */
+    protected sendResp(req: SailsRequest, res: SailsResponse, buildResponse?: BuildResponseType): Response {
+      const apiVersion = this.getApiVersion(req);
+      const isJsonAjax = this.isAjax(req);
+
+      // Destructure build response properties and set defaults.
+      const {
+        kind = "json",
+        data = {},
+        status = 200,
+        headers = {},
+        errors = [],
+        detailErrors = [],
+        meta = {},
+      } = buildResponse ?? {};
+
+      // Set the response headers
+      if (headers) {
+        res.set(headers);
+      }
+
+      // Set the response status
+      if (status !== null && status !== undefined) {
+        res.status(status);
+      }
+
+      // TODO: reconcile errors and structuredErrors
+      // TODO: deal with different formats
+      // TODO: expand RBValidationError
+      // TODO: log errors
+
+      // if the response is a json format response with no errors, return the data in the expected API version.
+      if (kind === 'json' && errors.length === 0 && detailErrors.length === 0) {
+        switch (apiVersion) {
+          case ApiVersion.VERSION_2_0:
+            sails.log.verbose(`Send response status 200 api version 2 format json.`);
+            return res.json({data: data, meta: meta});
+
+          case ApiVersion.VERSION_1_0:
+          default:
+            sails.log.verbose(`Send response status 200 api version 1 format json.`);
+            return res.json(data);
+        }
+      }
+
+      // return this.sendResp(req, res, {
+      //           errors: [err],
+      //           structuredErrors: [{status: "500", title: 'Failed to get record permission, check server logs.'}]
+      //         });
+// return this.apiFailWrapper(req, res, 500, null, err,
+//             'Failed to get record permission, check server logs.');
+
+
+      // if (hasViewAccess) {
+      //           if (apiVersion === ApiVersion.VERSION_2_0) {
+      //             return res.json(this.buildResponseSuccess(record.metadata, {oid: record.redboxOid}));
+      //           } else {
+      //             return res.json(record.metadata);
+      //           }
+      //         } else {
+      //           if (apiVersion === ApiVersion.VERSION_2_0) {
+      //             return res.status(403).json(this.buildResponseError([{title: TranslationService.t("error-403-heading")}], {oid: record.redboxOid}));
+      //           } else {
+      //             return res.json({status: "Access Denied"});
+      //           }
+      //         }
+    }
+    /*
+
+    private apiFailWrapper(
+        req, res,
+        statusCode = 500,
+        errorResponse: APIErrorResponse = new APIErrorResponse(),
+        error: Error = null,
+        defaultMessage: string = null) {
+      // TODO: incorporate some of this into the controller core apiFail function
+      if (!errorResponse) {
+        errorResponse = new APIErrorResponse();
+        // start with an empty message
+        errorResponse.message = "";
+      }
+
+      // if there is an error and/or defaultMessage, log it
+      if (defaultMessage && error) {
+        sails.log.error(errorResponse, defaultMessage, error);
+      } else if (defaultMessage && !error) {
+        sails.log.error(errorResponse, defaultMessage);
+      } else if (!defaultMessage && error) {
+        sails.log.error(errorResponse, error);
+      }
+
+      // TODO: use RBValidationError.clName;
+      const rBValidationErrorName = 'RBValidationError';
+
+      // if available, get the 'friendly' validation error message
+      const validationMessage = (error?.name === rBValidationErrorName ? error?.message : "") || "";
+
+      // update the api response message
+      let message = (errorResponse.message || "").trim();
+      if (validationMessage && message) {
+        message = message.endsWith('.') ? (message + " " + validationMessage) : (message + ". " + validationMessage);
+      } else if (validationMessage && !message) {
+        message = validationMessage;
+      } else if (!validationMessage && message) {
+        // nothing to do
+      } else {
+        message = defaultMessage;
+      }
+      errorResponse.message = message;
+
+      // TODO: could use: this.apiRespond(req, res, errorResponse, statusCode);
+      return this.apiFail(req, res, statusCode, errorResponse);
+    }
+
+    protected customErrorMessageHandlingOnUpstreamResult(error, res) {
+      sails.log.error(error);
+
+      let errorMessage = "";
+
+      // get the message from the error property
+      if (error.error) {
+        errorMessage = _.isBuffer(error.error) ? error.error.toString('UTF-8') : error.error;
+      }
+
+      // get the 'friendly' Error message
+      // TODO: use RBValidationError.clName;
+      const rBValidationErrorName = 'RBValidationError';
+      if (!errorMessage && error?.name == rBValidationErrorName && error?.message) {
+        errorMessage = error.message
+      }
+
+      // the message might be JSON - try to parse it
+      try {
+        errorMessage = JSON.parse(errorMessage)
+      } catch (error) {
+        sails.log.verbose("Error message is not a json object. Keeping it as is.");
+      }
+
+      // use a prefix message to give some context
+      errorMessage = 'There was a problem with the upstream request.' + (errorMessage ? " " : "") + errorMessage.trim();
+
+      // set the response to be json,
+      // in case the response was already changed to suit the attachment
+      res.set('Content-Type', 'application/json');
+      _.unset(res, 'Content-Disposition');
+
+      sails.log.error('customErrorMessageHandlingOnUpstreamResult', errorMessage);
+      return res.status(error.statusCode || 500).json({message: errorMessage});
+    }
+
+     if (apiVersion === ApiVersion.VERSION_2_0) {
+            return res.status(403).json(this.buildResponseError([{title: TranslationService.t("error-403-heading")}], {oid: record.redboxOid}));
+          } else {
+            return res.json({status: "Access Denied"});
+          }
+
+
+if (apiVersion === ApiVersion.VERSION_2_0) {
+              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
+            } else {
+              return this.ajaxFail(req, res, null, {message: msg});
+            }
+
+
+            if (apiVersion === ApiVersion.VERSION_2_0) {
+            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, {...createResponse}));
+          } else {
+            this.ajaxOk(req, res, null, createResponse);
+          }
+
+          private getErrorMessage(err: Error, defaultMessage: string) {
+      // TODO: use RBValidationError.clName;
+      const validationName = 'RBValidationError';
+      return validationName == err.name ? err.message : defaultMessage;
+    }
+     */
 
     /**
      * Build a success response with the provided data and meta items.
