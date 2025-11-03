@@ -342,7 +342,7 @@ export module Controllers {
 
         // process the form config to provide only the fields accessible by the current user
         const formMode = editMode ? "edit" : "view";
-        const userRoles = [];
+        const userRoles = req.user?.roles || [];
         const recordData = currentRec;
         const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData);
 
