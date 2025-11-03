@@ -114,7 +114,7 @@ export module Services {
             const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
 
             // build the client form config
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, context);
+            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode);
 
             // merge the original and changed records using the client form config to know which changes to include
             return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode);
