@@ -319,5 +319,28 @@ describe('FormStateFacade', () => {
       expect(typeof facade.ackError).toBe('function');
       expect(typeof facade.syncModelSnapshot).toBe('function');
     });
+
+    it('should allow usage of subscribeToFormStatus', () => {
+      let isReady = false;
+
+      const subscription = facade.observeFormStatus(FormStatus.READY).subscribe(value => {
+        isReady = value as boolean;
+      });
+
+      // Initial state is INIT
+      expect(isReady).toBe(false);
+
+      // Change to READY
+      store.overrideSelector(FormSelectors.selectStatus, FormStatus.READY);
+      store.refreshState();
+      expect(isReady).toBe(true);
+
+      // Change to SAVING
+      store.overrideSelector(FormSelectors.selectStatus, FormStatus.SAVING);
+      store.refreshState();
+      expect(isReady).toBe(false);
+
+      subscription.unsubscribe();
+    });
   });
 });

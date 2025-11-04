@@ -43,8 +43,7 @@ import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { provideFormFeature } from './form-state';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
-import { FormStatusSignalBridge } from './form-state/facade/form-status-signal-bridge';
-
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { DateInputComponent } from './component/date-input.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
@@ -88,7 +87,7 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
     Title,
     FormService,
     FormStateFacade,
-    FormStatusSignalBridge,
+    FormComponentEventBus,
     provideStore(),
     provideEffects(),
     provideFormFeature(),

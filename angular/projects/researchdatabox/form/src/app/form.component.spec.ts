@@ -53,16 +53,40 @@ describe('FormComponent', () => {
     expect(inputElement).toBeTruthy();
   });
 
-  it('should call saveForm when form.save.execute is published (Task 15)', () => {
-    const fixture = TestBed.createComponent(FormComponent);
-    const component = fixture.componentInstance;
+  it('should call saveForm when form.save.execute is published (Task 15)', async () => {
+    // Ensure initComponent runs so the EventBus subscription is created
+    const formConfig: FormConfigFrame = {
+      name: 'save-exec-test',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_exec',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'trigger save exec'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
     const bus = TestBed.inject(FormComponentEventBus);
 
-    const spy = spyOn(component, 'saveForm').and.stub();
+    const spy = spyOn(formComponent, 'saveForm').and.stub();
 
-    // Publish execute command
+    // Publish execute command after subscription is in place
     bus.publish(createFormSaveExecuteEvent({ force: true, skipValidation: true, targetStep: 'S1' }));
-
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(true, 'S1', true);
   });

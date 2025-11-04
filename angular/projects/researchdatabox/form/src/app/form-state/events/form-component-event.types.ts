@@ -5,6 +5,8 @@
  * Per R15.1–R15.17, naming convention: namespace.domain.action
  */
 
+import { FormGroupStatus } from "../../form.component";
+
 /**
  * Base event interface with common properties
  */
@@ -63,6 +65,7 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
   readonly type: 'form.validation.broadcast';
   readonly isValid: boolean;
   readonly errors?: Record<string, string[]>;
+  readonly status?: FormGroupStatus;
 }
 
 /**
@@ -268,5 +271,21 @@ export function createFormSaveFailureEvent(
     type: FormComponentEventType.FORM_SAVE_FAILURE,
     error: options?.error,
     sourceId: options?.sourceId
+  };
+}
+
+/** Helper factory for creating validation broadcast events */
+export function createFormValidationBroadcastEvent(options: {
+  isValid: boolean,
+  errors?: Record<string, string[]>,
+  status?: FormGroupStatus,
+  sourceId?: string
+}): Omit<FormValidationBroadcastEvent, 'timestamp'> {
+  return {
+    type: FormComponentEventType.FORM_VALIDATION_BROADCAST,
+    isValid: options.isValid,
+    errors: options.errors,
+    status: options.status,
+    sourceId: options.sourceId
   };
 }

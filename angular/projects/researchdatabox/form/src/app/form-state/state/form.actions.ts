@@ -43,7 +43,8 @@ export const submitFormFailure = createAction(
 export const resetAllFields = createAction('[Form] Reset All Fields');
 export const resetAllFieldsComplete = createAction('[Form] Reset All Fields Complete');
 
-// Status actions (R3.2)
+// Status actions (R3.2), currently unused. 
+
 export const markDirty = createAction('[Form] Mark Dirty');
 export const markPristine = createAction('[Form] Mark Pristine');
 

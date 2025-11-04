@@ -1,16 +1,16 @@
 import { Component, inject, effect, signal } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
-import { FormStatusSignalBridge } from '../form-state/facade/form-status-signal-bridge';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus, createFormSaveRequestedEvent } from '../form-state/events';
+import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent } from '../form-state/events';
+import { FormStateFacade } from '../form-state';
 
 @Component({
   selector: 'redbox-form-save-button',
   template:`
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="label" [disabled]="disabled()"></button>
+    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
   `,
@@ -19,27 +19,40 @@ import { FormComponentEventBus, createFormSaveRequestedEvent } from '../form-sta
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName = SaveButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
-  disabled = signal<boolean>(false);
+  disabled = signal<boolean>(true);
   private readonly eventBus = inject(FormComponentEventBus);
-  
-  protected formStatusSignalBridge = inject(FormStatusSignalBridge);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
+  protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
+  protected formStateFacade = inject(FormStateFacade);
 
   constructor() {
     super();
+    const validationSignal = this.eventBus.selectSignal(FormComponentEventType.FORM_VALIDATION_BROADCAST);
     // Monitor form status to update disabled state
     effect(() => {
-      const dataStatus = this.formComponent.formGroupStatus();
-      // Disable if the form is invalid, pristine, or not ready (including VALIDATION_PENDING or SAVING)
-      this.disabled.set(!dataStatus.valid ||
-      dataStatus.pristine ||
-      this.formStatusSignalBridge.isValidationPending() ||
-      this.formStatusSignalBridge.isSaving());
+      const dataStatusEvent = validationSignal();
+      if (dataStatusEvent && dataStatusEvent.status) {
+        const dataStatus = dataStatusEvent.status;
+        this.loggerService.debug(`SaveButtonComponent effect: validation or pristine signal event: `, dataStatus);
+        const isSaving = this.formStateFacade.isSaving();
+        const isValidationPending = this.formStateFacade.isValidationPending();
+        // Disable when any of the following is true:
+        // - form is invalid
+        // - form has NOT been modified (i.e., not dirty)
+        // - async validation is pending
+        // - a save is currently in progress
+        const isDisabled: boolean = (!dataStatus.valid) || (!dataStatus.dirty) || isValidationPending || isSaving;
+        this.disabled.set(isDisabled);
+      }
+    });
+    effect(() => {
+      const isSaving = this.formStateFacade.isSaving();
+      this.currentLabel.set(isSaving ? this.componentDefinition?.config?.labelSaving : this.componentDefinition?.config?.label);
     });
   }
 
   public async save() {
-    if (this.formComponent && !this.disabled()) {
+    if (!this.disabled()) {
       // Publish a typed event to request save; NgRx effects will orchestrate execution
       this.eventBus.publish(
         createFormSaveRequestedEvent({
@@ -50,7 +63,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
         })
       );
     } else {
-      this.loggerService.debug(`Save button clicked but form is pristine, currently saving, not valid or dirty`);
+      this.loggerService.debug(`Save button is disabled; save action not triggered.`);
     }
   }
 

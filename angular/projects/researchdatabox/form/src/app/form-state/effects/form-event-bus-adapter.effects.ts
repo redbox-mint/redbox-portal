@@ -184,6 +184,30 @@ export class FormEventBusAdapterEffects {
   );
 
   /**
+   * Promote save success events to submitFormSuccess actions
+   * 
+   * */
+  promoteSaveSuccess$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_SAVE_SUCCESS,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: any) =>
+        FormActions.submitFormSuccess({ savedData: event.savedData })
+    )
+  );
+  /**
+   * Promote save failure events to submitFormFailure actions
+   */
+  promoteSaveFailure$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_SAVE_FAILURE,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: any) =>
+        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.errors) })
+    )
+  );
+
+  /**
    * Promote field value changed events (selective)
    * Criterion: (c) Requires replay for debugging critical field changes
    * 

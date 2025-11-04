@@ -119,38 +119,6 @@ export class FormEffects {
   );
 
   /**
-   * Submit Form Effect
-   * 
-   * Handles form submission with exhaustMap to prevent concurrent saves.
-   * Per R5.1, R5.3, R10.3
-   * 
-   * TODO: This is a stub that returns mock success. In production,
-   * this would call RecordService.save() or FormService.submit().
-   */
-  submitForm$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(FormActions.submitForm),
-      exhaustMap(action => {
-        this.logDiagnostics('submitForm started', action);
-        // Use submit driver (service abstraction) to allow async mocking in tests
-        return this.submitDriver.handler(action).pipe(
-          map(response => FormActions.submitFormSuccess({ savedData: response })),
-          catchError(error => {
-            const sanitized = sanitizeError(error);
-            this.logDiagnostics('submitForm failed', { error: sanitized });
-            return of(FormActions.submitFormFailure({ error: sanitized }));
-          })
-        );
-      }),
-      catchError(error => {
-        const sanitized = sanitizeError(error);
-        this.logDiagnostics('submitForm effect error', { error: sanitized });
-        return of(FormActions.submitFormFailure({ error: sanitized }));
-      })
-    )
-  );
-
-  /**
    * Reset All Fields Effect
    * 
    * Handles field reset completion.

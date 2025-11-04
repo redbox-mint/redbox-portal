@@ -5,4 +5,3 @@
  */
 
 export * from './form-state.facade';
-export * from './form-status-signal-bridge';

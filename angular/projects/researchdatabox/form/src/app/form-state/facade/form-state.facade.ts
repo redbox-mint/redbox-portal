@@ -7,11 +7,12 @@
  */
 
 import { Injectable, Signal, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
+import { map } from 'rxjs/internal/operators/map';
+import { Observable } from 'rxjs';
 
 /**
  * FormStateFacade
@@ -30,70 +31,38 @@ export class FormStateFacade {
   // Convert store selectors to signals using toSignal
   
   /** Current form status (INIT, READY, SAVING, etc.) */
-  readonly status: Signal<FormStatus> = toSignal(
-    this.store.select(FormSelectors.selectStatus),
-    { initialValue: FormStatus.INIT }
-  );
+  readonly status: Signal<FormStatus> = 
+    this.store.selectSignal(FormSelectors.selectStatus);
 
   /** Whether form has unsaved changes */
-  readonly isDirty: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectIsDirty),
-    { initialValue: false }
-  );
+  readonly isDirty: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsDirty);
 
   /** Reset token incremented on each reset action */
-  readonly resetToken: Signal<number> = toSignal(
-    this.store.select(FormSelectors.selectResetToken),
-    { initialValue: 0 }
-  );
+  readonly resetToken: Signal<number> = this.store.selectSignal(FormSelectors.selectResetToken);
 
   /** Current error message if any */
-  readonly error: Signal<string | null | undefined> = toSignal(
-    this.store.select(FormSelectors.selectError),
-    { initialValue: null }
-  );
+  readonly error: Signal<string | null | undefined> = this.store.selectSignal(FormSelectors.selectError);
 
   /** Whether form is currently saving */
-  readonly isSaving: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectIsSaving),
-    { initialValue: false }
-  );
+  readonly isSaving: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsSaving);
 
   /** Whether validation is pending */
-  readonly isValidationPending: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectIsValidationPending),
-    { initialValue: false }
-  );
+  readonly isValidationPending: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsValidationPending);
 
   /** Whether form has validation errors */
-  readonly hasValidationError: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectHasValidationError),
-    { initialValue: false }
-  );
+  readonly hasValidationError: Signal<boolean> = this.store.selectSignal(FormSelectors.selectHasValidationError);
 
   /** Whether form has load errors */
-  readonly hasLoadError: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectHasLoadError),
-    { initialValue: false }
-  );
+  readonly hasLoadError: Signal<boolean> = this.store.selectSignal(FormSelectors.selectHasLoadError);
 
   /** Whether form is initializing (not yet ready) */
-  readonly isInitializing: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectIsInitializing),
-    { initialValue: true }
-  );
+  readonly isInitializing: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsInitializing);
 
   /** Whether form is ready for user interaction */
-  readonly isReady: Signal<boolean> = toSignal(
-    this.store.select(FormSelectors.selectIsReady),
-    { initialValue: false }
-  );
+  readonly isReady: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsReady);
 
   /** Timestamp of last successful save (ISO string); parse at UI boundary if needed */
-  readonly lastSavedAt: Signal<string | null | undefined> = toSignal(
-    this.store.select(FormSelectors.selectLastSavedAt),
-    { initialValue: null }
-  );
+  readonly lastSavedAt: Signal<string | null | undefined> = this.store.selectSignal(FormSelectors.selectLastSavedAt);
 
   // Imperative API (R7.1)
 
@@ -167,4 +136,15 @@ export class FormStateFacade {
   syncModelSnapshot(snapshot: any): void {
     this.store.dispatch(FormActions.syncModelSnapshot({ snapshot }));
   }
+
+  /** Select form status */
+  observeFormStatus(status?: FormStatus): Observable<boolean | FormStatus> {
+    if (status === undefined) {
+      return this.store.select(FormSelectors.selectStatus);
+    }
+    return this.store.select(FormSelectors.selectStatus).pipe(
+      map(currentStatus => currentStatus === status)
+    );
+  }
+
 }

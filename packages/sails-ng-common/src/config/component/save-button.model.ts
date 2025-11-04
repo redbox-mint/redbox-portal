@@ -16,6 +16,7 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     targetStep?: string;
     forceSave?: boolean;
     skipValidation?: boolean;
+    labelSaving?: string;
 
     constructor() {
         super();

@@ -16,13 +16,15 @@ import { TestBed, waitForAsync } from '@angular/core/testing';
 import { Subscription } from 'rxjs';
 import { FormComponent } from './form.component';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
+import {FormComponentEventBus, createFormSaveSuccessEvent, createFormSaveRequestedEvent} from './form-state/events';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
-import { selectResetToken, selectStatus } from './form-state/state/form.selectors';
+import { selectResetToken, selectStatus, selectIsSaving } from './form-state/state/form.selectors';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
+import { FormEventBusAdapterEffects } from './form-state/effects/form-event-bus-adapter.effects';
 
 describe('FormComponent Integration Tests', () => {
   let component: FormComponent;
@@ -30,6 +32,8 @@ describe('FormComponent Integration Tests', () => {
   let store: Store;
   let statusSub: Subscription | undefined;
   let resetTokenSub: Subscription | undefined;
+  let eventBus: FormComponentEventBus;
+  let busEffects: FormEventBusAdapterEffects;
 
   const basicFormConfig: FormConfigFrame = {
     name: 'testing',
@@ -67,6 +71,8 @@ describe('FormComponent Integration Tests', () => {
 
     facade = TestBed.inject(FormStateFacade);
     store = TestBed.inject(Store);
+    eventBus = TestBed.inject(FormComponentEventBus);
+    busEffects = TestBed.inject(FormEventBusAdapterEffects);
   });
 
   afterEach(() => {
@@ -143,10 +149,42 @@ describe('FormComponent Integration Tests', () => {
     });    
     // Act: Call facade submit (this will dispatch submitForm action)
     facade.submit({ force: false });    
-    // Assert: Submit action was dispatched (status should change to SAVING)
-    // Note: The actual save happens in FormComponent.saveForm() which we're not mocking here
-    // This test verifies the facade.submit() method works and dispatches the action
+
     expect(statusChanges).toContain(FormStatus.SAVING);
+
+  }));
+
+  it('should handle submit success flow via event bus', waitForAsync(async () => {
+    // Arrange: Create form using helper
+    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    component = formComponent;
+        
+    expect(facade.status()).toBe(FormStatus.READY);
+    
+    // Track status changes
+    const statusChanges: FormStatus[] = [];
+    statusSub = store.select(selectStatus).subscribe(status => {
+      statusChanges.push(status);
+    });    
+    eventBus.publish(createFormSaveRequestedEvent({ force: true }));    
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(statusChanges).toContain(FormStatus.SAVING);
+    // Goes from READY -> SAVING -> READY
+    expect(statusChanges).toEqual([
+      FormStatus.READY,
+      FormStatus.SAVING,
+    ]);
+    eventBus.publish(createFormSaveSuccessEvent({savedData: {test: 'data'}}));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(statusChanges).toEqual([
+      FormStatus.READY,
+      FormStatus.SAVING,
+      FormStatus.READY,
+    ]);
+    expect(facade.status()).toBe(FormStatus.READY);
+
   }));
 
   /**

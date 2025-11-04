@@ -136,95 +136,6 @@ describe('FormEffects', () => {
     });
   });
 
-  describe('submitForm$ Effect', () => {
-    beforeEach(() => {
-      // Set state to READY for submit tests
-      store.dispatch(FormActions.loadInitialDataSuccess({ data: {} }));
-    });
-
-    it('should dispatch submitFormSuccess on successful save (AC7)', () => {
-      testScheduler.run(({ hot, cold, expectObservable }) => {
-        const action = FormActions.submitForm({
-          force: false,
-          targetStep: undefined,
-          skipValidation: false
-        });
-        
-        const completion = FormActions.submitFormSuccess({ savedData: {} });
-
-        actions$ = hot('-a', { a: action });
-        const expected = '-b';
-
-        expectObservable(effects.submitForm$).toBe(expected, { b: completion });
-      });
-    });
-
-    it('should use exhaustMap to prevent concurrent saves (R5.3)', () => {
-      testScheduler.run(({ hot, cold, expectObservable }) => {
-        const action1 = FormActions.submitForm({
-          force: false,
-          skipValidation: false
-        });
-        
-        const action2 = FormActions.submitForm({
-          force: true,
-          skipValidation: false
-        });
-
-        const completion = FormActions.submitFormSuccess({ savedData: {} });
-
-        // Simulate async operation with delayed completion so exhaustMap stays busy
-        submitHandler = () => cold('--r|', { r: {} });
-        actions$ = hot('-a-b', { a: action1, b: action2 });
-
-        // With exhaustMap, only first action should complete; second is ignored while first is inflight
-        const expected = '---c';
-
-        expectObservable(effects.submitForm$).toBe(expected, { c: completion });
-      });
-    });
-
-    it('should emit submitFormFailure with sanitized error on save error (AC8, R5.4)', () => {
-      testScheduler.run(({ hot, cold, expectObservable }) => {
-        // Make submit driver error with a nested error.message to exercise sanitization
-        const rawError = { error: { message: 'Service down' } } as any;
-        submitHandler = () => cold('#', {}, rawError);
-
-        const action = FormActions.submitForm({
-          force: false,
-          skipValidation: false
-        });
-
-        // Expect sanitized error string propagated via failure action
-        const failure = FormActions.submitFormFailure({ error: 'Service down' });
-
-        actions$ = hot('-a', { a: action });
-        const expected = '-b';
-
-        expectObservable(effects.submitForm$).toBe(expected, { b: failure });
-      });
-    });
-
-    it('should log diagnostics for submit operations (R11.4)', (done) => {
-      const consoleSpy = spyOn(console, 'debug');
-
-      actions$ = of(FormActions.submitForm({
-        force: false,
-        skipValidation: false
-      }));
-
-      effects.submitForm$.subscribe({
-        next: () => {
-          expect(consoleSpy).toHaveBeenCalledWith(
-            '[FormEffects] submitForm started',
-            jasmine.any(Object)
-          );
-          done();
-        }
-      });
-    });
-  });
-
   describe('resetAllFields$ Effect', () => {
     beforeEach(() => {
       // Set state to READY for reset tests
@@ -408,20 +319,6 @@ describe('FormEffects', () => {
   });
 
   describe('Error Sanitization', () => {
-    it('should sanitize string errors', () => {
-      // Exercise error sanitization by making the actions stream error with a raw string
-      // The effect-level catchError should sanitize and emit submitFormFailure with the same string
-      testScheduler.run(({ hot, expectObservable }) => {
-        const failure = FormActions.submitFormFailure({ error: 'raw string error' });
-
-        // Actions stream errors with a raw string
-        actions$ = hot('-#', undefined, 'raw string error');
-        // Effect emits failure then completes due to catchError returning a single value
-        const expected = '-(b|)';
-
-        expectObservable(effects.submitForm$).toBe(expected, { b: failure });
-      });
-    });
 
     it('should handle error objects with message property', () => {
       const action = FormActions.loadInitialData({

@@ -474,6 +474,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.setProp('targetStep', item.config, config);
         this.setProp('forceSave', item.config, config);
         this.setProp('skipValidation', item.config, config);
+        this.setProp('labelSaving', item.config, config);
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
