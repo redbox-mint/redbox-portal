@@ -24,8 +24,7 @@ graph TD
     I -->|observed by| J[FormEventBusAdapterEffects]
     J -->|promotes to| C
     
-    G -->|reads| K[FormStatusSignalBridge]
-    K -->|bridges| B
+  G -->|injects & reads signals from| B
 ```
 
 ## Quick Start
@@ -35,7 +34,7 @@ graph TD
 Register the form feature state at application bootstrap:
 
 ```typescript
-import { provideFormFeature } from '@researchdatabox/form/form-state';
+import { provideFormFeature } from '...';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -52,7 +51,7 @@ bootstrapApplication(AppComponent, {
 The `FormStateFacade` provides a clean API for form lifecycle operations:
 
 ```typescript
-import { FormStateFacade } from '@researchdatabox/form/form-state';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Component, inject, effect } from '@angular/core';
 
 @Component({
@@ -60,7 +59,7 @@ import { Component, inject, effect } from '@angular/core';
   template: `
     <div [class.saving]="facade.isSaving()">
       <button (click)="handleSave()" [disabled]="facade.isSaving()">
-        {{ facade.isSaving() ? 'Saving...' : 'Save' }}
+        {{ facade.isSaving() ? 'Saving' : 'Save' }}
       </button>
       <button (click)="handleReset()" [disabled]="facade.isSaving()">
         Reset
@@ -114,12 +113,9 @@ export class FormExampleComponent {
 
 ### 3. Consuming Facade Signals in Field Components
 
-Field components should use `FormStatusSignalBridge` to access status without tight coupling to NgRx:
+Field components should inject `FormStateFacade` (optionally) and read its reactive signals directly:
 
 ```typescript
-import { Component, inject, effect } from '@angular/core';
-import { FormStatusSignalBridge } from '@researchdatabox/form/form-state';
-
 @Component({
   selector: 'redbox-example-input',
   template: `
@@ -132,20 +128,20 @@ import { FormStatusSignalBridge } from '@researchdatabox/form/form-state';
 })
 export class ExampleInputComponent {
   // Optional injection - provides status signals
-  private statusBridge = inject(FormStatusSignalBridge, { optional: true });
+  private facade = inject(FormStateFacade, { optional: true });
 
   isDisabled = computed(() => 
-    this.statusBridge?.isSaving() || this.statusBridge?.isValidationPending()
+    (this.facade?.isSaving() ?? false) || (this.facade?.isValidationPending() ?? false)
   );
 
   hasError = computed(() => 
-    this.statusBridge?.hasValidationError()
+    this.facade?.hasValidationError() ?? false
   );
 
   constructor() {
     // React to reset events
     effect(() => {
-      const resetSeq = this.statusBridge?.resetToken();
+      const resetSeq = this.facade?.resetToken();
       if (resetSeq !== undefined) {
         // Reset logic here
         this.control.reset(this.defaultValue);
@@ -245,9 +241,6 @@ Note: In code, do not use raw string literals for event types. Always use the ty
 ### Publishing Events
 
 ```typescript
-import { Component, inject } from '@angular/core';
-import { FormComponentEventBus, createFieldValueChangedEvent, createFieldFocusRequestEvent } from '@researchdatabox/form/form-state';
-
 @Component({...})
 export class PublisherExampleComponent {
   private eventBus = inject(FormComponentEventBus);
@@ -273,8 +266,6 @@ export class PublisherExampleComponent {
 #### Option 1: Observable (for effects or complex logic)
 
 ```typescript
-import { Component, inject, OnInit } from '@angular/core';
-import { FormComponentEventBus, FormComponentEventType } from '@researchdatabox/form/form-state';
 
 @Component({...})
 export class ReactiveFieldComponent implements OnInit {
@@ -299,8 +290,6 @@ export class ReactiveFieldComponent implements OnInit {
 #### Option 2: Signal (for reactive templates)
 
 ```typescript
-import { Component, inject, effect } from '@angular/core';
-import { FormComponentEventBus, FormComponentEventType } from '@researchdatabox/form/form-state';
 
 @Component({...})
 export class SignalBasedFieldComponent {
@@ -328,7 +317,6 @@ export class SignalBasedFieldComponent {
 ⚠️ **Important**: When a field reacts to an event, it should **not** re-publish the same event type to avoid loops.
 
 ```typescript
-import { FormComponentEventType, createFieldValueChangedEvent } from '@researchdatabox/form/form-state';
 
 // ❌ BAD: Creates infinite loop
 onValueChange(newValue: any) {
@@ -386,9 +374,6 @@ Console output:
 ### Testing Components Using the Facade
 
 ```typescript
-import { TestBed } from '@angular/core/testing';
-import { provideStore } from '@ngrx/store';
-import { provideFormFeature, FormStateFacade } from '@researchdatabox/form/form-state';
 
 describe('MyFormComponent', () => {
   beforeEach(() => {
@@ -417,8 +402,6 @@ describe('MyFormComponent', () => {
 ### Testing Event Bus Communication
 
 ```typescript
-import { TestBed } from '@angular/core/testing';
-import { FormComponentEventBus, FormComponentEventType, createFieldValueChangedEvent } from '@researchdatabox/form/form-state';
 
 describe('Field Communication', () => {
   let eventBus: FormComponentEventBus;
@@ -556,7 +539,7 @@ readonly status = toSignal(
 Events are emitted in microtasks to batch multiple publications in the same tick:
 
 ```typescript
-import { createFieldValueChangedEvent } from '@researchdatabox/form/form-state';
+import { createFieldValueChangedEvent } from '@researchdatabox/portal-ng-common';
 
 // Multiple publishes in same tick
 eventBus.publish(createFieldValueChangedEvent('a', 1, undefined, 'a'));
@@ -620,7 +603,6 @@ status = this.facade.status;
 **Solution**: Ensure exact event type match and use sourceId for scoping:
 
 ```typescript
-import { FormComponentEventType, createFieldValueChangedEvent } from '@researchdatabox/form/form-state';
 
 // Publisher
 eventBus.publish(createFieldValueChangedEvent('country', newValue, undefined, 'my-group'));
