@@ -139,7 +139,7 @@ export module Controllers {
         } else {
           return this.sendResp(req, res, {
             status: 403,
-            detailErrors: [{code: "error-403-heading"}],
+            displayErrors: [{code: "error-403-heading"}],
             meta: {oid: record.redboxOid},
             v1: {status: "Access Denied"},
           });
@@ -147,7 +147,7 @@ export module Controllers {
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [err],
-          detailErrors: [{detail: "Error retrieving metadata"}],
+          displayErrors: [{detail: "Error retrieving metadata"}],
           meta: {oid: oid},
         });
       }
@@ -222,7 +222,7 @@ export module Controllers {
         }, error => {
           return this.sendResp(req, res, {
             errors: [error],
-            detailErrors: [{detail: "Failed to load form"}],
+            displayErrors: [{detail: "Failed to load form"}],
           });
         });
       } else {
@@ -286,7 +286,7 @@ export module Controllers {
             const msg = `Error, getting form for record type: ${recordType}`;
             return this.sendResp(req, res, {
               status: 500,
-              detailErrors: [{detail: msg}],
+              displayErrors: [{detail: msg}],
               v1: {message: msg},
             });
           }
@@ -298,7 +298,7 @@ export module Controllers {
             const msg = `Error, empty metadata for OID: ${oid}`;
             return this.sendResp(req, res, {
               status: 500,
-              detailErrors: [{detail: msg}],
+              displayErrors: [{detail: msg}],
               v1: {message: msg},
             });
           }
@@ -317,7 +317,7 @@ export module Controllers {
             if (!hasAccess) {
               return this.sendResp(req, res, {
                 status: 500,
-                detailErrors: [{code: 'view-error-no-permissions'}],
+                displayErrors: [{code: 'view-error-no-permissions'}],
                 v1: {message: TranslationService.t('view-error-no-permissions')}
               });
           }
@@ -328,7 +328,7 @@ export module Controllers {
             const msg = `Error, getting form ${formParam} for OID: ${oid}`;
             return this.sendResp(req, res, {
               status: 500,
-              detailErrors: [{detail: msg}],
+              displayErrors: [{detail: msg}],
               v1: {message: msg}
             });
           }
@@ -356,24 +356,24 @@ export module Controllers {
           const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;
           return this.sendResp(req, res, {
             status: 500,
-            detailErrors: [{detail: msg}],
+            displayErrors: [{detail: msg}],
             v1: {message: msg}
           });
         }
 
       } catch(error) {
-        let detailError: ErrorResponseItemV2 = {title: "Error getting form definition"};
+        let displayError: ErrorResponseItemV2 = {title: "Error getting form definition"};
         let msg;
         if (error.error && error.error.code == 500) {
-          detailError.code = 'missing-record';
+          displayError.code = 'missing-record';
           msg = TranslationService.t('missing-record');
         } else {
-          detailError.detail = error.message;
+          displayError.detail = error.message;
           msg = error.message;
         }
         return this.sendResp(req, res, {
           errors: [error],
-          detailErrors: [detailError],
+          displayErrors: [displayError],
           v1: msg,
         });
       }
@@ -413,7 +413,7 @@ export module Controllers {
         } else {
           return this.sendResp(req, res, {
             status: 500,
-            detailErrors: [{detail: createResponse.message}],
+            displayErrors: [{detail: createResponse.message}],
             meta: {...createResponse},
           });
         }
@@ -421,7 +421,7 @@ export module Controllers {
       } catch (error) {
         return this.sendResp(req, res, {
           errors: [error],
-          detailErrors: [{detail: 'Failed to save record'}],
+          displayErrors: [{detail: 'Failed to save record'}],
         });
       }
     }
@@ -453,19 +453,19 @@ export module Controllers {
           } else {
             return this.sendResp(req, res, {
               status: 500,
-              detailErrors: [{detail: response.message}]
+              displayErrors: [{detail: response.message}]
             });
           }
         } else {
           return this.sendResp(req, res, {
             status: 500,
-            detailErrors: [{code: 'edit-error-no-permissions'}]
+            displayErrors: [{code: 'edit-error-no-permissions'}]
           });
         }
       } else {
         return this.sendResp(req, res, {
           status: 500,
-          detailErrors: [{code: 'failed-delete'}]
+          displayErrors: [{code: 'failed-delete'}]
         });
       }
     }
@@ -477,7 +477,7 @@ export module Controllers {
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 500,
-          detailErrors: [{code: 'failed-restore'}],
+          displayErrors: [{code: 'failed-restore'}],
           meta: {oid: oid},
           v1: {
             success: false,
@@ -507,7 +507,7 @@ export module Controllers {
         };
         return this.sendResp(req, res, {
           status: 500,
-          detailErrors: [{code: 'failed-restore', detail: response.message}],
+          displayErrors: [{code: 'failed-restore', detail: response.message}],
           meta: {oid: oid},
           v1: data,
         });
@@ -520,7 +520,7 @@ export module Controllers {
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 500,
-          detailErrors: [{code: 'failed-destroy'}],
+          displayErrors: [{code: 'failed-destroy'}],
           meta: {oid: oid},
           v1: {
             success: false,
@@ -541,7 +541,7 @@ export module Controllers {
       } else {
         return this.sendResp(req, res, {
           status: 500,
-          detailErrors: [{code: 'failed-destroy'}],
+          displayErrors: [{code: 'failed-destroy'}],
           meta: {oid: oid},
           v1: {
             success: false,
@@ -554,12 +554,6 @@ export module Controllers {
 
     public update(req, res) {
       this.updateInternal(req, res).then(result => { });
-    }
-
-    private isValidationError(err: Error) {
-      // TODO: use RBValidationError.clName;
-      const validationName = 'RBValidationError';
-      return validationName == err.name;
     }
 
     private async updateInternal(req, res) {
@@ -602,7 +596,7 @@ export module Controllers {
         } else {
           return this.sendResp(req, res, {
             status: 500,
-            detailErrors: [{detail: "Failed to get record data"}],
+            displayErrors: [{detail: "Failed to get record data"}],
             meta: response,
             v1: response,
           });
@@ -611,7 +605,7 @@ export module Controllers {
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
         return this.sendResp(req, res, {
           errors: [error],
-          detailErrors: [{detail: error.message}],
+          displayErrors: [{detail: error.message}],
           meta: response,
           v1: error.message,
         });
@@ -713,7 +707,7 @@ export module Controllers {
           }, error => {
             this.sendResp(req, res, {
               errors: [error],
-              detailErrors: [{title: "Error updating meta", detail: error.message}],
+              displayErrors: [{title: "Error updating meta", detail: error.message}],
               v1: error.message
             });
           });
@@ -967,9 +961,12 @@ export module Controllers {
       try {
         let searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
         searchRes['page'] = page
-        this.ajaxOk(req, res, null, searchRes);
+        this.sendResp(req, res, {data: searchRes});
       } catch (error) {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          v1: error.message,
+        });
       }
     }
     /**
@@ -981,9 +978,12 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
-        this.ajaxOk(req, res, null, recordTypeModel);
+        this.sendResp(req, res, {data: recordTypeModel});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          v1: error.message,
+        })
       });
     }
 
@@ -999,9 +999,9 @@ export module Controllers {
           let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'), _.get(recType, 'searchFilters'), _.get(recType, 'searchable'));
           recordTypeModels.push(recordTypeModel);
         }
-        this.ajaxOk(req, res, null, recordTypeModels);
+        this.sendResp(req, res, {data: recordTypeModels});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {errors: [error], v1: error.message});
       });
     }
 
@@ -1010,9 +1010,9 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
         let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
-        this.ajaxOk(req, res, null, dashboardTypeModel);
+        this.sendResp(req, res, {data: dashboardTypeModel});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {errors: [error], v1:error.message});
       });
     }
 
@@ -1026,9 +1026,9 @@ export module Controllers {
           dashboardTypesModelList.push(dashboardTypeModel);
         }
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
-        this.ajaxOk(req, res, null, dashboardTypesModel);
+        this.sendResp(req, res, {data: dashboardTypesModel});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {errors: [error], v1: error.message});
       });
     }
 
@@ -1137,13 +1137,13 @@ export module Controllers {
           return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
-            this.ajaxFail(req, res, error.message);
+            this.sendResp(req, res, {errors: [error], v1: error.message});
           } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            res.forbidden();
+            this.sendResp(req, res, {status: 403, errors: [error], displayErrors: [{code: 'edit-error-no-permissions'}]});
           } else if (error.message == TranslationService.t('attachment-not-found')) {
-            res.notFound();
+            this.sendResp(req, res, {status: 404, errors: [error], displayErrors: [{code: 'attachment-not-found'}]});
           } else {
-            res.serverError();
+            this.sendResp(req, res, {status: 500, errors: [error]});
           }
         }
       } else {
@@ -1177,14 +1177,14 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       return RecordTypesService.get(brand, recordType).subscribe(recordType => {
         return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
-          return this.ajaxOk(req, res, null, wfSteps);
+          return this.sendResp(req, res, {data: wfSteps});
         });
       });
     }
 
     public getRelatedRecords(req, res) {
       return this.getRelatedRecordsInternal(req, res).then(response => {
-        return this.ajaxOk(req, res, null, response);
+        return this.sendResp(req, res, {data: response});
       });
     }
 
@@ -1251,7 +1251,7 @@ export module Controllers {
 
     public getPermissions(req, res) {
       return this.getPermissionsInternal(req, res).then(response => {
-        return this.ajaxOk(req, res, null, response);
+        return this.sendResp(req, res, {data: response});
       });
     }
 
@@ -1260,7 +1260,7 @@ export module Controllers {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
       from(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
-        return this.ajaxOk(req, res, null, attachments);
+        return this.sendResp(req, res, {data: attachments});
       });
     }
 
@@ -1289,13 +1289,13 @@ export module Controllers {
           return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
-            this.ajaxFail(req, res, error.message);
+            this.sendResp(req, res, {errors: [error], v1: error.message});
           } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            res.forbidden();
+            this.sendResp(req, res, {status: 403, errors: [error], displayErrors: [{code: 'edit-error-no-permissions'}]});
           } else if (error.message == TranslationService.t('attachment-not-found')) {
-            res.notFound();
+            this.sendResp(req, res, {status: 404, errors: [error], displayErrors: [{code: 'attachment-not-found'}]});
           } else {
-            res.serverError();
+            this.sendResp(req, res, {status: 500, errors: [error]});
           }
         }
       }
@@ -1388,14 +1388,16 @@ export module Controllers {
       try {
         const response = await this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode, secondarySort);
         if (response) {
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, {data: response});
         } else {
-          this.ajaxFail(req, res, null, response);
+          this.sendResp(req, res, {status: 500, meta: response, v1: response});
         }
       } catch (error) {
-        sails.log.error("Error updating meta:");
-        sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{title: "Error updating meta", detail: error.message}],
+          v1: error.message
+        });
       }
     }
 
@@ -1449,14 +1451,16 @@ export module Controllers {
       try {
         const response = await this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
         if (response) {
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, {data: response});
         } else {
-          this.ajaxFail(req, res, null, response);
+          this.sendResp(req, res, {status: 500, meta: response, v1: response});
         }
       } catch (error) {
-        sails.log.error("Error updating meta:");
-        sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{title: "Error updating meta", detail: error.message}],
+          v1: error.message
+        });
       }
     }
 
@@ -1562,19 +1566,6 @@ export module Controllers {
 
       response["items"] = items;
       return response;
-    }
-
-    private getErrorMessage(err: Error, defaultMessage: string) {
-      // TODO: use RBValidationError.clName;
-      const validationName = 'RBValidationError';
-      return validationName == err.name ? err.message : defaultMessage;
-    }
-
-    private async buildResponseSuccessRecord(oid: string, response: { [key: string]: unknown }): Promise<DataResponseV2> {
-      return this.buildResponseSuccess(
-          await this.recordsService.getMeta(oid),
-          response
-      );
     }
 
     private mergeRecordMetadata(currentMetadata: { [key: string]: unknown }, newMetadata: { [key: string]: unknown }): { [key: string]: unknown } {

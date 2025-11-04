@@ -405,15 +405,20 @@ export module Controllers.Core {
      * Send a response built from the properties.
      *
      * Defaults / Conventions:
-     * - The default response format is json.
-     * - If only 'data' is provided, it will be returned with status 200.
-     * - If there are any 'errors', the 'status' code will default to 500.
+     * - The default response format is 'json'.
+     * - If only 'data' is provided, the 'status' will be 200.
+     * - If there are any 'errors', the 'status' will default to 500.
      * - Any 'detailErrors' missing a 'status' will use the top-level 'status'.
+     * - If the top-level status is not set, and there are detailErrors with a status,
+     *   the top-level status will use 500 if any status start with 5,
+     *   or 400 if any status start with 4,
+     *   or 500 if there are any detailErrors.
      * - The response will be in the format matching the request kind (e.g. API, ajax).
-     * - If the detailError.code is set, it should be a translation message identifier.
-     *   It will be updated in the detailError.code to add the prefix 'redbox-error-'.
-     * - API v1 will return 'data' as the body on 'status' 200.
-     * - API v1 will return the first 'detailError.detail' as the body for an error response if no 'v1' is supplied.
+     * - If there is no detailError.title or detailError.detail, and detailError.code is set, the 'code' will be used as a translation message identifier.
+     *   The translated message will be set to title if it is falsy, otherwise detail if it is falsy.
+     * - Both detailError.title and detailError.detail will be treated as translation message identifiers if they have no spaces.
+     * - The detailError.code will be updated to add the prefix 'redbox-error-' if the prefix is not present.
+     * - API v1 will return 'data' as the body on 'status' 200, if no 'v1' is supplied.
      *
      * @param req The sails request.
      * @param res The sails response.
@@ -426,12 +431,12 @@ export module Controllers.Core {
 
       // Destructure build response properties and set defaults.
       const {
-        kind = "json",
+        format = "json",
         data = {},
         status = 200,
         headers = {},
         errors = [],
-        detailErrors = [],
+        displayErrors = [],
         meta = {},
       } = buildResponse ?? {};
 
@@ -451,7 +456,7 @@ export module Controllers.Core {
       // TODO: log errors
 
       // if the response is a json format response with no errors, return the data in the expected API version.
-      if (kind === 'json' && errors.length === 0 && detailErrors.length === 0) {
+      if (format === 'json' && errors.length === 0 && displayErrors.length === 0) {
         switch (apiVersion) {
           case ApiVersion.VERSION_2_0:
             sails.log.verbose(`Send response status 200 api version 2 format json.`);
@@ -596,32 +601,32 @@ if (apiVersion === ApiVersion.VERSION_2_0) {
     }
      */
 
-    /**
-     * Build a success response with the provided data and meta items.
-     * @param data The primary data for the response.
-     * @param meta The metadata for the response.
-     * @protected
-     */
-    private buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
-      // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
-      return {
-        data: data,
-        meta: {...Object.entries(meta ?? {})},
-      }
-    }
-
-    /**
-     * Build an error response with the provided data and meta items.
-     * @param errors The error details for the response.
-     * @param meta The metadata for the response.
-     * @protected
-     */
-    private buildResponseError(errors: ErrorResponseItemV2[], meta: Record<string, unknown>): ErrorResponseV2 {
-      // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
-      return {
-        errors: errors,
-        meta: {...Object.entries(meta ?? {})},
-      }
-    }
+    // /**
+    //  * Build a success response with the provided data and meta items.
+    //  * @param data The primary data for the response.
+    //  * @param meta The metadata for the response.
+    //  * @protected
+    //  */
+    // private buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
+    //   // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
+    //   return {
+    //     data: data,
+    //     meta: {...Object.entries(meta ?? {})},
+    //   }
+    // }
+    //
+    // /**
+    //  * Build an error response with the provided data and meta items.
+    //  * @param errors The error details for the response.
+    //  * @param meta The metadata for the response.
+    //  * @protected
+    //  */
+    // private buildResponseError(errors: ErrorResponseItemV2[], meta: Record<string, unknown>): ErrorResponseV2 {
+    //   // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
+    //   return {
+    //     errors: errors,
+    //     meta: {...Object.entries(meta ?? {})},
+    //   }
+    // }
   }
 }

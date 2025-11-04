@@ -1,6 +1,8 @@
 /**
  * Interface representing an error item in JSON API format.
  *
+ * Use this structure to include errors that will be shown to the user.
+ *
  * Based on https://github.com/mathematic-inc/ts-japi/blob/main/src/models/error.model.ts (Licence Apache 2.0)
  */
 export interface ErrorResponseItemV2 {

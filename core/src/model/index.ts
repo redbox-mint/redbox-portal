@@ -1,5 +1,5 @@
 export {APIActionResponse} from "./APIActionResponse";
-export {BuildResponseKind, BuildResponseKindType, BuildResponseType} from "./BuildResponse";
+export {BuildResponseFormat, BuildResponseFormatType, BuildResponseType} from "./BuildResponse";
 export {APIErrorResponse} from "./APIErrorResponse";
 export {APIObjectActionResponse} from "./APIObjectActionResponse";
 export {APIHarvestResponse} from "./APIHarvestResponse";

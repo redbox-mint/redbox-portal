@@ -5,24 +5,25 @@ import {ErrorResponseItemV2} from "./api";
  * to be shown to the user.
  */
 export class RBValidationError extends Error {
-  private readonly _structuredErrors: ErrorResponseItemV2[] = [];
+  private readonly _displayErrors: ErrorResponseItemV2[] = [];
 
   /**
-   * Create a new RBValidation Error with optional structured errors.
-   * @param message The error message. This is only used internally and not sent to the end user.
-   * @param options The error options. This is only used internally and not sent to the end user.
-   * @param structuredErrors The structured errors. These are sent to the end user.
+   * Create a new internal RBValidation Error with optional display errors for the response.
+   * @param build Create a new RBValidation Error with optional internal message, optional options, and optional display errors.
+   * @param build.message The error message. This is only used internally and not sent to the end user.
+   * @param build.options The error options. This is only used internally and not sent to the end user.
+   * @param build.displayErrors The display errors. These are sent to the end user.
    */
-  constructor(message?: string, options?: ErrorOptions, structuredErrors?: ErrorResponseItemV2[]) {
-    super(message, options);
+  constructor(build: { message?: string, options?: ErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
+    super(build.message ?? "", build.options ?? {});
     this.name = 'RBValidationError';
-    this._structuredErrors = structuredErrors ?? [];
+    this._displayErrors = build.displayErrors ?? [];
   }
 
   /**
-   * Get any structured errors stored in this Error.
+   * Get any display errors stored in this Error.
    */
-  get structuredErrors(): ErrorResponseItemV2[] {
-    return this._structuredErrors;
+  get displayErrors(): ErrorResponseItemV2[] {
+    return this._displayErrors;
   }
 }
