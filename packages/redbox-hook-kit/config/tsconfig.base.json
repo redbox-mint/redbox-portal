@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./",
+    "rootDir": "./typescript",
+    "strict": false,
+    "inlineSourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "target": "es6",
+    "module": "commonjs",
+    "jsx": "react",
+    "declaration": false,
+    "noImplicitAny": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "types": ["node", "lodash"],
+    "paths": {
+      "rxjs": ["node_modules/rxjs", "node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs"],
+      "rxjs/*": ["node_modules/rxjs/*", "node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs/*"]
+    }
+  },
+  "exclude": [
+    "node_modules/**",
+    "typings/browser/**",
+    "typings/browser.d.ts",
+    "test/**/*.ts",
+    "dist/**"
+  ],
+  "include": [
+    "typescript/**/*.ts"
+  ],
+  "compileOnSave": true,
+  "buildOnSave": false
+}
