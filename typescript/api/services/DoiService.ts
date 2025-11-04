@@ -17,32 +17,18 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  of
-} from 'rxjs';
-import {
-  Services as services,
-  RBValidationError,
-  BrandingModel
-} from '@researchdatabox/redbox-core-types';
-import {
-  Sails,
-  Model
-} from "sails";
-import { DateTime } from 'luxon';
+import {of} from 'rxjs';
+import {Services as services, RBValidationError, BrandingModel} from '@researchdatabox/redbox-core-types';
+import {Sails} from "sails";
+import {DateTime} from 'luxon';
 import moment from '../shims/momentShim';
 import axios from 'axios';
-import { isArray } from 'lodash';
-
 
 declare var sails: Sails;
 declare var RecordsService;
 declare var BrandingService;
 declare var TranslationService;
 declare var _;
-
-
-
 
 export module Services {
   /**
@@ -62,7 +48,13 @@ export module Services {
       'changeDoiState'
     ];
 
-    private readonly msgPrefix = TranslationService.t('Datacite API error');
+    private _msgPrefix: string;
+    private get msgPrefix() {
+      if (!this._msgPrefix) {
+        this._msgPrefix = TranslationService.t('Datacite API error');
+      }
+      return this._msgPrefix;
+    }
 
     private async makeCreateDoiCall(instance, postBody, record, oid) {
       try {
