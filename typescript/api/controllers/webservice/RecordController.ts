@@ -311,7 +311,7 @@ export module Controllers {
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [err],
-          displayErrors: [{detail: "Get Metadata failed, failed t."}]
+          displayErrors: [{detail: "Get Metadata failed."}]
         });
       }
     }
@@ -340,7 +340,7 @@ export module Controllers {
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [err],
-          displayErrors: [{detail: `Failed to list audit records for ${oid}, pleas.`}]
+          displayErrors: [{detail: `Failed to list audit records for ${oid}, please.`}]
         });
       }
     }
@@ -357,7 +357,7 @@ export module Controllers {
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [err],
-          displayErrors: [{detail: `Failed to get object meta for ${oid}, pleas.`}]
+          displayErrors: [{detail: `Failed to get object meta for ${oid}, please.`, meta:{oid}}]
         });
       }
     }
@@ -374,7 +374,7 @@ export module Controllers {
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{detail: `Failed to update meta, cannot find existing record with oid: ${oid}`}]
+            displayErrors: [{detail: `Failed to update meta, cannot find existing record with oid: ${oid}`, meta:{oid}}]
           });
         }
         if (shouldMerge) {
@@ -390,7 +390,7 @@ export module Controllers {
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [err],
-          displayErrors: [{detail: "Update Metadata failed, failed t."}]
+          displayErrors: [{detail: "Update Metadata failed."}]
         });
       }
 
@@ -425,14 +425,14 @@ export module Controllers {
         record = await this.RecordsService.getMeta(oid);
         record["metaMetadata"] = req.body;
       } catch (err) {
-        return this.sendResp(req, res, { errors: [err], displayErrors: [{detail: "Updatd"}]});
+        return this.sendResp(req, res, { errors: [err], displayErrors: [{detail: "Updated"}]});
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         return this.sendResp(req, res, {data: result});
       } catch (err) {
-        return this.sendResp(req, res, { errors: [err], displayErrors: [{detail: "Updatd"}]});
+        return this.sendResp(req, res, { errors: [err], displayErrors: [{detail: "Updated"}]});
       }
     }
 

@@ -72,11 +72,6 @@ export module Services {
 			this.datastreamService = sails.services[sails.config.record.datastreamService];
 		}
 
-		private throwRBValidationError(logPrefix: string, error: RBValidationError) {
-			sails.log.error(`${logPrefix}->${error.message}`);
-			throw error;
-		}
-
 		/**
 		 *  Converts a RB Data Publication record into RO-Crate and writes it to the OCFL repository
 		 *
@@ -92,29 +87,29 @@ export module Services {
 				const site = sails.config.datapubs.sites[options['site']];
 				if( ! site ) {
           const msg = `Unknown publication site`;
-          this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+          throw  new RBValidationError({
             message: `${msg}: ${options['site']}`,
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 				const md = record['metadata'];
 				const drec = md['dataRecord'];
 				const drid = drec ? drec['oid'] : undefined;
 				if(!drid) {
 					const msg = `Couldn't find dataRecord or id for data pub`;
-					this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+					throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid}`,
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 				if(! user || ! user['email']) {
 					user = { 'email': '' };
 					const msg = `Empty user or no email found`;
 					// TODO: should we throw here?
-          this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+          throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid}`,
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 				// set the dataset URL and DOI
 				let datasetUrl = '';
@@ -139,11 +134,11 @@ export module Services {
 					await targetCollector.connect();
 				} catch (err) {
           const msg = `Error connecting to target collector`;
-					this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+					throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid} site dir ${site.dir}`,
             options: {cause: err},
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 				let rootCollection = targetCollector.repo.object(rootColConfig.rootCollectionId);
 				try {
@@ -162,31 +157,31 @@ export module Services {
 					}
 				} catch (err) {
           const msg = `Error loading root collection`;
-          this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+          throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid} rootCollectionId ${site.rootCollectionId}`,
             options: {cause: err},
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 
 				let creator = await firstValueFrom(UsersService.getUserWithUsername(record['metaMetadata']['createdBy']));
 
 				if (_.isEmpty(creator)) {
           const msg = `Error getting creator for record`
-          this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+          throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid} creator ${record['metaMetadata']['createdBy']}`,
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site'], 'creator': record['metaMetadata']['createdBy']}}],
-          }));
+          });
 				}
 				try {
 					await this.writeDatasetObject(creator, user, oid, drid, targetCollector, rootCollection, record, site.tempDir);
 				} catch (err) {
           const msg = `Error writing dataset object for`;
-          this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+          throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid} `,
             options: {cause: err},
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 
 				try {
@@ -194,10 +189,10 @@ export module Services {
 				} catch (err) {
 					this.recordPublicationError(oid, record, err);
           const msg = `Error updating record metadata`;
-          this.throwRBValidationError(`${this.logHeader} exportDataset()`, new RBValidationError({
+          throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid} `,
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
-          }));
+          });
 				}
 			} else {
 				sails.log.debug(`Not publishing: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`);
@@ -243,21 +238,21 @@ export module Services {
 			} catch (err) {
 				await this.removeTempDir(oidTempDir);
         const msg = `Error writing attachments for dataset`;
-        this.throwRBValidationError(`${this.logHeader} writeDatasetObject()`, new RBValidationError({
+        throw new RBValidationError({
           message: `${msg}: oid ${oid} `,
           options: {cause: err},
           displayErrors: [{detail: msg, meta: {'oid': oid}}],
-        }));
+        });
 			}
 			try {
 				await this.writeDatasetROCrate(creator, approver, oid, attachments, record, targetCollector, rootCollection);
 			} catch (err) {
         const msg = `Error writing dataset RO-Crate`;
-        this.throwRBValidationError(`${this.logHeader} writeDatasetObject()`, new RBValidationError({
+        throw new RBValidationError({
           message: `${msg}: oid ${oid} `,
           options: {cause: err},
           displayErrors: [{detail: msg, meta: {'oid': oid}}],
-        }));
+        });
 			} finally {
 				await this.removeTempDir(oidTempDir);
 			}

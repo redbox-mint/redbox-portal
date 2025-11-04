@@ -191,17 +191,16 @@ export module Services {
         return re.test(value);
       }
       const getError = function () {
-        let customError: RBValidationError;
+        let displayErrorDetail = TranslationService.t(errorLanguageCode);
+        const displayErrorMeta: Record<string, unknown> = {errorLanguageCode:errorLanguageCode};
         if (fieldLanguageCode) {
-          let fieldName = TranslationService.t(fieldLanguageCode);
-          let baseErrorMessage = TranslationService.t(errorLanguageCode);
-          customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
-        } else {
-          let baseErrorMessage = TranslationService.t(errorLanguageCode);
-          customError = new RBValidationError(baseErrorMessage);
+          displayErrorDetail = `${TranslationService.t(fieldLanguageCode)} ${displayErrorDetail}`;
+          displayErrorMeta.fieldLanguageCode = fieldLanguageCode;
         }
-        sails.log.error('validateFieldUsingRegex', customError, record, options);
-        return customError;
+        return new RBValidationError({
+          message: `Failed validating field using regex record ${record} options ${options}`,
+          displayErrors: [{detail: displayErrorDetail, meta: displayErrorMeta}],
+        });
       }
       const hasValue = function (data) {
         return data !== '' &&
@@ -281,13 +280,13 @@ export module Services {
      *   label: 'the human readable label for the field',
      *   error: 'optional error message'
      *  }
-     * 
+     *
      *  An empty array should be returned if no errors are found.
-     * 
-     * @param oid 
-     * @param record 
-     * @param options 
-     * @returns 
+     *
+     * @param oid
+     * @param record
+     * @param options
+     * @returns
      */
     public async validateFieldsUsingTemplate(oid, record, options) {
       sails.log.verbose('validateFieldsUsingTemplate - enter');
@@ -332,16 +331,17 @@ export module Services {
         const errorFieldList = template({oid:oid, record: record, options: options, addError: addError,
           getErrorMessage: getErrorMessage});
 
-        
-        const errorMap = { 
+
+        const errorMap = {
                          altErrorMessage: altErrorMessage,
                          errorFieldList: errorFieldList
                        };
 
         if(!_.isEmpty(errorMap.errorFieldList)) {
-          let customError: RBValidationError;
-          customError = new RBValidationError(JSON.stringify(errorMap));
-          throw customError;
+          throw new RBValidationError({
+            message: `Field validation using template failed: errorMap ${JSON.stringify(errorMap)}`,
+            displayErrors: [{title: "Validation failed", meta: errorMap}]
+          });
         }
 
         sails.log.debug('validateFieldsUsingTemplate data value passed check');
@@ -409,7 +409,7 @@ export module Services {
 
         let fieldObjectList = _.get(options,'fieldObjectList',[]);
         let altErrorMessage = _.get(options,'altErrorMessage',[]);
-        let errorMap = { 
+        let errorMap = {
                          altErrorMessage: altErrorMessage,
                          errorFieldList: []
                        };
@@ -471,15 +471,16 @@ export module Services {
               errorMap.errorFieldList.push(errorField);
             }
           }
-          
+
         }
 
         sails.log.debug('validateFieldMapUsingRegex errorMap '+JSON.stringify(errorMap));
 
         if(!_.isEmpty(errorMap.errorFieldList)) {
-          let customError: RBValidationError;
-          customError = new RBValidationError(JSON.stringify(errorMap));
-          throw customError;
+          throw new RBValidationError({
+            message: `Field map validation using regex failed: errorMap ${JSON.stringify(errorMap)}`,
+            displayErrors: [{title: "Validation failed", meta: errorMap}]
+          });
         }
 
         sails.log.debug('validateFieldMapUsingRegex data value passed check');
@@ -534,7 +535,7 @@ export module Services {
                 _.each(options.templates, (templateConfig) => {
                   tmplConfig = templateConfig;
                   const imports = _.extend({
-                    
+
                     moment: moment,
                     numeral: numeral
                   }, this);
@@ -567,12 +568,13 @@ export module Services {
                 sails.log.verbose(`runTemplatesOnRelatedRecord did't find related record using oid: ${oid} - object retrived is: ${JSON.stringify(record)}`);
               }
             } catch (e) {
-              const errLog = `runTemplatesOnRelatedRecord Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
-              sails.log.error(errLog);
-              sails.log.error(e);
-              throw new Error(errLog);
+              throw new RBValidationError({
+                message: `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}: ${JSON.stringify(tmplConfig)}`,
+                options: {cause: e},
+                displayErrors: [{title: "Processing failed", meta: {oid: oid, relatedOid: relatedOid}}]
+              });
             }
-          } 
+          }
         } else {
           sails.log.verbose(`runTemplatesOnRelatedRecord did't find related oid list: ${JSON.stringify(oidList)} - in specified path: ${pathToRelatedOid} - and inner path ${innerPathToRelatedOid}`);
         }

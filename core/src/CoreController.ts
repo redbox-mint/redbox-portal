@@ -4,16 +4,14 @@ import {
   BuildResponseType,
   APIErrorResponse,
   ApiVersion,
-  ApiVersionStrings,
-  DataResponseV2,
-  ErrorResponseItemV2,
-  ErrorResponseV2
+  ApiVersionStrings, RBValidationError,
 } from "./model";
-import type {Request as SailsRequest, Response as SailsResponse} from 'sails';
+
 
 declare var _;
 declare var sails;
 declare var TranslationService;
+
 
 export module Controllers.Core {
 
@@ -328,6 +326,7 @@ export module Controllers.Core {
       this.respond(req, res,
         (req, res)=> {
         this.logger.verbose(ajaxMsg);
+        // TODO: make this 400, not 404
         res.notFound(ajaxMsg);
         },
         (req, res) => {
@@ -348,6 +347,7 @@ export module Controllers.Core {
         return res.json(jsonObj);
       }, (req, res)=> {
         this.logger.verbose(notAjaxMsg);
+        // TODO: make this 400, not 404
         res.notFound(notAjaxMsg);
       }, forceAjax);
     }
@@ -401,13 +401,17 @@ export module Controllers.Core {
       return version;
     }
 
+    private isRBValidationError(item: unknown): item is RBValidationError {
+      return item instanceof RBValidationError || (item instanceof Error && item?.name === 'RBValidationError');
+    }
+
     /**
      * Send a response built from the properties.
      *
      * Defaults / Conventions:
      * - The default response format is 'json'.
      * - If only 'data' is provided, the 'status' will be 200.
-     * - If there are any 'errors', the 'status' will default to 500.
+     * - If there are any 'errors', the 'status' will default to 500. If there are no displayErrors, a generic one will be added.
      * - Any 'detailErrors' missing a 'status' will use the top-level 'status'.
      * - If the top-level status is not set, and there are detailErrors with a status,
      *   the top-level status will use 500 if any status start with 5,
@@ -425,12 +429,14 @@ export module Controllers.Core {
      * @param buildResponse Build the response from these properties.
      * @protected
      */
-    protected sendResp(req: SailsRequest, res: SailsResponse, buildResponse?: BuildResponseType): Response {
+    protected sendResp(req: any, res: any, buildResponse?: BuildResponseType): Response {
+      // The response will be in the format matching the request kind (e.g. API, ajax).
       const apiVersion = this.getApiVersion(req);
       const isJsonAjax = this.isAjax(req);
 
       // Destructure build response properties and set defaults.
-      const {
+      let {
+        // The default response format is 'json'.
         format = "json",
         data = {},
         status = 200,
@@ -438,7 +444,64 @@ export module Controllers.Core {
         errors = [],
         displayErrors = [],
         meta = {},
+        v1,
       } = buildResponse ?? {};
+
+      // Process the errors recursively
+      const errorsToProcess: unknown[] = [...errors];
+      while (errorsToProcess.length > 0) {
+        // remove the first error in the array and process it
+        const error = errorsToProcess.shift();
+
+        // Log the error name, message, stack, or just the error if it is not an instance of Error.
+        if (error instanceof Error) {
+          sails.log.error(`Error '${error?.name}': ${error?.message} - ${error?.stack}`);
+        } else {
+          sails.log.error(`Error ${error}`);
+        }
+
+        // Extract and store displayErrors from any RBValidationErrors
+        if (this.isRBValidationError(error)) {
+          displayErrors.push(...error.displayErrors);
+        }
+
+        // Add any cause error to the array of errors to process.
+        if (error instanceof Error && error?.cause !== undefined) {
+          errorsToProcess.push(error.cause);
+        }
+      }
+
+      // If there are any 'errors', the 'status' will default to 500.
+      if (!status?.toString().startsWith('5') && errors.length > 0) {
+        status = 500;
+      }
+
+      // If there are errors, but no display errors, add a generic display error.
+      if (errors.length > 0 && displayErrors.length === 0) {
+        displayErrors.push({code: 'server-error'});
+      }
+
+      // If the top-level status is not set, and there are detailErrors with a status,
+      // the top-level status will use 500 if any status starts with 5,
+      // or 400 if any status starts with 4,or 500 if there are any detailErrors.
+      if ((status === null || status === undefined) && displayErrors.length > 0) {
+        const statusString = displayErrors
+          .map(i => i?.status?.toString() ?? "")
+          .reduce((prev, curr) => {
+            if (prev === null && curr?.toString().startsWith('4')) {
+              return "400";
+            }
+            if (!prev?.toString()?.startsWith('5') && curr?.toString().startsWith('5')) {
+              return "500";
+            }
+            return curr !== null && curr != undefined ? curr : null;
+          }, null);
+        try {
+          status = parseInt(statusString ?? "500");
+        } catch {
+          // ignore
+        }
+      }
 
       // Set the response headers
       if (headers) {
@@ -450,13 +513,18 @@ export module Controllers.Core {
         res.status(status);
       }
 
-      // TODO: reconcile errors and structuredErrors
-      // TODO: deal with different formats
-      // TODO: expand RBValidationError
-      // TODO: log errors
-
       // if the response is a json format response with no errors, return the data in the expected API version.
-      if (format === 'json' && errors.length === 0 && displayErrors.length === 0) {
+      // If only 'data' is provided, the 'status' will be 200.
+      if (
+        format === 'json'
+        && data !== null
+        && data !== undefined
+        && errors.length === 0
+        && displayErrors.length === 0
+        && !status?.toString().startsWith('5')
+        && !status?.toString().startsWith('4')
+        && (v1 === null || v1 === undefined)
+      ) {
         switch (apiVersion) {
           case ApiVersion.VERSION_2_0:
             sails.log.verbose(`Send response status 200 api version 2 format json.`);
@@ -468,6 +536,15 @@ export module Controllers.Core {
             return res.json(data);
         }
       }
+
+      // TODO:
+      //   - If there is no detailError.title or detailError.detail, and detailError.code is set, the 'code' will be used as a translation message identifier.
+      //     The translated message will be set to title if it is falsy, otherwise detail if it is falsy.
+      //   - Both detailError.title and detailError.detail will be treated as translation message identifiers if they have no spaces.
+      //   - The detailError.code will be updated to add the prefix 'redbox-error-' if the prefix is not present.
+      //   - API v1 will return 'data' as the body on 'status' 200, if no 'v1' is supplied.
+
+      // TODO: deal with responses in API v1 format
 
       // return this.sendResp(req, res, {
       //           errors: [err],
