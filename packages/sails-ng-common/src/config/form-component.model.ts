@@ -43,4 +43,3 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
 
     abstract accept(visitor: FormConfigVisitorOutline): void;
 }
-

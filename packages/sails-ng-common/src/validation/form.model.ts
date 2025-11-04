@@ -67,7 +67,10 @@ export class SimpleServerFormValidatorControl implements FormValidatorControl {
 
     get<P extends string>(path: P): FormValidatorControl | null {
         const result = _get(this.value, path) ?? null;
-        console.debug(`SimpleServerFormValidatorControl.get path '${path}' with result '${JSON.stringify(result)}' from value '${JSON.stringify(this.value)}'`);
+
+        // For debugging:
+        // console.debug(`SimpleServerFormValidatorControl.get path '${path}' with result '${JSON.stringify(result)}' from value '${JSON.stringify(this.value)}'`);
+
         return result;
     }
 }

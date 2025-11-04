@@ -1,47 +1,23 @@
 import {
-    ClientFormConfigVisitor, FormConfig, FormConfigFrame,
+    ClientFormConfigVisitor, ConstructFormConfigVisitor, FormConfigFrame,
     TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "../../src";
+import {formConfigExample1} from "./example-data";
+import {logger} from "./helpers";
 
-// @ts-ignore
-import {default as default_1_0_draft_form_config} from "./../../../../../form-config/default-1.0-draft.js";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
     it(`should create full example form config`, async function () {
-        const args = default_1_0_draft_form_config;
-        const expected: FormConfigFrame = {
-            name: "default-1.0-draft",
-            componentDefinitions: [
-                {
-                    name: "main_tab",
-                    component: {
-                        class: "TabComponent",
-                        config: {
-                            tabs: [
-                                {
-                                    name: '',
-                                    component: {
-                                        class: "TabContentComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {name: "text_block", component: {class: "ContentComponent"}},
-                                                {name: "textarea_1", component: {class: "TextAreaComponent"}},
-                                                {name: "dropdown_1", component: {class: "DropdownInputComponent"}}
-                                            ],
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            ]
-        };
-        const visitor = new ClientFormConfigVisitor();
-        const actual = visitor.startNewRecord(args);
+        const args = formConfigExample1;
+
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start(args, "edit");
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.startNewRecord(constructed);
 
         const stringified = JSON.stringify(actual);
         expect(stringified).to.not.contain("expressions");
@@ -546,8 +522,11 @@ describe("Client Visitor", async () => {
     ];
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
-            const visitor = new ClientFormConfigVisitor();
-            const actual = visitor.startNewRecord(args);
+            const constructor = new ConstructFormConfigVisitor(logger);
+            const constructed = constructor.start(args, "edit");
+
+            const visitor = new ClientFormConfigVisitor(logger);
+            const actual = visitor.startNewRecord(constructed);
             expect(actual).to.eql(expected);
         });
     });
@@ -591,8 +570,12 @@ describe("Client Visitor", async () => {
                 }
             ]
         };
-        const visitor = new ClientFormConfigVisitor();
-        const actual = visitor.startExistingRecord(formConfig, "view", ["Librarian"], {metadata: {text_2: "text_2_value"}});
+
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start(formConfig, "edit");
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {metadata: {text_2: "text_2_value"}});
         expect(actual).to.eql({});
     });
 });
