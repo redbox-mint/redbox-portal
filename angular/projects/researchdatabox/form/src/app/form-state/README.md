@@ -1,7 +1,19 @@
 # Form State Management
 
-This directory contains the NgRx-based state management for the ReDBox form system, providing centralized control of form lifecycle, status, validation, and inter-field communication.
+This directory contains the [NgRx-based](https://ngrx.io/) state management and [EventBus](https://learn.microsoft.com/en-us/azure/architecture/patterns/publisher-subscriber) for the ReDBox form system, providing centralized control of form lifecycle, status, validation, and inter-field communication.
 
+Required reading:
+- [Form States](../../../../../../../support/specs/form-lifecycle/overview.md)
+- [Why Stores](https://ngrx.io/guide/store/why) for ReDBox
+  - **S**hared ✅ 
+  - **H**ydrated ❌
+  - **A**vailable ❌
+    - no routes (yet)
+  - **R**etrieved ✅
+    - multiple background API calls
+  - **I**mpacted ✅
+    - many async calls
+  
 ## Architecture Overview
 
 The form state management is built on three core pillars:
@@ -98,15 +110,6 @@ export class FormExampleComponent {
   handleReset() {
     // Reset all fields (increments resetToken)
     this.facade.resetAllFields();
-  }
-
-  trackDirtyState() {
-    // Monitor Angular FormGroup dirty state
-    if (this.formGroup.dirty && !this.facade.isDirty()) {
-      this.facade.markDirty();
-    } else if (!this.formGroup.dirty && this.facade.isDirty()) {
-      this.facade.markPristine();
-    }
   }
 }
 ```
@@ -525,14 +528,7 @@ export class AnotherFieldComponent {
 
 ### Signal Batching
 
-Facade signals use RxJS `toSignal()` with `requireSync: false` to avoid unnecessary change detection cycles:
-
-```typescript
-readonly status = toSignal(
-  this.store.select(selectStatus),
-  { requireSync: false }
-);
-```
+Facade signals use RXJS's `selectSigna()`
 
 ### Event Bus Microtask Batching
 
