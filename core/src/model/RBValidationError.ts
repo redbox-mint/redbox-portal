@@ -16,8 +16,59 @@ export class RBValidationError extends Error {
    */
   constructor(build: { message?: string, options?: ErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
     super(build.message ?? "", build.options ?? {});
-    this.name = 'RBValidationError';
+    this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
+  }
+
+  /**
+   * Convenient way to access the name of this error.
+   */
+  public static readonly errorName = "RBValidationError";
+
+  /**
+   * Check if item is an instance of RBValidationError.
+   * @param item The item to check.
+   * @returns True if item is an instance of RBValidationError, otherwise false.
+   */
+  public static isRBValidationError(item: unknown): item is RBValidationError {
+    return item instanceof RBValidationError || (item instanceof Error && item?.name === RBValidationError.errorName);
+  }
+
+  /**
+   * Recursively collect the Errors and display errors.
+   * @param errors The initial array of Error instances.
+   * @param displayErrors The initial array of display errors.
+   */
+  public static collectErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]): {
+    errors: Error[],
+    displayErrors: ErrorResponseItemV2[]
+  } {
+    // Collect and process the errors recursively
+    const collectedErrors: Error[] = [];
+    const collectedDisplayErrors: ErrorResponseItemV2[] = [...displayErrors ?? []];
+
+    const errorsToProcess = [...errors ?? []];
+    while (errorsToProcess.length > 0) {
+      // remove the first error in the array and process it
+      const error = errorsToProcess.shift();
+      if (error === null || error === undefined) {
+        continue;
+      }
+
+      collectedErrors.push(error);
+
+      // Extract and store displayErrors from any RBValidationErrors
+      if (RBValidationError.isRBValidationError(error) || Array.isArray(error['displayErrors'])) {
+        collectedDisplayErrors.push(...error['displayErrors']);
+      }
+
+      // Add any cause error to the array of errors to process.
+      if (error instanceof Error && error?.cause !== undefined) {
+        errorsToProcess.push(error.cause instanceof Error ? error.cause : new Error(error.cause?.toString()));
+      }
+    }
+
+    return {errors: collectedErrors, displayErrors: collectedDisplayErrors};
   }
 
   /**

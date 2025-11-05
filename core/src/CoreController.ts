@@ -4,7 +4,8 @@ import {
   BuildResponseType,
   APIErrorResponse,
   ApiVersion,
-  ApiVersionStrings, RBValidationError,
+  ApiVersionStrings,
+  RBValidationError,
 } from "./model";
 
 
@@ -273,8 +274,8 @@ export module Controllers.Core {
       mergedLocal.view.ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
-      let fullViewPath = sails.config.appPath + "/views/"+resolvedView;
-      mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0,fullViewPath.lastIndexOf('/') + 1);
+      let fullViewPath = sails.config.appPath + "/views/" + resolvedView;
+      mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
       this.logger.debug("resolvedView");
       this.logger.debug(resolvedView);
@@ -282,11 +283,10 @@ export module Controllers.Core {
       // this.logger.debug(mergedLocal);
 
 
-
       res.view(resolvedView, mergedLocal);
     }
 
-    public respond(req, res, ajaxCb, normalCb, forceAjax=false) {
+    public respond(req, res, ajaxCb, normalCb, forceAjax = false) {
       if (this.isAjax(req) || forceAjax == true) {
         return ajaxCb(req, res);
       } else {
@@ -298,63 +298,61 @@ export module Controllers.Core {
       return req.headers['x-source'] == 'jsclient';
     }
 
-    protected ajaxOk(req, res, msg='', data=null, forceAjax=false) {
+    protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
       if (!data) {
-        data = {status:true, message:msg};
+        data = {status: true, message: msg};
       }
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected ajaxFail(req, res, msg='', data=null, forceAjax=false) {
+    protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
       if (!data) {
-        data = {status:false, message:msg};
+        data = {status: false, message: msg};
       }
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected apiFail(req, res, statusCode = 500, errorResponse:APIErrorResponse = new APIErrorResponse()) {
-      // this.apiRespond(req, res, errorResponse, statusCode);
-      res.set('Cache-control', 'no-cache');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', 0);
-        res.status(statusCode)
-        return res.json(errorResponse);
+    protected apiFail(req, res, statusCode = 500, errorResponse?: APIErrorResponse) {
+      this.setNoCacheHeaders(req, res);
+      res.status(statusCode);
+      return res.json(errorResponse ?? new APIErrorResponse());
     }
 
-    protected apiRespond(req, res, jsonObj=null, statusCode=200) {
-      var ajaxMsg = "Got ajax request, don't know what do...";
+    protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
+      const that = this;
+      const ajaxMsg = "Got ajax request, don't know what do...";
       this.respond(req, res,
-        (req, res)=> {
-        this.logger.verbose(ajaxMsg);
-        // TODO: make this 400, not 404
-        res.notFound(ajaxMsg);
+        (req, res) => {
+          that.logger.verbose(ajaxMsg);
+          that.setNoCacheHeaders(req, res);
+          res.badRequest(ajaxMsg);
         },
         (req, res) => {
-        res.set('Cache-control', 'no-cache');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', 0);
-        res.status(statusCode)
-        return res.json(jsonObj);
-      });
+          that.setNoCacheHeaders(req, res);
+          res.status(statusCode)
+          return res.json(jsonObj);
+        });
     }
 
-    protected ajaxRespond(req, res, jsonObj=null, forceAjax) {
-      var notAjaxMsg = "Got non-ajax request, don't know what do...";
-      this.respond(req, res, (req, res) => {
-        res.set('Cache-control', 'no-cache');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', 0);
-        return res.json(jsonObj);
-      }, (req, res)=> {
-        this.logger.verbose(notAjaxMsg);
-        // TODO: make this 400, not 404
-        res.notFound(notAjaxMsg);
-      }, forceAjax);
+    protected ajaxRespond(req, res, jsonObj = null, forceAjax) {
+      const that = this;
+      const notAjaxMsg = "Got non-ajax request, don't know what do...";
+      this.respond(req, res,
+        (req, res) => {
+          that.setNoCacheHeaders(req, res);
+          return res.json(jsonObj);
+        },
+        (req, res) => {
+          that.logger.verbose(notAjaxMsg);
+          that.setNoCacheHeaders(req, res);
+          res.badRequest(notAjaxMsg);
+        },
+        forceAjax);
     }
 
     protected getNg2Apps(viewPath) {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
-        return {ng2_apps:sails.config.ng2.apps[viewPath]};
+        return {ng2_apps: sails.config.ng2.apps[viewPath]};
       } else {
         return {ng2_apps: []};
       }
@@ -401,10 +399,6 @@ export module Controllers.Core {
       return version;
     }
 
-    private isRBValidationError(item: unknown): item is RBValidationError {
-      return item instanceof RBValidationError || (item instanceof Error && item?.name === 'RBValidationError');
-    }
-
     /**
      * Send a response built from the properties.
      *
@@ -436,7 +430,6 @@ export module Controllers.Core {
 
       // Destructure build response properties and set defaults.
       let {
-        // The default response format is 'json'.
         format = "json",
         data = {},
         status = 200,
@@ -444,48 +437,39 @@ export module Controllers.Core {
         errors = [],
         displayErrors = [],
         meta = {},
-        v1,
+        v1 = null,
       } = buildResponse ?? {};
 
-      // Process the errors recursively
-      const errorsToProcess: unknown[] = [...errors];
-      while (errorsToProcess.length > 0) {
-        // remove the first error in the array and process it
-        const error = errorsToProcess.shift();
+      // Collect and process the errors recursively
+      const {
+        errors: collectedErrors,
+        displayErrors: collectedDisplayErrors
+      } = RBValidationError.collectErrors(errors, displayErrors);
 
-        // Log the error name, message, stack, or just the error if it is not an instance of Error.
+      // Log the error name, message, stack, or just the error if it is not an instance of Error.
+      for (const error of collectedErrors) {
         if (error instanceof Error) {
-          sails.log.error(`Error '${error?.name}': ${error?.message} - ${error?.stack}`);
+          sails.log.error(`Error ${error?.name}: ${error?.message} - ${error?.stack}`, error);
         } else {
-          sails.log.error(`Error ${error}`);
-        }
-
-        // Extract and store displayErrors from any RBValidationErrors
-        if (this.isRBValidationError(error)) {
-          displayErrors.push(...error.displayErrors);
-        }
-
-        // Add any cause error to the array of errors to process.
-        if (error instanceof Error && error?.cause !== undefined) {
-          errorsToProcess.push(error.cause);
+          sails.log.error(`Error ${error}`, error);
         }
       }
 
       // If there are any 'errors', the 'status' will default to 500.
-      if (!status?.toString().startsWith('5') && errors.length > 0) {
+      if (!status?.toString().startsWith('5') && collectedErrors.length > 0) {
         status = 500;
       }
 
       // If there are errors, but no display errors, add a generic display error.
-      if (errors.length > 0 && displayErrors.length === 0) {
-        displayErrors.push({code: 'server-error'});
+      if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
+        collectedDisplayErrors.push({code: 'server-error'});
       }
 
       // If the top-level status is not set, and there are detailErrors with a status,
       // the top-level status will use 500 if any status starts with 5,
       // or 400 if any status starts with 4,or 500 if there are any detailErrors.
-      if ((status === null || status === undefined) && displayErrors.length > 0) {
-        const statusString = displayErrors
+      if ((status === null || status === undefined) && collectedDisplayErrors.length > 0) {
+        const statusString = collectedDisplayErrors
           .map(i => i?.status?.toString() ?? "")
           .reduce((prev, curr) => {
             if (prev === null && curr?.toString().startsWith('4')) {
@@ -519,8 +503,8 @@ export module Controllers.Core {
         format === 'json'
         && data !== null
         && data !== undefined
-        && errors.length === 0
-        && displayErrors.length === 0
+        && collectedErrors.length === 0
+        && collectedDisplayErrors.length === 0
         && !status?.toString().startsWith('5')
         && !status?.toString().startsWith('4')
         && (v1 === null || v1 === undefined)
@@ -568,6 +552,7 @@ export module Controllers.Core {
       //           }
       //         }
     }
+
     /*
 
     private apiFailWrapper(
@@ -705,5 +690,11 @@ if (apiVersion === ApiVersion.VERSION_2_0) {
     //     meta: {...Object.entries(meta ?? {})},
     //   }
     // }
+
+    private setNoCacheHeaders(req, res) {
+      res.set('Cache-control', 'no-cache, private');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', 0);
+    }
   }
 }
