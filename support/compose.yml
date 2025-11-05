@@ -1,0 +1,119 @@
+networks:
+  main:
+
+services:
+
+  redbox:
+    # the redbox website
+    image:
+    profiles:
+      - bruno
+      - bruno-general
+      - bruno-oidc
+      - serve
+
+  bruno:
+    # all bruno tests
+    image:
+    profiles:
+      - bruno
+
+  bruno-general:
+    # general bruno tests
+    image:
+    profiles:
+      - bruno-general
+
+  bruno-oidc:
+    # oidc bruno tests
+    image:
+    profiles:
+      - bruno-oidc
+
+  mocha:
+    # mocha tests
+    image:
+    profiles:
+      - mocha
+
+  # common services
+  minio:
+    image: 'quay.io/minio/minio:latest'
+    command: ['server','/data','--console-address',':9002']
+    expose:
+      - '9000'
+      - '9002'
+    ports:
+      - '9000:9000'
+      - '9002:9002'
+    environment:
+      MINIO_ROOT_USER: 'minioadmin'
+      MINIO_ROOT_PASSWORD: 'minioadmin'
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:9000' ]
+      interval: '5s'
+      timeout: '5s'
+      retries: 10
+      start_period: '20s'
+    networks:
+      main:
+        aliases:
+          - minio
+
+  mongodb:
+    image: 'mongo:latest'
+    expose:
+      - '27017'
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      interval: '15s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    networks:
+      main:
+        aliases:
+          - mongodb
+
+  solr:
+    image: 'solr:latest'
+    expose:
+      - '8983'
+    ports:
+      - '8983:8983'
+    environment:
+      - 'SOLR_HOME=/var/solr/data'
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
+      interval: '15s'
+      timeout: '5s'
+      retries: 10
+    networks:
+      main:
+        aliases:
+          - solr
+    entrypoint:
+      - 'docker-entrypoint.sh'
+      - 'solr-precreate'
+      - 'redbox'
+
+  email:
+    image: 'axllent/mailpit:latest'
+    expose:
+      - '1025'
+      - '8025'
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: '/data/mailpit.db'
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      TZ: 'Australia/Brisbane'
+    networks:
+      main:
+        aliases:
+          - email
