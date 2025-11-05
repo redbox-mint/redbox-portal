@@ -19,10 +19,48 @@
     "noImplicitAny": false,
     "removeComments": true,
     "preserveConstEnums": true,
-    "types": ["node", "lodash"],
+    "typeRoots": [
+      "node_modules/@types",
+      "../../node_modules/@types",
+      "../../../node_modules/@types",
+      "node_modules/@researchdatabox/redbox-core-types/node_modules/@types",
+      "../../node_modules/@researchdatabox/redbox-core-types/node_modules/@types",
+      "../../../node_modules/@researchdatabox/redbox-core-types/node_modules/@types",
+      "../../../core/node_modules/@types"
+    ],
     "paths": {
-      "rxjs": ["node_modules/rxjs", "node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs"],
-      "rxjs/*": ["node_modules/rxjs/*", "node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs/*"]
+      "rxjs": [
+        "node_modules/rxjs",
+        "node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs",
+        "../../node_modules/rxjs",
+        "../../node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs",
+        "../../../node_modules/rxjs",
+        "../../../node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs"
+      ],
+      "rxjs/*": [
+        "node_modules/rxjs/*",
+        "node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs/*",
+        "../../node_modules/rxjs/*",
+        "../../node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs/*",
+        "../../../node_modules/rxjs/*",
+        "../../../node_modules/@researchdatabox/redbox-core-types/node_modules/rxjs/*"
+      ],
+      "luxon": [
+        "node_modules/luxon",
+        "node_modules/@researchdatabox/redbox-core-types/node_modules/luxon",
+        "../../node_modules/luxon",
+        "../../node_modules/@researchdatabox/redbox-core-types/node_modules/luxon",
+        "../../../node_modules/luxon",
+        "../../../node_modules/@researchdatabox/redbox-core-types/node_modules/luxon"
+      ],
+      "lodash": [
+        "node_modules/lodash",
+        "node_modules/@researchdatabox/redbox-core-types/node_modules/lodash",
+        "../../node_modules/lodash",
+        "../../node_modules/@researchdatabox/redbox-core-types/node_modules/lodash",
+        "../../../node_modules/lodash",
+        "../../../node_modules/@researchdatabox/redbox-core-types/node_modules/lodash"
+      ],
     }
   },
   "exclude": [
