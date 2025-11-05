@@ -133,7 +133,8 @@ describe('formReducer', () => {
       
       // Return to READY
       state = formReducer(state, FormActions.submitFormSuccess({ 
-        savedData: {} 
+        savedData: {},
+        lastSavedAt: new Date().toISOString()
       }));
       
       // Second submission
@@ -154,7 +155,8 @@ describe('formReducer', () => {
         pendingActions: ['submitForm']
       };
       const savedData = { id: '123', title: 'Saved' };
-      const action = FormActions.submitFormSuccess({ savedData });
+      const action = FormActions.submitFormSuccess({ savedData,
+        lastSavedAt: new Date().toISOString() });
       
       const result = formReducer(savingState, action);
       
@@ -186,7 +188,6 @@ describe('formReducer', () => {
     });
 
     it('should preserve lastSavedAt timestamp on submitFormSuccess', () => {
-  const timestamp = new Date();
       const savingState: FormFeatureState = {
         ...formInitialState,
         status: FormStatus.SAVING,
@@ -194,7 +195,8 @@ describe('formReducer', () => {
         pendingActions: ['submitForm']
       };
       const action = FormActions.submitFormSuccess({ 
-        savedData: {} 
+        savedData: {},
+        lastSavedAt: new Date().toISOString() 
       });
       
       const result = formReducer(savingState, action);
@@ -505,7 +507,8 @@ describe('formReducer', () => {
       
       // Submit success
       state = formReducer(state, FormActions.submitFormSuccess({ 
-        savedData: { title: 'Test' } 
+        savedData: { title: 'Test' },
+        lastSavedAt: new Date().toISOString() 
       }));
       expect(state.status).toBe(FormStatus.READY);
       expect(state.isDirty).toBe(false);

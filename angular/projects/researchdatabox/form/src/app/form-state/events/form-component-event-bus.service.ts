@@ -8,7 +8,7 @@
 import { Injectable, OnDestroy, Signal, inject, Injector } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, share } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormComponentEvent, FormComponentEventMap } from './form-component-event.types';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 
@@ -21,14 +21,14 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
 })
 export class FormComponentEventBus implements OnDestroy {
   private readonly eventStream$ = new Subject<FormComponentEvent>();
-  private readonly diagnosticsEnabled = false; // R15.13, R15.26: toggle via environment flag
-  private readonly eventLoopBatching = false; // R15.19: optional performance optimization
+  private readonly diagnosticsEnabled = false; // R15.13, R15.26: Consider toggling via environment flag, for now hardcoded
+  private readonly eventLoopBatching = false; // R15.19: optional performance optimization, consider toggling via environment flag, for now hardcoded
   private readonly logger = inject(LoggerService);
 
   constructor() {
     // R15.13: Optional diagnostic logging
     if (this.diagnosticsEnabled) {
-      this.eventStream$.subscribe(event => {
+      this.eventStream$.pipe(takeUntilDestroyed()).subscribe(event => {
         this.logger.debug('[FormComponentEventBus] Event published', event);
       });
     }

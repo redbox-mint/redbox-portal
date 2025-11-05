@@ -16,7 +16,7 @@ import { Store } from '@ngrx/store';
 import { Observable, EMPTY } from 'rxjs';
 import { map, throttleTime, tap, filter, catchError } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { FormComponentEventType } from '../events/form-component-event.types';
+import { FormComponentEventType, FormSaveSuccessEvent } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 
@@ -185,14 +185,21 @@ export class FormEventBusAdapterEffects {
 
   /**
    * Promote save success events to submitFormSuccess actions
-   * 
-   * */
+   *
+   * When a component publishes a `form.save.success` event (see
+   * `FormComponentEventType.FORM_SAVE_SUCCESS`), promote that ephemeral
+   * event into the persistent NgRx action `submitFormSuccess` so reducers/effects
+   * can update global state and trigger follow-up behaviour.
+   *
+   * Mapping rule:
+   *  event: FormSaveSuccessEvent -> FormActions.submitFormSuccess({ savedData: event.savedData, lastSavedAt })
+   */
   promoteSaveSuccess$ = createEffect(() =>
     this.createPromotionStream(
       FormComponentEventType.FORM_SAVE_SUCCESS,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
-      (event: any) =>
-        FormActions.submitFormSuccess({ savedData: event.savedData })
+      (event: FormSaveSuccessEvent) =>
+        FormActions.submitFormSuccess({ savedData: event.savedData, lastSavedAt: new Date().toISOString() })
     )
   );
   /**

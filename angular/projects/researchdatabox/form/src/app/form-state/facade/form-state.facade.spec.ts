@@ -320,7 +320,7 @@ describe('FormStateFacade', () => {
       expect(typeof facade.syncModelSnapshot).toBe('function');
     });
 
-    it('should allow usage of subscribeToFormStatus', () => {
+    it('should allow usage of observeFormStatus', () => {
       let isReady = false;
 
       const subscription = facade.observeFormStatus(FormStatus.READY).subscribe(value => {

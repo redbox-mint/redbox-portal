@@ -63,15 +63,7 @@ export class FormEffects {
   private logDiagnostics(context: string, data: any): void {
     this.logger.debug(`[FormEffects] ${context}`, data);
   }
-  
-  /**
-   * Submit driver allows tests to control async behavior of submit workflow.
-   * Default handler is synchronous; tests can override with delayed cold observables.
-   */
-  static readonly SUBMIT_DRIVER = new InjectionToken<SubmitDriver>('SUBMIT_DRIVER', {
-    factory: () => ({ handler: () => of({}) })
-  });
-  private submitDriver = inject(FormEffects.SUBMIT_DRIVER);
+
 
   /**
    * Load Initial Data Effect
@@ -141,7 +133,6 @@ export class FormEffects {
         return true;
       }),
       tap(() => this.logDiagnostics('resetAllFields triggered', {})),
-      // Small delay to allow field components to process resetToken
       switchMap(() => {
         // In production, this might wait for field components to acknowledge reset
         // or emit a form event bus notification? For now, just proceed immediately.
@@ -218,7 +209,10 @@ export class FormEffects {
           );
         }),
         // Keep stream resilient
-        catchError(() => of(void 0))
+        catchError(error => {
+          this.logDiagnostics('publishSaveExecuteOnSubmit error', { error });
+          return of(void 0);
+        })
       ),
     { dispatch: false }
   );

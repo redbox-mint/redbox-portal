@@ -37,11 +37,7 @@ describe('FormEffects', () => {
         provideStore(),
         provideEffects(),
         provideFormFeature(),
-        LoggerService,
-        {
-          provide: FormEffects.SUBMIT_DRIVER,
-          useFactory: () => ({ handler: (action: any) => submitHandler(action) })
-        },
+        LoggerService
       ]
     });
 
@@ -232,7 +228,7 @@ describe('FormEffects', () => {
     it('should log submitFormSuccess (R11.4)', (done) => {
       const consoleSpy = spyOn(console, 'debug');
 
-      actions$ = of(FormActions.submitFormSuccess({ savedData: {} }));
+      actions$ = of(FormActions.submitFormSuccess({ savedData: {}, lastSavedAt: new Date().toISOString() }));
 
       effects.logSuccess$.subscribe({
         complete: () => {

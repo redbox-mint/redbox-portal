@@ -7,6 +7,7 @@
 
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { FormFeatureState, formInitialState } from './form.state';
+import { createSelector } from '@ngrx/store';
 import * as FormSelectors from './form.selectors';
 
 describe('Form Selectors', () => {
@@ -415,24 +416,30 @@ describe('Form Selectors', () => {
   });
 
   describe('Performance Characteristics', () => {
-    it('should not recompute derived selector if input unchanged', () => {
-      const status = FormStatus.READY;
-      
-      // Create a spy-like mechanism to track computations
-      let computeCount = 0;
-      const testProjector = (s: FormStatus) => {
-        computeCount++;
-        return s === FormStatus.READY;
+    it('should not recompute derived selector if input unchanged (isReady memoization)', () => {
+      // Arrange: root state with READY status
+      const state: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.READY
       };
-      
-      // Simulate memoized behavior
-      const result1 = testProjector(status);
-      const cachedInput = status;
-      
-      // If input is same, selector shouldn't recompute
-      const result2 = (status === cachedInput) ? result1 : testProjector(status);
-      
-      expect(computeCount).toBe(1); // Should only compute once
+      const rootState = { form: state } as any;
+
+      // Spyable projector that mirrors selectIsReady logic
+      const projectorSpy = jasmine
+        .createSpy('isReadyProjector', (s: FormStatus) => s === FormStatus.READY)
+        .and.callThrough();
+
+      // Build a memoized selector using the real input selector and the spyable projector
+      const memoizedSelector = createSelector(FormSelectors.selectStatus, projectorSpy);
+
+      // Act: invoke twice with the same input
+      const result1 = memoizedSelector(rootState);
+      const result2 = memoizedSelector(rootState);
+
+      // Assert: projector ran only once and results are equal
+      expect(projectorSpy).toHaveBeenCalledTimes(1);
+      expect(result1).toBe(true);
+      expect(result2).toBe(true);
       expect(result1).toBe(result2);
     });
 

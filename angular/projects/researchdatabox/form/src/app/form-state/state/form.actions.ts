@@ -31,7 +31,7 @@ export const submitForm = createAction(
 
 export const submitFormSuccess = createAction(
   '[Form] Submit Form Success',
-  props<{ savedData: any }>()
+  props<{ savedData: any; lastSavedAt: string }>()
 );
 
 export const submitFormFailure = createAction(

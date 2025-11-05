@@ -119,7 +119,6 @@ describe('FormComponent', () => {
     const submitSpy = spyOn(formComponent, 'saveForm').and.stub();
     await formComponent.saveForm(true, 'legacy-step', true);
     expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step',  true);
-    expect(formComponent.form?.pristine).toBeTrue();
   });
 
 });

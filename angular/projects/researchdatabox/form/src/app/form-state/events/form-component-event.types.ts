@@ -171,6 +171,22 @@ export function createFieldValueChangedEvent(
 }
 
 /**
+ * Helper factory for creating field meta changed events (R15.15)
+ */
+export function createFieldMetaChangedEvent(
+  fieldId: string,
+  meta: Record<string, any>,
+  sourceId?: string
+): Omit<FieldMetaChangedEvent, 'timestamp'> {
+  return {
+    type: FormComponentEventType.FIELD_META_CHANGED,
+    fieldId,
+    meta,
+    sourceId
+  };
+}
+
+/**
  * Helper factory for creating field dependency trigger events (R15.15)
  */
 export function createFieldDependencyTriggerEvent(

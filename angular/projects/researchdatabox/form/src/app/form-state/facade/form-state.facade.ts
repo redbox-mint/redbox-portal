@@ -11,7 +11,7 @@ import { Store } from '@ngrx/store';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
-import { map } from 'rxjs/internal/operators/map';
+import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
 /**
@@ -133,7 +133,7 @@ export class FormStateFacade {
    * Sync model snapshot (for dirty diff comparison)
    * @param snapshot Snapshot of current form model
    */
-  syncModelSnapshot(snapshot: any): void {
+  syncModelSnapshot(snapshot: unknown): void {
     this.store.dispatch(FormActions.syncModelSnapshot({ snapshot }));
   }
 

@@ -528,7 +528,7 @@ export class AnotherFieldComponent {
 
 ### Signal Batching
 
-Facade signals use RXJS's `selectSigna()`
+Facade signals use the store’s `selectSignal()` to expose NgRx selectors as Angular Signals. Because selectors are Observable-based under the hood, RxJS schedules emissions and can coalesce multiple synchronous state updates within the same tick into a single emission (per the scheduler), reducing redundant change detection. Use this pattern in facades when exposing store-derived state to consumers so updates are batched and stable, avoiding transient intermediate states.
 
 ### Event Bus Microtask Batching
 

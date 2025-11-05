@@ -50,10 +50,10 @@ export const formReducer = createReducer(
     pendingActions: [...state.pendingActions, 'submitForm'],
   })),
   
-  on(FormActions.submitFormSuccess, (state, { savedData }) => ({
+  on(FormActions.submitFormSuccess, (state, { savedData, lastSavedAt }) => ({
     ...state,
     status: FormStatus.READY,
-    lastSavedAt: new Date().toISOString(),
+    lastSavedAt,
     modelSnapshot: savedData,
     isDirty: false,
     error: null,
