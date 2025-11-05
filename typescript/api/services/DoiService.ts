@@ -49,7 +49,7 @@ export module Services {
     ];
 
     private _msgPrefix: string;
-    private get msgPrefix() {
+    private msgPrefix() {
       if (!this._msgPrefix) {
         this._msgPrefix = TranslationService.t('Datacite API error');
       }
@@ -71,9 +71,9 @@ export module Services {
       } catch (err) {
         const msg = TranslationService.t(`Error creating DOI`);
         throw new RBValidationError({
-          message: `${this.msgPrefix} ${msg}`,
+          message: `${this.msgPrefix()} ${msg}`,
           options: {cause: err},
-          displayErrors: [{title: this.msgPrefix, detail: msg}]
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
         });
       }
     }
@@ -93,9 +93,9 @@ export module Services {
       } catch (err) {
         const msg = TranslationService.t(`Error updating DOI`);
         throw new RBValidationError({
-          message: `${this.msgPrefix} ${msg}`,
+          message: `${this.msgPrefix()} ${msg}`,
           options: {cause: err},
-          displayErrors: [{title: this.msgPrefix, detail: msg}]
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
         });
       }
     }
@@ -122,9 +122,9 @@ export module Services {
       } catch (err) {
         const msg = TranslationService.t(`Error deleting DOI`);
         throw new RBValidationError({
-          message: `${this.msgPrefix} ${msg}`,
+          message: `${this.msgPrefix()} ${msg}`,
           options: {cause: err},
-          displayErrors: [{title: this.msgPrefix, detail: msg}]
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
         });
       }
     }
@@ -159,9 +159,9 @@ export module Services {
       } catch (err) {
         const msg = TranslationService.t(`Error deleting DOI`);
         throw new RBValidationError({
-          message: `${this.msgPrefix} ${msg}`,
+          message: `${this.msgPrefix()} ${msg}`,
           options: {cause: err},
-          displayErrors: [{title: this.msgPrefix, detail: msg}]
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
         });
       }
     }
@@ -186,8 +186,8 @@ export module Services {
           break;
       }
       return new RBValidationError({
-        message: `${this.msgPrefix} ${TranslationService.t(message)}`,
-        displayErrors: [{code: message, title: this.msgPrefix}],
+        message: `${this.msgPrefix()} ${TranslationService.t(message)}`,
+        displayErrors: [{code: message, title: this.msgPrefix()}],
       })
     }
 
