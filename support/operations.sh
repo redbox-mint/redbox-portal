@@ -31,7 +31,7 @@ case "${op_overall}" in
   "dev-deps-core")
     msg "info" "Install packages for core"
     cd ./core
-    npm install --strict-peer-deps --ignore-scripts --no-audit --no-fund
+    npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-core")
     msg "info" "Compile typescript for core"
@@ -41,7 +41,7 @@ case "${op_overall}" in
   "dev-deps-sails-ng-common")
     msg "info" "Install packages for sails-ng-common"
     cd  ./packages/sails-ng-common
-    npm install --strict-peer-deps --ignore-scripts --no-audit --no-fund
+    npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-sails-ng-common")
     msg "info" "Compile typescript for sails-ng-common"
@@ -51,7 +51,7 @@ case "${op_overall}" in
   "dev-deps-raido")
     msg "info" "Install packages for raido"
     cd ./support/raido
-    npm install --strict-peer-deps --ignore-scripts --no-audit --no-fund
+    npm install --strict-peer-deps --ignore-scripts
 
     msg "info" "Generate source for raido"
     npm run generate
@@ -63,7 +63,7 @@ case "${op_overall}" in
     ;;
   "dev-deps-sails")
     msg "info" "Install packages for sails"
-    npm install --strict-peer-deps --ignore-scripts --no-audit --no-fund
+    npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-sails")
     msg "info" "Compile typescript for sails"
@@ -103,17 +103,25 @@ case "${op_overall}" in
     npm run compile:ng-apps
     npm run compile:webpack
     ;;
+  "dev-serve-build")
+    msg "info" "Build docker images for serve"
+    docker compose -f ./support/compose.yml --profile serve --project-name redbox-dev build --no-cache
+    ;;
   "dev-serve-up")
-    msg "info" "TODO"
+    msg "info" "Run local web server"
     docker compose -f ./support/compose.yml --profile serve --project-name redbox-dev up --build --menu=false --abort-on-container-exit --exit-code-from redbox
     ;;
   "dev-serve-down")
-    msg "info" "TODO"
+    msg "info" "Stop local web server"
     docker compose -f ./support/compose.yml --profile serve --project-name redbox-dev down -v
     ;;
   "test-mocha-all")
     msg "info" "Run mocha tests"
     docker compose -f ./support/compose.yml --profile mocha --project-name redbox-mocha up --build --menu=false --abort-on-container-exit --exit-code-from mocha
+    ;;
+  "test-mocha-build")
+    msg "info" "Build docker images for mocha tests"
+    docker compose -f ./support/compose.yml --profile mocha --project-name redbox-mocha build --no-cache
     ;;
   "test-bruno-all")
     msg "info" "Run all bruno tests"
@@ -126,6 +134,13 @@ case "${op_overall}" in
   "test-bruno-general")
     msg "info" "Run bruno general tests"
     docker compose -f ./support/compose.yml --profile bruno-general --project-name redbox-bruno-general up --build --menu=false --abort-on-container-exit --exit-code-from bruno-general
+    ;;
+  "test-clean-all")
+    msg "info" "Clean up tests"
+    docker compose -f ./support/compose.yml --profile mocha --project-name redbox-mocha down -v || true
+    docker compose -f ./support/compose.yml --profile bruno --project-name redbox-bruno down -v || true
+    docker compose -f ./support/compose.yml --profile bruno-oidc --project-name redbox-bruno-oidc down -v || true
+    docker compose -f ./support/compose.yml --profile bruno-general --project-name redbox-bruno-general down -v || true
     ;;
   "test-angular-ng-apps")
     msg "info" "Run angular tests"

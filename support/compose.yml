@@ -1,38 +1,86 @@
 networks:
   main:
 
+volumes:
+  email-data:
+  mocha-attachments:
+
 services:
 
-  redbox:
-    # the redbox website
-    image:
-    profiles:
-      - bruno
-      - bruno-general
-      - bruno-oidc
-      - serve
-
-  bruno:
-    # all bruno tests
-    image:
-    profiles:
-      - bruno
-
-  bruno-general:
-    # general bruno tests
-    image:
-    profiles:
-      - bruno-general
-
-  bruno-oidc:
-    # oidc bruno tests
-    image:
-    profiles:
-      - bruno-oidc
+#  redbox:
+#    # the redbox website
+#    image:
+#    profiles:
+#      - bruno
+#      - bruno-general
+#      - bruno-oidc
+#      - serve
+#
+#  bruno:
+#    # all bruno tests
+#    image:
+#    profiles:
+#      - bruno
+#
+#  bruno-general:
+#    # general bruno tests
+#    image:
+#    profiles:
+#      - bruno-general
+#
+#  bruno-oidc:
+#    # oidc bruno tests
+#    image:
+#    profiles:
+#      - bruno-oidc
 
   mocha:
     # mocha tests
-    image:
+    build:
+      context: '../'
+      dockerfile: './support/Dockerfile'
+      target: 'redbox-test-mocha'
+    ports:
+      - "1500:1500"
+      # Debugging port
+      # - "9876:9876"
+    expose:
+      - "1500"
+    volumes:
+      - "mocha-attachments:/attachments"
+      - "../.tests/mocha:/opt/redbox-portal/.tmp/junit/backend-mocha/backend-mocha.xml"
+      - "../.coverage/mocha:/opt/redbox-portal/coverage/mocha"
+    depends_on:
+      keycloak:
+        condition: 'service_healthy'
+      mongodb:
+        condition: 'service_healthy'
+      solr:
+        condition: 'service_healthy'
+      email:
+        condition: 'service_healthy'
+    environment:
+      - 'CI=${CI:-false}'
+      - 'NODE_ENV=integrationtest'
+      - 'PORT=1500'
+      - 'sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca'
+      - 'sails_redbox__mochaTesting=true'
+      - 'sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e'
+      - 'sails_security__csrf=false'
+      - 'datacite_username=${datacite_username:-}'
+      - 'datacite_password=${datacite_password:-}'
+      - 'datacite_doiPrefix=${datacite_doiPrefix:-}'
+    networks:
+      main:
+        aliases:
+          - mocha
+    # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
+    init: true
+    entrypoint: >-
+      /bin/bash -c "
+      npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
+      npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js
+      "
     profiles:
       - mocha
 
@@ -90,6 +138,8 @@ services:
       interval: '15s'
       timeout: '5s'
       retries: 10
+    volumes:
+      - "./integration-testing/solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:
         aliases:
@@ -113,7 +163,29 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
       TZ: 'Australia/Brisbane'
+    volumes:
+      - 'email-data:/data'
     networks:
       main:
         aliases:
           - email
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:17.0.1
+    expose:
+      - "8080"
+    # No published ports needed in CI
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:8080"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    volumes:
+      - "./integration-testing/keycloakdb/data:/opt/keycloak/data"
+    networks:
+      main:
+        aliases:
+          - keycloak
+    command:
+      - start-dev
