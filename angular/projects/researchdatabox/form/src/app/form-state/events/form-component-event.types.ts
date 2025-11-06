@@ -152,156 +152,125 @@ export interface FormComponentEventMap {
   'form.save.failure': FormSaveFailureEvent;
 }
 
+/** Shared options bag for event helper factories */
+export type FormComponentEventOptions<TEvent extends FormComponentEventBase> = Omit<TEvent, 'timestamp' | 'type'>;
+
+/** Typed helper return excluding runtime timestamp */
+export type FormComponentEventResult<TEvent extends FormComponentEventBase> = Omit<TEvent, 'timestamp'>;
+
+/** Internal helper to compose typed event objects */
+function createEventResult<TEvent extends FormComponentEventBase>(
+  type: TEvent['type'],
+  options: FormComponentEventOptions<TEvent>
+): FormComponentEventResult<TEvent> {
+  return {
+    type,
+    ...options
+  } as FormComponentEventResult<TEvent>;
+}
+
 /**
  * Helper factory for creating field value changed events (R15.15)
  */
 export function createFieldValueChangedEvent(
-  fieldId: string,
-  value: any,
-  previousValue?: any,
-  sourceId?: string
-): Omit<FieldValueChangedEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FIELD_VALUE_CHANGED,
-    fieldId,
-    value,
-    previousValue,
-    sourceId
-  };
+  options: FormComponentEventOptions<FieldValueChangedEvent>
+): FormComponentEventResult<FieldValueChangedEvent> {
+  return createEventResult<FieldValueChangedEvent>(
+    FormComponentEventType.FIELD_VALUE_CHANGED,
+    options
+  );
 }
 
 /**
  * Helper factory for creating field meta changed events (R15.15)
  */
 export function createFieldMetaChangedEvent(
-  fieldId: string,
-  meta: Record<string, any>,
-  sourceId?: string
-): Omit<FieldMetaChangedEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FIELD_META_CHANGED,
-    fieldId,
-    meta,
-    sourceId
-  };
+  options: FormComponentEventOptions<FieldMetaChangedEvent>
+): FormComponentEventResult<FieldMetaChangedEvent> {
+  return createEventResult<FieldMetaChangedEvent>(
+    FormComponentEventType.FIELD_META_CHANGED,
+    options
+  );
 }
 
 /**
  * Helper factory for creating field dependency trigger events (R15.15)
  */
 export function createFieldDependencyTriggerEvent(
-  fieldId: string,
-  dependentFields: string[],
-  reason: string,
-  sourceId?: string
-): Omit<FieldDependencyTriggerEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FIELD_DEPENDENCY_TRIGGER,
-    fieldId,
-    dependentFields,
-    reason,
-    sourceId
-  };
+  options: FormComponentEventOptions<FieldDependencyTriggerEvent>
+): FormComponentEventResult<FieldDependencyTriggerEvent> {
+  return createEventResult<FieldDependencyTriggerEvent>(
+    FormComponentEventType.FIELD_DEPENDENCY_TRIGGER,
+    options
+  );
 }
 
 /**
  * Helper factory for creating field focus request events (R15.15)
  */
 export function createFieldFocusRequestEvent(
-  fieldId: string,
-  sourceId?: string
-): Omit<FieldFocusRequestEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FIELD_FOCUS_REQUEST,
-    fieldId,
-    sourceId
-  };
+  options: FormComponentEventOptions<FieldFocusRequestEvent>
+): FormComponentEventResult<FieldFocusRequestEvent> {
+  return createEventResult<FieldFocusRequestEvent>(
+    FormComponentEventType.FIELD_FOCUS_REQUEST,
+    options
+  );
 }
 
 /**
  * Helper factory for creating save requested events (R15.15)
  */
 export function createFormSaveRequestedEvent(
-  options?: {
-    force?: boolean;
-    skipValidation?: boolean;
-    targetStep?: string;
-    sourceId?: string;
-  }
-): Omit<FormSaveRequestedEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FORM_SAVE_REQUESTED,
-    force: options?.force,
-    skipValidation: options?.skipValidation,
-    targetStep: options?.targetStep,
-    sourceId: options?.sourceId
-  };
+  options: FormComponentEventOptions<FormSaveRequestedEvent> = {}
+): FormComponentEventResult<FormSaveRequestedEvent> {
+  return createEventResult<FormSaveRequestedEvent>(
+    FormComponentEventType.FORM_SAVE_REQUESTED,
+    options
+  );
 }
 
 /**
  * Helper factory for creating save execute command events (R15.15)
  */
 export function createFormSaveExecuteEvent(
-  options?: {
-    force?: boolean;
-    skipValidation?: boolean;
-    targetStep?: string;
-    sourceId?: string;
-  }
-): Omit<FormSaveExecuteEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FORM_SAVE_EXECUTE,
-    force: options?.force,
-    skipValidation: options?.skipValidation,
-    targetStep: options?.targetStep,
-    sourceId: options?.sourceId
-  };
+  options: FormComponentEventOptions<FormSaveExecuteEvent> = {}
+): FormComponentEventResult<FormSaveExecuteEvent> {
+  return createEventResult<FormSaveExecuteEvent>(
+    FormComponentEventType.FORM_SAVE_EXECUTE,
+    options
+  );
 }
 
 /**
  * Helper factory for creating save success events (R15.15)
  */
 export function createFormSaveSuccessEvent(
-  options?: {
-    savedData?: any;
-    sourceId?: string;
-  }
-): Omit<FormSaveSuccessEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FORM_SAVE_SUCCESS,
-    savedData: options?.savedData,
-    sourceId: options?.sourceId
-  };
+  options: FormComponentEventOptions<FormSaveSuccessEvent> = {}
+): FormComponentEventResult<FormSaveSuccessEvent> {
+  return createEventResult<FormSaveSuccessEvent>(
+    FormComponentEventType.FORM_SAVE_SUCCESS,
+    options
+  );
 }
 
 /**
  * Helper factory for creating save failure events (R15.15)
  */
 export function createFormSaveFailureEvent(
-  options?: {
-    error?: string;
-    sourceId?: string;
-  }
-): Omit<FormSaveFailureEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FORM_SAVE_FAILURE,
-    error: options?.error,
-    sourceId: options?.sourceId
-  };
+  options: FormComponentEventOptions<FormSaveFailureEvent> = {}
+): FormComponentEventResult<FormSaveFailureEvent> {
+  return createEventResult<FormSaveFailureEvent>(
+    FormComponentEventType.FORM_SAVE_FAILURE,
+    options
+  );
 }
 
 /** Helper factory for creating validation broadcast events */
-export function createFormValidationBroadcastEvent(options: {
-  isValid: boolean,
-  errors?: Record<string, string[]>,
-  status?: FormGroupStatus,
-  sourceId?: string
-}): Omit<FormValidationBroadcastEvent, 'timestamp'> {
-  return {
-    type: FormComponentEventType.FORM_VALIDATION_BROADCAST,
-    isValid: options.isValid,
-    errors: options.errors,
-    status: options.status,
-    sourceId: options.sourceId
-  };
+export function createFormValidationBroadcastEvent(
+  options: FormComponentEventOptions<FormValidationBroadcastEvent>
+): FormComponentEventResult<FormValidationBroadcastEvent> {
+  return createEventResult<FormValidationBroadcastEvent>(
+    FormComponentEventType.FORM_VALIDATION_BROADCAST,
+    options
+  );
 }

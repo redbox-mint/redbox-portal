@@ -20,7 +20,7 @@ import {FormComponentEventBus, createFormSaveSuccessEvent, createFormSaveRequest
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
-import { selectResetToken, selectStatus, selectIsSaving } from './form-state/state/form.selectors';
+import { selectResetToken, selectStatus } from './form-state/state/form.selectors';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -89,7 +89,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should initialize FormComponent and transition from INIT to READY', waitForAsync(async () => {
     // Arrange & Act: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
     
     // Assert: Status should be READY after successful load
@@ -103,7 +103,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should propagate reset via resetToken increment', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
     
     // Get initial reset token
@@ -137,7 +137,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should handle submit success flow via facade', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
         
     expect(facade.status()).toBe(FormStatus.READY);
@@ -193,7 +193,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should expose reactive facade signals without runtime errors', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
     
     // Assert: Facade signals are accessible and reactive
@@ -223,7 +223,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should track dirty state through facade signals', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
     
     // Assert: Initial state is pristine
@@ -248,7 +248,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should handle validation lifecycle via store actions', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
     
     expect(facade.status()).toBe(FormStatus.READY);
@@ -280,7 +280,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should source status from facade (readonly)', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
     
     // Assert: Component status should be same as facade status

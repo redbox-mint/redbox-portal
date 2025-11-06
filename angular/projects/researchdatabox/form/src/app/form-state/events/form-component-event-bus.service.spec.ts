@@ -9,14 +9,11 @@ import { TestBed } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { TestScheduler } from 'rxjs/testing';
 import { config as rxjsConfig } from 'rxjs';
-import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
+import { FormComponentEventBus } from './form-component-event-bus.service';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { Store } from '@ngrx/store';
 import {
   FormComponentEventType,
-  FieldValueChangedEvent,
-  FieldFocusRequestEvent,
-  FieldDependencyTriggerEvent,
   FieldMetaChangedEvent,
   FormValidationBroadcastEvent,
   createFieldValueChangedEvent,
@@ -50,7 +47,11 @@ describe('FormComponentEventBus', () => {
 
   describe('Event Publishing (R15.2, AC26-AC28)', () => {
     it('should publish field value changed events (AC26)', (done) => {
-      const event = createFieldValueChangedEvent('title', 'New Title', 'Old Title');
+      const event = createFieldValueChangedEvent({
+        fieldId: 'title',
+        value: 'New Title',
+        previousValue: 'Old Title'
+      });
 
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
         next: (received) => {
@@ -66,7 +67,7 @@ describe('FormComponentEventBus', () => {
     });
 
     it('should publish field focus request events (AC27)', (done) => {
-      const event = createFieldFocusRequestEvent('email');
+      const event = createFieldFocusRequestEvent({ fieldId: 'email' });
 
       bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe({
         next: (received) => {
@@ -80,11 +81,11 @@ describe('FormComponentEventBus', () => {
     });
 
     it('should publish field dependency trigger events (AC28)', (done) => {
-      const event = createFieldDependencyTriggerEvent(
-        'country',
-        ['state', 'city'],
-        'country selection changed'
-      );
+      const event = createFieldDependencyTriggerEvent({
+        fieldId: 'country',
+        dependentFields: ['state', 'city'],
+        reason: 'country selection changed'
+      });
 
       bus.select$(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).subscribe({
         next: (received) => {
@@ -183,7 +184,7 @@ describe('FormComponentEventBus', () => {
 
     it('should auto-timestamp published events (R15.2)', (done) => {
       const beforePublish = Date.now();
-      const event = createFieldValueChangedEvent('test', 'test-value');
+      const event = createFieldValueChangedEvent({ fieldId: 'test', value: 'test-value' });
 
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
         next: (received) => {
@@ -199,8 +200,8 @@ describe('FormComponentEventBus', () => {
 
   describe('Type-Safe Subscriptions (R15.3, R15.16, AC29-AC30)', () => {
     it('should filter events by type (AC29)', () => {
-      const valueEvent = createFieldValueChangedEvent('field1', 'value1');
-      const focusEvent = createFieldFocusRequestEvent('field2');
+      const valueEvent = createFieldValueChangedEvent({ fieldId: 'field1', value: 'value1' });
+      const focusEvent = createFieldFocusRequestEvent({ fieldId: 'field2' });
 
       let receivedEvents = 0;
 
@@ -222,7 +223,7 @@ describe('FormComponentEventBus', () => {
     });
 
     it('should support multiple subscribers to same event type (AC30)', (done) => {
-      const event = createFieldValueChangedEvent('shared', 'shared-value');
+      const event = createFieldValueChangedEvent({ fieldId: 'shared', value: 'shared-value' });
 
       let subscriber1Received = false;
       let subscriber2Received = false;
@@ -263,7 +264,7 @@ describe('FormComponentEventBus', () => {
       });
 
       // Publish value change event
-      const valueEvent = createFieldValueChangedEvent('test', 'test');
+      const valueEvent = createFieldValueChangedEvent({ fieldId: 'test', value: 'test' });
       bus.publish(valueEvent);
 
       // Focus subscriber should not receive value change event (R15.24) — synchronous assertion
@@ -278,7 +279,7 @@ describe('FormComponentEventBus', () => {
       // Initially null (no history)
       expect(signal()).toBeNull();
 
-      const event = createFieldValueChangedEvent('test', 'value');
+      const event = createFieldValueChangedEvent({ fieldId: 'test', value: 'value' });
       bus.publish(event);
 
       // Signal should update synchronously after publish
@@ -291,8 +292,8 @@ describe('FormComponentEventBus', () => {
     it('should update Signal with latest event only', () => {
       const signal = bus.selectSignal(FormComponentEventType.FIELD_VALUE_CHANGED, { injector });
 
-      const event1 = createFieldValueChangedEvent('field1', 'value1');
-      const event2 = createFieldValueChangedEvent('field2', 'value2');
+      const event1 = createFieldValueChangedEvent({ fieldId: 'field1', value: 'value1' });
+      const event2 = createFieldValueChangedEvent({ fieldId: 'field2', value: 'value2' });
 
       bus.publish(event1);
       bus.publish(event2);
@@ -306,7 +307,7 @@ describe('FormComponentEventBus', () => {
 
   describe('Event History and Lifecycle (R15.5, R15.18, AC31)', () => {
     it('should not keep event history (R15.5, R15.18)', () => {
-      const event = createFieldValueChangedEvent('test', 'test-value');
+      const event = createFieldValueChangedEvent({ fieldId: 'test', value: 'test-value' });
 
       // Publish before subscription (fire-and-forget)
       bus.publish(event);
@@ -342,9 +343,9 @@ describe('FormComponentEventBus', () => {
   describe('Multiple Event Types (AC32-AC33)', () => {
     it('should handle rapid event sequences (AC32)', () => {
       const events = [
-        createFieldValueChangedEvent('f1', 'v1'),
-        createFieldValueChangedEvent('f2', 'v2'),
-        createFieldValueChangedEvent('f3', 'v3')
+        createFieldValueChangedEvent({ fieldId: 'f1', value: 'v1' }),
+        createFieldValueChangedEvent({ fieldId: 'f2', value: 'v2' }),
+        createFieldValueChangedEvent({ fieldId: 'f3', value: 'v3' })
       ];
 
       const receivedEvents: string[] = [];
@@ -378,9 +379,9 @@ describe('FormComponentEventBus', () => {
         }
       });
 
-      bus.publish(createFieldValueChangedEvent('f1', 'v1'));
-      bus.publish(createFieldFocusRequestEvent('f2'));
-      bus.publish(createFieldDependencyTriggerEvent('f3', ['f4'], 'test'));
+      bus.publish(createFieldValueChangedEvent({ fieldId: 'f1', value: 'v1' }));
+      bus.publish(createFieldFocusRequestEvent({ fieldId: 'f2' }));
+      bus.publish(createFieldDependencyTriggerEvent({ fieldId: 'f3', dependentFields: ['f4'], reason: 'test' }));
     });
   });
 
@@ -422,7 +423,7 @@ describe('FormComponentEventBus', () => {
 
       // Publishing should not throw even if one subscriber errors
       expect(() => {
-        bus.publish(createFieldValueChangedEvent('test', 'test'));
+        bus.publish(createFieldValueChangedEvent({ fieldId: 'test', value: 'test' }));
       }).not.toThrow();
 
       // Assertions are synchronous because publish emits synchronously
@@ -435,7 +436,7 @@ describe('FormComponentEventBus', () => {
 
       // Should not throw
       expect(() => {
-        bus.publish(createFieldValueChangedEvent('test', 'test'));
+        bus.publish(createFieldValueChangedEvent({ fieldId: 'test', value: 'test' }));
       }).not.toThrow();
     });
   });
@@ -452,8 +453,8 @@ describe('FormComponentEventBus', () => {
         }
       });
 
-      scopedBus.publish(createFieldValueChangedEvent('test', 'value'));
-    });
+      scopedBus.publish(createFieldValueChangedEvent({ fieldId: 'test', value: 'value' }));
+      });
 
     it('should filter events by channel ID', () => {
       const scopedBus1 = bus.scoped('channel-1');
@@ -477,8 +478,8 @@ describe('FormComponentEventBus', () => {
       });
 
       // Publish to different channels
-      scopedBus1.publish(createFieldValueChangedEvent('f1', 'v1'));
-      scopedBus2.publish(createFieldValueChangedEvent('f2', 'v2'));
+      scopedBus1.publish(createFieldValueChangedEvent({ fieldId: 'f1', value: 'v1' }));
+      scopedBus2.publish(createFieldValueChangedEvent({ fieldId: 'f2', value: 'v2' }));
 
       // Should have been received synchronously
       expect(channel1Received).toBe(true);
@@ -491,7 +492,7 @@ describe('FormComponentEventBus', () => {
 
       expect(signal()).toBeNull();
 
-      scopedBus.publish(createFieldValueChangedEvent('test', 'value'));
+      scopedBus.publish(createFieldValueChangedEvent({ fieldId: 'test', value: 'value' }));
 
       const signalValue = signal();
       expect(signalValue).not.toBeNull();
@@ -515,14 +516,19 @@ describe('FormComponentEventBus', () => {
 
       // Publishing events should not throw and should not require store
       expect(() => {
-        bus.publish(createFieldValueChangedEvent('test', 'test'));
+        bus.publish(createFieldValueChangedEvent({ fieldId: 'test', value: 'test' }));
       }).not.toThrow();
     });
   });
 
   describe('Helper Factories (R15.15)', () => {
     it('should create field value changed events via helper', () => {
-      const event = createFieldValueChangedEvent('title', 'New', 'Old', 'component-1');
+      const event = createFieldValueChangedEvent({
+        fieldId: 'title',
+        value: 'New',
+        previousValue: 'Old',
+        sourceId: 'component-1'
+      });
       
       expect(event.type).toBe(FormComponentEventType.FIELD_VALUE_CHANGED);
       expect(event.fieldId).toBe('title');
@@ -532,12 +538,12 @@ describe('FormComponentEventBus', () => {
     });
 
     it('should create field dependency trigger events via helper', () => {
-      const event = createFieldDependencyTriggerEvent(
-        'country',
-        ['state', 'city'],
-        'selection changed',
-        'form-1'
-      );
+      const event = createFieldDependencyTriggerEvent({
+        fieldId: 'country',
+        dependentFields: ['state', 'city'],
+        reason: 'selection changed',
+        sourceId: 'form-1'
+      });
       
       expect(event.type).toBe(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER);
       expect(event.fieldId).toBe('country');
@@ -547,7 +553,10 @@ describe('FormComponentEventBus', () => {
     });
 
     it('should create field focus request events via helper', () => {
-      const event = createFieldFocusRequestEvent('email', 'validation-component');
+      const event = createFieldFocusRequestEvent({
+        fieldId: 'email',
+        sourceId: 'validation-component'
+      });
       
       expect(event.type).toBe(FormComponentEventType.FIELD_FOCUS_REQUEST);
       expect(event.fieldId).toBe('email');
@@ -607,7 +616,9 @@ describe('FormComponentEventBus', () => {
       const startTime = performance.now();
       
       // Publishing to one type should not scan all subscribers
-      bus.publish(createFieldDependencyTriggerEvent('test', [], 'test'));
+      bus.publish(
+        createFieldDependencyTriggerEvent({ fieldId: 'test', dependentFields: [], reason: 'test' })
+      );
       
       const endTime = performance.now();
       const duration = endTime - startTime;

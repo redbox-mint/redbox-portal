@@ -5,11 +5,11 @@
  * Per R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4
  */
 
-import { Injectable, InjectionToken, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of, Observable } from 'rxjs';
-import { map, catchError, switchMap, exhaustMap, tap, withLatestFrom, filter } from 'rxjs/operators';
+import { catchError, switchMap, tap, withLatestFrom, filter } from 'rxjs/operators';
 import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { FormStatus } from '@researchdatabox/sails-ng-common';

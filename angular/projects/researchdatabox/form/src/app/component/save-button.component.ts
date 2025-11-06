@@ -31,11 +31,11 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     // Monitor form status to update disabled state
     effect(() => {
       const dataStatusEvent = validationSignal();
+      const isSaving = this.formStateFacade.isSaving();
+      const isValidationPending = this.formStateFacade.isValidationPending();
       if (dataStatusEvent && dataStatusEvent.status) {
         const dataStatus = dataStatusEvent.status;
         this.loggerService.debug(`SaveButtonComponent effect: validation or pristine signal event: `, dataStatus);
-        const isSaving = this.formStateFacade.isSaving();
-        const isValidationPending = this.formStateFacade.isValidationPending();
         // Disable when any of the following is true:
         // - form is invalid
         // - form has NOT been modified (i.e., not dirty)
@@ -43,6 +43,8 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
         // - a save is currently in progress
         const isDisabled: boolean = (!dataStatus.valid) || (!dataStatus.dirty) || isValidationPending || isSaving;
         this.disabled.set(isDisabled);
+      } else {
+        // TODO: Decide if there's a use case for enabling the button when lacking information about the validation status of the form
       }
     });
     effect(() => {

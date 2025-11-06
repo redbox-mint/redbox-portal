@@ -224,7 +224,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     // This is needed to update the debugging info when form status changes.
     effect(() => {
-      const formStatus = this.facade.status();
       this.getDebugInfo();
     });
 
@@ -514,7 +513,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             this.form.markAllAsDirty();
             // Emit failure event
             this.eventBus.publish(
-              createFormSaveFailureEvent({ error: String(_get(response, 'message', 'Unknown error')) })
+              createFormSaveFailureEvent({ error: _get(response, 'message')?.toString() ?? 'Unknown error' })
             );
           }
           this.saveResponse.set(response);
@@ -534,6 +533,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           );
         }
       } else {
+        this.saveResponse.set(undefined); // Reset save response
         // TODO: Do we need to discriminate between invalid and save pending states?
         this.loggerService.warn(`${this.logName}: Form is invalid. Cannot submit.`);
         // Handle form errors, e.g., show a message to the user
@@ -542,6 +542,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         );
       }
     } else {
+      this.saveResponse.set(undefined); // Reset save response
       // TODO: Do we need to discriminate between not defined and not modified events?
       const message = !this.form ? 'Form is not defined.' : 'Form has not been modified.';
       this.loggerService.warn(`${this.logName}: ${message} Cannot submit.`);
