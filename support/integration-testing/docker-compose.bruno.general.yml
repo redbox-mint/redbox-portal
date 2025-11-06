@@ -29,7 +29,7 @@ services:
     entrypoint: >-
       /bin/sh -lc "cd /opt/bruno-tests &&
       npm install &&
-      npx @usebruno/cli@1.34.1 run
+      npx @usebruno/cli@1.40.0 run
       --env int-test
       --format junit
       --output /opt/junit/backend-bruno/backend-bruno-general.xml
