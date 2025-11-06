@@ -1,5 +1,4 @@
-/// <reference path="./sails.d.ts" />
-import './sails.d';
+import "./sails";
 
 export {
     Attachment
