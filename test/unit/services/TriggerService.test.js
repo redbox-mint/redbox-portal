@@ -54,15 +54,16 @@ describe('The TriggerService', function () {
             try {
                 await TriggerService.validateFieldUsingRegex(oid, record, options);
                 expect.fail("Should have thrown error");
-                        } catch (err) {
-                                expect(err).to.be.an('error');
-                                expect(err.name).to.eq("RBValidationError");
-                                const acceptable = [
-                                    "Title is required Submission format is invalid",
-                                    "title-required invalid-format"
-                                ];
-                                expect(acceptable).to.include(err.message);
-                        }
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.name).to.eq("RBValidationError");
+                const acceptable = [
+                    "Title is required Submission format is invalid",
+                    "title-required invalid-format"
+                ];
+                expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
+                expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+            }
         });
         it('invalid value fails with RBValidationError', async function () {
             const oid = "triggerservice-validateFieldUsingRegex-invalidfails";
@@ -84,15 +85,16 @@ describe('The TriggerService', function () {
             try {
                 await TriggerService.validateFieldUsingRegex(oid, record, options);
                 expect.fail("Should have thrown error");
-                        } catch (err) {
-                                expect(err).to.be.an('error');
-                                expect(err.name).to.eq("RBValidationError");
-                                const acceptable = [
-                                    "Title is required Submission format is invalid",
-                                    "title-required invalid-format"
-                                ];
-                                expect(acceptable).to.include(err.message);
-                        }
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.name).to.eq("RBValidationError");
+                const acceptable = [
+                    "Title is required Submission format is invalid",
+                    "title-required invalid-format"
+                ];
+                expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
+                expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+            }
         });
         it('empty value passes for allowNulls', async function () {
             const oid = "triggerservice-validateFieldUsingRegex-emptyfails";
@@ -126,15 +128,16 @@ describe('The TriggerService', function () {
             try {
                 await TriggerService.validateFieldUsingRegex(oid, record, options);
                 expect.fail("Should have thrown error");
-                        } catch (err) {
-                                expect(err).to.be.an('error');
-                                expect(err.name).to.eq("RBValidationError");
-                                const acceptable = [
-                                    "Title is required Submission format is invalid",
-                                    "title-required invalid-format"
-                                ];
-                                expect(acceptable).to.include(err.message);
-                        }
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.name).to.eq("RBValidationError");
+                const acceptable = [
+                    "Title is required Submission format is invalid",
+                    "title-required invalid-format"
+                ];
+                expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
+                expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+            }
         });
     });
 
@@ -144,8 +147,8 @@ describe('The TriggerService', function () {
             const oid = "triggerservice-template-validpasses";
             const record = {'testing-field': 'valid-value'};
             const options = {
-                template: `<% let errorList = [] 
-                if (_.get(record,'testing-field') !== 'valid-value') { 
+                template: `<% let errorList = []
+                if (_.get(record,'testing-field') !== 'valid-value') {
                     addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
                 }
                 return errorList; %>`,
@@ -165,31 +168,33 @@ describe('The TriggerService', function () {
             const oid = "triggerservice-template-validpasses";
             const record = {'testing-field': 'invalid-value'};
             const options = {
-                template: `<% let errorList = [] 
-                if (_.get(record,'testing-field') !== 'valid-value') { 
+                template: `<% let errorList = []
+                if (_.get(record,'testing-field') !== 'valid-value') {
                     addError(errorList, 'testing-field', 'title-required', 'invalid-format' );
                 }
                 return errorList; %>`,
                 forceRun: true
             };
             try {
-                const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
-                        } catch (err) {
-                                expect(err).to.be.an('error');
-                                expect(err.name).to.eq("RBValidationError");
-                                // Template path packs JSON string or plain codes depending on translation availability
-                                try {
-                                    const errorMap = JSON.parse(err.message);
-                                    expect(errorMap.errorFieldList[0].label).to.be.oneOf(["Title is required", "title-required"]);
-                                } catch (e) {
-                                    // Fallback plain text error path
-                                    const acceptable = [
-                                        "Title is required Submission format is invalid",
-                                        "title-required invalid-format"
-                                    ];
-                                    expect(acceptable).to.include(err.message);
-                                }
-                        }
+                await TriggerService.validateFieldsUsingTemplate(oid, record, options);
+                expect.fail("Should have thrown error");
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.name).to.eq("RBValidationError");
+                // Template path packs JSON string or plain codes depending on translation availability
+                try {
+                    const errorMap = JSON.parse(err.message);
+                    expect(errorMap.errorFieldList[0].label).to.be.oneOf(["Title is required", "title-required"]);
+                } catch (e) {
+                    // Fallback plain text error path
+                    const acceptable = [
+                        "Title is required Submission format is invalid",
+                        "title-required invalid-format"
+                    ];
+                    expect(err.message).to.include(`Field validation using template failed: errorMap`);
+                    expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+                }
+            }
 
         });
 
