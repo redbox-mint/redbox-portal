@@ -59,7 +59,7 @@ describe('The TriggerService', function () {
                 expect(err.name).to.eq("RBValidationError");
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
                 expect(err.displayErrors).to.eql([{
-                    title: "Title is required Submission format is invalid",
+                    detail: "Title is required Submission format is invalid",
                     meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
                 }]);
             }
@@ -89,7 +89,7 @@ describe('The TriggerService', function () {
                 expect(err.name).to.eq("RBValidationError");
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
                 expect(err.displayErrors).to.eql([{
-                    title: "Title is required Submission format is invalid",
+                    detail: "Title is required Submission format is invalid",
                     meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
                 }]);
             }
@@ -131,7 +131,7 @@ describe('The TriggerService', function () {
                 expect(err.name).to.eq("RBValidationError");
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
                 expect(err.displayErrors).to.eql([{
-                    title: "Title is required Submission format is invalid",
+                    detail: "Title is required Submission format is invalid",
                     meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
                 }]);
             }
@@ -187,7 +187,6 @@ describe('The TriggerService', function () {
                     expect(err.message).to.include(`Field validation using template failed: errorMap`);
                     expect(err.displayErrors).to.eql([{
                         title: "Validation failed",
-                        detail: "title-required invalid-format",
                         meta: {
                             altErrorMessage: [],
                             errorFieldList: [
