@@ -8,6 +8,8 @@ echo "[${1}] ${2}"
 echo "-----------------------------------------"
 }
 
+source "${HOME}/.nvm/nvm.sh"
+
 # Specify the compose project name using --project-name - this allows running the same images at the same time with different container names.
 # Specify the compose profile using --profile - this will start only the required services.
 
@@ -30,59 +32,82 @@ msg "info" "Running operation '${op_env}' - '${op_category}' - '${op_group}'"
 case "${op_overall}" in
   "dev-deps-core")
     msg "info" "Install packages for core"
+    nvm use
     cd ./core
     npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-core")
     msg "info" "Compile typescript for core"
+    nvm use
     cd ./core
     npx --no tsc
     ;;
   "dev-deps-sails-ng-common")
     msg "info" "Install packages for sails-ng-common"
+    nvm use
     cd  ./packages/sails-ng-common
     npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-sails-ng-common")
     msg "info" "Compile typescript for sails-ng-common"
+    nvm use
     cd  ./packages/sails-ng-common
     npx --no tsc
     ;;
   "dev-deps-raido")
     msg "info" "Install packages for raido"
+    nvm use
     cd ./support/raido
     npm install --strict-peer-deps --ignore-scripts
 
     msg "info" "Generate source for raido"
+    nvm use
     npm run generate
     ;;
   "dev-compile-raido")
     msg "info" "Compile typescript for raido"
+    nvm use
     cd ./support/raido
     npx --no tsc
     ;;
   "dev-deps-sails")
     msg "info" "Install packages for sails"
+    nvm use
     npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-sails")
     msg "info" "Compile typescript for sails"
+    nvm use
     npx --no tsc
     ;;
   "dev-deps-ng-apps")
-    msg "info" "Install packages for ng-apps TODO"
-    # TODO
+    msg "info" "Install packages for ng-apps"
+    cd angular
+    nvm use
+    npm install --strict-peer-deps --ignore-scripts
     ;;
   "dev-compile-ng-apps")
     msg "info" "Compile ng-apps"
     ./support/development/compileDevAngular.sh
     ;;
+  "dev-deps-ng-legacy")
+    msg "info" "Install packages for ng-apps"
+    cd angular-legacy
+    nvm use
+    npm install --legacy-peer-deps --ignore-scripts
+    ;;
+  "dev-compile-ng-legacy")
+    msg "info" "Compile ng-legacy"
+    ./support/development/compileDevAngularLegacy.sh
+    ;;
   "dev-deps-webpack")
     msg "info" "Install packages for webpack"
+    nvm use
     npm run deps:sails
     ;;
   "dev-compile-webpack")
     msg "info" "Compile webpack"
+    nvm use
     NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js
     ;;
   "dev-deps-all")
@@ -148,6 +173,7 @@ case "${op_overall}" in
     ;;
   "test-sails-ng-common-all")
     msg "info" "Run sails-ng-common tests"
+    nvm use
     cd ./packages/sails-ng-common
     npm run test
     ;;

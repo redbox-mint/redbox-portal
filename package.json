@@ -106,15 +106,18 @@
     "compile:webpack": "./support/operations.sh dev compile webpack",
     "compile:all": "./support/operations.sh dev compile all",
 
+    "serve:build": "./support/operations.sh dev serve build",
     "serve:up": "./support/operations.sh dev serve up",
     "serve:down": "./support/operations.sh dev serve down",
 
     "test:mocha": "./support/operations.sh test mocha all",
+    "test:mocha:build": "./support/operations.sh test mocha build",
     "test:bruno": "./support/operations.sh test bruno all",
     "test:bruno-oidc": "./support/operations.sh test bruno oidc",
     "test:bruno-general": "./support/operations.sh test bruno general",
     "test:ng-apps": "./support/operations.sh test angular ng-apps",
     "test:sails-ng-common": "./support/operations.sh test sails-ng-common all",
+    "test:clean": "./support/operations.sh test clean all",
 
     "dev:docker:clean": "./support/operations.sh dev docker clean"
   },
@@ -134,7 +137,8 @@
     "mocha": "^11.7.2",
     "mocha-junit-reporter": "^2.2.1",
     "pino-test": "^1.1.0",
-    "supertest": "^7.1.4"
+    "supertest": "^7.1.4",
+    "nyc": "^17.1.0"
   },
   "nyc": {
     "check-coverage": false,
