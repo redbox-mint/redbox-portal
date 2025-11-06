@@ -57,12 +57,11 @@ describe('The TriggerService', function () {
             } catch (err) {
                 expect(err).to.be.an('error');
                 expect(err.name).to.eq("RBValidationError");
-                const acceptable = [
-                    "Title is required Submission format is invalid",
-                    "title-required invalid-format"
-                ];
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
-                expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+                expect(err.displayErrors).to.eql([{
+                    title: "Title is required Submission format is invalid",
+                    meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
+                }]);
             }
         });
         it('invalid value fails with RBValidationError', async function () {
@@ -88,12 +87,11 @@ describe('The TriggerService', function () {
             } catch (err) {
                 expect(err).to.be.an('error');
                 expect(err.name).to.eq("RBValidationError");
-                const acceptable = [
-                    "Title is required Submission format is invalid",
-                    "title-required invalid-format"
-                ];
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
-                expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+                expect(err.displayErrors).to.eql([{
+                    title: "Title is required Submission format is invalid",
+                    meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
+                }]);
             }
         });
         it('empty value passes for allowNulls', async function () {
@@ -131,12 +129,11 @@ describe('The TriggerService', function () {
             } catch (err) {
                 expect(err).to.be.an('error');
                 expect(err.name).to.eq("RBValidationError");
-                const acceptable = [
-                    "Title is required Submission format is invalid",
-                    "title-required invalid-format"
-                ];
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
-                expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+                expect(err.displayErrors).to.eql([{
+                    title: "Title is required Submission format is invalid",
+                    meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
+                }]);
             }
         });
     });
@@ -187,12 +184,21 @@ describe('The TriggerService', function () {
                     expect(errorMap.errorFieldList[0].label).to.be.oneOf(["Title is required", "title-required"]);
                 } catch (e) {
                     // Fallback plain text error path
-                    const acceptable = [
-                        "Title is required Submission format is invalid",
-                        "title-required invalid-format"
-                    ];
                     expect(err.message).to.include(`Field validation using template failed: errorMap`);
-                    expect(err.displayErrors).to.eql([{detail: "title-required invalid-format"}]);
+                    expect(err.displayErrors).to.eql([{
+                        title: "Validation failed",
+                        detail: "title-required invalid-format",
+                        meta: {
+                            altErrorMessage: [],
+                            errorFieldList: [
+                                {
+                                    error: "Submission format is invalid",
+                                    label: "Title is required",
+                                    name: "testing-field",
+                                }
+                            ]
+                        }
+                    }]);
                 }
             }
 
