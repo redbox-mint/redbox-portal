@@ -237,16 +237,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       const formIsSaving = this.status() === FormStatus.SAVING;
 
       // Dispatch validation lifecycle actions instead of direct status mutation
-      if (formGroupIsPending && !formIsSaving && !formGroupWasPending) {
-        this.store.dispatch(FormActions.formValidationPending());
-      } else if (formGroupWasPending && !formGroupIsPending && !formGroupIsValid && !formIsSaving) {
-        this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
-      } else if (formGroupWasPending && !formGroupIsPending && formGroupIsValid && this.status() === FormStatus.VALIDATION_PENDING) {
-        this.store.dispatch(FormActions.formValidationSuccess());
-      } else if (!formGroupWasValid && formGroupIsValid && !formGroupIsPending && formGroupWasPending) {
-        this.store.dispatch(FormActions.formValidationSuccess());
+      // Ignore if saving is in progress
+      if (!formIsSaving) {
+        // If validation is pending
+        if (formGroupIsPending && !formGroupWasPending) {
+          this.store.dispatch(FormActions.formValidationPending());
+        } 
+        // If validation completed
+        if (!formGroupIsPending) {
+          if (!formGroupIsValid && formGroupWasValid) {
+            this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
+          }
+          if (formGroupIsValid && !formGroupWasValid) {
+            this.store.dispatch(FormActions.formValidationSuccess());
+          }
+        }
       }
-
       this.previousFormGroupStatus.set(formGroupStatus);
     });
   }
