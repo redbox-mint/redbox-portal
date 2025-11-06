@@ -8,19 +8,19 @@ function buildAngularApp() {
   if [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
     NG_BUILD_PREFIX="--output-path=${NG_BUILD_TEMP_OUTPUT}/${1}"
   fi
-  (node_modules/.bin/ng build $NG_BUILD_PREFIX --app=${1}) 
+  (node_modules/.bin/ng build $NG_BUILD_PREFIX --app=${1})
 }
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular-legacy
 nvm i < .nvmrc
-npm ci --no-audit --no-fund --legacy-peer-deps
+npm install --legacy-peer-deps --ignore-scripts
 
 if [ $# -ne 0 ]
   then
     buildAngularApp "$1"
-else 
+else
   ng2apps=( `find ./ -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do

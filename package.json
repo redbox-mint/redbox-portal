@@ -113,10 +113,14 @@
     "test:mocha": "./support/operations.sh test mocha all",
     "test:mocha:build": "./support/operations.sh test mocha build",
     "test:bruno": "./support/operations.sh test bruno all",
-    "test:bruno-oidc": "./support/operations.sh test bruno oidc",
-    "test:bruno-general": "./support/operations.sh test bruno general",
-    "test:ng-apps": "./support/operations.sh test angular ng-apps",
+    "test:bruno-oidc": "./support/operations.sh test bruno-oidc all",
+    "test:bruno-oidc:build": "./support/operations.sh test bruno-oidc build",
+    "test:bruno-general": "./support/operations.sh test bruno-general all",
+    "test:bruno-general:build": "./support/operations.sh test bruno-general build",
+    "test:ng-apps": "./support/operations.sh test ng-apps all",
+    "test:ng-apps:build": "./support/operations.sh test ng-apps all",
     "test:sails-ng-common": "./support/operations.sh test sails-ng-common all",
+    "test:sails-ng-common:build": "./support/operations.sh test sails-ng-common all",
     "test:clean": "./support/operations.sh test clean all",
 
     "dev:docker:clean": "./support/operations.sh dev docker clean"

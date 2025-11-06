@@ -152,13 +152,21 @@ case "${op_overall}" in
     msg "info" "Run all bruno tests"
     docker compose -f ./support/compose.yml --profile bruno --project-name redbox-bruno up --build --menu=false --abort-on-container-exit --exit-code-from bruno
     ;;
-  "test-bruno-oidc")
+  "test-bruno-oidc-all")
     msg "info" "Run bruno oidc tests"
     docker compose -f ./support/compose.yml --profile bruno-oidc --project-name redbox-bruno-oidc up --build --menu=false --abort-on-container-exit --exit-code-from bruno-oidc
     ;;
-  "test-bruno-general")
+  "test-bruno-oidc-build")
+    msg "info" "Build docker images for bruno oidc tests"
+    docker compose -f ./support/compose.yml --profile bruno-oidc --project-name redbox-bruno-oidc build --no-cache
+    ;;
+  "test-bruno-general-all")
     msg "info" "Run bruno general tests"
     docker compose -f ./support/compose.yml --profile bruno-general --project-name redbox-bruno-general up --build --menu=false --abort-on-container-exit --exit-code-from bruno-general
+    ;;
+  "test-bruno-general-build")
+    msg "info" "Build docker images for bruno general tests"
+    docker compose -f ./support/compose.yml --profile bruno-general --project-name redbox-bruno-general build --no-cache
     ;;
   "test-clean-all")
     msg "info" "Clean up tests"
@@ -167,15 +175,23 @@ case "${op_overall}" in
     docker compose -f ./support/compose.yml --profile bruno-oidc --project-name redbox-bruno-oidc down -v || true
     docker compose -f ./support/compose.yml --profile bruno-general --project-name redbox-bruno-general down -v || true
     ;;
-  "test-angular-ng-apps")
-    msg "info" "Run angular tests"
-    ./support/unit-testing/angular/testDevAngular.sh
+  "test-ng-apps-all")
+    msg "info" "Run angular tests TODO"
+#    ./support/unit-testing/angular/testDevAngular.sh
+    exit 1
+    ;;
+  "test-ng-apps-build")
+    msg "info" "Build docker images for angular tests"
+#    ./support/unit-testing/angular/testDevAngular.sh
+    exit 1
     ;;
   "test-sails-ng-common-all")
     msg "info" "Run sails-ng-common tests"
-    nvm use
-    cd ./packages/sails-ng-common
-    npm run test
+    docker compose -f ./support/compose.yml --profile mocha-sails-ng-common --project-name redbox-mocha-sails-ng-common up --build --menu=false --abort-on-container-exit --exit-code-from mocha-sails-ng-common
+    ;;
+  "test-sails-ng-common-build")
+    msg "info" "Build docker images for sails-ng-common tests"
+    docker compose -f ./support/compose.yml --profile mocha-sails-ng-common --project-name redbox-mocha-sails-ng-common build --no-cache
     ;;
   "dev-docker-clean")
     msg "info" "Clean up docker resources"

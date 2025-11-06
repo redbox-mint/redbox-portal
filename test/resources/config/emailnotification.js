@@ -7,7 +7,7 @@ module.exports.emailnotification = {
         from: "noreply@redbox",
         templateDir: "views/emailTemplates/",
         serverOptions: {
-            host: 'integration-testing-email-1',
+            host: 'email',
             port: 1025,
             secure: false,
             tls: {

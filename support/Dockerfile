@@ -161,10 +161,7 @@ COPY angular/angular.json \
     /opt/redbox-portal/angular/
 COPY angular/projects /opt/redbox-portal/angular/projects
 COPY support/build/angular-i18next-index.d.ts angular/node_modules/angular-i18next/index.d.ts
-RUN chown -R node:node /opt/redbox-portal/angular
-RUN mkdir -p /opt/redbox-portal/assets \
-    && chown -R node:node /opt/redbox-portal/assets
-USER node
+RUN mkdir -p /opt/redbox-portal/assets
 
 #FROM install-deps-compile-angular AS install-deps-compile-angular-portal-ng-common
 RUN --mount=type=cache,target=/root/.npm \
@@ -250,7 +247,7 @@ RUN --mount=type=cache,target=/root/.npm \
 #    && npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/translation
 
 
-FROM node:14@sha256:a158d3b9b4e3fa813fa6c8c590b8f0a860e015ad4e59bbce5744d2f6fd8461aa AS install-deps-compile-angular-legacy
+FROM node:14.21.3@sha256:a158d3b9b4e3fa813fa6c8c590b8f0a860e015ad4e59bbce5744d2f6fd8461aa AS install-deps-compile-angular-legacy
 
 USER root
 RUN mkdir -p /opt/redbox-portal
@@ -263,7 +260,21 @@ RUN cd ./angular-legacy \
     && npm ci --legacy-peer-deps
 
 
-FROM install-deps-compile-sails AS redbox-test-mocha
+# -------------------------------
+# Docker builds for customising supporting services
+# -------------------------------
+
+FROM quay.io/keycloak/keycloak:17.0.1 AS redbox-keycloak
+
+# See: https://quay.io/repository/keycloak/keycloak/manifest/sha256:1996203d4278fe6218b73c60583a0e8a7a8d4a9e2b2865bf1c3d3ead8e117cf8
+COPY --chown=1000:1000 support/integration-testing/keycloakdb /opt/keycloak/data
+
+
+# -------------------------------
+# Definitions used in the compose.yml file
+# -------------------------------
+
+FROM install-deps-compile-sails AS redbox-test-base
 
 # Copy build angular apps
 COPY --from=install-deps-compile-angular /opt/redbox-portal/assets/angular/ /opt/redbox-portal/assets/angular/
@@ -278,14 +289,82 @@ COPY ./assets/ /opt/redbox-portal/assets/
 COPY ./support/build/wrapper-webpack.js /opt/redbox-portal/support/build/wrapper-webpack.js
 
 # Copy tests files
-COPY ./test/ /opt/redbox-portal/test/
-
-# Copy test runner config files
-COPY ./support/integration-testing/recordtype-solr-multi-core-example.js /opt/redbox-portal/config/recordtype.js
-COPY ./support/integration-testing/solr-multi-core-example.js /opt/redbox-portal/config/solr.js
-COPY ./test/resources/ /opt/redbox-portal/test/resources/
+COPY ./test/resources/ /opt/redbox-portal/
 
 # Build webpack
 RUN --mount=type=bind,from=install-deps-compile-angular-legacy,source=/opt/redbox-portal/angular-legacy,target=angular-legacy \
     --mount=type=bind,from=install-deps-compile-angular,source=/opt/redbox-portal/angular,target=angular \
     NODE_ENV=docker WEBPACK_CSS_MINI=true node /opt/redbox-portal/support/build/wrapper-webpack.js
+
+# sails mocha tests
+FROM redbox-test-base AS redbox-test-mocha
+
+# Copy tests files
+COPY ./test/ /opt/redbox-portal/test/
+
+# Copy test runner config files
+COPY ./support/integration-testing/recordtype-solr-multi-core-example.js /opt/redbox-portal/config/recordtype.js
+COPY ./support/integration-testing/solr-multi-core-example.js /opt/redbox-portal/config/solr.js
+
+
+RUN chown -R node:node /opt/redbox-portal
+
+USER node
+
+# sails bruno oidc tests
+FROM redbox-test-base AS redbox-test-bruno-oidc
+
+# Copy test runner config files
+COPY ["./test/bruno/bruno.json", "/opt/redbox-portal/test/bruno/bruno.json"]
+COPY ["./test/bruno/package.json", "/opt/redbox-portal/test/bruno/package.json"]
+COPY ["./test/bruno/package-lock.json", "/opt/redbox-portal/test/bruno/package-lock.json"]
+COPY ["./test/bruno/attachment.png", "/opt/redbox-portal/test/bruno/attachment.png"]
+COPY ["./test/bruno/environments","/opt/redbox-portal/test/bruno/environments"]
+COPY ["./test/bruno/5 - OpenID Connect Denied","/opt/redbox-portal/test/bruno/5 - OpenID Connect Denied"]
+COPY ["./test/bruno/6 - OpenID Connect Allowed","/opt/redbox-portal/test/bruno/6 - OpenID Connect Allowed"]
+
+# Install Bruno packages
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=bind,source=test/bruno/package.json,target=test/bruno/package.json\
+    --mount=type=bind,source=test/bruno/package-lock.json,target=test/bruno/package-lock.json \
+    cd test/bruno \
+    && npm ci --strict-peer-deps --ignore-scripts --no-audit --no-fund
+
+RUN chown -R node:node /opt/redbox-portal
+
+USER node
+
+# sails bruno general tests
+FROM redbox-test-base AS redbox-test-bruno-general
+
+# Copy test runner config files
+COPY ["./test/bruno/bruno.json", "/opt/redbox-portal/test/bruno/bruno.json"]
+COPY ["./test/bruno/package.json", "/opt/redbox-portal/test/bruno/package.json"]
+COPY ["./test/bruno/package-lock.json", "/opt/redbox-portal/test/bruno/package-lock.json"]
+COPY ["./test/bruno/attachment.png", "/opt/redbox-portal/test/bruno/attachment.png"]
+COPY ["./test/bruno/environments","/opt/redbox-portal/test/bruno/environments"]
+COPY ["./test/bruno/1 - REST API", "/opt/bruno-tests/1 - REST API"]
+COPY ["./test/bruno/2 - AJAX calls", "/opt/bruno-tests/2 - AJAX calls"]
+COPY ["./test/bruno/3 - OpenID Connect", "/opt/bruno-tests/3 - OpenID Connect"]
+COPY ["./test/bruno/4 - General", "/opt/bruno-tests/4 - General"]
+
+# Install Bruno packages
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=bind,source=test/bruno/package.json,target=test/bruno/package.json\
+    --mount=type=bind,source=test/bruno/package-lock.json,target=test/bruno/package-lock.json \
+    cd test/bruno \
+    && npm ci --strict-peer-deps --ignore-scripts --no-audit --no-fund
+
+RUN chown -R node:node /opt/redbox-portal
+
+USER node
+
+# sails website for tests
+FROM redbox-test-base AS redbox-test-web
+
+COPY app.integrationtest.js app.js ./
+
+RUN chown -R node:node /opt/redbox-portal
+
+USER node
+
