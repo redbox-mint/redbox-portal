@@ -617,7 +617,7 @@ export module Controllers {
         }
       }, async function (error, UploadedFileMetadata) {
         if (error) {
-          return this.sendResp(req, res, {
+          return self.sendResp(req, res, {
             errors: [error],
             displayErrors: [{detail: `There was a problem adding datastream(s) to: ${sails.config.record.attachment.stageDir}`}]
           });
@@ -637,15 +637,15 @@ export module Controllers {
           if (result.isSuccessful()) {
             sails.log.verbose("Presuming success...");
             _.merge(result, { fileIds: fileIds });
-            return this.sendResp(req, res, {data: {message: result}});
+            return self.sendResp(req, res, {data: {message: result}});
           } else {
-            return this.sendResp(req, res, {
+            return self.sendResp(req, res, {
               status: 500, displayErrors: [{ detail: defaultErrorMessage + " " + result.message}]
             });
           }
 
         } catch (error) {
-          return this.sendResp(req, res, {
+          return self.sendResp(req, res, {
             errors: [error],
             displayErrors: [{detail: defaultErrorMessage}]
           });
