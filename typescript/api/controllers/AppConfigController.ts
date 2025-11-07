@@ -93,7 +93,7 @@ export module Controllers {
           return res.badRequest('appConfigId is required');
         }
         let appConfig = await AppConfigService.getAppConfigForm(brand,appConfigId)
-        
+
         return res.json(appConfig);
       } catch (error) {
         sails.log.error(error);
