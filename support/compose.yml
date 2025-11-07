@@ -14,6 +14,18 @@ services:
   # TODO: test ng-apps
   # TODO: test sails-ng-common
 
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/portal-ng-common
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/app-config
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/dashboard
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/deleted-records
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/export
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/form
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/local-auth
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/manage-roles
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/manage-users
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/report
+  # npm exec --no -- ng test --browsers=ChromeHeadless --no-watch --no-progress --code-coverage @researchdatabox/translation
+
   # redbox-portal bruno general
   redbox-bruno-general:
     build:
@@ -22,7 +34,7 @@ services:
       target: 'redbox-test-web'
     volumes:
       - "bruno-general-attachments:/attachments"
-      - "../.coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general"
+      - "../.test-output/sails-bruno-general:/opt/redbox-portal/coverage/bruno-general"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'
@@ -47,6 +59,8 @@ services:
       - 'PORT=1500'
       - 'sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca'
       - 'sails_redbox__mochaTesting=true'
+      - 'sails_record__baseUrl_redbox=http://redbox:9000/redbox'
+      - 'sails_record__baseUrl_mint=http://localhost'
       - 'sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e'
       - 'sails_security__csrf=false'
       - 'datacite_username=${datacite_username:-}'
@@ -58,11 +72,15 @@ services:
           - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
     # init: true
-    entrypoint: /bin/bash -c "
-      npm exec --no -- nyc --no-clean --reporter=lcov --exclude-after-remap=false \
-      --report-dir /opt/redbox-portal/coverage/bruno-oidc \
-      node app.integrationtest.js
-      "
+    entrypoint:
+      - "node_modules/.bin/nyc"
+      - "--no-clean"
+      - "--reporter=lcov"
+      - "--exclude-after-remap=false"
+      - "--report-dir"
+      - "/opt/redbox-portal/coverage/bruno-general"
+      - "node"
+      - "app.integrationtest.js"
     profiles:
       - bruno-general
 
@@ -73,7 +91,7 @@ services:
       target: 'redbox-test-bruno-general'
     pull_policy: 'missing'
     volumes:
-      - "../.tests/bruno-general:/opt/redbox-portal/.tmp/junit/backend-bruno/"
+      - "../.test-output/sails-bruno-general:/opt/redbox-portal/.tmp/junit/backend-bruno/"
     depends_on:
       redbox-bruno-general:
         condition: 'service_healthy'
@@ -81,12 +99,21 @@ services:
       main:
         aliases:
           - bruno
-    entrypoint: >-
-      /bin/sh -c "
-      cd test/bruno
-      && npm exec --no -- @usebruno/cli run --env int-test --format junit --bail \
-      --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno-general.xml
-      "
+    working_dir: /opt/redbox-portal/test/bruno
+    entrypoint:
+      - "npm"
+      - "exec"
+      - "--no"
+      - "--"
+      - "@usebruno/cli"
+      - "run"
+      - "--env"
+      - "int-test"
+      - "--format"
+      - "junit"
+      - "--bail"
+      - "--output"
+      - "/opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno-general.xml"
     profiles:
       - bruno-general
 
@@ -99,7 +126,7 @@ services:
       target: 'redbox-test-web'
     volumes:
       - "bruno-oidc-attachments:/attachments"
-      - "../.coverage/bruno-oidc:/opt/redbox-portal/coverage/bruno-oidc/"
+      - "../.test-output/sails-bruno-oidc:/opt/redbox-portal/coverage/bruno-oidc/"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'
@@ -124,6 +151,8 @@ services:
       - 'PORT=1500'
       - 'sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca'
       - 'sails_redbox__mochaTesting=true'
+      - 'sails_record__baseUrl_redbox=http://redbox:9000/redbox'
+      - 'sails_record__baseUrl_mint=http://localhost'
       - 'sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e'
       - 'sails_security__csrf=false'
       - 'datacite_username=${datacite_username:-}'
@@ -135,11 +164,15 @@ services:
           - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
     # init: true
-    entrypoint: /bin/bash -c "
-      npm exec --no -- nyc --no-clean --reporter=lcov --exclude-after-remap=false \
-      --report-dir /opt/redbox-portal/coverage/bruno-oidc \
-      node app.integrationtest.js
-      "
+    entrypoint:
+      - "node_modules/.bin/nyc"
+      - "--no-clean"
+      - "--reporter=lcov"
+      - "--exclude-after-remap=false"
+      - "--report-dir"
+      - "/opt/redbox-portal/coverage/bruno-oidc"
+      - "node"
+      - "app.integrationtest.js"
     profiles:
       - bruno-oidc
 
@@ -150,7 +183,7 @@ services:
       target: 'redbox-test-bruno-oidc'
     pull_policy: 'missing'
     volumes:
-      - "../.tests/bruno-oidc:/opt/redbox-portal/.tmp/junit/backend-bruno/"
+      - "../.test-output/bruno-oidc:/opt/redbox-portal/.tmp/junit/backend-bruno/"
     depends_on:
       redbox-bruno-oidc:
         condition: 'service_healthy'
@@ -158,12 +191,21 @@ services:
       main:
         aliases:
           - bruno
-    entrypoint: >-
-      /bin/sh -c "
-      cd test/bruno
-      && npm exec --no -- @usebruno/cli run --env int-test --format junit --bail \
-      --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno-oidc.xml
-      "
+    working_dir: /opt/redbox-portal/test/bruno
+    entrypoint:
+      - "npm"
+      - "exec"
+      - "--no"
+      - "--"
+      - "@usebruno/cli"
+      - "run"
+      - "--env"
+      - "int-test"
+      - "--format"
+      - "junit"
+      - "--bail"
+      - "--output"
+      - "/opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno-oidc.xml"
     profiles:
       - bruno-oidc
 
@@ -181,8 +223,8 @@ services:
       - "1500"
     volumes:
       - "mocha-attachments:/attachments"
-      - "../.tests/mocha:/opt/redbox-portal/.tmp/junit/backend-mocha/"
-      - "../.coverage/mocha:/opt/redbox-portal/coverage/mocha"
+      - "../.test-output/sails-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha/"
+      - "../.test-output/sails-mocha:/opt/redbox-portal/coverage/mocha/"
     depends_on:
       keycloak:
         condition: 'service_healthy'
@@ -198,6 +240,8 @@ services:
       - 'PORT=1500'
       - 'sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca'
       - 'sails_redbox__mochaTesting=true'
+      - 'sails_record__baseUrl_redbox=http://redbox:9000/redbox'
+      - 'sails_record__baseUrl_mint=http://localhost'
       - 'sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e'
       - 'sails_security__csrf=false'
       - 'datacite_username=${datacite_username:-}'
@@ -207,12 +251,19 @@ services:
       main:
         aliases:
           - mocha
-    entrypoint: >-
-      /bin/bash -c "
-      npm exec --no -- nyc --no-clean --reporter=lcov --exclude-after-remap=false \
-      --report-dir /opt/redbox-portal/coverage/mocha \
-      npm exec --no -- mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js
-      "
+    entrypoint:
+      - "node_modules/.bin/nyc"
+      - "--no-clean"
+      - "--reporter=lcov"
+      - "--exclude-after-remap=false"
+      - "--report-dir"
+      - "/opt/redbox-portal/coverage/mocha"
+      - "node_modules/.bin/mocha"
+      - "--config"
+      - "test/unit/.mocharc.js"
+      - "--exit"
+      - "test/bootstrap.test.js"
+      - "test/unit/**/*.test.js"
     profiles:
       - mocha
 

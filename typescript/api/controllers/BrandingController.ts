@@ -78,6 +78,7 @@ export module Controllers {
      */
     public renderApiB(req, res) {
       res.contentType('text/plain');
+      sails.log.verbose("BrandingController.renderApiB");
       req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsapib", {layout: false});
     }

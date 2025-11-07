@@ -11,15 +11,18 @@ get {
 }
 
 headers {
+  Content-Type: application/json
   Authorization: Bearer {{token}}
 }
 
 tests {
   test("Status code is 200", function () {
+      console.log(res);
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Returns array containing object with code 'en'", function () {
+      console.log(res);
       var data = res.getBody();
       expect(Array.isArray(data)).to.equal(true);
       var hasEn = data.some(function(item){ return item && item.code === 'en'; });

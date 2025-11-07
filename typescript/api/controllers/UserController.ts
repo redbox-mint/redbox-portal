@@ -124,7 +124,7 @@ export module Controllers {
       if (req.session.user && req.session.user.type == 'oidc') {
         redirUrl = req.session.logoutUrl;
       }
-      
+
       // If the redirect URL is empty then revert back to the default
       if(_.isEmpty(redirUrl)) {
         redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir)?`${BrandingService.getBrandAndPortalPath(req)}/home`: sails.config.auth.postLogoutRedir;
@@ -141,7 +141,8 @@ export module Controllers {
         });
         // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
         _.unset(req.session, 'user');
-        res.redirect(redirUrl); 
+        sails.log.debug(`Redirecting to '${redirUrl}'`);
+        res.redirect(redirUrl);
       });
     }
 
@@ -383,7 +384,7 @@ export module Controllers {
           let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
           let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
           let regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
-          
+
           if(!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
             matchRegex =  true;
             matchString = false;
@@ -399,8 +400,8 @@ export module Controllers {
             sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
             if(this.validateRegex(errorMessage, regexPattern)) {
               if(asObject) {
-                errorMessageDecodedAsObject = { 
-                  message: fieldLanguageCode, 
+                errorMessageDecodedAsObject = {
+                  message: fieldLanguageCode,
                   detailedMessage: fieldLanguageCode2
                 }
                 break;
@@ -409,11 +410,11 @@ export module Controllers {
                 if(!_.isEmpty(matchRegexGroupsDecoded)) {
                   sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
                   sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
-                  errorMessageDecodedAsObject = { 
-                    message: fieldLanguageCode, 
+                  errorMessageDecodedAsObject = {
+                    message: fieldLanguageCode,
                     detailedMessage: fieldLanguageCode2,
                     interpolation: true,
-                    interpolationObj: matchRegexGroupsDecoded 
+                    interpolationObj: matchRegexGroupsDecoded
                   }
                   break;
                 }
@@ -422,13 +423,13 @@ export module Controllers {
                 break;
               }
             }
-            
+
           } else if (matchString) {
             let errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
             if(errorMessage.includes(errorRefDesc)){
               if(asObject) {
-                errorMessageDecodedAsObject = { 
-                  message: fieldLanguageCode, 
+                errorMessageDecodedAsObject = {
+                  message: fieldLanguageCode,
                   detailedMessage: fieldLanguageCode2
                 }
               } else {
@@ -437,7 +438,7 @@ export module Controllers {
               break;
             }
           }
-        
+
         }
       }
 

@@ -192,6 +192,7 @@ export module Controllers {
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {
       const dynamicAssetInfo = sails.config.dynamicasset[assetId];
       if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
+        sails.log.verbose(`Dynamic asset '${assetId}' not found`);
         return res.notFound();
       }
       res.set('Content-Type', dynamicAssetInfo.type);

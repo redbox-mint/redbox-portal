@@ -206,5 +206,4 @@ api/shims/*.js
 attachments/
 docs/
 .serve-data/
-.tests/
-.coverage/
+.test-output/

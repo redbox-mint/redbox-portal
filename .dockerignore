@@ -36,8 +36,7 @@ assets/angular/
 attachments/
 .dev/
 config/local.js
-.tests/
-.coverage/
+.test-output/
 
 typescript/controllers/*.js
 api/controllers/typescript/*.js

@@ -8,6 +8,13 @@ echo "[${1}] ${2}"
 echo "-----------------------------------------"
 }
 
+function resetTestOutputDir() {
+  local -r path="${TEST_OUTPUT_DIR}/${1}"
+  rm -rf "${path}" || true
+  mkdir -p "${path}"
+  chmod u=rwx,g=rwx,o=rwx "${path}"
+}
+
 source "${HOME}/.nvm/nvm.sh"
 
 # Specify the compose project name using --project-name - this allows running the same images at the same time with different container names.
@@ -15,21 +22,18 @@ source "${HOME}/.nvm/nvm.sh"
 
 # remove node_modules with permission errors: sudo find . -name 'node_modules' -type d -prune -not -path "*/node_modules/*" -exec rm -r '{}' '+'
 
-op_env="${1:-dev}" # dev or test
-op_category="${2}" # deps, compile, serve, mocha, bruno, ...
-op_group="${3}" # (package name), 'all', (group name)
-op_overall=${op_env}-${op_category}-${op_group}""
+RUN_OPERATION="${1}"
 
 CI="${CI:-false}"
+
+TEST_OUTPUT_DIR="./.test-output"
 
 if [ "${CI}" == "true" ]; then
   export BUILDKIT_PROGRESS='plain'
   export COMPOSE_ANSI='never'
 fi
 
-msg "info" "Running operation '${op_env}' - '${op_category}' - '${op_group}'"
-
-case "${op_overall}" in
+case "${RUN_OPERATION}" in
   "dev-deps-core")
     msg "info" "Install packages for core"
     nvm use
@@ -142,6 +146,7 @@ case "${op_overall}" in
     ;;
   "test-mocha-all")
     msg "info" "Run mocha tests"
+    resetTestOutputDir "sails-mocha"
     docker compose -f ./support/compose.yml --profile mocha --project-name redbox-mocha up --build --menu=false --abort-on-container-exit --exit-code-from mocha
     ;;
   "test-mocha-build")
@@ -150,10 +155,16 @@ case "${op_overall}" in
     ;;
   "test-bruno-all")
     msg "info" "Run all bruno tests"
+    resetTestOutputDir "sails-bruno"
     docker compose -f ./support/compose.yml --profile bruno --project-name redbox-bruno up --build --menu=false --abort-on-container-exit --exit-code-from bruno
+    ;;
+  "test-bruno-build")
+    msg "info" "Run all bruno tests"
+    docker compose -f ./support/compose.yml --profile bruno --project-name redbox-bruno build --no-cache
     ;;
   "test-bruno-oidc-all")
     msg "info" "Run bruno oidc tests"
+    resetTestOutputDir "sails-bruno-oidc"
     docker compose -f ./support/compose.yml --profile bruno-oidc --project-name redbox-bruno-oidc up --build --menu=false --abort-on-container-exit --exit-code-from bruno-oidc
     ;;
   "test-bruno-oidc-build")
@@ -162,6 +173,7 @@ case "${op_overall}" in
     ;;
   "test-bruno-general-all")
     msg "info" "Run bruno general tests"
+    resetTestOutputDir "sails-bruno-general"
     docker compose -f ./support/compose.yml --profile bruno-general --project-name redbox-bruno-general up --build --menu=false --abort-on-container-exit --exit-code-from bruno-general
     ;;
   "test-bruno-general-build")
@@ -177,6 +189,7 @@ case "${op_overall}" in
     ;;
   "test-ng-apps-all")
     msg "info" "Run angular tests TODO"
+    resetTestOutputDir "ng-apps"
 #    ./support/unit-testing/angular/testDevAngular.sh
     exit 1
     ;;
@@ -187,6 +200,7 @@ case "${op_overall}" in
     ;;
   "test-sails-ng-common-all")
     msg "info" "Run sails-ng-common tests"
+    resetTestOutputDir "sails-ng-common-mocha"
     docker compose -f ./support/compose.yml --profile mocha-sails-ng-common --project-name redbox-mocha-sails-ng-common up --build --menu=false --abort-on-container-exit --exit-code-from mocha-sails-ng-common
     ;;
   "test-sails-ng-common-build")

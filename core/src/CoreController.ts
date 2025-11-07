@@ -60,10 +60,10 @@ export module Controllers.Core {
       // Sails controller custom config.
       '_config',
     ];
-    
+
     // Namespaced logger for controllers
     private _logger: ILogger;
-    
+
     /**
      * Get a namespaced logger for this controller class.
      * Uses the class constructor name as the namespace.
@@ -76,15 +76,15 @@ export module Controllers.Core {
       }
       return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
     }
-    
+
     constructor() {
       this.processDynamicImports().then(result => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
       })
     }
-    
-    /** 
+
+    /**
      * Function that allows async dynamic imports of modules (such as ECMAScript modules).
      * Called in the constructor and intended to be overridden in sub class to allow imports.
      */
@@ -92,7 +92,7 @@ export module Controllers.Core {
       // Override in sub class as needed
     }
 
-    /** 
+    /**
      * Function that is called during the construction of the Controller after the dynamic imports are completed.
      * Intended to be overridden in the sub class
      */
@@ -105,7 +105,7 @@ export module Controllers.Core {
      **************************************** Public methods ******************************************
      **************************************************************************************************
      */
-     
+
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
@@ -177,6 +177,7 @@ export module Controllers.Core {
      * @param options   Object that contains options.
      */
     public index(req, res, callback: any, options: any = {}) {
+      sails.log.verbose("Core Controller not found.");
       res.notFound();
     }
 
@@ -318,7 +319,7 @@ export module Controllers.Core {
       this.respond(req, res,
         (req, res)=> {
         this.logger.verbose(ajaxMsg);
-        res.notFound(ajaxMsg);
+        res.badRequest(ajaxMsg);
         },
         (req, res) => {
         res.set('Cache-control', 'no-cache');
@@ -338,7 +339,7 @@ export module Controllers.Core {
         return res.json(jsonObj);
       }, (req, res)=> {
         this.logger.verbose(notAjaxMsg);
-        res.notFound(notAjaxMsg);
+        res.badRequest(notAjaxMsg);
       }, forceAjax);
     }
 

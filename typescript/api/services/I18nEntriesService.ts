@@ -37,7 +37,7 @@ export module Services {
   @PopulateExportedMethods
   export class I18nEntries extends services.Core.Service {
 
-    
+
   /**
    * Seed default i18n bundles into DB from language-defaults for the default brand.
    * - Only creates bundles if none exist (no overwrite).
@@ -46,21 +46,21 @@ export module Services {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        
+
         // Discover supported languages by scanning language-defaults directory
         const localesDir = path.join(sails.config.appPath, 'language-defaults');
         const supported: string[] = [];
-        
+
         if (fs.existsSync(localesDir)) {
           const entries = fs.readdirSync(localesDir, { withFileTypes: true });
           supported.push(...entries.filter(d => d.isDirectory()).map(d => d.name));
         }
-        
+
         // Fallback to config if no directories found
         if (supported.length === 0) {
           supported.push(...((sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en']));
         }
-        
+
         const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
         // Default brand
@@ -79,6 +79,7 @@ export module Services {
                 continue; // nothing to seed/sync for this pair
               }
 
+              this.logger.warn(`Reading JSON file from ${filePath}`);
               const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
               if (!existing) {
@@ -279,27 +280,27 @@ export module Services {
       options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
     ): Promise<any> {
       const brandingId = this.resolveBrandingId(branding);
-      
+
       // Use provided display name or get default for the language
       const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
-      
+
       const existing = await this.getBundle(branding, locale, namespace);
       let bundle;
       if (existing) {
-        bundle = await I18nBundle.updateOne({ id: existing.id }).set({ 
-          data, 
-          branding: brandingId, 
-          locale, 
+        bundle = await I18nBundle.updateOne({ id: existing.id }).set({
+          data,
+          branding: brandingId,
+          locale,
           namespace,
-          displayName: finalDisplayName 
+          displayName: finalDisplayName
         });
       } else {
-        bundle = await I18nBundle.create({ 
-          data, 
-          branding: brandingId, 
-          locale, 
+        bundle = await I18nBundle.create({
+          data,
+          branding: brandingId,
+          locale,
           namespace,
-          displayName: finalDisplayName 
+          displayName: finalDisplayName
         });
       }
       // Always synchronise entries with the saved bundle (force overwrite & prune) to avoid desync.
@@ -320,17 +321,17 @@ export module Services {
       enabled: boolean
     ): Promise<any> {
       const brandingId = this.resolveBrandingId(branding);
-      
-      const bundle = await I18nBundle.updateOne({ 
-        branding: brandingId, 
-        locale, 
-        namespace 
+
+      const bundle = await I18nBundle.updateOne({
+        branding: brandingId,
+        locale,
+        namespace
       }).set({ enabled });
-      
+
       if (!bundle) {
         throw new Error(`Bundle not found for branding: ${brandingId}, locale: ${locale}, namespace: ${namespace}`);
       }
-      
+
       return bundle;
     }
 
@@ -350,14 +351,14 @@ export module Services {
 
       const { branding, locale, namespace, id: bundleId } = bundle;
       const data = bundle.data || {};
-      
+
       // Load centralized metadata
       const centralizedMeta = await this.loadCentralizedMeta();
-      
+
       // Extract optional metadata map at root level: { [keyPath]: { category?, description? } }
       // File-specific _meta overrides centralized meta
       const fileMeta: Record<string, { category?: string; description?: string }> = (data && typeof data._meta === 'object') ? data._meta : {};
-      
+
       // Merge centralized meta with file-specific meta (file-specific takes precedence)
       const meta = { ...centralizedMeta, ...fileMeta };
 
@@ -402,12 +403,12 @@ export module Services {
 
     /**
     * Load centralized metadata from language-defaults/meta.json.
-    * This metadata provides additional context and information about 
-    * the translation keys and their usage, and is only used for 
+    * This metadata provides additional context and information about
+    * the translation keys and their usage, and is only used for
     * bootstrapping default values into the database.
     *
-    * The file itself is fairly large, so instead of storing it in 
-    * `sails.config.[...]` for the lifetime of the app, it is read 
+    * The file itself is fairly large, so instead of storing it in
+    * `sails.config.[...]` for the lifetime of the app, it is read
     * directly from disk at the time it is needed.
     *
     * See README for more details on how this file is used.
@@ -416,10 +417,11 @@ export module Services {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        
+
         const metaPath = path.join(sails.config.appPath, 'language-defaults', 'meta.json');
         if (fs.existsSync(metaPath)) {
           const metaContent = fs.readFileSync(metaPath, 'utf8');
+          this.logger.warn(`Reading JSON file from ${metaPath}`);
           return JSON.parse(metaContent);
         }
         return {};
@@ -436,10 +438,11 @@ export module Services {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        
+
         const namesPath = path.join(sails.config.appPath, 'language-defaults', 'language-names.json');
         if (fs.existsSync(namesPath)) {
           const namesContent = fs.readFileSync(namesPath, 'utf8');
+          this.logger.warn(`Reading JSON file from ${namesPath}`);
           return JSON.parse(namesContent);
         }
         return {};

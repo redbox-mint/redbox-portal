@@ -437,7 +437,7 @@ export module Controllers {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
             var request = {};
-            
+
             //if no metadata field, no authorization
             if (metadata == null) {
               request["metadata"] = body;
@@ -496,7 +496,7 @@ export module Controllers {
         //     break;
         //   }
         // }
-        
+
         let found: any = null;
         const attachments = await this.RecordsService.getAttachments(oid);
         for(let attachment of attachments) {
@@ -506,6 +506,7 @@ export module Controllers {
         }
 
         if (!found) {
+          sails.log.verbose(`Record oid '${oid}' attachment not found`);
           return res.notFound()
         }
         let mimeType = found.mimeType;
@@ -524,7 +525,7 @@ export module Controllers {
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-        
+
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
@@ -993,7 +994,7 @@ export module Controllers {
 
     public async removeRoleEdit(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const oid = req.param('oid'); 
+      const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
 
@@ -1148,7 +1149,7 @@ export module Controllers {
               let oid = existingRecord[0].redboxOid;
               let oldMetadata = existingRecord[0].metadata;
               let newMetadata = record['metadata']['data'];
-              
+
               if(this.isMetadataEqual(newMetadata,oldMetadata)) {
                 const response =  {
                   details: '',
@@ -1247,7 +1248,7 @@ export module Controllers {
         // Only set harvestId if not in create mode
         request['harvestId'] = harvestId;
       }
-      
+
       //if no metadata field, no authorization
       if (metadata == null) {
         request['metadata'] = body;

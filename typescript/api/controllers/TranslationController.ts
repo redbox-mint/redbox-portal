@@ -89,6 +89,7 @@ export module Controllers {
      * Returns a list of objects with code, displayName, and enabled.
      */
     public async getLanguages(req, res) {
+      sails.log.verbose("In TranslationController.getLanguages", req, res);
       try {
         const brandingName = req.params.branding;
         const branding = BrandingService.getBrand(brandingName);

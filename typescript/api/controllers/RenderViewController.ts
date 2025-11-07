@@ -1,15 +1,14 @@
 //<reference path='./../../typings/loader.d.ts'/>
 
 import { Controllers as controllers,PopulateExportedMethods} from '@researchdatabox/redbox-core-types';
+
+declare var sails;
+
 /**
  * Package that contains all Controllers.
  */
-
-
-
-
 export module Controllers {
-    
+
     @PopulateExportedMethods
     export class RenderView extends controllers.Core.Controller {
 
@@ -33,6 +32,7 @@ export module Controllers {
          * @param res
          */
         public render(req, res) {
+          sails.log.verbose(`RenderViewController.render req.options.locals: ${req.options.locals} res.locals: ${res.locals}`)
             var view = req.options.locals.view;
             if(view != null){
               this.sendView(req,res,view);

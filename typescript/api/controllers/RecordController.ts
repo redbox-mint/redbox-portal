@@ -132,6 +132,7 @@ export module Controllers {
       try {
         let record: any = await this.recordsService.getMeta(oid);
         if(_.isEmpty(record)) {
+          sails.log.verbose(`Record oid '${oid}' not found`);
           return res.notFound();
         }
   let hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record))
@@ -438,13 +439,13 @@ export module Controllers {
       if(!_.isEmpty(brand)) {
 
   let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
-      
+
         if (hasEditAccess) {
 
           let recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
 
           let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
-          
+
           if (response && response.isSuccessful()) {
             const resp = {
               success: true,
@@ -603,7 +604,7 @@ export module Controllers {
       }
     }
 
-    //TODO: check if this deprecated? 
+    //TODO: check if this deprecated?
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
@@ -951,8 +952,8 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
     }
-    /** 
-     * Returns the RecordType configuration based of the response model that is intentionally restricting 
+    /**
+     * Returns the RecordType configuration based of the response model that is intentionally restricting
      * the object schema and information that is allowed to be sent back in this endpoint
      */
     public getType(req, res) {
@@ -966,8 +967,8 @@ export module Controllers {
       });
     }
 
-    /** 
-     * Returns all RecordTypes configuration based of the response model that is intentionally restricting 
+    /**
+     * Returns all RecordTypes configuration based of the response model that is intentionally restricting
      * the object schema and information that is allowed to be sent back in this endpoint
      */
     public getAllTypes(req, res) {
@@ -1120,6 +1121,7 @@ export module Controllers {
           } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
             res.forbidden();
           } else if (error.message == TranslationService.t('attachment-not-found')) {
+            sails.log.verbose(`Record oid '${oid}' attachment not found`);
             res.notFound();
           } else {
             res.serverError();
@@ -1136,7 +1138,7 @@ export module Controllers {
         let diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
         if (!_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
           let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
-          //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
+          //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
           let thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
           sails.log.verbose('Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
           if (diskSpace.free <= thresholdAppliedFileSize) {
@@ -1272,6 +1274,7 @@ export module Controllers {
           } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
             res.forbidden();
           } else if (error.message == TranslationService.t('attachment-not-found')) {
+            sails.log.verbose(`Record oid '${oid}' attachment not found`);
             res.notFound();
           } else {
             res.serverError();

@@ -16,10 +16,12 @@ headers {
 
 tests {
   test("Status code is 200", function () {
+      console.log(res.getBody());
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Returns object and strips _meta", function () {
+      console.log(res.getBody());
       var data = res.getBody();
       expect(typeof data).to.equal("object");
       expect(data).to.not.have.property("_meta");
