@@ -16,7 +16,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 ENV NVM_DIR=/root/.nvm
-RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash"
+RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"
 
 WORKDIR /opt/redbox-portal
 SHELL ["bash", "-o", "pipefail", "-c"]
@@ -75,6 +75,7 @@ RUN apt-get update \
 COPY --from=builder --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
 COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
+COPY --from=builder --chown=node:node /opt/redbox-portal/typescript/api/configmodels ./typescript/api/configmodels
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config

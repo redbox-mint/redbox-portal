@@ -5,8 +5,7 @@ jobs:
     resource_class: large
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.21
+      - setup_remote_docker
       - restore_cache:
           keys:
             - v1-buildx-cache-{{ .Branch }}-
