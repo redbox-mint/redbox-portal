@@ -28,11 +28,11 @@ COPY . .
 RUN npm ci \
  && npm --prefix core ci \
  && npm --prefix packages/sails-ng-common ci \
- && npm --prefix support/raido ci
+ && npm --prefix packages/raido ci
 
 RUN cd core && npx tsc -p tsconfig.json
 RUN cd packages/sails-ng-common && npm run compile
-RUN cd support/raido && npm run pregenerate && npm run generate
+RUN cd packages/raido && npm run pregenerate && npm run generate
 RUN npx tsc --project tsconfig.json
 
 RUN chmod +x support/build/compileProductionAngular.sh \
@@ -51,7 +51,7 @@ RUN npm prune --omit=dev \
  && rm -rf \
     core/node_modules \
     packages/sails-ng-common/node_modules \
-    support/raido/node_modules \
+    packages/raido/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules

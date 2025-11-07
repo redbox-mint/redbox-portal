@@ -6,7 +6,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2",
     "@researchdatabox/oni-ocfl": "^1.4.0",
-    "@researchdatabox/raido-openapi-generated-node": "file:support/raido",
+    "@researchdatabox/raido-openapi-generated-node": "file:packages/raido",
     "@researchdatabox/redbox-core-types": "./core",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.5.3",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
@@ -109,7 +109,7 @@
     "compile:core:prod": "cd core && npm install && node_modules/.bin/tsc && cd ../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",
-    "compile:raido": "cd ./support/raido && npm install && npm run pregenerate && npm run generate && cd ../../",
+    "compile:raido": "cd ./packages/raido && npm install && npm run pregenerate && npm run generate && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",

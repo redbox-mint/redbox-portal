@@ -179,9 +179,9 @@ core/dist
 api/models/Record.js
 api/models/RecordAudit.js
 api/models/DeletedRecord.js
-support/raido/src*
-support/raido/dist
-support/raido/*.tgz
+packages/raido/src*
+packages/raido/dist
+packages/raido/*.tgz
 angular/.angular/cache/
 
 api/configmodels/*
