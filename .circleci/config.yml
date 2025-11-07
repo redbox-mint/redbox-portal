@@ -49,9 +49,6 @@ jobs:
           name: Install npm dependencies
           command: npm ci
       - run:
-          name: Compile shared Angular packages
-          command: npm run compile:sails-ng-common:prod
-      - run:
           name: Install codecov
           command: |
             mkdir -p /tmp/.codecov-cli
@@ -206,6 +203,9 @@ jobs:
       - run:
           name: Install npm dependencies
           command: npm ci
+      - run:
+          name: Compile shared Angular packages
+          command: npm run compile:sails-ng-common:prod
       - run:
           name: Install codecov
           command: |
