@@ -11,6 +11,7 @@ services:
       - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
       - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
       - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+      - "../../test/bruno/run-bruno.sh:/opt/bruno-tests/run-bruno.sh"
       - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
       - "../../test/bruno/environments:/opt/bruno-tests/environments"
       - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
