@@ -76,13 +76,12 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
 COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
-COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp ./.tmp
+COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/core ./core
 COPY --from=builder --chown=node:node /opt/redbox-portal/form-config ./form-config
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
-COPY --from=builder --chown=node:node /opt/redbox-portal/support/raido ./support/raido
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
