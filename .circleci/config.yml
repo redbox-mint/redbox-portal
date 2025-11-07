@@ -5,82 +5,50 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 20.10.21
+      - restore_cache:
+          keys:
+            - v1-buildx-cache-{{ .Branch }}-
+            - v1-buildx-cache-
       - run:
-          name: Install npm packages and compile for core
-          command: npm run compile:core:prod
-      - run:
-          name: Install npm packages and compile for sails-ng-common
-          command: npm run compile:sails-ng-common:prod
-      - run:
-          name: Build generated api library for raido
+          name: Build runtime image via Dockerfile
           command: |
-            mkdir /tmp/raido-gen
-            cd /tmp/raido-gen/
-            npm install @openapitools/openapi-generator-cli
-            sudo apt-get update
-            sudo apt-get install -y openjdk-17-jdk
-            cd -
-            cd support/raido
-            npm init -y
-            npm ci
-            /tmp/raido-gen/node_modules/.bin/openapi-generator-cli generate -i https://raw.githubusercontent.com/au-research/raido/735df6f752f2e1ece7656d05b830b591dc259d03/api-svc/idl-raid-v2/src/raido-openapi-3.0.yaml -g typescript-axios -o ./src; node_modules/.bin/tsc   
-      - run:
-          name: Install npm packages and compile for project
-          command: npm run compile:sails:prod
-      - run:
-          name: Install nvm
-          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-      - run:
-          name: Compile angular
-          command: |
-            chmod +x support/build/compileProductionAngular.sh
-            support/build/compileProductionAngular.sh
-      - run:
-          name: Compile legacy angular
-          command: |
-            chmod +x support/build/compileProductionAngularLegacy.sh
-            support/build/compileProductionAngularLegacy.sh
-      - run:
-          name: Compile sails app using webpack
-          command: npm run webpack
-      - run:
-          name: Build api descriptors
-          command: |
-            cd support/build/api-descriptors
-            chmod +x ./generateAPIDescriptors.sh
-            ./generateAPIDescriptors.sh
-      - persist_to_workspace:
-          root: .
+            mkdir -p /tmp/.buildx-cache
+            if docker buildx inspect portal-builder >/dev/null 2>&1; then
+              docker buildx use portal-builder
+            else
+              docker buildx create --name portal-builder --driver docker-container --use
+            fi
+            docker buildx build \
+              --progress plain \
+              --target runtime \
+              --cache-from type=local,src=/tmp/.buildx-cache \
+              --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+              --load \
+              -t redbox-portal:test .
+            if [ -d /tmp/.buildx-cache-new ]; then
+              rm -rf /tmp/.buildx-cache
+              mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+            fi
+      - save_cache:
+          key: v1-buildx-cache-{{ .Branch }}-{{ .Revision }}
           paths:
-            - .
-  build_without_angular:
-    docker:
-      - image: 'cimg/node:24.2.0'
-    steps:
-      - checkout
-      - run:
-          name: Install npm packages and compile for core
-          command: npm run compile:core:prod
-      - run:
-          name: Install npm packages and compile for sails-ng-common
-          command: npm run compile:sails-ng-common:prod
-      - run:
-          name: Install npm packages and compile for project
-          command: npm run compile:sails:prod
-      - run:
-          name: Compile sails app using webpack
-          command: npm run webpack
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
+            - /tmp/.buildx-cache
   test-bruno-general:
     machine:
       image: ubuntu-2004:current
     resource_class: large
     steps:
-      - attach_workspace:
-          at: /home/circleci/project
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci
       - run:
           name: Install codecov
           command: |
@@ -116,13 +84,24 @@ jobs:
           when: always
       - store_test_results:
           path: .tmp/junit
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-bruno-oidc:
     machine:
       image: ubuntu-2004:current
     resource_class: large
     steps:
-      - attach_workspace:
-          at: /home/circleci/project
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci
       - run:
           name: Install codecov
           command: |
@@ -158,13 +137,24 @@ jobs:
           when: always
       - store_test_results:
           path: .tmp/junit
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-mocha:
     machine:
       image: ubuntu-2004:current
     resource_class: large
     steps:
-      - attach_workspace:
-          at: /home/circleci/project
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci
       - run:
           name: Install codecov
           command: |
@@ -196,13 +186,24 @@ jobs:
           when: always
       - store_test_results:
           path: .tmp/junit
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-angular:
     machine:
       image: ubuntu-2004:current
     resource_class: large
     steps:
-      - attach_workspace:
-          at: /home/circleci/project
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci
       - run:
           name: Install codecov
           command: |
@@ -226,18 +227,16 @@ jobs:
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
-      - run:
-          name: Install npm packages for project
-          command: |
-            sudo chmod -R 777 .
-            npm ci
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   deploy:
     docker:
       - image: 'cimg/node:24.2.0'
     steps:
+      - checkout
       - setup_remote_docker
-      - attach_workspace:
-          at: /home/circleci/project
       - run:
           name: Build docker container
           command: |
@@ -262,8 +261,15 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff"
-      - attach_workspace:
-          at: /home/circleci/project
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci
       - run:
           name: Generate angular docs
           command: npm run doc-ng2
@@ -274,6 +280,10 @@ jobs:
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
             gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
 orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
