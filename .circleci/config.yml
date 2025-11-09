@@ -205,7 +205,7 @@ jobs:
           command: npm ci
       - run:
           name: Compile shared Angular packages
-          command: npm run compile:sails-ng-common:prod && support/build/compileProductionAngular.sh portal-ng-common && support/build/compileProductionAngular.sh portal-ng-form-custom
+          command: npm run compile:sails-ng-common:prod && source support/build/compileProductionAngular.sh portal-ng-common && source support/build/compileProductionAngular.sh portal-ng-form-custom
       - run:
           name: Install codecov
           command: |
