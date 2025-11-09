@@ -11,7 +11,7 @@ services:
       - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
       - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
       - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
-      - "../../test/bruno/run-bruno.sh:/opt/bruno-tests/run-bruno.sh"
+      - "../../test/bruno/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh"
       - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
       - "../../test/bruno/environments:/opt/bruno-tests/environments"
       - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
@@ -30,7 +30,7 @@ services:
     init: true
     entrypoint:
       - bash
-      - /opt/bruno-tests/run-bruno.sh
+      - /opt/bruno-tests/run-bruno-general.sh
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'missing'
@@ -41,6 +41,7 @@ services:
     volumes:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
+       - "../../coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     stop_grace_period: 30m
     healthcheck:
@@ -78,7 +79,7 @@ services:
     init: true
     entrypoint:
       - bash
-      - /opt/redbox-portal/test/bruno/run-bruno-redbox.sh
+      - /opt/redbox-portal/test/bruno/run-bruno-general-redbox.sh
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'

@@ -11,6 +11,7 @@ services:
       - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
       - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
       - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+      - "../../test/bruno/run-bruno-oidc.sh:/opt/bruno-tests/run-bruno-oidc.sh"
       - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
       - "../../test/bruno/environments:/opt/bruno-tests/environments"
       - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
@@ -24,18 +25,10 @@ services:
      main:
        aliases:
          - bruno
-    entrypoint: >-
-      /bin/sh -lc "cd /opt/bruno-tests &&
-      npm install &&
-      npx @usebruno/cli@1.40.0 run
-      --env int-test
-      --format junit
-      --output /opt/junit/backend-bruno/backend-bruno-oidc.xml
-      --bail;
-      status=$?;
-      wget -qO- http://redboxportal:1599 || true;
-      sleep "${BRUNO_POST_SLEEP_SECONDS:-30}";
-      exit $status"
+    init: true
+    entrypoint:
+      - bash
+      - /opt/bruno-tests/run-bruno-oidc.sh
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'missing'
@@ -46,6 +39,7 @@ services:
     volumes:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
+       - "../../coverage/bruno-oidc:/opt/redbox-portal/coverage/bruno-oidc"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
@@ -79,8 +73,10 @@ services:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
-    # init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc --no-clean --report-dir /opt/redbox-portal/coverage/bruno-oidc --reporter=lcov --exclude-after-remap=false node app.integrationtest.js"
+    init: true
+    entrypoint:
+      - bash
+      - /opt/redbox-portal/test/bruno/run-bruno-oidc-redbox.sh
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
