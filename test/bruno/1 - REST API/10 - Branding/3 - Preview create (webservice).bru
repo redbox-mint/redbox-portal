@@ -31,11 +31,11 @@ tests {
      var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
      expect(body).to.have.property('previewToken');
      expect(body).to.have.property('previewUrl');
-     expect(body).to.have.property('version');
+     expect(body.branding).to.have.property('version');
      expect(body).to.have.property('hash');
      bru.setVar('branding_preview_token', body.previewToken);
      bru.setVar('branding_preview_url', body.previewUrl);
-     bru.setVar('branding_version1', body.version);
+     bru.setVar('branding_version1', body.branding.version);
      bru.setVar('branding_hash1', body.hash);
   });
   
