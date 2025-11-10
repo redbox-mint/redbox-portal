@@ -6,30 +6,14 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - restore_cache:
-          keys:
-            - v1-buildx-cache-{{ .Branch }}-
-            - v1-buildx-cache-
       - run:
           name: Build runtime image via Dockerfile
           command: |
-            mkdir -p /tmp/.buildx-cache
-            if docker buildx inspect portal-builder >/dev/null 2>&1; then
-              docker buildx use portal-builder
-            else
-              docker buildx create --name portal-builder --driver docker-container --use
-            fi
-            docker buildx build \
+            docker build \
               --progress plain \
               --target runtime \
-              --cache-from type=local,src=/tmp/.buildx-cache \
-              --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-              --load \
-              -t redbox-portal:test .
-            if [ -d /tmp/.buildx-cache-new ]; then
-              rm -rf /tmp/.buildx-cache
-              mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-            fi
+              --tag redbox-portal:test \
+              .
       - run:
           name: Save Docker image
           command: |
@@ -39,10 +23,6 @@ jobs:
           root: /tmp
           paths:
             - docker-images/redbox-portal-test.tar
-      - save_cache:
-          key: v1-buildx-cache-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - /tmp/.buildx-cache
   test-bruno-general:
     machine:
       image: ubuntu-2004:current
@@ -263,11 +243,68 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      - attach_workspace:
+          at: /tmp
       - run:
-          name: Build docker container
+          name: Load and tag tested Docker image
           command: |
-            chmod +x dockerhub_deploy.sh
-            ./dockerhub_deploy.sh
+            docker load -i /tmp/docker-images/redbox-portal-test.tar
+            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
+            
+            # Determine the tag
+            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
+              export TAG="$CIRCLE_BRANCH"
+            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
+              export TAG="$CIRCLE_TAG"
+            else
+              export TAG="local"
+            fi
+            export DEPLOY_TAG=${TAG//\//-}
+            export REPO=${REPO:-qcifengineering/redbox-portal}
+            
+            # Tag and push the tested amd64 image
+            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
+            docker push "${REPO}:${DEPLOY_TAG}-amd64"
+      - run:
+          name: Build and push multi-arch manifest
+          command: |
+            # Determine the tag
+            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
+              export TAG="$CIRCLE_BRANCH"
+            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
+              export TAG="$CIRCLE_TAG"
+            else
+              export TAG="local"
+            fi
+            export DEPLOY_TAG=${TAG//\//-}
+            export REPO=${REPO:-qcifengineering/redbox-portal}
+            
+            # Enable arm64 emulation
+            docker run --privileged --rm tonistiigi/binfmt --install arm64 >/dev/null 2>&1 || true
+            
+            # Create buildx builder
+            if docker buildx inspect multibuilder >/dev/null 2>&1; then
+              docker buildx use multibuilder
+            else
+              docker buildx create --name multibuilder --driver docker-container --bootstrap --use
+            fi
+            
+            # Build and push arm64 image
+            BUILD_CACHE_REF="${REPO}:buildcache"
+            docker buildx build \
+              -f Dockerfile \
+              -t "${REPO}:${DEPLOY_TAG}-arm64" \
+              --platform linux/arm64 \
+              --cache-from "type=registry,ref=${BUILD_CACHE_REF}" \
+              --cache-to "type=registry,ref=${BUILD_CACHE_REF},mode=max" \
+              --push \
+              .
+            
+            # Create and push multi-arch manifest
+            docker manifest create "${REPO}:${DEPLOY_TAG}" \
+              "${REPO}:${DEPLOY_TAG}-amd64" \
+              "${REPO}:${DEPLOY_TAG}-arm64"
+            docker manifest push "${REPO}:${DEPLOY_TAG}"
       - run:
           name: Upload container to Nexus
           command: |
