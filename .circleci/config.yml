@@ -49,6 +49,11 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -102,6 +107,11 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
