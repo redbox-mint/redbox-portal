@@ -12,7 +12,7 @@ services:
       # Debugging port
       # - "9876:9876"
     volumes:
-       - "../../:/opt/redbox-portal"
+       - "../../test:/opt/redbox-portal/test"
        - "../../.tmp/attachments:/attachments"
        - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
        - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
