@@ -30,6 +30,15 @@ jobs:
               rm -rf /tmp/.buildx-cache
               mv /tmp/.buildx-cache-new /tmp/.buildx-cache
             fi
+      - run:
+          name: Save Docker image
+          command: |
+            mkdir -p /tmp/docker-images
+            docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - docker-images/redbox-portal-test.tar
       - save_cache:
           key: v1-buildx-cache-{{ .Branch }}-{{ .Revision }}
           paths:
@@ -146,6 +155,11 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}

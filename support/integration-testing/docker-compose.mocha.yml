@@ -4,8 +4,8 @@ networks:
 
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:feature-node24
-    pull_policy: 'always'
+    image: redbox-portal:test
+    pull_policy: 'never'
     user: root
     ports:
        - "1500:1500"
