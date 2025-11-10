@@ -30,11 +30,8 @@ headers {
 
 script:pre-request {
   req.setMaxRedirects(0);
-  const cookie = bru.getVar("cookie");
-    
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 
 tests {

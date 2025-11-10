@@ -70,6 +70,6 @@ tests {
   test("Body has json with error", function () {
      var jsonData = res.getBody();
       expect(jsonData).to.have.property('message');
-      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: blah-blah-blah");
+      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: doesNotExist.");
   });
 }

@@ -14,7 +14,7 @@ headers {
   Upload-Length: 194397
   Origin: {{host}}
   Accept-Encoding: gzip, deflate, br
-  X-CSRF-Token: 
+  X-CSRF-Token:
   Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
   Tus-Resumable: 1.0.0
   Connection: keep-alive
@@ -28,17 +28,14 @@ headers {
 }
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 
 tests {
   test("Status code is 201", function () {
       expect(res.getStatus()).to.equal(201);
-  
+
     let location = res.headers.location;
       bru.setEnvVar("attachmentLocation", location );
       bru.setEnvVar("attachmentId", location.split("/")[8] );

@@ -18,29 +18,26 @@ headers {
   Content-Type: application/json
   X-Source: jsclient
   Accept: application/json, text/plain, */*
-  
+
 }
 
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("RDMP form name is default-1.0-draft", function () {
       const jsonData = res.getBody();
       console.log(`jsonData:`, jsonData);
       expect(jsonData.name).to.eql("default-1.0-draft");
   });
-  
+
   test("Fields array has values", function () {
       const jsonData = res.getBody();
       expect(jsonData.componentDefinitions).to.be.an('array').that.is.not.empty

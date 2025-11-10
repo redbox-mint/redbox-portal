@@ -63,16 +63,16 @@ body:json {
 }
 
 tests {
-  
+
   test("Status code is 201", function () {
       expect(res.getStatus()).to.equal(201);
   });
-  
+
   test("Test oid exists", function () {
       var jsonData = res.getBody();
       expect(jsonData).to.have.property('oid');
       bru.setEnvVar("dmpOid",jsonData.oid);
-      
+
       var randomNumber = Math.floor(Math.random() * (1000 - 0 + 1) + 0)
     bru.setEnvVar("randomNumber",randomNumber);
       bru.setEnvVar("researcherUsername", "researcheruser" + randomNumber);

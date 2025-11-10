@@ -25,7 +25,6 @@ headers {
   Accept: application/json, text/plain, */*
   Cache-Control: no-cache
   Referer: {{host}}/default/rdmp/record/edit/49a33460c794498a56fa29ed08567cc4
-  Cookie: {{cookie}}
   Connection: keep-alive
 }
 
@@ -220,21 +219,18 @@ body:json {
 }
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Test oid exists", function () {
       var jsonData = res.getBody();
       expect(jsonData).to.have.property('oid');
   });
-  
-  
+
+
 }

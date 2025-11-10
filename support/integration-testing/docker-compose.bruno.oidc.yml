@@ -12,6 +12,7 @@ services:
       - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
       - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
       - "../../test/bruno/run-bruno-oidc.sh:/opt/bruno-tests/run-bruno-oidc.sh"
+      - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
       - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
       - "../../test/bruno/environments:/opt/bruno-tests/environments"
       - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"

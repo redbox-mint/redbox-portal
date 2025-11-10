@@ -22,15 +22,16 @@ body:json {
 }
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  if(cookie) { req.setHeader("Cookie", cookie); }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 
 tests {
   test("Status code is 409 for publish conflict", function () {
+    console.log(res.getBody());
     const status = res.getStatus();
     expect(409).to.equal(status);
-    
+
     if (status === 409) {
       var raw = res.getBody();
       var body = typeof raw === 'string' ? JSON.parse(raw) : raw;

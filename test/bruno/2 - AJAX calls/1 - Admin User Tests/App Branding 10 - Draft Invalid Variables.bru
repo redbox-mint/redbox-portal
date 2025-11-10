@@ -25,15 +25,15 @@ body:json {
 }
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  if(cookie) { req.setHeader("Cookie", cookie); }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 
 tests {
   test("Status code is 400 for invalid variable key", function () {
     const status = res.getStatus();
     expect(status).to.equal(400);
-  
+
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
     expect(body.error).to.equal('invalid-variable');

@@ -214,7 +214,7 @@ export module Services {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
           sails.log.error(err);
           createResponse.success = false;
-          createResponse.message = this.displayMessage(err, failedMessage);
+          createResponse.message = RBValidationError.displayMessage({t:TranslationService, errors: [err], defaultMessage: failedMessage});
           return createResponse;
         }
       }
@@ -278,7 +278,7 @@ export module Services {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`);
             sails.log.error(JSON.stringify(err));
             createResponse.success = false;
-            createResponse.message = this.displayMessage(err, failedMessage);
+            createResponse.message = RBValidationError.displayMessage({t: TranslationService, errors: [err], defaultMessage: failedMessage});
             let metadata = { postSaveSyncWarning: 'true' };
             createResponse.metadata = metadata;
             sails.log.error('RecordsService create - error - createResponse ' + JSON.stringify(createResponse));
@@ -302,7 +302,7 @@ export module Services {
               sails.log.error('RecordsService - create - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
               sails.log.error(tErr);
               createResponse.success = false;
-              createResponse.message = this.displayMessage(tErr, failedMessage);
+              createResponse.message = RBValidationError.displayMessage({t:TranslationService, errors: [tErr], defaultMessage: failedMessage});
               return createResponse;
             }
           }
@@ -377,7 +377,7 @@ export module Services {
             sails.log.verbose("RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error");
             sails.log.error(JSON.stringify(err));
             preTriggerResponse.success = false;
-            preTriggerResponse.message = this.displayMessage(err, failedMessage);
+            preTriggerResponse.message = RBValidationError.displayMessage({t: TranslationService, errors: [err], defaultMessage: failedMessage});
             return preTriggerResponse;
           }
         }
@@ -396,7 +396,7 @@ export module Services {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           sails.log.error(err);
           updateResponse.success = false;
-          updateResponse.message = this.displayMessage(err, failedMessage);
+          updateResponse.message = RBValidationError.displayMessage({t: TranslationService, errors: [err], defaultMessage: failedMessage});
           return updateResponse;
         }
       }
@@ -456,7 +456,7 @@ export module Services {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
             updateResponse.success = false;
-            updateResponse.message = this.displayMessage(err, failedMessage);
+            updateResponse.message = RBValidationError.displayMessage({t: TranslationService, errors: [err], defaultMessage: failedMessage});
             let metadataRes = { postSaveSyncWarning: 'true' };
             updateResponse.metadata = metadataRes;
             sails.log.error('RecordsService - updateMeta - error - updateResponse ' + JSON.stringify(updateResponse));
@@ -487,7 +487,7 @@ export module Services {
               sails.log.error('RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
               sails.log.error(tErr);
               updateResponse.success = false;
-              updateResponse.message = this.displayMessage(tErr, failedMessage);
+              updateResponse.message = RBValidationError.displayMessage({t: TranslationService, errors: [tErr], defaultMessage: failedMessage});
               return updateResponse;
             }
           }
@@ -543,7 +543,7 @@ export module Services {
         sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete error');
         sails.log.error(JSON.stringify(err));
         preTriggerResponse.success = false;
-        preTriggerResponse.message = this.displayMessage(err, failedMessage);
+        preTriggerResponse.message = RBValidationError.displayMessage({t: TranslationService, errors: [err], defaultMessage: failedMessage});
         return preTriggerResponse;
       }
 
@@ -560,7 +560,7 @@ export module Services {
           sails.log.error(`RecordsService - delete - Exception while running post delate sync hooks when updating:`);
           sails.log.error(JSON.stringify(err));
           response.success = false;
-          response.message = this.displayMessage(err, failedMessage);
+          response.message = RBValidationError.displayMessage({t: TranslationService, errors: [err], defaultMessage: failedMessage});
           let metadata = { postSaveSyncWarning: 'true' };
           response.metadata = metadata;
           sails.log.error('RecordsService - delete - error - triggerPostSaveSyncTriggers ' + JSON.stringify(response));
@@ -1057,7 +1057,7 @@ export module Services {
       } catch (err) {
         sails.log.error(`${this.logHeader} Exception while running post save sync hooks when transitioning workflow: ${JSON.stringify(err)}`);
         response.success = false;
-        response.message = this.displayMessage(err, "Failed to transition record workflow, please check server logs.");
+        response.message = RBValidationError.displayMessage({t:TranslationService, errors: [err], defaultMessage:"Failed to transition record workflow, please check server logs."});
         response.metadata = {postSaveSyncWarning: 'true'};
         sails.log.error(`RecordsService - triggerPostSaveTransitionWorkflowTriggers - error - response: ${JSON.stringify(response)}`);
         return response;
@@ -1245,40 +1245,6 @@ export module Services {
           }),
           last()
         );
-    }
-
-    /**
-     * Convert this instance into a message suitable for displaying to a user.
-     *
-     * TODO: Rather than this approach, the RBValidationError contents should be preserved,
-     *       and thrown or returned from the service to the controller / caller service.
-     */
-    private displayMessage(error: unknown, defaultMessage?: string): string {
-      let message = defaultMessage ?? "An error occurred";
-      if (RBValidationError.isRBValidationError(error)) {
-        const {displayErrors} = RBValidationError.collectErrors([error], []);
-        const displayMessages = this.collectDisplayMessages(displayErrors);
-        const builtMessage = displayMessages.map(i => {
-          const trimmed = i?.trim();
-          return trimmed.endsWith('.') ? trimmed : trimmed + '.';
-        }).join(' ');
-        if (builtMessage) {
-          message = builtMessage;
-        }
-      }
-      return message;
-    }
-
-    private collectDisplayMessages(displayErrors: ErrorResponseItemV2[]): string[] {
-      const t = TranslationService.t;
-      return (displayErrors ?? [])?.map(displayError => {
-        const code = displayError.code?.toString()?.trim() ?? "";
-        const title = displayError.title?.toString()?.trim() || code;
-        const detail = displayError.detail?.toString()?.trim() || code;
-        // Translate the unique non-empty values, then combine into a string.
-        const items = Array.from(new Set([title, detail])).filter(i => !!i).map(i => t(i));
-        return items.join(': ');
-      });
     }
   }
 }

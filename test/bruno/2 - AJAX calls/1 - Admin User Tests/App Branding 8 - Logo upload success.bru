@@ -20,19 +20,19 @@ body:multipart-form {
 }
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  if(cookie) { req.setHeader("Cookie", cookie); }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies(bru, req);
 }
 
 tests {
   test("Status code is 200", function(){
     expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("JSON content type", function(){
     expect(res.getHeader('content-type')).to.contain('application/json');
   });
-  
+
   test("Logo hash returned", function(){
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
