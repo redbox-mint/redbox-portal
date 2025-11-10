@@ -14,6 +14,7 @@ services:
     volumes:
        - "../../test:/opt/redbox-portal/test"
        - "../../support:/opt/redbox-portal/support"
+       - "../../coverage:/opt/redbox-portal/coverage"
        - "../../.tmp/attachments:/attachments"
        - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
        - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
