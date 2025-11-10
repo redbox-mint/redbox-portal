@@ -49,6 +49,7 @@ services:
        - "../../test:/opt/redbox-portal/test"
        - "../../support:/opt/redbox-portal/support"
        - "../../coverage:/opt/redbox-portal/coverage"
+       - "../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js"
        - "../../.tmp/attachments:/attachments"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     stop_grace_period: 30m
