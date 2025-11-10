@@ -13,6 +13,7 @@ services:
       # - "9876:9876"
     volumes:
        - "../../test:/opt/redbox-portal/test"
+       - "../../support:/opt/redbox-portal/support"
        - "../../.tmp/attachments:/attachments"
        - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
        - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
