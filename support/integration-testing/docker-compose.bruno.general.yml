@@ -39,14 +39,16 @@ services:
       sleep ${BRUNO_POST_SLEEP_SECONDS:-30};
       exit $status"
   redboxportal:
-    image: qcifengineering/redbox-portal:feature-node24
-    pull_policy: 'missing'
+    image: redbox-portal:test
+    pull_policy: 'never'
     user: root
       # Debugging port (publish only when debugging locally)
       # ports:
       #   - "9876:9876"
     volumes:
-       - "../..:/opt/redbox-portal"
+       - "../../test:/opt/redbox-portal/test"
+       - "../../support:/opt/redbox-portal/support"
+       - "../../coverage:/opt/redbox-portal/coverage"
        - "../../.tmp/attachments:/attachments"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     stop_grace_period: 30m
