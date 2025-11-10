@@ -72,6 +72,39 @@ export class RBValidationError extends Error {
   }
 
   /**
+   * Convert errors and displayErrors into a message suitable for displaying to a user.
+   *
+   * TODO: Rather than this approach in services, the RBValidationError contents should be preserved,
+   *       and thrown or returned from the service to the controller / caller service.
+   *       This approach is reasonable for API v1 in controllers.
+   */
+  public static displayMessage(options: {
+    t?: { t: any },
+    errors?: Error[],
+    displayErrors?: ErrorResponseItemV2[],
+    defaultMessage?: string
+  } = {}): string {
+    const t = options?.t?.t;
+    if (!t) {
+      throw new Error("Must provide TranslationService as 't' to RBValidationError.displayMessage.");
+    }
+    const {displayErrors: collectedDisplayErrors} = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
+    const displayMessages = (collectedDisplayErrors ?? [{title: options?.defaultMessage ?? t("An error occurred")}])
+      ?.map(displayError => {
+        const code = displayError.code?.toString()?.trim() ?? "";
+        const title = displayError.title?.toString()?.trim() || code;
+        const detail = displayError.detail?.toString()?.trim() || code;
+        // Translate the unique non-empty values, then combine into a string.
+        const items = Array.from(new Set([title, detail])).filter(i => !!i).map(i => t(i));
+        return items.join(': ');
+      });
+    return displayMessages.map(i => {
+      const trimmed = i?.trim();
+      return trimmed.endsWith('.') ? trimmed : trimmed + '.';
+    }).join(' ');
+  }
+
+  /**
    * Get any display errors stored in this Error.
    */
   get displayErrors(): ErrorResponseItemV2[] {
