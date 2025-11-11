@@ -162,14 +162,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Save response after save operations, also used to track in-flight saves (null)
    */
   saveResponse = signal<RecordActionResult | null | undefined>(undefined);
+  
   /**
-   * Subscription to form group changes
+   * Map of subscriptions for various component events
    */
-  formGroupChangesSub?: Subscription;
-  /**
-   * Subscription to save execute command
-   */
-  saveExecuteSub?: Subscription;
+  subMaps: Record<string, Subscription> = {};
+  
   /**
    * Debug info structure
    */
@@ -270,7 +268,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
       }
       // Listen for execute save command and invoke saveForm (Task 15)
-      this.saveExecuteSub = this.eventBus
+      this.subMaps['saveExecuteSub'] =this.eventBus
         .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
         .subscribe(async (evt) => {
           // Default payload handling with safe fallbacks
@@ -335,8 +333,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         if (this.form) {
           // Wire the form events to update the formGroupStatus signal and publish validation events
           // At the moment, the code will only emit StatusChange and PristineChange events to the EventBus.
-          this.formGroupChangesSub?.unsubscribe();
-          this.formGroupChangesSub = this.form.events.subscribe((formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
+          this.subMaps['formGroupChangesSub']?.unsubscribe();
+          this.subMaps['formGroupChangesSub'] = this.form.events.subscribe((formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
             if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
               this.formGroupStatus.set(this.dataStatus);
               this.eventBus.publish(
@@ -347,10 +345,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 })
               );            
             }
-            // TODO: Publish ValueChangeEvent 
           });
           
-          this.form.valueChanges.subscribe(() => {
+          this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
             this.debugFormComponents.set(this.getDebugInfo());
           });
         }
@@ -583,8 +580,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.formGroupChangesSub?.unsubscribe();
-    this.saveExecuteSub?.unsubscribe();
+    // Clean up subscriptions
+    Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
   }
 }
 
