@@ -1,58 +1,74 @@
+version: '3.9'
 
 networks:
   main:
 
+x-rbportal-env: &rbportal-env
+  - NODE_ENV=integrationtest
+  - PORT=1500
+  - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
+  - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+  - sails_record__baseUrl_mint=http://203.101.226.160/mint
+  - sails_redbox__mochaTesting=true
+  - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_security__csrf=false
+  - datacite_username=${datacite_username}
+  - datacite_password=${datacite_password}
+  - datacite_doiPrefix=${datacite_doiPrefix}
+
+x-rbportal-depends: &rbportal-depends
+  keycloak:
+    condition: 'service_healthy'
+  mongodb:
+    condition: 'service_healthy'
+  solr:
+    condition: 'service_healthy'
+  email:
+    condition: 'service_healthy'
+
+x-rbportal-service: &rbportal-service
+  image: redbox-portal:test
+  pull_policy: 'never'
+  user: root
+  ports:
+    - "1500:1500"
+    # Debugging port
+    # - "9876:9876"
+  volumes:
+    - "../../test:/opt/redbox-portal/test"
+    - "../../support:/opt/redbox-portal/support"
+    - "../../coverage:/opt/redbox-portal/coverage"
+    - "../../.tmp/attachments:/attachments"
+    - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
+    - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
+  depends_on: *rbportal-depends
+  expose:
+    - "1500"
+  environment: *rbportal-env
+  networks:
+    main:
+      aliases:
+        - redboxportal
+  init: true
+  entrypoint: >-
+    /bin/bash -c "cd /opt/redbox-portal &&
+    ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
+    npm ci &&
+    npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
+    npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
+
 services:
   redboxportal:
-    image: redbox-portal:test
-    pull_policy: 'never'
-    user: root
-    ports:
-       - "1500:1500"
-      # Debugging port
-      # - "9876:9876"
+    <<: *rbportal-service
+  redboxportal-mount:
+    <<: *rbportal-service
+    profiles: [mount]
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
-       - "../../test:/opt/redbox-portal/test"
-       - "../../support:/opt/redbox-portal/support"
-       - "../../coverage:/opt/redbox-portal/coverage"
-       - "../../.tmp/attachments:/attachments"
-       - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
-       - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
-    depends_on:
-      keycloak:
-        condition: 'service_healthy'
-      mongodb:
-        condition: 'service_healthy'
-      solr:
-        condition: 'service_healthy'
-      email:
-        condition: 'service_healthy'
-    expose:
-       - "1500"
-    environment:
-      - NODE_ENV=integrationtest
-      - PORT=1500
-      - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
-      - sails_record__baseUrl_redbox=http://redbox:9000/redbox
-      - sails_record__baseUrl_mint=http://203.101.226.160/mint
-      - sails_redbox__mochaTesting=true
-      - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
-      - sails_security__csrf=false
-      - datacite_username=${datacite_username}
-      - datacite_password=${datacite_password}
-      - datacite_doiPrefix=${datacite_doiPrefix}
-    networks:
-     main:
-       aliases:
-         - redboxportal
-    # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
-    init: true
-    entrypoint: >-
-      /bin/bash -c "cd /opt/redbox-portal &&
-      ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-      npm ci &&
-      npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
-      npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
+      - "../../:/opt/redbox-portal:delegated"
+      - "../../.tmp/attachments:/attachments"
+      - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
+      - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'always'
