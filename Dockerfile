@@ -8,6 +8,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     build-essential \
     git \
+    python2 \
     python3 \
     python-is-python3 \
     curl \
@@ -16,7 +17,8 @@ RUN apt-get update \
     openjdk-17-jre-headless \
  && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHON=/usr/bin/python3
+ENV PYTHON=/usr/bin/python2
+ENV npm_config_python=/usr/bin/python2
 ENV NVM_DIR=/root/.nvm
 RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"
 
