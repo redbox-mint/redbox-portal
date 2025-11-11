@@ -335,9 +335,9 @@ export module Controllers {
             } else {
               return this.ajaxFail(req, res, null, {message: msg});
             }
-            let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-            FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
           }
+          let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+          FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
         }
 
         // process the form config to provide only the fields accessible by the current user
