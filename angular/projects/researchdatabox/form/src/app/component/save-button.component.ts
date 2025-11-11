@@ -1,14 +1,16 @@
-import { Component, inject, effect } from '@angular/core';
+import { Component, inject, effect, signal } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent } from '../form-state/events';
+import { FormStateFacade } from '../form-state';
 
 @Component({
   selector: 'redbox-form-save-button',
   template:`
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="label" [disabled]="disabled"></button>
+    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
   `,
@@ -17,32 +19,53 @@ import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName = SaveButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
+  disabled = signal<boolean>(true);
+  private readonly eventBus = inject(FormComponentEventBus);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
-  disabled: boolean = false;
+  protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
+  protected formStateFacade = inject(FormStateFacade);
 
   constructor() {
     super();
+    const validationSignal = this.eventBus.selectSignal(FormComponentEventType.FORM_VALIDATION_BROADCAST);
     // Monitor form status to update disabled state
     effect(() => {
-      const status = this.formComponent.status();
-      const dataStatus = this.formComponent.formGroupStatus();
-      // Disable if the form is invalid, pristine, or not ready (including VALIDATION_PENDING or SAVING)
-      this.disabled = !dataStatus.valid ||
-      dataStatus.pristine ||
-      status === 'VALIDATION_PENDING' ||
-      status === 'SAVING'
+      const dataStatusEvent = validationSignal();
+      const isSaving = this.formStateFacade.isSaving();
+      const isValidationPending = this.formStateFacade.isValidationPending();
+      if (dataStatusEvent && dataStatusEvent.status) {
+        const dataStatus = dataStatusEvent.status;
+        this.loggerService.debug(`SaveButtonComponent effect: validation or pristine signal event: `, dataStatus);
+        // Disable when any of the following is true:
+        // - form is invalid
+        // - form has NOT been modified (i.e., not dirty)
+        // - async validation is pending
+        // - a save is currently in progress
+        const isDisabled: boolean = (!dataStatus.valid) || (!dataStatus.dirty) || isValidationPending || isSaving;
+        this.disabled.set(isDisabled);
+      } else {
+        // TODO: Decide if there's a use case for enabling the button when lacking information about the validation status of the form
+      }
+    });
+    effect(() => {
+      const isSaving = this.formStateFacade.isSaving();
+      this.currentLabel.set(isSaving ? this.componentDefinition?.config?.labelSaving : this.componentDefinition?.config?.label);
     });
   }
 
-  protected override async setComponentReady(): Promise<void> {
-    await super.setComponentReady();
-  }
-
   public async save() {
-    if (this.formComponent && !this.disabled) {
-      await this.formComponent.saveForm(this.componentDefinition?.config?.forceSave, this.componentDefinition?.config?.targetStep, this.componentDefinition?.config?.skipValidation);
+    if (!this.disabled()) {
+      // Publish a typed event to request save; NgRx effects will orchestrate execution
+      this.eventBus.publish(
+        createFormSaveRequestedEvent({
+          force: this.componentDefinition?.config?.forceSave,
+          targetStep: this.componentDefinition?.config?.targetStep,
+          skipValidation: this.componentDefinition?.config?.skipValidation,
+          sourceId: this.name ?? undefined
+        })
+      );
     } else {
-      this.loggerService.debug(`Save button clicked but form is pristine, currently saving, not valid or dirty`);
+      this.loggerService.debug(`Save button is disabled; save action not triggered.`);
     }
   }
 

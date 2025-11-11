@@ -529,6 +529,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.sharedProps.setPropOverride('targetStep', item.config, config);
         this.sharedProps.setPropOverride('forceSave', item.config, config);
         this.sharedProps.setPropOverride('skipValidation', item.config, config);
+        this.sharedProps.setPropOverride('labelSaving', item.config, config);
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
