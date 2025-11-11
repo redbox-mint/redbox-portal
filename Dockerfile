@@ -9,12 +9,14 @@ RUN apt-get update \
     build-essential \
     git \
     python3 \
+    python-is-python3 \
     curl \
     ca-certificates \
     tzdata \
     openjdk-17-jre-headless \
  && rm -rf /var/lib/apt/lists/*
 
+ENV PYTHON=/usr/bin/python3
 ENV NVM_DIR=/root/.nvm
 RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"
 
