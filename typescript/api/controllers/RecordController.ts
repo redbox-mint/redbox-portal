@@ -19,6 +19,7 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
+
 declare var module;
 declare var sails;
 import {
@@ -42,7 +43,6 @@ import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import {Services as recordTypeService} from '../services/RecordTypesService';
-import {ClientFormContext} from "../additional/ClientFormContext";
 
 declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService,
     RecordTypesService:recordTypeService.RecordTypes, TranslationService, UsersService,
@@ -162,7 +162,7 @@ export module Controllers {
 
       // get the default data model for the form with 'name'
       const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form);
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, editMode ? "edit" : "view");
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
@@ -332,19 +332,15 @@ export module Controllers {
               v1: {message: msg}
             });
           }
+          let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+          FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
         }
 
-        let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-        FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
-
         // process the form config to provide only the fields accessible by the current user
-        const currentContext = ClientFormContext.createView();
-        currentContext.current.mode = editMode ? "edit" : "view";
-        currentContext.current.user = {roles: []};
-        currentContext.current.model = {id: oid, data: currentRec};
-        currentContext.build = [];
-
-        const mergedForm = FormsService.buildClientFormConfig(form, currentContext);
+        const formMode = editMode ? "edit" : "view";
+        const userRoles = req.user?.roles || [];
+        const recordData = currentRec;
+        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData);
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {

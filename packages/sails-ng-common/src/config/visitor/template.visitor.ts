@@ -1,7 +1,6 @@
 import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
+import {FormConfigOutline} from "../form-config.outline";
 import {TemplateCompileInput} from "../../template.outline";
-import {ConstructFormConfigVisitor} from "./construct.visitor";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline
@@ -59,6 +58,7 @@ import {
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {FormExpressionsConfigFrame} from "../form-component.outline";
+import {ILogger} from "@researchdatabox/redbox-core-types";
 
 
 /**
@@ -69,16 +69,17 @@ import {FormExpressionsConfigFrame} from "../form-component.outline";
  * so they can be provided to the client.
  */
 export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
-    private constructed?: FormConfigOutline;
+    protected override logName = "TemplateFormConfigVisitor";
     private result?: TemplateCompileInput[];
 
-    start(data: FormConfigFrame): TemplateCompileInput[] {
-        const constructVisitor = new ConstructFormConfigVisitor();
-        this.constructed = constructVisitor.start(data);
+    constructor(logger: ILogger) {
+        super(logger);
+    }
 
+    start(form: FormConfigOutline): TemplateCompileInput[] {
         this.resetCurrentPath();
         this.result = [];
-        this.constructed.accept(this);
+        form.accept(this);
         return this.result;
     }
 

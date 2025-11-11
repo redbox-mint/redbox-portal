@@ -3,10 +3,17 @@ import {FormComponent} from './form.component';
 import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './component/simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { createFormSaveExecuteEvent } from './form-state/events/form-component-event.types';
 
 describe('FormComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule({declarations: {"SimpleInputComponent": SimpleInputComponent}});
+    await createTestbedModule(
+      {
+        declarations: {
+          "SimpleInputComponent": SimpleInputComponent
+        }
+      });
   });
 
   it('should create the app', () => {
@@ -44,6 +51,74 @@ describe('FormComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect(inputElement).toBeTruthy();
+  });
+
+  it('should call saveForm when form.save.execute is published (Task 15)', async () => {
+    // Ensure initComponent runs so the EventBus subscription is created
+    const formConfig: FormConfigFrame = {
+      name: 'save-exec-test',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_exec',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'trigger save exec'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+
+    const spy = spyOn(formComponent, 'saveForm').and.stub();
+
+    // Publish execute command after subscription is in place
+    bus.publish(createFormSaveExecuteEvent({ force: true, skipValidation: true, targetStep: 'S1' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(true, 'S1', true);
+  });
+
+  it('allows legacy callers to invoke saveForm directly (Task 17)', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'legacy-save',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_legacy',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'legacy value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const submitSpy = spyOn(formComponent, 'saveForm').and.stub();
+    await formComponent.saveForm(true, 'legacy-step', true);
+    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step',  true);
   });
 
 });

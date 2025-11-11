@@ -28,7 +28,7 @@ export const SimpleInputFieldComponentConfigTypeNames = ["email", "text", "tel",
 export type SimpleInputFieldComponentConfigType = typeof SimpleInputFieldComponentConfigTypeNames[number];
 
 export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    type: SimpleInputFieldComponentConfigType;
+    type?: SimpleInputFieldComponentConfigType;
 }
 
 export interface SimpleInputFieldComponentConfigOutline extends SimpleInputFieldComponentConfigFrame, FieldComponentConfigOutline {

@@ -1,7 +1,6 @@
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
 import {CurrentPathFormConfigVisitor} from "./base.model";
 import {FormModesConfig} from "../shared.outline";
-import {ConstructFormConfigVisitor} from "./construct.visitor";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -75,11 +74,23 @@ import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
+import {ILogger} from "@researchdatabox/redbox-core-types";
 
-
+/**
+ * The details needed to evaluate the constraint config.
+ */
 export type NameConstraints = {
+    /**
+     * The form component name.
+     */
     name: string,
+    /**
+     * The form component constraints.
+     */
     constraints: FormConstraintConfig,
+    /**
+     * Whether the form component has a model definition or not.
+     */
     model: boolean,
 };
 
@@ -99,6 +110,7 @@ export type NameConstraints = {
  * - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
  */
 export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
+    protected override logName = "ClientFormConfigVisitor";
     private formMode: FormModesConfig = "view";
     private userRoles: string[] = [];
     private recordValues: Record<string, unknown> | null = null;
@@ -106,29 +118,26 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private result: FormConfigFrame = {name: '', componentDefinitions: []};
     private constraintPath: NameConstraints[] = [];
 
-    startExistingRecord(data: FormConfigFrame, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigFrame {
-        const constructVisitor = new ConstructFormConfigVisitor();
-        const constructed = constructVisitor.start(data);
+    constructor(logger: ILogger) {
+        super(logger);
+    }
 
+    startExistingRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigFrame {
         // The current record data, default to null.
         this.recordValues = recordData ?? null;
 
-        return this.start(constructed, formMode, userRoles);
+        return this.start(form, formMode, userRoles);
     }
 
-    startNewRecord(data: FormConfigFrame, formMode?: FormModesConfig, userRoles?: string[]): FormConfigFrame {
-        const constructVisitor = new ConstructFormConfigVisitor();
-        const constructed = constructVisitor.start(data);
-
+    startNewRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]): FormConfigFrame {
         // Use the defaultValues from the form config as the record values.
-        const defaultValueVisitor = new DefaultValueFormConfigVisitor();
-        this.recordValues = defaultValueVisitor.startExisting(constructed);
+        const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
+        this.recordValues = defaultValueVisitor.start(form);
 
-        return this.start(constructed, formMode, userRoles);
+        return this.start(form, formMode, userRoles);
     }
 
-    protected start(formConfig: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]) {
-
+    protected start(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]) {
         // The current context mode, default to no mode.
         this.formMode = formMode ?? "view";
 
@@ -137,8 +146,8 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.resetCurrentPath();
         this.constraintPath = [];
-        this.result = formConfig;
-        formConfig.accept(this);
+        this.result = form;
+        form.accept(this);
         return this.result;
     }
 
@@ -539,7 +548,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // if (!isAllowed) {
         //     const c = currentUserRoles.sort().join(', ');
         //     const r = requiredRoles.sort().join(', ');
-        //     console.debug(`ClientFormConfigVisitor - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
+        //     this.logger.debug(`ClientFormConfigVisitor - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
         // }
 
         return isAllowed;
@@ -552,7 +561,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             ?.map(b => b?.constraints?.allowModes ?? [])
             ?.filter(i => i.length > 0) ?? []));
 
-        // The current user must have at least one of the roles required by each component.
+        // The allowed modes must include the form mode.
         const isAllowed = requiredModes?.every(i => {
             const isArray = Array.isArray(i);
             const hasElements = i.length > 0;
@@ -561,10 +570,8 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         });
 
         // for debugging:
-        // if (!isAllowed) {
-        //     const r = requiredModes.sort().join(', ');
-        //     console.debug(`ClientFormConfigVisitor - access denied for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
-        // }
+        // const r = requiredModes.sort().join(', ');
+        // this.logger.debug(`ClientFormConfigVisitor - access ${isAllowed ? 'allowed' : 'denied'} for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
 
         return isAllowed;
     }
@@ -580,7 +587,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
             if (
                 item.constraints !== undefined
                 && this.hasObjectProps(item.constraints)
-                && this.hasObjectProps(item.model)
             ) {
                 this.constraintPath = [
                     ...currentConstraintPath,
@@ -600,7 +606,8 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
                 this.removePropsAll(item)
             }
         } catch (error) {
-            console.error(`ClientFormConfigVisitor acceptCheckConstraintsCurrentPath: ${error}`);
+            // rethrow error - the finally block will ensure the constraintPath is correct
+            throw error;
         } finally {
             this.constraintPath = currentConstraintPath;
         }
@@ -623,7 +630,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         item.config.value = value;
 
         // for debugging:
-        // console.debug(`ClientFormConfigVisitor setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
+        // this.logger.debug(`ClientFormConfigVisitor setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
 
         // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
