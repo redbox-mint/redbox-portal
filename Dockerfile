@@ -30,11 +30,11 @@ FROM base AS builder
 COPY . .
 
 RUN npm ci \
- && npm --prefix core ci \
+ && npm --prefix packages/redbox-core-types ci \
  && npm --prefix packages/sails-ng-common ci \
  && npm --prefix packages/raido ci
 
-RUN cd core && npx tsc -p tsconfig.json
+RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/raido && npm run pregenerate && npm run generate
 RUN npx tsc --project tsconfig.json
@@ -53,7 +53,7 @@ RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
 RUN npm prune --omit=dev \
  && npm cache clean --force \
  && rm -rf \
-    core/node_modules \
+    packages/redbox-core-types/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
     angular/node_modules \
@@ -83,7 +83,6 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/typescript/api/configmo
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
-COPY --from=builder --chown=node:node /opt/redbox-portal/core ./core
 COPY --from=builder --chown=node:node /opt/redbox-portal/form-config ./form-config
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
