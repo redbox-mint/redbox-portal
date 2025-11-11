@@ -406,13 +406,12 @@ export module Controllers.Core {
      * - The default response format is 'json'.
      * - If only 'data' is provided, the 'status' will be 200.
      * - If there are any 'errors', the 'status' will default to 500.
-     *   If there are no displayErrors, a generic one will be added.
-     *   Errors are never used as display errors, to avoid revealing implementation details.
-     * - Any 'displayError' missing a 'status' will use the top-level 'status'.
-     * - If the top-level status is not set, and there are displayErrors with a status,
-     *   the top-level status will use 500 if any status start with 5,
-     *   or 400 if any status start with 4,
-     *   or 500 if there are any displayErrors.
+     * - If there are no displayErrors, a generic one will be added.
+     * - Errors are never used as display errors, to avoid revealing implementation details.
+     * - If there are any displayErrors:
+     *   - the top-level status will be 500 if any status starts with 5, or
+     *   - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
+     *   - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
      * - The response will be in the format matching the request kind (e.g. API, ajax).
      * - If there is no displayError.title and no displayError.detail, and displayError.code is set,
      *   the displayError.code will be used as a translation message identifier for displayError.title.
@@ -459,20 +458,16 @@ export module Controllers.Core {
         }
       }
 
-      // If there are any 'errors', the 'status' will default to 500.
-      if (!status?.toString().startsWith('5') && collectedErrors.length > 0) {
-        status = 500;
-      }
-
       // If there are errors, but no display errors, add a generic display error.
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
         collectedDisplayErrors.push({code: 'server-error'});
       }
 
-      // If the top-level status is not set, and there are displayErrors with a status,
-      // the top-level status will use 500 if any status starts with 5,
-      // or 400 if any status starts with 4,or 500 if there are any displayErrors.
-      if ((status === null || status === undefined) && collectedDisplayErrors.length > 0) {
+      // If there are any displayErrors:
+      // - the top-level status will be 500 if any status starts with 5, or
+      // - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
+      // - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
+      if (collectedDisplayErrors.length > 0) {
         const statusString = collectedDisplayErrors
           .map(i => i?.status?.toString() ?? "")
           .reduce((prev, curr) => {
@@ -483,7 +478,7 @@ export module Controllers.Core {
               return "500";
             }
             return curr !== null && curr != undefined ? curr : null;
-          }, null);
+          }, status?.toString() || null);
         try {
           status = parseInt(statusString ?? "500");
         } catch {
