@@ -7,16 +7,17 @@ services:
     image: node:24-bullseye
     pull_policy: 'missing'
     volumes:
-      - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
+      - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
+      - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
+      - "../../test/bruno/environments:/opt/bruno-tests/environments"
+      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
       - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
+      - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
       - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
       - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
       - "../../test/bruno/run-bruno-oidc.sh:/opt/bruno-tests/run-bruno-oidc.sh"
-      - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
-      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
-      - "../../test/bruno/environments:/opt/bruno-tests/environments"
-      - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
-      - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
+      - "../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
+      - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
     working_dir: /opt/bruno-tests
     stop_grace_period: 30m
     depends_on:

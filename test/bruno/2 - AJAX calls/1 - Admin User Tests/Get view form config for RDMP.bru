@@ -24,7 +24,7 @@ headers {
 
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
-  bruHelper.setCookies(bru, req);
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
@@ -34,7 +34,7 @@ tests {
 
   test("RDMP form name is default-1.0-draft", function () {
       const jsonData = res.getBody();
-      console.log(`jsonData:`, jsonData);
+      // console.log(`jsonData:`, jsonData);
       expect(jsonData.name).to.eql("default-1.0-draft");
   });
 

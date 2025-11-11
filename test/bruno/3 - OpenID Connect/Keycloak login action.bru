@@ -30,24 +30,14 @@ body:form-urlencoded {
 
 script:pre-request {
   req.setMaxRedirects(0);
-  const newCookies = bru.getVar("kc_cookie") || [];
-  const existingCookies = Object.hasOwn(req.headers, "Cookie") ? req.headers['Cookie'] : [];
-  const cookies = [
-    ...(Array.isArray(existingCookies) ? existingCookies : [existingCookies]),
-    ...(Array.isArray(newCookies) ? newCookies : [newCookies]),
-    ];
-  if(cookies.length === 1) {
-    req.headers['Cookie'] = cookies[0]
-  } else if (cookies.length > 1){
-    // See https://github.com/usebruno/bruno/issues/3475
-    throw new Error(`Bruno does not support more than one cookie. Headers ${JSON.stringify(req.headers)} cookies ${JSON.stringify(cookies)}.`);
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req, bruCookieVar: "kc_cookie"});
 }
 
 tests {
   test("Status code is 302", function () {
       expect(res.getStatus()).to.equal(302);
       bru.setVar("rb_login_url", res.headers['location']);
-      console.log(bru.getVar("rb_login_url"))
+      // console.log(bru.getVar("rb_login_url"))
   });
 }

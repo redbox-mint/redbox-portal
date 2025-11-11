@@ -5,7 +5,18 @@ set -o xtrace
 
 cd /opt/bruno-tests
 
+# Install dependencies for running bruno
 npm install --ignore-scripts --strict-peer-deps
+
+# Validate the bru syntax
+find . -name '*.bru' -type f \
+  -prune -not -path "*/node_modules/*" \
+  -prune -not -path "**/environments/*" \
+  -exec node validate-bruno-files.js '{}' '+'
+
+# Remove the output from any previous run
 rm /opt/junit/backend-bruno/backend-bruno-oidc.xml || true
-exec node_modules/.bin/bru run --env int-test --format junit --bail \
+
+# Run bruno tests
+exec node_modules/.bin/bru run --disable-cookies --env int-test --format junit --bail \
  --output /opt/junit/backend-bruno/backend-bruno-oidc.xml

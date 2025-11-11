@@ -23,12 +23,12 @@ body:json {
 
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
-  bruHelper.setCookies(bru, req);
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
   test("Status code is 409 for publish conflict", function () {
-    console.log(res.getBody());
+    // console.log(res.getBody());
     const status = res.getStatus();
     expect(409).to.equal(status);
 

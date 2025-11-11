@@ -570,7 +570,7 @@ export module Controllers {
   let currentRec = await firstValueFrom(this.getRecord(oid));
   let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
-        return this.sendResp(req, res, {status: 403});
+        return this.sendResp(req, res, {status: 403, displayErrors: [{code: 'not-authorised'}]});
       }
   let recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
       let nextStepResp = null;

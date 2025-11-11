@@ -95,6 +95,7 @@
     "test:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down",
     "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:oidc": "docker compose -f ./support/integration-testing/docker-compose.bruno.oidc.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
+    "test:bruno:oidc:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.oidc.yml down -v",
     "test:bruno:general": "docker compose -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:general:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.general.yml down -v",
     "test:bruno:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml down -v --remove-orphans --timeout 180",

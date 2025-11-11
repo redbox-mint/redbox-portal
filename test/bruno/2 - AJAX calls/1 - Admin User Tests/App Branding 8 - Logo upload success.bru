@@ -21,7 +21,7 @@ body:multipart-form {
 
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
-  bruHelper.setCookies(bru, req);
+  bruHelper.setCookies({bru, req});
 }
 
 tests {

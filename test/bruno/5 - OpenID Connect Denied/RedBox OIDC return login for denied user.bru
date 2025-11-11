@@ -29,7 +29,7 @@ headers {
 script:pre-request {
   req.setMaxRedirects(0);
   const bruHelper = require("./bruno-helpers.js");
-  bruHelper.setCookies(bru, req);
+  bruHelper.setCookies({bru, req});
 }
 
 tests {

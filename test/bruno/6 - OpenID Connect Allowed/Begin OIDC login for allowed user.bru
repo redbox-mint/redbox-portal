@@ -31,13 +31,13 @@ headers {
 script:pre-request {
   req.setMaxRedirects(0);
   const bruHelper = require("./bruno-helpers.js");
-  bruHelper.setCookies(bru, req);
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
   test("Status code is 302", function () {
       expect(res.getStatus()).to.equal(302);
      bru.setVar("kc_redir_url", res.headers['location']);
-    console.log(bru.getVar("kc_redir_url"))
+    // console.log(bru.getVar("kc_redir_url"))
   });
 }

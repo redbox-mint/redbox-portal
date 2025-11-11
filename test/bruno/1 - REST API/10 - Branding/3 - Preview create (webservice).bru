@@ -27,7 +27,7 @@ tests {
   test("Preview token + url stored", function(){
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    console.log(body);
+    // console.log(body);
     expect(body).to.have.property('previewToken');
     expect(body).to.have.property('previewUrl');
     expect(body.branding).to.have.property('version');
