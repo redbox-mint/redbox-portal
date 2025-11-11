@@ -476,7 +476,7 @@ export module Controllers {
       const msgFailed = TranslationService.t('failed-restore');
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
-          status: 500,
+          status: 400,
           displayErrors: [{code: 'failed-restore'}],
           meta: {oid: oid},
           v1: {
@@ -519,7 +519,7 @@ export module Controllers {
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
-          status: 500,
+          status: 400,
           displayErrors: [{code: 'failed-destroy'}],
           meta: {oid: oid},
           v1: {
