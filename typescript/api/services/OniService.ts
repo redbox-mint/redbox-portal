@@ -158,7 +158,7 @@ export module Services {
 				} catch (err) {
           const msg = `Error loading root collection`;
           throw new RBValidationError({
-            message: `${msg}: site ${options['site']} oid ${oid} rootCollectionId ${site.rootCollectionId}`,
+            message: `${msg}: site ${options['site']} oid ${oid} rootCollectionId ${rootColConfig.rootCollectionId}`,
             options: {cause: err},
             displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
           });
