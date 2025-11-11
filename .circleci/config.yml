@@ -266,46 +266,6 @@ jobs:
             docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
       - run:
-          name: Build and push multi-arch manifest
-          command: |
-            # Determine the tag
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-            
-            # Enable arm64 emulation
-            docker run --privileged --rm tonistiigi/binfmt --install arm64 >/dev/null 2>&1 || true
-            
-            # Create buildx builder
-            if docker buildx inspect multibuilder >/dev/null 2>&1; then
-              docker buildx use multibuilder
-            else
-              docker buildx create --name multibuilder --driver docker-container --bootstrap --use
-            fi
-            
-            # Build and push arm64 image
-            BUILD_CACHE_REF="${REPO}:buildcache"
-            docker buildx build \
-              -f Dockerfile \
-              -t "${REPO}:${DEPLOY_TAG}-arm64" \
-              --platform linux/arm64 \
-              --cache-from "type=registry,ref=${BUILD_CACHE_REF}" \
-              --cache-to "type=registry,ref=${BUILD_CACHE_REF},mode=max" \
-              --push \
-              .
-            
-            # Create and push multi-arch manifest
-            docker manifest create "${REPO}:${DEPLOY_TAG}" \
-              "${REPO}:${DEPLOY_TAG}-amd64" \
-              "${REPO}:${DEPLOY_TAG}-arm64"
-            docker manifest push "${REPO}:${DEPLOY_TAG}"
-      - run:
           name: Upload container to Nexus
           command: |
             echo $CIRCLE_BRANCH
@@ -317,6 +277,61 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
+  deploy-arm64:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Build and push arm64 runtime image
+          no_output_timeout: 30m
+          command: |
+            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
+            
+            # Determine the tag
+            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
+              export TAG="$CIRCLE_BRANCH"
+            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
+              export TAG="$CIRCLE_TAG"
+            else
+              export TAG="local"
+            fi
+            export DEPLOY_TAG=${TAG//\//-}
+            export REPO=${REPO:-qcifengineering/redbox-portal}
+            
+            docker build \
+              --progress plain \
+              --target runtime \
+              --tag "${REPO}:${DEPLOY_TAG}-arm64" \
+              .
+            docker push "${REPO}:${DEPLOY_TAG}-arm64"
+  publish-manifest:
+    docker:
+      - image: 'cimg/node:24.2.0'
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create and push multi-arch manifest
+          command: |
+            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
+            
+            # Determine the tag
+            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
+              export TAG="$CIRCLE_BRANCH"
+            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
+              export TAG="$CIRCLE_TAG"
+            else
+              export TAG="local"
+            fi
+            export DEPLOY_TAG=${TAG//\//-}
+            export REPO=${REPO:-qcifengineering/redbox-portal}
+            
+            docker manifest create "${REPO}:${DEPLOY_TAG}" \
+              "${REPO}:${DEPLOY_TAG}-amd64" \
+              "${REPO}:${DEPLOY_TAG}-arm64"
+            docker manifest push "${REPO}:${DEPLOY_TAG}"
   generate-docs:
     machine:
       image: ubuntu-2004:current
@@ -370,12 +385,28 @@ workflows:
       - test-angular:
           requires:
             - build
+      - deploy-arm64:
+          requires:
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - deploy:
           requires:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -408,12 +439,28 @@ workflows:
       - test-angular:
           requires:
             - build
+      - deploy-arm64:
+          requires:
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - deploy:
           requires:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -466,12 +513,32 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - deploy-arm64:
+          requires:
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy:
           requires:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
           filters:
             tags:
               only: /^v.*/
