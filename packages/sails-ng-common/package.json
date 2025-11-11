@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.27.0",
-    "@researchdatabox/redbox-core-types": "../../core",
+    "@researchdatabox/redbox-core-types": "../redbox-core-types",
     "@stylistic/eslint-plugin": "4.2.0",
     "@stylistic/eslint-plugin-js": "4.2.0",
     "@stylistic/eslint-plugin-ts": "4.2.0",
