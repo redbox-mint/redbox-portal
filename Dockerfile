@@ -100,17 +100,41 @@ CMD ["node", "app.js"]
 
 # Plugin-augmented runtime variants for common release tags.
 FROM runtime AS runtime_datastream_cloud
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git
+USER node
 RUN npm install --omit=dev --no-save --package-lock=false \
     @researchdatabox/sails-hook-redbox-datastream-cloud
+USER root
+RUN apt-get purge -y --auto-remove git \
+ && rm -rf /var/lib/apt/lists/*
+USER node
 
 FROM runtime AS runtime_pdfgen
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git
+USER node
 RUN npm install --omit=dev --no-save --package-lock=false \
     @researchdatabox/sails-hook-redbox-pdfgen
+USER root
+RUN apt-get purge -y --auto-remove git \
+ && rm -rf /var/lib/apt/lists/*
+USER node
 
 FROM runtime AS runtime_cloud_pdfgen
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git
+USER node
 RUN npm install --omit=dev --no-save --package-lock=false \
     @researchdatabox/sails-hook-redbox-datastream-cloud \
     @researchdatabox/sails-hook-redbox-pdfgen
+USER root
+RUN apt-get purge -y --auto-remove git \
+ && rm -rf /var/lib/apt/lists/*
+USER node
 
 # Keep the vanilla runtime image as the default build target.
 FROM runtime
