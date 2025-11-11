@@ -97,3 +97,20 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
 USER node
 
 CMD ["node", "app.js"]
+
+# Plugin-augmented runtime variants for common release tags.
+FROM runtime AS runtime_datastream_cloud
+RUN npm install --omit=dev --no-save --package-lock=false \
+    @researchdatabox/sails-hook-redbox-datastream-cloud
+
+FROM runtime AS runtime_pdfgen
+RUN npm install --omit=dev --no-save --package-lock=false \
+    @researchdatabox/sails-hook-redbox-pdfgen
+
+FROM runtime AS runtime_cloud_pdfgen
+RUN npm install --omit=dev --no-save --package-lock=false \
+    @researchdatabox/sails-hook-redbox-datastream-cloud \
+    @researchdatabox/sails-hook-redbox-pdfgen
+
+# Keep the vanilla runtime image as the default build target.
+FROM runtime
