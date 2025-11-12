@@ -14,6 +14,8 @@ services:
     volumes:
        - "../../:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
+       - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
+       - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
        - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
        - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
     depends_on:
@@ -36,9 +38,10 @@ services:
       - sails_redbox__mochaTesting=true
       - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       - sails_security__csrf=false
-      - datacite_username=${datacite_username}
-      - datacite_password=${datacite_password}
-      - datacite_doiPrefix=${datacite_doiPrefix}
+      - datacite_username=${datacite_username:-}
+      - datacite_password=${datacite_password:-}
+      - datacite_doiPrefix=${datacite_doiPrefix:-}
+      - CI=${CI:-false}
     networks:
      main:
        aliases:
@@ -79,7 +82,7 @@ services:
       timeout: '5s'
       retries: 10
       start_period: '30s'
-    volumes: 
+    volumes:
       - "./solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:

@@ -28,14 +28,14 @@ tests {
     const status = res.getStatus();
     expect([200, 400]).to.include(status);
   });
-  
+
   test("Response body is valid JSON", function(){
     var raw = res.getBody();
     expect(raw).to.exist;
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
     expect(body).to.be.an('object');
   });
-  
+
   test("Valid response structure for success", function(){
     const status = res.getStatus();
     if (status === 200) {
@@ -47,7 +47,7 @@ tests {
       expect(body.branding.variables['site-branding-area-background-color']).to.equal('#123123');
     }
   });
-  
+
   test("Valid error response for 400", function(){
     const status = res.getStatus();
     if (status === 400) {
@@ -55,10 +55,10 @@ tests {
       var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
       expect(body).to.have.property('error');
       expect(body.error).to.be.a('string');
-      console.log('Error details:', body.error, body.detail || '');
+      // console.log('Error details:', body.error, body.detail || '');
     }
   });
-  
+
   test("Debug: Log full response on non-200", function(){
     const status = res.getStatus();
     if (status !== 200) {

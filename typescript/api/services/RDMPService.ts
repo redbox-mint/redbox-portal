@@ -110,9 +110,9 @@ export module Services {
         sails.log.info(`processRecordCounters - log level ${processRecordCountersLogLevel}`);
       }
 
-      //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml  
-      //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to 
-      //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed  
+      //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
+      //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
+      //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
       sails.log[processRecordCountersLogLevel](`processRecordCounters - brandId: ${record.metaMetadata.brandId}`);
       sails.log[processRecordCountersLogLevel]('processRecordCounters - options:');
       sails.log[processRecordCountersLogLevel](options);
@@ -186,9 +186,9 @@ export module Services {
         sails.log.info(`incrementCounter - log level ${processRecordCountersLogLevel}`);
       }
 
-      //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml  
-      //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to 
-      //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed  
+      //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
+      //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
+      //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
       sails.log[processRecordCountersLogLevel]('incrementCounter - enter');
 
       if (!_.isEmpty(counter.template)) {
@@ -255,7 +255,8 @@ export module Services {
             }
 
             sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
-            if (totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
+            const maxUploadSize = sails.config.record.maxUploadSize;
+            if (totalSizeOfFilesInRecord > maxUploadSize) {
 
               let maxUploadSizeMessage = TranslationService.t('max-total-files-upload-size-validation-error');
               let alternativeMessageCode = options['maxUploadSizeMessageCode'];
@@ -272,11 +273,12 @@ export module Services {
                   maxUploadSizeMessage = tmpMaxUploadSizeMessage;
                 }
               }
-              let maxSizeFormatted = this.formatBytes(sails.config.record.maxUploadSize);
+              let maxSizeFormatted = this.formatBytes(maxUploadSize);
               let interMessage = TranslationService.tInter(maxUploadSizeMessage, { maxUploadSize: maxSizeFormatted });
-              maxUploadSizeMessage = interMessage;
-              let customError: RBValidationError = new RBValidationError(maxUploadSizeMessage);
-              throw customError;
+              throw new RBValidationError({
+                message: `Total size of files ${totalSizeOfFilesInRecord} was more then the max upload size ${maxUploadSize}`,
+                displayErrors: [{detail: interMessage, meta: {totalSizeOfFilesInRecord, maxUploadSize}}],
+              });
             }
           }
         }
@@ -286,7 +288,7 @@ export module Services {
       return record;
     }
 
-    //Fixed version, unminified and ES6'ed 
+    //Fixed version, unminified and ES6'ed
     //taken from SO
     //https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
     private formatBytes(bytes, decimals = 2) {

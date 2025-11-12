@@ -24,10 +24,10 @@ export module Services.Core {
     ];
 
     protected logHeader: string;
-    
+
     // Namespaced logger for services
     private _logger: ILogger;
-    
+
     /**
      * Get a namespaced logger for this service class.
      * Uses the class constructor name as the namespace.
@@ -63,8 +63,8 @@ export module Services.Core {
         this.onDynamicImportsCompleted();
       })
     }
-    
-    /** 
+
+    /**
      * Function that allows async dynamic imports of modules (such as ECMAScript modules).
      * Called in the constructor and intended to be overridden in sub class to allow imports.
      */
@@ -72,7 +72,7 @@ export module Services.Core {
       // Override in sub class as needed
     }
 
-    /** 
+    /**
      * Function that is called during the construction of the Controller after the dynamic imports are completed.
      * Intended to be overridden in the sub class
      */
@@ -92,23 +92,23 @@ export module Services.Core {
           ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
           ...Object.getOwnPropertyNames(this), // Instance properties
         ];
-        
-        
+
+
         const uniqueProperties = Array.from(new Set(allProperties));
         uniqueProperties.forEach((property) => {
           const value = (this as any)[property];
-    
+
           // Check if the property is a function
           if (typeof value === "function" && property !== "constructor") {
             exportedMethods[property] = value.bind(this); // Bind the method to maintain `this` context
           }
-        
+
         });
         this.logger.error("Exported Methods for Mocha Testing: ", exportedMethods);
       } else {
       // Merge default array and custom array from child.
       let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
-      
+
 
       for (let i = 0; i < methods.length; i++) {
         // Check if the method exists.
@@ -174,16 +174,16 @@ export module Services.Core {
     }
     /**
      * Convenience method to quickly assign properties of one type to another. Note type-safety isn't fully guaranteed.
-     * 
+     *
      * Usually used to convert to/from DTOs. Destination object constructing is left to the callee.
-     * 
+     *
      * TODO: source and dest can be made more type safe
-     * 
-     * @param source 
-     * @param dest 
-     * @param mapping 
-     * @param appendMappingToSource 
-     * @returns 
+     *
+     * @param source
+     * @param dest
+     * @param mapping
+     * @param appendMappingToSource
+     * @returns
      */
     public convertToType<Type>(source:any, dest:any, mapping:{[key: string]: string} | undefined, appendMappingToSource: boolean = false): Type {
       let fields = _.mapValues(dest, (val, key) => {
@@ -195,7 +195,7 @@ export module Services.Core {
         // make the mapping optional
         fields = _.isUndefined(mapping) ? fields : mapping;
       }
-      // force to enumerable string keyed only, transforming at the root level 
+      // force to enumerable string keyed only, transforming at the root level
       _.forOwn(fields, (destKey, srcKey) => {
         _.set(dest, destKey, source[srcKey]);
       });

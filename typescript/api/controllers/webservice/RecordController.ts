@@ -19,49 +19,45 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+declare var _;
 
 declare var BrandingService;
 declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
-declare var FormsService;
 declare var RecordTypesService;
 declare var WorkflowStepsService;
+
 declare var Record;
-declare var _;
-declare var User;
+
 /**
  * Package that contains all Controllers.
  */
-import { Observable, from, throwError, of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap } from 'rxjs/operators';
+import {firstValueFrom, from} from 'rxjs';
 import * as path from "path";
 import {
-  APIErrorResponse,
   APIHarvestResponse,
   BrandingModel,
   Controllers as controllers,
   Datastream,
   DatastreamService,
   DatastreamServiceResponse,
+  ListAPIResponse,
   RecordModel,
   RecordsService,
-  SearchService,
-  ListAPIResponse,
   RecordTypeModel,
+  SearchService,
   UserModel
 } from '@researchdatabox/redbox-core-types';
 
 
+import {v4 as UUIDGenerator} from 'uuid';
 
-import { v4 as UUIDGenerator } from 'uuid';
 export module Controllers {
   /**
    * RecordController API version
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class RecordWeb extends controllers.Core.Controller {
+  export class RecordWeb extends controllers.Core.Controller{
 
     RecordsService: RecordsService = sails.services.recordsservice;
     SearchService: SearchService;
@@ -126,10 +122,12 @@ export module Controllers {
 
       try {
         const record = await this.RecordsService.getMeta(oid);
-        return res.json(record["authorization"]);
+        return this.sendResp(req, res, {data: record["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed to get record permission, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed to get record permission.'}]
+        });
       }
     }
 
@@ -150,21 +148,27 @@ export module Controllers {
           record.authorization.editPending = _.union(record["authorization"]["editPending"], pendingUsers);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed to modify record meta for adding an editor, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed to modify record meta for adding an editor.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: `Failed to update record with oid ${oid}.`}]
+          });
         }
         const recordResult = await this.RecordsService.getMeta(result.oid);
-        return res.json(recordResult["authorization"]);
+        return this.sendResp(req, res, {data: recordResult["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed adding an editor, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed adding an editor.'}]
+        });
       }
     }
 
@@ -185,21 +189,27 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.union(record["authorization"]["viewPending"], pendingUsers);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed getting record meta for adding a viewer, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed getting record meta for adding a viewer.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ detail:  `Failed to update record with oid ${oid}.`}]
+          });
         }
         const resultRecord = await this.RecordsService.getMeta(result["oid"]);
-        return res.json(resultRecord["authorization"]);
+        return this.sendResp(req, res, {data: resultRecord["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed adding a viewer, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed adding a viewer.'}]
+        });
       }
     }
 
@@ -220,21 +230,27 @@ export module Controllers {
           record["authorization"]["editPending"] = _.difference(record["authorization"]["editPending"], pendingUsers);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed getting record meta for removing an editor, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed getting record meta for removing an editor.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: `Failed to update record with oid ${oid}.`}]
+          });
         }
         const resultRecord = await this.RecordsService.getMeta(result["oid"]);
-        return res.json(resultRecord["authorization"]);
+        return this.sendResp(req, res, {data: resultRecord["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed removing an editor, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed removing an editor.'}]
+        });
       }
     }
 
@@ -255,21 +271,27 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.difference(record["authorization"]["viewPending"], pendingUsers);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed to modify record meta for removing a viewer, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed to modify record meta for removing a viewer.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: `Failed to update record with oid ${oid}.`}]
+          });
         }
         const resultRecord = await this.RecordsService.getMeta(result["oid"]);
-        return res.json(resultRecord["authorization"]);
+        return this.sendResp(req, res, {data: resultRecord["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed removing a viewer, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed removing a viewer.'}]
+        });
       }
     }
 
@@ -280,13 +302,17 @@ export module Controllers {
       try {
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.apiFailWrapper(req, res, 400, null, null,
-              `Failed to get meta, cannot find existing record with oid: ${oid}`);
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{detail: `Failed to get meta, cannot find existing record with oid: ${oid}`}]
+          });
         }
-        return res.json(record["metadata"]);
+        return this.sendResp(req, res, {data: record["metadata"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            "Get Metadata failed, failed to retrieve existing record.");
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: "Get Metadata failed."}]
+        });
       }
     }
 
@@ -310,10 +336,12 @@ export module Controllers {
         response.summary.numFound = _.size(audit);
         response.summary.page = 1;
         response.records = audit;
-        this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {data: response});
       } catch (err) {
-        this.apiFailWrapper(req, res, 500, null, err,
-            `Failed to list audit records for ${oid}, please check server logs.`);
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: `Failed to list audit records for ${oid}, please.`}]
+        });
       }
     }
 
@@ -325,10 +353,12 @@ export module Controllers {
 
       try {
         const record = await this.RecordsService.getMeta(oid);
-        return res.json(record["metaMetadata"]);
+        return this.sendResp(req, res, {data: record["metaMetadata"]});
       } catch (err) {
-        this.apiFailWrapper(req, res, 500, null, err,
-            `Failed to get object meta for ${oid}, please check server logs.`);
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: `Failed to get object meta for ${oid}, please.`, meta:{oid}}]
+        });
       }
     }
 
@@ -342,8 +372,10 @@ export module Controllers {
       try {
         record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.apiFailWrapper(req, res, 400, null, null,
-              `Failed to update meta, cannot find existing record with oid: ${oid}`);
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{detail: `Failed to update meta, cannot find existing record with oid: ${oid}`, meta:{oid}}]
+          });
         }
         if (shouldMerge) {
           // behavior modified from replacing arrays to appending to arrays:
@@ -356,8 +388,10 @@ export module Controllers {
           record["metadata"] = req.body;
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            "Update Metadata failed, failed to retrieve existing record.");
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: "Update Metadata failed."}]
+        });
       }
 
       try {
@@ -369,14 +403,16 @@ export module Controllers {
             // TODO: add support for removing datastreams
             const result: DatastreamServiceResponse = await this.DatastreamService.addDatastreams(oid, _.get(record['metadata'], attField, []));
           }
-          return res.json(result);
+          return this.sendResp(req, res, {data: result});
         } else {
           // not processing datastreams...
-          return res.json(result);
+          return this.sendResp(req, res, {data: result});
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            "Update Metadata failed");
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: "Update Metadata failed"}]
+        });
       }
     }
 
@@ -389,16 +425,14 @@ export module Controllers {
         record = await this.RecordsService.getMeta(oid);
         record["metaMetadata"] = req.body;
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            "Update Object Metadata failed");
+        return this.sendResp(req, res, { errors: [err], displayErrors: [{detail: "Updated"}]});
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
-        return res.json(result);
+        return this.sendResp(req, res, {data: result});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            "Update Object Metadata failed");
+        return this.sendResp(req, res, { errors: [err], displayErrors: [{detail: "Updated"}]});
       }
     }
 
@@ -437,7 +471,7 @@ export module Controllers {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
             var request = {};
-            
+
             //if no metadata field, no authorization
             if (metadata == null) {
               request["metadata"] = body;
@@ -457,21 +491,30 @@ export module Controllers {
                     that.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
                   });
                 }
-
-                res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
-                this.apiRespond(req, res, response, 201);
+                return this.sendResp(req, res, {
+                  status: 201,
+                  data: response,
+                  headers: {
+                    'Location': sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid,
+                  }
+                });
               } else {
-                return this.apiFailWrapper(req, res, 500, null, null,
-                    "Create Record failed");
+                return this.sendResp(req, res, {
+                  status: 500,
+                  displayErrors: [{detail: "Create Record failed"}]
+                });
               }
             }, error => {
-              return this.apiFailWrapper(req, res, 500, null, error,
-                  "Create Record failed");
+              return this.sendResp(req, res, {
+                errors: [error],
+                displayErrors: [{detail: "Create Record failed"}]
+              });
             });
 
           } else {
-            return this.apiFailWrapper(req, res, 400, null, null,
-                "Record Type provided is not valid");
+            return this.sendResp(req, res, {
+              status: 400, displayErrors: [{ detail: "Record Type provided is not valid"}]
+            });
           }
         }
         );
@@ -496,7 +539,7 @@ export module Controllers {
         //     break;
         //   }
         // }
-        
+
         let found: any = null;
         const attachments = await this.RecordsService.getAttachments(oid);
         for(let attachment of attachments) {
@@ -506,7 +549,7 @@ export module Controllers {
         }
 
         if (!found) {
-          return res.notFound()
+          return this.sendResp(req, res, {status: 404});
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {
@@ -524,7 +567,7 @@ export module Controllers {
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-        
+
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
@@ -540,11 +583,17 @@ export module Controllers {
           }
           return
         } catch (error) {
-          return this.customErrorMessageHandlingOnUpstreamResult(error, res);
+          return this.sendResp(req, res, {
+            errors: [error],
+            displayErrors: [{detail: 'There was a problem with the upstream request.'}]
+          });
         }
 
       } catch (error) {
-        return this.customErrorMessageHandlingOnUpstreamResult(error, res);
+        return this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{detail: 'There was a problem with the upstream request.'}]
+        });
       }
     }
 
@@ -563,13 +612,15 @@ export module Controllers {
             return next(undefined, nextPath);
           } catch (error) {
             sails.log.error(error);
-            return next(new Error('Could not determine an appropriate filename for uploaded filestream(s).'));
+            return next(new Error(`Could not determine an appropriate filename for uploaded filestream(s) for oid ${oid}.`));
           }
         }
       }, async function (error, UploadedFileMetadata) {
         if (error) {
-          return self.apiFailWrapper(req, res, 500, null, error,
-              `There was a problem adding datastream(s) to: ${sails.config.record.attachments.stageDir}.`);
+          return self.sendResp(req, res, {
+            errors: [error],
+            displayErrors: [{detail: `There was a problem adding datastream(s) to: ${sails.config.record.attachment.stageDir}`}]
+          });
         }
         sails.log.verbose(UploadedFileMetadata);
         sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
@@ -586,55 +637,21 @@ export module Controllers {
           if (result.isSuccessful()) {
             sails.log.verbose("Presuming success...");
             _.merge(result, { fileIds: fileIds });
-            return res.json({ message: result });
+            return self.sendResp(req, res, {data: {message: result}});
           } else {
-            return self.apiFailWrapper(req, res, 500, null, null,
-                defaultErrorMessage + " " + result.message);
+            return self.sendResp(req, res, {
+              status: 500, displayErrors: [{ detail: defaultErrorMessage + " " + result.message}]
+            });
           }
 
         } catch (error) {
-          return self.apiFailWrapper(req, res, 500, null, error,
-              defaultErrorMessage);
+          return self.sendResp(req, res, {
+            errors: [error],
+            displayErrors: [{detail: defaultErrorMessage}]
+          });
         }
       });
     }
-
-    protected customErrorMessageHandlingOnUpstreamResult(error, res) {
-      sails.log.error(error);
-
-      let errorMessage = "";
-
-      // get the message from the error property
-      if (error.error) {
-        errorMessage = _.isBuffer(error.error) ? error.error.toString('UTF-8') : error.error;
-      }
-
-      // get the 'friendly' Error message
-      // TODO: use RBValidationError.clName;
-      const rBValidationErrorName = 'RBValidationError';
-      if (!errorMessage && error?.name == rBValidationErrorName && error?.message) {
-        errorMessage = error.message
-      }
-
-      // the message might be JSON - try to parse it
-      try {
-        errorMessage = JSON.parse(errorMessage)
-      } catch (error) {
-        sails.log.verbose("Error message is not a json object. Keeping it as is.");
-      }
-
-      // use a prefix message to give some context
-      errorMessage = 'There was a problem with the upstream request.' + (errorMessage ? " " : "") + errorMessage.trim();
-
-      // set the response to be json,
-      // in case the response was already changed to suit the attachment
-      res.set('Content-Type', 'application/json');
-      _.unset(res, 'Content-Disposition');
-
-      sails.log.error('customErrorMessageHandlingOnUpstreamResult', errorMessage);
-      return res.status(error.statusCode || 500).json({message: errorMessage});
-    }
-
 
     /**
      **************************************************************************************************
@@ -791,27 +808,18 @@ export module Controllers {
       }
 
       if (rows > parseInt(sails.config.api.max_requests)) {
-        var error = {
-          "code": 400,
-          "contactEmail": null,
-          "description": "You have reached the maximum of request available; Max rows per request " + sails.config.api.max_requests,
-          "homeRef": "/",
-          "reasonPhrase": "Bad Request",
-          "uri": "http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1"
-        };
-        res.status(400);
-        res.json(error);
+        return this.reachedMaxRequestRows(req, res);
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
         // sails.log.debug(`${rows} ${packageType} ${sort}`);
-        this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString).then(response => {
-          res.json(response);
-        }).catch(error => {
-          sails.log.error("Error:");
-          sails.log.error(error);
-          var err = error['error'];
-          res.json(err);
-        });
+        this
+          .getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)
+          .then(response => {
+            this.sendResp(req, res, {data: response});
+          })
+          .catch(error => {
+            this.sendResp(req, res, {errors: [error], displayErrors: [{detail: error['error']}]});
+          });
       }
     }
 
@@ -819,17 +827,22 @@ export module Controllers {
       const oid = req.param('oid');
       var user = req.user;
       if (_.isEmpty(oid)) {
-        return this.apiFailWrapper(req, res, 400, null, null,
-            "Missing ID of record.");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: "Missing ID of record."}]
+        });
       }
 
       const response = await this.RecordsService.restoreRecord(oid,user);
       if (response.isSuccessful()) {
-        this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {data: response});
       } else {
         sails.log.verbose(`Restore attempt failed for OID: ${oid}`);
         sails.log.verbose(JSON.stringify(response));
-        this.apiFailWrapper(req, res, 500, new APIErrorResponse(response.message, response.details));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{title: response.message, detail: response.details}]
+        });
       }
     }
 
@@ -838,28 +851,33 @@ export module Controllers {
       const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user;
       if (_.isEmpty(oid)) {
-        return this.apiFailWrapper(req, res, 400, null, null,
-            "Missing ID of record.");
+        return this.sendResp(req, res, {
+          status: 400, displayErrors: [{ detail: "Missing ID of record."}]
+        });
       }
       let record = await this.RecordsService.getMeta(oid);
       if (_.isEmpty(record)) {
-        return this.apiFailWrapper(req, res, 400, null, null,
-            "Record not found!");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{detail: "Record not found!"}]
+        });
       }
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       if (_.isEmpty(brand)) {
-        return this.apiFailWrapper(req, res, 400, null, null,
-            "Missing brand.");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{detail: "Missing brand."}]
+        });
       }
   let recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
       const response = await this.RecordsService.delete(oid, permanentlyDelete, record, recordType, user);
       if (response.isSuccessful()) {
-        this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {data: response});
       } else {
-        this.apiFailWrapper(req, res, 500,
-            new APIErrorResponse(response.message, response.details),
-            null,
-            `Delete attempt failed for OID: ${oid}`);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{title: response.message, detail: response.details + ` Delete attempt failed for OID: ${oid}`}]
+        });
       }
     }
 
@@ -867,17 +885,18 @@ export module Controllers {
       const oid = req.param('oid');
       const user = req.user;
       if (_.isEmpty(oid)) {
-        return this.apiFailWrapper(req, res, 400, null, null,
-            "Missing ID of record.");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{detail: "Missing ID of record."}]
+        });
       }
       const response = await this.RecordsService.destroyDeletedRecord(oid, user);
       if (response.isSuccessful()) {
-        this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {data: response});
       } else {
-        this.apiFailWrapper(req, res, 500,
-            new APIErrorResponse(response.message, response.details),
-            null,
-            `Destroy attempt failed for OID: ${oid}`);
+        return this.sendResp(req, res, {
+          status: 500, displayErrors: [{ title: response.message, detail: response.details + ` Destroy attempt failed for OID: ${oid}`}]
+        });
       }
     }
 
@@ -886,34 +905,41 @@ export module Controllers {
       const targetStepName = req.param('targetStep');
       try {
         if (_.isEmpty(oid)) {
-          return this.apiFailWrapper(req, res, 400, null, null,
-              "Missing ID of record.");
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{detail: "Missing ID of record."}]
+          });
         }
         const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Missing OID: ${oid}`);
+          return this.sendResp(req, res, {
+            status: 500, displayErrors: [{ detail: `Missing OID: ${oid}`}]
+          });
         }
         if (!this.RecordsService.hasEditAccess(brand, req.user, req.user.roles, record)) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `User has no edit permissions for :${oid}`);
+          return this.sendResp(req, res, {
+            status: 500, displayErrors: [{ detail: `User has no edit permissions for :${oid}`}]
+          });
         }
   const recType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
   const nextStep = await firstValueFrom(WorkflowStepsService.get(recType, targetStepName));
         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user, true, true, nextStep);
-        this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {data: response});
       } catch (err) {
-        this.apiFailWrapper(req, res, 500, new APIErrorResponse("Failed to transition workflow, please check server logs."), err,
-            `Failed to transitionWorkflow: ${oid} to ${targetStepName}`);
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: `Failed to transition workflow to ${targetStepName} for oid ${oid}.`}]
+        });
       }
     }
 
     public async listDatastreams(req, res) {
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
-        return this.apiFailWrapper(req, res, 400, null, null,
-            "Missing ID of record.");
+        return this.sendResp(req, res, {
+          status: 400, displayErrors: [{ detail: "Missing ID of record."}]
+        });
       }
       try {
         const attachments = await this.RecordsService.getAttachments(oid);
@@ -922,10 +948,12 @@ export module Controllers {
         response.summary.numFound = _.size(attachments);
         response.summary.page = 1;
         response.records = attachments;
-        this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {data: response});
       } catch (err) {
-        this.apiFailWrapper(req, res, 500, null, err,
-            `Failed to list attachments for ${oid}, please check server logs.`);
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: `Failed to list attachments for ${oid}, pleas.`}]
+        });
       }
     }
 
@@ -942,21 +970,26 @@ export module Controllers {
           record["authorization"]["editRoles"] = _.union(record["authorization"]["editRoles"], roles);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed adding an editor role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed adding an editor role.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500, displayErrors: [{ detail: `Failed to update record with oid ${oid}.`}]
+          });
         }
         const resultRecord = await this.RecordsService.getMeta(result.oid);
-        return res.json(resultRecord["authorization"]);
+        return this.sendResp(req, res, {data: resultRecord["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed adding an editor role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed adding an editor role.'}]
+        });
       }
     }
 
@@ -973,27 +1006,33 @@ export module Controllers {
           record["authorization"]["viewRoles"] = _.union(record["authorization"]["viewRoles"], roles);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed getting record meta for adding a viewer role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed getting record meta for adding a viewer role.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: `Failed to update record with oid ${oid}.`}]
+          });
         }
         const resultRecord = await this.RecordsService.getMeta(result["oid"]);
-        return res.json(resultRecord["authorization"]);
+        return this.sendResp(req, res, {data: resultRecord["authorization"]});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed updating record meta for adding a viewer role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed updating record meta for adding a viewer role.'}]
+        });
       }
     }
 
     public async removeRoleEdit(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const oid = req.param('oid'); 
+      const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
 
@@ -1004,21 +1043,27 @@ export module Controllers {
               record["authorization"]["editRoles"] = _.difference(record["authorization"]["editRoles"], roles);
           }
       } catch (err) {
-          return this.apiFailWrapper(req, res, 500, null, err,
-              'Failed getting record meta for removing an editor role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed getting record meta for removing an editor role.'}]
+        });
       }
 
       try {
           const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
           if (!result.isSuccessful()) {
-              return this.apiFailWrapper(req, res, 500, null, null,
-                  `Failed to update record with oid ${oid}, check server logs.`);
+              return this.sendResp(req, res, {
+                status: 500,
+                displayErrors: [{detail: `Failed to update record with oid ${oid}.`}]
+              });
           }
           const resultRecord = await this.RecordsService.getMeta(result["oid"]);
-          return res.json(resultRecord["authorization"]);
+          return this.sendResp(req, res, {data: resultRecord["authorization"]});
       } catch (err) {
-          return this.apiFailWrapper(req, res, 500, null, err,
-              'Failed updating record meta for removing an editor role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed updating record meta for removing an editor role.'}]
+        });
       }
     }
 
@@ -1035,21 +1080,27 @@ export module Controllers {
           record['authorization']['viewRoles'] = _.difference(record['authorization']['viewRoles'], users);
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed getting record meta for removing a viewer role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed getting record meta for removing a viewer role.'}]
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         if (!result.isSuccessful()) {
-          return this.apiFailWrapper(req, res, 500, null, null,
-              `Failed to update record with oid ${oid}, check server logs.`);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: `Failed to update record with oid ${oid}.`}]
+          });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return res.json(resultRecord['authorization']);
+        return this.sendResp(req, res, {data: resultRecord['authorization']});
       } catch (err) {
-        return this.apiFailWrapper(req, res, 500, null, err,
-            'Failed getting record meta for removing a viewer role, check server logs.');
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: 'Failed getting record meta for removing a viewer role.'}]
+        });
       }
     }
 
@@ -1066,14 +1117,14 @@ export module Controllers {
   var recordTypeModel:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {
-        return this.apiFailWrapper(req, res, 400,null, null, "Record Type provided is not valid");
+        return this.sendResp(req, res, {status: 400, displayErrors: [{detail: "Record Type provided is not valid"}]});
       }
       var user = req.user;
       var body = req.body;
       if (body != null) {
 
         if (_.isEmpty(body["records"])) {
-          return this.apiFailWrapper(req, res, 400, null, null, "Invalid request body");
+          return this.sendResp(req, res, {status: 400, displayErrors: [{detail: "Invalid request body"}]});
         }
         let recordResponses = [];
         let records = body['records'];
@@ -1095,9 +1146,9 @@ export module Controllers {
             }
           }
         }
-        return res.json(recordResponses);
+        return this.sendResp(req, res, {data: recordResponses});
       }
-      return this.apiFailWrapper(req, res, 400, null, null, "Invalid request");
+      return this.sendResp(req, res, {status: 400, displayErrors: [{detail: "Invalid request"}]});
     }
 
     private isMetadataEqual(meta1:any, meta2:any): boolean {
@@ -1120,14 +1171,14 @@ export module Controllers {
   var recordTypeModel:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {
-        return this.apiFailWrapper(req, res, 400,null, null, 'Record Type provided is not valid');
+        return this.sendResp(req, res, {status: 400, displayErrors: [{detail: 'Record Type provided is not valid'}]});
       }
       var user = req.user;
       var body = req.body;
       if (body != null) {
 
         if (_.isEmpty(body['records'])) {
-          return this.apiFailWrapper(req, res, 400, null, null, 'Invalid request body');
+          return this.sendResp(req, res, {status: 400, displayErrors: [{detail: 'Invalid request body'}]});
         }
         let recordResponses = [];
         let records = body['records'];
@@ -1148,7 +1199,7 @@ export module Controllers {
               let oid = existingRecord[0].redboxOid;
               let oldMetadata = existingRecord[0].metadata;
               let newMetadata = record['metadata']['data'];
-              
+
               if(this.isMetadataEqual(newMetadata,oldMetadata)) {
                 const response =  {
                   details: '',
@@ -1165,9 +1216,9 @@ export module Controllers {
             }
           }
         }
-        return res.json(recordResponses);
+        return this.sendResp(req, res, {data: recordResponses});
       }
-      return this.apiFailWrapper(req, res, 400, null, null, 'Invalid request');
+      return this.sendResp(req, res, {status: 400, displayErrors: [{detail: 'Invalid request'}]});
     }
 
     private async updateHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, updateMode: string, body: any, oid: string, harvestId: string, user: UserModel) {
@@ -1247,7 +1298,7 @@ export module Controllers {
         // Only set harvestId if not in create mode
         request['harvestId'] = harvestId;
       }
-      
+
       //if no metadata field, no authorization
       if (metadata == null) {
         request['metadata'] = body;
@@ -1313,73 +1364,35 @@ export module Controllers {
       }
 
       if (rows > parseInt(sails.config.api.max_requests)) {
-        var error = {
-          "code": 400,
-          "contactEmail": null,
-          "description": "You have reached the maximum of request available; Max rows per request " + sails.config.api.max_requests,
-          "homeRef": "/",
-          "reasonPhrase": "Bad Request",
-          "uri": "http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1"
-        };
-        res.status(400);
-        res.json(error);
+        return this.reachedMaxRequestRows(req, res);
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
         // sails.log.debug(`${rows} ${packageType} ${sort}`);
-        this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString).then(response => {
-          res.json(response);
+        this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)
+          .then(response => {
+            this.sendResp(req, res, {data: response});
         }).catch(error => {
-          sails.log.error("Error:");
-          sails.log.error(error);
-          var err = error['error'];
-          res.json(err);
+          return this.sendResp(req, res, {errors: [error], displayErrors: [{detail: error['error']}]});
         });
       }
     }
 
-    private apiFailWrapper(
-        req, res,
-        statusCode = 500,
-        errorResponse: APIErrorResponse = new APIErrorResponse(),
-        error: Error = null,
-        defaultMessage: string = null) {
-      // TODO: incorporate some of this into the controller core apiFail function
-      if (!errorResponse) {
-        errorResponse = new APIErrorResponse();
-        // start with an empty message
-        errorResponse.message = "";
-      }
-
-      // if there is an error and/or defaultMessage, log it
-      if (defaultMessage && error) {
-        sails.log.error(errorResponse, defaultMessage, error);
-      } else if (defaultMessage && !error) {
-        sails.log.error(errorResponse, defaultMessage);
-      } else if (!defaultMessage && error) {
-        sails.log.error(errorResponse, error);
-      }
-
-      // TODO: use RBValidationError.clName;
-      const rBValidationErrorName = 'RBValidationError';
-
-      // if available, get the 'friendly' validation error message
-      const validationMessage = (error?.name === rBValidationErrorName ? error?.message : "") || "";
-
-      // update the api response message
-      let message = (errorResponse.message || "").trim();
-      if (validationMessage && message) {
-        message = message.endsWith('.') ? (message + " " + validationMessage) : (message + ". " + validationMessage);
-      } else if (validationMessage && !message) {
-        message = validationMessage;
-      } else if (!validationMessage && message) {
-        // nothing to do
-      } else {
-        message = defaultMessage;
-      }
-      errorResponse.message = message;
-
-      // TODO: could use: this.apiRespond(req, res, errorResponse, statusCode);
-      return this.apiFail(req, res, statusCode, errorResponse);
+    private reachedMaxRequestRows(req, res) {
+      const descr = "You have reached the maximum of request available; Max rows per request " + sails.config.api.max_requests;
+      return this.sendResp(req, res, {
+        status: 400,
+        displayErrors: [{
+          detail: descr,
+          meta: {
+            "code": 400,
+            "contactEmail": null,
+            "description": descr,
+            "homeRef": "/",
+            "reasonPhrase": "Bad Request",
+            "uri": "http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1"
+          }
+        }]
+      });
     }
   }
 }

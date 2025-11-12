@@ -5,7 +5,7 @@ meta {
 }
 
 put {
-  url: {{host}}/default/rdmp/api/records/metadata/blah-blah-blah
+  url: {{host}}/default/rdmp/api/records/metadata/doesNotExist
   body: json
   auth: none
 }
@@ -66,10 +66,10 @@ tests {
   test("Status code is 400", function () {
       expect(res.getStatus()).to.equal(400);
   });
-  
+
   test("Body has json with error", function () {
      var jsonData = res.getBody();
       expect(jsonData).to.have.property('message');
-      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: blah-blah-blah");
+      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: doesNotExist.");
   });
 }

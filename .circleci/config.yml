@@ -273,6 +273,8 @@ jobs:
           command: |
             sudo chmod -R 777 .
             npm ci
+      - store_test_results:
+          path: .tmp/junit
   deploy:
     docker:
       - image: 'cimg/node:24.2.0'

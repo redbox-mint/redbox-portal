@@ -98,7 +98,6 @@ export module Controllers {
     public getFormStructureValidations(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
-      const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
@@ -116,7 +115,6 @@ export module Controllers {
     public getFormDataValidations(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
-      const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
@@ -132,7 +130,6 @@ export module Controllers {
     public getFormExpressions(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
-      const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
@@ -147,7 +144,6 @@ export module Controllers {
     */
     public getAdminReportTemplates(req, res) {
       const reportName = req.param("reportName") || "";
-      const apiVersion = this.getApiVersion(req);
       // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
@@ -161,7 +157,6 @@ export module Controllers {
     public getRecordDashboardTemplates(req, res) {
       const recordType = req.param("name") || "";
       const workflowStage = req.param("workflowStage") || "";
-      const apiVersion = this.getApiVersion(req);
       // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);

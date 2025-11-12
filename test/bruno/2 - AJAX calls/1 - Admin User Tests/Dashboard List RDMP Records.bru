@@ -22,28 +22,25 @@ headers {
   Content-Type: application/json
   X-Source: jsclient
   Accept: application/json, text/plain, */*
-  
+
 }
 
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Number of items returned in results array equals totalItems or 10", function () {
       var jsonData = res.getBody();
-      
+
       var numFound = jsonData.totalItems;
-      
+
       if(numFound < 10) {
           expect(jsonData.items.length).to.eql(numFound);
       } else {
