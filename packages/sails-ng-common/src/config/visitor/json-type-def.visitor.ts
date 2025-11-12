@@ -1,6 +1,5 @@
 import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {ConstructFormConfigVisitor} from "./construct.visitor";
+import {FormConfigOutline} from "../form-config.outline";
 import {set as _set} from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -61,6 +60,7 @@ import {
 import {guessType} from "../helpers";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
+import {ILogger} from "@researchdatabox/redbox-core-types";
 
 
 /**
@@ -69,17 +69,19 @@ import {FormComponentDefinitionOutline} from "../form-component.outline";
  * One use for this is to enable merging two records.
  */
 export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVisitor {
+    protected override logName = "JsonTypeDefSchemaFormConfigVisitor";
     private result: Record<string, unknown> = {};
     private resultPath: string[] = [];
 
-    start(data: FormConfigFrame): Record<string, unknown> {
-        const constructVisitor = new ConstructFormConfigVisitor();
-        const constructed = constructVisitor.start(data);
+    constructor(logger: ILogger) {
+        super(logger);
+    }
 
+    start(form: FormConfigOutline): Record<string, unknown> {
         this.resetCurrentPath();
         this.result = {};
         this.resultPath = [];
-        constructed.accept(this);
+        form.accept(this);
         return this.result;
     }
 
@@ -291,7 +293,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
 
     protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
         const itemResultPath = [...this.resultPath];
-        if (item.model && item.name){
+        if (item.model && item.name) {
             this.resultPath = [...itemResultPath, item.name];
         }
         this.acceptFormComponentDefinition(item);
@@ -305,7 +307,8 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
             _set(this.result, this.resultPath, {});
             action();
         } catch (error) {
-            console.error(error);
+            // rethrow error - the finally block will ensure the resultPath is correct
+            throw error;
         } finally {
             this.resultPath = [...theCurrentPath];
         }

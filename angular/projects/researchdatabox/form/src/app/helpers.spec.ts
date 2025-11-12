@@ -21,9 +21,15 @@ import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 import { provideHttpClient } from "@angular/common/http";
 import {provideHttpClientTesting} from "@angular/common/http/testing";
+import { provideFormFeature } from './form-state/providers';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
+
 export interface FormComponentProps {
   oid: string;
   recordType: string;
@@ -132,6 +138,11 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormComponent": FormComponent,
       "provideHttpClient": provideHttpClient(),
       "provideHttpClientTesting": provideHttpClientTesting(),
+      "provideStore": provideStore(),  // Root store provider required for NgRx
+      "provideEffects": provideEffects(),  // Root effects provider required for NgRx
+      "provideFormFeature": provideFormFeature(),  // Add form state providers 
+      "FormStateFacade": FormStateFacade,  // Provide the facade service
+      "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
     }, testConfig.providers ?? {}),
   }).compileComponents();
   return {

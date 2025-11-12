@@ -13,7 +13,7 @@ get {
 headers {
   Pragma: no-cache
   Accept-Encoding: gzip, deflate, br
-  X-CSRF-Token: 
+  X-CSRF-Token:
   Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
   Content-Type: application/json;charset=utf-8
@@ -25,23 +25,20 @@ headers {
 }
 
 script:pre-request {
-  const cookie = bru.getVar("cookie");
-  
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Response is correct package type", function () {
        var jsonData = res.getBody();
        expect(jsonData.packageType).to.eql("dataRecord");
   });
-  
-  
-  
+
+
+
 }

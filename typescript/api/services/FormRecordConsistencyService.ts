@@ -24,10 +24,9 @@ import {
     guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions, SimpleServerFormValidatorControl,
     FormValidatorDefinition, GroupFormComponentDefinitionFrame,
     FormComponentDefinitionFrame, FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
-    TemplateFormConfigVisitor, TemplateCompileInput
+    TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig
 } from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
-import {ClientFormContext} from "../additional/ClientFormContext";
 import {firstValueFrom} from "rxjs";
 
 
@@ -102,23 +101,23 @@ export module Services {
          * The existing original record won't be changed.
          *
          * @param changed The new record.
-         * @param context The context for the new record.
+         * @param formMode The form mode.
          * @return The merged record.
          */
-        public async mergeRecord(changed: BasicRedboxRecord, context?: ClientFormContext): Promise<BasicRedboxRecord> {
+        public async mergeRecord(changed: BasicRedboxRecord, formMode: FormModesConfig): Promise<BasicRedboxRecord> {
             // get the original record
             const original = await RecordsService.getMeta(changed.redboxOid);
 
             // get the original record's form config
             const formName = changed?.metaMetadata?.['form'];
-            const isEditMode = context?.current?.mode === "view" ? false : context?.current?.mode === "edit";
+            const isEditMode = formMode === "edit";
             const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
 
             // build the client form config
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, context);
+            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig);
+            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode);
         }
 
         /**
@@ -135,14 +134,16 @@ export module Services {
          * @param original The existing original record.
          * @param changed The new record.
          * @param clientFormConfig The client form config, the fields the current user can't access are already filtered out.
+         * @param formMode The form mode.
          * @return The merged record.
          */
         public mergeRecordClientFormConfig(
             original: BasicRedboxRecord,
             changed: BasicRedboxRecord,
             clientFormConfig: FormConfigFrame,
+            formMode: FormModesConfig,
         ): BasicRedboxRecord {
-            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig);
+            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);
@@ -308,19 +309,27 @@ export module Services {
         /**
          * Convert the form config into the matching data model with defaults.
          * @param item The top-level form config.
+         * @param formMode The form mode.
          */
-        public buildDataModelDefaultForFormConfig(item: FormConfigFrame): Record<string, unknown> {
-            const visitor = new DefaultValueFormConfigVisitor();
-            return visitor.start(item);
+        public buildDataModelDefaultForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item, formMode);
+
+            const visitor = new DefaultValueFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**
          * Convert a form config into a schema describing the data model it creates.
          * @param item The form config.
+         * @param formMode The form mode.
          */
-        public buildSchemaForFormConfig(item: FormConfigFrame): Record<string, unknown> {
-            const visitor = new JsonTypeDefSchemaFormConfigVisitor();
-            return visitor.start(item);
+        public buildSchemaForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item, formMode);
+
+            const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**
@@ -541,9 +550,12 @@ export module Services {
             return result;
         }
 
-        public buildCompiledTemplates(form: FormConfigFrame): TemplateCompileInput[] {
-            const visitor = new TemplateFormConfigVisitor();
-            return visitor.start(form);
+        public buildCompiledTemplates(item: FormConfigFrame, formMode: FormModesConfig): TemplateCompileInput[] {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item, formMode);
+
+            const visitor = new TemplateFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**

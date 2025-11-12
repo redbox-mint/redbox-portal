@@ -21,7 +21,7 @@ import { Services as services, DatastreamService, RBValidationError } from '@res
 import { Sails } from "sails";
 import { firstValueFrom } from 'rxjs';
 import { promises as fs } from 'fs';
-import path from 'node:path'; 
+import path from 'node:path';
 import {Collector, generateArcpId} from "oni-ocfl";
 import { createWriteStream } from 'fs';
 import { promisify } from 'util';
@@ -31,7 +31,7 @@ import {languageProfileURI} from "language-data-commons-vocabs";
 import * as mime from 'mime-types';
 import {ROCrate} from "ro-crate";
 
-let wktParserHelper; 
+let wktParserHelper;
 declare var sails: Sails;
 declare var RecordsService, UsersService;
 declare var _;
@@ -72,19 +72,13 @@ export module Services {
 			this.datastreamService = sails.services[sails.config.record.datastreamService];
 		}
 
-		private getRBError(logPrefix: string, message: string) {
-			let customError: RBValidationError = new RBValidationError(message)
-			sails.log.error(`${logPrefix}->${message}`);
-			return customError;
-		}
-
 		/**
 		 *  Converts a RB Data Publication record into RO-Crate and writes it to the OCFL repository
-		 * 
-		 * @param oid 
-		 * @param record 
-		 * @param options 
-		 * @param user 
+		 *
+		 * @param oid
+		 * @param record
+		 * @param options
+		 * @param user
 		 */
 
 		public async exportDataset(oid, record, options, user) {
@@ -92,20 +86,30 @@ export module Services {
 				const rootColConfig = sails.config.datapubs.rootCollection;
 				const site = sails.config.datapubs.sites[options['site']];
 				if( ! site ) {
-					throw this.getRBError(`${this.logHeader } exportDataset()`, "Unknown publication site " + options['site']);
+          const msg = `Unknown publication site`;
+          throw  new RBValidationError({
+            message: `${msg}: ${options['site']}`,
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
 				const md = record['metadata'];
 				const drec = md['dataRecord'];
 				const drid = drec ? drec['oid'] : undefined;
 				if(!drid) {
-					const err = `Couldn't find dataRecord or id for data pub: ${oid}`;
-					throw this.getRBError(`${this.logHeader} exportDataset()`, err);
+					const msg = `Couldn't find dataRecord or id for data pub`;
+					throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid}`,
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
 				if(! user || ! user['email']) {
 					user = { 'email': '' };
-					const err = `Empty user or no email found: ${oid}`;
+					const msg = `Empty user or no email found`;
 					// TODO: should we throw here?
-					throw this.getRBError(`${this.logHeader} exportDataset()`, err);
+          throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid}`,
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
 				// set the dataset URL and DOI
 				let datasetUrl = '';
@@ -121,7 +125,7 @@ export module Services {
 
 				// get the repository, then write out the attachments and the RO-Crate
 				const targetCollector = new Collector({
-					repoPath: site.dir, 
+					repoPath: site.dir,
 					namespace: rootColConfig.targetRepoNamespace,
 					tempPath: site.tempPath,
 					repoScratch: site.repoScratch
@@ -129,7 +133,12 @@ export module Services {
 				try {
 					await targetCollector.connect();
 				} catch (err) {
-					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error connecting to target collector ${site.dir}: ${err}`);
+          const msg = `Error connecting to target collector`;
+					throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid} site dir ${site.dir}`,
+            options: {cause: err},
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
 				let rootCollection = targetCollector.repo.object(rootColConfig.rootCollectionId);
 				try {
@@ -145,27 +154,45 @@ export module Services {
 					rootCollection.rootDataset.license = rootColConfig.defaultLicense;
 					if (await this.pathExists(rootCollection.root) === false) {
 						await rootCollection.addToRepo();
-					} 
+					}
 				} catch (err) {
-					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error loading root collection ${site.rootCollectionId}: ${err}`);
+          const msg = `Error loading root collection`;
+          throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid} rootCollectionId ${rootColConfig.rootCollectionId}`,
+            options: {cause: err},
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
-				
+
 				let creator = await firstValueFrom(UsersService.getUserWithUsername(record['metaMetadata']['createdBy']));
 
 				if (_.isEmpty(creator)) {
-					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error getting creator for record ${oid} :: ${record['metaMetadata']['createdBy']}`);
+          const msg = `Error getting creator for record`
+          throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid} creator ${record['metaMetadata']['createdBy']}`,
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site'], 'creator': record['metaMetadata']['createdBy']}}],
+          });
 				}
 				try {
 					await this.writeDatasetObject(creator, user, oid, drid, targetCollector, rootCollection, record, site.tempDir);
 				} catch (err) {
-					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error writing dataset object for ${oid}: ${err}`);
+          const msg = `Error writing dataset object for`;
+          throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid} `,
+            options: {cause: err},
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
 
 				try {
 					await RecordsService.updateMeta(sails.config.auth.defaultBrand, oid, record, null, true, false);
 				} catch (err) {
 					this.recordPublicationError(oid, record, err);
-					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error updating record metadata for ${oid}: ${err}`);
+          const msg = `Error updating record metadata`;
+          throw new RBValidationError({
+            message: `${msg}: site ${options['site']} oid ${oid} `,
+            displayErrors: [{detail: msg, meta: {'oid': oid, 'site': options['site']}}],
+          });
 				}
 			} else {
 				sails.log.debug(`Not publishing: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`);
@@ -173,15 +200,15 @@ export module Services {
 		}
 		/**
 		 *  Write the dataset object to the OCFL repository
-		 * 
-		 * @param creator 
-		 * @param approver 
-		 * @param oid 
-		 * @param drid 
-		 * @param targetCollector 
-		 * @param rootCollection 
-		 * @param record 
-		 * @param tempDir 
+		 *
+		 * @param creator
+		 * @param approver
+		 * @param oid
+		 * @param drid
+		 * @param targetCollector
+		 * @param rootCollection
+		 * @param record
+		 * @param tempDir
 		 */
 		private async writeDatasetObject(creator: Object, approver: Object, oid: string, drid: string, targetCollector: Collector, rootCollection: any, record: Object, tempDir:string): Promise<any> {
 			const metadata = record['metadata'];
@@ -210,12 +237,22 @@ export module Services {
 				}
 			} catch (err) {
 				await this.removeTempDir(oidTempDir);
-				throw this.getRBError(`${this.logHeader} writeDatasetObject()`, `Error writing attachments for dataset ${oid}: ${err}`);
+        const msg = `Error writing attachments for dataset`;
+        throw new RBValidationError({
+          message: `${msg}: oid ${oid} `,
+          options: {cause: err},
+          displayErrors: [{detail: msg, meta: {'oid': oid}}],
+        });
 			}
 			try {
 				await this.writeDatasetROCrate(creator, approver, oid, attachments, record, targetCollector, rootCollection);
 			} catch (err) {
-				throw this.getRBError(`${this.logHeader} writeDatasetObject()`, `Error writing dataset RO-Crate for ${oid}: ${err}`);
+        const msg = `Error writing dataset RO-Crate`;
+        throw new RBValidationError({
+          message: `${msg}: oid ${oid} `,
+          options: {cause: err},
+          displayErrors: [{detail: msg, meta: {'oid': oid}}],
+        });
 			} finally {
 				await this.removeTempDir(oidTempDir);
 			}
@@ -232,21 +269,21 @@ export module Services {
 			}
 		}
 		/**
-		 * 
+		 *
 		 * Builds and persists the rocrate object to the OCFL repository
-		 * 
-		 * @param creator 
-		 * @param approver 
-		 * @param oid 
-		 * @param attachments 
-		 * @param record 
-		 * @param targetCollector 
-		 * @param rootCollection 
+		 *
+		 * @param creator
+		 * @param approver
+		 * @param oid
+		 * @param attachments
+		 * @param record
+		 * @param targetCollector
+		 * @param rootCollection
 		 */
 		private async writeDatasetROCrate(creator: Object, approver: Object, oid:string, attachments: any[], record: Object, targetCollector: Collector, rootCollection: any) {
 			const metadata = record['metadata'];
 			const metaMetadata = record['metaMetadata'];
-			// Create Dataset/Repository Object	
+			// Create Dataset/Repository Object
 			let targetRepoObj = targetCollector.newObject();
 			let targetCrate = targetRepoObj.crate;
 			let extraContext = {};
@@ -264,7 +301,7 @@ export module Services {
 			targetRepoObj.rootDataset.dateCreated = metaMetadata['createdOn'];
 			targetRepoObj.rootDataset.yearCreated = this.getYearFromDate(targetRepoObj.rootDataset.dateCreated);
 			targetRepoObj.rootDataset.datePublished = now;
-			targetRepoObj.rootDataset.yearPublished = this.getYearFromDate(targetRepoObj.rootDataset.datePublished); 
+			targetRepoObj.rootDataset.yearPublished = this.getYearFromDate(targetRepoObj.rootDataset.datePublished);
 			targetRepoObj.rootDataset.keywords = metadata['finalKeywords'];
 			// Set the publisher
 			// https://www.researchobject.org/ro-crate/specification/1.1/contextual-entities.html#organizations-as-values
@@ -291,7 +328,7 @@ export module Services {
 			}
 			// Set the license
 			targetRepoObj.rootDataset.license = this.getLicense(metadata);
-			// Set the files 
+			// Set the files
 			await this.addFiles(targetRepoObj, record, attachments);
 			// Set the related works
 			this.addRelatedWorks(targetRepoObj, metadata);
@@ -299,7 +336,7 @@ export module Services {
 			this.addSpatialCoverage(targetRepoObj, metadata, extraContext);
 			// Set the temporal coverage
 			this.addTemporalCoverage(targetRepoObj, metadata, extraContext);
-			// Set the funders 
+			// Set the funders
 			this.addFunders(targetRepoObj, metadata, extraContext);
 			// Set about
 			this.addSubjects(targetRepoObj, metadata, extraContext);
@@ -319,11 +356,11 @@ export module Services {
 			const people = _.concat(targetRepoObj.rootDataset.author, targetRepoObj.rootDataset.contributor);
 			let creatorPerson =  _.find(people, (a) => a && a['email'] == creator['email']);
 			let approverPerson = _.find(people, (a) => a && a['email'] == approver['email']);
-			
+
 			if (!creatorPerson) {
 				creatorPerson = this.getPerson(creator, "Person");
 				targetRepoObj.crate.addEntity(creatorPerson);
-			} 
+			}
 			if (!approverPerson) {
 				approverPerson = this.getPerson(approver, "Person");
 				targetRepoObj.crate.addEntity(approverPerson);
@@ -364,7 +401,7 @@ export module Services {
 								'@type': 'StructuredValue',
 								'url': id,
 								'identifier': id,
-								'name': fieldVal['name'] 
+								'name': fieldVal['name']
 							};
 							subjects.push(subject);
 						}
@@ -380,7 +417,7 @@ export module Services {
 			for (let fundingField of sails.config.datapubs.metadata.funders) {
 				const fieldVals = _.isArray(metadata[fundingField]) ? metadata[fundingField] : [metadata[fundingField]];
 				sails.log.verbose(`${fundingField} -> fieldVal: ${JSON.stringify(fieldVals)}`);
-				
+
 				for (let fieldVal of fieldVals) {
 					if (!_.isEmpty(fieldVal) && !_.isEmpty(_.get(fieldVal, 'dc_identifier[0]'))) {
 						const id = `${sails.config.datapubs.metadata.DEFAULT_IRI_PREFS['funder']}${fieldVal['dc_identifier'][0]}`;
@@ -459,7 +496,7 @@ export module Services {
 				// 			"geo": this.convertToWkt(`_:geo-${idx}`, geoJson)
 				// 		});
 				// 	}
-					
+
 				// });
 				sails.log.verbose(`Converted spatialCoverage -> ${JSON.stringify(convertedGeoJson)}`)
 				targetRepoOjb.rootDataset.spatialCoverage = convertedGeoJson;
@@ -485,7 +522,7 @@ export module Services {
 				let relatedWorks = [];
 				const fieldVals = _.isArray(metadata[`related_${relatedFieldConf.field}`]) ? metadata[`related_${relatedFieldConf.field}`] : [metadata[`related_${relatedFieldConf.field}`]];
 				sails.log.verbose(`related_${relatedFieldConf.field} -> fieldVal: ${JSON.stringify(fieldVals)}`);
-				
+
 				for (let fieldVal of fieldVals) {
 					if (!_.isEmpty(fieldVal) && !_.isEmpty(fieldVal['related_url'])) {
 						const relatedWork = {
@@ -542,7 +579,7 @@ export module Services {
 					'url': metadata['license_identifier']
 				});
 			}
-		
+
 			if(metadata['accessRights_url']) {
 				licenses.push({
 					'@id': metadata['accessRights_url'],
@@ -593,7 +630,7 @@ export module Services {
 			const year = date.getFullYear();
 			return year.toString();
 		}
-		
+
 		private async ensureDir(dirPath: string): Promise<void> {
 			try {
 				await fs.access(dirPath, fs.constants.F_OK);

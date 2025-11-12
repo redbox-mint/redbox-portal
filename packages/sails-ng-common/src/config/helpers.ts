@@ -14,9 +14,12 @@ import {FieldDefinitionFrame} from "./field.outline";
  * @param value Guess the type of this value.
  * @private
  */
-export function guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "unknown" {
+export function guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "undefined" | "unknown" {
     if (value === null) {
         return "null";
+    }
+    if (value === undefined) {
+        return "undefined";
     }
 
     if (_isBoolean(value)) {

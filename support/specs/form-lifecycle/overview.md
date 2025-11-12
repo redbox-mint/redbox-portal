@@ -59,49 +59,44 @@ stateDiagram-v2
 
 ## 2. Validation State Management Implementation
 
-The FormComponent implements sophisticated validation state tracking using Angular signals and effects:
+The FormComponent implements validation state tracking using Angular signals effects and NgRx action dispatches:
 
 ### Key Implementation Details
 
 1. **Dual Status Tracking**: The form maintains both `formGroupStatus` and `previousFormGroupStatus` signals to detect state changes.
 
+2. **Action-Based Transitions**: Rather than directly mutating status, the component dispatches actions to the NgRx store:
+
 ```typescript
 effect(() => {
   const formGroupStatus = this.formGroupStatus();
-  const currentPending = formGroupStatus?.pending || false;
-  const wasPending = this.previousFormGroupStatus()?.pending || false;
-  const isValid = formGroupStatus?.valid || false;
-  const wasValid = this.previousFormGroupStatus()?.valid || false;
-  const inSaving = this.status() === FormStatus.SAVING;
+  const formGroupIsPending = formGroupStatus?.pending || false;
+  const formGroupWasPending = this.previousFormGroupStatus()?.pending || false;
+  const formGroupIsValid = formGroupStatus?.valid || false;
+  const formIsSaving = this.status() === FormStatus.SAVING;
 
-  let next: FormStatus | null = null;
-  if (currentPending && !inSaving) {
-    next = FormStatus.VALIDATION_PENDING;
-  } else if (wasPending && !currentPending && !isValid && !inSaving) {
-    next = FormStatus.VALIDATION_ERROR;
-  } else if (wasPending && !currentPending && isValid && this.status() === FormStatus.VALIDATION_PENDING) {
-    next = FormStatus.READY;
-  } else if (!wasValid && isValid && !currentPending && wasPending) {
-    next = FormStatus.READY;
-  }
-
-  if (next !== null && this.status() !== next) {
-    this.status.set(next);
+  // Dispatch validation lifecycle actions instead of direct status mutation
+  if (formGroupIsPending && !formIsSaving && !formGroupWasPending) {
+    this.store.dispatch(FormActions.formValidationPending());
+  } else if (formGroupWasPending && !formGroupIsPending && !formGroupIsValid && !formIsSaving) {
+    this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
+  } else if (formGroupWasPending && !formGroupIsPending && formGroupIsValid && this.status() === FormStatus.VALIDATION_PENDING) {
+    this.store.dispatch(FormActions.formValidationSuccess());
   }
 
   this.previousFormGroupStatus.set(formGroupStatus);
 });
-   ```
+```
 
 3. **State Transition Logic**:
-   - **VALIDATION_PENDING**: Set when `currentPending` is true
-   - **READY**: Set when validation completes successfully (was pending, now not pending, and currently in VALIDATION_PENDING state)
-   - **VALIDATION_ERROR**: Set when validation fails (form becomes invalid after being pending, but not during save)
-   - **READY**: Set when form becomes valid after being invalid (recovery from validation error)
+   - **VALIDATION_PENDING**: Dispatched when FormGroup becomes pending and not currently saving
+   - **VALIDATION_SUCCESS**: Dispatched when validation completes successfully (was pending, now not pending and valid)
+   - **VALIDATION_ERROR**: Dispatched when validation fails (was pending, now not pending and invalid, not during save)
+   - The NgRx reducer translates these actions into `FormStatus` updates
 
 ### Form vs FormGroup Status
 
-- **FormComponent.status**: High-level form state (INIT, READY, SAVING, etc.)
+- **FormComponent.status**: High-level form state (INIT, READY, SAVING, etc.) sourced from NgRx store via facade
 - **FormComponent.formGroupStatus**: Reactive wrapper around Angular FormGroup status properties
 - **FormComponent.previousFormGroupStatus**: Previous state for change detection
 
@@ -193,4 +188,4 @@ The implementation correctly separates concerns between form-level status and Fo
 
 ---
 
-*Last updated: 11 September 2025*
+*Last updated: 28 October 2025*

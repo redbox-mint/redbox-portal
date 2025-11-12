@@ -693,6 +693,7 @@ const formConfig: FormConfigFrame = {
                 class: 'SaveButtonComponent',
                 config: {
                     label: 'Save',
+                    labelSaving: 'Saving...',
                 }
             }
         },

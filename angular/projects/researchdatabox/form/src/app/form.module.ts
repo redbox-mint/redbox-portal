@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { NgModule } from '@angular/core';
+import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -39,8 +39,14 @@ import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { provideFormFeature } from './form-state';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { DateInputComponent } from './component/date-input.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -80,7 +86,13 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
     },
     Title,
     FormService,
+    FormStateFacade,
+    FormComponentEventBus,
+    provideStore(),
+    provideEffects(),
+    provideFormFeature(),
     provideI18Next(),
+    provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
   ],
   bootstrap: [
     FormComponent

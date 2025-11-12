@@ -82,7 +82,7 @@ export module Controllers {
 
       try {
         const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-        const entries = FormRecordConsistencyService.buildCompiledTemplates(form);
+        const entries = FormRecordConsistencyService.buildCompiledTemplates(form, editMode ? "edit" : "view");
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         sails.log.error("Could not build compiled items from form config:", error);
@@ -98,7 +98,6 @@ export module Controllers {
     public getFormStructureValidations(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
-      const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
@@ -116,7 +115,6 @@ export module Controllers {
     public getFormDataValidations(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
-      const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
@@ -132,7 +130,6 @@ export module Controllers {
     public getFormExpressions(req, res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
-      const apiVersion = this.getApiVersion(req);
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
@@ -147,7 +144,6 @@ export module Controllers {
     */
     public getAdminReportTemplates(req, res) {
       const reportName = req.param("reportName") || "";
-      const apiVersion = this.getApiVersion(req);
       // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);
@@ -161,7 +157,6 @@ export module Controllers {
     public getRecordDashboardTemplates(req, res) {
       const recordType = req.param("name") || "";
       const workflowStage = req.param("workflowStage") || "";
-      const apiVersion = this.getApiVersion(req);
       // TODO:
       const entries = [];
       return this.sendClientMappingJavascript(res, entries);

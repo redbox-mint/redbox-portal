@@ -1,6 +1,9 @@
 /**
- * From https://github.com/mathematic-inc/ts-japi/blob/main/src/models/error.model.ts
- * Licence Apache 2.0.
+ * Interface representing an error item in JSON API format.
+ *
+ * Use this structure to include errors that will be shown to the user.
+ *
+ * Based on https://github.com/mathematic-inc/ts-japi/blob/main/src/models/error.model.ts (Licence Apache 2.0)
  */
 export interface ErrorResponseItemV2 {
     /**
@@ -77,11 +80,18 @@ export interface ErrorResponseItemV2 {
     /**
      * A meta object containing non-standard meta-information about the error.
      */
-    meta?: { [key: string]: unknown };
+    meta?: MetaResponseItemV2;
 }
 
 /**
- * An error response to a request.
+ * A meta-object containing non-standard meta-information.
+ */
+export interface MetaResponseItemV2 {
+  [key: string]: unknown;
+}
+
+/**
+ * An error response to a request in JSON API format.
  */
 export interface ErrorResponseV2 {
     /**
@@ -91,11 +101,11 @@ export interface ErrorResponseV2 {
     /**
      * A meta-object containing non-standard meta-information about the response.
      */
-    meta: { [key: string]: unknown };
+    meta: MetaResponseItemV2;
 }
 
 /**
- * A successful response to a request.
+ * A successful response to a request in JSON API format.
  */
 export interface DataResponseV2 {
     /**
@@ -105,5 +115,5 @@ export interface DataResponseV2 {
     /**
      * A meta-object containing non-standard meta-information about the response.
      */
-    meta: { [key: string]: unknown };
+    meta: MetaResponseItemV2;
 }

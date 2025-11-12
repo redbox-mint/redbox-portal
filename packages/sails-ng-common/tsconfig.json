@@ -26,7 +26,7 @@
       "chai"
     ],
     "lib": [
-      "es2022",
+      "es2023",
       "dom"
     ],
     "inlineSourceMap": true,

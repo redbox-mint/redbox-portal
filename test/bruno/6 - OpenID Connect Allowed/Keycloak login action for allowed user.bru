@@ -25,22 +25,19 @@ headers {
 body:form-urlencoded {
   username: test-exception
   password: password
-  credentialId: 
+  credentialId:
 }
 
 script:pre-request {
   req.setMaxRedirects(0);
-  const cookie = bru.getVar("kc_cookie");
-    console.log(`Cookie is: ${cookie}`)
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req, bruCookieVar: "kc_cookie"});
 }
 
 tests {
   test("Status code is 302", function () {
       expect(res.getStatus()).to.equal(302);
       bru.setVar("rb_login_url", res.headers['location']);
-      console.log(bru.getVar("rb_login_url"))
+      // console.log(bru.getVar("rb_login_url"))
   });
 }
