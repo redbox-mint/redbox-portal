@@ -5,7 +5,25 @@ declare global {
 	namespace Sails {
 		import Request = express.Request;
 
-		export interface Application { }
+		// Recursive type for nested config objects - using any for maximum flexibility
+		export interface ConfigObject {
+			[key: string]: any;
+		}
+
+		export interface Application {
+			config: ConfigObject;
+			after(events: string | string[], cb: () => void): void;
+		}
+
+		export interface Hook {
+			initialize: (cb: () => void) => void;
+			routes: {
+				before: { [key: string]: any };
+				after: { [key: string]: any };
+			};
+			configure?: () => void;
+			defaults?: { [key: string]: any };
+		}
 
 		export interface Model {
 			attributes: Object;
