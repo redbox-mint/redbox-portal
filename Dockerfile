@@ -157,7 +157,8 @@ RUN set -eux; \
       xdg-utils; \
     rm -rf /var/lib/apt/lists/*
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_PRODUCT=chromium
+# Puppeteer only understands "chrome" and "firefox" for downloads; we preinstall Chromium.
+ENV PUPPETEER_PRODUCT=chrome
 ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
