@@ -186,7 +186,6 @@ dev
 api/models/Record.js
 api/models/RecordAudit.js
 api/models/DeletedRecord.js
-packages/raido/src*
 packages/raido/dist
 packages/raido/*.tgz
 angular/.angular/cache/

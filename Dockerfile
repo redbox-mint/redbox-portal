@@ -36,7 +36,7 @@ RUN npm ci \
 
 RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
 RUN cd packages/sails-ng-common && npm run compile
-RUN cd packages/raido && npm run pregenerate && npm run generate
+RUN cd packages/raido && npm run build
 RUN npx tsc --project tsconfig.json
 
 RUN chmod +x support/build/compileProductionAngular.sh \

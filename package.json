@@ -112,7 +112,7 @@
     "compile:core:prod": "cd packages/redbox-core-types && npm install && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",
-    "compile:raido": "cd ./packages/raido && npm install && npm run pregenerate && npm run generate && cd ../../",
+    "compile:raido": "cd ./packages/raido && npm install && npm run build && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
