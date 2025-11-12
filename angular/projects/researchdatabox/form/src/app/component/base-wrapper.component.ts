@@ -3,13 +3,16 @@ import {
   Type,
   Input,
   ViewChild,
-  OnDestroy
+  OnDestroy,
+  inject
 } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
 import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
 import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { FormComponentChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 
 
 
@@ -40,6 +43,9 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
+
+  private readonly eventBus = inject(FormComponentEventBus);
+  private readonly changeEventProducer = new FormComponentChangeEventProducer(this.eventBus);
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
@@ -106,6 +112,13 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Initialise the component.
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
+
+    if (this.shouldAttachChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.changeEventProducer.bind({
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    }
     this.loggerService.debug(`${this.logName}: Finished initComponent for '${name}'.`, this.formFieldCompMapEntry);
 
     // Set the host binding CSS classes for the wrapper element.
@@ -121,6 +134,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   ngOnDestroy() {
+    this.changeEventProducer.destroy();
     const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
@@ -130,5 +144,20 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   protected override initHostBindingCssClasses() {
     // do nothing
+  }
+
+  /**
+   * 
+   * Returns true if this isn't a layout. 
+   * 
+   * @param entry 
+   * @param instance 
+   * @returns 
+   */
+  private shouldAttachChangeProducer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    return !!entry && entry.component === instance;
   }
 }
