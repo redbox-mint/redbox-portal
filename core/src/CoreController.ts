@@ -449,13 +449,10 @@ export module Controllers.Core {
         displayErrors: collectedDisplayErrors
       } = RBValidationError.collectErrors(errors, displayErrors);
 
-      // Log the error name, message, stack, or just the error if it is not an instance of Error.
+      // Log each error.
+      sails.log.verbose(`Collected ${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'} in sendResp.`);
       for (const error of collectedErrors) {
-        if (error instanceof Error) {
-          sails.log.error(`Error ${error?.name}: ${error?.message} - ${error?.stack}`, error);
-        } else {
-          sails.log.error(`Error ${error}`, error);
-        }
+        sails.log.error(`Collected error in sendResp:`, error);
       }
 
       // If there are errors, but no display errors, add a generic display error.
@@ -471,20 +468,24 @@ export module Controllers.Core {
         const statusString = collectedDisplayErrors
           .map(i => i?.status?.toString() ?? "")
           .reduce((prev, curr) => {
-            if (prev === null && curr?.toString().startsWith('4')) {
+            const currStr = curr?.toString() || "";
+            const prevStr = prev?.toString() || "";
+            if (!prevStr.startsWith('5') && !prevStr.startsWith('4') && currStr.startsWith('4')) {
               return "400";
             }
-            if (!prev?.toString()?.startsWith('5') && curr?.toString().startsWith('5')) {
+            if (!prevStr.startsWith('5') && currStr.startsWith('5')) {
               return "500";
             }
-            return curr !== null && curr != undefined ? curr : null;
-          }, status?.toString() || null);
+            return currStr || prevStr;
+          }, status?.toString() || "");
         try {
-          status = parseInt(statusString ?? "500");
-        } catch {
-          // ignore
+          sails.log.verbose(`sendResp statusString ${statusString}`);
+          status = parseInt(statusString || "500");
+        } catch (error) {
+          sails.log.error(`Error in sendResp reducing status ${status}:`, error);
         }
       }
+      sails.log.verbose(`sendResp status ${status}`);
 
       // Set the response headers
       if (headers) {
@@ -492,8 +493,11 @@ export module Controllers.Core {
       }
 
       // Set the response status
-      if (status !== null && status !== undefined) {
+      if (status !== null && status !== undefined && !isNaN(status)) {
         res.status(status);
+      } else {
+        // Set response status to 500 if status was not calculated correctly.
+        res.status(500)
       }
 
       // if the response is a json format response with no errors, return the data in the expected API version.
@@ -551,6 +555,7 @@ export module Controllers.Core {
           }
           return displayError;
         });
+        sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
         return res.json({errors: formattedErrors, meta: meta});
       }
 
@@ -558,13 +563,15 @@ export module Controllers.Core {
       if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
         const errorResponse = new APIErrorResponse();
         errorResponse.message = RBValidationError.displayMessage({t: TranslationService, displayErrors:collectedDisplayErrors});
+        sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
         return res.json(errorResponse);
       }
 
-      // TODO:
-      throw new Error(`Unknown situation in sendResp: ${JSON.stringify({
+      // TODO: log unknown situations so they can be considered.
+      sails.log.error(`Unknown situation in sendResp: ${JSON.stringify({
         format, data, status, headers, collectedErrors, collectedDisplayErrors, meta, v1,
       })}`);
+      return res.status(500).json({errors: [{detail: "Check server logs."}], meta: {}});
     }
 
     private setNoCacheHeaders(req, res) {
