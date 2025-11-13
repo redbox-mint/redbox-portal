@@ -4,7 +4,7 @@
 .tmp
 .vscode
 .circleci
-node_modules
+**/node_modules
 *.log
 .DS_Store
 Thumbs.db
