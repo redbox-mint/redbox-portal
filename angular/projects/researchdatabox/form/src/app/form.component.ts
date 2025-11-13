@@ -88,7 +88,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The name of the form configuration to load
    */
   formName = model<string>('');
-  /** 
+  /**
    * Indicates whether to download and create the form components on init
    */
   downloadAndCreateOnInit = model<boolean>(true);
@@ -109,7 +109,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
-   * The previous formGroup status 
+   * The previous formGroup status
    */
   previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
@@ -181,8 +181,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       isReady: false,
       children: []
   };
-  
-  
+
+
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -242,7 +242,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         // If validation is pending
         if (formGroupIsPending && !formGroupWasPending) {
           this.store.dispatch(FormActions.formValidationPending());
-        } 
+        }
         // If validation completed
         if (!formGroupIsPending) {
           if (!formGroupIsValid && formGroupWasValid) {
@@ -345,11 +345,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                   errors: this.dataStatus.errors,
                   status: this.dataStatus
                 })
-              );            
+              );
             }
-            // TODO: Publish ValueChangeEvent 
+            // TODO: Publish ValueChangeEvent
           });
-          
+
           this.form.valueChanges.subscribe(() => {
             this.debugFormComponents.set(this.getDebugInfo());
           });
@@ -357,8 +357,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         // set up validators
         const validatorConfig = this.formDefMap.formConfig.validators;
-        const validators = this.formService.createFormValidatorInstances(validatorConfig);
-        this.formService.setValidators(this.form, validators);
+        // TODO: get enabled validator groups
+        const enabledGroups: string[] = [];
+        this.formService.setValidators(this.form, validatorConfig, enabledGroups);
+
       } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
         // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
         // That is ok. But a form must have at least one component.
@@ -494,7 +496,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.saveResponse.set(null); // Indicate save in progress
         this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, skipValidation: ${skipValidation}. Saving...`);
         this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
-        
+
         try {
           let response: RecordActionResult;
           const currentFormValue = structuredClone(this.form.value);

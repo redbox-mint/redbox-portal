@@ -60,7 +60,7 @@ describe("Construct Visitor", async () => {
                                                                 defaultValue: 'hello world 3!',
                                                                 validators: [
                                                                     {
-                                                                        name: 'minLength',
+                                                                        class: 'minLength',
                                                                         message: "@validator-error-custom-text_3",
                                                                         config: {minLength: 3}
                                                                     }

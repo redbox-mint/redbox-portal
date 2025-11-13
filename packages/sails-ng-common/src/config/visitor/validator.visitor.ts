@@ -372,7 +372,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const result: FormValidatorSummaryErrors[] = [];
         if (Array.isArray(validators) && validators.length > 0) {
             const filteredValidators = validators.filter(validator =>
-                this.isValidatorEnabled(availableValidatorGroups, this.validationGroupNames, validator)
+                this.validatorSupport.isValidatorEnabled(availableValidatorGroups, this.validationGroupNames, validator)
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
             const recordFormControl = this.createFormControlFromRecordValue(value);
@@ -387,7 +387,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
                 Object.entries(funcResult ?? {})
                     .forEach(([key, item]) => {
                         summaryErrors.errors.push({
-                            name: key,
+                            class: key,
                             message: item.message ?? null,
                             params: {...item.params},
                         })
@@ -401,29 +401,5 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
         return result;
     }
 
-    protected isValidatorEnabled(availableGroups: FormValidationGroups, enabledGroups: string[], validator: FormValidatorConfig): boolean {
-        // If there are no validation groups, all validators are enabled.
-        if (Object.keys(availableGroups).length === 0) {
-            return true;
-        }
-        // Check each validation group to see if the validator is enabled.
-        for (const [groupKey, groupConfig] of Object.entries(availableGroups)) {
-            if (!enabledGroups.includes(groupKey)) {
-                continue;
-            }
-            const membership = groupConfig.initialMembership ?? "";
-            const include = validator.groups?.include ?? [];
-            const exclude = validator.groups?.exclude ?? [];
-            if (membership === "all" && !exclude.includes(groupKey)) {
-                return true;
-            }
-            if (include.includes(groupKey)) {
-                return true;
-            }
-            if (exclude.includes(groupKey)) {
-                return false;
-            }
-        }
-        return false;
-    }
+
 }

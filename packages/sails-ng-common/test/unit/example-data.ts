@@ -95,7 +95,7 @@ export const formConfigExample1: FormConfigFrame = {
     skipValidationOnSave: false,
     // Validators that operate on multiple fields.
     validators: [
-        {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+        {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
     // Groups of validators that can be enabled and disabled together.
     validationGroups: {
@@ -336,7 +336,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world!',
                                                     validators: [
-                                                        {name: 'required'},
+                                                        {class: 'required'},
                                                     ]
                                                 }
                                             },
@@ -358,8 +358,8 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world 2!',
                                                     validators: [
-                                                        // {name: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
-                                                        // {name: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
+                                                        // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                                                        // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
                                                     ]
                                                 }
                                             },
@@ -382,14 +382,14 @@ export const formConfigExample1: FormConfigFrame = {
                                                     defaultValue: 'hello world 2!',
                                                     validators: [
                                                         {
-                                                            name: 'pattern',
+                                                            class: 'pattern',
                                                             config: {
                                                                 pattern: /prefix.*/,
                                                                 description: "must start with prefix"
                                                             }
                                                         },
                                                         {
-                                                            name: 'minLength',
+                                                            class: 'minLength',
                                                             message: "@validator-error-custom-text_7",
                                                             config: {minLength: 3}
                                                         },
@@ -412,7 +412,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world! component event',
                                                     validators: [
-                                                        {name: 'required'},
+                                                        {class: 'required'},
                                                     ]
                                                 }
                                             },
@@ -464,7 +464,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world! layout event',
                                                     validators: [
-                                                        {name: 'required'},
+                                                        {class: 'required'},
                                                     ]
                                                 }
                                             },
@@ -602,9 +602,9 @@ export const formConfigExample1: FormConfigFrame = {
                                                                                 config: {
                                                                                     defaultValue: 'hello world 5!',
                                                                                     validators: [
-                                                                                        {name: 'required'},
+                                                                                        {class: 'required'},
                                                                                         {
-                                                                                            name: 'pattern',
+                                                                                            class: 'pattern',
                                                                                             config: {
                                                                                                 pattern: /prefix.*/,
                                                                                                 description: "must start with prefix"
@@ -653,14 +653,14 @@ export const formConfigExample1: FormConfigFrame = {
                                                                 defaultValue: 'hello world from elementTemplate!',
                                                                 validators: [
                                                                     {
-                                                                        name: 'pattern',
+                                                                        class: 'pattern',
                                                                         config: {
                                                                             pattern: /prefix.*/,
                                                                             description: "must start with prefix"
                                                                         }
                                                                     },
                                                                     {
-                                                                        name: 'minLength',
+                                                                        class: 'minLength',
                                                                         message: "@validator-error-custom-example_repeatable",
                                                                         config: {minLength: 3}
                                                                     },
@@ -742,7 +742,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 defaultValue: 'hello world 3!',
                                                 validators: [
                                                     {
-                                                        name: 'minLength',
+                                                        class: 'minLength',
                                                         message: "@validator-error-custom-text_3",
                                                         config: {minLength: 3}
                                                     }
@@ -808,7 +808,7 @@ export const formConfigExample2: FormConfigFrame = {
     skipValidationOnSave: false,
     // Validators that operate on multiple fields.
     validators: [
-        {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+        {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
     componentDefinitions: [
         {

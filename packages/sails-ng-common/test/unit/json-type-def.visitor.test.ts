@@ -32,9 +32,9 @@ describe("JSON Type Def Schema Visitor", async () => {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'minLength', config: {minLength: 10}},
-                                    {name: 'maxLength', config: {maxLength: 20}},
+                                    {class: 'required'},
+                                    {class: 'minLength', config: {minLength: 10}},
+                                    {class: 'maxLength', config: {maxLength: 20}},
                                 ]
                             }
                         },
@@ -47,8 +47,8 @@ describe("JSON Type Def Schema Visitor", async () => {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'requiredTrue'},
+                                    {class: 'required'},
+                                    {class: 'requiredTrue'},
                                 ]
                             }
                         },
@@ -74,8 +74,8 @@ describe("JSON Type Def Schema Visitor", async () => {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {name: 'min', config: {min: 5}},
-                                                    {name: 'max', config: {max: 15}},
+                                                    {class: 'min', config: {min: 5}},
+                                                    {class: 'max', config: {max: 15}},
                                                 ]
                                             }
                                         },
@@ -89,14 +89,14 @@ describe("JSON Type Def Schema Visitor", async () => {
                                                 defaultValue: "text_3 default",
                                                 validators: [
                                                     {
-                                                        name: 'pattern',
+                                                        class: 'pattern',
                                                         config: {
                                                             pattern: /^some.*$/,
                                                             description: "must start with 'some'"
                                                         }
                                                     },
                                                     {
-                                                        name: 'minLength',
+                                                        class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
                                                         config: {minLength: 3}
                                                     },
@@ -119,7 +119,7 @@ describe("JSON Type Def Schema Visitor", async () => {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {name: 'email'},
+                                                                {class: 'email'},
                                                             ]
                                                         }
                                                     },
@@ -161,7 +161,7 @@ describe("JSON Type Def Schema Visitor", async () => {
                                                                                 model: {
                                                                                     class: 'SimpleInputModel', config: {
                                                                                         validators: [
-                                                                                            {name: 'required'},
+                                                                                            {class: 'required'},
                                                                                         ]
                                                                                     }
                                                                                 },

@@ -1,4 +1,9 @@
-import {FormValidatorConfig, FormValidatorDefinition, FormValidatorFn} from "./form.model";
+import {
+    FormValidationGroups,
+    FormValidatorConfig,
+    FormValidatorDefinition,
+    FormValidatorFn
+} from "./form.model";
 
 export class ValidatorsSupport {
     /**
@@ -10,14 +15,14 @@ export class ValidatorsSupport {
     ): Map<string, FormValidatorDefinition> {
         const defMap = new Map<string, FormValidatorDefinition>();
         for (const definitionItem of (definition ?? [])) {
-            const name = definitionItem?.name;
+            const validatorClass = definitionItem?.class;
             const message = definitionItem?.message;
-            if (defMap.has(name)) {
-                const messages = [message, defMap.get(name)?.message];
-                throw new Error(`Duplicate validator name '${name}' - the validator names must be unique. `
+            if (defMap.has(validatorClass)) {
+                const messages = [message, defMap.get(validatorClass)?.message];
+                throw new Error(`Duplicate validator class '${validatorClass}' - the validator classes must be unique. `
                     + `To help you find the duplicates, these are the messages of the duplicates: '${messages.join(", ")}'.`);
             }
-            defMap.set(name, definitionItem);
+            defMap.set(validatorClass, definitionItem);
         }
         return defMap;
     }
@@ -33,14 +38,14 @@ export class ValidatorsSupport {
     ): FormValidatorFn[] {
         const result: FormValidatorFn[] = [];
         for (const validatorConfigItem of (config ?? [])) {
-            const name = validatorConfigItem?.name;
-            const def = defMap.get(name);
+            const validatorClass = validatorConfigItem?.class;
+            const def = defMap.get(validatorClass);
             if (!def) {
-                throw new Error(`No validator definition has name '${name}', `
+                throw new Error(`No validator definition with class '${validatorClass}', `
                     + `the available validators are: '${Array.from(defMap.keys()).sort().join(", ")}'.`);
             }
             const message = validatorConfigItem?.message ?? def.message;
-            const item = def.create({name: name, message: message, ...(validatorConfigItem?.config ?? {})});
+            const item = def.create({class: validatorClass, message: message, ...(validatorConfigItem?.config ?? {})});
             result.push(item);
         }
         return result;
@@ -58,5 +63,48 @@ export class ValidatorsSupport {
     ): FormValidatorFn[] {
         const defMap = this.createValidatorDefinitionMapping(definition);
         return this.createFormValidatorInstancesFromMapping(defMap, config);
+    }
+
+    /**
+     * Is the validator enabled?
+     * @param availableGroups
+     * @param enabledGroups
+     * @param validator
+     */
+    public isValidatorEnabled(availableGroups: FormValidationGroups, enabledGroups: string[], validator: FormValidatorConfig): boolean {
+        // If there are no validation groups, all validators are enabled.
+        if (Object.keys(availableGroups).length === 0) {
+            return true;
+        }
+        // Check each validation group to see if the validator is enabled.
+        // A validator must pass all the group checks to be enabled.
+        for (const [groupKey, groupConfig] of Object.entries(availableGroups)) {
+            if (!enabledGroups?.includes(groupKey)) {
+                continue;
+            }
+            const membership = groupConfig?.initialMembership ?? "none";
+            const include = validator?.groups?.include ?? [];
+            const exclude = validator?.groups?.exclude ?? [];
+            if (membership === "all" && exclude.includes(groupKey)) {
+                return false;
+            }
+            if (membership === "none" && !include.includes(groupKey)) {
+                return false;
+            }
+            if (exclude.includes(groupKey)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get the enabled validators.
+     * @param availableGroups
+     * @param enabledGroups
+     * @param validators
+     */
+    public enabledValidators(availableGroups: FormValidationGroups, enabledGroups: string[], validators: FormValidatorConfig[]): FormValidatorConfig[] {
+        return (validators ?? []).filter(validator => this.isValidatorEnabled(availableGroups, enabledGroups,validator));
     }
 }

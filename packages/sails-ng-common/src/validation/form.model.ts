@@ -15,11 +15,11 @@ export type FormValidatorErrorParams = {
 /**
  * The map of validation errors.
  *
- * Typically, has a property whose name is the validation key, e.g. 'min', and
+ * Typically, has a property that is the validation class, e.g. 'min', and
  * value is a dictionary of message and params that are arbitrary values
  * that can be used to render an error message template.
  *
- * This is similar to FormValidatorComponentErrors, but with the name as the key in a parent object.
+ * This is similar to FormValidatorComponentErrors, but with the class as the key in a parent object.
  *
  * This is similar to the angular form ValidationErrors type.
  */
@@ -32,6 +32,8 @@ export type FormValidatorErrors = {
  * The config is different for each validator.
  */
 export type FormValidatorCreateConfig = {
+  class?: string;
+  message?: string;
   [key: string]: unknown;
 };
 
@@ -102,7 +104,7 @@ export interface FormValidatorDefinition {
   /**
    * The unique name of the form validator.
    */
-  name: string;
+  class: string;
   /**
    * The message id to display when the validator fails.
    */
@@ -118,10 +120,10 @@ export interface FormValidatorDefinition {
  */
 export interface FormValidatorConfig {
   /**
-   * The name used in a validator definition.
-   * The optional message and config will be applied to the validator definition with this name.
+   * The 'class' key used to reference one validator definition.
+   * The optional message and config will be applied to the validator definition with this class.
    */
-  name: string;
+  class: string;
   /**
    * The optional message id to display when the validator fails.
    * This is only needed if the message to show is different to the validator definition.
@@ -132,7 +134,6 @@ export interface FormValidatorConfig {
    * Can be left out if the validator takes no config.
    */
   config?: FormValidatorCreateConfig;
-
   /**
    * Zero or more validation group names this validator belongs to.
    * Validation groups make it easier to run a subset of validators on a form.
@@ -149,9 +150,9 @@ export interface FormValidatorComponentErrors {
    */
   message: string;
   /**
-   * The name of the validator.
+   * The class of the validator.
    */
-  name: string;
+  class: string;
   /**
    * The params for rendering the translated message.
    */

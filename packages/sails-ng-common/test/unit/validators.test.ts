@@ -21,7 +21,7 @@ describe("Validators", async () => {
             title: "min - expect failure",
             args: {
                 value: 2, definition: formValidatorsSharedDefinitions,
-                block: {name: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
+                block: {class: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
             },
             expected: {
                 min: {
@@ -35,7 +35,7 @@ describe("Validators", async () => {
             // (note, it looks like the HTML WHATWG spec treats a value that cannot be converted to a number as not having a minimum)
             args: {
                 value: "aa", definition: formValidatorsSharedDefinitions,
-                block: {name: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
+                block: {class: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
             },
             expected: null,
         },
@@ -43,7 +43,7 @@ describe("Validators", async () => {
             title: "min - expect pass",
             args: {
                 value: 4, definition: formValidatorsSharedDefinitions,
-                block: {name: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
+                block: {class: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
             },
             expected: null,
         },
@@ -51,7 +51,7 @@ describe("Validators", async () => {
             title: "max - expect failure",
             args: {
                 value: 6, definition: formValidatorsSharedDefinitions,
-                block: {name: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
+                block: {class: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
             },
             expected: {
                 max: {
@@ -64,7 +64,7 @@ describe("Validators", async () => {
             title: "max - expect pass",
             args: {
                 value: "aaa", definition: formValidatorsSharedDefinitions,
-                block: {name: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
+                block: {class: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
             },
             expected: null,
         },
@@ -72,7 +72,7 @@ describe("Validators", async () => {
             title: "max - expect pass",
             args: {
                 value: 2, definition: formValidatorsSharedDefinitions,
-                block: {name: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
+                block: {class: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
             },
             expected: null,
         },
@@ -80,7 +80,7 @@ describe("Validators", async () => {
             title: "minLength - expect failure",
             args: {
                 value: "b", definition: formValidatorsSharedDefinitions,
-                block: {name: "minLength", message: "@validator-error-custom-text_2", config: {minLength: 3}},
+                block: {class: "minLength", message: "@validator-error-custom-text_2", config: {minLength: 3}},
             },
             expected: {
                 minLength: {
@@ -93,7 +93,7 @@ describe("Validators", async () => {
             title: "minLength - expect pass",
             args: {
                 value: "bbb", definition: formValidatorsSharedDefinitions,
-                block: {name: "minLength", message: "@validator-error-custom-text_2", config: {minLength: 3}},
+                block: {class: "minLength", message: "@validator-error-custom-text_2", config: {minLength: 3}},
             },
             expected: null,
         },
@@ -101,7 +101,7 @@ describe("Validators", async () => {
             title: "maxLength - expect failure",
             args: {
                 value: "bbbb", definition: formValidatorsSharedDefinitions,
-                block: {name: "maxLength", config: {maxLength: 3}},
+                block: {class: "maxLength", config: {maxLength: 3}},
             },
             expected: {
                 maxLength: {
@@ -114,7 +114,7 @@ describe("Validators", async () => {
             title: "maxLength - expect pass",
             args: {
                 value: "bbb", definition: formValidatorsSharedDefinitions,
-                block: {name: "maxLength", config: {maxLength: 3}},
+                block: {class: "maxLength", config: {maxLength: 3}},
             },
             expected: null,
         },
@@ -122,7 +122,7 @@ describe("Validators", async () => {
             title: "required - expect failure",
             args: {
                 value: null, definition: formValidatorsSharedDefinitions,
-                block: {name: "required"}
+                block: {class: "required"}
             },
             expected: {required: {message: "@validator-error-required", params: {actual: null, required: true}}},
         },
@@ -130,7 +130,7 @@ describe("Validators", async () => {
             title: "required - expect pass",
             args: {
                 value: null, definition: formValidatorsSharedDefinitions,
-                block: {name: "required"}
+                block: {class: "required"}
             },
             expected: {required: {message: "@validator-error-required", params: {actual: null, required: true}}},
         },
@@ -138,7 +138,7 @@ describe("Validators", async () => {
             title: "requiredTrue - expect failure",
             args: {
                 value: null, definition: formValidatorsSharedDefinitions,
-                block: {name: "requiredTrue"}
+                block: {class: "requiredTrue"}
             },
             expected: {
                 requiredTrue: {
@@ -151,7 +151,7 @@ describe("Validators", async () => {
             title: "requiredTrue - expect failure",
             args: {
                 value: "somevalue", definition: formValidatorsSharedDefinitions,
-                block: {name: "requiredTrue"}
+                block: {class: "requiredTrue"}
             },
             expected: {
                 requiredTrue: {
@@ -164,7 +164,7 @@ describe("Validators", async () => {
             title: "requiredTrue - expect pass",
             args: {
                 value: true, definition: formValidatorsSharedDefinitions,
-                block: {name: "requiredTrue"}
+                block: {class: "requiredTrue"}
             },
             expected: null,
         },
@@ -172,7 +172,7 @@ describe("Validators", async () => {
             title: "email - expect failure",
             args: {
                 value: "example.com", definition: formValidatorsSharedDefinitions,
-                block: {name: "email", config: {description: "email must be in format (name)@(domain.tld)"}},
+                block: {class: "email", config: {description: "email must be in format (name)@(domain.tld)"}},
             },
             expected: {
                 email: {
@@ -189,7 +189,7 @@ describe("Validators", async () => {
             title: "email - expect pass",
             args: {
                 value: "example@example.com", definition: formValidatorsSharedDefinitions,
-                block: {name: "email", config: {}},
+                block: {class: "email", config: {}},
             },
             expected: null,
         },
@@ -197,7 +197,7 @@ describe("Validators", async () => {
             title: "pattern - expect failure",
             args: {
                 value: "a", definition: formValidatorsSharedDefinitions,
-                block: {name: "pattern", config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                block: {class: "pattern", config: {pattern: /prefix.*/, description: "must start with prefix"}},
             },
             expected: {
                 pattern: {
@@ -210,7 +210,7 @@ describe("Validators", async () => {
             title: "pattern - expect pass",
             args: {
                 value: "prefixa", definition: formValidatorsSharedDefinitions,
-                block: {name: "pattern", config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                block: {class: "pattern", config: {pattern: /prefix.*/, description: "must start with prefix"}},
             },
             expected: null,
         },
@@ -222,7 +222,7 @@ describe("Validators", async () => {
                     item2: new SimpleServerFormValidatorControl("value"),
                 },
                 definition: formValidatorsSharedDefinitions,
-                block: {name: "different-values", config: {controlNames: ['item1', 'item2']}},
+                block: {class: "different-values", config: {controlNames: ['item1', 'item2']}},
             },
             expected: {
                 "different-values": {
@@ -239,7 +239,7 @@ describe("Validators", async () => {
                     item2: new SimpleServerFormValidatorControl("value2"),
                 },
                 definition: formValidatorsSharedDefinitions,
-                block: {name: "different-values", config: {controlNames: ['item1', 'item2']}},
+                block: {class: "different-values", config: {controlNames: ['item1', 'item2']}},
             },
             expected: null,
         },
@@ -249,7 +249,7 @@ describe("Validators", async () => {
                 value: "asdasd",
                 definition: formValidatorsSharedDefinitions,
                 block: {
-                    name: "jsonata-expression",
+                    class: "jsonata-expression",
                     config: {description: "the description", expression: "$sum(2, 4)", evaluator: null}
                 },
             },

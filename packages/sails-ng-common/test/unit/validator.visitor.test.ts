@@ -14,70 +14,16 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Validator Visitor", async () => {
-    const exampleFormConfig: FormConfigFrame = {
-        name: "default-1.0-draft",
-        validationGroups: {
-            all: {
-                description: "Validate all fields with validators.",
-                initialMembership: "all"
-            },
-            none: {
-                description: "Validate none of the fields.",
-                initialMembership: "none",
-            },
-            minimumCreate: {
-                description: "Fields that must be valid to create a new record.",
-                initialMembership: "none",
-            },
-            transitionDraftToSubmitted: {
-                description: "Fields that must be valid to transition from draft to submitted.",
-                initialMembership: "all",
-            },
-        },
-        componentDefinitions: [
-            {
-                name: 'text_7',
-                layout: {
-                    class: 'DefaultLayout',
-                    config: {
-                        label: 'TextField with default wrapper defined',
-                        helpText: 'This is a help text',
-                    }
-                },
-                model: {
-                    class: 'SimpleInputModel',
-                    config: {
-                        defaultValue: 'hello world 2!',
-                        validators: [
-                            {
-                                name: 'pattern',
-                                config: {
-                                    pattern: /prefix.*/,
-                                    description: "must start with prefix"
-                                },
-                                groups: {include: ['minimumCreate']},
-                            },
-                            {
-                                name: 'minLength',
-                                message: "@validator-error-custom-text_7",
-                                config: {minLength: 3}
-                            },
-                        ]
-                    }
-                },
-                component: {
-                    class: 'SimpleInputComponent'
-                }
-            },
-        ]
-    };
-
     it(`should run only expected validators for initial membership none`, async function () {
         const formConfig: FormConfigFrame = {
             name: "default-1.0-draft",
             validationGroups: {
                 minimumCreate: {
                     description: "Fields that must be valid to create a new record.",
+                    initialMembership: "none",
+                },
+                minimumUpdate: {
+                    description: "Fields that must be valid to update a new record.",
                     initialMembership: "none",
                 },
             },
@@ -97,17 +43,18 @@ describe("Validator Visitor", async () => {
                             defaultValue: 'hello world 2!',
                             validators: [
                                 {
-                                    name: 'pattern',
+                                    class: 'pattern',
                                     config: {
                                         pattern: /prefix.*/,
                                         description: "must start with prefix"
                                     },
-                                    groups: {include: ['minimumCreate']},
+                                    groups: {include: ["minimumCreate", "minimumUpdate"]},
                                 },
                                 {
-                                    name: 'minLength',
+                                    class: 'minLength',
                                     message: "@validator-error-custom-text_7",
-                                    config: {minLength: 3}
+                                    config: {minLength: 3},
+                                    groups: {include: ["minimumCreate"]},
                                 },
                             ]
                         }
@@ -123,7 +70,7 @@ describe("Validator Visitor", async () => {
                 errors: [
                     {
                         message: "@validator-error-pattern",
-                        name: "pattern",
+                        class: "pattern",
                         params: {
                             actual: "hello world 2!",
                             description: "must start with prefix",
@@ -141,7 +88,7 @@ describe("Validator Visitor", async () => {
         const constructed = constructor.start(formConfig, "edit");
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.startNewRecord(constructed, ["minimumCreate"], formValidatorsSharedDefinitions);
+        const actual = visitor.startNewRecord(constructed, ["minimumCreate", "minimumUpdate"], formValidatorsSharedDefinitions);
         expect(actual).to.eql(expected);
     });
     it(`should run only expected validators for initial membership all`, async function () {
@@ -173,7 +120,7 @@ describe("Validator Visitor", async () => {
                             defaultValue: 'hello world 2!',
                             validators: [
                                 {
-                                    name: 'pattern',
+                                    class: 'pattern',
                                     config: {
                                         pattern: /prefix.*/,
                                         description: "must start with prefix"
@@ -181,7 +128,7 @@ describe("Validator Visitor", async () => {
                                     groups: {include: ['minimumCreate']},
                                 },
                                 {
-                                    name: 'minLength',
+                                    class: 'minLength',
                                     message: "@validator-error-custom-text_7",
                                     config: {minLength: 100}
                                 },
@@ -199,7 +146,7 @@ describe("Validator Visitor", async () => {
                 errors: [
                     {
                         message: "@validator-error-pattern",
-                        name: "pattern",
+                        class: "pattern",
                         params: {
                             actual: "hello world 2!",
                             description: "must start with prefix",
@@ -208,7 +155,7 @@ describe("Validator Visitor", async () => {
                     },
                     {
                         message: "@validator-error-custom-text_7",
-                        name: "minLength",
+                        class: "minLength",
                         params: {
                             actualLength: 14,
                             requiredLength: 100,
@@ -247,14 +194,14 @@ describe("Validator Visitor", async () => {
                             defaultValue: 'hello world 2!',
                             validators: [
                                 {
-                                    name: 'pattern',
+                                    class: 'pattern',
                                     config: {
                                         pattern: /prefix.*/,
                                         description: "must start with prefix"
                                     },
                                 },
                                 {
-                                    name: 'minLength',
+                                    class: 'minLength',
                                     message: "@validator-error-custom-text_7",
                                     config: {minLength: 100}
                                 },
@@ -275,7 +222,7 @@ describe("Validator Visitor", async () => {
                 errors: [
                     {
                         message: "@validator-error-custom-text_7",
-                        name: "minLength",
+                        class: "minLength",
                         params: {
                             actualLength: 6,
                             requiredLength: 100,
@@ -303,7 +250,7 @@ describe("Validator Visitor", async () => {
                 "errors": [
                     {
                         "message": "@validator-error-required",
-                        "name": "required",
+                        "class": "required",
                         "params": {"actual": undefined, "required": true}
                     }
                 ],
@@ -315,7 +262,7 @@ describe("Validator Visitor", async () => {
                 "errors": [
                     {
                         "message": "@validator-error-required",
-                        "name": "required",
+                        "class": "required",
                         "params": {"actual": undefined, "required": true},
                     }
                 ],
@@ -327,7 +274,7 @@ describe("Validator Visitor", async () => {
                 "errors": [
                     {
                         "message": "@validator-error-required",
-                        "name": "required",
+                        "class": "required",
                         "params": {"actual": undefined, "required": true}
                     }
                 ],
@@ -339,7 +286,7 @@ describe("Validator Visitor", async () => {
                 "errors": [
                     {
                         "message": "@validator-error-required",
-                        "name": "required",
+                        "class": "required",
                         "params": {"actual": undefined, "required": true}
                     }
                 ],
