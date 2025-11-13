@@ -5,17 +5,31 @@ declare global {
 	namespace Sails {
 		import Request = express.Request;
 
-		// Recursive type for nested config objects - using any for maximum flexibility
-		export interface ConfigObject {
+	// Recursive type for nested config objects - using any for maximum flexibility
+	export interface ConfigObject {
+		[key: string]: any;
+	}
+
+	// Log interface based on https://github.com/balderdashy/captains-log
+	export interface Log {
+		crit: (message: string, ...args: any[]) => void;
+		error: (message: string, ...args: any[]) => void;
+		warn: (message: string, ...args: any[]) => void;
+		debug: (message: string, ...args: any[]) => void;
+		info: (message: string, ...args: any[]) => void;
+		verbose: (message: string, ...args: any[]) => void;
+		silly: (message: string, ...args: any[]) => void;
+		blank: (message: string, ...args: any[]) => void;
+	}
+
+	export interface Application {
+		config: ConfigObject;
+		log: Log;
+		services: {
 			[key: string]: any;
-		}
-
-		export interface Application {
-			config: ConfigObject;
-			after(events: string | string[], cb: () => void): void;
-		}
-
-		export interface Hook {
+		};
+		after(events: string | string[], cb: () => void): void;
+	}		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
 				before: { [key: string]: any };
