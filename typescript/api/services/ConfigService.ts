@@ -183,6 +183,9 @@ sails.log.verbose(`${hook_log_header}::Merging branded app configuration...compl
       let apiDirs = ["services"];
       _.each(apiDirs, (apiType) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
+        if (!sails[apiType]) {
+          sails[apiType] = {};
+        }
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
         if (!_.isEmpty(files)) {
