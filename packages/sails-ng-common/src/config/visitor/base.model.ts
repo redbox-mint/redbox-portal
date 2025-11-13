@@ -423,10 +423,10 @@ export class PopulateProperties {
         ...sources: ({ [x: string]: any; } | null | undefined)[]
     ) {
         if (target === undefined || target === null) {
-            throw new Error("Target provided to setProp was undefined or null.");
+            throw new Error("Target provided to setPropOverride was undefined or null.");
         }
         if (name === undefined || name === null) {
-            throw new Error("Property name provided to setProp was undefined or null.");
+            throw new Error("Property name provided to setPropOverride was undefined or null.");
         }
 
         const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];

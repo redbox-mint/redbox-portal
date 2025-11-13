@@ -188,8 +188,26 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.sharedProps.setPropOverride('defaultComponentConfig', item, currentData);
         this.sharedProps.setPropOverride('skipValidationOnSave', item, currentData);
         this.sharedProps.setPropOverride('validators', item, currentData);
+        this.sharedProps.setPropOverride('validationGroups', item, currentData);
         this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
         this.sharedProps.setPropOverride('debugValue', item, currentData);
+
+        // Ensure the default validation groups are present.
+        if (!item.validationGroups) {
+            item.validationGroups = {};
+        }
+        if (!Object.hasOwn(item.validationGroups, "all")) {
+            item.validationGroups['all'] = {
+                description: "Validate all fields with validators.",
+                initialMembership: "all"
+            };
+        }
+        if (!Object.hasOwn(item.validationGroups, "none")) {
+            item.validationGroups['none'] = {
+                description: "Validate none of the fields.",
+                initialMembership: "none",
+            };
+        }
 
         currentData.componentDefinitions = this.applyOverrides(currentData?.componentDefinitions ?? []);
 

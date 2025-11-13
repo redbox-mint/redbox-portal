@@ -80,6 +80,9 @@ export const reusableDefinitionsExample1: ReusableFormDefinitions = {
     "standard-project-info-fields": [],
 };
 
+/**
+ * A general form config with examples of most of the component types and nested components.
+ */
 export const formConfigExample1: FormConfigFrame = {
     name: "default-1.0-draft",
     type: "rdmp",
@@ -94,6 +97,25 @@ export const formConfigExample1: FormConfigFrame = {
     validators: [
         {name: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
+    // Groups of validators that can be enabled and disabled together.
+    validationGroups: {
+        all: {
+            description: "Validate all fields with validators.",
+            initialMembership: "all"
+        },
+        none: {
+            description: "Validate none of the fields.",
+            initialMembership: "none",
+        },
+        minimumCreate: {
+            description: "Fields that must be valid to create a new record.",
+            initialMembership: "none",
+        },
+        transitionDraftToSubmitted: {
+            description: "Fields that must be valid to transition from draft to submitted.",
+            initialMembership: "all",
+        },
+    },
     componentDefinitions: [
         {
             name: 'main_tab',
@@ -579,6 +601,16 @@ export const formConfigExample1: FormConfigFrame = {
                                                                                 class: 'SimpleInputModel',
                                                                                 config: {
                                                                                     defaultValue: 'hello world 5!',
+                                                                                    validators: [
+                                                                                        {name: 'required'},
+                                                                                        {
+                                                                                            name: 'pattern',
+                                                                                            config: {
+                                                                                                pattern: /prefix.*/,
+                                                                                                description: "must start with prefix"
+                                                                                            }
+                                                                                        },
+                                                                                    ]
                                                                                 }
                                                                             },
                                                                             component: {
@@ -761,6 +793,9 @@ export const formConfigExample1: FormConfigFrame = {
     ]
 };
 
+/**
+ * Form config example that uses reusable form config.
+ */
 export const formConfigExample2: FormConfigFrame = {
     name: "default-1.0-draft",
     type: "rdmp",

@@ -105,6 +105,10 @@ describe("Client Visitor", async () => {
                 editCssClasses: "redbox-form form",
                 skipValidationOnSave: false,
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -202,6 +206,10 @@ describe("Client Visitor", async () => {
                 editCssClasses: "redbox-form form",
                 skipValidationOnSave: false,
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -282,6 +290,10 @@ describe("Client Visitor", async () => {
                 editCssClasses: "redbox-form form",
                 skipValidationOnSave: false,
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -429,6 +441,10 @@ describe("Client Visitor", async () => {
                 editCssClasses: "redbox-form form",
                 skipValidationOnSave: false,
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',

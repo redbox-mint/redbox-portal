@@ -7,6 +7,7 @@ import {
 } from "../../src";
 import {ValidatorFormConfigVisitor} from "../../src/config/visitor/validator.visitor";
 import {logger} from "./helpers";
+import {formConfigExample1} from "./example-data";
 
 
 let expect: Chai.ExpectStatic;
@@ -72,31 +73,281 @@ describe("Validator Visitor", async () => {
     };
 
     it(`should run only expected validators for initial membership none`, async function () {
-        const args = _cloneDeep(exampleFormConfig);
-        const expected: FormValidatorSummaryErrors[] = [];
+        const formConfig: FormConfigFrame = {
+            name: "default-1.0-draft",
+            validationGroups: {
+                minimumCreate: {
+                    description: "Fields that must be valid to create a new record.",
+                    initialMembership: "none",
+                },
+            },
+            componentDefinitions: [
+                {
+                    name: 'text_7',
+                    layout: {
+                        class: 'DefaultLayout',
+                        config: {
+                            label: 'TextField with default wrapper defined',
+                            helpText: 'This is a help text',
+                        }
+                    },
+                    model: {
+                        class: 'SimpleInputModel',
+                        config: {
+                            defaultValue: 'hello world 2!',
+                            validators: [
+                                {
+                                    name: 'pattern',
+                                    config: {
+                                        pattern: /prefix.*/,
+                                        description: "must start with prefix"
+                                    },
+                                    groups: {include: ['minimumCreate']},
+                                },
+                                {
+                                    name: 'minLength',
+                                    message: "@validator-error-custom-text_7",
+                                    config: {minLength: 3}
+                                },
+                            ]
+                        }
+                    },
+                    component: {
+                        class: 'SimpleInputComponent'
+                    }
+                },
+            ]
+        };
+        const expected: FormValidatorSummaryErrors[] = [
+            {
+                errors: [
+                    {
+                        message: "@validator-error-pattern",
+                        name: "pattern",
+                        params: {
+                            actual: "hello world 2!",
+                            description: "must start with prefix",
+                            requiredPattern: "/prefix.*/",
+                        },
+                    },
+                ],
+                id: "text_7",
+                message: "TextField with default wrapper defined",
+                parents: [],
+            }
+        ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(args, "edit");
+        const constructed = constructor.start(formConfig, "edit");
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.startNewRecord(constructed, ["minimumCreate"], formValidatorsSharedDefinitions);
         expect(actual).to.eql(expected);
     });
     it(`should run only expected validators for initial membership all`, async function () {
-        const args = _cloneDeep(exampleFormConfig);
-        const expected: FormValidatorSummaryErrors[] = [];
+        const formConfig: FormConfigFrame = {
+            name: "default-1.0-draft",
+            validationGroups: {
+                minimumCreate: {
+                    description: "Fields that must be valid to create a new record.",
+                    initialMembership: "none",
+                },
+                transitionDraftToSubmitted: {
+                    description: "Fields that must be valid to transition from draft to submitted.",
+                    initialMembership: "all",
+                },
+            },
+            componentDefinitions: [
+                {
+                    name: 'text_7',
+                    layout: {
+                        class: 'DefaultLayout',
+                        config: {
+                            label: 'TextField with default wrapper defined',
+                            helpText: 'This is a help text',
+                        }
+                    },
+                    model: {
+                        class: 'SimpleInputModel',
+                        config: {
+                            defaultValue: 'hello world 2!',
+                            validators: [
+                                {
+                                    name: 'pattern',
+                                    config: {
+                                        pattern: /prefix.*/,
+                                        description: "must start with prefix"
+                                    },
+                                    groups: {include: ['minimumCreate']},
+                                },
+                                {
+                                    name: 'minLength',
+                                    message: "@validator-error-custom-text_7",
+                                    config: {minLength: 100}
+                                },
+                            ]
+                        }
+                    },
+                    component: {
+                        class: 'SimpleInputComponent'
+                    }
+                },
+            ]
+        };
+        const expected: FormValidatorSummaryErrors[] = [
+            {
+                errors: [
+                    {
+                        message: "@validator-error-pattern",
+                        name: "pattern",
+                        params: {
+                            actual: "hello world 2!",
+                            description: "must start with prefix",
+                            requiredPattern: "/prefix.*/",
+                        },
+                    },
+                    {
+                        message: "@validator-error-custom-text_7",
+                        name: "minLength",
+                        params: {
+                            actualLength: 14,
+                            requiredLength: 100,
+                        },
+                    },
+                ],
+                id: "text_7",
+                message: "TextField with default wrapper defined",
+                parents: [],
+            }
+        ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(args, "edit");
+        const constructed = constructor.start(formConfig, "edit");
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.startNewRecord(constructed, ["transitionDraftToSubmitted"], formValidatorsSharedDefinitions);
         expect(actual).to.eql(expected);
     });
     it(`should run expected validators for existing record`, async function () {
-        const args = _cloneDeep(exampleFormConfig);
+        const formConfig: FormConfigFrame = {
+            name: "default-1.0-draft",
+            componentDefinitions: [
+                {
+                    name: 'text_7',
+                    layout: {
+                        class: 'DefaultLayout',
+                        config: {
+                            label: 'TextField with default wrapper defined',
+                            helpText: 'This is a help text',
+                        }
+                    },
+                    model: {
+                        class: 'SimpleInputModel',
+                        config: {
+                            defaultValue: 'hello world 2!',
+                            validators: [
+                                {
+                                    name: 'pattern',
+                                    config: {
+                                        pattern: /prefix.*/,
+                                        description: "must start with prefix"
+                                    },
+                                },
+                                {
+                                    name: 'minLength',
+                                    message: "@validator-error-custom-text_7",
+                                    config: {minLength: 100}
+                                },
+                            ]
+                        }
+                    },
+                    component: {
+                        class: 'SimpleInputComponent'
+                    }
+                },
+            ]
+        };
+        const record = {
+            text_7: "prefix"
+        };
+        const expected: FormValidatorSummaryErrors[] = [
+            {
+                errors: [
+                    {
+                        message: "@validator-error-custom-text_7",
+                        name: "minLength",
+                        params: {
+                            actualLength: 6,
+                            requiredLength: 100,
+                        },
+                    },
+                ],
+                id: "text_7",
+                message: "TextField with default wrapper defined",
+                parents: [],
+            }
+        ];
+
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start(formConfig, "edit");
+
+        const visitor = new ValidatorFormConfigVisitor(logger);
+        const actual = visitor.startExistingRecord(constructed, ["all"], formValidatorsSharedDefinitions, record);
+        expect(actual).to.eql(expected);
+    });
+    it(`should run all the validators in example form config with empty existing record`, async function () {
+        const args = _cloneDeep(formConfigExample1);
         const record = {};
-        const expected: FormValidatorSummaryErrors[] = [];
+        const expected: FormValidatorSummaryErrors[] = [
+            {
+                "errors": [
+                    {
+                        "message": "@validator-error-required",
+                        "name": "required",
+                        "params": {"actual": undefined, "required": true}
+                    }
+                ],
+                "id": "text_1_event",
+                "message": null,
+                "parents": [],
+            },
+            {
+                "errors": [
+                    {
+                        "message": "@validator-error-required",
+                        "name": "required",
+                        "params": {"actual": undefined, "required": true},
+                    }
+                ],
+                "id": "text_2_event",
+                "message": null,
+                "parents": [],
+            },
+            {
+                "errors": [
+                    {
+                        "message": "@validator-error-required",
+                        "name": "required",
+                        "params": {"actual": undefined, "required": true}
+                    }
+                ],
+                "id": "text_3_event",
+                "message": null,
+                "parents": [],
+            },
+            {
+                "errors": [
+                    {
+                        "message": "@validator-error-required",
+                        "name": "required",
+                        "params": {"actual": undefined, "required": true}
+                    }
+                ],
+                "id": "text_5",
+                "message": "TextField with default wrapper defined",
+                "parents": ["group_1_component", "group_2_component"]
+            }
+        ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
         const constructed = constructor.start(args, "edit");

@@ -1,5 +1,7 @@
 import {CurrentPathFormConfigVisitor} from "./base.model";
 import {
+    FormValidationGroups,
+    FormValidatorConfig,
     FormValidatorControl,
     FormValidatorDefinition,
     FormValidatorSummaryErrors,
@@ -67,6 +69,7 @@ import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
+import {get as _get, set as _set} from "lodash";
 
 /**
  * Visit each form config component and run its validators.
@@ -79,10 +82,26 @@ import {
  */
 export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private formConfig: FormConfigOutline | undefined = undefined;
+    /**
+     * The validation group names to enable.
+     */
     private validationGroupNames: string[] = [];
+    /**
+     * The record values to validate.
+     */
     private recordValues: Record<string, unknown> | undefined = undefined;
+    /**
+     * A map of the validator keys to validation functions.
+     */
     private validatorDefinitionsMap: Map<string, FormValidatorDefinition>;
+    /**
+     * The 'lineage path' from the form to the current component.
+     * This is updated as processing progresses to reflect the nesting to the current component.
+     */
     private resultPath: string[] = [];
+    /**
+     * Any validation errors, including the identifier of form field control for each.
+     */
     private result: FormValidatorSummaryErrors[] = [];
     private validatorSupport: ValidatorsSupport;
 
@@ -163,11 +182,6 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        // NOTES:
-        // - For each element in the default value array, build the component from any ancestor defaultValues.
-        // - The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
-        // - The easiest way to do this is to just not visit the elementTemplate.
-        // item.config?.elementTemplate?.accept(this);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -349,26 +363,19 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const itemName = item?.name;
         const validators = item?.model?.config?.validators ?? [];
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
-        // TODO: get record for the form component
-        const record = {};
-        // TODO: get the parents for the form control
-        const parents: string[] = [];
+        // Use the result path to get the value for this component.
+        const value = _get(this.recordValues, this.resultPath, undefined);
+        // Use the result path to get the parents of the form control.
+        const parents: string[] = this.resultPath.length > 1 ? this.resultPath.slice(0, this.resultPath.length - 1) : [];
 
+        const availableValidatorGroups = this.formConfig?.validationGroups ?? {};
         const result: FormValidatorSummaryErrors[] = [];
         if (Array.isArray(validators) && validators.length > 0) {
-            const filteredValidators = validators.filter(validator => {
-                const include = (validator?.groups?.include ?? []);
-                const exclude = (validator?.groups?.exclude ?? []);
-                if (include.length > 0 && !include.some(group => this.validationGroupNames.includes(group))){
-                    return false;
-                }
-                if (exclude.length > 0 && exclude.some(group => this.validationGroupNames.includes(group))){
-                    return false;
-                }
-                return true;
-            });
+            const filteredValidators = validators.filter(validator =>
+                this.isValidatorEnabled(availableValidatorGroups, this.validationGroupNames, validator)
+            );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
-            const recordFormControl = this.createFormControlFromRecordValue(record);
+            const recordFormControl = this.createFormControlFromRecordValue(value);
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,
                 message: item?.layout?.config?.label || null,
@@ -392,5 +399,31 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
 
         return result;
+    }
+
+    protected isValidatorEnabled(availableGroups: FormValidationGroups, enabledGroups: string[], validator: FormValidatorConfig): boolean {
+        // If there are no validation groups, all validators are enabled.
+        if (Object.keys(availableGroups).length === 0) {
+            return true;
+        }
+        // Check each validation group to see if the validator is enabled.
+        for (const [groupKey, groupConfig] of Object.entries(availableGroups)) {
+            if (!enabledGroups.includes(groupKey)) {
+                continue;
+            }
+            const membership = groupConfig.initialMembership ?? "";
+            const include = validator.groups?.include ?? [];
+            const exclude = validator.groups?.exclude ?? [];
+            if (membership === "all" && !exclude.includes(groupKey)) {
+                return true;
+            }
+            if (include.includes(groupKey)) {
+                return true;
+            }
+            if (exclude.includes(groupKey)) {
+                return false;
+            }
+        }
+        return false;
     }
 }
