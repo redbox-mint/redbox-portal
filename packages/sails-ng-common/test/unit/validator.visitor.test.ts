@@ -293,8 +293,25 @@ describe("Validator Visitor", async () => {
                 "id": "text_5",
                 "message": "TextField with default wrapper defined",
                 "parents": ["group_1_component", "group_2_component"]
-            }
-        ];
+            },
+            {
+                "errors": [
+                    {
+                        "class": "different-values",
+                        "message": "@validator-error-different-values",
+                        "params": {
+                            "controlCount": 2,
+                            "controlNames": ["text_1_event", "text_2"],
+                            "valueCount": 1,
+                            "values": [undefined],
+                        }
+                    }
+                ],
+                "id": "default-1.0-draft",
+                "message": null,
+                "parents": [],
+            },
+    ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
         const constructed = constructor.start(args, "edit");

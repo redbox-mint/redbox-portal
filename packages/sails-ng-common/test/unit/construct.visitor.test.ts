@@ -5,7 +5,6 @@ import {
 } from "../../src";
 import {formConfigExample1, formConfigExample2, reusableDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
-import {describe} from "node:test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);

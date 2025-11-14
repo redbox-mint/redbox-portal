@@ -398,52 +398,58 @@ export module Services {
             return result;
         }
 
-        /**
-         * Use the changes to an original record to create a form config to display the changes.
-         *
-         * Form config is only for 'view' mode.
-         *
-         * @param original The original record data.
-         * @param changes The changes to the original record data.
-         */
-        public async buildFormConfigForChanges(
-            original: { redboxOid: string, [key: string]: unknown },
-            changes: FormRecordConsistencyChange[],
-        ): Promise<FormConfigFrame> {
-            // TODO: Use the record and form config and/or changes between the record and form config
-            //  to build a new form config that displays only the changes.
-            //return {};
-            throw new Error("Not implemented");
-        }
+        // TODO: implement this
+        // /**
+        //  * Use the changes to an original record to create a form config to display the changes.
+        //  *
+        //  * Form config is only for 'view' mode.
+        //  *
+        //  * @param original The original record data.
+        //  * @param changes The changes to the original record data.
+        //  */
+        // public async buildFormConfigForChanges(
+        //     original: { redboxOid: string, [key: string]: unknown },
+        //     changes: FormRecordConsistencyChange[],
+        // ): Promise<FormConfigFrame> {
+        //     // TODO: Use the record and form config and/or changes between the record and form config
+        //     //  to build a new form config that displays only the changes.
+        //     //return {};
+        //     throw new Error("Not implemented");
+        // }
 
-        /**
-         * Validate a record's structure matches the form config associated with the recordtype.
-         *
-         * @param record The record data, including the record type.
-         * @param context The context for the user providing the record.
-         */
-        public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
-            /*
-            // get the record's form name
-            const formName = record?.metaMetadata?.['form'];
-            // the validation will be done on all values present in the data model, so use the form config with all fields included
-            const isEditMode = true;
-            // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode));
-            // get the schema from the form config
-            const schema = this.buildSchemaForFormConfig(formConfig);
-            // TODO: Match the schema to the record and return any differences.
-            return [];
-            */
-            throw new Error("Not implemented");
-        }
+        // TODO: implement this
+        // /**
+        //  * Validate a record's structure matches the form config associated with the recordtype.
+        //  *
+        //  * @param record The record data, including the record type.
+        //  * @param context The context for the user providing the record.
+        //  */
+        // public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
+        //     /*
+        //     // get the record's form name
+        //     const formName = record?.metaMetadata?.['form'];
+        //     // the validation will be done on all values present in the data model, so use the form config with all fields included
+        //     const isEditMode = true;
+        //     // get the record's form config
+        //     const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode));
+        //     // get the schema from the form config
+        //     const schema = this.buildSchemaForFormConfig(formConfig);
+        //     // TODO: Match the schema to the record and return any differences.
+        //     return [];
+        //     */
+        //     throw new Error("Not implemented");
+        // }
 
         /**
          * Validate a record's data model values using the validators specified in the form config.
          *
          * @param record The record data, including the record type.
+         * @param enabledValidationGroups The validation groups to enable.
          */
-        public async validateRecordValuesForFormConfig(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
+        public async validateRecordValuesForFormConfig(
+            record: BasicRedboxRecord,
+            enabledValidationGroups?: string[]
+        ): Promise<FormValidatorSummaryErrors[]> {
             // get the record's form name
             const formName = record?.metaMetadata?.['form'];
 
@@ -455,17 +461,16 @@ export module Services {
             // get the record's form config
             const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
 
-            // TODO: get the validation group names
-            const validationGroupNames = [];
-
-            // the validator definitions are in the sails-ng-common package
-            const validatorDefinitions = formValidatorsSharedDefinitions;
+            // Get the validator definitions from the sails config, so the definitions can be overwritten.
+            const validatorDefinitions = sails.config.validators.definitions;
 
             const constructor = new ConstructFormConfigVisitor(this.logger);
             const constructed = constructor.start(formConfig, formMode);
 
             const visitor = new ValidatorFormConfigVisitor(this.logger);
-            return visitor.startExistingRecord(constructed, validationGroupNames, validatorDefinitions, record);
+            return visitor.startExistingRecord(
+                constructed, enabledValidationGroups || ["all"], validatorDefinitions, record?.metadata ?? {}
+            );
         }
 
         /**

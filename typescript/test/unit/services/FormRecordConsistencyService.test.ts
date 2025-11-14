@@ -3,7 +3,7 @@ import {Services, Services as FormRecordConsistencyModule} from "../../../api/se
 import {Services as FormsModule} from "../../../api/services/FormsService";
 import {
     AvailableFormComponentDefinitionFrames,
-    FormConfigFrame,
+    FormConfigFrame, FormValidatorSummaryErrors,
 } from "@researchdatabox/sails-ng-common";
 import BasicRedboxRecord = Services.BasicRedboxRecord;
 import {FormModel} from "@researchdatabox/redbox-core-types";
@@ -885,14 +885,14 @@ describe('The FormRecordConsistencyService', function () {
                     }
                 }
             };
-            const expected = [
+            const expected: FormValidatorSummaryErrors[] = [
                 {
                     "id": "text_1",
                     "message": null,
                     "parents": ["default-1.0-draft"],
                     "errors": [
                         {
-                            "name": "minLength",
+                            "class": "minLength",
                             "message": "@validator-error-min-length",
                             "params": {
                                 "actualLength": 12,
@@ -900,7 +900,7 @@ describe('The FormRecordConsistencyService', function () {
                             }
                         },
                         {
-                            "name": "maxLength",
+                            "class": "maxLength",
                             "message": "@validator-error-max-length",
                             "params": {
                                 "actualLength": 12,
@@ -915,7 +915,7 @@ describe('The FormRecordConsistencyService', function () {
                     "parents": ["default-1.0-draft"],
                     "errors": [
                         {
-                            "name": "requiredTrue",
+                            "class": "requiredTrue",
                             "message": "@validator-error-required-true",
                             "params": {
                                 "actual": "text_1_value",
@@ -934,7 +934,7 @@ describe('The FormRecordConsistencyService', function () {
                     "errors": [
                         {
                             "message": "@validator-error-required",
-                            "name": "required",
+                            "class": "required",
                             "params": {
                                 "actual": "",
                                 "required": true,
@@ -951,7 +951,7 @@ describe('The FormRecordConsistencyService', function () {
                     ],
                     "errors": [
                         {
-                            "name": "pattern",
+                            "class": "pattern",
                             "message": "@validator-error-pattern",
                             "params": {
                                 "actual": "some text",
@@ -960,7 +960,7 @@ describe('The FormRecordConsistencyService', function () {
                             }
                         },
                         {
-                            "name": "minLength",
+                            "class": "minLength",
                             "message": "@validator-error-custom-text_7",
                             "params": {
                                 "actualLength": 9,
@@ -975,7 +975,7 @@ describe('The FormRecordConsistencyService', function () {
                     "parents": [],
                     "errors": [
                         {
-                            "name": "different-values",
+                            "class": "different-values",
                             "message": "@validator-error-different-values",
                             "params": {
                                 "controlCount": 2,

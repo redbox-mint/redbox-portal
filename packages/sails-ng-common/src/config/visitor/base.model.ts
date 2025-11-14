@@ -277,7 +277,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     // TODO: fix typing
-    protected getDataPath(data?: FormConfigFrame, path?: string[]) {
+    protected getDataPath(data?: unknown, path?: string[]) {
         const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
 
         // for debugging:
