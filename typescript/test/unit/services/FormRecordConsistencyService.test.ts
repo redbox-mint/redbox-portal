@@ -889,7 +889,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_1",
                     "message": null,
-                    "parents": ["default-1.0-draft"],
+                    "parents": [],
                     "errors": [
                         {
                             "class": "minLength",
@@ -912,7 +912,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_2",
                     "message": "@text_2_custom_label",
-                    "parents": ["default-1.0-draft"],
+                    "parents": [],
                     "errors": [
                         {
                             "class": "requiredTrue",
@@ -928,7 +928,6 @@ describe('The FormRecordConsistencyService', function () {
                     "id": "text_5",
                     "message": null,
                     "parents": [
-                        "default-1.0-draft",
                         "group_2"
                     ],
                     "errors": [
@@ -946,7 +945,6 @@ describe('The FormRecordConsistencyService', function () {
                     "id": "text_3",
                     "message": null,
                     "parents": [
-                        "default-1.0-draft",
                         "group_2"
                     ],
                     "errors": [

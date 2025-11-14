@@ -332,20 +332,22 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     protected createFormControlFromRecordValue(recordValue: unknown): FormValidatorControl {
         const guessedType = guessType(recordValue);
+        let result;
         if (guessedType === "object") {
-            return new SimpleServerFormValidatorControl(
+            result = new SimpleServerFormValidatorControl(
                 Object.fromEntries(
                     Object.entries(recordValue as Record<string, unknown>)
                         .map(([key, value]) => [key, this.createFormControlFromRecordValue(value)])
                 )
             );
         } else if (guessedType === "array") {
-            return new SimpleServerFormValidatorControl(
+            result = new SimpleServerFormValidatorControl(
                 (recordValue as Array<unknown>).map(i => this.createFormControlFromRecordValue(i))
             );
         } else {
-            return new SimpleServerFormValidatorControl(recordValue);
+            result = new SimpleServerFormValidatorControl(recordValue);
         }
+        return result;
     }
 
     protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
@@ -366,11 +368,14 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.resultPath = [...itemResultPath];
     }
 
-    protected validateFormComponent(itemName: string, validators?:  FormValidatorConfig[], message?: string) {
+    protected validateFormComponent(itemName: string, validators?: FormValidatorConfig[], message?: string) {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
         // Use the result path to get the value for this component.
-        const value = _get(this.recordValues, this.resultPath, undefined);
-        this.logger.verbose(`validateFormComponent resultPath: ${JSON.stringify(this.resultPath)} value: ${JSON.stringify(value)}`);
+        const value = this.resultPath.length > 0 ? _get(this.recordValues, this.resultPath, undefined) : this.recordValues;
+
+        // for debugging:
+        // this.logger.verbose(`validateFormComponent resultPath: ${JSON.stringify(this.resultPath)} value: ${JSON.stringify(value)}`);
+
         // Use the result path to get the parents of the form control.
         const parents: string[] = this.resultPath.length > 1 ? this.resultPath.slice(0, this.resultPath.length - 1) : [];
 
