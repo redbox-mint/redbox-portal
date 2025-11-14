@@ -453,7 +453,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get isRequired(): boolean {
-    return this.model?.validators?.some(v => v?.name === 'required') ?? false;
+    return this.model?.validators?.some(v => v?.class === 'required') ?? false;
   }
 
   get isValid(): boolean {

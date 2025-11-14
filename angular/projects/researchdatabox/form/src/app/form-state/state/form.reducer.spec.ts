@@ -1,6 +1,6 @@
 /**
  * Form Reducer Tests
- * 
+ *
  * Validates state transitions per R2.1-R2.14, R3.1, R4.1, AC1-AC17, AC22
  * Task 2: Reducer tests for default state, each transition, and unknown actions
  */
@@ -15,7 +15,7 @@ describe('formReducer', () => {
     it('should return formInitialState when undefined state is passed', () => {
       const action = { type: 'NOOP' };
       const result = formReducer(undefined, action);
-      
+
       expect(result).toEqual(formInitialState);
     });
 
@@ -41,9 +41,9 @@ describe('formReducer', () => {
         isDirty: true,
       };
       const unknownAction = { type: 'UNKNOWN_ACTION' };
-      
+
       const result = formReducer(currentState, unknownAction);
-      
+
       expect(result).toEqual(currentState);
     });
   });
@@ -55,9 +55,9 @@ describe('formReducer', () => {
         recordType: 'rdmp',
         formName: 'default'
       });
-      
+
       const result = formReducer(formInitialState, action);
-      
+
       expect(result.status).toBe(FormStatus.INIT);
       expect(result.pendingActions).toContain('loadInitialData');
     });
@@ -69,9 +69,9 @@ describe('formReducer', () => {
       };
       const mockData = { title: 'Test Record' };
       const action = FormActions.loadInitialDataSuccess({ data: mockData });
-      
+
       const result = formReducer(loadingState, action);
-      
+
       expect(result.status).toBe(FormStatus.READY);
       expect(result.initialDataLoaded).toBe(true);
       expect(result.pendingActions).toEqual([]);
@@ -84,12 +84,12 @@ describe('formReducer', () => {
         ...formInitialState,
         pendingActions: ['loadInitialData']
       };
-      const action = FormActions.loadInitialDataFailure({ 
-        error: 'Network error' 
+      const action = FormActions.loadInitialDataFailure({
+        error: 'Network error'
       });
-      
+
       const result = formReducer(loadingState, action);
-      
+
       expect(result.status).toBe(FormStatus.LOAD_ERROR);
       expect(result.error).toBe('Network error');
       expect(result.pendingActions).toEqual([]);
@@ -107,11 +107,11 @@ describe('formReducer', () => {
       const action = FormActions.submitForm({
         force: false,
         targetStep: 'metadata',
-        skipValidation: false
+        enabledValidationGroups: ["all"],
       });
-      
+
       const result = formReducer(readyState, action);
-      
+
       expect(result.status).toBe(FormStatus.SAVING);
       expect(result.pendingActions).toContain('submitForm');
       expect(result.submissionAttempt).toBe(1); // R4.5
@@ -123,24 +123,24 @@ describe('formReducer', () => {
         status: FormStatus.READY,
         initialDataLoaded: true
       };
-      
+
       // First submission
       state = formReducer(state, FormActions.submitForm({
         force: false,
-        skipValidation: false
+        enabledValidationGroups: ["all"],
       }));
       expect(state.submissionAttempt).toBe(1);
-      
+
       // Return to READY
-      state = formReducer(state, FormActions.submitFormSuccess({ 
+      state = formReducer(state, FormActions.submitFormSuccess({
         savedData: {},
         lastSavedAt: new Date().toISOString()
       }));
-      
+
       // Second submission
       state = formReducer(state, FormActions.submitForm({
         force: false,
-        skipValidation: false
+        enabledValidationGroups: ["all"],
       }));
       expect(state.submissionAttempt).toBe(2);
     });
@@ -157,9 +157,9 @@ describe('formReducer', () => {
       const savedData = { id: '123', title: 'Saved' };
       const action = FormActions.submitFormSuccess({ savedData,
         lastSavedAt: new Date().toISOString() });
-      
+
       const result = formReducer(savingState, action);
-      
+
       expect(result.status).toBe(FormStatus.READY);
       expect(result.isDirty).toBe(false);
       expect(result.lastSavedAt).not.toBeNull();
@@ -176,12 +176,12 @@ describe('formReducer', () => {
         submissionAttempt: 1,
         pendingActions: ['submitForm']
       };
-      const action = FormActions.submitFormFailure({ 
-        error: 'Validation failed' 
+      const action = FormActions.submitFormFailure({
+        error: 'Validation failed'
       });
-      
+
       const result = formReducer(savingState, action);
-      
+
       expect(result.status).toBe(FormStatus.VALIDATION_ERROR);
       expect(result.error).toBe('Validation failed');
       expect(result.pendingActions).toEqual([]);
@@ -194,13 +194,13 @@ describe('formReducer', () => {
         initialDataLoaded: true,
         pendingActions: ['submitForm']
       };
-      const action = FormActions.submitFormSuccess({ 
+      const action = FormActions.submitFormSuccess({
         savedData: {},
-        lastSavedAt: new Date().toISOString() 
+        lastSavedAt: new Date().toISOString()
       });
-      
+
       const result = formReducer(savingState, action);
-      
+
   expect(result.lastSavedAt).not.toBeNull();
   // lastSavedAt should be an ISO string
   expect(typeof result.lastSavedAt).toBe('string');
@@ -219,9 +219,9 @@ describe('formReducer', () => {
         resetToken: 5
       };
       const action = FormActions.resetAllFields();
-      
+
       const result = formReducer(readyState, action);
-      
+
       expect(result.status).toBe(FormStatus.READY);
       expect(result.pendingActions).toContain('resetAllFields');
       expect(result.resetToken).toBe(6); // R2.10
@@ -236,9 +236,9 @@ describe('formReducer', () => {
         pendingActions: ['submitForm']
       };
       const action = FormActions.resetAllFields();
-      
+
       const result = formReducer(savingState, action);
-      
+
       expect(result.status).toBe(FormStatus.SAVING);
       expect(result.resetToken).toBe(3); // No increment
       expect(result.pendingActions).toEqual(['submitForm']); // Unchanged
@@ -254,9 +254,9 @@ describe('formReducer', () => {
         pendingActions: ['resetAllFields']
       };
       const action = FormActions.resetAllFieldsComplete();
-      
+
       const result = formReducer(resetState, action);
-      
+
       expect(result.isDirty).toBe(false);
       expect(result.pendingActions).toEqual([]);
       expect(result.resetToken).toBe(8); // Preserved
@@ -272,9 +272,9 @@ describe('formReducer', () => {
         pendingActions: ['resetAllFields']
       };
       const action = FormActions.resetAllFieldsComplete();
-      
+
       const result = formReducer(errorState, action);
-      
+
       expect(result.status).toBe(FormStatus.READY);
       expect(result.error).toBeNull();
     });
@@ -288,9 +288,9 @@ describe('formReducer', () => {
         isDirty: false
       };
       const action = FormActions.markDirty();
-      
+
       const result = formReducer(pristineState, action);
-      
+
       expect(result.isDirty).toBe(true);
     });
 
@@ -301,9 +301,9 @@ describe('formReducer', () => {
         isDirty: true
       };
       const action = FormActions.markPristine();
-      
+
       const result = formReducer(dirtyState, action);
-      
+
       expect(result.isDirty).toBe(false);
     });
   });
@@ -316,9 +316,9 @@ describe('formReducer', () => {
         initialDataLoaded: true
       };
       const action = FormActions.formValidationPending();
-      
+
       const result = formReducer(readyState, action);
-      
+
       expect(result.status).toBe(FormStatus.VALIDATION_PENDING);
       expect(result.pendingActions).toContain('formValidationPending');
     });
@@ -331,9 +331,9 @@ describe('formReducer', () => {
         pendingActions: ['formValidationPending']
       };
       const action = FormActions.formValidationSuccess();
-      
+
       const result = formReducer(validatingState, action);
-      
+
       expect(result.status).toBe(FormStatus.READY);
       expect(result.pendingActions).toEqual([]);
       expect(result.error).toBeNull();
@@ -346,12 +346,12 @@ describe('formReducer', () => {
         initialDataLoaded: true,
         pendingActions: ['formValidationPending']
       };
-      const action = FormActions.formValidationFailure({ 
-        error: 'Invalid field values' 
+      const action = FormActions.formValidationFailure({
+        error: 'Invalid field values'
       });
-      
+
       const result = formReducer(validatingState, action);
-      
+
       expect(result.status).toBe(FormStatus.VALIDATION_ERROR);
       expect(result.error).toBe('Invalid field values');
       expect(result.pendingActions).toEqual([]);
@@ -365,9 +365,9 @@ describe('formReducer', () => {
         pendingActions: ['submitForm']
       };
       const action = FormActions.formValidationPending();
-      
+
       const result = formReducer(savingState, action);
-      
+
       // Should remain SAVING, not transition to VALIDATION_PENDING
       expect(result.status).toBe(FormStatus.SAVING);
       expect(result.pendingActions).toEqual(['submitForm']); // Unchanged
@@ -380,12 +380,12 @@ describe('formReducer', () => {
         initialDataLoaded: true,
         pendingActions: ['submitForm']
       };
-      const action = FormActions.formValidationFailure({ 
-        error: 'Should be ignored' 
+      const action = FormActions.formValidationFailure({
+        error: 'Should be ignored'
       });
-      
+
       const result = formReducer(savingState, action);
-      
+
       expect(result.status).toBe(FormStatus.SAVING);
       expect(result.error).toBeNull(); // Error not applied
     });
@@ -399,9 +399,9 @@ describe('formReducer', () => {
         error: 'Previous error message'
       };
       const action = FormActions.ackError();
-      
+
       const result = formReducer(errorState, action);
-      
+
       expect(result.error).toBeNull();
       expect(result.status).toBe(FormStatus.READY);
     });
@@ -414,9 +414,9 @@ describe('formReducer', () => {
       };
       const newSnapshot = { field1: 'value1', field2: 'value2' };
       const action = FormActions.syncModelSnapshot({ snapshot: newSnapshot });
-      
+
       const result = formReducer(currentState, action);
-      
+
       expect(result.modelSnapshot).toEqual(newSnapshot);
     });
 
@@ -427,9 +427,9 @@ describe('formReducer', () => {
         modelSnapshot: { old: 'data' }
       };
       const action = FormActions.syncModelSnapshot({ snapshot: null });
-      
+
       const result = formReducer(currentState, action);
-      
+
       expect(result.modelSnapshot).toBeNull();
     });
   });
@@ -437,7 +437,7 @@ describe('formReducer', () => {
   describe('Pending actions tracking (R2.1)', () => {
     it('should track multiple pending actions', () => {
       let state = formInitialState;
-      
+
       // Start load
       state = formReducer(state, FormActions.loadInitialData({
         oid: 'test',
@@ -445,17 +445,17 @@ describe('formReducer', () => {
         formName: 'default'
       }));
       expect(state.pendingActions).toEqual(['loadInitialData']);
-      
+
       // Complete load
-      state = formReducer(state, FormActions.loadInitialDataSuccess({ 
-        data: {} 
+      state = formReducer(state, FormActions.loadInitialDataSuccess({
+        data: {}
       }));
       expect(state.pendingActions).toEqual([]);
-      
+
       // Start validation
       state = formReducer(state, FormActions.formValidationPending());
       expect(state.pendingActions).toEqual(['formValidationPending']);
-      
+
       // Complete validation
       state = formReducer(state, FormActions.formValidationSuccess());
       expect(state.pendingActions).toEqual([]);
@@ -469,9 +469,9 @@ describe('formReducer', () => {
         meta: { customKey: 'customValue' }
       };
       const action = FormActions.markDirty();
-      
+
       const result = formReducer(stateWithMeta, action);
-      
+
       expect(result.meta).toEqual({ customKey: 'customValue' });
     });
   });
@@ -480,35 +480,35 @@ describe('formReducer', () => {
     it('should handle full lifecycle: INIT → READY → SAVING → READY', () => {
       let state = formInitialState;
       expect(state.status).toBe(FormStatus.INIT);
-      
+
       // Load data
       state = formReducer(state, FormActions.loadInitialData({
         oid: 'test',
         recordType: 'rdmp',
         formName: 'default'
       }));
-      state = formReducer(state, FormActions.loadInitialDataSuccess({ 
-        data: { title: 'Test' } 
+      state = formReducer(state, FormActions.loadInitialDataSuccess({
+        data: { title: 'Test' }
       }));
       expect(state.status).toBe(FormStatus.READY);
       expect(state.initialDataLoaded).toBe(true);
-      
+
       // Mark dirty
       state = formReducer(state, FormActions.markDirty());
       expect(state.isDirty).toBe(true);
-      
+
       // Submit
       state = formReducer(state, FormActions.submitForm({
         force: false,
-        skipValidation: false
+        enabledValidationGroups: ["all"],
       }));
       expect(state.status).toBe(FormStatus.SAVING);
       expect(state.submissionAttempt).toBe(1);
-      
+
       // Submit success
-      state = formReducer(state, FormActions.submitFormSuccess({ 
+      state = formReducer(state, FormActions.submitFormSuccess({
         savedData: { title: 'Test' },
-        lastSavedAt: new Date().toISOString() 
+        lastSavedAt: new Date().toISOString()
       }));
       expect(state.status).toBe(FormStatus.READY);
       expect(state.isDirty).toBe(false);
@@ -521,15 +521,15 @@ describe('formReducer', () => {
         status: FormStatus.READY,
         initialDataLoaded: true
       };
-      
+
       // Validation fails
       state = formReducer(state, FormActions.formValidationPending());
-      state = formReducer(state, FormActions.formValidationFailure({ 
-        error: 'Validation error' 
+      state = formReducer(state, FormActions.formValidationFailure({
+        error: 'Validation error'
       }));
       expect(state.status).toBe(FormStatus.VALIDATION_ERROR);
       expect(state.error).toBe('Validation error');
-      
+
       // Acknowledge error
       state = formReducer(state, FormActions.ackError());
       expect(state.status).toBe(FormStatus.READY);

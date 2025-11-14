@@ -88,7 +88,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The name of the form configuration to load
    */
   formName = model<string>('');
-  /** 
+  /**
    * Indicates whether to download and create the form components on init
    */
   downloadAndCreateOnInit = model<boolean>(true);
@@ -109,7 +109,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   formGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
-   * The previous formGroup status 
+   * The previous formGroup status
    */
   previousFormGroupStatus = signal<FormGroupStatus>(this.dataStatus);
   /**
@@ -181,8 +181,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       isReady: false,
       children: []
   };
-  
-  
+
+
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -242,7 +242,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         // If validation is pending
         if (formGroupIsPending && !formGroupWasPending) {
           this.store.dispatch(FormActions.formValidationPending());
-        } 
+        }
         // If validation completed
         if (!formGroupIsPending) {
           if (!formGroupIsValid && formGroupWasValid) {
@@ -276,8 +276,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           // Default payload handling with safe fallbacks
           const force = !!evt.force;
           const targetStep = evt.targetStep ?? '';
-          const skipValidation = !!evt.skipValidation;
-          await this.saveForm(force, targetStep, skipValidation);
+          const enabledValidationGroups = evt.enabledValidationGroups ?? ["all"];
+          await this.saveForm(force, targetStep, enabledValidationGroups);
         });
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
@@ -345,11 +345,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                   errors: this.dataStatus.errors,
                   status: this.dataStatus
                 })
-              );            
+              );
             }
-            // TODO: Publish ValueChangeEvent 
+            // TODO: Publish ValueChangeEvent
           });
-          
+
           this.form.valueChanges.subscribe(() => {
             this.debugFormComponents.set(this.getDebugInfo());
           });
@@ -357,8 +357,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         // set up validators
         const validatorConfig = this.formDefMap.formConfig.validators;
-        const validators = this.formService.createFormValidatorInstances(validatorConfig);
-        this.formService.setValidators(this.form, validators);
+        const enabledGroups = this.formDefMap.formConfig.enabledValidationGroups ?? ["all"];
+        this.formService.setValidators(this.form, validatorConfig, enabledGroups);
+
       } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
         // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
         // That is ok. But a form must have at least one component.
@@ -369,7 +370,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  protected async getAndApplyUpdatedDataModel(){
+  protected async getAndApplyUpdatedDataModel() {
     const dataModel = await this.formService.getModelData(this.trimmedParams.oid(), this.trimmedParams.recordType());
     this.form?.patchValue(dataModel);
   }
@@ -482,19 +483,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return foundComponentDef;
   }
 
-  public async saveForm(forceSave: boolean = false, targetStep: string = '', skipValidation: boolean = false) {
+  public async saveForm(forceSave: boolean = false, targetStep: string = '', enabledValidationGroups: string[] = ["all"]) {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
     const formIsModified = this.form?.dirty || forceSave;
-    const formIsValid = this.form?.valid || skipValidation;
+    // At this point, only the validators that we want to run will be set on the angular components.
+    const formIsValid = this.form?.valid || forceSave;
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
         this.saveResponse.set(null); // Indicate save in progress
-        this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, skipValidation: ${skipValidation}. Saving...`);
+        this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`);
         this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
-        
+
         try {
           let response: RecordActionResult;
           const currentFormValue = structuredClone(this.form.value);

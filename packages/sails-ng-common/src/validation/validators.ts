@@ -32,10 +32,10 @@ export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9
  */
 export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
-    name: "min",
+    class: "min",
     message: "@validator-error-min",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "min");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min");
@@ -71,10 +71,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "max",
+    class: "max",
     message: "@validator-error-max",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "max");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max");
@@ -110,10 +110,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "minLength",
+    class: "minLength",
     message: "@validator-error-min-length",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "minLength");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min-length");
@@ -142,10 +142,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "maxLength",
+    class: "maxLength",
     message: "@validator-error-max-length",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "maxLength");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max-length");
@@ -169,10 +169,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "required",
+    class: "required",
     message: "@validator-error-required",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "required");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
@@ -195,10 +195,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "requiredTrue",
+    class: "requiredTrue",
     message: "@validator-error-required-true",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "requiredTrue")?.toString() ?? "";
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required-true");
@@ -221,10 +221,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "email",
+    class: "email",
     message: "@validator-error-email",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "email");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-email");
@@ -257,10 +257,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "pattern",
+    class: "pattern",
     message: "@validator-error-pattern",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "pattern");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-pattern");
@@ -301,10 +301,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "different-values",
+    class: "different-values",
     message: "@validator-error-different-values",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "different-values");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-different-values");
@@ -333,10 +333,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "jsonata-expression",
+    class: "jsonata-expression",
     message: "@validator-error-jsonata-expression",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");

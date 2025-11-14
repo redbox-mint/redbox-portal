@@ -1,6 +1,6 @@
 /**
  * Form State Facade Tests
- * 
+ *
  * Validates facade signal outputs, imperative API dispatch paths, and facade behavior.
  * Per Task 7 (R7.1–R7.7, AC18–AC21)
  */
@@ -190,19 +190,19 @@ describe('FormStateFacade', () => {
         FormActions.submitForm({
           force: false,
           targetStep: undefined,
-          skipValidation: false,
+          enabledValidationGroups: ["all"],
         })
       );
     });
 
     it('should dispatch submitForm on submit() with custom options (AC20, R7.1)', () => {
-      facade.submit({ force: true, targetStep: 'review', skipValidation: true });
+      facade.submit({ force: true, targetStep: 'review', enabledValidationGroups: ["all"],});
 
       expect(store.dispatch).toHaveBeenCalledWith(
         FormActions.submitForm({
           force: true,
           targetStep: 'review',
-          skipValidation: true,
+          enabledValidationGroups: ["all"],
         })
       );
     });

@@ -1,6 +1,6 @@
 /**
  * Form Actions
- * 
+ *
  * NgRx actions for form state management.
  * Per R3.1-R3.4
  */
@@ -26,7 +26,7 @@ export const loadInitialDataFailure = createAction(
 // Submit actions (R3.2, R3.3, R8.3)
 export const submitForm = createAction(
   '[Form] Submit Form',
-  props<{ force?: boolean; targetStep?: string; skipValidation?: boolean }>()
+  props<{ force?: boolean; targetStep?: string; enabledValidationGroups?: string[]; }>()
 );
 
 export const submitFormSuccess = createAction(
@@ -43,7 +43,7 @@ export const submitFormFailure = createAction(
 export const resetAllFields = createAction('[Form] Reset All Fields');
 export const resetAllFieldsComplete = createAction('[Form] Reset All Fields Complete');
 
-// Status actions (R3.2), currently unused. 
+// Status actions (R3.2), currently unused.
 
 export const markDirty = createAction('[Form] Mark Dirty');
 export const markPristine = createAction('[Form] Mark Pristine');

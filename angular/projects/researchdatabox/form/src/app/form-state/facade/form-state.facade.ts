@@ -1,6 +1,6 @@
 /**
  * Form State Facade
- * 
+ *
  * Provides a Signal-based API over the Form feature store slice.
  * Wraps store dispatches and exposes read-only signals for components.
  * Per R7.1, R7.2, R16.14
@@ -16,10 +16,10 @@ import { Observable } from 'rxjs';
 
 /**
  * FormStateFacade
- * 
+ *
  * Provides imperative methods to dispatch form actions and
  * read-only signals to observe form state reactively.
- * 
+ *
  * Components should inject this facade rather than directly
  * injecting Store, Actions, or Selectors.
  */
@@ -29,9 +29,9 @@ export class FormStateFacade {
 
   // Signal API (R7.1, R7.2)
   // Convert store selectors to signals using toSignal
-  
+
   /** Current form status (INIT, READY, SAVING, etc.) */
-  readonly status: Signal<FormStatus> = 
+  readonly status: Signal<FormStatus> =
     this.store.selectSignal(FormSelectors.selectStatus);
 
   /** Whether form has unsaved changes */
@@ -87,16 +87,16 @@ export class FormStateFacade {
 
   /**
    * Submit form data
-   * @param force Force submit even if validation fails
-   * @param targetStep Optional target workflow step
-   * @param skipValidation Skip validation before submit
+   * @param options.force Force submit even if validation fails
+   * @param options.targetStep Optional target workflow step
+   * @param options.enabledValidationGroups The validation groups that are currently enabled. This information comes from the top-level form.
    */
-  submit(options?: { force?: boolean; targetStep?: string; skipValidation?: boolean }): void {
+  submit(options?: { force?: boolean; targetStep?: string; enabledValidationGroups?: string[] }): void {
     this.store.dispatch(
       FormActions.submitForm({
         force: options?.force ?? false,
         targetStep: options?.targetStep,
-        skipValidation: options?.skipValidation ?? false,
+        enabledValidationGroups: options?.enabledValidationGroups ?? ["all"],
       })
     );
   }

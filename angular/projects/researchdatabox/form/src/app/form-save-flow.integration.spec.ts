@@ -10,7 +10,7 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 /**
  * Task 16: End-to-end integration test for the save orchestration flow
  * Flow: SaveButton click -> EventBus(form.save.requested) -> NgRx submitForm ->
- *       FormEffects publishes form.save.execute -> FormComponent.saveForm(force, targetStep, skipValidation)
+ *       FormEffects publishes form.save.execute -> FormComponent.saveForm(force, targetStep, enabledValidationGroups)
  */
 describe('Form Save Flow Integration', () => {
   let formConfig: FormConfigFrame;
@@ -31,6 +31,7 @@ describe('Form Save Flow Integration', () => {
         defaultComponentCssClasses: 'row',
       },
       editCssClasses: 'redbox-form form',
+      enabledValidationGroups: ["none"],
       componentDefinitions: [
         {
           name: 'text_input',
@@ -52,7 +53,6 @@ describe('Form Save Flow Integration', () => {
               label: 'Save',
               targetStep: 'next_step',
               forceSave: true,
-              skipValidation: true,
             },
           },
         },
@@ -84,7 +84,7 @@ describe('Form Save Flow Integration', () => {
       // Explicitly mark the form dirty to satisfy SaveButton gating
       formComponent.form?.markAsDirty();
       formComponent.form?.updateValueAndValidity();
-      
+
       fixture.detectChanges();
       await fixture.whenStable();
 
@@ -102,7 +102,7 @@ describe('Form Save Flow Integration', () => {
       expect(requestedEvents[0].type).toBe('form.save.requested');
       expect(requestedEvents[0].force).toBe(true);
       expect(requestedEvents[0].targetStep).toBe('next_step');
-      expect(requestedEvents[0].skipValidation).toBe(true);
+      expect(requestedEvents[0].enabledValidationGroups).toEqual(["none"]);
 
       // Assert: 2) NgRx submitForm action observed (promotion by adapter effect)
       const sawSubmitForm = observedActions.some(a => a.type === FormActions.submitForm.type);
@@ -113,7 +113,7 @@ describe('Form Save Flow Integration', () => {
       expect(executeEvents[0].type).toBe('form.save.execute');
 
       // Assert: 4) FormComponent.saveForm invoked with expected args
-      expect(formComponent.saveForm).toHaveBeenCalledWith(true, 'next_step', true);
+      expect(formComponent.saveForm).toHaveBeenCalledWith(true, 'next_step', ["none"]);
     } finally {
       requestedSub.unsubscribe();
       executeSub.unsubscribe();

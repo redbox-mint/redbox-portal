@@ -61,7 +61,7 @@ describe('ValidationSummaryFieldComponent', () => {
             config: {
               defaultValue: '',
               validators: [
-                { name: 'required' },
+                { class: 'required' },
               ]
             }
           },

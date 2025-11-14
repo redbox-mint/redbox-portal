@@ -3,7 +3,7 @@ import {Services, Services as FormRecordConsistencyModule} from "../../../api/se
 import {Services as FormsModule} from "../../../api/services/FormsService";
 import {
     AvailableFormComponentDefinitionFrames,
-    FormConfigFrame,
+    FormConfigFrame, FormValidatorSummaryErrors,
 } from "@researchdatabox/sails-ng-common";
 import BasicRedboxRecord = Services.BasicRedboxRecord;
 import {FormModel} from "@researchdatabox/redbox-core-types";
@@ -26,7 +26,7 @@ describe('The FormRecordConsistencyService', function () {
             defaultComponentCssClasses: 'row',
         },
         editCssClasses: "redbox-form form",
-        skipValidationOnSave: false,
+        enabledValidationGroups: ["all"],
         componentDefinitions: [],
     };
     const formModelStandard: FormModel = {
@@ -327,7 +327,7 @@ describe('The FormRecordConsistencyService', function () {
                         defaultComponentCssClasses: 'row',
                     },
                     editCssClasses: "redbox-form form",
-                    skipValidationOnSave: false,
+                    enabledValidationGroups: ["all"],
                     componentDefinitions: args.componentDefinitions ?? [],
                 };
                 const result = FormRecordConsistencyService.mergeRecordClientFormConfig(
@@ -370,7 +370,7 @@ describe('The FormRecordConsistencyService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'group_1',
@@ -547,7 +547,7 @@ describe('The FormRecordConsistencyService', function () {
             const formConfig: FormModel & FormConfigFrame = {
                 ...formModelConfigStandard,
                 validators: [
-                    {name: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
+                    {class: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
                 ],
                 componentDefinitions: [
                     {
@@ -557,9 +557,9 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'minLength', config: {minLength: 10}},
-                                    {name: 'maxLength', config: {maxLength: 20}},
+                                    {class: 'required'},
+                                    {class: 'minLength', config: {minLength: 10}},
+                                    {class: 'maxLength', config: {maxLength: 20}},
                                 ]
                             }
                         },
@@ -572,8 +572,8 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'requiredTrue'},
+                                    {class: 'required'},
+                                    {class: 'requiredTrue'},
                                 ]
                             }
                         },
@@ -599,8 +599,8 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {name: 'min', config: {min: 5}},
-                                                    {name: 'max', config: {max: 15}},
+                                                    {class: 'min', config: {min: 5}},
+                                                    {class: 'max', config: {max: 15}},
                                                 ]
                                             }
                                         },
@@ -614,14 +614,14 @@ describe('The FormRecordConsistencyService', function () {
                                                 defaultValue: "text_3 default",
                                                 validators: [
                                                     {
-                                                        name: 'pattern',
+                                                        class: 'pattern',
                                                         config: {
                                                             pattern: /^some.*$/,
                                                             description: "must start with 'some'"
                                                         }
                                                     },
                                                     {
-                                                        name: 'minLength',
+                                                        class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
                                                         config: {minLength: 3}
                                                     },
@@ -644,7 +644,7 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {name: 'email'},
+                                                                {class: 'email'},
                                                             ]
                                                         }
                                                     },
@@ -686,7 +686,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                                 model: {
                                                                                     class: 'SimpleInputModel', config: {
                                                                                         validators: [
-                                                                                            {name: 'required'},
+                                                                                            {class: 'required'},
                                                                                         ]
                                                                                     }
                                                                                 },
@@ -744,7 +744,7 @@ describe('The FormRecordConsistencyService', function () {
             const formConfig: FormModel & FormConfigFrame = {
                 ...formModelConfigStandard,
                 validators: [
-                    {name: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
+                    {class: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
                 ],
                 componentDefinitions: [
                     {
@@ -754,8 +754,8 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {name: 'minLength', config: {minLength: 20}},
-                                    {name: 'maxLength', config: {maxLength: 10}},
+                                    {class: 'minLength', config: {minLength: 20}},
+                                    {class: 'maxLength', config: {maxLength: 10}},
                                 ]
                             }
                         },
@@ -768,8 +768,8 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'requiredTrue'},
+                                    {class: 'required'},
+                                    {class: 'requiredTrue'},
                                 ]
                             }
                         },
@@ -796,8 +796,8 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {name: 'min', config: {min: 5}},
-                                                    {name: 'max', config: {max: 15}},
+                                                    {class: 'min', config: {min: 5}},
+                                                    {class: 'max', config: {max: 15}},
                                                 ]
                                             }
                                         },
@@ -808,7 +808,7 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {name: 'required'},
+                                                    {class: 'required'},
                                                 ]
                                             }
                                         },
@@ -822,14 +822,14 @@ describe('The FormRecordConsistencyService', function () {
                                                 defaultValue: "text_3 default",
                                                 validators: [
                                                     {
-                                                        name: 'pattern',
+                                                        class: 'pattern',
                                                         config: {
                                                             pattern: /^other.*$/,
                                                             description: "must start with 'other'"
                                                         }
                                                     },
                                                     {
-                                                        name: 'minLength',
+                                                        class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
                                                         config: {minLength: 50}
                                                     },
@@ -852,7 +852,7 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {name: 'email'},
+                                                                {class: 'email'},
                                                             ]
                                                         }
                                                     },
@@ -885,14 +885,14 @@ describe('The FormRecordConsistencyService', function () {
                     }
                 }
             };
-            const expected = [
+            const expected: FormValidatorSummaryErrors[] = [
                 {
                     "id": "text_1",
                     "message": null,
-                    "parents": ["default-1.0-draft"],
+                    "parents": [],
                     "errors": [
                         {
-                            "name": "minLength",
+                            "class": "minLength",
                             "message": "@validator-error-min-length",
                             "params": {
                                 "actualLength": 12,
@@ -900,7 +900,7 @@ describe('The FormRecordConsistencyService', function () {
                             }
                         },
                         {
-                            "name": "maxLength",
+                            "class": "maxLength",
                             "message": "@validator-error-max-length",
                             "params": {
                                 "actualLength": 12,
@@ -912,10 +912,10 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_2",
                     "message": "@text_2_custom_label",
-                    "parents": ["default-1.0-draft"],
+                    "parents": [],
                     "errors": [
                         {
-                            "name": "requiredTrue",
+                            "class": "requiredTrue",
                             "message": "@validator-error-required-true",
                             "params": {
                                 "actual": "text_1_value",
@@ -928,13 +928,12 @@ describe('The FormRecordConsistencyService', function () {
                     "id": "text_5",
                     "message": null,
                     "parents": [
-                        "default-1.0-draft",
                         "group_2"
                     ],
                     "errors": [
                         {
                             "message": "@validator-error-required",
-                            "name": "required",
+                            "class": "required",
                             "params": {
                                 "actual": "",
                                 "required": true,
@@ -946,12 +945,11 @@ describe('The FormRecordConsistencyService', function () {
                     "id": "text_3",
                     "message": null,
                     "parents": [
-                        "default-1.0-draft",
                         "group_2"
                     ],
                     "errors": [
                         {
-                            "name": "pattern",
+                            "class": "pattern",
                             "message": "@validator-error-pattern",
                             "params": {
                                 "actual": "some text",
@@ -960,7 +958,7 @@ describe('The FormRecordConsistencyService', function () {
                             }
                         },
                         {
-                            "name": "minLength",
+                            "class": "minLength",
                             "message": "@validator-error-custom-text_7",
                             "params": {
                                 "actualLength": 9,
@@ -975,7 +973,7 @@ describe('The FormRecordConsistencyService', function () {
                     "parents": [],
                     "errors": [
                         {
-                            "name": "different-values",
+                            "class": "different-values",
                             "message": "@validator-error-different-values",
                             "params": {
                                 "controlCount": 2,
@@ -1020,9 +1018,9 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'minLength', config: {minLength: 10}},
-                                    {name: 'maxLength', config: {maxLength: 20}},
+                                    {class: 'required'},
+                                    {class: 'minLength', config: {minLength: 10}},
+                                    {class: 'maxLength', config: {maxLength: 20}},
                                 ]
                             }
                         },
@@ -1035,8 +1033,8 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {name: 'required'},
-                                    {name: 'requiredTrue'},
+                                    {class: 'required'},
+                                    {class: 'requiredTrue'},
                                 ]
                             }
                         },
@@ -1062,8 +1060,8 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {name: 'min', config: {min: 5}},
-                                                    {name: 'max', config: {max: 15}},
+                                                    {class: 'min', config: {min: 5}},
+                                                    {class: 'max', config: {max: 15}},
                                                 ]
                                             }
                                         },
@@ -1077,14 +1075,14 @@ describe('The FormRecordConsistencyService', function () {
                                                 defaultValue: "text_3 default",
                                                 validators: [
                                                     {
-                                                        name: 'pattern',
+                                                        class: 'pattern',
                                                         config: {
                                                             pattern: /^some.*$/,
                                                             description: "must start with 'some'"
                                                         }
                                                     },
                                                     {
-                                                        name: 'minLength',
+                                                        class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
                                                         config: {minLength: 3}
                                                     },
@@ -1107,7 +1105,7 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {name: 'email'},
+                                                                {class: 'email'},
                                                             ]
                                                         }
                                                     },
@@ -1149,7 +1147,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                                 model: {
                                                                                     class: 'SimpleInputModel', config: {
                                                                                         validators: [
-                                                                                            {name: 'required'},
+                                                                                            {class: 'required'},
                                                                                         ]
                                                                                     }
                                                                                 },

@@ -30,6 +30,7 @@ export * from "./config/visitor/construct.visitor";
 export * from "./config/visitor/default-value.visitor";
 export * from "./config/visitor/json-type-def.visitor";
 export * from "./config/visitor/template.visitor";
+export * from "./config/visitor/validator.visitor";
 // config/component
 export * from "./config/component/checkbox-input.model";
 export * from "./config/component/checkbox-input.outline";

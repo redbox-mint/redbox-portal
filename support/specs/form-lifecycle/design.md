@@ -22,7 +22,7 @@
 
 - The Save button publishes `form.save.requested` on the `FormComponentEventBus` instead of calling `FormComponent.saveForm()`.
 - Disable/enable state is derived from facade signals (e.g., `status()`, `isValidationPending()`, `isSaving()`), not from a bespoke `formReady` input.
-- The event is promoted to `[Form] submitForm` by adapter effects; a non-dispatching effect publishes `form.save.execute`, which `FormComponent` listens to and then calls `saveForm(force, targetStep, skipValidation)`.
+- The event is promoted to `[Form] submitForm` by adapter effects; a non-dispatching effect publishes `form.save.execute`, which `FormComponent` listens to and then calls `saveForm(force, targetStep, enabledValidationGroups)`.
 
 ## 4. Component Interaction
 

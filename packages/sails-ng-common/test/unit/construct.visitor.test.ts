@@ -5,7 +5,6 @@ import {
 } from "../../src";
 import {formConfigExample1, formConfigExample2, reusableDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
-import {describe} from "node:test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -60,7 +59,7 @@ describe("Construct Visitor", async () => {
                                                                 defaultValue: 'hello world 3!',
                                                                 validators: [
                                                                     {
-                                                                        name: 'minLength',
+                                                                        class: 'minLength',
                                                                         message: "@validator-error-custom-text_3",
                                                                         config: {minLength: 3}
                                                                     }

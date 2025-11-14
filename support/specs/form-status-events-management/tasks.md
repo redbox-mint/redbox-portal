@@ -17,8 +17,8 @@
 11. [X] Add save events and helpers in EventBus (R15.2–R15.5)
 	- Add new typed events: `form.save.requested` (publish from UI) and `form.save.execute` (command back to component).
 	- Extend the `FormComponentEvent` discriminated union and export factory helpers:
-	  - `createFormSaveRequestedEvent({ force?, skipValidation?, targetStep?, sourceId? })`
-	  - `createFormSaveExecuteEvent({ force?, skipValidation?, targetStep?, sourceId? })`
+	  - `createFormSaveRequestedEvent({ force?, enabledValidationGroups?, targetStep?, sourceId? })`
+	  - `createFormSaveExecuteEvent({ force?, enabledValidationGroups?, targetStep?, sourceId? })`
 	- Acceptance: TypeScript compiles; event factories are unit-tested (happy path + payload passthrough); no state shape changes; no state additions.
 
 12. [X] SaveButton publishes save-request instead of calling component (R7.1, R15.2)
@@ -27,16 +27,16 @@
 	- Acceptance: Component spec asserts bus.publish is called with the expected event; remove/adjust any tests that mocked `FormComponent.saveForm` directly from the button.
 
 13. [X] Promote save-request event to NgRx action (R15.20–R15.23)
-	- In `FormEventBusAdapterEffects`, add a promotion stream mapping `form.save.requested` → `[Form] submitForm` (payload: `{ force, skipValidation, targetStep }`).
+	- In `FormEventBusAdapterEffects`, add a promotion stream mapping `form.save.requested` → `[Form] submitForm` (payload: `{ force, enabledValidationGroups, targetStep }`).
 	- Include diagnostics logging behind the existing toggle and keep `catchError(() => EMPTY)`.
 	- Acceptance: Adapter effects spec verifies a single `submitForm` dispatch for a published event and throttling/no duplication if applicable.
 
 14. [X] Emit execute command on submitForm (no dispatch) (R5.1, R15.3)
-	- In `FormEffects`, add a non-dispatching effect that listens to `submitForm` and publishes `form.save.execute` back to the EventBus carrying `{ force, skipValidation, targetStep }`.
+	- In `FormEffects`, add a non-dispatching effect that listens to `submitForm` and publishes `form.save.execute` back to the EventBus carrying `{ force, enabledValidationGroups, targetStep }`.
 	- Acceptance: Effects spec spies on EventBus.publish and asserts it’s called on `submitForm`.
 
 15. [X] FormComponent invokes saveForm on execute command (R16.1, R16.12)
-	- Subscribe to `form.save.execute` in `FormComponent` and call `this.saveForm(force, targetStep, skipValidation)`.
+	- Subscribe to `form.save.execute` in `FormComponent` and call `this.saveForm(force, targetStep, enabledValidationGroups)`.
 	- Ensure proper teardown in `ngOnDestroy` and avoid duplicate subscriptions.
 	- Acceptance: Component unit test spies on `saveForm` and verifies it’s invoked when the execute event is published; no changes to the NgRx state model.
 

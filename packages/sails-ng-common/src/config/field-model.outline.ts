@@ -18,6 +18,7 @@ export interface FieldModelConfigFrame<ValueType> {
     value?: ValueType;
     /**
      * The default value for this model.
+     * Only relevant to the server-side.
      */
     defaultValue?: ValueType;
     /**
