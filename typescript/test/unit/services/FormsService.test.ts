@@ -130,7 +130,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -168,7 +168,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -233,7 +233,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -277,7 +277,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -320,7 +320,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -375,7 +375,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -419,7 +419,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',
@@ -506,7 +506,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},

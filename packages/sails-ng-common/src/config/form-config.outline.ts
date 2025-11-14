@@ -43,10 +43,14 @@ export interface FormConfigFrame {
     // -- validation-related config --
 
     /**
-     * whether to trigger validation on save
-     * Default false.
+     * The validation groups to enable for the form.
+     * The validation groups will be set as part of loading the form.
+     * Default ["all"] if none specified.
+     *
+     * TODO: Should it be possible to change the enabled validation groups after the form has loaded?
+     *       If yes, this property will need to be updated when the enabled validation groups change.
      */
-    skipValidationOnSave?: boolean;
+    enabledValidationGroups?: string[];
     /**
      * The validators that are configured at the form level, usually because they involve two or more fields.
      */

@@ -186,7 +186,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.sharedProps.setPropOverride('viewCssClasses', item, currentData);
         this.sharedProps.setPropOverride('editCssClasses', item, currentData);
         this.sharedProps.setPropOverride('defaultComponentConfig', item, currentData);
-        this.sharedProps.setPropOverride('skipValidationOnSave', item, currentData);
+        this.sharedProps.setPropOverride('enabledValidationGroups', item, currentData);
         this.sharedProps.setPropOverride('validators', item, currentData);
         this.sharedProps.setPropOverride('validationGroups', item, currentData);
         this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
@@ -546,7 +546,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         this.sharedProps.setPropOverride('targetStep', item.config, config);
         this.sharedProps.setPropOverride('forceSave', item.config, config);
-        this.sharedProps.setPropOverride('skipValidation', item.config, config);
+        this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
         this.sharedProps.setPropOverride('labelSaving', item.config, config);
     }
 

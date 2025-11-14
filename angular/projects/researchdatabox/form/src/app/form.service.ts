@@ -78,7 +78,7 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
-  private loadedValidatorGroups?: FormValidationGroups;
+  private loadedFormConfig?: FormConfigFrame;
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
@@ -166,9 +166,8 @@ export class FormService extends HttpClientService {
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 
-    if (this.loadedValidatorGroups === null || this.loadedValidatorGroups){
-      this.loadedValidatorGroups = formConfig.validationGroups;
-      this.loggerService.debug(`Loaded validator groups`, this.loadedValidatorGroups);
+    if (this.loadedFormConfig === null || this.loadedFormConfig) {
+      this.loadedFormConfig = formConfig;
     }
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
@@ -318,8 +317,7 @@ export class FormService extends HttpClientService {
   public createFormFieldModelInstance(compMapEntry: FormFieldCompMapEntry): FormFieldModel<unknown> | null {
     const ModelType = compMapEntry.modelClass;
     const modelConfig = compMapEntry.compConfigJson.model;
-    // TODO: get enabled validator groups
-    const enabledGroups: string[] = [];
+    const enabledGroups = this.loadedFormConfig?.enabledValidationGroups ?? ["all"];
     if (ModelType && modelConfig) {
       compMapEntry.model = new ModelType(modelConfig);
       this.setValidators(compMapEntry.model.formControl, compMapEntry.model.validators, enabledGroups);
@@ -527,7 +525,7 @@ export class FormService extends HttpClientService {
 
     // Get the form-level configs.
     const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
-    const groupDefs = this.loadedValidatorGroups ?? {};
+    const groupDefs = this.loadedFormConfig?.validationGroups ?? {};
 
     if (!enabledGroups) {
       enabledGroups = [];

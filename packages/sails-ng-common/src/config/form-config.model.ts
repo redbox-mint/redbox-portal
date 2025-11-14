@@ -17,7 +17,7 @@ export class FormConfig implements FormConfigOutline {
     public editCssClasses?: KeyValueStringProperty;
     public defaultComponentConfig?: KeyValueStringNested;
     public defaultLayoutComponent?: string;
-    public skipValidationOnSave: boolean = false;
+    public enabledValidationGroups?: string[] = ["all"];
     public validators: FormValidatorConfig[] = [];
     public validationGroups?: FormValidationGroups = {
         all: {description: "Validate all fields with validators.", initialMembership: "all"},

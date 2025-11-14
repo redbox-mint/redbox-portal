@@ -92,7 +92,6 @@ export const formConfigExample1: FormConfigFrame = {
         defaultComponentCssClasses: 'row',
     },
     editCssClasses: "redbox-form form",
-    skipValidationOnSave: false,
     // Validators that operate on multiple fields.
     validators: [
         {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
@@ -805,7 +804,6 @@ export const formConfigExample2: FormConfigFrame = {
         defaultComponentCssClasses: 'row',
     },
     editCssClasses: "redbox-form form",
-    skipValidationOnSave: false,
     // Validators that operate on multiple fields.
     validators: [
         {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},

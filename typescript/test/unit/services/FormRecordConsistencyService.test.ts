@@ -26,7 +26,7 @@ describe('The FormRecordConsistencyService', function () {
             defaultComponentCssClasses: 'row',
         },
         editCssClasses: "redbox-form form",
-        skipValidationOnSave: false,
+        enabledValidationGroups: ["all"],
         componentDefinitions: [],
     };
     const formModelStandard: FormModel = {
@@ -327,7 +327,7 @@ describe('The FormRecordConsistencyService', function () {
                         defaultComponentCssClasses: 'row',
                     },
                     editCssClasses: "redbox-form form",
-                    skipValidationOnSave: false,
+                    enabledValidationGroups: ["all"],
                     componentDefinitions: args.componentDefinitions ?? [],
                 };
                 const result = FormRecordConsistencyService.mergeRecordClientFormConfig(
@@ -370,7 +370,7 @@ describe('The FormRecordConsistencyService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'group_1',

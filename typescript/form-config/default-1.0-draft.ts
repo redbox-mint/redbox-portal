@@ -9,7 +9,6 @@ const formConfig: FormConfigFrame = {
         defaultComponentCssClasses: 'row',
     },
     editCssClasses: "redbox-form form",
-    skipValidationOnSave: false,
     validationGroups: {
         all: {
             description: "Validate all fields with validators.",

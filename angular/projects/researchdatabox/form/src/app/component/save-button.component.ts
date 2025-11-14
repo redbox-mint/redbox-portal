@@ -1,4 +1,4 @@
-import { Component, inject, effect, signal } from '@angular/core';
+import {Component, inject, effect, signal, Injector} from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
@@ -24,6 +24,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
   protected formStateFacade = inject(FormStateFacade);
+  private _injector = inject(Injector);
 
   constructor() {
     super();
@@ -60,13 +61,17 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
         createFormSaveRequestedEvent({
           force: this.componentDefinition?.config?.forceSave,
           targetStep: this.componentDefinition?.config?.targetStep,
-          skipValidation: this.componentDefinition?.config?.skipValidation,
+          enabledValidationGroups: this.getFormComponent.formDefMap?.formConfig.enabledValidationGroups ?? ["all"],
           sourceId: this.name ?? undefined
         })
       );
     } else {
       this.loggerService.debug(`Save button is disabled; save action not triggered.`);
     }
+  }
+
+  private get getFormComponent(): FormComponent {
+    return this._injector.get(FormComponent);
   }
 
 }

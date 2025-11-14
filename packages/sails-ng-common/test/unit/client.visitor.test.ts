@@ -65,7 +65,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -103,7 +102,7 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -160,7 +159,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -204,7 +202,7 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -239,7 +237,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -288,7 +285,7 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -323,7 +320,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',
@@ -439,7 +435,7 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
                 validationGroups: {
                     all: {description: "Validate all fields with validators.", initialMembership: "all"},
@@ -557,7 +553,6 @@ describe("Client Visitor", async () => {
                 defaultComponentCssClasses: 'row',
             },
             editCssClasses: "redbox-form form",
-            skipValidationOnSave: false,
             componentDefinitions: [
                 {
                     name: 'text_2',

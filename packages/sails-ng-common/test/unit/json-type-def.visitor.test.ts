@@ -23,7 +23,6 @@ describe("JSON Type Def Schema Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_1',
