@@ -119,7 +119,8 @@
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh",
-    "compile:jsonSchema": "./support/development/compileJsonSchema.sh"
+    "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
+    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh"
   },
   "main": "app.js",
   "repository": {
