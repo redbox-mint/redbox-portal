@@ -122,6 +122,9 @@ declare global {
 		export class WaterlinePromise<T> extends Promise<T> {
 			exec(cb: (err: Error, results: Array<QueryResult>) => void);
 			exec(cb: (err: Error, result: QueryResult) => void);
+
+			populate(association: string): QueryBuilder;
+			populate(association: string, filter: Object): QueryBuilder;
 		}
 
 		export class Record {

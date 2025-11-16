@@ -70,6 +70,7 @@ export module Services {
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
       'getUsers',
+      'getUsersForBrand',
       'addUserAuditEvent',
       'checkAuthorizedEmail',
     ];
@@ -1135,6 +1136,24 @@ export module Services {
      */
     public getUsers = (): Observable < any > => {
       return super.getObservable(User.find({}).populate('roles'));
+    }
+
+    /**
+     * Retrieve all users that hold at least one role for the supplied brand.
+     * @param brand The brand or brand id to scope the search to.
+     */
+    public getUsersForBrand = (brand: BrandingModel | string): Observable<any> => {
+      const brandId = typeof brand === 'string' ? brand : _.get(brand, 'id');
+      if (_.isEmpty(brandId)) {
+        return of([]);
+      }
+
+      return super.getObservable(User.find({}).populate('roles'))
+        .pipe(map(users => {
+          return _.filter(users, (user) => {
+            return _.some(user.roles, (role) => role.branding == brandId);
+          });
+        }));
     }
 
     public setUserKey = (userid, uuid) => {
