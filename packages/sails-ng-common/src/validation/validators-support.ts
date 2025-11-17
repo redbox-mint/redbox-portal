@@ -4,6 +4,7 @@ import {
     FormValidatorDefinition,
     FormValidatorFn
 } from "./form.model";
+import {isTypeFormValidatorDefinition} from "../config/helpers";
 
 export class ValidatorsSupport {
     /**
@@ -15,6 +16,9 @@ export class ValidatorsSupport {
     ): Map<string, FormValidatorDefinition> {
         const defMap = new Map<string, FormValidatorDefinition>();
         for (const definitionItem of (definition ?? [])) {
+            if (!isTypeFormValidatorDefinition(definitionItem)) {
+                throw new Error(`Validator definition does not have valid 'class', 'message', and 'create' properties: ${JSON.stringify(definitionItem)}`);
+            }
             const validatorClass = definitionItem?.class;
             const message = definitionItem?.message;
             if (defMap.has(validatorClass)) {
