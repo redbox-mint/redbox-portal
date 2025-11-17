@@ -493,6 +493,11 @@ export class RepeatableContributor extends RepeatableContainer {
   setValueAtElem(index, value: any) {
     // error thrown when on view mode, only set when on edit mode...
     if (this.editMode) {
+      // if there's no title, but there's a full name the data is coming from an event so construct the expected object
+      if(!value.title && value.text_full_name) {
+        const originalObject = _.clone(value)
+        value = { originalObject: originalObject, title: value.text_full_name };
+      }
       this.fields[index].component.onSelect(value, false, true);
     }
   }
