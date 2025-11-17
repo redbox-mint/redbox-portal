@@ -1,6 +1,16 @@
-export function evaluate(key, context) {
-    key = key?.toString()?.normalize("NFKC");
+export function evaluate(key, context, extra) {
+
+    // normalise the key the same way as the server
+    key = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
+
+    // Provide libraries from context
+    let Handlebars = null;
+    if (extra?.libraries?.Handlebars) {
+        Handlebars = extra?.libraries?.Handlebars;
+    }
+
     // TODO: more validation / normalisation of key or context?
+
     switch (key) {
     <% for (const entry of entries) { %>
         case "<%= entry.key?.toString() %>":

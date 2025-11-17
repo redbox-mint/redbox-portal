@@ -17,20 +17,23 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import {RBValidationError, Services as services} from '@researchdatabox/redbox-core-types';
+import {Sails} from "sails";
 import {
-  Services as services,
-  RBValidationError
-} from '@researchdatabox/redbox-core-types';
-import {
-  Sails,
-  Model
-} from "sails";
-import { RaidApi, RaidCreateRequest, Title, ModelDate, Description, Access, AlternateUrl, Contributor, ContributorRoleCreditNisoOrgType, ContributorRoleSchemeType, Organisation } from '@researchdatabox/raido-openapi-generated-node';
+  Access,
+  AlternateUrl,
+  Contributor,
+  Description,
+  ModelDate,
+  Organisation,
+  RaidApi,
+  RaidCreateRequest,
+  Title
+} from '@researchdatabox/raido-openapi-generated-node';
 
 import moment from '../shims/momentShim';
 import numeral from 'numeral';
 import axios from 'axios';
-
 
 
 declare var sails: Sails;
@@ -53,7 +56,7 @@ export module Services {
       'buildContribVal',
       'mintPostCreateRetryHandler',
       'mintRetryJob'
-    ];    
+    ];
 
     protected oauthTokenData = {
       accessTokenExpiryMillis: null,
@@ -75,8 +78,8 @@ export module Services {
       return record;
     }
 
-    /** 
-     * Light AgendaQueue wrapper for the main mint method. 
+    /**
+     * Light AgendaQueue wrapper for the main mint method.
     */
     public async mintRetryJob(job:any) {
       const data = job.attrs.data;
@@ -85,10 +88,10 @@ export module Services {
     }
     /**
      * Light retry handler for preSave onCreate failures, when OID is still unknown.
-     * 
-     * @param oid 
-     * @param record 
-     * @param options 
+     *
+     * @param oid
+     * @param record
+     * @param options
      */
     public async mintPostCreateRetryHandler(oid, record, options) {
       const attemptCount = _.get(record.metaMetadata, 'raid.attemptCount');
@@ -99,17 +102,17 @@ export module Services {
     }
     /**
      * Returns `sails.config.raid.token`
-     * 
+     *
      * If not set, retrieves an access token using `sails.config.raid.username` and `sails.config.raid.password`
-     * 
+     *
      * Access tokens have 24 hour validity
-     * 
+     *
      * @returns access token
      */
     private async getToken() {
       if (!_.isEmpty(_.trim(sails.config.raid.token))) {
         sails.log.verbose(`${this.logHeader} getToken() -> Using 'sails.config.raid.token'`);
-        return sails.config.raid.token;      
+        return sails.config.raid.token;
       }
       const now = Date.now();
       if (this.oauthTokenData.accessTokenExpiryMillis && now < this.oauthTokenData.accessTokenExpiryMillis) {
@@ -122,11 +125,12 @@ export module Services {
       const password = sails.config.raid.oauth.password;
       // FYI: as of 03 October 2024, the staging environment's  `refresh_expires_in` has the same value as `expires_in` rendering it useless
       if (_.isEmpty(username) || _.isEmpty(password)) {
-        sails.log.error(`${this.logHeader} mintRaid() -> Username and/or Password not configured!`);
-        let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
-        throw new RBValidationError(errorMessage);
+        throw new RBValidationError({
+          message: "Username and/or Password not configured",
+          displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+        });
       }
-      
+
       try {
         sails.log.verbose(`${this.logHeader} getToken() -> Getting new access token...`);
         const oauthConfig = {
@@ -136,7 +140,7 @@ export module Services {
           password: password,
           client_id: oauthClientId
         };
-        
+
         const auth1 = await this.fetchAuthToken(oauthConfig);
         sails.log.verbose(`${this.logHeader} getToken() -> Got new token!`);
         if(auth1) {
@@ -145,16 +149,17 @@ export module Services {
           this.oauthTokenData.accessToken = auth1.access_token;
         }
       } catch (err) {
-        sails.log.error(`${this.logHeader} getToken() -> Failed to get token!`);
-        sails.log.error(err);
-        let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
-        throw new RBValidationError(errorMessage);
+        throw new RBValidationError({
+          message: "Failed to get token",
+          options: {cause: err},
+          displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+        });
       }
       return this.oauthTokenData.accessToken;
     }
 
     private async fetchAuthToken(oauthConfig): Promise<any> {
-      
+
       try {
           const response = await axios.post(oauthConfig.url,
               new URLSearchParams({
@@ -172,14 +177,17 @@ export module Services {
           return tokenData;
 
       } catch (error) {
-          console.error('Error fetching the token:', error);
-          throw error;
+        throw new RBValidationError({
+          message: "Error fetching the token",
+          options: {cause: error},
+          displayErrors: [{code: 'raid-mint-server-error'}],
+        });
       }
   }
 
     private async mintRaid(oid, record, options, attemptCount:number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;
-      const apiToken = await this.getToken(); 
+      const apiToken = await this.getToken();
       const api = new RaidApi(basePath, null, basePath);
       api.accessToken = apiToken;
       const request = new RaidCreateRequest();
@@ -203,9 +211,10 @@ export module Services {
              }
           }
           if (_.isEmpty(srcRecVal)) {
-            sails.log.error(`${this.logHeader} mintRaid() -> Failed to retrieve the source record: ${srcRecOid}, using path: ${srcRecField}, please check your recordtype configuration.`);
-            let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
-            throw new RBValidationError(errorMessage);
+            throw new RBValidationError({
+              message: `Failed to retrieve the source record: ${srcRecOid}, using path: ${srcRecField}, please check your recordtype configuration.`,
+              displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+            });
           }
         }
         let mintRequestFields = _.get(options, 'request.mint.fields');
@@ -223,16 +232,10 @@ export module Services {
         request.organisation = _.get(mappedData, 'organisation') as Organisation[];
         request.subject = _.get(mappedData, 'subject');
       } catch (error) {
-        sails.log.error(error);
-        let customError: RBValidationError;
-        if (this.isValidationError(error)) {
-          customError = error;
-        } else {
-          let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
-          customError = new RBValidationError(errorMessage);
-          sails.log.error(errorMessage);
-        }
-        throw customError;
+        throw new RBValidationError({
+          options: {cause: error},
+          displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+        });
       }
       let raid = undefined;
       let metaMetadataInfo = undefined;
@@ -255,34 +258,34 @@ export module Services {
             metaMetadataInfo = body;
           }
         } else {
-          sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Failed to mint RAiD, statusCode: ${response?.statusCode}`);
-          sails.log.error(JSON.stringify(response?.body));
-          let errorMessage = TranslationService.t('raid-mint-server-error');
-          // Note: if there's any 'notSet' validation errors, these will have to be hashed out during development, with the specific fields set to 'required' and not treat these as runtime errors
-          let customError:RBValidationError = new RBValidationError(errorMessage);
-          sails.log.error(errorMessage);
-          throw customError;
+          // Note: if there's any 'notSet' validation errors, these will have to be hashed out during development,
+          // with the specific fields set to 'required' and not treat these as runtime errors
+          throw new RBValidationError({
+            message: `Failed to mint RAiD for oid ${oid} statusCode ${response?.statusCode} body ${JSON.stringify(response?.body)}`,
+            displayErrors: [{code: 'raid-mint-server-error', status: response?.statusCode}],
+          });
         }
       } catch (error) {
         _.set(error, 'response.request.headers.Authorization', '-redacted-');
         const statusCode = _.get(error, 'statusCode');
+        let msgs = [];
         if (statusCode == 401 || statusCode == 403 || statusCode == 400) {
-          let errLogMsg = `${this.logHeader} mintRaid() ${oid} -> Authentication failed, check if the auth token is properly configured.`;
+          msgs.push(`Authentication failed for oid ${oid}, check if the auth token is properly configured.`);
           if (statusCode == 400 ) {
-            errLogMsg = `${this.logHeader} mintRaid() ${oid} -> Possible validation issues!`;
+            msgs.push(`Possible validation issues for oid ${oid}!`);
           }
-          sails.log.error(errLogMsg);
-          sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
-          let errorMessage = TranslationService.t('raid-mint-server-error');
-          let customError:RBValidationError = new RBValidationError(errorMessage);
-          throw customError;
+          throw new RBValidationError({
+            message: msgs.join(' '),
+            options: {cause: error},
+            displayErrors: [{code: 'raid-mint-server-error', status: statusCode, meta: {oid}}],
+          });
         }
         // This is the generic handler for when the API call itself throws an exception, e.g. 404, 5xx status code that can possibly be resolved by retrying the request
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> API error, Status Code: '${error.statusCode}'`);
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
         // set response as the error so it can be saved in the retry block
         response = error;
-        // saving as much info by setting the body to either the actual return value or the entire error object 
+        // saving as much info by setting the body to either the actual return value or the entire error object
         response.body = !_.isEmpty(response.body) ?  response.body : JSON.stringify(error);
         // swallow as this will be handled after this block
       }
@@ -290,9 +293,6 @@ export module Services {
         await this.saveRaid(raid, record, options, metaMetadataInfo);
       } else {
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Failed to mint raid!`);
-        let errorMessage = TranslationService.t('raid-mint-server-error');
-        let customError:RBValidationError = new RBValidationError(errorMessage);
-        sails.log.error(errorMessage);
         if (!_.isEmpty(sails.config.raid.retryJobName)) {
           // a generic/comms error, so we put this in the queue so we can retry later
           attemptCount++;
@@ -304,21 +304,24 @@ export module Services {
             if (!_.isEmpty(oid)) {
               // same as above but directly schedule as we know the oid
               this.scheduleMintRetry({oid: oid, options: options, attemptCount: attemptCount });
-            } 
+            }
             // we let the process proceed so the record is saved
           } else {
-            sails.log.error(`${this.logHeader} mintRaid() -> Max retry attempts reached, giving up: ${oid}`);  
+            sails.log.error(`${this.logHeader} mintRaid() -> Max retry attempts reached, giving up: ${oid}`);
           }
         } else {
           sails.log.debug(`${this.logHeader} mintRaid() -> Retries not configured, please set 'sails.config.raid.retryJobName'`)
           // we fail fast if retries aren't supported
-          throw customError;
+          throw new RBValidationError({
+            message: "Retries not configured, please set 'sails.config.raid.retryJobName'",
+            displayErrors: [{code: 'raid-mint-server-error'}],
+          });
         }
       }
       return record;
     }
 
-    private scheduleMintRetry(data: any) { 
+    private scheduleMintRetry(data: any) {
       AgendaQueueService.schedule(sails.config.raid.retryJobName, sails.config.raid.retryJobSchedule, data);
     }
 
@@ -375,7 +378,7 @@ export module Services {
             if (curPosIdx < existPosIdx) {
               // the current position is higher, overwrite existing
               contributors[id].position[0]= position;
-            } 
+            }
             // if the incoming incoming position is the same or lower hiearchy, ignore...
           }
           const role = this.getContributorRole(contribConfig.role);
@@ -389,10 +392,11 @@ export module Services {
         // we ignore records that don't have a valid ORCID, otherwise we reject the RAiD creation
         if (_.get(contribConfig, 'requireOrcid', false) == true) {
           // reject mint as we have a missing ORCID
-          let errorMessage = TranslationService.t('raid-mint-transform-missing-contributorid-error');
-          let customError:RBValidationError = new RBValidationError(`${errorMessage} '${contribVal.text_full_name}'`);
-          throw customError;
-        }        
+          throw new RBValidationError({
+            message: `Missing ORCID and requireOrcid is true for ${JSON.stringify(contribVal)}`,
+            displayErrors: [{code: 'raid-mint-transform-missing-contributorid-error', meta: {fullName: contribVal.text_full_name}}],
+          });
+        }
       }
     }
 
@@ -403,24 +407,24 @@ export module Services {
         if (_.includes(configFlags[configFlagName], contribConfig.position)) {
           _.set(contrib, configFlagName, true);
         }
-      }   
+      }
     }
 
     /**
-     * As per https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier 
-     * 
+     * As per https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier
+     *
      * orcid must be a 0-9,X
-     * 
-     * @param contribVal 
-     * @param contribConfig 
-     * @returns 
+     *
+     * @param contribVal
+     * @param contribConfig
+     * @returns
      */
     private getContributorId(contribVal: any, contribConfig: any) {
       let id = _.replace(_.get(contribVal, contribConfig.fieldMap.id), sails.config.raid.orcidBaseUrl, '');
       let regex = /(\d{4}-){3}\d{3}(\d|X)/;
       if (_.isEmpty(id) || _.size(id) != 19 || regex.test(id) === false) {
         id = undefined;
-      } 
+      }
       if (!_.isUndefined(id)) {
         // ID now should be the full ORCID Url
         id = _.get(contribVal, contribConfig.fieldMap.id);
@@ -483,20 +487,11 @@ export module Services {
             sails.log.warn(`${this.logHeader} getMappedData() -> Destination field is empty for ${fieldName}, if there is a missing mapped value, check if the template/fn call is setting the destination value.`);
           }
         } catch (fieldErr) {
-          sails.log.error(`${this.logHeader} getMappedData() -> Failed to process field: ${fieldName}`);
-          sails.log.error(fieldErr);
-
-          let customError: RBValidationError;
-          if (this.isValidationError(fieldErr)) {
-            customError = fieldErr;
-          } else {
-            let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
-            customError = new RBValidationError(errorMessage);
-            sails.log.error(errorMessage);
-          }
-          throw customError;
-
-          throw fieldErr;
+          throw new RBValidationError({
+            message: `Failed to process field: ${fieldName}`,
+            options: {cause: fieldErr},
+            displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+          });
         }
       }
       return mappedData;
@@ -508,7 +503,7 @@ export module Services {
           subjects.push({
             id: `${sails.config.raid.types.subject[subjectType].id}${subject.notation}`,
             schemaUri: sails.config.raid.types.subject[subjectType].schemaUri,
-            keyword: [ 
+            keyword: [
               {
                 text: subject.label
               }
@@ -542,12 +537,6 @@ export module Services {
           }
         }
       }
-    }
-
-    private isValidationError(err: Error) {
-      // TODO: use RBValidationError.clName;
-      const validationName = 'RBValidationError';
-      return validationName == err.name;
     }
   }
 }

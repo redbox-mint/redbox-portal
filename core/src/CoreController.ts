@@ -1,10 +1,19 @@
+import {existsSync} from 'fs';
+import {ILogger} from './Logger';
+import {
+  BuildResponseType,
+  APIErrorResponse,
+  ApiVersion,
+  ApiVersionStrings,
+  RBValidationError,
+} from "./model";
+
 
 declare var _;
 declare var sails;
+declare var TranslationService;
 
-import {existsSync} from 'fs';
-import { ILogger } from './Logger';
-import {APIErrorResponse, ApiVersion, ApiVersionStrings, DataResponseV2, ErrorResponseV2} from "./model";
+
 export module Controllers.Core {
 
   /**
@@ -60,10 +69,10 @@ export module Controllers.Core {
       // Sails controller custom config.
       '_config',
     ];
-    
+
     // Namespaced logger for controllers
     private _logger: ILogger;
-    
+
     /**
      * Get a namespaced logger for this controller class.
      * Uses the class constructor name as the namespace.
@@ -76,15 +85,15 @@ export module Controllers.Core {
       }
       return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
     }
-    
+
     constructor() {
       this.processDynamicImports().then(result => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
       })
     }
-    
-    /** 
+
+    /**
      * Function that allows async dynamic imports of modules (such as ECMAScript modules).
      * Called in the constructor and intended to be overridden in sub class to allow imports.
      */
@@ -92,7 +101,7 @@ export module Controllers.Core {
       // Override in sub class as needed
     }
 
-    /** 
+    /**
      * Function that is called during the construction of the Controller after the dynamic imports are completed.
      * Intended to be overridden in the sub class
      */
@@ -105,7 +114,7 @@ export module Controllers.Core {
      **************************************** Public methods ******************************************
      **************************************************************************************************
      */
-     
+
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
@@ -265,20 +274,19 @@ export module Controllers.Core {
       mergedLocal.view.ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
-      let fullViewPath = sails.config.appPath + "/views/"+resolvedView;
-      mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0,fullViewPath.lastIndexOf('/') + 1);
+      let fullViewPath = sails.config.appPath + "/views/" + resolvedView;
+      mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
       this.logger.debug("resolvedView");
       this.logger.debug(resolvedView);
-      this.logger.debug("mergedLocal");
-      this.logger.debug(mergedLocal);
-
+      // this.logger.debug("mergedLocal");
+      // this.logger.debug(mergedLocal);
 
 
       res.view(resolvedView, mergedLocal);
     }
 
-    public respond(req, res, ajaxCb, normalCb, forceAjax=false) {
+    public respond(req, res, ajaxCb, normalCb, forceAjax = false) {
       if (this.isAjax(req) || forceAjax == true) {
         return ajaxCb(req, res);
       } else {
@@ -290,61 +298,61 @@ export module Controllers.Core {
       return req.headers['x-source'] == 'jsclient';
     }
 
-    protected ajaxOk(req, res, msg='', data=null, forceAjax=false) {
+    protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
       if (!data) {
-        data = {status:true, message:msg};
+        data = {status: true, message: msg};
       }
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected ajaxFail(req, res, msg='', data=null, forceAjax=false) {
+    protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
       if (!data) {
-        data = {status:false, message:msg};
+        data = {status: false, message: msg};
       }
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected apiFail(req, res, statusCode = 500, errorResponse:APIErrorResponse = new APIErrorResponse()) {
-      // this.apiRespond(req, res, errorResponse, statusCode);
-      res.set('Cache-control', 'no-cache');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', 0);
-        res.status(statusCode)
-        return res.json(errorResponse);
+    protected apiFail(req, res, statusCode = 500, errorResponse?: APIErrorResponse) {
+      this.setNoCacheHeaders(req, res);
+      res.status(statusCode);
+      return res.json(errorResponse ?? new APIErrorResponse());
     }
 
-    protected apiRespond(req, res, jsonObj=null, statusCode=200) {
-      var ajaxMsg = "Got ajax request, don't know what do...";
+    protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
+      const that = this;
+      const ajaxMsg = "Got ajax request, don't know what do...";
       this.respond(req, res,
-        (req, res)=> {
-        this.logger.verbose(ajaxMsg);
-        res.notFound(ajaxMsg);
+        (req, res) => {
+          that.logger.verbose(ajaxMsg);
+          that.setNoCacheHeaders(req, res);
+          res.badRequest(ajaxMsg);
         },
         (req, res) => {
-        res.set('Cache-control', 'no-cache');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', 0);
-        res.status(statusCode)
-        return res.json(jsonObj);
-      });
+          that.setNoCacheHeaders(req, res);
+          res.status(statusCode)
+          return res.json(jsonObj);
+        });
     }
 
-    protected ajaxRespond(req, res, jsonObj=null, forceAjax) {
-      var notAjaxMsg = "Got non-ajax request, don't know what do...";
-      this.respond(req, res, (req, res) => {
-        res.set('Cache-control', 'no-cache');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', 0);
-        return res.json(jsonObj);
-      }, (req, res)=> {
-        this.logger.verbose(notAjaxMsg);
-        res.notFound(notAjaxMsg);
-      }, forceAjax);
+    protected ajaxRespond(req, res, jsonObj = null, forceAjax) {
+      const that = this;
+      const notAjaxMsg = "Got non-ajax request, don't know what do...";
+      this.respond(req, res,
+        (req, res) => {
+          that.setNoCacheHeaders(req, res);
+          return res.json(jsonObj);
+        },
+        (req, res) => {
+          that.logger.verbose(notAjaxMsg);
+          that.setNoCacheHeaders(req, res);
+          res.badRequest(notAjaxMsg);
+        },
+        forceAjax);
     }
 
     protected getNg2Apps(viewPath) {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
-        return {ng2_apps:sails.config.ng2.apps[viewPath]};
+        return {ng2_apps: sails.config.ng2.apps[viewPath]};
       } else {
         return {ng2_apps: []};
       }
@@ -355,9 +363,9 @@ export module Controllers.Core {
      * Defaults to v1.
      * @param req The sails request.
      * @return The API version string.
-     * @protected
+     * @private
      */
-    protected getApiVersion(req): ApiVersionStrings {
+    private getApiVersion(req): ApiVersionStrings {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;
@@ -372,7 +380,8 @@ export module Controllers.Core {
       const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
 
       if (qsValue && headerValue && qsValue !== headerValue) {
-        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match.`);
+        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match. ` +
+          `Using default API version (${defaultVersion}).`);
         return defaultVersion;
       }
 
@@ -381,7 +390,8 @@ export module Controllers.Core {
 
       const available = Array.from(Object.values(ApiVersion));
       if (!available.includes(version)) {
-        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}`);
+        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
+          `Using default API version (${defaultVersion}).`);
         return defaultVersion;
       }
 
@@ -390,31 +400,184 @@ export module Controllers.Core {
     }
 
     /**
-     * Build a success response with the provided data and meta items.
-     * @param data The primary data for the response.
-     * @param meta The metadata for the response.
+     * Send a response built from the properties.
+     *
+     * Defaults / Conventions:
+     * - The default response format is 'json'.
+     * - If only 'data' is provided, the 'status' will be 200.
+     * - If there are any 'errors', the 'status' will default to 500.
+     * - If there are no displayErrors, a generic one will be added.
+     * - Errors are never used as display errors, to avoid revealing implementation details.
+     * - If there are any displayErrors:
+     *   - the top-level status will be 500 if any status starts with 5, or
+     *   - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
+     *   - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
+     * - The response will be in the format matching the request kind (e.g. API, ajax).
+     * - If there is no displayError.title and no displayError.detail, and displayError.code is set,
+     *   the displayError.code will be used as a translation message identifier for displayError.title.
+     * - Both displayError.title and displayError.detail will be treated as translation message identifiers.
+     * - API v1 will return 'v1' if it is set.
+     * - API v1 will return 'data' as the body on 'status' 200, if no 'v1' is supplied.
+     *
+     * @param req The sails request.
+     * @param res The sails response.
+     * @param buildResponse Build the response from these properties.
      * @protected
      */
-    protected buildResponseSuccess(data: unknown, meta: Record<string, unknown>): DataResponseV2 {
-      // TODO: build a consistent response structure - 'data' is primary payload, 'meta' is addition detail
-      return {
-        data: data,
-        meta: {...Object.entries(meta ?? {})},
+    protected sendResp(req: any, res: any, buildResponse?: BuildResponseType): Response {
+      const apiVersion = this.getApiVersion(req);
+      // TODO: The response will be in the format matching the request kind (e.g. API, ajax).
+      //       What difference is there between the response formats?
+      // const isJsonAjax = this.isAjax(req);
+
+      // Destructure build response properties and set defaults.
+      let {
+        format = "json",
+        data = {},
+        // Response status defaults to 200.
+        status = 200,
+        headers = {},
+        errors = [],
+        displayErrors = [],
+        meta = {},
+        v1 = null,
+      } = buildResponse ?? {};
+
+      // Collect and process the errors recursively
+      const {
+        errors: collectedErrors,
+        displayErrors: collectedDisplayErrors
+      } = RBValidationError.collectErrors(errors, displayErrors);
+
+      // Log each error.
+      sails.log.verbose(`Collected ${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'} in sendResp.`);
+      for (const error of collectedErrors) {
+        sails.log.error(`Collected error in sendResp:`, error);
       }
+
+      // If there are errors, but no display errors, add a generic display error.
+      if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
+        collectedDisplayErrors.push({code: 'server-error'});
+      }
+
+      // If there are any displayErrors:
+      // - the top-level status will be 500 if any status starts with 5, or
+      // - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
+      // - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
+      if (collectedDisplayErrors.length > 0) {
+        const statusString = collectedDisplayErrors
+          .map(i => i?.status?.toString() ?? "")
+          .reduce((prev, curr) => {
+            const currStr = curr?.toString() || "";
+            const prevStr = prev?.toString() || "";
+            if (!prevStr.startsWith('5') && !prevStr.startsWith('4') && currStr.startsWith('4')) {
+              return "400";
+            }
+            if (!prevStr.startsWith('5') && currStr.startsWith('5')) {
+              return "500";
+            }
+            return currStr || prevStr;
+          }, status?.toString() || "");
+        try {
+          sails.log.verbose(`sendResp statusString ${statusString}`);
+          status = parseInt(statusString || "500");
+        } catch (error) {
+          sails.log.error(`Error in sendResp reducing status ${status}:`, error);
+        }
+      }
+      sails.log.verbose(`sendResp status ${status}`);
+
+      // Set the response headers
+      if (headers) {
+        res.set(headers);
+      }
+
+      // Set the response status
+      if (status !== null && status !== undefined && !isNaN(status)) {
+        res.status(status);
+      } else {
+        // Set response status to 500 if status was not calculated correctly.
+        res.status(500)
+      }
+
+      // if the response is a json format response with no errors, return the data in the expected API version.
+      // If 'v1' is provided, it will be used for version 1 responses.
+      if (
+        format === 'json'
+        && collectedErrors.length === 0
+        && collectedDisplayErrors.length === 0
+        && !status?.toString().startsWith('5')
+        && !status?.toString().startsWith('4')
+        && (
+          (data !== null && data !== undefined) ||
+          (
+            ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
+            apiVersion === ApiVersion.VERSION_1_0
+          )
+        )
+      ) {
+        switch (apiVersion) {
+          case ApiVersion.VERSION_2_0:
+            sails.log.verbose(`Send response status ${status} api version 2 format json.`);
+            return res.json({data: data, meta: meta});
+
+          case ApiVersion.VERSION_1_0:
+          default:
+            sails.log.verbose(`Send response status ${status} api version 1 format json.`);
+            return res.json(v1 ?? data);
+        }
+      }
+
+      // If 'v1' is provided and the response is in version 1 format, respond with v1.
+      if (v1 !== null && v1 !== undefined && apiVersion === ApiVersion.VERSION_1_0) {
+        sails.log.verbose(`Send response status ${status} api version 1 format json.`);
+        return res.json(v1);
+      }
+
+      // If version is 2 and there are any errors, respond with version 2 error format
+      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_2_0) {
+        sails.log.verbose(`Send response status ${status} api version 2 format json.`);
+        const t = TranslationService.t;
+        const formattedErrors = collectedDisplayErrors.map(displayError => {
+          const code = displayError.code?.toString()?.trim() || "";
+          let title = displayError.title?.toString()?.trim() || "";
+          let detail = displayError.detail?.toString()?.trim() || "";
+
+          if (code && !title && !detail) {
+            title = code;
+          }
+
+          if (title) {
+            displayError.title = t(title);
+          }
+          if (detail) {
+            displayError.detail = t(detail);
+          }
+          return displayError;
+        });
+        sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
+        return res.json({errors: formattedErrors, meta: meta});
+      }
+
+      // If there are any display errors and API is version 1, send the conventional error response format.
+      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
+        const errorResponse = new APIErrorResponse();
+        errorResponse.message = RBValidationError.displayMessage({t: TranslationService, displayErrors:collectedDisplayErrors});
+        sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
+        return res.json(errorResponse);
+      }
+
+      // TODO: log unknown situations so they can be considered.
+      sails.log.error(`Unknown situation in sendResp: ${JSON.stringify({
+        format, data, status, headers, collectedErrors, collectedDisplayErrors, meta, v1,
+      })}`);
+      return res.status(500).json({errors: [{detail: "Check server logs."}], meta: {}});
     }
 
-    /**
-     * Build an error response with the provided data and meta items.
-     * @param errors The error details for the response.
-     * @param meta The metadata for the response.
-     * @protected
-     */
-    protected buildResponseError(errors: { title?: string, detail?: string }[], meta: Record<string, unknown>): ErrorResponseV2 {
-      // TODO: build a consistent response structure - 'errors' is primary payload, 'meta' is addition detail
-      return {
-        errors: errors,
-        meta: {...Object.entries(meta ?? {})},
-      }
+    private setNoCacheHeaders(req, res) {
+      res.set('Cache-control', 'no-cache, private');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', 0);
     }
   }
 }

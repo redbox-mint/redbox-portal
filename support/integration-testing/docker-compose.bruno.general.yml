@@ -7,16 +7,19 @@ services:
     image: node:24-bullseye
     pull_policy: 'missing'
     volumes:
-      - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
-      - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
-      - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
-      - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
-      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
-      - "../../test/bruno/environments:/opt/bruno-tests/environments"
       - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
       - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
       - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
       - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
+      - "../../test/bruno/environments:/opt/bruno-tests/environments"
+      - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
+      - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
+      - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
+      - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
+      - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+      - "../../test/bruno/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh"
+      - "../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
+      - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
     working_dir: /opt/bruno-tests
     stop_grace_period: 30m
     depends_on:
@@ -26,18 +29,10 @@ services:
      main:
        aliases:
          - bruno
-    entrypoint: >-
-      /bin/sh -lc "cd /opt/bruno-tests &&
-      npm install &&
-      npx @usebruno/cli@1.34.1 run
-      --env int-test
-      --format junit
-      --output /opt/junit/backend-bruno/backend-bruno-general.xml
-      --bail;
-      status=$?;
-      wget -qO- http://redboxportal:1599 || true;
-      sleep ${BRUNO_POST_SLEEP_SECONDS:-30};
-      exit $status"
+    init: true
+    entrypoint:
+      - bash
+      - /opt/bruno-tests/run-bruno-general.sh
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
     pull_policy: 'missing'
@@ -48,6 +43,7 @@ services:
     volumes:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
+       - "../../coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     stop_grace_period: 30m
     healthcheck:
@@ -83,7 +79,9 @@ services:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
     init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc --no-clean --report-dir /opt/redbox-portal/coverage/bruno-general --reporter=lcov --exclude-after-remap=false node app.integrationtest.js"
+    entrypoint:
+      - bash
+      - /opt/redbox-portal/test/bruno/run-bruno-general-redbox.sh
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
@@ -98,6 +96,7 @@ services:
       timeout: '5s'
       retries: 10
       start_period: '30s'
+    command: '--quiet --logpath /dev/null'
   solr:
     image: solr:latest
     pull_policy: 'missing'

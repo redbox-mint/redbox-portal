@@ -5,7 +5,7 @@ networks:
 services:
   redboxportal:
     image: qcifengineering/redbox-portal:feature-node24
-    pull_policy: 'always'
+    pull_policy: 'missing'
     user: root
     ports:
        - "1500:1500"
@@ -14,6 +14,8 @@ services:
     volumes:
        - "../../:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
+       - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
+       - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
        - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
        - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
     depends_on:
@@ -36,9 +38,10 @@ services:
       - sails_redbox__mochaTesting=true
       - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       - sails_security__csrf=false
-      - datacite_username=${datacite_username}
-      - datacite_password=${datacite_password}
-      - datacite_doiPrefix=${datacite_doiPrefix}
+      - datacite_username=${datacite_username:-}
+      - datacite_password=${datacite_password:-}
+      - datacite_doiPrefix=${datacite_doiPrefix:-}
+      - CI=${CI:-false}
     networks:
      main:
        aliases:
@@ -53,7 +56,7 @@ services:
       npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
     image: mongo:latest
-    pull_policy: 'always'
+    pull_policy: 'missing'
     networks:
       main:
         aliases:
@@ -68,7 +71,7 @@ services:
       start_period: '30s'
   solr:
     image: solr:latest
-    pull_policy: 'always'
+    pull_policy: 'missing'
     expose:
       - "8983"
     ports:
@@ -79,7 +82,7 @@ services:
       timeout: '5s'
       retries: 10
       start_period: '30s'
-    volumes: 
+    volumes:
       - "./solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:
@@ -91,7 +94,7 @@ services:
       - redbox
   keycloak:
     image: quay.io/keycloak/keycloak:17.0.1
-    pull_policy: 'always'
+    pull_policy: 'missing'
     expose:
       - "8080"
     ports:
@@ -112,7 +115,7 @@ services:
       - start-dev
   email:
     image: axllent/mailpit:latest
-    pull_policy: 'always'
+    pull_policy: 'missing'
     expose:
       - '1025'
       - '8025'

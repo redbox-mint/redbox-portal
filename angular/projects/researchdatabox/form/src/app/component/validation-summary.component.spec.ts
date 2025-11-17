@@ -1,15 +1,17 @@
 import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
-import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {SimpleInputComponent} from "./simpleinput.component";
+import {SimpleInputComponent} from "./simple-input.component";
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
-   await createTestbedModule([
-      ValidationSummaryFieldComponent,
-      SimpleInputComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
+        "SimpleInputComponent": SimpleInputComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
@@ -18,7 +20,8 @@ describe('ValidationSummaryFieldComponent', () => {
   });
   it('should display "The form is valid."', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -28,8 +31,7 @@ describe('ValidationSummaryFieldComponent', () => {
       componentDefinitions: [
         {
           name: 'validation_summary_1',
-          model: {class: 'ValidationSummaryFieldModel', config: {}},
-          component: {class: "ValidationSummaryFieldComponent"}
+          component: {class: "ValidationSummaryComponent"}
         },
       ]
     };
@@ -43,7 +45,8 @@ describe('ValidationSummaryFieldComponent', () => {
   });
   it('should contain one failed validation for the required text field that is empty', async () => {
     // arrange
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -68,8 +71,7 @@ describe('ValidationSummaryFieldComponent', () => {
         },
         {
           name: 'validation_summary_1',
-          model: { class: 'ValidationSummaryFieldModel', config: {}},
-          component: {class: "ValidationSummaryFieldComponent"}
+          component: {class: "ValidationSummaryComponent"}
         },
       ]
     };
@@ -80,6 +82,6 @@ describe('ValidationSummaryFieldComponent', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><a href="#form-item-id-text-1-event"></a>');
+    expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
   });
 });

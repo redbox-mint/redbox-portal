@@ -17,14 +17,16 @@
     "rootDir": "./",
     "composite": true,
     "allowSyntheticDefaultImports": true,
+    "strictNullChecks": true,
     "types": [
       "node",
       "mocha",
       "lodash",
-      "moment"
+      "luxon",
+      "chai"
     ],
     "lib": [
-      "es2022",
+      "es2023",
       "dom"
     ],
     "inlineSourceMap": true,
@@ -50,7 +52,8 @@
       "node",
       "mocha",
       "lodash",
-      "moment"
+      "luxon",
+      "chai"
     ]
   }
 }

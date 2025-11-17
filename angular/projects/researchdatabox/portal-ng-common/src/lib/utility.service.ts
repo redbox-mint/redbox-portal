@@ -408,7 +408,12 @@ export class UtilityService {
    * @param urlPath The path parts.
    */
   public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[]) {
-    const path = (urlPath || []).join('/')
+    if (!brandingAndPortalUrl) {
+      throw new Error("Must provide brandingAndPortalUrl");
+    }
+    const path = (urlPath || []).join('/');
+    const rawUrl = `${brandingAndPortalUrl}/${path}`;
+    console.debug(`getDynamicImport rawUrl ${rawUrl}`);
     const url = new URL(`${brandingAndPortalUrl}/${path}`);
 
     const ts = new Date().getTime().toString();

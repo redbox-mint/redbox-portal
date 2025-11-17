@@ -19,6 +19,7 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
+
 declare var module;
 declare var sails;
 import {
@@ -26,23 +27,22 @@ import {
 } from 'rxjs';
 import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
-    RecordTypeResponseModel,
-    DashboardTypeResponseModel,
-    DataResponseV2,
-    Controllers as controllers,
-    DatastreamService,
-    RecordsService,
-    SearchService,
-    ApiVersion,
-    BrandingModel,
-    RecordTypeModel,
+  RecordTypeResponseModel,
+  DashboardTypeResponseModel,
+  DataResponseV2,
+  Controllers as controllers,
+  DatastreamService,
+  RecordsService,
+  SearchService,
+  ApiVersion,
+  BrandingModel,
+  RecordTypeModel, ErrorResponseItemV2,
 } from '@researchdatabox/redbox-core-types';
 import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import {Services as recordTypeService} from '../services/RecordTypesService';
-import {ClientFormContext} from "../additional/ClientFormContext";
 
 declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService,
     RecordTypesService:recordTypeService.RecordTypes, TranslationService, UsersService,
@@ -125,33 +125,31 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
       if (oid == '') {
-        return res.badRequest();
+        return this.sendResp(req, res, {status: 400});
       }
-      const apiVersion = this.getApiVersion(req);
 
       try {
         let record: any = await this.recordsService.getMeta(oid);
         if(_.isEmpty(record)) {
-          return res.notFound();
+          return this.sendResp(req, res, {status: 404});
         }
   let hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record))
         if (hasViewAccess) {
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            return res.json(this.buildResponseSuccess(record.metadata, {oid: record.redboxOid}));
-          } else {
-            return res.json(record.metadata);
-          }
+          return this.sendResp(req, res, {data: record.metadata, meta: {oid: record.redboxOid}, v1: record.metadata});
         } else {
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            return res.status(403).json(this.buildResponseError([{title: TranslationService.t("error-403-heading")}], {oid: record.redboxOid}));
-          } else {
-            return res.json({status: "Access Denied"});
-          }
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{code: "error-403-heading"}],
+            meta: {oid: record.redboxOid},
+            v1: {status: "Access Denied"},
+          });
         }
       } catch (err) {
-        sails.log.error("Error retrieving metadata")
-        sails.log.error(err);
-        return res.serverError();
+        return this.sendResp(req, res, {
+          errors: [err],
+          displayErrors: [{detail: "Error retrieving metadata"}],
+          meta: {oid: oid},
+        });
       }
     }
 
@@ -159,24 +157,23 @@ export module Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('name') ?? '';
       const editMode = req.query.edit == "true";
-      const apiVersion = this.getApiVersion(req);
 
       // TODO: is there a permission check needed for the default form config values?
 
       // get the default data model for the form with 'name'
       const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form);
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, editMode ? "edit" : "view");
 
       // return the matching format, return the model data as json
-      if (apiVersion === ApiVersion.VERSION_2_0) {
-        return res.json(this.buildResponseSuccess(modelDataDefault, {
+      return this.sendResp(req, res, {
+        data: modelDataDefault,
+        meta: {
           formName: form.name,
           recordType: recordType,
           editMode: editMode
-        }));
-      } else {
-        return res.json(modelDataDefault);
-      }
+        },
+        v1: modelDataDefault,
+      });
     }
 
     public edit(req, res) {
@@ -223,9 +220,10 @@ export module Controllers {
             appName: appName
           });
         }, error => {
-          sails.log.error("Failed to load form")
-          sails.log.error(error)
-          return res.serverError();
+          return this.sendResp(req, res, {
+            errors: [error],
+            displayErrors: [{detail: "Failed to load form"}],
+          });
         });
       } else {
         from(this.recordsService.getMeta(oid)).pipe(flatMap(record => {
@@ -277,7 +275,6 @@ export module Controllers {
       const oid = req.param('oid')?.toString()?.trim() || null;
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
-      const apiVersion = this.getApiVersion(req);
 
       try {
         let form: any = null;
@@ -287,11 +284,11 @@ export module Controllers {
           form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
           if (_.isEmpty(form)) {
             const msg = `Error, getting form for record type: ${recordType}`;
-            if (apiVersion === ApiVersion.VERSION_2_0) {
-              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
-            } else {
-              return this.ajaxFail(req, res, null, {message: msg});
-            }
+            return this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{detail: msg}],
+              v1: {message: msg},
+            });
           }
 
         } else {
@@ -299,11 +296,11 @@ export module Controllers {
           currentRec = await this.recordsService.getMeta(oid);
           if (_.isEmpty(currentRec)) {
             const msg = `Error, empty metadata for OID: ${oid}`;
-            if (apiVersion === ApiVersion.VERSION_2_0) {
-              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
-            } else {
-              return this.ajaxFail(req, res, null, {message: msg});
-            }
+            return this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{detail: msg}],
+              v1: {message: msg},
+            });
           }
 
             // Get current user's access to record
@@ -318,73 +315,71 @@ export module Controllers {
 
             // Check user's record access
             if (!hasAccess) {
-                const msg = TranslationService.t('view-error-no-permissions');
-                if (apiVersion === ApiVersion.VERSION_2_0) {
-                    return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
-                } else {
-                    return this.ajaxFail(req, res, null, {message: msg});
-                }
+              return this.sendResp(req, res, {
+                status: 500,
+                displayErrors: [{code: 'view-error-no-permissions'}],
+                v1: {message: TranslationService.t('view-error-no-permissions')}
+              });
           }
 
           // get the form config
           form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
           if (_.isEmpty(form)) {
             const msg = `Error, getting form ${formParam} for OID: ${oid}`;
-            if (apiVersion === ApiVersion.VERSION_2_0) {
-              return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
-            } else {
-              return this.ajaxFail(req, res, null, {message: msg});
-            }
-            let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-            FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
+            return this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{detail: msg}],
+              v1: {message: msg}
+            });
           }
+          let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+          FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
         }
 
         // process the form config to provide only the fields accessible by the current user
-        const currentContext = ClientFormContext.createView();
-        currentContext.current.mode = editMode ? "edit" : "view";
-        currentContext.current.user = {roles: []};
-        currentContext.current.model = {id: oid, data: currentRec};
-        currentContext.build = [];
-
-        const mergedForm = FormsService.buildClientFormConfig(form, currentContext);
+        const formMode = editMode ? "edit" : "view";
+        const userRoles = req.user?.roles || [];
+        const recordData = currentRec;
+        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData);
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxOk(req, res, null, this.buildResponseSuccess(mergedForm, {formName: formParam, recordType: recordType, oid: oid}));
-          } else {
-            this.ajaxOk(req, res, null, mergedForm);
-          }
+          return this.sendResp(req, res, {
+            data: mergedForm,
+            meta: {formName: formParam, recordType: recordType, oid: oid},
+          });
         } else {
           const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            return this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], null));
-          } else {
-            return this.ajaxFail(req, res, null, {message: msg});
-          }
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: msg}],
+            v1: {message: msg}
+          });
         }
 
       } catch(error) {
-        sails.log.error("Error getting form definition:", error);
-        let message = error.message;
+        let displayError: ErrorResponseItemV2 = {title: "Error getting form definition"};
+        let msg;
         if (error.error && error.error.code == 500) {
-          message = TranslationService.t('missing-record');
-        }
-        if (apiVersion === ApiVersion.VERSION_2_0) {
-          return this.ajaxFail(req, res, null, this.buildResponseError([{detail: message}], null));
+          displayError.code = 'missing-record';
+          msg = TranslationService.t('missing-record');
         } else {
-          return this.ajaxFail(req, res, message);
+          displayError.detail = error.message;
+          msg = error.message;
         }
+        return this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [displayError],
+          v1: msg,
+        });
       }
     }
 
     public create(req, res) {
-      this.createInternal(req, res).then(result => { });
+      this.createInternal(req, res).then(() => { });
     }
 
     private async createInternal(req, res) {
-      const apiVersion = this.getApiVersion(req);
       try {
         const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const metadata = req.body;
@@ -406,26 +401,24 @@ export module Controllers {
         let createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep);
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(createResponse.oid, {...createResponse}));
-          } else {
-            this.ajaxOk(req, res, null, createResponse);
-          }
+          return this.sendResp(req, res, {
+            data: await this.recordsService.getMeta(createResponse.oid),
+            meta: {...createResponse},
+            v1: createResponse,
+          });
         } else {
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxFail(req, res, null, this.buildResponseError([{detail: createResponse.message}], {...createResponse}));
-          } else {
-            this.ajaxFail(req, res, createResponse.message);
-          }
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: createResponse.message}],
+            meta: {...createResponse},
+          });
         }
 
       } catch (error) {
-        const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
-        if (apiVersion === ApiVersion.VERSION_2_0) {
-          this.ajaxFail(req, res, null, this.buildResponseError([{detail: msg}], {}));
-        } else {
-          this.ajaxFail(req, res, msg);
-        }
+        return this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{detail: 'Failed to save record'}],
+        });
       }
     }
 
@@ -438,13 +431,13 @@ export module Controllers {
       if(!_.isEmpty(brand)) {
 
   let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
-      
+
         if (hasEditAccess) {
 
           let recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
 
           let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
-          
+
           if (response && response.isSuccessful()) {
             const resp = {
               success: true,
@@ -452,33 +445,42 @@ export module Controllers {
             };
             sails.log.verbose(`RecordController - delete - Successfully deleted: ${oid}`);
 
-            this.ajaxOk(req, res, null, resp);
+            return this.sendResp(req, res, {data: resp});
           } else {
-            message = response.message;
-            this.ajaxFail(req, res, message);
+            return this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{detail: response.message}]
+            });
           }
         } else {
-          message = TranslationService.t('edit-error-no-permissions');
-          this.ajaxFail(req, res, message);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{code: 'edit-error-no-permissions'}]
+          });
         }
       } else {
-        message = TranslationService.t('failed-delete');
-        this.ajaxFail(req, res, message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{code: 'failed-delete'}]
+        });
       }
     }
 
     public async restoreRecord(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
-      const apiVersion = this.getApiVersion(req);
       const msgFailed = TranslationService.t('failed-restore');
       if (_.isEmpty(oid)) {
-        this.ajaxFail(req, res, msgFailed, {
-          success: false,
-          oid: oid,
-          message: msgFailed
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{code: 'failed-restore'}],
+          meta: {oid: oid},
+          v1: {
+            success: false,
+            oid: oid,
+            message: msgFailed
+          },
         });
-        return;
       }
       const user = req.user;
       const response = await this.recordsService.restoreRecord(oid, user);
@@ -488,22 +490,23 @@ export module Controllers {
           oid: oid
         };
         sails.log.verbose(`Successfully restored: ${oid}`);
-        if (apiVersion === ApiVersion.VERSION_2_0) {
-          this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(oid, resp));
-        } else {
-          this.ajaxOk(req, res, null, resp);
-        }
+        return this.sendResp(req, res, {
+          data: await this.recordsService.getMeta(oid),
+          meta: resp,
+          v1: resp,
+        });
       } else {
         const data = {
           success: false,
           oid: oid,
           message: response.message
         };
-        if (apiVersion === ApiVersion.VERSION_2_0) {
-          this.ajaxFail(req, res, null, this.buildResponseError([{detail: response.message, title: msgFailed}], data));
-        } else {
-          this.ajaxFail(req, res, msgFailed, data);
-        }
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{code: 'failed-restore', detail: response.message}],
+          meta: {oid: oid},
+          v1: data,
+        });
       }
     }
 
@@ -511,12 +514,16 @@ export module Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
-        this.ajaxFail(req, res, TranslationService.t('failed-destroy'), {
-          success: false,
-          oid: oid,
-          message: TranslationService.t('failed-destroy')
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{code: 'failed-destroy'}],
+          meta: {oid: oid},
+          v1: {
+            success: false,
+            oid: oid,
+            message: TranslationService.t('failed-destroy')
+          },
         });
-        return;
       }
       const user = req.user;
       const response = await this.recordsService.destroyDeletedRecord(oid, user);
@@ -526,12 +533,17 @@ export module Controllers {
           oid: oid
         };
         sails.log.verbose(`Successfully destroyed: ${oid}`);
-        this.ajaxOk(req, res, null, resp);
+        return this.sendResp(req, res, {data: resp});
       } else {
-        this.ajaxFail(req, res, TranslationService.t('failed-destroy'), {
-          success: false,
-          oid: oid,
-          message: response.message
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{code: 'failed-destroy'}],
+          meta: {oid: oid},
+          v1: {
+            success: false,
+            oid: oid,
+            message: response.message
+          },
         });
       }
     }
@@ -540,18 +552,11 @@ export module Controllers {
       this.updateInternal(req, res).then(result => { });
     }
 
-    private isValidationError(err: Error) {
-      // TODO: use RBValidationError.clName;
-      const validationName = 'RBValidationError';
-      return validationName == err.name;
-    }
-
     private async updateInternal(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
-      const apiVersion = this.getApiVersion(req);
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
@@ -561,7 +566,7 @@ export module Controllers {
   let currentRec = await firstValueFrom(this.getRecord(oid));
   let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
-        return res.forbidden();
+        return this.sendResp(req, res, {status: 403, displayErrors: [{code: 'not-authorised'}]});
       }
   let recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
       let nextStepResp = null;
@@ -579,31 +584,31 @@ export module Controllers {
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxOk(req, res, null, await this.buildResponseSuccessRecord(oid, response));
-          } else {
-            this.ajaxOk(req, res, null, response);
-          }
-          return response;
+          return this.sendResp(req, res, {
+            data:  await this.recordsService.getMeta(oid),
+            meta: response,
+            v1: response,
+          });
         } else {
-          if (apiVersion === ApiVersion.VERSION_2_0) {
-            this.ajaxFail(req, res, null, this.buildResponseError([], response));
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: "Failed to get record data"}],
+            meta: response,
+            v1: response,
+          });
         }
       } catch (error) {
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
-        sails.log.error(error);
-        if (apiVersion === ApiVersion.VERSION_2_0){
-          this.ajaxFail(req, res, null, this.buildResponseError([{detail: error.message}], response));
-        } else {
-          this.ajaxFail(req, res, error.message);
-        }
+        return this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{detail: error.message}],
+          meta: response,
+          v1: error.message,
+        });
       }
     }
 
-    //TODO: check if this deprecated? 
+    //TODO: check if this deprecated?
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
@@ -687,14 +692,20 @@ export module Controllers {
             sails.log.error(response);
             if (response && response.isSuccessful()) {
               response.success = true;
-              this.ajaxOk(req, res, null, response);
+              this.sendResp(req, res, {data: response});
             } else {
-              this.ajaxFail(req, res, null, response);
+              this.sendResp(req, res, {
+                status: 500,
+                meta: response,
+                v1: response
+              });
             }
           }, error => {
-            sails.log.error("Error updating meta:");
-            sails.log.error(error);
-            this.ajaxFail(req, res, error.message);
+            this.sendResp(req, res, {
+              errors: [error],
+              displayErrors: [{title: "Error updating meta", detail: error.message}],
+              v1: error.message
+            });
           });
         });
     }
@@ -946,13 +957,16 @@ export module Controllers {
       try {
         let searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
         searchRes['page'] = page
-        this.ajaxOk(req, res, null, searchRes);
+        this.sendResp(req, res, {data: searchRes});
       } catch (error) {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          v1: error.message,
+        });
       }
     }
-    /** 
-     * Returns the RecordType configuration based of the response model that is intentionally restricting 
+    /**
+     * Returns the RecordType configuration based of the response model that is intentionally restricting
      * the object schema and information that is allowed to be sent back in this endpoint
      */
     public getType(req, res) {
@@ -960,14 +974,17 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
-        this.ajaxOk(req, res, null, recordTypeModel);
+        this.sendResp(req, res, {data: recordTypeModel});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          v1: error.message,
+        })
       });
     }
 
-    /** 
-     * Returns all RecordTypes configuration based of the response model that is intentionally restricting 
+    /**
+     * Returns all RecordTypes configuration based of the response model that is intentionally restricting
      * the object schema and information that is allowed to be sent back in this endpoint
      */
     public getAllTypes(req, res) {
@@ -978,9 +995,9 @@ export module Controllers {
           let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'), _.get(recType, 'searchFilters'), _.get(recType, 'searchable'));
           recordTypeModels.push(recordTypeModel);
         }
-        this.ajaxOk(req, res, null, recordTypeModels);
+        this.sendResp(req, res, {data: recordTypeModels});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {errors: [error], v1: error.message});
       });
     }
 
@@ -989,9 +1006,9 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
         let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
-        this.ajaxOk(req, res, null, dashboardTypeModel);
+        this.sendResp(req, res, {data: dashboardTypeModel});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {errors: [error], v1:error.message});
       });
     }
 
@@ -1005,9 +1022,9 @@ export module Controllers {
           dashboardTypesModelList.push(dashboardTypeModel);
         }
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
-        this.ajaxOk(req, res, null, dashboardTypesModel);
+        this.sendResp(req, res, {data: dashboardTypesModel});
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {errors: [error], v1: error.message});
       });
     }
 
@@ -1116,13 +1133,13 @@ export module Controllers {
           return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
-            this.ajaxFail(req, res, error.message);
+            this.sendResp(req, res, {errors: [error], v1: error.message});
           } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            res.forbidden();
+            this.sendResp(req, res, {status: 403, errors: [error], displayErrors: [{code: 'edit-error-no-permissions'}]});
           } else if (error.message == TranslationService.t('attachment-not-found')) {
-            res.notFound();
+            this.sendResp(req, res, {status: 404, errors: [error], displayErrors: [{code: 'attachment-not-found'}]});
           } else {
-            res.serverError();
+            this.sendResp(req, res, {status: 500, errors: [error]});
           }
         }
       } else {
@@ -1136,7 +1153,7 @@ export module Controllers {
         let diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
         if (!_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
           let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
-          //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
+          //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
           let thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
           sails.log.verbose('Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
           if (diskSpace.free <= thresholdAppliedFileSize) {
@@ -1156,14 +1173,14 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       return RecordTypesService.get(brand, recordType).subscribe(recordType => {
         return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
-          return this.ajaxOk(req, res, null, wfSteps);
+          return this.sendResp(req, res, {data: wfSteps});
         });
       });
     }
 
     public getRelatedRecords(req, res) {
       return this.getRelatedRecordsInternal(req, res).then(response => {
-        return this.ajaxOk(req, res, null, response);
+        return this.sendResp(req, res, {data: response});
       });
     }
 
@@ -1230,7 +1247,7 @@ export module Controllers {
 
     public getPermissions(req, res) {
       return this.getPermissionsInternal(req, res).then(response => {
-        return this.ajaxOk(req, res, null, response);
+        return this.sendResp(req, res, {data: response});
       });
     }
 
@@ -1239,7 +1256,7 @@ export module Controllers {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
       from(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
-        return this.ajaxOk(req, res, null, attachments);
+        return this.sendResp(req, res, {data: attachments});
       });
     }
 
@@ -1268,13 +1285,13 @@ export module Controllers {
           return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
-            this.ajaxFail(req, res, error.message);
+            this.sendResp(req, res, {errors: [error], v1: error.message});
           } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            res.forbidden();
+            this.sendResp(req, res, {status: 403, errors: [error], displayErrors: [{code: 'edit-error-no-permissions'}]});
           } else if (error.message == TranslationService.t('attachment-not-found')) {
-            res.notFound();
+            this.sendResp(req, res, {status: 404, errors: [error], displayErrors: [{code: 'attachment-not-found'}]});
           } else {
-            res.serverError();
+            this.sendResp(req, res, {status: 500, errors: [error]});
           }
         }
       }
@@ -1367,14 +1384,16 @@ export module Controllers {
       try {
         const response = await this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode, secondarySort);
         if (response) {
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, {data: response});
         } else {
-          this.ajaxFail(req, res, null, response);
+          this.sendResp(req, res, {status: 500, meta: response, v1: response});
         }
       } catch (error) {
-        sails.log.error("Error updating meta:");
-        sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{title: "Error updating meta", detail: error.message}],
+          v1: error.message
+        });
       }
     }
 
@@ -1428,14 +1447,16 @@ export module Controllers {
       try {
         const response = await this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
         if (response) {
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, {data: response});
         } else {
-          this.ajaxFail(req, res, null, response);
+          this.sendResp(req, res, {status: 500, meta: response, v1: response});
         }
       } catch (error) {
-        sails.log.error("Error updating meta:");
-        sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, {
+          errors: [error],
+          displayErrors: [{title: "Error updating meta", detail: error.message}],
+          v1: error.message
+        });
       }
     }
 
@@ -1541,19 +1562,6 @@ export module Controllers {
 
       response["items"] = items;
       return response;
-    }
-
-    private getErrorMessage(err: Error, defaultMessage: string) {
-      // TODO: use RBValidationError.clName;
-      const validationName = 'RBValidationError';
-      return validationName == err.name ? err.message : defaultMessage;
-    }
-
-    private async buildResponseSuccessRecord(oid: string, response: { [key: string]: unknown }): Promise<DataResponseV2> {
-      return this.buildResponseSuccess(
-          await this.recordsService.getMeta(oid),
-          response
-      );
     }
 
     private mergeRecordMetadata(currentMetadata: { [key: string]: unknown }, newMetadata: { [key: string]: unknown }): { [key: string]: unknown } {

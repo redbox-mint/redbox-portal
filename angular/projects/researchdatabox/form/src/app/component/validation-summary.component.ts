@@ -1,14 +1,13 @@
-import {Component, Injector, Input} from '@angular/core';
+import {Component, inject, Injector, Input} from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldModel,
 } from "@researchdatabox/portal-ng-common";
 import {FormComponent} from "../form.component";
-import { FormValidatorSummaryErrors } from "@researchdatabox/sails-ng-common";
+import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@researchdatabox/sails-ng-common";
 
-export class ValidationSummaryFieldModel extends FormFieldModel<string> {
-}
 
+// TODO: use item.parents to reveal the parent components on click
 @Component({
   selector: 'redbox-validation-summary-field',
   template: `
@@ -19,14 +18,18 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
           @for (item of validationList; track item.id) {
             @if (item.errors.length > 0) {
               <li>
-                @if (item.id) {
-                  <a href="#{{ item.id }}">{{ item.message ?? "(no label)" | i18next }}</a>
+                @if (item.id && item.message) {
+                  <a href="#{{ item.id }}">{{ item.message | i18next }}</a>
+                } @else if (item.id && !item.message) {
+                  <a href="#{{ item.id }}">{{ item.id }}</a>
+                } @else if(!item.id && item.message) {
+                  {{ item.message | i18next }}
                 } @else {
-                  {{ item.message ?? "(no label)" | i18next }}
+                  {{ "@validator-label-default" | i18next }}
                 }
                 <ul>
                   @for (error of item.errors; track $index) {
-                    <li>{{ error.message ?? "(no message)" | i18next: error.params }}
+                    <li>{{ error.message | i18next: error.params }}
                     </li>
                   }
                 </ul>
@@ -41,11 +44,12 @@ export class ValidationSummaryFieldModel extends FormFieldModel<string> {
         The form is valid.
       </div>
     }
-    
+
     `,
   standalone: false
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
+  protected override logName = ValidationSummaryComponentName;
 
   /**
    * The model associated with this component.
@@ -53,11 +57,9 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
    * @type {FieldModel<any>}
    * @memberof FieldComponent
    */
-  @Input() public override model?: ValidationSummaryFieldModel;
+  @Input() public override model?: never;
 
-  constructor(private _injector: Injector) {
-    super();
-  }
+  private _injector = inject(Injector);
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
     return  this.getFormComponent?.getValidationErrors() ?? [];

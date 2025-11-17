@@ -17,32 +17,18 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  of
-} from 'rxjs';
-import {
-  Services as services,
-  RBValidationError,
-  BrandingModel
-} from '@researchdatabox/redbox-core-types';
-import {
-  Sails,
-  Model
-} from "sails";
-import { DateTime } from 'luxon';
+import {of} from 'rxjs';
+import {Services as services, RBValidationError, BrandingModel} from '@researchdatabox/redbox-core-types';
+import {Sails} from "sails";
+import {DateTime} from 'luxon';
 import moment from '../shims/momentShim';
 import axios from 'axios';
-import { isArray } from 'lodash';
-
 
 declare var sails: Sails;
 declare var RecordsService;
 declare var BrandingService;
 declare var TranslationService;
 declare var _;
-
-
-
 
 export module Services {
   /**
@@ -62,8 +48,15 @@ export module Services {
       'changeDoiState'
     ];
 
-    private async makeCreateDoiCall(instance, postBody, record, oid) {
+    private _msgPrefix: string;
+    private msgPrefix() {
+      if (!this._msgPrefix) {
+        this._msgPrefix = TranslationService.t('Datacite API error');
+      }
+      return this._msgPrefix;
+    }
 
+    private async makeCreateDoiCall(instance, postBody, record, oid) {
       try {
         let response = await instance.post('/dois', postBody);
 
@@ -71,32 +64,21 @@ export module Services {
           let responseBody = response.data;
           let doi = responseBody.data.id
           sails.log.debug(`DOI created: ${doi}`)
-
-
-
-
-
-
-          sails.log.debug(`DOI generated ${doi}`)
-
           return doi;
         } else {
-          let errorMessage = this.doiResponseErrorMessage(response.status)
-          let customError: RBValidationError = new RBValidationError(errorMessage)
-          sails.log.error(errorMessage)
-          throw customError
+          throw this.doiResponseToRBValidationError(response.status);
         }
-
       } catch (err) {
-        let errorMessage = TranslationService.t(err)
-        let customError: RBValidationError = new RBValidationError(errorMessage)
-        sails.log.error(errorMessage)
-        throw customError;
+        const msg = TranslationService.t(`Error creating DOI`);
+        throw new RBValidationError({
+          message: `${this.msgPrefix()} ${msg}`,
+          options: {cause: err},
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+        });
       }
     }
 
     private async makeUpdateDoiCall(instance, postBody, doi) {
-
       try {
         let response = await instance.patch(`/dois/${doi}`, postBody)
 
@@ -106,20 +88,19 @@ export module Services {
           sails.log.debug(`DOI Updated: ${doi}`)
           return doi;
         } else {
-          let errorMessage = this.doiResponseErrorMessage(response.status)
-          let customError: RBValidationError = new RBValidationError(errorMessage)
-          sails.log.error(errorMessage)
-          throw customError
+          throw this.doiResponseToRBValidationError(response.status);
         }
       } catch (err) {
-        let errorMessage = TranslationService.t(err)
-        let customError: RBValidationError = new RBValidationError(errorMessage)
-        sails.log.error(errorMessage)
-        throw customError
+        const msg = TranslationService.t(`Error updating DOI`);
+        throw new RBValidationError({
+          message: `${this.msgPrefix()} ${msg}`,
+          options: {cause: err},
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+        });
       }
     }
 
-    public async deleteDoi(doi: string) {
+    public async deleteDoi(doi: string): Promise<boolean> {
       try {
         let baseUrl = sails.config.datacite.baseUrl;
 
@@ -136,23 +117,19 @@ export module Services {
         if (response.status == 204) {
           return true;
         } else {
-
-          let errorMessage = this.doiResponseErrorMessage(response.status)
-          let customError: RBValidationError = new RBValidationError(errorMessage)
-          sails.log.error(errorMessage)
-          throw customError
+          throw this.doiResponseToRBValidationError(response.status);
         }
-
       } catch (err) {
-        let errorMessage = TranslationService.t(err)
-        let customError: RBValidationError = new RBValidationError(errorMessage)
-        sails.log.error(errorMessage)
-        throw customError
+        const msg = TranslationService.t(`Error deleting DOI`);
+        throw new RBValidationError({
+          message: `${this.msgPrefix()} ${msg}`,
+          options: {cause: err},
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+        });
       }
-
-      return false;
     }
-    public async changeDoiState(doi: string, event: string) {
+
+    public async changeDoiState(doi: string, event: string): Promise<boolean> {
       try {
         let baseUrl = sails.config.datacite.baseUrl
         let authenticationStringEncoded = this.getAuthenticationString()
@@ -177,40 +154,41 @@ export module Services {
         if (response.status == 200) {
           return true
         } else {
-
-          let errorMessage = this.doiResponseErrorMessage(response.status)
-          let customError: RBValidationError = new RBValidationError(errorMessage)
-          sails.log.error(errorMessage)
-          throw customError
+          throw this.doiResponseToRBValidationError(response.status);
         }
-
       } catch (err) {
-        let errorMessage = TranslationService.t(err)
-        let customError: RBValidationError = new RBValidationError(errorMessage)
-        sails.log.error(errorMessage)
-        throw customError
+        const msg = TranslationService.t(`Error deleting DOI`);
+        throw new RBValidationError({
+          message: `${this.msgPrefix()} ${msg}`,
+          options: {cause: err},
+          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+        });
       }
-
-      return false;
     }
 
-    doiResponseErrorMessage(statusCode) {
-      let errorMessage = [TranslationService.t('Datacite API error')]
-      let message = ''
+    private doiResponseToRBValidationError(statusCode: number): RBValidationError {
+      let message: string;
       switch (statusCode) {
         case 403:
           message = 'not-authorised'
+          break;
         case 404:
           message = 'not-found' //Happens when a) invalid credentials when creating; and b) DOI is invalid.
+          break;
         case 422:
           message = 'invalid-format'
+          break;
         case 500:
           message = 'server-error'
+          break;
         default:
           message = 'unknown-error'
+          break;
       }
-      errorMessage.push(TranslationService.t(message))
-      return errorMessage
+      return new RBValidationError({
+        message: `${this.msgPrefix()} ${TranslationService.t(message)}`,
+        displayErrors: [{code: message, title: this.msgPrefix()}],
+      })
     }
 
     private processForCodes(forCodes: any[]) {
@@ -310,8 +288,7 @@ export module Services {
 
       let dates = mappings.dates
       if (!_.isEmpty(dates) && _.isArray(dates)) {
-        for (var i = 0; i < dates.length; i++) {
-          let oDate = dates[i]
+        for (let oDate of dates) {
           let aDate = this.runTemplate(oDate.template, lodashTemplateContext)
           if (!_.isEmpty(aDate)) {
             postBody.data.attributes.dates.push({ "date": aDate, "dateType": oDate.dateType, "dateInformation": oDate.dateInformation })
@@ -322,8 +299,7 @@ export module Services {
       let fundingReferences = mappings.fundingReferences
 
       if (!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)) {
-        for (var i = 0; i < fundingReferences.length; i++) {
-          let fundingReference = fundingReferences[i]
+        for (let fundingReference of fundingReferences) {
           let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
           let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
           for (var j = 0; j < funderName.length; j++) {
@@ -337,12 +313,10 @@ export module Services {
 
       let descriptions = mappings.descriptions
       if (!_.isEmpty(descriptions) && _.isArray(descriptions)) {
-        for (var i = 0; i < descriptions.length; i++) {
-          let description = descriptions[i]
+        for (let description of descriptions) {
           let descriptionType = description.descriptionType
           let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
-          for (var j = 0; j < allDescriptions.length; j++) {
-            let aDescription = allDescriptions[j]
+          for (let aDescription of allDescriptions) {
             if (!_.isEmpty(aDescription)) {
               postBody.data.attributes.descriptions.push({ "descriptionType": descriptionType, "description": aDescription })
             }
@@ -352,8 +326,7 @@ export module Services {
 
       let rightsList = mappings.rightsList
       if (!_.isEmpty(rightsList) && _.isArray(rightsList)) {
-        for (var i = 0; i < rightsList.length; i++) {
-          let rights = rightsList[i]
+        for (let rights of rightsList) {
           let key = rights.key
           let value = this.runTemplate(rights.template, lodashTemplateContext)
           if (!_.isEmpty(value)) {
@@ -368,9 +341,9 @@ export module Services {
       }
 
       if (!_.isEmpty(sizes) && _.isArray(sizes)) {
-        for (var i = 0; i < sizes.length; i++) {
-          if (!_.isEmpty(sizes[i])) {
-            postBody.data.attributes.sizes.push(sizes[i])
+        for (const item of sizes) {
+          if (!_.isEmpty(item)) {
+            postBody.data.attributes.sizes.push(item)
           }
         }
       }
@@ -381,9 +354,9 @@ export module Services {
       }
 
       if (!_.isEmpty(identifiers) && _.isArray(identifiers)) {
-        for (var i = 0; i < identifiers.length; i++) {
-          if (!_.isEmpty(identifiers[i])) {
-            let identifier = { "identifier": identifiers[i], "identifierType": "Other" }
+        for (const item of identifiers) {
+          if (!_.isEmpty(item)) {
+            let identifier = { "identifier": item, "identifierType": "Other" }
             postBody.data.attributes.identifiers.push(identifier)
           }
         }
@@ -397,14 +370,13 @@ export module Services {
         }
 
         if (!_.isEmpty(subjects) && _.isArray(subjects)) {
-          for (var i = 0; i < subjects.length; i++) {
-            if (!_.isEmpty(subjects[i])) {
+          for (const subject of subjects) {
+            if (!_.isEmpty(subject)) {
 
-              if (typeof (subjects[i]) == 'string') {
-                let subject = { "subject": subjects[i] }
-                postBody.data.attributes.subjects.push(subject)
+              if (typeof (subject) == 'string') {
+                postBody.data.attributes.subjects.push({ "subject": subject })
               } else {
-                postBody.data.attributes.subjects.push(subjects[i])
+                postBody.data.attributes.subjects.push(subject)
               }
             }
           }
@@ -414,7 +386,7 @@ export module Services {
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
 
-      let postBodyValidateError = []
+      let postBodyValidateError: string[] = []
 
       if (_.isEmpty(postBody.data.attributes.titles)) {
         postBodyValidateError.push('title-required')
@@ -449,8 +421,8 @@ export module Services {
 
       if (!_.isEmpty(postBody.data.attributes.dates)) {
         let dates = postBody.data.attributes.dates
-        for (var i = 0; i < _.size(dates); i++) {
-          let date = DateTime.fromJSDate(new Date(dates[i].date)).toFormat('yyyy-LL-dd')
+        for (const dateItem of dates) {
+          let date = DateTime.fromJSDate(new Date(dateItem.date)).toFormat('yyyy-LL-dd')
           if (!DateTime.fromFormat(date, 'yyyy-LL-dd', { zone: 'utc' }).isValid) {
             postBodyValidateError.push('date-invalid')
           }
@@ -465,25 +437,21 @@ export module Services {
         postBodyValidateError.push('doi-required')
       }
 
-      if (action == 'update' && !_.isEmpty(record.metadata.citation_doi) && record.metadata.citation_doi.indexOf(doiPrefix) != 0) {
+      if (action == 'update' && !_.isEmpty(record.metadata.citation_doi) && !record.metadata.citation_doi.startsWith(doiPrefix)) {
         sails.log.warn(`The citation DOI ${record.metadata.citation_doi} does not begin with the correct prefix ${doiPrefix}. Will not attempt to update`)
         return null;
       }
 
-      if (!_.isEmpty(postBodyValidateError)) {
-        let errors = [TranslationService.t('datacite-validation-error')]
-        for (var i = 0; i < _.size(postBodyValidateError); i++) {
-          errors.push(TranslationService.t(postBodyValidateError[i]))
-        }
-
-        let errorMessage = errors
-        let customError: RBValidationError = new RBValidationError(errorMessage)
-        sails.log.error(customError)
-        throw customError
-        return false
+      if (postBodyValidateError.length > 0) {
+        const bodyValidateCode = 'datacite-validation-error';
+        throw new RBValidationError({
+          message: `Could not publish DOI oid ${oid} event ${event} action ${action} errors ${postBodyValidateError.join(', ')}`,
+          displayErrors: postBodyValidateError.map(code => {
+            return {code: code, title: bodyValidateCode, meta: {oid, event, action}}
+          }),
+        })
       }
-      let doi = null
-
+      let doi;
       if (action == 'update') {
         doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
       }
@@ -562,7 +530,7 @@ export module Services {
       return record;
     }
 
-    //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in 
+    //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in
     //      which will allow to standardise config structure in all places were object mappings are needed
     protected runTemplate(template: string, variables) {
       if (template && template.indexOf('<%') != -1) {

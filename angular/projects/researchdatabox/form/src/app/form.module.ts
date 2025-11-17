@@ -16,24 +16,37 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { NgModule } from '@angular/core';
+import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
-import { SimpleInputComponent } from './component/simpleinput.component';
+import { SimpleInputComponent } from './component/simple-input.component';
 import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
 import {I18NextPipe, provideI18Next} from "angular-i18next";
-import {GroupFieldComponent} from "./component/groupfield.component";
+import {GroupFieldComponent} from "./component/group.component";
 import {DefaultLayoutComponent} from "./component/default-layout.component";
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
+import { TextAreaComponent } from './component/text-area.component';
+import { DropdownInputComponent } from './component/dropdown-input.component';
+import { CheckboxInputComponent } from './component/checkbox-input.component';
+import { RadioInputComponent } from './component/radio-input.component';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { provideFormFeature } from './form-state';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { DateInputComponent } from './component/date-input.component';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -42,6 +55,7 @@ import {TabComponent, TabComponentLayout, TabContentComponent} from "./component
     FormComponent,
     SimpleInputComponent,
     ContentComponent,
+    TextAreaComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,
     ValidationSummaryFieldComponent,
@@ -49,7 +63,11 @@ import {TabComponent, TabComponentLayout, TabContentComponent} from "./component
     SaveButtonComponent,
     TabComponent,
     TabContentComponent,
-    TabComponentLayout
+    TabComponentLayout,
+    DropdownInputComponent,
+    CheckboxInputComponent,
+    RadioInputComponent,
+    DateInputComponent
   ],
   imports: [
     CommonModule,
@@ -57,6 +75,8 @@ import {TabComponent, TabComponentLayout, TabContentComponent} from "./component
     ReactiveFormsModule,
     RedboxPortalCoreModule,
     I18NextPipe,
+    BrowserAnimationsModule,
+    BsDatepickerModule.forRoot()
   ],
   providers: [
     {
@@ -66,7 +86,13 @@ import {TabComponent, TabComponentLayout, TabContentComponent} from "./component
     },
     Title,
     FormService,
+    FormStateFacade,
+    FormComponentEventBus,
+    provideStore(),
+    provideEffects(),
+    provideFormFeature(),
     provideI18Next(),
+    provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
   ],
   bootstrap: [
     FormComponent
