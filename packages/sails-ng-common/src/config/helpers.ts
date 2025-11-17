@@ -8,6 +8,7 @@ import {DateTime} from 'luxon';
 import {FormComponentDefinitionFrame} from "./form-component.outline";
 import {FormConfigFrame} from "./form-config.outline";
 import {FieldDefinitionFrame} from "./field.outline";
+import {FormValidatorDefinition} from "../validation/form.model";
 
 /**
  * Guess the type of the value.
@@ -169,4 +170,27 @@ export function isTypeFormConfig<T extends FormConfigFrame>(item: unknown): item
     const hasExpectedPropCompDefs = isTypeWithComponentDefinitions<FormConfigFrame>(item);
 
     return hasExpectedPropName && hasExpectedPropCompDefs;
+}
+
+/**
+ * Check if the item is a valid form validation definition.
+ * @param item The item to check.
+ */
+export function isTypeFormValidatorDefinition(item: unknown): item is FormValidatorDefinition {
+    if (item === undefined || item === null) {
+        return false;
+    }
+    const i = item as FormValidatorDefinition;
+
+    const hasExpectedPropClass = 'class' in i && guessType(i.class) === 'string';
+    const hasExpectedPropClassValue = i.class?.toString()?.trim().length > 0;
+
+    const hasExpectedPropMessage = 'message' in i && guessType(i.message) === 'string';
+    const hasExpectedPropMessageValue = i.message?.toString()?.trim().length > 0;
+
+    const hasExpectedPropCreate = 'create' in i;
+
+    return hasExpectedPropClass && hasExpectedPropClassValue
+        && hasExpectedPropMessage && hasExpectedPropMessageValue
+        && hasExpectedPropCreate;
 }

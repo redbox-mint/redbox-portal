@@ -17,9 +17,18 @@ export const SaveButtonComponentName = "SaveButtonComponent" as const;
 export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
 
 export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    /**
+     * Try to transition to this workflow step as part of the save process on the server.
+     */
     targetStep?: string;
+    /**
+     * Save the form, even if it would otherwise not be able to save.
+     * For example, save even if nothing has changed or there are validation failures.
+     */
     forceSave?: boolean;
-    skipValidation?: boolean;
+    /**
+     * The label to set to the button while saving.
+     */
     labelSaving?: string;
 }
 

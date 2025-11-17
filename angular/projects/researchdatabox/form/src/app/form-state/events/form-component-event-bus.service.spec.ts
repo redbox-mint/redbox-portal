@@ -1,6 +1,6 @@
 /**
  * Form Component Event Bus Tests
- * 
+ *
  * Tests ephemeral pub/sub coordination between field components.
  * Per R15.1–R15.29, AC26–AC36
  */
@@ -139,7 +139,7 @@ describe('FormComponentEventBus', () => {
     it('should publish form save requested events (R15.17.1)', (done) => {
       const event = createFormSaveRequestedEvent({
         force: true,
-        skipValidation: false,
+        enabledValidationGroups: ["all"],
         targetStep: 'review',
         sourceId: 'save-button'
       });
@@ -148,7 +148,7 @@ describe('FormComponentEventBus', () => {
         next: (received) => {
           expect(received.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
           expect(received.force).toBe(true);
-          expect(received.skipValidation).toBe(false);
+          expect(received.enabledValidationGroups).toEqual(["all"]);
           expect(received.targetStep).toBe('review');
           expect(received.sourceId).toBe('save-button');
           expect(received.timestamp).toBeGreaterThan(0);
@@ -162,7 +162,7 @@ describe('FormComponentEventBus', () => {
     it('should publish form save execute events (R15.30)', (done) => {
       const event = createFormSaveExecuteEvent({
         force: false,
-        skipValidation: true,
+        enabledValidationGroups: ["all"],
         targetStep: 'submit',
         sourceId: 'effect'
       });
@@ -171,7 +171,7 @@ describe('FormComponentEventBus', () => {
         next: (received) => {
           expect(received.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
           expect(received.force).toBe(false);
-          expect(received.skipValidation).toBe(true);
+          expect(received.enabledValidationGroups).toEqual(["all"]);
           expect(received.targetStep).toBe('submit');
           expect(received.sourceId).toBe('effect');
           expect(received.timestamp).toBeGreaterThan(0);
@@ -369,7 +369,7 @@ describe('FormComponentEventBus', () => {
       bus.selectAll$().subscribe({
         next: (event) => {
           receivedTypes.add(event.type);
-          
+
           if (receivedTypes.size === 3) {
             expect(receivedTypes.has(FormComponentEventType.FIELD_VALUE_CHANGED)).toBe(true);
             expect(receivedTypes.has(FormComponentEventType.FIELD_FOCUS_REQUEST)).toBe(true);
@@ -529,7 +529,7 @@ describe('FormComponentEventBus', () => {
         previousValue: 'Old',
         sourceId: 'component-1'
       });
-      
+
       expect(event.type).toBe(FormComponentEventType.FIELD_VALUE_CHANGED);
       expect(event.fieldId).toBe('title');
       expect(event.value).toBe('New');
@@ -544,7 +544,7 @@ describe('FormComponentEventBus', () => {
         reason: 'selection changed',
         sourceId: 'form-1'
       });
-      
+
       expect(event.type).toBe(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER);
       expect(event.fieldId).toBe('country');
       expect(event.dependentFields).toEqual(['state', 'city']);
@@ -557,7 +557,7 @@ describe('FormComponentEventBus', () => {
         fieldId: 'email',
         sourceId: 'validation-component'
       });
-      
+
       expect(event.type).toBe(FormComponentEventType.FIELD_FOCUS_REQUEST);
       expect(event.fieldId).toBe('email');
       expect(event.sourceId).toBe('validation-component');
@@ -566,14 +566,14 @@ describe('FormComponentEventBus', () => {
     it('should create form save requested events via helper', () => {
       const event = createFormSaveRequestedEvent({
         force: true,
-        skipValidation: true,
+        enabledValidationGroups: ["all"],
         targetStep: 'review',
         sourceId: 'button-1'
       });
 
       expect(event.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
       expect(event.force).toBe(true);
-      expect(event.skipValidation).toBe(true);
+      expect(event.enabledValidationGroups).toEqual(["all"]);
       expect(event.targetStep).toBe('review');
       expect(event.sourceId).toBe('button-1');
     });
@@ -581,14 +581,14 @@ describe('FormComponentEventBus', () => {
     it('should create form save execute events via helper', () => {
       const event = createFormSaveExecuteEvent({
         force: false,
-        skipValidation: false,
+        enabledValidationGroups: ["all"],
         targetStep: 'submit',
         sourceId: 'effect-1'
       });
 
       expect(event.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
       expect(event.force).toBe(false);
-      expect(event.skipValidation).toBe(false);
+      expect(event.enabledValidationGroups).toEqual(["all"]);
       expect(event.targetStep).toBe('submit');
       expect(event.sourceId).toBe('effect-1');
     });
@@ -614,12 +614,12 @@ describe('FormComponentEventBus', () => {
       bus.select$(FormComponentEventType.FIELD_META_CHANGED).subscribe(() => {});
 
       const startTime = performance.now();
-      
+
       // Publishing to one type should not scan all subscribers
       bus.publish(
         createFieldDependencyTriggerEvent({ fieldId: 'test', dependentFields: [], reason: 'test' })
       );
-      
+
       const endTime = performance.now();
       const duration = endTime - startTime;
 

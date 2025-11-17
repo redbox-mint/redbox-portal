@@ -15,7 +15,6 @@ import {
 export class SaveButtonFieldComponentConfig extends FieldComponentConfig implements SaveButtonFieldComponentConfigOutline {
     targetStep?: string;
     forceSave?: boolean;
-    skipValidation?: boolean;
     labelSaving?: string;
 
     constructor() {
