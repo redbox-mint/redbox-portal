@@ -18,5 +18,11 @@ find . -name '*.bru' -type f \
 rm /opt/junit/backend-bruno/backend-bruno-oidc.xml || true
 
 # Run bruno tests
-exec node_modules/.bin/bru run --disable-cookies --env int-test --format junit --bail \
- --output /opt/junit/backend-bruno/backend-bruno-oidc.xml
+node_modules/.bin/bru run \
+  --disable-cookies --env int-test --format junit --bail \
+  --output /opt/junit/backend-bruno/backend-bruno-oidc.xml
+
+status=$?
+wget -qO- http://redboxportal:1599 || true
+sleep "${BRUNO_POST_SLEEP_SECONDS:-30}"
+exit $status
