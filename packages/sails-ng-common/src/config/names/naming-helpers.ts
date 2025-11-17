@@ -11,7 +11,7 @@ export interface LineagePaths {
 	formConfig: LineagePath;
 	dataModel: LineagePath;
 	angularComponents: LineagePath;
-  jsonPointer?: string;
+	jsonPointer?: string;
 }
 
 /**
@@ -20,7 +20,7 @@ export interface LineagePaths {
  * This was previously an instance method of FormService.
  */
 export function buildLineagePaths(base?: LineagePaths, more?: LineagePaths): LineagePaths {
-	const lineagePaths:LineagePaths = {
+	const lineagePaths: LineagePaths = {
 		formConfig: [...(base?.formConfig ?? []), ...(more?.formConfig ?? [])],
 		dataModel: [...(base?.dataModel ?? []), ...(more?.dataModel ?? [])],
 		angularComponents: [...(base?.angularComponents ?? []), ...(more?.angularComponents ?? [])],
