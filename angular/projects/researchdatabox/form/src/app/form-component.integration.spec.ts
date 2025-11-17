@@ -1,9 +1,9 @@
 /**
  * FormComponent Integration Tests
- * 
+ *
  * Integration tests verifying FormComponent works correctly with the new
  * NgRx-based form state management, facade, and event bus.
- * 
+ *
  * Requirements:
  * - R12.4: Field integration test SHALL assert reset propagation via resetToken change
  * - R12.5: A minimal harness SHALL simulate submit success and failure
@@ -91,7 +91,7 @@ describe('FormComponent Integration Tests', () => {
     // Arrange & Act: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-    
+
     // Assert: Status should be READY after successful load
     expect(facade.status()).toBe(FormStatus.READY);
     expect(component.status()).toBe(FormStatus.READY);
@@ -105,50 +105,50 @@ describe('FormComponent Integration Tests', () => {
     // Arrange: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-    
+
     // Get initial reset token
     let currentResetToken: number | undefined;
     resetTokenSub = store.select(selectResetToken).subscribe(token => {
       currentResetToken = token;
     });
-    
+
     const initialResetToken = currentResetToken!;
     expect(initialResetToken).toBe(0);
-    
+
     // Act: Dispatch reset action
     store.dispatch(FormActions.resetAllFields());
-    
+
     // Assert: Reset token should increment
     expect(currentResetToken).toBe(initialResetToken + 1);
-    
+
     // Verify status remains READY after reset
     expect(facade.status()).toBe(FormStatus.READY);
-    
+
     // Act: Reset again
     store.dispatch(FormActions.resetAllFields());
-    
+
     // Assert: Reset token increments again
     expect(currentResetToken).toBe(initialResetToken + 2);
   }));
 
   /**
-   * R12.5: Simulate submit success 
+   * R12.5: Simulate submit success
    * Verify facade submit method works correctly
    */
   it('should handle submit success flow via facade', waitForAsync(async () => {
     // Arrange: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-        
+
     expect(facade.status()).toBe(FormStatus.READY);
-    
+
     // Track status changes
     const statusChanges: FormStatus[] = [];
     statusSub = store.select(selectStatus).subscribe(status => {
       statusChanges.push(status);
-    });    
+    });
     // Act: Call facade submit (this will dispatch submitForm action)
-    facade.submit({ force: false });    
+    facade.submit({ force: false });
 
     expect(statusChanges).toContain(FormStatus.SAVING);
 
@@ -158,15 +158,15 @@ describe('FormComponent Integration Tests', () => {
     // Arrange: Create form using helper
     const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-        
+
     expect(facade.status()).toBe(FormStatus.READY);
-    
+
     // Track status changes
     const statusChanges: FormStatus[] = [];
     statusSub = store.select(selectStatus).subscribe(status => {
       statusChanges.push(status);
-    });    
-    eventBus.publish(createFormSaveRequestedEvent({ force: true }));    
+    });
+    eventBus.publish(createFormSaveRequestedEvent({ force: true }));
     fixture.detectChanges();
     await fixture.whenStable();
     expect(statusChanges).toContain(FormStatus.SAVING);
@@ -195,7 +195,7 @@ describe('FormComponent Integration Tests', () => {
     // Arrange: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-    
+
     // Assert: Facade signals are accessible and reactive
     expect(() => facade.status()).not.toThrow();
     expect(() => facade.isInitializing()).not.toThrow();
@@ -205,7 +205,7 @@ describe('FormComponent Integration Tests', () => {
     expect(() => facade.hasValidationError()).not.toThrow();
     expect(() => facade.hasLoadError()).not.toThrow();
     expect(() => facade.resetToken()).not.toThrow();
-    
+
     // Verify values after form is loaded
     expect(facade.status()).toBe(FormStatus.READY);
     expect(facade.isInitializing()).toBe(false);
@@ -225,19 +225,19 @@ describe('FormComponent Integration Tests', () => {
     // Arrange: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-    
+
     // Assert: Initial state is pristine
     expect(facade.isDirty()).toBe(false);
-    
+
     // Act: Mark form as dirty
     store.dispatch(FormActions.markDirty());
-    
+
     // Assert: Dirty state updates
     expect(facade.isDirty()).toBe(true);
-    
+
     // Act: Mark as pristine
     store.dispatch(FormActions.markPristine());
-    
+
     // Assert: Back to pristine
     expect(facade.isDirty()).toBe(false);
   }));
@@ -250,25 +250,25 @@ describe('FormComponent Integration Tests', () => {
     // Arrange: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-    
+
     expect(facade.status()).toBe(FormStatus.READY);
-    
+
     // Act: Dispatch validation pending
     store.dispatch(FormActions.formValidationPending());
-    
+
     // Assert: Status changes to VALIDATION_PENDING
     expect(facade.status()).toBe(FormStatus.VALIDATION_PENDING);
-    
+
     // Act: Dispatch validation success
     store.dispatch(FormActions.formValidationSuccess());
-    
+
     // Assert: Status returns to READY
     expect(facade.status()).toBe(FormStatus.READY);
-    
+
     // Act: Simulate validation error
     store.dispatch(FormActions.formValidationPending());
     store.dispatch(FormActions.formValidationFailure({ error: 'Test error' }));
-    
+
     // Assert: Status changes to VALIDATION_ERROR
     expect(facade.status()).toBe(FormStatus.VALIDATION_ERROR);
     expect(facade.hasValidationError()).toBe(true);
@@ -282,13 +282,13 @@ describe('FormComponent Integration Tests', () => {
     // Arrange: Create form using helper
     const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
     component = formComponent;
-    
+
     // Assert: Component status should be same as facade status
     expect(component.status()).toBe(facade.status());
     expect(component.status()).toBe(FormStatus.READY);
     expect(facade.status()).toBe(FormStatus.READY);
     expect(component.status()).toBe(facade.status());
-    
+
     // Verify component.status is a Signal (readonly from facade)
     expect(typeof component.status).toBe('function');
   }));
@@ -300,30 +300,30 @@ describe('FormComponent Integration Tests', () => {
   it('should provide imperative facade methods that dispatch actions', waitForAsync( async () => {
     // Arrange: Spy on store dispatch
     const dispatchSpy = spyOn(store, 'dispatch');
-    
+
     // Act: Call facade.load()
     facade.load('test-oid', 'rdmp', 'default');
-    
+
     // Assert: loadInitialData action dispatched
     expect(dispatchSpy).toHaveBeenCalledWith(
       FormActions.loadInitialData({ oid: 'test-oid', recordType: 'rdmp', formName: 'default' })
     );
-    
+
     dispatchSpy.calls.reset();
-    
+
     // Act: Call facade.submit()
-    facade.submit({ force: true, targetStep: 'review', skipValidation: false });
-    
+    facade.submit({ force: true, targetStep: 'review', enabledValidationGroups: ["all"] });
+
     // Assert: submitForm action dispatched with parameters
     expect(dispatchSpy).toHaveBeenCalledWith(
-      FormActions.submitForm({ force: true, targetStep: 'review', skipValidation: false })
+      FormActions.submitForm({ force: true, targetStep: 'review', enabledValidationGroups: ["all"] })
     );
-    
+
     dispatchSpy.calls.reset();
-    
+
     // Act: Call facade.resetAllFields()
     facade.resetAllFields();
-    
+
     // Assert: resetAllFields action dispatched
     expect(dispatchSpy).toHaveBeenCalledWith(FormActions.resetAllFields());
   }));

@@ -1,3 +1,5 @@
+import "./sails";
+
 export {
     Attachment
 }

@@ -1,6 +1,5 @@
 import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {ConstructFormConfigVisitor} from "./construct.visitor";
+import {FormConfigOutline} from "../form-config.outline";
 import {set as _set, get as _get, mergeWith as _mergeWith} from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,

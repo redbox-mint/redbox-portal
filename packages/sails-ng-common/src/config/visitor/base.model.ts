@@ -277,7 +277,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     // TODO: fix typing
-    protected getDataPath(data?: any, path?: string[]) {
+    protected getDataPath(data?: unknown, path?: string[]) {
         const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
 
         // for debugging:
@@ -423,10 +423,10 @@ export class PopulateProperties {
         ...sources: ({ [x: string]: any; } | null | undefined)[]
     ) {
         if (target === undefined || target === null) {
-            throw new Error("Target provided to setProp was undefined or null.");
+            throw new Error("Target provided to setPropOverride was undefined or null.");
         }
         if (name === undefined || name === null) {
-            throw new Error("Property name provided to setProp was undefined or null.");
+            throw new Error("Property name provided to setPropOverride was undefined or null.");
         }
 
         const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];

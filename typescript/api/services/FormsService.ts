@@ -131,11 +131,15 @@ export module Services {
           customAngularApp: formConfig.customAngularApp || null,
 
           // new fields
-          debugValue: formConfig.debugValue,
           domElementType: formConfig.domElementType,
+          domId: formConfig.domId,
           defaultComponentConfig: formConfig.defaultComponentConfig,
+          enabledValidationGroups: formConfig.enabledValidationGroups,
           validators: formConfig.validators,
+          validationGroups: formConfig.validationGroups,
+          defaultLayoutComponent: formConfig.defaultLayoutComponent,
           componentDefinitions: formConfig.componentDefinitions,
+          debugValue: formConfig.debugValue,
         };
 
         result = await Form.create(formObj);
@@ -419,7 +423,6 @@ export module Services {
       let formObject = {
         name: 'generated-view-only',
         type: recordType,
-        skipValidationOnSave: false,
         editCssClasses: 'row col-md-12',
         viewCssClasses: 'row col-md-offset-1 col-md-10',
         messages: {},

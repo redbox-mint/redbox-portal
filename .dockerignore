@@ -3,7 +3,8 @@
 .github
 .tmp
 .vscode
-node_modules
+.circleci
+**/node_modules
 *.log
 .DS_Store
 Thumbs.db
@@ -11,3 +12,10 @@ support/development
 **/coverage
 **/dist
 **/.angular
+support/integration-testing
+support/unit-testing
+support/docs
+docs
+test
+coverage
+*.tgz
