@@ -1,4 +1,4 @@
-import {FormValidatorConfig} from "../validation/form.model";
+import {FormValidationGroups, FormValidatorConfig} from "../validation/form.model";
 import {AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
 import {FormConfigOutline} from "./form-config.outline";
 import {FormConfigVisitorOutline} from "./visitor/base.outline";
@@ -17,8 +17,12 @@ export class FormConfig implements FormConfigOutline {
     public editCssClasses?: KeyValueStringProperty;
     public defaultComponentConfig?: KeyValueStringNested;
     public defaultLayoutComponent?: string;
-    public skipValidationOnSave: boolean = false;
+    public enabledValidationGroups?: string[] = ["all"];
     public validators: FormValidatorConfig[] = [];
+    public validationGroups?: FormValidationGroups = {
+        all: {description: "Validate all fields with validators.", initialMembership: "all"},
+        none: {description: "Validate none of the fields.", initialMembership: "none"},
+    };
     public componentDefinitions: AvailableFormComponentDefinitionOutlines[] = [];
     public debugValue: boolean = false;
 

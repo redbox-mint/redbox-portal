@@ -44,9 +44,8 @@ import {
   FormComponentDefinitionFrame,
   FormConfigFrame,
   FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
-  FormValidatorFn,
   FormValidatorSummaryErrors,
-  ValidatorsSupport,
+  ValidatorsSupport, FormValidationGroups,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
@@ -78,7 +77,8 @@ export class FormService extends HttpClientService {
   protected validatorsSupport: ValidatorsSupport;
 
   private requestOptions: Record<string, unknown> = {};
-  private loadedValidatorDefinitions?: FormValidatorDefinition[];
+  private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
+  private loadedFormConfig?: FormConfigFrame;
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
@@ -162,8 +162,12 @@ export class FormService extends HttpClientService {
   public async createFormComponentsMap(formConfig: FormConfigFrame, parentLineagePaths: LineagePaths): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      this.loadedValidatorDefinitions = redboxClientScript.formValidatorDefinitions;
+      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(redboxClientScript.formValidatorDefinitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
+    }
+
+    if (this.loadedFormConfig === null || this.loadedFormConfig === undefined) {
+      this.loadedFormConfig = formConfig;
     }
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
@@ -174,7 +178,7 @@ export class FormService extends HttpClientService {
     const components = await this.resolveFormComponentClasses(componentDefinitions, parentLineagePaths);
 
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
-    this.createFormFieldModelInstances(components, formConfig);
+    this.createFormFieldModelInstances(components);
     return new FormComponentsMap(components, formConfig);
   }
 
@@ -302,7 +306,7 @@ export class FormService extends HttpClientService {
     return fieldArr;
   }
 
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[], formConfig: FormConfigFrame): void {
+  public createFormFieldModelInstances(components:FormFieldCompMapEntry[]): void {
     const names = components?.map(i => i?.compConfigJson?.name) ?? [];
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${names.join(',')}.`);
     for (let compEntry of components) {
@@ -313,10 +317,10 @@ export class FormService extends HttpClientService {
   public createFormFieldModelInstance(compMapEntry: FormFieldCompMapEntry): FormFieldModel<unknown> | null {
     const ModelType = compMapEntry.modelClass;
     const modelConfig = compMapEntry.compConfigJson.model;
+    const enabledGroups = this.loadedFormConfig?.enabledValidationGroups ?? ["all"];
     if (ModelType && modelConfig) {
-      const validatorConfig = modelConfig?.config?.validators ?? [];
-      const validators = this.createFormValidatorInstances(validatorConfig);
-      compMapEntry.model = new ModelType(modelConfig, validators);
+      compMapEntry.model = new ModelType(modelConfig);
+      this.setValidators(compMapEntry.model.formControl, compMapEntry.model.validators, enabledGroups);
       return compMapEntry.model;
     } else {
       // TODO: Is there some way to indicate which components must have a model, and which ones must not?
@@ -325,10 +329,6 @@ export class FormService extends HttpClientService {
       this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component. If this is unexpected, check your form configuration.`, compMapEntry);
     }
     return null;
-  }
-
-  public createFormValidatorInstances(config: FormValidatorConfig[] | null | undefined): FormValidatorFn[] {
-    return this.validatorsSupport.createFormValidatorInstances(this.loadedValidatorDefinitions, config)
   }
 
   /**
@@ -352,7 +352,7 @@ export class FormService extends HttpClientService {
       groupMap[fieldName] = compEntry;
       if (compEntry.model) {
         const model = compEntry.model;
-        const formControl = model.getFormGroupEntry();
+        const formControl = model.formControl;
         if (formControl && fieldName) {
           groupWithFormControl[fieldName] = formControl;
         }
@@ -400,6 +400,9 @@ export class FormService extends HttpClientService {
 
     // control
     name = name || null;
+
+    // TODO: Find the component definition that matches the angular form control using the path instead of only name.
+    //  Using name only might find the wrong form component definition, as names are only unique at the same level of nesting.
     const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
     const {id, labelMessage} = this.componentIdLabel(componentDef);
     const errors = this.getFormValidatorComponentErrors(control);
@@ -430,7 +433,7 @@ export class FormService extends HttpClientService {
     return Object.entries(control?.errors ?? {})
         .map(([key, item]) => {
           return {
-            name: key,
+            class: key,
             message: item.message ?? null,
             params: {...item.params},
           }
@@ -502,22 +505,48 @@ export class FormService extends HttpClientService {
 
   /**
    * Apply the validators to the form control.
+   * @param formControl Apply the enabled validators to this form control.
+   * @param validators All validators configured on this component.
+   * @param enabledGroups The validation group names that are currently enabled. No groups means all validators are enabled.
    */
   public setValidators(
-    formControl: AbstractControl | null | undefined,
-    validators?: FormValidatorFn[] | null | undefined
+    formControl?: AbstractControl | null,
+    validators?: FormValidatorConfig[] | null,
+    enabledGroups?: string[]| null,
   ): void {
-    // TODO: This method is duplicated in FormFieldModel.setValidators, see if they can be collapsed to one place.
+    if (!formControl) {
+      this.loggerService.warn(`${this.logName}: Cannot set validators because formControl is falsy.`);
+      return;
+    }
+    if (!validators || validators.length === 0) {
+      this.loggerService.debug(`${this.logName}: Cannot set validators because there are no validator configs.`);
+      return;
+    }
+
+    // Get the form-level configs.
+    const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
+    const groupDefs = this.loadedFormConfig?.validationGroups ?? {};
+
+    if (!enabledGroups) {
+      enabledGroups = [];
+    }
+
+    // Filter the validator configs to the enabled ones.
+    const enabledValidators = this.validatorsSupport.enabledValidators(groupDefs, enabledGroups, validators);
+    const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators);
+    if (!validatorFns || validatorFns.length === 0) {
+      this.loggerService.debug(`${this.logName}: Cannot set validators because there are no validator functions.`);
+      return;
+    }
+
     // set validators to the form control
-    const validatorFns = validators?.filter(v => !!v) ?? [];
     this.loggerService.debug(`${this.logName}: setting validators to formControl`, {
       validators: validators,
       formControl: formControl
     });
-    if (formControl && validatorFns.length > 0) {
-      formControl?.setValidators(validatorFns);
-      formControl?.updateValueAndValidity();
-    }
+    formControl?.setValidators(validatorFns);
+    formControl?.updateValueAndValidity();
+
   }
 
   /**
@@ -611,7 +640,7 @@ export class FormService extends HttpClientService {
 
   /**
    * Build the lineage paths from a base item,
-   * and add the entries in more as relative parts at the end of each lineage path.
+   * and add the entries as relative parts at the end of each lineage path.
    * @param base The base paths.
    * @param more The relative paths to append.
    */

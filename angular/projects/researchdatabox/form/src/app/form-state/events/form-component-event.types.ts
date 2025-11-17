@@ -1,6 +1,6 @@
 /**
  * Form Component Event Types
- * 
+ *
  * Discriminated union of typed events for intra-form coordination.
  * Per R15.1–R15.17, naming convention: namespace.domain.action
  */
@@ -75,7 +75,7 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
 export interface FormSaveRequestedEvent extends FormComponentEventBase {
   readonly type: 'form.save.requested';
   readonly force?: boolean;
-  readonly skipValidation?: boolean;
+  readonly enabledValidationGroups?: string[];
   readonly targetStep?: string;
 }
 
@@ -86,7 +86,7 @@ export interface FormSaveRequestedEvent extends FormComponentEventBase {
 export interface FormSaveExecuteEvent extends FormComponentEventBase {
   readonly type: 'form.save.execute';
   readonly force?: boolean;
-  readonly skipValidation?: boolean;
+  readonly enabledValidationGroups?: string[];
   readonly targetStep?: string;
 }
 
