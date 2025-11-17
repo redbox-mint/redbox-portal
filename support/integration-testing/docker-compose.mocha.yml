@@ -12,9 +12,10 @@ x-rbportal-env: &rbportal-env
   - sails_redbox__mochaTesting=true
   - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
-  - datacite_username=${datacite_username}
-  - datacite_password=${datacite_password}
-  - datacite_doiPrefix=${datacite_doiPrefix}
+  - datacite_username=${datacite_username:-}
+  - datacite_password=${datacite_password:-}
+  - datacite_doiPrefix=${datacite_doiPrefix:-}
+  - CI=${CI:-false}
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -54,7 +55,7 @@ x-rbportal-service: &rbportal-service
   init: true
   entrypoint:
     - bash
-    - /opt/redbox-portal/test/unit/run-mocha-redbox.sh
+    - /opt/redbox-portal/support/integration-testing/run-mocha-redbox.sh
 
 services:
   redboxportal:

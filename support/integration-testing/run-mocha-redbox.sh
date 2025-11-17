@@ -5,6 +5,9 @@ set -o xtrace
 
 cd /opt/redbox-portal
 
+# Install dependencies for running
+npm install --ignore-scripts --strict-peer-deps
+
 # Remove the output from any previous tests
 rm -rf /opt/redbox-portal/coverage/mocha/* || true
 rm /opt/redbox-portal/.tmp/junit/backend-mocha/backend-mocha.xml || true

@@ -16,7 +16,7 @@ x-bruno-service: &bruno-service
     - "../../test/bruno/5 - OpenID Connect Denied:/opt/bruno-tests/5 - OpenID Connect Denied"
     - "../../test/bruno/6 - OpenID Connect Allowed:/opt/bruno-tests/6 - OpenID Connect Allowed"
     - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
-    - "../../test/bruno/run-bruno-oidc.sh:/opt/bruno-tests/run-bruno-oidc.sh"
+    - "../../support/integration-testing/run-bruno-oidc.sh:/opt/bruno-tests/run-bruno-oidc.sh"
     - "../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
     - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
   working_dir: /opt/bruno-tests
@@ -82,7 +82,7 @@ x-rbportal-service: &rbportal-service
   # init: true
   entrypoint:
     - bash
-    - /opt/redbox-portal/test/bruno/run-bruno-oidc-redbox.sh
+    - /opt/redbox-portal/support/integration-testing/run-bruno-oidc-redbox.sh
 
 services:
   bruno:
