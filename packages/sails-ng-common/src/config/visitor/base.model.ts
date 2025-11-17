@@ -1,5 +1,5 @@
 import {get as _get} from "lodash";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
+import {FormConfigOutline} from "../form-config.outline";
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -277,7 +277,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     // TODO: fix typing
-    protected getDataPath(data?: FormConfigFrame, path?: string[]) {
+    protected getDataPath(data?: any, path?: string[]) {
         const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
 
         // for debugging:
