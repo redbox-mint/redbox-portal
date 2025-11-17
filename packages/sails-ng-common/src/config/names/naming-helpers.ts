@@ -1,3 +1,5 @@
+import { formatJsonPointer } from '@jsonjoy.com/json-pointer';
+import { format } from 'path';
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
 // A lineage path is an ordered list of keys (string|number) describing a path lineage for
@@ -9,6 +11,7 @@ export interface LineagePaths {
 	formConfig: LineagePath;
 	dataModel: LineagePath;
 	angularComponents: LineagePath;
+  jsonPointer?: string;
 }
 
 /**
@@ -17,11 +20,14 @@ export interface LineagePaths {
  * This was previously an instance method of FormService.
  */
 export function buildLineagePaths(base?: LineagePaths, more?: LineagePaths): LineagePaths {
-	return {
+	const lineagePaths:LineagePaths = {
 		formConfig: [...(base?.formConfig ?? []), ...(more?.formConfig ?? [])],
 		dataModel: [...(base?.dataModel ?? []), ...(more?.dataModel ?? [])],
 		angularComponents: [...(base?.angularComponents ?? []), ...(more?.angularComponents ?? [])],
 	};
+  const jsonPointer = formatJsonPointer(lineagePaths.angularComponents);
+  lineagePaths.jsonPointer = jsonPointer;
+  return lineagePaths;
 }
 
 

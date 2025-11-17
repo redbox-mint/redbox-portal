@@ -147,6 +147,14 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // TODO: is this necessary?
       if (elemFieldEntry) {
+        elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
+          this.formFieldCompMapEntry?.lineagePaths,
+          {
+            angularComponents: [key],
+            dataModel: [],
+            formConfig: [],
+          } 
+        )
         elemFieldEntry.componentRef = wrapperRef;
       }
     }

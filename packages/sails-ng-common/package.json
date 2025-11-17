@@ -75,10 +75,11 @@
     ]
   },
   "dependencies": {
+    "@jsonjoy.com/json-pointer": "^17.63.0",
     "@researchdatabox/redbox-core-types": "../../core",
-    "luxon": "^3.7.2",
-    "ts-json-schema-generator": "^2.4.0",
     "lodash": "^4.17.21",
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.17.21",
+    "luxon": "^3.7.2",
+    "ts-json-schema-generator": "^2.4.0"
   }
 }
