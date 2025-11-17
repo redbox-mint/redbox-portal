@@ -17,24 +17,20 @@ x-bruno-service: &bruno-service
     - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
     - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
     - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
+    - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
+    - "../../test/bruno/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh"
+    - "../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
+    - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
   working_dir: /opt/bruno-tests
   stop_grace_period: 30m
   networks:
     main:
       aliases:
         - bruno
-  entrypoint: >-
-    /bin/sh -lc "cd /opt/bruno-tests &&
-    npm install &&
-    npx @usebruno/cli@1.34.1 run
-    --env int-test
-    --format junit
-    --output /opt/junit/backend-bruno/backend-bruno-general.xml
-    --bail;
-    status=$?;
-    wget -qO- http://redboxportal:1599 || true;
-    sleep ${BRUNO_POST_SLEEP_SECONDS:-30};
-    exit $status"
+  init: true
+  entrypoint:
+    - bash
+    - /opt/bruno-tests/run-bruno-general.sh
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
@@ -67,7 +63,7 @@ x-rbportal-service: &rbportal-service
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
-    - "../../coverage:/opt/redbox-portal/coverage"
+    - "../../coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general"
     - "../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js"
     - "../../.tmp/attachments:/attachments"
     - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
@@ -88,7 +84,9 @@ x-rbportal-service: &rbportal-service
         - redboxportal
   # add 'node --inspect=0.0.0.0:9876' for debugging locally
   init: true
-  entrypoint: /bin/bash -c "cd /opt/redbox-portal && npx nyc --no-clean --report-dir /opt/redbox-portal/coverage/bruno-general --reporter=lcov --exclude-after-remap=false node app.integrationtest.js"
+  entrypoint:
+    - bash
+    - /opt/redbox-portal/test/bruno/run-bruno-general-redbox.sh
 
 services:
   bruno:

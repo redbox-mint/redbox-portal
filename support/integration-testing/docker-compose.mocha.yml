@@ -37,10 +37,12 @@ x-rbportal-service: &rbportal-service
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
-    - "../../coverage:/opt/redbox-portal/coverage"
+    - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
+    - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
     - "../../.tmp/attachments:/attachments"
     - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
     - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
+    - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
   depends_on: *rbportal-depends
   expose:
     - "1500"
@@ -50,12 +52,9 @@ x-rbportal-service: &rbportal-service
       aliases:
         - redboxportal
   init: true
-  entrypoint: >-
-    /bin/bash -c "cd /opt/redbox-portal &&
-    ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-    npm ci &&
-    npx nyc --no-clean --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false \
-    npx mocha --config test/unit/.mocharc.js --exit test/bootstrap.test.js test/unit/**/*.test.js"
+  entrypoint:
+    - bash
+    - /opt/redbox-portal/test/unit/run-mocha-redbox.sh
 
 services:
   redboxportal:
