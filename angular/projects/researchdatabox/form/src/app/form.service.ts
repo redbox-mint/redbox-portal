@@ -166,7 +166,7 @@ export class FormService extends HttpClientService {
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 
-    if (this.loadedFormConfig === null || this.loadedFormConfig) {
+    if (this.loadedFormConfig === null || this.loadedFormConfig === undefined) {
       this.loadedFormConfig = formConfig;
     }
 
