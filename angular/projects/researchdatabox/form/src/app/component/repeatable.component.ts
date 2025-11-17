@@ -283,7 +283,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 
   public addElement(targetModel?: FormFieldModel<unknown>){
     if (this.formControl && targetModel){
-      this.formControl.push(targetModel.getFormGroupEntry());
+      this.formControl.push(targetModel.getFormControl());
     } else {
       throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
     }
@@ -291,7 +291,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 
   public removeElement(targetModel?: FormFieldModel<unknown>): void {
     if (this.formControl && this.formControl instanceof FormArray) {
-      const modelIdx = this.formControl?.controls.findIndex((control: unknown) => control === targetModel?.getFormGroupEntry());
+      const modelIdx = this.formControl?.controls.findIndex((control: unknown) => control === targetModel?.getFormControl());
       if (modelIdx === -1 || modelIdx === undefined) {
         throw new Error(`${this.logName}: model not found in formControl.`);
       }

@@ -24,6 +24,7 @@ import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
 import {Services as appConfigServices} from "./AppConfigService"
 import {Services as brandingService} from "./BrandingService"
+import { glob } from 'fs';
 declare var sails: Sails;
 declare var _;
 declare var CacheEntry: Model;
@@ -182,14 +183,19 @@ sails.log.verbose(`${hook_log_header}::Merging branded app configuration...compl
       let apiDirs = ["services"];
       _.each(apiDirs, (apiType) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
+        if (!sails[apiType]) {
+          sails[apiType] = {};
+        }
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
         if (!_.isEmpty(files)) {
           _.each(files, (file) => {
             const apiDef = require(file);
-            const apiElemName = _.toLower(basename(file, '.js'))
+            const globalName = basename(file, '.js')
+            const apiElemName = _.toLower(globalName)
             // TODO: deal with controllers or services in nested directories
             sails[apiType][apiElemName] = apiDef;
+            global[globalName] = apiDef;
           });
         }
       });

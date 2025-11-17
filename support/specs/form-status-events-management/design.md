@@ -68,7 +68,7 @@ graph TD
 ### 3.3 Effects (R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4)
 - `loadInitialData$`: `switchMap` to `FormService.downloadFormComponents` honoring INIT guard; success dispatches ready state and writes `modelSnapshot` for diffing.
 - `submitForm$`: `exhaustMap` to ensure single in-flight save. Sets `status = SAVING`, adds action id to `pendingActions`, emits success/failure, updates `lastSavedAt`, and logs via `LoggerService`.
-- `publishSaveExecuteOnSubmit$`: Non-dispatching effect that listens to `submitForm` action and publishes `form.save.execute` command event to the EventBus, carrying `{ force, skipValidation, targetStep }`. This instructs `FormComponent` to invoke its existing `saveForm` method, preserving component-driven persistence logic. No new state fields are introduced by this orchestration.
+- `publishSaveExecuteOnSubmit$`: Non-dispatching effect that listens to `submitForm` action and publishes `form.save.execute` command event to the EventBus, carrying `{ force, enabledValidationGroups, targetStep }`. This instructs `FormComponent` to invoke its existing `saveForm` method, preserving component-driven persistence logic. No new state fields are introduced by this orchestration.
 - `resetAllFields$`: `filter` to skip when `status === SAVING` (R2.10) else increments `resetToken` and optionally notifies event bus via `form.reset` event for manual listeners.
 - Validation effects translate facade dispatches into state transitions while respecting `status === SAVING` guard (R2.14, R4.6).
 - Error channel centralizes sanitization and ensures `ackError` resets `error`.
@@ -104,7 +104,7 @@ graph TD
 ### 3.7 `FormComponent` integration (R16.1–R16.16)
 - Constructor injects `FormStateFacade`, `FormStatusSignalBridge`, and `FormComponentEventBus` via providers.
 - `initComponent` dispatches `loadInitialData` instead of directly mutating `status`; effect success updates `componentsLoaded` signal (maintained locally).
-- `saveForm` no longer receives direct invocations from `SaveButton`. Instead, `SaveButton` publishes `form.save.requested`; the adapter promotes it to `submitForm`; an effect publishes `form.save.execute`, which the `FormComponent` subscribes to and then calls `saveForm(force, targetStep, skipValidation)`. This preserves existing component logic without adding state fields.
+- `saveForm` no longer receives direct invocations from `SaveButton`. Instead, `SaveButton` publishes `form.save.requested`; the adapter promotes it to `submitForm`; an effect publishes `form.save.execute`, which the `FormComponent` subscribes to and then calls `saveForm(force, targetStep, enabledValidationGroups)`. This preserves existing component logic without adding state fields.
 - Legacy consumers may continue calling `formComponent.saveForm(...)` directly for custom workflows; the method remains public and retains its behaviour for compatibility. UI buttons must publish `form.save.requested` rather than invoking the method to stay aligned with the event-driven flow.
 - FormGroup status `effect` now dispatches validation lifecycle actions rather than toggling `status` locally (R16.3).
 - Reset button uses `facade.resetAllFields('user-request')`. Field components continue to watch `resetToken()` and remain store-agnostic.

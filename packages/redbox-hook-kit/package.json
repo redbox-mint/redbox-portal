@@ -1,0 +1,49 @@
+{
+  "name": "@researchdatabox/redbox-hook-kit",
+  "version": "4.5.1",
+  "description": "ReDBox customisation hook development kit - provides TypeScript tooling and shared configuration",
+  "main": "index.js",
+  "bin": {
+    "redbox-hook-kit": "./bin/cli.js",
+    "redbox-tsc": "./bin/tsc.js"
+  },
+  "files": [
+    "bin/",
+    "config/",
+    "index.js",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redbox-mint/redbox-portal.git#v4.5.1"
+  },
+  "keywords": [
+    "Kit",
+    "Dev",
+    "Hook",
+    "ReDBox",
+    "TypeScript"
+  ],
+  "author": "Alejandro Bulgaris",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/redbox-mint/redbox-portal/issues"
+  },
+  "homepage": "https://github.com/redbox-mint/redbox-portal/tree/v4.5.1#readme",
+  "peerDependencies": {
+    "@researchdatabox/redbox-core-types": "^1.5.0"
+  },
+  "dependencies": {
+    "@researchdatabox/redbox-core-types": "^1.5.0",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.10.0"
+  },
+  "peerDependenciesMeta": {
+    "@researchdatabox/redbox-core-types": {
+      "optional": false
+    }
+  }
+}

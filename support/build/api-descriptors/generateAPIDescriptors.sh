@@ -1,5 +1,5 @@
 #! /bin/sh
-npm install
+npm ci
 
 node_modules/.bin/ejs-cli ../../../views/default/default/apidocsapib.ejs -O '{"portal":"rdmp","branding":"default", "baseUrl": "https://demo.redboxresearchdata.com.au"}' > apidocs.apib 
 node_modules/.bin/apib2swagger -i apidocs.apib --yaml --open-api-3 --bearer-apikey > ../../../views/default/default/apidocsswaggeryaml.ejs

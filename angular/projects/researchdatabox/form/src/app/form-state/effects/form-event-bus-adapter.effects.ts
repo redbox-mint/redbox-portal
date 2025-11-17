@@ -1,9 +1,9 @@
 /**
  * Form Event Bus Adapter Effects
- * 
+ *
  * Promotes qualifying ephemeral bus events into persistent NgRx actions.
  * Per R15.20–R15.29, AC37–AC44
- * 
+ *
  * Promotion Criteria:
  * (a) Event affects persistent global state
  * (b) Event triggers a side-effect requiring store coordination
@@ -111,7 +111,7 @@ function formatErrorsForMessage(errors: any): string {
 
 /**
  * FormEventBusAdapterEffects
- * 
+ *
  * Subscribes to selected bus events and promotes them to actions when criteria are met.
  * Per R15.21, optional registration via provideFormFeature config.
  */
@@ -121,7 +121,7 @@ export class FormEventBusAdapterEffects {
   private readonly store = inject(Store);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly logger = inject(LoggerService);
-  
+
   /** Configuration injected via token */
   private readonly config: Required<FormEventBusAdapterConfig> = {
     ...DEFAULT_CONFIG,
@@ -131,7 +131,7 @@ export class FormEventBusAdapterEffects {
   /**
    * Promote field dependency trigger events
    * Criterion: (b) Triggers side-effect (dependent field updates)
-   * 
+   *
    * Per R15.20(b), R15.21, R15.23
    */
   promoteDependencyTrigger$ = createEffect(() =>
@@ -149,7 +149,7 @@ export class FormEventBusAdapterEffects {
   /**
    * Promote form validation broadcast events
    * Criterion: (a) Affects persistent global state (validation status)
-   * 
+   *
    * Per R15.20(a), R15.21, R15.23
    */
   promoteValidationBroadcast$ = createEffect(() =>
@@ -177,7 +177,7 @@ export class FormEventBusAdapterEffects {
       (event: any) =>
         FormActions.submitForm({
           force: event.force,
-          skipValidation: event.skipValidation,
+          enabledValidationGroups: event.enabledValidationGroups,
           targetStep: event.targetStep,
         })
     )
@@ -217,10 +217,10 @@ export class FormEventBusAdapterEffects {
   /**
    * Promote field value changed events (selective)
    * Criterion: (c) Requires replay for debugging critical field changes
-   * 
+   *
    * Only promotes for fields marked as critical/replay-worthy.
    * Per R15.20(c), R15.21, R15.23
-   * 
+   *
    * Note: In production, this would check field metadata or config to determine
    * which fields warrant promotion. For now, we'll skip this to avoid noise.
    */
@@ -238,14 +238,14 @@ export class FormEventBusAdapterEffects {
 
   /**
    * Generic promotion stream factory
-   * 
+   *
    * Creates an observable that:
    * 1. Subscribes to specific event type (R15.21)
    * 2. Throttles duplicates (R15.22)
    * 3. Maps to action (R15.23)
    * 4. Logs diagnostics (R15.26)
    * 5. Respects disabled flag (R15.27)
-   * 
+   *
    * Per R15.21–R15.28
    */
   private createPromotionStream<T extends keyof any>(

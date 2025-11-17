@@ -1,6 +1,6 @@
 /**
  * Form Event Bus Adapter Effects Tests
- * 
+ *
  * Validates promotion criteria, throttling, diagnostics, and disablement.
  * Per R15.29, AC37–AC44
  */
@@ -474,7 +474,7 @@ describe('FormEventBusAdapterEffects', () => {
       effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
 
       eventBus.publish<FormSaveRequestedEvent>({
-        ...createFormSaveRequestedEvent({ force: true, skipValidation: true, targetStep: 'next' })
+        ...createFormSaveRequestedEvent({ force: true, enabledValidationGroups: ["none"], targetStep: 'next' })
       });
 
       tick(10);
@@ -483,7 +483,7 @@ describe('FormEventBusAdapterEffects', () => {
       expect(promoted[0].type).toBe(FormActions.submitForm.type);
       expect(promoted[0]).toEqual(jasmine.objectContaining({
         force: true,
-        skipValidation: true,
+        enabledValidationGroups: ["none"],
         targetStep: 'next'
       }));
     }));
@@ -496,7 +496,7 @@ describe('FormEventBusAdapterEffects', () => {
 
       for (let i = 0; i < 3; i++) {
         eventBus.publish<FormSaveRequestedEvent>({
-          ...createFormSaveRequestedEvent({ force: false, skipValidation: false, targetStep: undefined })
+          ...createFormSaveRequestedEvent({ force: false, enabledValidationGroups: ["all"], targetStep: undefined })
         });
         tick(50);
       }
