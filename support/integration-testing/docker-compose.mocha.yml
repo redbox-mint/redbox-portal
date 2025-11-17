@@ -28,8 +28,8 @@ x-rbportal-depends: &rbportal-depends
     condition: 'service_healthy'
 
 x-rbportal-service: &rbportal-service
-  image: redbox-portal:test
-  pull_policy: 'never'
+  image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+  pull_policy: 'always'
   user: root
   ports:
     - "1500:1500"
@@ -60,10 +60,11 @@ x-rbportal-service: &rbportal-service
 services:
   redboxportal:
     <<: *rbportal-service
+    profiles: [portal]
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
-    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    ports: []
     volumes:
       - "../../:/opt/redbox-portal:delegated"
       - "../../.tmp/attachments:/attachments"

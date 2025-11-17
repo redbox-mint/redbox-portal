@@ -90,9 +90,9 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "test:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal",
-    "test:mocha:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal-mount",
-    "test:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down",
+    "test:mocha": "docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal redboxportal",
+    "test:mocha:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal-mount redboxportal-mount",
+    "test:mocha:clean": "docker compose --profile portal --profile mount -f ./support/integration-testing/docker-compose.mocha.yml down",
     "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:oidc": "docker compose -f ./support/integration-testing/docker-compose.bruno.oidc.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:oidc:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.oidc.yml up --menu=false --abort-on-container-exit --exit-code-from bruno-mount",

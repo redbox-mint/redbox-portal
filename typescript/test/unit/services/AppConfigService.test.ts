@@ -42,7 +42,7 @@ describe('appConfigService', function () {
     const message = 'test message';
         const enabled =  true;
 
-    let configData = {};
+    let configData: any = {};
     configData.message = message;
     configData.enabled = enabled;
     sails.log.error("branding:")
@@ -107,6 +107,7 @@ describe('appConfigService', function () {
 
   it('should register a new config model with schema', () => {
     const mockClass = class TestModel {
+      [key: string]: any;
       constructor() {
         this.testProperty = 'default';
       }
@@ -137,6 +138,7 @@ describe('appConfigService', function () {
 
   it('should register a new config model with tsGlob', () => {
     const mockClass = class TestModelWithGlob {
+      [key: string]: any;
       constructor() {
         this.testGlobProperty = 'default';
       }
@@ -158,6 +160,7 @@ describe('appConfigService', function () {
 
   it('should register a new config model with array of tsGlobs', () => {
     const mockClass = class TestModelWithMultipleGlobs {
+      [key: string]: any;
       constructor() {
         this.testMultiProperty = 'default';
       }
@@ -190,6 +193,7 @@ describe('appConfigService', function () {
 
     // Create a class that works normally
     const mockClass = class TestModelErrorHandling {
+      [key: string]: any;
       constructor() {
         this.safeProperty = 'safe value';
       }
@@ -219,6 +223,7 @@ describe('appConfigService', function () {
 
   it('should not override existing branding config when registering new model', () => {
     const mockClass = class TestModelNonOverride {
+      [key: string]: any;
       constructor() {
         this.nonOverrideProperty = 'new default';
       }
@@ -249,6 +254,7 @@ describe('appConfigService', function () {
 
   it('should filter out falsy tsGlob values', () => {
     const mockClass = class TestModelFilterGlobs {
+      [key: string]: any;
       constructor() {
         this.filterProperty = 'default';
       }
@@ -271,6 +277,7 @@ describe('appConfigService', function () {
     const originalGetModelInfo = ConfigModels.getModelInfo;
     
     const mockClass = class TestModelWithPrebuiltSchema {
+      [key: string]: any;
       constructor() {
         this.prebuiltProperty = 'default';
       }
@@ -318,6 +325,7 @@ describe('appConfigService', function () {
 
   it('should handle getAppConfigForm with prebuilt schema', async () => {
     const mockClass = class TestFormModelWithSchema {
+      [key: string]: any;
       constructor() {
         this.formProperty = 'default';
       }
@@ -355,6 +363,7 @@ describe('appConfigService', function () {
     appConfigService.brandingAppConfigMap = null;
 
     const mockClass = class TestModelNullMap {
+      [key: string]: any;
       constructor() {
         this.nullMapProperty = 'default';
       }
@@ -378,6 +387,7 @@ describe('appConfigService', function () {
 
   it('should handle single tsGlob string', () => {
     const mockClass = class TestModelSingleGlob {
+      [key: string]: any;
       constructor() {
         this.singleGlobProperty = 'default';
       }
