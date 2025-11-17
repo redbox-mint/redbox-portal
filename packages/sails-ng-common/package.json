@@ -76,7 +76,7 @@
     ]
   },
   "dependencies": {
-    "@researchdatabox/redbox-core-types": "../../core",
+    "@researchdatabox/redbox-core-types": "../redbox-core-types",
     "luxon": "^3.7.2",
     "ts-json-schema-generator": "^2.4.0",
     "lodash": "^4.17.21",

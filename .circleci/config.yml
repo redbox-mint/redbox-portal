@@ -243,6 +243,10 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
+          name: Install required ReDBox dependencies
+          command: |
+            npm run compile:core && npm run compile:sails-ng-common && npm run compile:sails
+      - run:
           name: Setup test directories
           command: |
             sudo mkdir -p .tmp/junit/backend-mocha
@@ -314,6 +318,53 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  test-sails-ng-common:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install required ReDBox dependencies
+          command: |
+            npm run compile:core:prod
+      - run:
+          name: Install packages
+          command: |
+            cd ./packages/sails-ng-common
+            npm ci
+      - run:
+          name: Run Mocha tests
+          no_output_timeout: 30m
+          command: |
+            cd ./packages/sails-ng-common
+            npm run pretest
+            npx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \
+              npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js
+      - run:
+          name: Upload Mocha code coverage
+          command: |
+            cd ./packages/sails-ng-common
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-sails-ng-common" --file "./coverage/sails-ng-common/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: packages/sails-ng-common/support/junit
   deploy:
     docker:
       - image: 'cimg/node:24.11.1'
@@ -558,12 +609,16 @@ workflows:
       - test-angular:
           requires:
             - build
+      - test-sails-ng-common:
+          requires:
+            - build
       - deploy-arm64:
           requires:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -573,6 +628,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -583,6 +639,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -593,6 +650,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -603,6 +661,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -619,6 +678,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               only: 'master'
@@ -642,12 +702,16 @@ workflows:
       - test-angular:
           requires:
             - build
+      - test-sails-ng-common:
+          requires:
+            - build
       - deploy-arm64:
           requires:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -657,6 +721,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -673,6 +738,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             branches:
               only: 'master'
@@ -740,12 +806,21 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-sails-ng-common:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-arm64:
           requires:
             - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             tags:
               only: /^v.*/
@@ -757,6 +832,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             tags:
               only: /^v.*/
@@ -769,6 +845,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             tags:
               only: /^v.*/
@@ -781,6 +858,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             tags:
               only: /^v.*/
@@ -793,6 +871,7 @@ workflows:
             - test-bruno-oidc
             - test-mocha
             - test-angular
+            - test-sails-ng-common
           filters:
             tags:
               only: /^v.*/
