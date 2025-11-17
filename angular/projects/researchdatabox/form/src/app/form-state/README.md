@@ -103,7 +103,7 @@ export class FormExampleComponent {
     this.facade.submit({ 
       force: false, 
       targetStep: 'review',
-      skipValidation: false 
+      enabledValidationGroups: ["all"]
     });
   }
 
@@ -188,8 +188,8 @@ facade.reload(oid: string, recordType: string, formName: string): void
 // Submit form with optional parameters
 facade.submit(options?: { 
   force?: boolean, 
-  targetStep?: string, 
-  skipValidation?: boolean 
+  targetStep?: string,
+  enabledValidationGroups?: string[]
 }): void
 
 // Mark form as having unsaved changes

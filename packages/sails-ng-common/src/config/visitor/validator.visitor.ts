@@ -1,10 +1,21 @@
 import {CurrentPathFormConfigVisitor} from "./base.model";
+import {
+    FormValidatorConfig,
+    FormValidatorControl,
+    FormValidatorDefinition,
+    FormValidatorSummaryErrors,
+    SimpleServerFormValidatorControl
+} from "../../validation/form.model";
 import {FormConfigOutline} from "../form-config.outline";
-import {set as _set, get as _get, mergeWith as _mergeWith} from "lodash";
+import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
+import {ILogger} from "@researchdatabox/redbox-core-types";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline
 } from "../component/simple-input.outline";
+import {guessType} from "../helpers";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
+import {ValidatorsSupport} from "../../validation/validators-support";
 import {
     ContentFieldComponentDefinitionOutline,
     ContentFormComponentDefinitionOutline
@@ -12,7 +23,7 @@ import {
 import {
     RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline, RepeatableFormComponentDefinitionOutline,
+    RepeatableFieldModelDefinitionOutline, RepeatableFormComponentDefinitionOutline
 } from "../component/repeatable.outline";
 import {
     ValidationSummaryFieldComponentDefinitionOutline,
@@ -57,40 +68,84 @@ import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
-
+import {get as _get} from "lodash";
 
 /**
- * Visit each form config component and extract the default value for each field.
- * This is used for new records to populate the value defaults.
+ * Visit each form config component and run its validators.
  *
- * Each component definition is a property,
- * where the key is the name and the value is the model value.
+ * This visitor is for the server-side.
+ * On the client, use the standard angular component validator methods.
  *
- * Provides defaults from ancestors to descendants,
- * so the descendants can either use their default or an ancestors default.
+ * By default, all validators are run: ['all'].
+ * Specify which validators are run by providing enabledValidationGroups.
  */
-export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor {
-    protected override logName = "DefaultValueFormConfigVisitor";
-    private result: Record<string, unknown> = {};
+export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
+    private formConfig: FormConfigOutline | undefined = undefined;
+    /**
+     * The validation group names to enable.
+     */
+    private enabledValidationGroups: string[] = [];
+    /**
+     * The record values to validate.
+     */
+    private recordValues: Record<string, unknown> | undefined = undefined;
+    /**
+     * A map of the validator keys to validation functions.
+     */
+    private validatorDefinitionsMap: Map<string, FormValidatorDefinition>;
+    /**
+     * The 'lineage path' from the form to the current component.
+     * This is updated as processing progresses to reflect the nesting to the current component.
+     */
     private resultPath: string[] = [];
-    private defaultValues: Record<string, unknown> = {};
+    /**
+     * Any validation errors, including the identifier of form field control for each.
+     */
+    private result: FormValidatorSummaryErrors[] = [];
+    private validatorSupport: ValidatorsSupport;
 
     constructor(logger: ILogger) {
         super(logger);
+        this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
+        this.validatorSupport = new ValidatorsSupport();
     }
 
-    start(form: FormConfigOutline): Record<string, unknown> {
+    startExistingRecord(
+        form: FormConfigOutline,
+        enabledValidationGroups?: string[],
+        validatorDefinitions?: FormValidatorDefinition[],
+        recordData?: Record<string, unknown>
+    ): FormValidatorSummaryErrors[] {
+        this.recordValues = recordData ?? undefined;
+        return this.start(form, enabledValidationGroups, validatorDefinitions);
+    }
+
+    startNewRecord(
+        form: FormConfigOutline,
+        enabledValidationGroups?: string[],
+        validatorDefinitions?: FormValidatorDefinition[]
+    ): FormValidatorSummaryErrors[] {
+        // Use the defaultValues from the form config as the record values.
+        const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
+        this.recordValues = defaultValueVisitor.start(form);
+        return this.start(form, enabledValidationGroups, validatorDefinitions);
+    }
+
+    protected start(
+        formConfig: FormConfigOutline,
+        enabledValidationGroups?: string[],
+        validatorDefinitions?: FormValidatorDefinition[]
+    ): FormValidatorSummaryErrors[] {
+        this.formConfig = formConfig;
+        this.enabledValidationGroups = enabledValidationGroups || this.formConfig.enabledValidationGroups || ['all'];
+        this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions || []);
+
         this.resetCurrentPath();
-        this.result = {};
+        this.result = [];
         this.resultPath = [];
-        this.defaultValues = {};
-        form.accept(this);
+        this.formConfig.accept(this);
         return this.result;
     }
-
 
     /* Form Config */
 
@@ -99,6 +154,10 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
             // Visit children
             this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
+
+        // Run form-level validators, usually because they involve more than one field.
+        const itemName = item?.name ?? "";
+        this.result = [...this.result, ...this.validateFormComponent(itemName, item?.validators)];
     }
 
     /* SimpleInput */
@@ -107,12 +166,12 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinitionWithModel(item);
     }
+
 
     /* Content */
 
@@ -126,15 +185,9 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        // NOTES:
-        // - For each element in the default value array, build the component from any ancestor defaultValues.
-        // - The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
-        // - The easiest way to do this is to just not visit the elementTemplate.
-        // item.config?.elementTemplate?.accept(this);
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
@@ -163,7 +216,6 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
@@ -217,7 +269,6 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
@@ -235,7 +286,6 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
@@ -248,7 +298,6 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
@@ -261,7 +310,6 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
@@ -274,7 +322,6 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     }
 
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
@@ -283,62 +330,88 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
 
     /* Shared */
 
-    /**
-     * Set the default value for the form component when visiting the model definition.
-     * @param item The field model definition.
-     * @protected
-     */
-    protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
-        const defaultValue = _get(this.defaultValues, this.resultPath, item?.config?.defaultValue);
-        if (defaultValue !== undefined) {
-            _set(this.result, this.resultPath, defaultValue);
+    protected createFormControlFromRecordValue(recordValue: unknown): FormValidatorControl {
+        const guessedType = guessType(recordValue);
+        let result;
+        if (guessedType === "object") {
+            result = new SimpleServerFormValidatorControl(
+                Object.fromEntries(
+                    Object.entries(recordValue as Record<string, unknown>)
+                        .map(([key, value]) => [key, this.createFormControlFromRecordValue(value)])
+                )
+            );
+        } else if (guessedType === "array") {
+            result = new SimpleServerFormValidatorControl(
+                (recordValue as Array<unknown>).map(i => this.createFormControlFromRecordValue(i))
+            );
+        } else {
+            result = new SimpleServerFormValidatorControl(recordValue);
         }
+        return result;
     }
 
-    /**
-     * Visit the component, model, and layout for a form component.
-     * @param item
-     * @protected
-     */
     protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
         const itemResultPath = [...this.resultPath];
         const itemName = item?.name ?? "";
-        const itemDefaultValue = item?.model?.config?.defaultValue;
 
         if (item.model && itemName) {
             this.resultPath = [...itemResultPath, itemName];
         }
 
-        if (itemName && itemDefaultValue !== undefined) {
-            const defaultValue = _set({}, this.resultPath, itemDefaultValue);
-            // Use lodash mergeWith because it will recurse into nested objects and arrays.
-            // Object.assign and the spread operator do not recurse.
-            // The lodash mergeWith also allows specifying how to handle arrays, which we need to handle in a special way.
-            if (defaultValue !== undefined) {
-                _mergeWith(
-                    this.defaultValues,
-                    defaultValue,
-                    (objValue, srcValue) => {
-                        // merge approach for arrays is to choose the source array,
-                        // or the one that is an array if the other isn't
-                        if (Array.isArray(objValue) && Array.isArray(srcValue)) {
-                            return srcValue;
-                        } else if (Array.isArray(objValue) && !Array.isArray(srcValue)) {
-                            return objValue;
-                        } else if (!Array.isArray(objValue) && Array.isArray(srcValue)) {
-                            return srcValue;
-                        }
-                        // undefined = use the default merge approach
-                        return undefined;
-                    });
-            }
-        }
-
-        // For debugging:
-        // this.logger.debug(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
-        // this.logger.debug(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
+        this.result = [...this.result, ...this.validateFormComponent(
+            item?.name,
+            item?.model?.config?.validators,
+            item?.layout?.config?.label,
+        )];
 
         this.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
     }
+
+    protected validateFormComponent(itemName: string, validators?: FormValidatorConfig[], message?: string) {
+        const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
+        // Use the result path to get the value for this component.
+        const value = this.resultPath.length > 0 ? _get(this.recordValues, this.resultPath, undefined) : this.recordValues;
+
+        // for debugging:
+        // this.logger.verbose(`validateFormComponent resultPath: ${JSON.stringify(this.resultPath)} value: ${JSON.stringify(value)}`);
+
+        // Use the result path to get the parents of the form control.
+        const parents: string[] = this.resultPath.length > 1 ? this.resultPath.slice(0, this.resultPath.length - 1) : [];
+
+        const availableValidatorGroups = this.formConfig?.validationGroups ?? {};
+        const result: FormValidatorSummaryErrors[] = [];
+        if (Array.isArray(validators) && validators.length > 0) {
+            const filteredValidators = validators.filter(validator =>
+                this.validatorSupport.isValidatorEnabled(availableValidatorGroups, this.enabledValidationGroups, validator)
+            );
+            const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
+            const recordFormControl = this.createFormControlFromRecordValue(value);
+            this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
+            const summaryErrors: FormValidatorSummaryErrors = {
+                id: itemName,
+                message: message || null,
+                errors: [],
+                parents: parents,
+            }
+            for (const formValidatorFn of formValidatorFns) {
+                const funcResult = formValidatorFn(recordFormControl);
+                Object.entries(funcResult ?? {})
+                    .forEach(([key, item]) => {
+                        summaryErrors.errors.push({
+                            class: key,
+                            message: item.message ?? null,
+                            params: {...item.params},
+                        })
+                    });
+            }
+            if (summaryErrors.errors.length > 0) {
+                result.push(summaryErrors)
+            }
+        }
+
+        return result;
+    }
+
+
 }

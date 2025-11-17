@@ -54,7 +54,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>){
     if (this.formControl && name && targetModel){
-      this.formControl.addControl(name, targetModel.getFormGroupEntry());
+      this.formControl.addControl(name, targetModel.getFormControl());
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }

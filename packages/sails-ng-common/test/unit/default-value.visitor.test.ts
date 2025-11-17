@@ -23,7 +23,6 @@ describe("Default Value Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'group_1',

@@ -1,6 +1,6 @@
 /**
  * Form Effects Tests
- * 
+ *
  * Marble tests covering success, failure, gating, and error channels.
  * Per R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4, AC2–AC17, AC41
  * Task 4: Effects tests with marble diagrams
@@ -29,7 +29,7 @@ describe('FormEffects', () => {
   beforeEach(() => {
     // Initialize actions$ before TestBed configuration
     actions$ = of();
-    
+
     TestBed.configureTestingModule({
       providers: [
         FormEffects,
@@ -43,7 +43,7 @@ describe('FormEffects', () => {
 
     effects = TestBed.inject(FormEffects);
     store = TestBed.inject(Store);
-    
+
     testScheduler = new TestScheduler((actual, expected) => {
       expect(actual).toEqual(expected);
     });
@@ -66,7 +66,7 @@ describe('FormEffects', () => {
           recordType: 'rdmp',
           formName: 'default'
         });
-        
+
         const completion = FormActions.loadInitialDataSuccess({ data: {} });
 
         actions$ = hot('-a', { a: action });
@@ -154,7 +154,7 @@ describe('FormEffects', () => {
       // Transition to SAVING state
       store.dispatch(FormActions.submitForm({
         force: false,
-        skipValidation: false
+        enabledValidationGroups: ["all"]
       }));
 
       // Advance timers to allow state to reflect SAVING
@@ -268,7 +268,7 @@ describe('FormEffects', () => {
         complete: () => {
           expect(consoleSpy).toHaveBeenCalledWith(
             '[FormEffects] Failure action',
-            jasmine.objectContaining({ 
+            jasmine.objectContaining({
               type: '[Form] Load Initial Data Failure'
             })
           );
@@ -286,7 +286,7 @@ describe('FormEffects', () => {
         complete: () => {
           expect(consoleSpy).toHaveBeenCalledWith(
             '[FormEffects] Failure action',
-            jasmine.objectContaining({ 
+            jasmine.objectContaining({
               type: '[Form] Submit Form Failure'
             })
           );
@@ -304,7 +304,7 @@ describe('FormEffects', () => {
         complete: () => {
           expect(consoleSpy).toHaveBeenCalledWith(
             '[FormEffects] Failure action',
-            jasmine.objectContaining({ 
+            jasmine.objectContaining({
               type: '[Form] Validation Failure'
             })
           );
@@ -330,7 +330,7 @@ describe('FormEffects', () => {
 
         actions$ = hot('-a', { a: action });
         const expected = '-b';
-        
+
         // Verify effect processes successfully
         expectObservable(effects.loadInitialData$).toBe(expected, { b: completion });
       });
@@ -373,10 +373,10 @@ describe('FormEffects', () => {
         const reset2 = FormActions.resetAllFields();
 
         actions$ = hot('-ab', { a: reset1, b: reset2 });
-        
+
         // Both resets should complete
         const expected = '-cd';
-        
+
         expectObservable(effects.resetAllFields$).toBe(expected, {
           c: FormActions.resetAllFieldsComplete(),
           d: FormActions.resetAllFieldsComplete()
@@ -392,7 +392,7 @@ describe('FormEffects', () => {
 
       const action = FormActions.submitForm({
         force: true,
-        skipValidation: true,
+        enabledValidationGroups: ["none"],
         targetStep: 'S2'
       });
 
@@ -405,7 +405,7 @@ describe('FormEffects', () => {
           expect(arg).toEqual(jasmine.objectContaining({
             type: 'form.save.execute',
             force: true,
-            skipValidation: true,
+            enabledValidationGroups: ["none"],
             targetStep: 'S2'
           }));
           done();
