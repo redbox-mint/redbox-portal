@@ -106,7 +106,7 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
-        - run:
+      - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
@@ -167,7 +167,7 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
-        - run:
+      - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
@@ -228,7 +228,7 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
-        - run:
+      - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
