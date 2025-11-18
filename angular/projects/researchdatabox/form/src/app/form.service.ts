@@ -45,12 +45,14 @@ import {
   FormConfigFrame,
   FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
   FormValidatorSummaryErrors,
-  ValidatorsSupport, FormValidationGroups,
+  ValidatorsSupport,
+  LineagePaths,
+  buildLineagePaths as buildLineagePathsHelper,
+  FormValidationGroups
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
-import {LineagePaths} from "../../../portal-ng-common/src/lib/form/form-field-base.component";
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -645,11 +647,8 @@ export class FormService extends HttpClientService {
    * @param more The relative paths to append.
    */
   public buildLineagePaths(base?: LineagePaths, more?: LineagePaths) : LineagePaths {
-    return {
-      formConfig: [...base?.formConfig ?? [], ...more?.formConfig ?? []],
-      dataModel: [...base?.dataModel ?? [], ...more?.dataModel ?? []],
-      angularComponents: [...base?.angularComponents ?? [], ...more?.angularComponents ?? []],
-    }
+    // Delegate to shared helper to keep existing FormService API intact.
+    return buildLineagePathsHelper(base, more);
   }
 }
 

@@ -87,7 +87,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         angularComponents: [],
         dataModel: [],
         formConfig: ['component', 'config', 'elementTemplate'],
-      });
+      }
+    );
     let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
@@ -127,6 +128,20 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value);
     await this.createElement(elemEntry);
+  }
+
+  protected rebuildLineagePaths() {
+    for (let index = 0; index < this.compDefMapEntries.length; index++) {
+      const lineagePath = this.formService.buildLineagePaths(
+      this.formFieldCompMapEntry?.lineagePaths,
+      {
+        angularComponents: [`${index}`],
+        dataModel: [],
+        formConfig: [],
+      }
+    );
+      this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
+    }
   }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
@@ -170,6 +185,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected async createElement(elemEntry: RepeatableElementEntry ) {
     const elemFieldEntry = elemEntry.defEntry;
+    // Pushing early so rebuilding the lineage paths will be accurate
+    this.compDefMapEntries.push(elemEntry);
+    this.rebuildLineagePaths();
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
     // TODO: how to know when to apply defaultComponentConfig or not?
@@ -186,7 +204,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
     }
     elemEntry.wrapperRef = wrapperRef;
-    this.compDefMapEntries.push(elemEntry);
     return wrapperRef;
   }
 
@@ -205,6 +222,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
       that.model?.removeElement(elemEntry.defEntry?.model);
+      that.rebuildLineagePaths();
     }
   }
 
