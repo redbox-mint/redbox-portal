@@ -32,7 +32,7 @@
     "flat": "^6.0.1",
     "fs-extra": "^11.3.2",
     "genson-js": "^0.0.8",
-    "glob": "^11.0.1",
+    "glob": "^12.0.0",
     "handlebars": "^4.7.8",
     "har-validator": "5.1.5",
     "i18next": "^25.6.0",
