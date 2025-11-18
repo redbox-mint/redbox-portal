@@ -18,7 +18,15 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm install
+nvm i < .nvmrc 
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+  echo "Detected ARM64 architecture"
+  npm install --save-dev @esbuild/linux-arm64
+else
+  echo "Detected $ARCH architecture"
+  npm install
+fi
 
 if [ "$2" == "--watch" ]; then
   WATCH_MODE="true"
