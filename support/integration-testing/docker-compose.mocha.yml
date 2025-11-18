@@ -29,7 +29,7 @@ x-rbportal-depends: &rbportal-depends
 
 x-rbportal-service: &rbportal-service
   image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
-  pull_policy: 'always'
+  pull_policy: 'missing'
   user: root
   ports:
     - "1500:1500"
