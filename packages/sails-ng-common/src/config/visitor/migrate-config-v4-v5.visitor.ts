@@ -216,8 +216,8 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new SimpleInputFieldModelConfig();
         this.sharedPopulateFieldModelConfig(item.config, field);
-        // maxLength: field?.definition?.maxLength ?? 0,
-        // 'model.config.validators', [ {name: 'maxLength', message: '', config: {maxLength: fieldConfig.maxLength}} ]);
+
+        this.sharedProps.setPropOverride('type', item.config, field?.definition);
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
@@ -379,8 +379,8 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new TextAreaFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // cols: field?.definition?.cols ?? field?.definition?.columns ?? 0,
-        //       rows: field?.definition?.rows ?? 0
+        // TODO: cols: field?.definition?.cols ?? field?.definition?.columns ?? 0,
+        // TODO:  rows: field?.definition?.rows ?? 0
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
@@ -399,10 +399,6 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new DefaultFieldLayoutConfig();
         this.sharedPopulateFieldLayoutConfig(item.config, field);
-        // config: {
-        //         label: common.label,
-        //         helpText: common.help,
-        //       }
     }
 
     /* Checkbox Input */
@@ -411,7 +407,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new CheckboxInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // component.config.options = field?.definition?.options ?? {}
+        // TODO: component.config.options = field?.definition?.options ?? {}
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -430,7 +426,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new DropdownInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // component.config.options = field?.definition?.options ?? {}
+        // TODO: component.config.options = field?.definition?.options ?? {}
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -449,7 +445,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new RadioInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // component.config.options = field?.definition?.options ?? {}
+        // TODO: component.config.options = field?.definition?.options ?? {}
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
@@ -516,16 +512,25 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
 
         // Overall mapping from v4 class, v4 compClass to v5 class.
-        const contentComponent = {componentClassName: "ContentComponent"};
-        const groupComponent = {componentClassName: "GroupComponent", modelClassName: "GroupModel"};
-        const repeatableComponent = {componentClassName: "RepeatableComponent", modelClassName: "RepeatableModel"};
-        const tabComponent = {componentClassName: "TabComponent"};
-        const tabContentComponent = {componentClassName: "TabContentComponent"};
-        const textAreaComponent = {componentClassName: "TextAreaComponent", modelClassName: "TextAreaModel"};
-        const simpleInputComponent = {componentClassName: "SimpleInputComponent", modelClassName: "SimpleInputModel"};
-        const dropDownComponent = {componentClassName: "DropdownInputComponent", modelClassName: "DropdownInputModel"};
-        const dateInputComponent = {componentClassName: "DateInputComponent", modelClassName: "DateInputModel"};
-        const saveButtonComponent = {componentClassName: "SaveButtonComponent"};
+        const contentComponent = {componentClassName: ContentComponentName};
+        const groupComponent = {componentClassName: GroupFieldComponentName, modelClassName: GroupFieldModelName};
+        const repeatableComponent = {componentClassName: RepeatableComponentName, modelClassName: RepeatableModelName};
+        const tabComponent = {componentClassName: TabComponentName, layoutClassName: TabLayoutName};
+        const tabContentComponent = {
+            componentClassName: TabContentComponentName,
+            layoutClassName: TabContentLayoutName
+        };
+        const textAreaComponent = {componentClassName: TextAreaComponentName, modelClassName: TextAreaModelName};
+        const simpleInputComponent = {
+            componentClassName: SimpleInputComponentName,
+            modelClassName: SimpleInputModelName
+        };
+        const dropDownComponent = {
+            componentClassName: DropdownInputComponentName,
+            modelClassName: DropdownInputModelName
+        };
+        const dateInputComponent = {componentClassName: DateInputComponentName, modelClassName: DateInputModelName};
+        const saveButtonComponent = {componentClassName: SaveButtonComponentName};
         const classMap: Record<string, MappedClasses> = {
             "Container__TextBlockComponent": contentComponent,
             "Container__GenericGroupComponent": groupComponent,
@@ -549,7 +554,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const v5ClassNames = classMap[`${v4ClassName}__${v4CompClassName}`] ?? {};
         let v5ComponentClassName = v5ClassNames.componentClassName || "";
         let v5ModelClassName = v5ClassNames.modelClassName || "";
-        let v5LayoutClassName = v5ClassNames.layoutClassName || "";
+        let v5LayoutClassName = v5ClassNames.layoutClassName || DefaultLayoutName;
 
 
         // Some components need special processing.
@@ -561,7 +566,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         // Provide a message for not yet implemented fields.
         let message = "";
         if (!v5ComponentClassName) {
-            const v4Name = fieldDefinition?.name;
+            const v4Name = fieldDefinition?.name || fieldDefinition?.id;
             message = `Not yet implemented v4: class ${JSON.stringify(v4ClassName)} compClass ${JSON.stringify(v4CompClassName)} name ${JSON.stringify(v4Name)}.`;
         }
         return {
@@ -578,7 +583,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         let {componentClassName, modelClassName, layoutClassName, message} = this.mapV4ToV5(currentData);
 
         // Set the simple properties
-        item.name = currentData?.definition?.name || `${componentClassName}-${this.currentPath}`;
+        item.name = currentData?.definition?.name || currentData?.definition?.id || `${componentClassName}-${this.currentPath}`;
         item.module = undefined;
 
         // Set the constraints
@@ -646,7 +651,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         // this.sharedProps.setPropOverride('readonly', item, config);
         // this.sharedProps.setPropOverride('visible', item, config);
         // this.sharedProps.setPropOverride('editMode', item, config);
-        this.sharedProps.setPropOverride('label', item, field?.definition?.label);
+        this.sharedProps.setPropOverride('label', item, field?.definition);
         // this.sharedProps.setPropOverride('defaultComponentCssClasses', item, config);
         // this.sharedProps.setPropOverride('hostCssClasses', item, config);
         // this.sharedProps.setPropOverride('wrapperCssClasses', item, config);
@@ -659,17 +664,26 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         // Set the common field model config properties
         // this.sharedProps.setPropOverride('disableFormBinding', item, config);
         // this.sharedProps.setPropOverride('value', item, config);
-        this.sharedProps.setPropOverride('defaultValue', item, field?.definition?.defaultValue);
+        this.sharedProps.setPropOverride('defaultValue', item, {defaultValue: field?.definition?.defaultValue ?? field?.definition?.value});
         // this.sharedProps.setPropOverride('validators', item, config);
         // this.sharedProps.setPropOverride('wrapperCssClasses', item, config);
         // this.sharedProps.setPropOverride('editCssClasses', item, config);
+        if (!item.validators) {
+            item.validators = [];
+        }
+        if (field?.definition?.required === true) {
+            item.validators.push({class: 'required'});
+        }
+        if (field?.definition?.maxLength !== undefined) {
+            item.validators.push({class: 'maxLength', config: {maxLength: field?.definition?.maxLength}});
+        }
     }
 
     protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
         // Set the common field model config properties
         this.sharedPopulateFieldComponentConfig(item, field);
         // this.sharedProps.setPropOverride('labelRequiredStr', item, config);
-        this.sharedProps.setPropOverride('helpText', item, field?.definition?.help);
+        this.sharedProps.setPropOverride('helpText', item, {helpText: field?.definition?.help});
         // this.sharedProps.setPropOverride('cssClassesMap', item, config);
         // this.sharedProps.setPropOverride('helpTextVisibleOnInit', item, config);
         // this.sharedProps.setPropOverride('helpTextVisible', item, config);

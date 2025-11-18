@@ -429,6 +429,9 @@ export class PopulateProperties {
             throw new Error("Property name provided to setPropOverride was undefined or null.");
         }
 
+        // for debugging:
+        // console.log(`Get property ${JSON.stringify(name)} from sources ${JSON.stringify(sources)} for target ${JSON.stringify(target)}.`);
+
         const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];
         if (propValue !== undefined) {
             target[name] = propValue;
