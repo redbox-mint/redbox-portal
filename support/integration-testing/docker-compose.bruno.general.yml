@@ -36,11 +36,12 @@ x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
   - PORT=1500
   - NODE_OPTIONS=--max-old-space-size=1024
+  - "RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}"
   - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
   - sails_record__baseUrl_redbox=http://redbox:9000/redbox
   - sails_record__baseUrl_mint=http://203.101.226.160/mint
   # - sails_log__level=verbose
-  - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
   - "BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}"
 
@@ -59,8 +60,8 @@ x-rbportal-service: &rbportal-service
   pull_policy: 'never'
   user: root
   # Debugging port (publish only when debugging locally)
-  # ports:
-  #   - "9876:9876"
+  ports:
+    - "9876:9876"
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
@@ -93,6 +94,7 @@ x-rbportal-service: &rbportal-service
 services:
   bruno:
     <<: *bruno-service
+    profiles: [default]
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -104,6 +106,7 @@ services:
         condition: service_healthy
   redboxportal:
     <<: *rbportal-service
+    profiles: [default]
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]

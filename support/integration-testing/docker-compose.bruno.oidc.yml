@@ -37,7 +37,7 @@ x-rbportal-env: &rbportal-env
   - sails_record__baseUrl_redbox=http://redbox:9000/redbox
   - sails_record__baseUrl_mint=http://203.101.226.160/mint
   # - sails_log__level=verbose
-  - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
 
 x-rbportal-depends: &rbportal-depends
