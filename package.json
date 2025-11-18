@@ -32,7 +32,7 @@
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^11.3.1",
     "genson-js": "^0.0.8",
-    "glob": "^11.0.1",
+    "glob": "^11.1.0",
     "har-validator": "5.1.5",
     "i18next": "^25.3.6",
     "i18next-fs-backend": "^2.6.0",
