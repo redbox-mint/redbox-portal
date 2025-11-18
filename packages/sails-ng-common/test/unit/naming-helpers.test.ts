@@ -1,5 +1,7 @@
-import { expect } from 'chai';
-import { buildLineagePaths, LineagePaths } from '../../src/config/names/naming-helpers';
+import { buildLineagePaths, LineagePaths } from '../../src';
+
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 
 describe('Naming Helpers: buildLineagePaths', () => {
   it('merges base and more path segments and computes angularComponentsJsonPointer', () => {
