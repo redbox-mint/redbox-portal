@@ -210,6 +210,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new SimpleInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
+        this.sharedProps.setPropOverride('type', item.config, field?.definition);
     }
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
@@ -217,7 +218,6 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         item.config = new SimpleInputFieldModelConfig();
         this.sharedPopulateFieldModelConfig(item.config, field);
 
-        this.sharedProps.setPropOverride('type', item.config, field?.definition);
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
@@ -379,8 +379,12 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new TextAreaFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // TODO: cols: field?.definition?.cols ?? field?.definition?.columns ?? 0,
-        // TODO:  rows: field?.definition?.rows ?? 0
+
+        const cols = field?.definition?.cols ?? field?.definition?.columns ?? undefined;
+        this.sharedProps.setPropOverride('cols', item.config, {cols: cols === undefined ? undefined : parseInt(cols)});
+
+        const rows = field?.definition?.rows ?? undefined;
+        this.sharedProps.setPropOverride('rows', item.config, {rows: rows === undefined ? undefined : parseInt(rows)});
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
@@ -407,7 +411,8 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new CheckboxInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // TODO: component.config.options = field?.definition?.options ?? {}
+
+        this.sharedProps.setPropOverride('options', item.config, field?.definition);
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -426,7 +431,8 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new DropdownInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // TODO: component.config.options = field?.definition?.options ?? {}
+
+        this.sharedProps.setPropOverride('options', item.config, field?.definition);
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -445,7 +451,8 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         const field = this.getDataPath(this.original, this.currentPath);
         item.config = new RadioInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        // TODO: component.config.options = field?.definition?.options ?? {}
+
+        this.sharedProps.setPropOverride('options', item.config, field?.definition);
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
@@ -583,7 +590,7 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         let {componentClassName, modelClassName, layoutClassName, message} = this.mapV4ToV5(currentData);
 
         // Set the simple properties
-        item.name = currentData?.definition?.name || currentData?.definition?.id || `${componentClassName}-${this.currentPath}`;
+        item.name = currentData?.definition?.name || currentData?.definition?.id || `${componentClassName}-${this.currentPath.join('-')}`;
         item.module = undefined;
 
         // Set the constraints

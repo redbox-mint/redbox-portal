@@ -387,7 +387,10 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
             const recordFormControl = this.createFormControlFromRecordValue(value);
-            this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
+
+            // For debugging:
+            // this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
+
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,
                 message: message || null,
