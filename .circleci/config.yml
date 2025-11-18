@@ -99,6 +99,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -160,6 +162,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -221,6 +225,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
