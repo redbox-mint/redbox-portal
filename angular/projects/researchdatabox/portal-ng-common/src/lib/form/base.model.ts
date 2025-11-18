@@ -1,21 +1,20 @@
 import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
-import {
-  BaseFormFieldModelDefinition,
-  FormFieldModelDefinition,
-  FormValidatorFn
-} from "@researchdatabox/sails-ng-common";
+import {FieldModelDefinitionFrame, FormValidatorConfig} from "@researchdatabox/sails-ng-common";
 
 /**
  * Core model for form elements.
- *
  */
-export abstract class FormModel<ValueType, DefinitionType extends BaseFormFieldModelDefinition<ValueType>> {
+export abstract class FormModel<ValueType, DefinitionType extends FieldModelDefinitionFrame<ValueType>> {
   protected logName = "FormModel";
-  // The configuration when the field is created
-  public initConfig: DefinitionType;
-  // The "live" config
-  public fieldConfig: DefinitionType;
+  /**
+   * The configuration when the field is created
+   */
+  public readonly initConfig: DefinitionType;
+  /**
+   * The "live" config
+   */
+  public readonly fieldConfig: DefinitionType;
 
   protected constructor(initConfig: DefinitionType) {
     this.initConfig = initConfig;
@@ -33,19 +32,19 @@ export abstract class FormModel<ValueType, DefinitionType extends BaseFormFieldM
  * Model for the form field configuration.
  *
  */
-export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFieldModelDefinition<ValueType>> {
+export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDefinitionFrame<ValueType>> {
   protected override logName = "FormFieldModel";
-  // The value when the field is created
+  /**
+   * The value when the field is created
+   */
   public initValue?: ValueType;
-
+  /**
+   * The angular form control this class wraps.
+   */
   public formControl?: AbstractControl<ValueType>;
 
-  public validators?: FormValidatorFn[];
-
-  constructor(initConfig: BaseFormFieldModelDefinition<ValueType>, validators?: FormValidatorFn[]) {
+  constructor(initConfig: FieldModelDefinitionFrame<ValueType>) {
     super(initConfig);
-    this.validators = validators;
-    this.setValidators();
   }
 
   public override postCreate(): void {
@@ -92,7 +91,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFiel
    * Complex implementations should override this method to create complex form controls.
    * @returns the form control
    */
-  public getFormGroupEntry(): AbstractControl<ValueType>  {
+  public getFormControl(): AbstractControl<ValueType> | undefined {
     if (this.formControl) {
       return this.formControl;
     } else {
@@ -100,22 +99,8 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, BaseFormFiel
     }
   }
 
-  /**
-   * Apply the validators to the form control.
-   * @private
-   */
-  private setValidators() {
-    // TODO: This method is duplicated in FormService.setValidators, see if they can be collapsed to one place.
-    // set validators to the form control
-    const validatorFns = this.validators?.filter(v => !!v) ?? [];
-    console.debug(`${this.logName}: setting validators to formControl`, {
-      validators: this.validators,
-      formControl: this.formControl
-    });
-    if (validatorFns.length > 0) {
-      this.formControl?.setValidators(validatorFns);
-      this.formControl?.updateValueAndValidity();
-    }
+  get validators(): FormValidatorConfig[] {
+    return this.initConfig?.config?.validators ?? [];
   }
 }
 

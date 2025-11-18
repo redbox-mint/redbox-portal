@@ -589,10 +589,6 @@ a:not([href]):not([class]), a:not([href]):not([class]):hover { color: $nonlink-a
     padding: 0
 }
 
-.input-group {
-    width:auto !important
-}
-
 .form-control {
     appearance: auto !important
 }
@@ -4275,18 +4271,6 @@ tbody.collapse.in {
     pointer-events: none
 }
 
-.input-group {
-    position: relative;
-    display: table;
-    border-collapse: separate
-}
-
-.input-group[class*=col-] {
-    float: none;
-    padding-right: 0;
-    padding-left: 0
-}
-
 .input-group .form-control {
     position: relative;
     z-index: 2;
@@ -7056,4 +7040,7 @@ button.close {
 
 #adminLoginShow {
   text-align: center;
+}
+.completer-title {
+  display: none;
 }

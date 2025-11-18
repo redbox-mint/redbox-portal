@@ -41,15 +41,16 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-      'rolesIndex',
-      'usersIndex',
-      'getBrandRoles',
-      'getUsers',
-      'updateUserRoles',
-      'updateUserDetails',
-      'addLocalUser',
-      'generateUserKey',
-      'revokeUserKey'
+        'rolesIndex',
+        'usersIndex',
+        'getBrandRoles',
+        'getUsers',
+        'updateUserRoles',
+        'updateUserDetails',
+        'addLocalUser',
+        'generateUserKey',
+        'revokeUserKey',
+        'supportAgreementIndex'
     ];
 
     /**
@@ -71,6 +72,40 @@ export module Controllers {
 
     public usersIndex(req, res) {
       return this.sendView(req, res, 'admin/users');
+    }
+
+    public supportAgreementIndex(req, res) {
+      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      var currentYear = new Date().getFullYear();
+      var selectedYear = parseInt(req.query.year) || currentYear;
+      
+      // Get support agreement information from the new structure
+      // TODO: Remove the any cast once this is merged to develop and it's using the right core package version
+      var supportInfo = (brand as any).supportAgreementInformation || {};
+      var yearData = supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 };
+      
+      // If no data exists for the selected year but legacy data exists, use legacy for current year
+      if (!supportInfo[selectedYear] && selectedYear === currentYear) {
+        yearData = {
+          agreedSupportDays: (brand as any).agreedSupportDays || 0,
+          usedSupportDays: (brand as any).usedSupportDays || 0
+        };
+      }
+      
+      // Get all available years from support agreement information
+      var availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
+      if (availableYears.length === 0 || availableYears.indexOf(currentYear) === -1) {
+        availableYears.push(currentYear);
+      }
+      availableYears.sort((a, b) => b - a); // Sort descending (most recent first)
+      
+      return this.sendView(req, res, 'admin/supportAgreement', {
+        agreedSupportDays: yearData.agreedSupportDays,
+        usedSupportDays: yearData.usedSupportDays,
+        selectedYear: selectedYear,
+        availableYears: availableYears,
+        currentYear: currentYear
+      });
     }
 
     public getUsers(req, res) {

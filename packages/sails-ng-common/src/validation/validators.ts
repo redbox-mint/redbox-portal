@@ -1,13 +1,27 @@
+import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
 import {
-    formValidatorGetDefinitionArray, formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
+    formValidatorGetDefinitionArray,
+    formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
     formValidatorGetDefinitionNumber,
     formValidatorGetDefinitionRegexp, formValidatorGetDefinitionString, formValidatorLengthOrSize
 } from "./helpers";
-import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
 
+
+
+/**
+ * A regular expression for validating an email address.
+ *
+ * Based on the angular email validation regex. MIT-style license https://angular.dev/license
+ */
 export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 /**
+ * Definitions of shared form validators.
+ *
+ * These can be used on both server-side and client-side. The server provides them to the client.
+ * These are the shared / common definitions.
+ * ReDBox implementations can modify these validation definitions or add more.
+ *
  * The validators are based on:
  * angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
  * formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
@@ -18,10 +32,10 @@ export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9
  */
 export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
-    name: "min",
+    class: "min",
     message: "@validator-error-min",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "min");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min");
@@ -31,10 +45,17 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         if (control.value == null || optionMinValue == null) {
           return null; // don't validate empty values to allow optional controls
         }
-        const value = parseFloat(control.value?.toString() ?? null);
+
+        let value;
+        try {
+            value = parseFloat(control.value?.toString() ?? null);
+        } catch (err) {
+            value = undefined;
+        }
+
         // Controls with NaN values after parsing should be treated as not having a
         // minimum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-min
-        if (!isNaN(value) && value < optionMinValue) {
+        if (value === undefined || (!isNaN(value) && value < optionMinValue)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
@@ -50,10 +71,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "max",
+    class: "max",
     message: "@validator-error-max",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "max");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max");
@@ -63,10 +84,17 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         if (control.value == null || optionMaxValue == null) {
           return null; // don't validate empty values to allow optional controls
         }
-        const value = parseFloat(control.value?.toString());
+
+        let value;
+        try {
+            value = parseFloat(control.value?.toString() ?? null);
+        } catch (err) {
+            value = undefined;
+        }
+
         // Controls with NaN values after parsing should be treated as not having a
         // maximum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-max
-        if (!isNaN(value) && value < optionMaxValue) {
+          if (value === undefined || (!isNaN(value) && value > optionMaxValue)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
@@ -82,10 +110,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "minLength",
+    class: "minLength",
     message: "@validator-error-min-length",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "minLength");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min-length");
@@ -114,10 +142,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "maxLength",
+    class: "maxLength",
     message: "@validator-error-max-length",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "maxLength");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max-length");
@@ -141,10 +169,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "required",
+    class: "required",
     message: "@validator-error-required",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "required");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
@@ -167,10 +195,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "requiredTrue",
+    class: "requiredTrue",
     message: "@validator-error-required-true",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "requiredTrue")?.toString() ?? "";
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required-true");
@@ -193,13 +221,15 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "email",
+    class: "email",
     message: "@validator-error-email",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "email");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-email");
+      const optionDescriptionKey = "description";
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey, "email must be in format (name)@(domain.tld)");
       const optionPatternKey = "pattern";
       const optionPatternValue = formValidatorGetDefinitionRegexp(config, optionPatternKey, FORM_VALIDATOR_EMAIL_REGEXP);
       return (control) => {
@@ -207,15 +237,19 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           // don't validate empty values to allow optional controls
           return null;
         }
-        if (!optionPatternValue.test(control.value?.toString() ?? "")) {
-          return {
-            [optionNameValue]: {
-              [optionMessageKey]: optionMessageValue,
-              params: {
-                requiredPattern: optionPatternValue,
-                actual: control.value,
-              },
+
+        const value = control.value?.toString() ?? "";
+        const testOutcome = optionPatternValue.test(value);
+        if (!testOutcome) {
+        return {
+          [optionNameValue]: {
+            [optionMessageKey]: optionMessageValue,
+            params: {
+              requiredPattern: optionPatternValue,
+
+              description: optionDescriptionValue,actual: control.value,
             },
+          },
           };
         }
         return null;
@@ -223,10 +257,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "pattern",
+    class: "pattern",
     message: "@validator-error-pattern",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "pattern");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-pattern");
@@ -267,10 +301,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "different-values",
+    class: "different-values",
     message: "@validator-error-different-values",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "different-values");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-different-values");
@@ -299,15 +333,15 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     },
   },
   {
-    name: "jsonata-expression",
+    class: "jsonata-expression",
     message: "@validator-error-jsonata-expression",
     create: (config) => {
-      const optionNameKey = "name";
+      const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");
       const optionDescriptionKey = "description";
-      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
+      let optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
       const optionExpressionKey = "expression";
       const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
       const optionEvaluatorKey = "evaluator";
@@ -322,6 +356,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
               success = evaluator(control)
           } catch (err) {
               success = false;
+              optionDescriptionValue = "the validator is not configured correctly"
               console.error(`Validator 'jsonata-expression' could not run due to error: ${err}`);
           }
           return success

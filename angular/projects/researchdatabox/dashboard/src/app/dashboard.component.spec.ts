@@ -143,7 +143,14 @@ describe('DashboardComponent standard', () => {
     await dashboardComponent.initView('rdmp');
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
-    await dashboardComponent.initStep('draft','draft','rdmp','',1);
+    let defaultSortObject = {
+      sort: 'desc',
+      secondarySort: '',
+      step: 'draft',
+      title: '',  
+      variable: 'metaMetadata.lastSaveDate'
+    };
+    await dashboardComponent.initStep('draft','draft','rdmp','',1, defaultSortObject);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     expect(dashboardComponent.sortMap['draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
@@ -289,8 +296,15 @@ describe('DashboardComponent workspace', () => {
     dashboardComponent.dashboardTypeSelected = 'workspace';
     await dashboardComponent.initView('workspace');
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
-    await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');  
+    let defaultSortObject = {
+      sort: 'desc',
+      secondarySort: '',
+      step: 'draft',
+      title: '',
+      variable: 'metaMetadata.lastSaveDate'
+    };
+    await dashboardComponent.initStep('','existing-locations-draft','','workspace',1, defaultSortObject);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     expect(dashboardComponent.sortMap['existing-locations-draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
@@ -511,7 +525,8 @@ describe('DashboardComponent consolidated group by record type', () => {
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-    await dashboardComponent.initStep('','consolidated','rdmp','',1);
+    let defaultSortObject = {};
+    await dashboardComponent.initStep('','consolidated','rdmp','',1, defaultSortObject);
     let groupedRecords = recordDataConsolidated['groupedRecords'];
     let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig, 
                                                                 dashboardComponent.groupRowRules, 
@@ -752,7 +767,8 @@ describe('DashboardComponent consolidated group by relationships', () => {
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-    await dashboardComponent.initStep('','consolidated','rdmp','',1);
+    let defaultSortObject = {};
+    await dashboardComponent.initStep('','consolidated','rdmp','',1, defaultSortObject);
     let groupedRecords = recordDataConsolidatedRelationships['groupedRecords'];
     let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig, 
                                                                 dashboardComponent.groupRowRules, 

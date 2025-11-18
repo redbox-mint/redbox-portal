@@ -17,11 +17,16 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
-import {FormComponentDefinition, FormConfig, FormValidatorSummaryErrors} from "@researchdatabox/sails-ng-common";
+import { PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
+import {
+    guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions,
+     FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
+    TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
+    ValidatorFormConfigVisitor
+} from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
-import {default as moment} from 'moment';
-import {ClientFormContext} from "../additional/ClientFormContext";
+import {firstValueFrom} from "rxjs";
+
 
 
 declare var sails: Sails;
@@ -33,10 +38,9 @@ export module Services {
 
     export type BasicRedboxRecord = {
         redboxOid: string,
-        metaMetadata?: { [key: string]: unknown },
-        metadata: { [key: string]: unknown },
-        [key: string]: unknown
-    };
+        metaMetadata?: Record<string, unknown>,
+        metadata: Record<string, unknown>,
+    } & Record<string, unknown>;
 
     /**
      * The path from the root of the item to the key in the original, which has a change.
@@ -94,23 +98,23 @@ export module Services {
          * The existing original record won't be changed.
          *
          * @param changed The new record.
-         * @param context The context for the new record.
+         * @param formMode The form mode.
          * @return The merged record.
          */
-        public async mergeRecord(changed: BasicRedboxRecord, context?: ClientFormContext): Promise<BasicRedboxRecord> {
+        public async mergeRecord(changed: BasicRedboxRecord, formMode: FormModesConfig): Promise<BasicRedboxRecord> {
             // get the original record
             const original = await RecordsService.getMeta(changed.redboxOid);
 
             // get the original record's form config
             const formName = changed?.metaMetadata?.['form'];
-            const isEditMode = context?.current?.mode === "view" ? false : context?.current?.mode === "edit";
+            const isEditMode = formMode === "edit";
             const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
 
             // build the client form config
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, context);
+            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig);
+            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode);
         }
 
         /**
@@ -127,14 +131,16 @@ export module Services {
          * @param original The existing original record.
          * @param changed The new record.
          * @param clientFormConfig The client form config, the fields the current user can't access are already filtered out.
+         * @param formMode The form mode.
          * @return The merged record.
          */
         public mergeRecordClientFormConfig(
             original: BasicRedboxRecord,
             changed: BasicRedboxRecord,
-            clientFormConfig: Record<string, unknown>,
+            clientFormConfig: FormConfigFrame,
+            formMode: FormModesConfig,
         ): BasicRedboxRecord {
-            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig);
+            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);
@@ -156,7 +162,7 @@ export module Services {
         public mergeRecordMetadataPermitted(
             original: object,
             changed: object,
-            permittedChanges: Record<string, unknown>,
+            permittedChanges: Record<string, unknown> | unknown,
             changes: FormRecordConsistencyChange[],
             currentPath?: FormRecordConsistencyChangePath
         ): Record<string, unknown> {
@@ -177,10 +183,10 @@ export module Services {
             // permittedChanged is in JSON Type Def format
             // permitted changes is always for an object (i.e. has property 'properties')
             const permittedChangesObj = permittedChanges as object;
-            if (!('properties' in permittedChangesObj)) {
-                throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
-            }
-            const permittedChangesProps = permittedChangesObj['properties'] as object;
+            // if (!('properties' in permittedChangesObj)) {
+            //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
+            // }
+            const permittedChangesProps = 'properties' in permittedChangesObj ? permittedChangesObj['properties'] as object : permittedChangesObj;
 
 
             // create a new record instance
@@ -194,12 +200,12 @@ export module Services {
                 // pre-calculate aspects of the original item
                 const isKeyInOriginal = key in original;
                 const originalValue = isKeyInOriginal ? original[key] : undefined;
-                const originalValueType = this.guessType(originalValue);
+                const originalValueType = guessType(originalValue);
 
                 // pre-calculate aspects of the changed item
                 const isKeyInChanged = key in changed;
                 const changedValue = isKeyInChanged ? changed[key] : undefined;
-                const changedValueType = this.guessType(changedValue);
+                const changedValueType = guessType(changedValue);
 
                 // pre-calculate aspects of the permitted changes
                 const isKeyInPermittedChange = key in permittedChangesProps;
@@ -229,17 +235,33 @@ export module Services {
                     && changedValueType === "array"
                 ) {
                     // The change is permitted and an array, original and changed have the key and both are arrays.
-                    // For an array, the merge logic is to replace the original array with the changed array
+                    // For an array, the merge logic is to replace the original array with the changed array.
+                    // The whole array is replaced because there is no current way to distinguish what from the original should be kept.
                     // TODO: Consider how to replace each element in the array instead of the whole array.
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
                     const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
-                    result[key] = changedValue.map((changedElement: object, index: number) => {
+                    result[key] = changedValue.map((changedElement: unknown, index: number) => {
                         // Evaluate the element in the array.
-                        // TODO: Should the 'original' element be an instance of the elementTemplate with default values?
-                        const originalElement = {};
-                        const newPath = [...currentPath, key, index];
-                        const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
-                        return this.mergeRecordMetadataPermitted(originalElement, changedElement, newPermittedChanges, keyChanges, newPath);
+                        const guessedType = guessType(changedElement);
+                        if (guessedType === "object") {
+                            // For an object, evaluate it as a component value.
+                            // NOTE: The 'original' element does not include elementTemplate default values,
+                            //       because that default is for new entries, not existing entries.
+                            const originalElement = {};
+                            const newPath = [...currentPath, key, index];
+                            const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
+                            sails.log.verbose(`mergeRecordMetadataPermitted - array`, {
+                                originalElement: originalElement,
+                                changedElement: changedElement,
+                                newPermittedChanges: newPermittedChanges,
+                                keyChanges: keyChanges,
+                                newPath: newPath,
+                            });
+                            return this.mergeRecordMetadataPermitted(originalElement, changedElement as object, newPermittedChanges, keyChanges, newPath);
+                        } else {
+                            // For anything that's not an object, there's nothing else to do, return it.
+                            return changedElement;
+                        }
                     });
 
                 } else if (
@@ -284,110 +306,27 @@ export module Services {
         /**
          * Convert the form config into the matching data model with defaults.
          * @param item The top-level form config.
+         * @param formMode The form mode.
          */
-        public buildDataModelDefaultForFormConfig(item: FormConfig): Record<string, unknown> {
-            // each component definition is a property,
-            // where the key is the name and the value is the model value
-            // TODO: provide defaults from ancestors to descendants, so the descendants can either use their default or an ancestors default
-            const result = {};
-            for (const componentDefinition of item?.componentDefinitions) {
-                const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition);
-                for (const [key, value] of Object.entries(def ?? {})) {
-                    result[key] = value;
-                }
-            }
-            return result;
-        }
+        public buildDataModelDefaultForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item, formMode);
 
-        /**
-         * Convert a form component definition into the matching data model with defaults.
-         * @param item One form config component definition.
-         * @param defaultValue The default value if there is an ancestor component.
-         */
-        public buildDataModelDefaultForFormComponentDefinition(item: FormComponentDefinition, defaultValue?: Record<string, unknown>): Record<string, unknown> {
-            const result = {};
-            const itemName = item?.name;
-            const itemDefaultValue = _.get(this.buildDataModelDefaultValue(defaultValue, item), itemName, undefined);
-            const componentDefinitions = item?.component?.config?.['componentDefinitions'];
-            const elementTemplate = item?.component?.config?.['elementTemplate'];
-
-            if (elementTemplate !== undefined) {
-                // for each element in the default value array, build the component from any ancestor defaultValues
-                // the default in the elementTemplate is the default for _new_ items, the template default doesn't create any array elements
-                // build the array of components from any ancestor defaultValues
-                const componentName = elementTemplate?.name;
-                result[itemName] = (itemDefaultValue ?? []).map(arrayElementDefaultValue => {
-                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - elementTemplate component ${componentName} - arrayElementDefaultValue ${JSON.stringify(arrayElementDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-                    return this.buildDataModelDefaultForFormComponentDefinition(elementTemplate, arrayElementDefaultValue);
-                });
-
-            } else if (componentDefinitions !== undefined) {
-                // apply the default value to each element in a component definition
-                result[itemName] = {};
-                for (const componentDefinition of (componentDefinitions ?? [])) {
-                    const componentName = componentDefinition?.name;
-                    sails.log.verbose(`buildDataModelDefaultForFormComponentDefinition - componentDefinitions component ${componentName} - itemDefaultValue ${JSON.stringify(itemDefaultValue)} - defaultValue ${JSON.stringify(defaultValue)}`);
-                    const def = this.buildDataModelDefaultForFormComponentDefinition(componentDefinition, itemDefaultValue);
-                    for (const [key, value] of Object.entries(def ?? {})) {
-                        result[itemName][key] = value;
-                    }
-                }
-
-            } else {
-                result[itemName] = itemDefaultValue !== undefined
-                    ? itemDefaultValue
-                    : _.get(defaultValue, itemName, undefined);
-            }
-            return result;
+            const visitor = new DefaultValueFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**
          * Convert a form config into a schema describing the data model it creates.
          * @param item The form config.
+         * @param formMode The form mode.
          */
-        public buildSchemaForFormConfig(item: FormConfig): Record<string, unknown> {
-            const formCompDef: FormComponentDefinition = {
-                name: item?.name,
-                model: {class: "GroupFieldModel", config: {}},
-                component: {class: 'GroupFieldComponent', config: {componentDefinitions: item?.componentDefinitions}}
-            }
-            const def = this.buildSchemaForFormComponentDefinition(formCompDef);
-            // remove the FormConfig level
-            return def.properties[item?.name];
-        }
+        public buildSchemaForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item, formMode);
 
-        /**
-         * Convert a form component definition into a schema describing the data model it creates.
-         * @param item The form component definition.
-         */
-        public buildSchemaForFormComponentDefinition(item: FormComponentDefinition): Record<string, unknown> {
-            // Using JSON Type Definition schema
-            // Ref: https://jsontypedef.com/docs/jtd-in-5-minutes/
-            // Ref: https://ajv.js.org/json-type-definition.html
-            const result = {properties: {}};
-            if (item?.component?.class === "RepeatableComponent" && item?.component?.config?.['elementTemplate'] !== undefined) {
-                // array elements: https://jsontypedef.com/docs/jtd-in-5-minutes/#elements-schemas
-                result.properties[item?.name] = {
-                    elements: this.buildSchemaForFormComponentDefinition(item?.component?.config?.['elementTemplate'])
-                };
-            } else if (item?.component?.class === "GroupFieldComponent" && item?.component?.config?.['componentDefinitions'] !== undefined) {
-                // object properties: https://jsontypedef.com/docs/jtd-in-5-minutes/#properties-schemas
-                result.properties[item?.name] = {properties: {}};
-                for (const componentDefinition of item?.component?.config?.['componentDefinitions'] ?? []) {
-                    const def = this.buildSchemaForFormComponentDefinition(componentDefinition);
-                    result.properties[item?.name]['properties'] = {
-                        ...result.properties[item?.name]['properties'],
-                        ...def.properties as object,
-                    };
-                }
-            } else if (item?.model?.config?.defaultValue !== undefined) {
-                // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-                result.properties[item?.name] = {type: this.guessType(item?.model?.config?.defaultValue)};
-            } else {
-                // empty: https://jsontypedef.com/docs/jtd-in-5-minutes/#empty-schemas
-                result.properties[item?.name] = {};
-            }
-            return result;
+            const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
         /**
@@ -459,120 +398,123 @@ export module Services {
             return result;
         }
 
-        /**
-         * Use the changes to an original record to create a form config to display the changes.
-         *
-         * Form config is only for 'view' mode.
-         *
-         * @param original The original record data.
-         * @param changes The changes to the original record data.
-         */
-        public async buildFormConfigForChanges(
-            original: { redboxOid: string, [key: string]: unknown },
-            changes: FormRecordConsistencyChange[],
-        ): Promise<FormConfig> {
-            // TODO: Use the record and form config and/or changes between the record and form config
-            //  to build a new form config that displays only the changes.
-            return {};
-        }
+        // TODO: implement this
+        // /**
+        //  * Use the changes to an original record to create a form config to display the changes.
+        //  *
+        //  * Form config is only for 'view' mode.
+        //  *
+        //  * @param original The original record data.
+        //  * @param changes The changes to the original record data.
+        //  */
+        // public async buildFormConfigForChanges(
+        //     original: { redboxOid: string, [key: string]: unknown },
+        //     changes: FormRecordConsistencyChange[],
+        // ): Promise<FormConfigFrame> {
+        //     // TODO: Use the record and form config and/or changes between the record and form config
+        //     //  to build a new form config that displays only the changes.
+        //     //return {};
+        //     throw new Error("Not implemented");
+        // }
 
-        /**
-         * Validate a record's structure using the form config associated with the recordtype.
-         *
-         * @param record The record data, including the record type.
-         */
-        public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
-            // TODO: Validate that the record structure matches the form config.
-            return [];
-        }
+        // TODO: implement this
+        // /**
+        //  * Validate a record's structure matches the form config associated with the recordtype.
+        //  *
+        //  * @param record The record data, including the record type.
+        //  * @param context The context for the user providing the record.
+        //  */
+        // public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
+        //     /*
+        //     // get the record's form name
+        //     const formName = record?.metaMetadata?.['form'];
+        //     // the validation will be done on all values present in the data model, so use the form config with all fields included
+        //     const isEditMode = true;
+        //     // get the record's form config
+        //     const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode));
+        //     // get the schema from the form config
+        //     const schema = this.buildSchemaForFormConfig(formConfig);
+        //     // TODO: Match the schema to the record and return any differences.
+        //     return [];
+        //     */
+        //     throw new Error("Not implemented");
+        // }
 
         /**
          * Validate a record's data model values using the validators specified in the form config.
          *
          * @param record The record data, including the record type.
+         * @param enabledValidationGroups The validation groups to enable.
          */
-        public async validateRecordValues(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
-            // TODO: Validate that the record values match the form config.
-            return [];
-        }
+        public async validateRecordValuesForFormConfig(
+            record: BasicRedboxRecord,
+            enabledValidationGroups?: string[]
+        ): Promise<FormValidatorSummaryErrors[]> {
+            // get the record's form name
+            const formName = record?.metaMetadata?.['form'];
 
-        private buildDataModelDefaultValue(current: Record<string, unknown>, item: FormComponentDefinition) {
-            const itemName = item?.name;
-            const itemDefaultValue = item?.model?.config?.defaultValue;
-            return _.mergeWith(
-                {},
-                current ?? {},
-                {[itemName]: itemDefaultValue},
-                (objValue, srcValue, key, object, source, stack) => {
-                    // merge approach for arrays is to choose the source array,
-                    // or the one that is an array if the other isn't
-                    if (Array.isArray(objValue) && Array.isArray(srcValue)) {
-                        return srcValue;
-                    } else if (Array.isArray(objValue) && !Array.isArray(srcValue)) {
-                        return objValue;
-                    } else if (!Array.isArray(objValue) && Array.isArray(srcValue)) {
-                        return srcValue;
-                    }
-                    // undefined = use the default merge approach
-                    return undefined;
-                }
+            // the validation will be done on all values present in the data model,
+            // so use the form config with all fields included
+            const formMode = "edit";
+            const isEditMode = formMode === "edit";
+
+            // get the record's form config
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
+
+            // Get the validator definitions from the sails config, so the definitions can be overwritten.
+            const validatorDefinitions = sails.config.validators.definitions;
+
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(formConfig, formMode);
+
+            const visitor = new ValidatorFormConfigVisitor(this.logger);
+            return visitor.startExistingRecord(
+                constructed, enabledValidationGroups || ["all"], validatorDefinitions, record?.metadata ?? {}
             );
         }
 
-        private guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "unknown" {
-            if (value === null) {
-                return "null";
-            }
-            if (_.isBoolean(value)) {
-                return "boolean";
-            }
-            if (Number.isFinite(value)) {
-                return "number";
-            }
-            if (_.isArray(value)) {
-                return "array";
-            }
+        /**
+         * Extract the templates that need to be compiled from the form config.
+         * This method extracts the raw uncompiled templates.
+         * The templates are compiled by the TemplateService.buildClientMapping.
+         * @param item The form config.
+         * @param formMode The form mode.
+         */
+        public extractRawTemplates(item: FormConfigFrame, formMode: FormModesConfig): TemplateCompileInput[] {
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(item, formMode);
 
-            // check for date
-            const momentFormats = [
-                'YYYY-MM-DDTHH:mm:ss.SSSZ', // ISO8601
-                'YYYY-MM-DDTHH:mm:ssZ', // RFC3339
-            ];
-            try {
-                const strict = true;
-                const result = moment(value?.toString(), momentFormats, strict);
-                sails.log.verbose(`guessType date input '${value}' output '${result}' typeof '${typeof result}' moment.isValid '${result.isValid()}'`);
-                if (result && result.isValid()) {
-                    return "timestamp";
-                }
-            } catch (err) {
-                sails.log.verbose(`guessType parse error with value '${value}' formats ${JSON.stringify(momentFormats)}: ${err}`);
-            }
-
-            if (_.isString(value)) {
-                return "string";
-            }
-            if (_.isPlainObject(value)) {
-                return "object";
-            }
-            return "unknown";
+            const visitor = new TemplateFormConfigVisitor(this.logger);
+            return visitor.start(constructed);
         }
 
+        /**
+         * Extract the keys and entries from an object or array.
+         * @param item Extract keys and values from this item.
+         * @private
+         */
         private toKeysEntries(item: unknown): {
             entries: [string | number, unknown][],
             keys: (string | number)[]
         } | undefined {
-            if (Array.isArray(item)) {
-                const entries: [string | number, unknown][] = item.map((value, index) => [index, value]);
+            const guessedType = guessType(item);
+            if (guessedType === "object") {
+                const entries = Object.entries(item as Record<string, unknown>);
                 return {entries: entries, keys: entries.map(i => i[0])};
-            } else if (_.isPlainObject(item)) {
-                const entries = Object.entries(item);
+            } else if (guessedType === "array") {
+                const entries: [string | number, unknown][] = (item as Array<unknown>).map((value, index) => [index, value]);
                 return {entries: entries, keys: entries.map(i => i[0])};
             } else {
-                return undefined;
+                return {entries: [], keys: []};
             }
         }
 
+        /**
+         * Check whether a 'check' array starts with a 'base' array.
+         * @param base The shorter array.
+         * @param check The longer array.
+         * @private
+         */
         private arrayStartsWithArray(base: unknown[], check: unknown[]) {
             return base?.every((value, index) => check?.length > index && check?.[index] == value);
         }

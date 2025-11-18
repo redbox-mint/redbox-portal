@@ -23,9 +23,6 @@ export module Controllers {
    */
   export class AppConfig extends controllers.Core.Controller {
 
-    
-    private nameRBValidationError = 'RBValidationError';
-
     constructor() {
       super();
     }

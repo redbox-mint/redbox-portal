@@ -1,5 +1,5 @@
-import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './simpleinput.component';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -7,11 +7,13 @@ import {TestBed} from "@angular/core/testing";
 
 describe('RepeatableComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule([
-      SimpleInputComponent,
-      RepeatableComponent,
-      RepeatableElementLayoutComponent,
-    ]);
+    await createTestbedModule({
+      declarations: {
+        "SimpleInputComponent": SimpleInputComponent,
+        "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+      }
+    });
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(RepeatableComponent);
@@ -19,7 +21,8 @@ describe('RepeatableComponent', () => {
     expect(component).toBeDefined();
   });
   it('should render the repeatable and array components', async () => {
-    const formConfig: FormConfig = {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
@@ -30,7 +33,7 @@ describe('RepeatableComponent', () => {
         {
           name: 'repeatable_1',
           model: {
-            class: 'RepeatableComponentModel',
+            class: 'RepeatableModel',
             config: {
               value: ['hello world from repeatable!'],
               defaultValue: ['hello world from repeatable, default!']
@@ -40,7 +43,7 @@ describe('RepeatableComponent', () => {
             class: 'RepeatableComponent',
             config: {
               elementTemplate: {
-                name: "repeatable_component_1",
+                name: "",
                 model: {
                   class: 'SimpleInputModel',
                   config: {
@@ -54,7 +57,7 @@ describe('RepeatableComponent', () => {
             },
           },
           layout: {
-            class: 'DefaultLayoutComponent',
+            class: 'DefaultLayout',
             config: {
               label: 'Repeatable TextField with default wrapper defined',
               helpText: 'Repeatable component help text',

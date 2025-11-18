@@ -5,19 +5,18 @@ import { LoggerService } from '../logger.service';
 import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
 import {UtilityService} from "../utility.service";
 import {
-  BaseFormFieldComponentConfig, BaseFormFieldLayoutConfig,
-  ExpressionsConfig,
-  FormComponentDefinition,
-  FormFieldComponentConfig,
-  FormFieldComponentDefinition,
-  FormFieldComponentStatus,
-  FormFieldLayoutConfig,
-  FormFieldLayoutDefinition
+  FormExpressionsConfigFrame,
+  FormComponentDefinitionFrame,
+  FieldComponentConfigFrame,
+  FieldComponentDefinitionFrame,
+  FieldLayoutDefinitionFrame,
+  FieldLayoutConfigFrame,
+  FormFieldComponentStatus
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
-export type FormFieldComponentOrLayoutDefinition = FormFieldComponentDefinition | FormFieldLayoutDefinition;
-export type FormFieldComponentOrLayoutConfig = FormFieldComponentConfig | FormFieldLayoutConfig;
+export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
+export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | FieldLayoutConfigFrame;
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -28,19 +27,16 @@ export type FormFieldComponentOrLayoutConfig = FormFieldComponentConfig | FormFi
  */
 @Directive()
 export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
-  protected logName: string | null = "FormFieldBaseComponent";
+  protected logName: string = "FormFieldBaseComponent";
   public name:string | null = '';
   public className:string = '';
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
-  public componentDefinitionCache?: FormFieldComponentConfig;
+  public componentDefinitionCache?: FieldComponentConfigFrame;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
-  // public hostBindingCssClasses: { [key: string]: boolean } | null | undefined = null;
   public hostBindingCssClasses?: string;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
-
-  viewInitialised = signal<boolean>(false);
 
   @ViewChild('beforeContainer', { read: ViewContainerRef, static: false }) protected beforeContainer!: ViewContainerRef;
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
@@ -59,7 +55,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * @private
    */
   private appRef: ApplicationRef = inject(ApplicationRef);
-  private componentViewReady:boolean = false;
   /**
    * Cache the reference to the FormComponent instance.
    * @private
@@ -128,7 +123,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public propagateExpressions(expressions: ExpressionsConfig, forceComponent:boolean = false, forceValue:any = undefined) {
+  public propagateExpressions(expressions: FormExpressionsConfigFrame, forceComponent:boolean = false, forceValue:any = undefined) {
     let expressionKeys = _keys(expressions);
     for (let key of expressionKeys) {
       try {
@@ -255,9 +250,16 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.componentViewReady = true;
     this.loggerService.debug(`${this.logName}: View has initialised`, this.formFieldCompMapEntry);
-    this.viewInitialised.set(true);
+    const s = this.status();
+    // Gating the status update in case the component has been set to something else beforehand.
+    if (s === FormFieldComponentStatus.INIT) {
+      this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+    }
+  }
+
+  public viewInitialised(): boolean {
+    return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
   }
 
   public buildPropertyMap(componentDefinition: FormFieldComponentOrLayoutConfig): Map<string, any> {
@@ -283,9 +285,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       if(isInit) {
         //normalise componentDefinition that is used to track property changes given these may not be present
         // Determine whether componentDefinition.config is a layout or a component.
-        let initDef = (this.componentDefinition.config instanceof BaseFormFieldLayoutConfig)
-          ? new BaseFormFieldLayoutConfig()
-          : new BaseFormFieldComponentConfig();
+        let initDef = this.componentDefinition.config;
         let initMap:Map<string, any> = this.buildPropertyMap(initDef);
         for (const key of initMap.keys()) {
           _set(this.componentDefinition.config,key,_get(this.componentDefinition.config,key,initMap.get(key)));
@@ -297,28 +297,36 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     }
   }
 
-  public getTooltip(): string {
-    let tooltip = this.componentDefinition?.config?.tooltip;
-    if(_isUndefined(tooltip)) {
-      return '';
-    } else {
-      return tooltip;
-    }
+  public getBooleanProperty(name:string, defaultValue:boolean): boolean {
+    return _get(this.componentDefinition?.config,name,defaultValue);
   }
 
-  public getBooleanProperty(name:string): boolean {
-    return _get(this.componentDefinition?.config,name,true);
-  }
-
-  public getStringProperty(name:string): string {
+  public getStringProperty(name:string) {
     return _get(this.componentDefinition?.config,name,'');
+  }
+
+  get isVisible(): boolean {
+    return this.componentDefinition?.config?.visible ?? true;
+  }
+
+  get isReadonly(): boolean {
+    return this.componentDefinition?.config?.readonly ?? false;
+  }
+
+  get isDisabled(): boolean {
+    return this.componentDefinition?.config?.disabled ?? false;
+  }
+
+  get label(): string {
+    return _get(this.componentDefinition?.config,'label','');
   }
 
   hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
     let propertyChanged = false;
     for(let key of _keys(this.componentDefinitionCache)) {
       //TODO in principle comparing properties that are complex objects seems not required
-      //group component has a componentDefinition property of its inner components or maybe
+      //group component has a componentDefinition property of its inner components so it may be
+      //It requires to revisit once we start testing a real form config in the new framework
       if((key == lastKeyChanged && !_isObject(key)) || forceCheckAll ) {
         let oldValue = _get(this.componentDefinition?.config,key);
         let newValue = _get(this.componentDefinitionCache,key);
@@ -445,7 +453,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get isRequired(): boolean {
-    return this.model?.validators?.some(v => v?.name === 'required') ?? false;
+    return this.model?.validators?.some(v => v?.class === 'required') ?? false;
   }
 
   get isValid(): boolean {
@@ -525,7 +533,7 @@ export interface FormFieldCompMapEntry {
   modelClass?: typeof FormFieldModel<unknown>;
   layoutClass?: typeof FormFieldBaseComponent<unknown>;
   componentClass?: typeof FormFieldBaseComponent<unknown>;
-  compConfigJson: FormComponentDefinition;
+  compConfigJson: FormComponentDefinitionFrame;
   model?: FormFieldModel<unknown>;
   component?: FormFieldBaseComponent<unknown>;
   componentRef?: ComponentRef<FormFieldBaseComponent<unknown>>;
@@ -534,4 +542,13 @@ export interface FormFieldCompMapEntry {
   componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> };
   // optional control map to support 'container' like components that don't have a model themselves
   formControlMap?: { [key: string]: FormControl };
+  lineagePaths?: LineagePaths;
+}
+
+export type LineagePath = (string | number)[];
+
+export interface LineagePaths {
+  formConfig: LineagePath;
+  dataModel: LineagePath;
+  angularComponents: LineagePath;
 }

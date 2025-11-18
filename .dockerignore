@@ -9,6 +9,9 @@
 .DS_Store
 Thumbs.db
 support/development
+**/coverage
+**/dist
+**/.angular
 support/integration-testing
 support/unit-testing
 support/docs

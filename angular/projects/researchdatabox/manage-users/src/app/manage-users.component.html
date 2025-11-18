@@ -57,9 +57,8 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 }
-
 <!-- User Details Modal -->
 @if (isDetailsModalShown) {
   <div [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #userDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
@@ -200,9 +199,8 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 }
-
 <!-- New User Modal -->
 @if (isNewUserModalShown) {
   <div [config]="{ show: true }" (onHidden)="onNewUserHidden()" bsModal #userNewModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
@@ -323,5 +321,5 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 }

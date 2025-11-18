@@ -219,11 +219,26 @@ module.exports = {
     return componentDefinition;
   },
   TextArea: (field) => {
+
+    //component specific mapping
+    let fieldConfig = {
+      cols: field?.definition?.cols ?? field?.definition?.columns ?? 0,
+      rows: field?.definition?.rows ?? 0
+    }
+
     let componentDefinition = createBaseComponent({
         field,
         componentClass: 'TextAreaComponent',
         modelClass: 'TextAreaModel'
     });
+
+    if(fieldConfig.cols != 0) {
+      _.set(componentDefinition,'cols',fieldConfig.cols);
+    }
+
+    if(fieldConfig.rows != 0) {
+      _.set(componentDefinition,'rows',fieldConfig.rows);
+    }
 
     return componentDefinition;
   },
@@ -341,20 +356,49 @@ module.exports = {
     });
     return componentDefinition;
   },
-  SelectionComponent: (field) => {
+  DropdownFieldComponent: (field) => {
+
+    let fieldConfig = {
+      options: field?.definition?.options ?? {}
+    }
+
     let componentDefinition = createBaseComponent({
         field,
-        componentClass: 'SelectionComponent',
-        modelClass: 'SelectionModel'
+        componentClass: 'DropdownInputComponent',
+        modelClass: 'DropdownInputModel'
     });
+
+    if(!_.isEmpty(fieldConfig.options)) {
+      _.set(componentDefinition, 'component.config.options', fieldConfig.options);
+    }
+
     return componentDefinition;
   },
-  DropdownComponent: (field) => {
-    let componentDefinition = createBaseComponent({
+  SelectionFieldComponent: (field) => {
+    let componentDefinition = null;
+    
+    let fieldConfig = {
+      options: field?.definition?.options ?? {}
+    }
+
+    if(field?.definition?.controlType === 'checkbox') {
+      componentDefinition = createBaseComponent({
         field,
-        componentClass: 'DropdownComponent',
-        modelClass: 'DropdownModel'
-    });
+          componentClass: 'CheckboxInputComponent',
+          modelClass: 'CheckboxInputModel'
+      });
+    } else {
+      componentDefinition = createBaseComponent({
+        field,
+        componentClass: 'SelectionInputComponent',
+        modelClass: 'SelectionInputModel'
+      });
+    }
+    
+    if(!_.isEmpty(fieldConfig.options)) {
+      _.set(componentDefinition, 'component.config.options', fieldConfig.options);
+    }
+
     return componentDefinition;
   },
   DateTime: (field) => {

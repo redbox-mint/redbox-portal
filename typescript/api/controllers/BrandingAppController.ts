@@ -44,7 +44,7 @@ export module Controllers {
     /** 9.2 Save draft variables */
     async draft(req: Request, res: Response) {
       const branding = req.params['branding'];
-      
+      const actor = req.user;
       // Validate variables if provided
       const variablesInput = req.body?.variables;
       if (variablesInput !== undefined && variablesInput !== null) {
@@ -57,7 +57,7 @@ export module Controllers {
       const variables = variablesInput || {};
       
       try {
-        const updated = await BrandingService.saveDraft({ branding, variables });
+        const updated = await BrandingService.saveDraft({ branding, variables, actor });
         return res.ok({ branding: updated });
       } catch (e: any) {
         const { status, body } = mapError(e);
@@ -90,9 +90,10 @@ export module Controllers {
     async publish(req: Request, res: Response) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
+      const actor = req.user;
       try {
         const expectedVersion = req.body?.expectedVersion;
-        const { version, hash, idempotent } = await BrandingService.publish(branding, portal, { expectedVersion });
+        const { version, hash, idempotent } = await BrandingService.publish(branding, portal, actor, { expectedVersion });
         const body: any = { version, hash };
         if (idempotent) body.idempotent = true;
         return res.ok(body);

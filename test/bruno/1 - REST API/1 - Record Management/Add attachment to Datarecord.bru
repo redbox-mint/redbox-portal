@@ -17,7 +17,7 @@ headers {
 
 body:multipart-form {
   attachmentFields: @file(attachment.png)
-  ~dataLocations: 
+  ~dataLocations:
 }
 
 assert {
@@ -26,14 +26,14 @@ assert {
 
 script:post-response {
   let jsonData = res.getBody();
-  console.log(jsonData)
+  // console.log(jsonData)
   bru.setVar("attDataRecordStreamId", jsonData.message.fileIds[0].fileId)
 }
 
 tests {
-  
+
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
+
 }
