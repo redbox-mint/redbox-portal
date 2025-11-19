@@ -523,7 +523,9 @@ export module Services {
         userRoles?: string[],
         recordData?: Record<string, unknown>
     ): Record<string, unknown> {
-        sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
+        // sails.log.verbose(`FormsService - build client form config for name '${item?.name}': ${JSON.stringify({
+        //     item, formMode, userRoles, recordData,
+        // })}`);
 
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start(item, formMode);
@@ -540,6 +542,7 @@ export module Services {
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, the form config must have at least one field the current user can view.`)
       }
+      // sails.log.verbose(`FormsService - built client form config for name '${item?.name}': ${JSON.stringify({result})}`);
       // TODO: can return type be done 'properly' instead of forcing the type?
       return result as unknown as Record<string, unknown>;
     }

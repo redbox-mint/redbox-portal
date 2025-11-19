@@ -54,13 +54,14 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   }
 
   protected get tabInstance(): TabComponent | null {
-    // The tab component layout is created before the tab component, so the component ref can be undefined.
     const instance = this.formFieldCompMapEntry?.componentRef?.instance;
     if (instance && instance instanceof TabComponent) {
       return instance;
+    } else if (instance?.constructor?.name === undefined) {
+      // The tab component layout is created before the tab component, so the component ref can be undefined.
+      return null;
     }
-    this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent in TabComponentLayout, but instance was '${instance?.constructor?.name}'.`);
-    return null;
+    throw new Error(`${this.logName}: Expected instance to be TabComponent, but instance was '${instance?.constructor?.name}'.`);
   }
 
   @HostBinding('id') get hostId(): string {
