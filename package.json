@@ -71,7 +71,7 @@
     "sails-hook-orm": "^4.0.3",
     "sails-hook-sockets": "^3.0.2",
     "sails-mongo": "^2.1.2",
-    "sass": "^1.94.0",
+    "sass": "^1.94.1",
     "sass-loader": "^16.0.6",
     "skipper": "^0.9.5",
     "skipper-gridfs": "^1.0.2",
