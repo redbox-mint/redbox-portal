@@ -24,6 +24,7 @@ describe('ConfigModels', function () {
 
   it('should register a new config model', () => {
     const mockClass = class TestConfigModel {
+      [key: string]: any;
       constructor() {
         this.testProperty = 'default';
       }
@@ -46,6 +47,7 @@ describe('ConfigModels', function () {
 
   it('should register a config model with schema', () => {
     const mockClass = class TestConfigWithSchema {
+      [key: string]: any;
       constructor() {
         this.schemaProperty = 'test';
       }
@@ -72,6 +74,7 @@ describe('ConfigModels', function () {
 
   it('should register a config model with tsGlob', () => {
     const mockClass = class TestConfigWithGlob {
+      [key: string]: any;
       constructor() {
         this.globProperty = 'test';
       }
@@ -91,6 +94,7 @@ describe('ConfigModels', function () {
 
   it('should register a config model with array of tsGlobs', () => {
     const mockClass = class TestConfigWithMultipleGlobs {
+      [key: string]: any;
       constructor() {
         this.multiGlobProperty = 'test';
       }
@@ -111,12 +115,14 @@ describe('ConfigModels', function () {
 
   it('should overwrite existing config model by default', () => {
     const originalClass = class OriginalModel {
+      [key: string]: any;
       constructor() {
         this.original = true;
       }
     };
 
     const newClass = class NewModel {
+      [key: string]: any;
       constructor() {
         this.original = false;
         this.new = true;
@@ -141,12 +147,14 @@ describe('ConfigModels', function () {
 
   it('should not overwrite existing config model when preventOverride is true', () => {
     const originalClass = class OriginalPreventModel {
+      [key: string]: any;
       constructor() {
         this.original = true;
       }
     };
 
     const newClass = class NewPreventModel {
+      [key: string]: any;
       constructor() {
         this.original = false;
         this.new = true;
@@ -172,12 +180,14 @@ describe('ConfigModels', function () {
 
   it('should allow registration with preventOverride when key does not exist', () => {
     const mockClass = class PreventNewModel {
+      [key: string]: any;
       constructor() {
         this.preventNew = true;
       }
     };
 
     const mockClassDifferent = class PreventNewModel {
+      [key: string]: any;
       constructor() {
         this.preventNew = true;
       }
@@ -204,12 +214,14 @@ describe('ConfigModels', function () {
 
   it('should handle preventOverride set to false explicitly', () => {
     const originalClass = class OriginalExplicitModel {
+      [key: string]: any;
       constructor() {
         this.original = true;
       }
     };
 
     const newClass = class NewExplicitModel {
+      [key: string]: any;
       constructor() {
         this.original = false;
         this.new = true;

@@ -99,6 +99,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -106,6 +108,9 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -157,6 +162,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -164,6 +171,9 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -215,6 +225,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -222,6 +234,9 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}

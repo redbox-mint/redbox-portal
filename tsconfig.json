@@ -18,7 +18,9 @@
       "angular/**"
     ],
     "include": [
-      "typescript/**/*.ts", 
+      "typescript/**/*.ts",
+      "typescript/**/*.d.ts",
+      "typescript/test/unit/.mocharc.ts"
     ],
     "compileOnSave": true,
     "buildOnSave": false,
