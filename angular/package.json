@@ -26,7 +26,7 @@
     "@ngx-formly/core": "^6.3.6",
     "@researchdatabox/sails-ng-common": "../packages/sails-ng-common",
     "angular-i18next": "^20.0.1",
-    "i18next": "^25.6.0",
+    "i18next": "^25.6.3",
     "handlebars": "^4.7.8",
     "i18next-browser-languagedetector": "^8.0.0",
     "i18next-http-backend": "^3.0.2",

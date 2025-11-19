@@ -10,6 +10,66 @@
  *
  */
 
+const dockerAuthDefaults = {
+  // active: ["aaf", "local", "oidc"],
+  active: ["aaf", "local"],
+  aaf: {
+    loginUrl: "https://rapid.test.aaf.edu.au/jwt/authnrequest/research/OTG8tPdB2H_aT0yZ4s63zQ",
+    opts: {
+      secretOrKey: 'Y30wY4xv1*6I7yUX%6v*Tzce8OEbVO&@R4hVb%2@Gehtx^xgOqQ97Slv!ZOkfHHmox&x0zAt*0o&4^8$9oW8WTf&r@&d31EFbQZr',
+      jsonWebTokenOptions: {
+        issuer: 'https://rapid.test.aaf.edu.au',
+        audience: 'http://localhost:1500/default/rdmp/',
+        ignoreNotBefore: true
+      }
+    }
+  },
+  // oidc: {
+  //   discoverAttemptsMax: 5, // attempts at discovery before giving up
+  //   discoverFailureSleep: 5000, // ms to pause before attempting another discovery attempt
+  //   defaultRole: 'Researcher',
+  //   postLoginRedir: 'researcher/home',
+  //   claimMappings: {
+  //     username: 'sub',
+  //     name: 'name',
+  //     email: 'email',
+  //     givenname: 'given_name',
+  //     surname: 'family_name',
+  //     cn: 'name',
+  //     displayName: 'name'
+  //   },
+  //   claimMappingOptions: {
+  //     usernameToLowercase: true
+  //   },
+  //   userInfoSource: 'tokenset_claims',
+  //   opts: {
+  //     issuer: 'http://keycloak:8080/realms/redbox/',
+  //     client: {
+  //       client_id: 'redbox',
+  //       client_secret: 'w2snramgGaqehPiujV695iUfKmZAJ147',
+  //       redirect_uris: ['http://localhost:1500/user/login_oidc'],
+  //       post_logout_redirect_uris: ['http://localhost:1500/default/rdmp/user/logout'],
+  //     },
+  //     params: {
+  //       scope: 'openid email profile',
+  //       claims: {
+  //           "userinfo": {
+  //           "given_name": {"essential": true},
+  //           "family_name": {"essential": true},
+  //           "email": {"essential": true},
+  //         },
+  //         "id_token": {
+  //           "given_name": {"essential": true},
+  //           "family_name": {"essential": true},
+  //           "email": {"essential": true},
+  //         }
+  //       }
+  //     }
+  //   },
+  //   templatePath: 'openidconnect.ejs'
+  // }
+};
+
 module.exports = {
   http:{
     rootContext: ''
@@ -55,67 +115,8 @@ module.exports = {
     waitRetries: 5,
     waitSleep: 10000
   },
-  auth: {
-    // Default brand...
-    default: {
-      // active: ["aaf", "local", "oidc"],
-      active: ["aaf", "local"],
-      aaf: {
-        loginUrl: "https://rapid.test.aaf.edu.au/jwt/authnrequest/research/OTG8tPdB2H_aT0yZ4s63zQ",
-        opts: {
-          secretOrKey: 'Y30wY4xv1*6I7yUX%6v*Tzce8OEbVO&@R4hVb%2@Gehtx^xgOqQ97Slv!ZOkfHHmox&x0zAt*0o&4^8$9oW8WTf&r@&d31EFbQZr',
-          jsonWebTokenOptions: {
-            issuer: 'https://rapid.test.aaf.edu.au',
-            audience: 'http://localhost:1500/default/rdmp/',
-            ignoreNotBefore: true
-          }
-        }
-      },
-      // oidc: {
-      //   discoverAttemptsMax: 5, // attempts at discovery before giving up
-      //   discoverFailureSleep: 5000, // ms to pause before attempting another discovery attempt
-      //   defaultRole: 'Researcher',
-      //   postLoginRedir: 'researcher/home',
-      //   claimMappings: {
-      //     username: 'sub',
-      //     name: 'name',
-      //     email: 'email',
-      //     givenname: 'given_name',
-      //     surname: 'family_name',
-      //     cn: 'name',
-      //     displayName: 'name'
-      //   },
-      //   claimMappingOptions: {
-      //     usernameToLowercase: true
-      //   },
-      //   userInfoSource: 'tokenset_claims',
-      //   opts: {
-      //     issuer: 'http://keycloak:8080/realms/redbox/',
-      //     client: {
-      //       client_id: 'redbox',
-      //       client_secret: 'w2snramgGaqehPiujV695iUfKmZAJ147',
-      //       redirect_uris: ['http://localhost:1500/user/login_oidc'],
-      //       post_logout_redirect_uris: ['http://localhost:1500/default/rdmp/user/logout'],
-      //     },
-      //     params: {
-      //       scope: 'openid email profile',
-      //       claims: {
-      //           "userinfo": {
-      //           "given_name": {"essential": true},
-      //           "family_name": {"essential": true},
-      //           "email": {"essential": true},
-      //         },
-      //         "id_token": {
-      //           "given_name": {"essential": true},
-      //           "family_name": {"essential": true},
-      //           "email": {"essential": true},
-      //         }
-      //       }
-      //     }
-      //   },
-      //   templatePath: 'openidconnect.ejs'
-      // }
-    }
+  brandingConfigurationDefaults: {
+    auth: dockerAuthDefaults
   },
   datastores:{
     mongodb: {

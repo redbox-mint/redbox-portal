@@ -90,6 +90,7 @@ describe('The Named Query Service', function () {
       mongoQuery: {
         "daysDatePath": null,
         "isoDatePath": null,
+        "defaultIsoDatePath": null,
         "stringPath": null,
         "numberPath": null
       },

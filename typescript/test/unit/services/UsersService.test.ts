@@ -111,7 +111,7 @@ describe('The UsersService', function () {
     ];
 
     tests.forEach(({args, expected}) => {
-      it(`should ${expected.success ? 'pass' : 'fail'} with args ${JSON.stringify(args)}`, async function () {
+      it(`should ${expected ? 'pass' : 'fail'} with args ${JSON.stringify(args)}`, async function () {
         const authType = _.get(args, 'authType', 'oidc');
         const brandName = 'default';
         const email = args.email;

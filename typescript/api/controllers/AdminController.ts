@@ -109,8 +109,10 @@ export module Controllers {
     }
 
     public getUsers(req, res) {
-      var pageData:any = {};
-  var users = UsersService.getUsers().pipe(flatMap(users => {
+      var pageData: any = {};
+      const brand = BrandingService.getBrand(req.session.branding);
+      const brandId = _.get(brand, 'id') || brand || req.session.branding;
+      var users = UsersService.getUsersForBrand(brand).pipe(flatMap(users => {
         _.map(users, (user) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
             // not hidden, adding to view data...
@@ -119,6 +121,7 @@ export module Controllers {
             }
             // need to set a dummy token string, to indicate if this user has a token set, but actual token won't be returned
             user.token = _.isEmpty(user.token) ? null : "user-has-token-but-is-suppressed";
+            user.roles = brandId ? _.filter(user.roles, (role) => role.branding === brandId) : user.roles;
             //TODO: Look for config around what other secrets should be hidden from being returned to the client
             delete user.password;
             pageData.users.push(user);
@@ -126,16 +129,16 @@ export module Controllers {
         });
         return of(pageData);
       }))
-      .subscribe(pageData => {
-        this.ajaxOk(req, res, null, pageData.users);
-      });
+        .subscribe(pageData => {
+          this.ajaxOk(req, res, null, pageData.users);
+        });
     }
 
     public getBrandRoles(req, res) {
       // basic roles page: view all users and their roles
-      var pageData:any = {};
-      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-  var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
+      var pageData: any = {};
+      var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
         _.map(roles, (role) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
@@ -147,9 +150,9 @@ export module Controllers {
         });
         return of(pageData);
       }))
-      .subscribe(pageData => {
-        this.ajaxOk(req, res, null, pageData.roles);
-      });
+        .subscribe(pageData => {
+          this.ajaxOk(req, res, null, pageData.roles);
+        });
     }
 
     public generateUserKey(req, res) {
@@ -195,7 +198,7 @@ export module Controllers {
         UsersService.addLocalUser(username, name, details.email, password).subscribe(user => {
           if (details.roles) {
             var roles = details.roles;
-            var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+            var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
               this.ajaxOk(req, res, "User created successfully");
@@ -225,7 +228,7 @@ export module Controllers {
         UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
           if (details.roles) {
             var roles = details.roles;
-            var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+            var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
               this.ajaxOk(req, res, "User updated successfully");
@@ -255,7 +258,7 @@ export module Controllers {
       var userid = req.body.userid;
       if (userid && newRoleNames) {
         // get the ids of the role names...
-        var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+        var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         var roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
         UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
           this.ajaxOk(req, res, "Save OK.");

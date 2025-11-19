@@ -24,5 +24,14 @@ node_modules/.bin/bru run \
 
 status=$?
 wget -qO- http://redboxportal:1599 || true
+
+# If the redbox container aborts while we're sleeping, ensure the script
+# exits with the bru process status (stored in $status) instead of the
+# signal exit code. Trap TERM/INT to exit with the saved status.
+on_term() {
+  exit ${status:-1}
+}
+trap on_term TERM INT
+
 sleep "${BRUNO_POST_SLEEP_SECONDS:-30}"
 exit $status
