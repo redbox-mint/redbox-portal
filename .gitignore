@@ -212,3 +212,5 @@ api/shims/*.js
 
 attachments/
 docs/
+test/unit/**/*.test.js
+

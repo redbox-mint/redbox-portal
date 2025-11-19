@@ -231,14 +231,14 @@ describe('The EmailService', function () {
 
         it('should send email when trigger condition matches and execute onNotifySuccess', async function () {
             const oid = "test-oid";
-            const record = {
+            const record: any = {
                 metadata: {
                     testing: true,
                     title: "Testing title",
                     email_address: "abc@example.com",
                 }
             };
-            const options = {
+            const options: any = {
                 triggerCondition: "<%= record.metadata.testing == true %>",
                 to: "<%= record.metadata.email_address %>",
                 subject: "Testing email sending",
@@ -269,14 +269,14 @@ describe('The EmailService', function () {
 
         it('should not send email when trigger condition does not match user', async function () {
             const oid = "test-oid";
-            const record = {
+            const record: any = {
                 metadata: {
                     testing: true,
                     title: "Testing title",
                     email_address: "abc@example.com",
                 }
             };
-            const options = {
+            const options: any = {
                 triggerCondition: "<%= record.metadata.testing == true && user.username == 'testing-user-name' %>",
                 to: "<%= record.metadata.email_address %>",
                 subject: "Testing email sending",

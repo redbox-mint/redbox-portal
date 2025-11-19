@@ -14,7 +14,7 @@ describe('The DOI Service', function () {
 
   let createdDoi = null
   let oid = "xxxxxxxxx";
-  let record = {
+  let record: any = {
     metadata: {
       citation_publication_date: '2021',
       citation_title: 'New Test Publication',
