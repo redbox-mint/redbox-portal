@@ -340,7 +340,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /home/circleci/project
+          at: /tmp
       - run:
           name: Install codecov
           command: |
@@ -404,7 +404,6 @@ jobs:
             fi
             export DEPLOY_TAG=${TAG//\//-}
             export REPO=${REPO:-qcifengineering/redbox-portal}
-
             # Tag and push the tested amd64 image
             docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
@@ -509,7 +508,6 @@ jobs:
           no_output_timeout: 30m
           command: |
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
             # Determine the tag
             if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
               export TAG="$CIRCLE_BRANCH"
@@ -520,7 +518,6 @@ jobs:
             fi
             export DEPLOY_TAG=${TAG//\//-}
             export REPO=${REPO:-qcifengineering/redbox-portal}
-
             docker build \
               --progress plain \
               --target runtime \
@@ -537,7 +534,6 @@ jobs:
           name: Create and push multi-arch manifest
           command: |
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
             # Determine the tag
             if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
               export TAG="$CIRCLE_BRANCH"
@@ -548,7 +544,6 @@ jobs:
             fi
             export DEPLOY_TAG=${TAG//\//-}
             export REPO=${REPO:-qcifengineering/redbox-portal}
-
             docker manifest create "${REPO}:${DEPLOY_TAG}" \
               "${REPO}:${DEPLOY_TAG}-amd64" \
               "${REPO}:${DEPLOY_TAG}-arm64"
@@ -687,6 +682,43 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
+      - deploy-runtime-datastream-cloud:
+          requires:
+            - build-runtime-datastream-cloud
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - deploy-runtime-pdfgen:
+          requires:
+            - build-runtime-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - deploy-runtime-cloud-pdfgen:
+          requires:
+            - build-runtime-cloud-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - generate-docs:
           requires:
             - test-bruno-general
@@ -737,6 +769,13 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -887,6 +926,51 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-runtime-datastream-cloud:
+          requires:
+            - build-runtime-datastream-cloud
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-runtime-pdfgen:
+          requires:
+            - build-runtime-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-runtime-cloud-pdfgen:
+          requires:
+            - build-runtime-cloud-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
           filters:
             tags:
               only: /^v.*/

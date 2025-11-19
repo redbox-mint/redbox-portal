@@ -12,7 +12,12 @@ npm install --ignore-scripts --strict-peer-deps
 rm -rf /opt/redbox-portal/coverage/bruno-oidc/* || true
 
 # Start redbox with code coverage
+node_cmd=(node)
+if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then
+  node_cmd+=(--inspect=0.0.0.0:9876)
+fi
+
 exec node_modules/.bin/nyc --no-clean \
   --report-dir /opt/redbox-portal/coverage/bruno-oidc \
   --reporter=lcov --exclude-after-remap=false \
-    node app.integrationtest.js
+  "${node_cmd[@]}" app.integrationtest.js
