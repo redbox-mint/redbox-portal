@@ -97,7 +97,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       // Create a method that children can override to prepare their state.
       await this.setComponentReady();
     } catch (error) {
-      this.loggerService.error(`${this.logName}: initialise component failed`, error);
+      this.loggerService.error(`${this.logName}: initialise component failed for '${name}':`, error);
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }

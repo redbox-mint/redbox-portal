@@ -67,18 +67,18 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected override async initData() {
     await this.untilViewIsInitialised();
     // Prepare the element template
-    const formFieldCompDef = this.componentDefinition;
-    const elementTemplate = (formFieldCompDef?.config as RepeatableFieldComponentConfig)?.elementTemplate;
+    const elementTemplate = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate;
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
     if (!elementTemplate) {
-      throw new Error(`${this.logName}: elementTemplate is not defined in the component definition.`);
+      throw new Error(`${this.logName}: elementTemplate is not defined in the component definition for '${formComponentName}'.`);
     }
 
     // Resolve the classes using the FormService
     this.newElementFormConfig = {
-      name: `form-config-generated-repeatable-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
+      name: `form-config-generated-repeatable-${formComponentName}`,
       // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
       componentDefinitions: [{...elementTemplate, name: ""}],
-      // Get the default config.
+      // TODO: Get the default config?
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
     const parentLineagePaths = this.formService.buildLineagePaths(
@@ -91,10 +91,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
-      throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
+      throw new Error(`${this.logName}: No components found in the formComponentsMap for '${formComponentName}'.`);
     }
     if (!this.model) {
-      throw new Error(`${this.logName}: model is not defined. Cannot initialize the component.`);
+      throw new Error(`${this.logName}: model is not defined. Cannot initialize the component for '${formComponentName}'.`);
     }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
@@ -108,7 +108,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Loop through the elements of the model and insert into the container
     const elemVals = this.model.initValue;
     if (!Array.isArray(elemVals)) {
-      throw new Error(`${this.logName}: model value is not an array. Cannot initialize the component.`);
+      throw new Error(`${this.logName}: model value is not an array. Cannot initialize the component for '${formComponentName}'.`);
     }
 
     if (elemVals.length === 0) {
