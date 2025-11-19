@@ -1,5 +1,3 @@
-version: '3.9'
-
 networks:
   main:
 
@@ -56,12 +54,12 @@ x-rbportal-depends: &rbportal-depends
     condition: 'service_healthy'
 
 x-rbportal-service: &rbportal-service
-  image: redbox-portal:test
+  image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
   pull_policy: 'never'
   user: root
   # Debugging port (publish only when debugging locally)
-  ports:
-    - "9876:9876"
+#  ports:
+#    - "9876:9876"
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
@@ -94,7 +92,6 @@ x-rbportal-service: &rbportal-service
 services:
   bruno:
     <<: *bruno-service
-    profiles: [default]
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -106,7 +103,6 @@ services:
         condition: service_healthy
   redboxportal:
     <<: *rbportal-service
-    profiles: [default]
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
