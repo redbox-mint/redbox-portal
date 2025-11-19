@@ -1,74 +1,114 @@
-/**
- * BrandingConfig.js
- *
- * @description :: Configuration for each Brand
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-
-// Guard access to global `sails` during model load (it is undefined pre-lift)
-const allowList = (typeof sails !== 'undefined' && sails.config && sails.config.branding && sails.config.branding.variableAllowList) || [];
-
-function validateVariablesMap(val) {
-  if (val == null) return true;
-  if (typeof val !== 'object' || Array.isArray(val)) return false;
-  return Object.keys(val).every(k => {
-    const norm = k.startsWith('$') ? k.slice(1) : k;
-    return allowList.includes(norm);
-  });
-}
-
 module.exports = {
-  /**
-   * Attributes for per-branding theme configuration.
-   * Added fields for new branding feature (Tasks 1+):
-   *  - variables: JSON map of semantic SCSS variable names -> values (Req 1,3)
-   *  - version: incremental publish version (Req 7 foundation)
-   *  - hash: content hash of active CSS for cache busting (Req 7)
-   *  - logo: metadata for uploaded logo (Req 2)
-   */
+  identity: 'brandingconfig',
+  primaryKey: 'id',
+  tableName: 'brandingconfig',
   attributes: {
-    name: { type: 'string' },
-    css: { type: 'string' },
-    variables: { type: 'json', custom: validateVariablesMap },
-    version: { type: 'number', defaultsTo: 0 },
-    hash: { type: 'string', defaultsTo: '' },
-    // Logo metadata (nullable by omission; Waterline JSON attrs cannot use allowNull)
-    logo: { type: 'json' },
-    // Brand has many roles
-    roles: { collection: 'role', via: 'branding' },
-    // Support agreement properties - year-on-year information stored as JSON
+    css: {
+      type: 'string'
+    },
+    hash: {
+      type: 'string',
+      defaultsTo: ''
+    },
+    logo: {
+      type: 'json'
+    },
+    name: {
+      type: 'string'
+    },
+    roles: {
+      collection: 'role',
+      via: 'branding'
+    },
     supportAgreementInformation: {
       type: 'json',
       defaultsTo: {}
     },
+    variables: {
+      type: 'json',
+      custom:       (value) => {
+                  if (value == null) {
+                      return true;
+                  }
+                  if (typeof value !== 'object' || Array.isArray(value)) {
+                      return false;
+                  }
+                  const allowList = (typeof sails !== 'undefined' &&
+                      sails.config &&
+                      sails.config.branding &&
+                      sails.config.branding.variableAllowList) ||
+                      [];
+                  return Object.keys(value).every(key => {
+                      const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
+                      return allowList.includes(normalizedKey);
+                  });
+              }
+    },
+    version: {
+      type: 'number',
+      defaultsTo: 0
+    },
   },
-  beforeCreate(values, proceed) {
-    if (values.variables && _.isPlainObject(values.variables)) {
-      const normalized = {};
-      Object.keys(values.variables).forEach(k => {
-        const norm = k.startsWith('$') ? k.slice(1) : k;
-        normalized[norm] = values.variables[k];
-      });
-      values.variables = normalized;
-    }
-    return module.exports.beforeValidate(values, proceed);
-  },
-  beforeUpdate(values, proceed) {
-    if (values.variables && _.isPlainObject(values.variables)) {
-      const normalized = {};
-      Object.keys(values.variables).forEach(k => {
-        const norm = k.startsWith('$') ? k.slice(1) : k;
-        normalized[norm] = values.variables[k];
-      });
-      values.variables = normalized;
-    }
-    return module.exports.beforeValidate(values, proceed);
-  },
-  beforeValidate(values, proceed) {
-    if (values.variables && !validateVariablesMap(values.variables)) {
-      return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
-    }
-    return proceed();
-  }
+  beforeCreate: [
+    (values, proceed) => {
+        if (values.variables && typeof values.variables === 'object' && !Array.isArray(values.variables)) {
+            const normalized = {};
+            Object.keys(values.variables).forEach(key => {
+                const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
+                normalized[normalizedKey] = values.variables[key];
+            });
+            values.variables = normalized;
+        }
+        if (!values.variables) {
+            return proceed();
+        }
+        if (typeof values.variables !== 'object' || Array.isArray(values.variables)) {
+            return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
+        }
+        const allowList = (typeof sails !== 'undefined' &&
+            sails.config &&
+            sails.config.branding &&
+            sails.config.branding.variableAllowList) ||
+            [];
+        const isValid = Object.keys(values.variables).every(key => {
+            const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
+            return allowList.includes(normalizedKey);
+        });
+        if (!isValid) {
+            return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
+        }
+        return proceed();
+    },
+  ],
+  beforeUpdate: [
+    (values, proceed) => {
+        if (values.variables && typeof values.variables === 'object' && !Array.isArray(values.variables)) {
+            const normalized = {};
+            Object.keys(values.variables).forEach(key => {
+                const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
+                normalized[normalizedKey] = values.variables[key];
+            });
+            values.variables = normalized;
+        }
+        if (!values.variables) {
+            return proceed();
+        }
+        if (typeof values.variables !== 'object' || Array.isArray(values.variables)) {
+            return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
+        }
+        const allowList = (typeof sails !== 'undefined' &&
+            sails.config &&
+            sails.config.branding &&
+            sails.config.branding.variableAllowList) ||
+            [];
+        const isValid = Object.keys(values.variables).every(key => {
+            const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
+            return allowList.includes(normalizedKey);
+        });
+        if (!isValid) {
+            return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
+        }
+        return proceed();
+    },
+  ],
 };
-

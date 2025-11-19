@@ -75,7 +75,7 @@ function serializeValue(value: unknown, indent = 0): string {
     return `${value}`;
   }
   if (typeof value === 'function') {
-    return value.toString();
+    return indentLines(value.toString(), indent);
   }
   if (Array.isArray(value)) {
     if (!value.length) {
@@ -110,19 +110,12 @@ function indentLines(value: string, indentSize: number): string {
 
 function buildModelModule(meta: EntityMeta): string {
   const definition: WaterlineModelDefinition = toWaterlineModelDef(meta);
-  const { identity, tableName, primaryKey, attributes } = definition;
-  const lines: string[] = [];
-  lines.push('module.exports = {');
-  lines.push(`  identity: '${identity}',`);
-  if (tableName) {
-    lines.push(`  tableName: '${tableName}',`);
-  }
-  lines.push(`  primaryKey: '${primaryKey}',`);
-  lines.push('  attributes: {');
-  for (const [name, attr] of Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))) {
-    lines.push(`    ${name}: ${serializeValue(attr, 4)},`);
-  }
-  lines.push('  },');
+  const {
+    identity,
+    primaryKey,
+    attributes,
+    ...rest
+  } = definition;
   const lifecycleHooks = [
     'beforeCreate',
     'beforeUpdate',
@@ -133,6 +126,41 @@ function buildModelModule(meta: EntityMeta): string {
     'afterDestroy',
     'afterValidate',
   ];
+  const lifecycleSet = new Set(lifecycleHooks);
+  const lines: string[] = [];
+  lines.push('module.exports = {');
+  lines.push(`  identity: '${identity}',`);
+  lines.push(`  primaryKey: '${primaryKey}',`);
+  const emittedKeys = new Set<string>(['identity', 'primaryKey', 'attributes']);
+  const orderedKeys: string[] = [
+    'tableName',
+    'datastore',
+    'schema',
+    'autoCreatedAt',
+    'autoUpdatedAt',
+    'migrate',
+    'indexes',
+    'archiveModelIdentity',
+    'archiveDateField',
+  ];
+  orderedKeys.forEach(key => {
+    const value = rest[key];
+    if (value !== undefined) {
+      emittedKeys.add(key);
+      lines.push(`  ${key}: ${serializeValue(value, 2)},`);
+    }
+  });
+  lines.push('  attributes: {');
+  for (const [name, attr] of Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))) {
+    lines.push(`    ${name}: ${serializeValue(attr, 4)},`);
+  }
+  lines.push('  },');
+  for (const [key, value] of Object.entries(rest)) {
+    if (value === undefined || emittedKeys.has(key) || lifecycleSet.has(key)) {
+      continue;
+    }
+    lines.push(`  ${key}: ${serializeValue(value, 2)},`);
+  }
   for (const hook of lifecycleHooks) {
     const handlers = definition[hook as keyof WaterlineModelDefinition] as
       | Function[]
@@ -169,31 +197,40 @@ function attributeToTsType(attr: AttributeOptions): string {
     case 'json[]':
       return 'unknown[]';
     case 'json':
-      return 'Record<string, unknown>';
+      return 'JsonMap';
     default:
       return 'unknown';
   }
 }
 
 function buildTypeDefinition(meta: EntityMeta): string {
+  console.log('DEBUG: Generating type definition for ' + meta.className);
   const attributes = meta.attributes;
   const lines: string[] = [];
-  lines.push(`import '../sails';`);
+  // Import sails to ensure global types are available and to make this a module
+  lines.push(`import '../../sails';`);
+  lines.push(`import { JsonMap } from './types';`);
   lines.push('');
-  lines.push(`export interface ${meta.className} {`);
-  for (const [name, attr] of Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))) {
+  const attributeEntries = Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b));
+  const usesJsonMap = attributeEntries.some(([, attr]) => attributeToTsType(attr) === 'JsonMap');
+  // if (usesJsonMap) {
+  //   lines.push('type JsonMap = { [key: string]: unknown };');
+  //   lines.push('');
+  // }
+  lines.push(`export interface ${meta.className}Attributes {`);
+  for (const [name, attr] of attributeEntries) {
     const optionalFlag = attr.required ? '' : '?';
     lines.push(`  ${name}${optionalFlag}: ${attributeToTsType(attr)};`);
   }
   lines.push('}');
   lines.push('');
-  lines.push(`export interface ${meta.className}Model extends Sails.Model {`);
-  lines.push(`  attributes: ${meta.className};`);
+  lines.push(`export interface ${meta.className}WaterlineModel extends Sails.Model {`);
+  lines.push(`  attributes: ${meta.className}Attributes;`);
   lines.push('}');
   lines.push('');
-  lines.push('declare global {');
-  lines.push(`  const ${meta.className}: ${meta.className}Model;`);
-  lines.push('}');
+  lines.push(`declare global {`);
+  lines.push(`  var ${meta.className}: ${meta.className}WaterlineModel;`);
+  lines.push(`}`);
   lines.push('');
   return lines.join('\n');
 }
@@ -204,13 +241,20 @@ async function ensureDirectories() {
 }
 
 async function writeOutputs(meta: EntityMeta) {
-  const jsTarget = path.join(API_MODELS_DIR, `${meta.entity.identity}.js`);
-  const typeTarget = path.join(TYPES_MODELS_DIR, `${meta.className}.d.ts`);
+  const jsTarget = path.join(API_MODELS_DIR, `${meta.className}.js`);
+  const typeTarget = path.join(TYPES_MODELS_DIR, `${meta.className}.ts`);
   await fs.writeFile(jsTarget, buildModelModule(meta), 'utf8');
   await fs.writeFile(typeTarget, buildTypeDefinition(meta), 'utf8');
   const jsRelative = path.relative(PROJECT_ROOT, jsTarget);
   const typeRelative = path.relative(PROJECT_ROOT, typeTarget);
   console.log(`Generated ${jsRelative} and ${typeRelative}`);
+}
+
+async function generateIndexFile(entities: EntityMeta[]) {
+  const lines = entities.map(meta => `export * from './${meta.className}';`);
+  const indexPath = path.join(TYPES_MODELS_DIR, 'index.ts');
+  await fs.writeFile(indexPath, lines.join('\n'), 'utf8');
+  console.log(`Generated ${path.relative(PROJECT_ROOT, indexPath)}`);
 }
 
 async function main() {
@@ -224,6 +268,7 @@ async function main() {
   for (const meta of entities) {
     await writeOutputs(meta);
   }
+  await generateIndexFile(entities);
 }
 
 main().catch(error => {

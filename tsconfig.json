@@ -1,14 +1,15 @@
 {
-    "extends": "@tsconfig/node24/tsconfig.json",   
+    "extends": "@tsconfig/node18/tsconfig.json",   
     "compilerOptions": {
       "outDir": "./",
       "rootDir": "./typescript",
       "strict": false,
       "inlineSourceMap": true,
       "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
       "esModuleInterop": true,
       "skipLibCheck": true,
-      "types": ["node", "mocha", "chai"]
+      "types": ["node", "mocha", "chai", "reflect-metadata"]
     },
     "exclude": [
       "node_modules/**",
@@ -18,7 +19,7 @@
       "angular/**"
     ],
     "include": [
-      "typescript/**/*.ts", 
+      "typescript/**/*.ts"
     ],
     "compileOnSave": true,
     "buildOnSave": false,

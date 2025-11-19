@@ -1,13 +1,27 @@
-/**
- * WorkspaceAsync.js
- *
- * @description :: Tracks Asynchrounous workspace methods
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-// moment removed: not used; dates stored as plain strings.
-
 module.exports = {
+  identity: 'workspaceasync',
+  primaryKey: 'id',
+  tableName: 'workspaceasync',
   attributes: {
+    args: {
+      type: 'json',
+      required: true
+    },
+    date_completed: {
+      type: 'string',
+      columnType: 'datetime'
+    },
+    date_started: {
+      type: 'string',
+      columnType: 'datetime'
+    },
+    message: {
+      type: 'json'
+    },
+    method: {
+      type: 'string',
+      required: true
+    },
     name: {
       type: 'string',
       required: true
@@ -16,35 +30,16 @@ module.exports = {
       type: 'string',
       required: true
     },
-    date_started: {
+    service: {
       type: 'string',
-      columnType: 'datetime'
-    },
-    date_completed: {
-      type: 'string',
-      columnType: 'datetime'
+      required: true
     },
     started_by: {
       type: 'string',
       required: true
     },
-    service:{
-      type: 'string',
-      required: true
-    },
-    method:{
-      type: 'string',
-      required: true
-    },
-    args:{
-      type: 'json',
-      required: true
-    },
     status: {
       type: 'string'
     },
-    message: {
-      type: 'json'
-    }
-  }
+  },
 };

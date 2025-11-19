@@ -1,39 +1,28 @@
-/**
- * PathRules.js
- *
- * @description :: Captures the Path rules
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-
 module.exports = {
+  identity: 'pathrule',
+  primaryKey: 'id',
+  tableName: 'pathrule',
   attributes: {
-    // URL path
+    branding: {
+      required: true,
+      model: 'brandingconfig'
+    },
+    can_read: {
+      type: 'boolean'
+    },
+    can_write: {
+      type: 'boolean'
+    },
+    custom: {
+      type: 'string'
+    },
     path: {
       type: 'string',
       required: true
     },
-    // A Rule belongs to a Role, null for the unauthenticated public
     role: {
-      model: 'role',
-      required: true
+      required: true,
+      model: 'role'
     },
-    // Adding a branding fk, this is NoSQL land, not normalising...
-    // this will allow us to to query rules by brand, potentially allowing brand admins to set up rules
-    branding: {
-      model: 'brandingconfig',
-      required: true
-    },
-    // can read the path
-    can_read: {
-      type: 'boolean'
-    },
-    // can write on the path
-    can_write: {
-      type: 'boolean'
-    },
-    // run a specific method in the rules service?
-    custom: {
-      type: 'string'
-    }
-  }
-}
+  },
+};

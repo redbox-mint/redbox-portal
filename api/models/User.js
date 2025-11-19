@@ -1,70 +1,127 @@
-/**
- * User.js
- *
- * @description :: TODO: You might write a short summary of how this model works and what it represents here.
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-var bcrypt;
-try {
-  bcrypt = require('bcrypt');
-}catch(err) {
-  bcrypt = require('bcryptjs');
-}
 module.exports = {
+  identity: 'user',
+  primaryKey: 'id',
+  tableName: 'user',
   attributes: {
-    username : { type: 'string', required: true, unique: true },
-    password : { type: 'string' },
-    lastLogin: {type: 'string', columnType: 'datetime'},
-    type : { type: 'string', required: true},
-    name : { type: 'string', required: true},
-    email: { type: 'string', required: true, unique: true},
-    token: { type: 'string'},
-    additionalAttributes: {type: 'json'},
-    // users have many workspace apps
-    workspaceApps: { collection: 'workspaceApp', via: 'user' },
-    // users have many roles
-    roles: { collection: 'role', via: 'users'}
+    additionalAttributes: {
+      type: 'json'
+    },
+    email: {
+      type: 'string',
+      required: true,
+      unique: true
+    },
+    lastLogin: {
+      type: 'string',
+      columnType: 'datetime'
+    },
+    name: {
+      type: 'string',
+      required: true
+    },
+    password: {
+      type: 'string'
+    },
+    roles: {
+      dominant: true,
+      collection: 'role',
+      via: 'users'
+    },
+    token: {
+      type: 'string'
+    },
+    type: {
+      type: 'string',
+      required: true
+    },
+    username: {
+      type: 'string',
+      required: true,
+      unique: true
+    },
+    workspaceApps: {
+      collection: 'workspaceApp',
+      via: 'user'
+    },
   },
-  customToJSON: function() {
-      var obj = {};
-      _.assign(obj, this);
-      _.unset(obj, 'password');
+  customToJSON:   function customToJSON() {
+      const obj = {};
+      if (typeof _ !== 'undefined' && _ && typeof _.assign === 'function') {
+          _.assign(obj, this);
+          if (typeof _.unset === 'function') {
+              _.unset(obj, 'password');
+          }
+          else {
+              delete obj.password;
+          }
+      }
+      else {
+          Object.assign(obj, this);
+          delete obj.password;
+      }
       return obj;
   },
-  beforeCreate: function(user, cb) {
-    if (user.password) {
-      bcrypt.genSalt(10, function(err, salt) {
-        bcrypt.hash(user.password, salt, function(err, hash) {
-          if (err) {
-              sails.log.error(err);
-              cb(err);
-          } else {
-              user.password = hash;
-              cb();
+  assignAccessToPendingRecords:   function assignAccessToPendingRecords(user) {
+      try {
+          if (user.email != null && user.name !== 'Local Admin') {
+              UsersService.findAndAssignAccessToRecords(user.email, user.username);
           }
-        });
-      });
-    } else {
-      cb();
-    }
-  },
-  afterCreate: function(user, cb) {
-    User.assignAccessToPendingRecords(user);
-    cb();
-  },
-  afterUpdate: function(user, cb) {
-    User.assignAccessToPendingRecords(user);
-    cb();
-  },
-  assignAccessToPendingRecords: function(user) {
-    try {
-      if(user.email != null && user.name != 'Local Admin') {
-        UsersService.findAndAssignAccessToRecords(user.email, user.username);
       }
-    } catch(e) {
-      // log and move on
-      sails.log.error("Unable to assign access to pending records");
-      sails.log.error(e);
-    }
-  }
+      catch (error) {
+          if (typeof sails !== 'undefined' && sails.log && typeof sails.log.error === 'function') {
+              sails.log.error('Unable to assign access to pending records');
+              sails.log.error(error);
+          }
+      }
+  },
+  beforeCreate: [
+    (user, cb) => {
+        if (!user.password) {
+            return cb();
+        }
+        const bcryptLib = (() => {
+            try {
+                return require('bcrypt');
+            }
+            catch (error) {
+                if (typeof sails !== 'undefined' && sails.log && typeof sails.log.warn === 'function') {
+                    sails.log.warn('Falling back to bcryptjs due to error loading bcrypt', error);
+                }
+                return require('bcryptjs');
+            }
+        })();
+        bcryptLib.genSalt(10, (err, salt) => {
+            if (err) {
+                sails.log.error(err);
+                return cb(err);
+            }
+            bcryptLib.hash(user.password, salt, (hashErr, hash) => {
+                if (hashErr) {
+                    sails.log.error(hashErr);
+                    return cb(hashErr);
+                }
+                user.password = hash;
+                return cb();
+            });
+        });
+    },
+  ],
+  afterCreate: [
+    (user, cb) => {
+        const userModel = typeof globalThis !== 'undefined' ? globalThis.User : undefined;
+        if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
+            userModel.assignAccessToPendingRecords(user);
+        }
+        cb();
+    },
+  ],
+  afterUpdate: [
+    (user, cb) => {
+        const userModel = typeof globalThis !== 'undefined' ? globalThis.User : undefined;
+        if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
+            userModel.assignAccessToPendingRecords(user);
+        }
+        cb();
+    },
+  ],
 };

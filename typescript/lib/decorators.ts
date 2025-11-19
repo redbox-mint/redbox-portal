@@ -11,11 +11,13 @@ export type LifecycleHook =
   | 'afterValidate';
 
 export interface AttributeOptions {
+  [key: string]: unknown;
   type?: string;
   required?: boolean;
   unique?: boolean;
   defaultsTo?: unknown;
   columnName?: string;
+  columnType?: string;
   allowNull?: boolean;
   autoCreatedAt?: boolean;
   autoUpdatedAt?: boolean;
@@ -24,6 +26,8 @@ export interface AttributeOptions {
   model?: string;
   collection?: string;
   via?: string;
+  dominant?: boolean;
+  custom?: (value: unknown) => boolean;
 }
 
 export interface EntityOptions {
@@ -31,6 +35,14 @@ export interface EntityOptions {
   primaryKey?: string;
   tableName?: string;
   migrate?: 'alter' | 'drop' | 'safe';
+  datastore?: string;
+  schema?: boolean;
+  autoCreatedAt?: boolean;
+  autoUpdatedAt?: boolean;
+  indexes?: Record<string, unknown>[];
+  archiveModelIdentity?: string;
+  archiveDateField?: string;
+  [key: string]: unknown;
 }
 
 export interface EntityMeta {
@@ -41,6 +53,14 @@ export interface EntityMeta {
     primaryKey: string;
     tableName?: string;
     migrate?: 'alter' | 'drop' | 'safe';
+    datastore?: string;
+    schema?: boolean;
+    autoCreatedAt?: boolean;
+    autoUpdatedAt?: boolean;
+    indexes?: Record<string, unknown>[];
+    archiveModelIdentity?: string;
+    archiveDateField?: string;
+    [key: string]: unknown;
   };
   attributes: Record<string, AttributeOptions>;
   lifecycle: Partial<Record<LifecycleHook, Function[]>>;
@@ -52,7 +72,15 @@ export interface WaterlineModelDefinition
   primaryKey: string;
   tableName?: string;
   migrate?: 'alter' | 'drop' | 'safe';
+  datastore?: string;
+  schema?: boolean;
+  autoCreatedAt?: boolean;
+  autoUpdatedAt?: boolean;
+  indexes?: Record<string, unknown>[];
+  archiveModelIdentity?: string;
+  archiveDateField?: string;
   attributes: Record<string, AttributeOptions>;
+  [key: string]: unknown;
 }
 
 export const REGISTRY = new Map<Function, EntityMeta>();
@@ -126,23 +154,25 @@ export function Entity(
 
   return target => {
     const meta = ensureMeta(target);
-    const resolvedIdentity = options?.identity ?? identity;
+    const { identity: providedIdentity, ...rest } = options ?? {};
+    const defaultTableName = toIdentity(target.name);
+    const resolvedIdentity = providedIdentity ?? identity;
     if (resolvedIdentity) {
       meta.entity.identity = resolvedIdentity;
-      meta.entity.tableName ??= resolvedIdentity;
+      const shouldResetTableName =
+        rest.tableName !== undefined
+          ? false
+          : !meta.entity.tableName || meta.entity.tableName === defaultTableName;
+      if (shouldResetTableName) {
+        meta.entity.tableName = resolvedIdentity;
+      }
     }
-    if (options?.tableName) {
-      meta.entity.tableName = options.tableName;
-    }
-    if (options?.primaryKey) {
-      meta.entity.primaryKey = options.primaryKey;
-    }
-    if (options?.migrate) {
-      meta.entity.migrate = options.migrate;
-    }
-    if (!meta.entity.tableName) {
-      meta.entity.tableName = meta.entity.identity;
-    }
+    Object.entries(rest).forEach(([key, value]) => {
+      if (value !== undefined) {
+        (meta.entity as Record<string, unknown>)[key] = value;
+      }
+    });
+    meta.entity.tableName ??= meta.entity.identity;
   };
 }
 
@@ -229,17 +259,13 @@ export function toWaterlineModelDef(target: Function | EntityMeta): WaterlineMod
     },
     {},
   );
+  const { identity, primaryKey, ...rest } = meta.entity;
   const definition: WaterlineModelDefinition = {
-    identity: meta.entity.identity,
-    primaryKey: meta.entity.primaryKey,
+    ...rest,
+    identity,
+    primaryKey,
     attributes,
   };
-  if (meta.entity.tableName) {
-    definition.tableName = meta.entity.tableName;
-  }
-  if (meta.entity.migrate) {
-    definition.migrate = meta.entity.migrate;
-  }
   for (const [hook, handlers] of Object.entries(meta.lifecycle)) {
     if (handlers && handlers.length) {
       definition[hook as LifecycleHook] = [...handlers];

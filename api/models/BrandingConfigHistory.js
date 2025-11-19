@@ -1,19 +1,8 @@
-/**
- * BrandingConfigHistory.js
- *
- * Stores published versions of BrandingConfig for rollback.
- */
 module.exports = {
-  attributes: {
-    branding: { model: 'brandingconfig', required: true },
-    version: { type: 'number', required: true },
-    hash: { type: 'string', required: true },
-    css: { type: 'string' }, // stored CSS content at publish time
-    variables: { type: 'json' },
-    // autoCreatedAt provides timestamp for when publish occurred
-    dateCreated: { type: 'string', autoCreatedAt: true }
-  },
-  // Composite unique index to prevent duplicate versions for the same branding
+  identity: 'brandingconfighistory',
+  primaryKey: 'id',
+  tableName: 'brandingconfighistory',
+  datastore: 'redboxStorage',
   indexes: [
     {
       attributes: {
@@ -25,5 +14,28 @@ module.exports = {
       }
     }
   ],
-  datastore: 'redboxStorage'
+  attributes: {
+    branding: {
+      required: true,
+      model: 'brandingconfig'
+    },
+    css: {
+      type: 'string'
+    },
+    dateCreated: {
+      type: 'string',
+      autoCreatedAt: true
+    },
+    hash: {
+      type: 'string',
+      required: true
+    },
+    variables: {
+      type: 'json'
+    },
+    version: {
+      type: 'number',
+      required: true
+    },
+  },
 };

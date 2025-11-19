@@ -1,22 +1,18 @@
-/**
- * Counter.js
- *
- * @description :: Model for tracking counters
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-
 module.exports = {
+  identity: 'counter',
+  primaryKey: 'id',
+  tableName: 'counter',
   attributes: {
-    name: {
-      type: 'string',
-      unique: true,
-      required: true
-    },
     branding: {
       model: 'brandingconfig'
     },
+    name: {
+      type: 'string',
+      required: true,
+      unique: true
+    },
     value: {
       type: 'number'
-    }
-  }
+    },
+  },
 };

@@ -1,46 +1,42 @@
-/**
- * Form.js
- *
- * @description :: Configuration for each Form
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-
 module.exports = {
+  identity: 'form',
+  primaryKey: 'id',
+  tableName: 'form',
   attributes: {
-    name: {
-      type: 'string',
-      unique: true,
-      required: true
+    attachmentFields: {
+      type: 'json'
     },
     customAngularApp: {
       type: 'json'
     },
+    editCssClasses: {
+      type: 'string'
+    },
     fields: {
       type: 'json'
-    },
-    workflowStep: {
-      model: 'workflowStep'
-    },
-    type: {
-      type: 'string'
     },
     messages: {
       type: 'json'
     },
+    name: {
+      type: 'string',
+      required: true,
+      unique: true
+    },
     requiredFieldIndicator: {
-      type: 'string'
-    },
-    viewCssClasses: {
-      type: 'string'
-    },
-    editCssClasses: {
       type: 'string'
     },
     skipValidationOnSave: {
       type: 'boolean'
     },
-    attachmentFields: {
-      type: 'json'
-    }
-  }
+    type: {
+      type: 'string'
+    },
+    viewCssClasses: {
+      type: 'string'
+    },
+    workflowStep: {
+      model: 'workflowStep'
+    },
+  },
 };

@@ -28,6 +28,7 @@ import {
   BrandingModel,
   RoleModel,
   SearchService,
+  UserAttributes,
   UserModel,
   Services as services
 } from '@researchdatabox/redbox-core-types';
@@ -40,7 +41,6 @@ import * as crypto from 'crypto';
 
 
 declare var sails: Sails;
-declare var User, Role, UserAudit, Record: Model;
 declare var BrandingService, RolesService, ConfigService, RecordsService;
 declare var VocabService;
 declare const Buffer;
@@ -117,7 +117,8 @@ export module Services {
 
           User.findOne({
             username: username
-          }).populate('roles').exec(function (err, foundUser) {
+          }).populate('roles').exec((err, foundUserResponse) => {
+            const foundUser = foundUserResponse as unknown as UserAttributes 
             if (err) {
               return done(err);
             }
@@ -126,7 +127,6 @@ export module Services {
                 message: 'Incorrect username/password'
               });
             }
-
             bcrypt.compare(password, foundUser.password, function (err, res) {
 
               if (!res) {
@@ -434,7 +434,7 @@ export module Services {
           const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
           User.findOne({
             username: userName
-          }, function (err, user) {
+          }, function (err, user: any) {
             sails.log.verbose("At AAF Strategy verify, payload:");
             sails.log.verbose(jwt_payload);
             sails.log.verbose("User:");
@@ -532,7 +532,7 @@ export module Services {
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
-              let userToCreate:any = {
+              let userToCreate = {
                 username: userName,
                 name: jwt_payload[aafAttributes].cn,
                 email: jwt_payload[aafAttributes].mail.toLowerCase(),
@@ -753,7 +753,7 @@ export module Services {
 
       User.findOne({
         username: userName
-      }, function (err, user) {
+      }, function (err, user: any) {
         sails.log.verbose("At OIDC Strategy verify, payload:");
         sails.log.verbose(userinfo);
         sails.log.verbose("User:");

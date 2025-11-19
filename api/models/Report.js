@@ -1,34 +1,15 @@
-/**
- * Report.js
- *
- * @description :: Report associated with this brand...
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-
 module.exports = {
+  identity: 'report',
+  primaryKey: 'id',
+  tableName: 'report',
   attributes: {
-    key: {
-      type: 'string',
-      unique: true
-    },
-    name: {
-      type: 'string',
-      required: true
-    },
-    title: {
-      type: 'string',
-      required: true
-    },
-    // A Record needs to belong to a Brand, 1 to 1
     branding: {
-      model: 'brandingconfig',
+      required: true,
+      model: 'brandingconfig'
+    },
+    columns: {
+      type: 'json',
       required: true
-    },
-    reportSource:{
-      type: 'string',
-    },
-    solrQuery: {
-      type: 'json'
     },
     databaseQuery: {
       type: 'json'
@@ -37,13 +18,29 @@ module.exports = {
       type: 'json',
       required: true
     },
-    columns: {
-      type: 'json',
+    key: {
+      type: 'string',
+      unique: true
+    },
+    name: {
+      type: 'string',
       required: true
-    }
+    },
+    reportSource: {
+      type: 'string'
+    },
+    solrQuery: {
+      type: 'json'
+    },
+    title: {
+      type: 'string',
+      required: true
+    },
   },
-    beforeCreate: function(report, cb) {
-        report.key = report.branding+'_'+report.name;
+  beforeCreate: [
+    (report, cb) => {
+        report.key = `${report.branding}_${report.name}`;
         cb();
-    }
-}
+    },
+  ],
+};

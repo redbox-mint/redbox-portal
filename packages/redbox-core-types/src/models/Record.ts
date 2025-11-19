@@ -1,0 +1,21 @@
+import '../../sails';
+import { JsonMap } from './types';
+
+export interface RecordAttributes {
+  authorization?: JsonMap;
+  dateCreated?: string;
+  harvestId?: string;
+  lastSaveDate?: string;
+  metadata?: JsonMap;
+  metaMetadata?: JsonMap;
+  redboxOid?: string;
+  workflow?: JsonMap;
+}
+
+export interface RecordWaterlineModel extends Sails.Model {
+  attributes: RecordAttributes;
+}
+
+declare global {
+  var Record: RecordWaterlineModel;
+}

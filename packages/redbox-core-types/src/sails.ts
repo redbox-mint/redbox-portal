@@ -52,6 +52,7 @@ declare global {
 			find(params: Object): WaterlinePromise<Array<QueryResult>>;
 
 			findOne(criteria: Object): WaterlinePromise<QueryResult>;
+			findOne(criteria: Object, cb: (err: Error, found: QueryResult) => void): void;
 
 			count(criteria: Object): WaterlinePromise<number>;
 			count(criteria: Array<Object>): WaterlinePromise<number>;
@@ -88,6 +89,9 @@ declare global {
 			update(criteria: string, changes: Array<Object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
 			update(criteria: number, changes: Array<Object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
 
+			// Overload for update without changes (chainable with .set())
+			update(criteria: Object): WaterlinePromise<Array<QueryResult>>;
+
 			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void);
 			native(cb: (err: Error, collection: Model) => void);
 
@@ -101,6 +105,9 @@ declare global {
 			stream(criteria: string, writeEnd: Object): Error;
 			stream(criteria: number, writeEnd: Object): Error;
 
+			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 		}
 
 		export interface Req extends express.Request { }
@@ -120,14 +127,19 @@ declare global {
 		}
 
 		export class WaterlinePromise<T> extends Promise<T> {
-			exec(cb: (err: Error, results: Array<QueryResult>) => void);
-			exec(cb: (err: Error, result: QueryResult) => void);
+			exec(cb: (err: Error, results: Array<QueryResult>) => void): any;
+			exec(cb: (err: Error, result: QueryResult) => void): any;
+			
+			populate(association: string): WaterlinePromise<T>;
+			populate(association: string, filter: Object): WaterlinePromise<T>;
+			set(values: Object): WaterlinePromise<T>;
 		}
 
 		export class Record {
 			id: number;
 			createdAt: Date;
 			updatedAt: Date;
+			[key: string]: any;
 		}
 
 		export class QueryResult extends Record {

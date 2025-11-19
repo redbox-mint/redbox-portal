@@ -1,41 +1,22 @@
-/**
- * AsynchProgress.js
- *
- * @description :: Tracks Asynchrounous progress started by the portal.
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-// moment removed: not used; dates stored as plain strings.
-
 module.exports = {
+  identity: 'asynchprogress',
+  primaryKey: 'id',
+  tableName: 'asynchprogress',
   attributes: {
-    name: {
-      type: 'string',
-      required: true
-    },
     branding: {
-      model: 'brandingconfig',
-      required: true
+      required: true,
+      model: 'brandingconfig'
     },
-    date_started: {
-      type: 'string',
-      columnType: 'datetime'
+    currentIdx: {
+      type: 'number'
     },
     date_completed: {
       type: 'string',
       columnType: 'datetime'
     },
-    started_by: {
+    date_started: {
       type: 'string',
-      required: true
-    },
-    currentIdx: {
-      type: 'number'
-    },
-    targetIdx: {
-      type: 'number'
-    },
-    status: {
-      type: 'string'
+      columnType: 'datetime'
     },
     message: {
       type: 'string'
@@ -43,11 +24,25 @@ module.exports = {
     metadata: {
       type: 'json'
     },
+    name: {
+      type: 'string',
+      required: true
+    },
     relatedRecordId: {
       type: 'string'
     },
+    started_by: {
+      type: 'string',
+      required: true
+    },
+    status: {
+      type: 'string'
+    },
+    targetIdx: {
+      type: 'number'
+    },
     taskType: {
       type: 'string'
-    }
-  }
+    },
+  },
 };

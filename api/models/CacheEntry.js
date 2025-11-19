@@ -1,24 +1,19 @@
-/**
- * CacheEntry.js
- *
- * @description :: Cache Entry - seen as temporary, please look at more permanent solutions for caching
- * @docs        :: http://sailsjs.org/documentation/concepts/models-and-orm/models
- */
-
 module.exports = {
+  identity: 'cacheentry',
+  primaryKey: 'id',
+  tableName: 'cacheentry',
   attributes: {
-    name: {
-      type: 'string',
-      unique: true,
-      required: true
-    },
     data: {
       type: 'json'
     },
-    // When entry was added, in seconds since epoch
+    name: {
+      type: 'string',
+      required: true,
+      unique: true
+    },
     ts_added: {
       type: 'number',
       required: true
-    }
-  }
+    },
+  },
 };
