@@ -1,4 +1,4 @@
-import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
+import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding, AfterViewChecked } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame, guessType, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
@@ -41,7 +41,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
   `,
   standalone: false
 })
-export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
+export class TabComponentLayout extends DefaultLayoutComponent<undefined> implements AfterViewChecked {
   protected override logName = TabLayoutName;
   public override componentDefinition?: TabFieldLayoutDefinitionFrame;
 
@@ -87,17 +87,40 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
     return this.formFieldCompMapEntry?.compConfigJson?.name || '';
   }
 
+  private initialSelectionDone = false;
+
+    ngAfterViewChecked() {
+    // This is a workaround to ensure that the initial tab selection is applied
+    // after the view has been checked. Without this, the tabs are all shown
+    // initially because the classes are not applied correctly.
+    if (!this.initialSelectionDone && 
+        this.tabInstance && 
+        this.tabInstance.tabs.length > 0 &&
+        this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
+        this.tabInstance.selectedTabId) {
+      
+      const tabId = this.tabInstance.selectedTabId;
+      setTimeout(() => {
+        this.selectTab(tabId);
+      });
+      this.initialSelectionDone = true;
+    }
+  }
+
   public selectTab(tabId: string) {
+    this.loggerService.debug(`${this.logName}: selectTab called for ${tabId}. Config:`, this.componentDefinition?.config);
     const selectionResult = this.tabInstance?.selectTab(tabId);
-    if (selectionResult && selectionResult.changed) {
+    if (selectionResult && (selectionResult.changed || selectionResult.errorType === TabSelectionErrorType.ALREADY_SELECTED)) {
       this.loggerService.debug(`${this.logName}: Tab selection changed`, selectionResult);
       // remove the 'show active' classes from all tabs
       selectionResult.wrappers?.forEach((instance: FormBaseWrapperComponent<unknown>) => {
         instance.hostBindingCssClasses = this.componentDefinition?.config?.tabPaneCssClass;
+        this.loggerService.debug(`${this.logName}: Set inactive class on wrapper: ${instance.hostBindingCssClasses}`);
       });
       // add the 'show active' class to the selected tab
       if (selectionResult.selectedWrapper !== null && selectionResult.selectedWrapper !== undefined) {
         selectionResult.selectedWrapper.hostBindingCssClasses = `${this.componentDefinition?.config?.tabPaneCssClass} ${this.componentDefinition?.config?.tabPaneActiveCssClass}`;
+        this.loggerService.debug(`${this.logName}: Set active class on wrapper: ${selectionResult.selectedWrapper.hostBindingCssClasses}`);
       }
     }
   }
@@ -143,6 +166,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     for (let index = 0; index < this.tabs.length; index++) {
       const tab = this.tabs[index];
       const tabWrapperRef = this.tabsContainer.createComponent(FormBaseWrapperComponent<null>);
+      // Ensure tab is hidden immediately upon creation to prevent flash of content
+      tabWrapperRef.instance.hostBindingCssClasses = 'd-none';
+      tabWrapperRef.changeDetectorRef.detectChanges();
+      
       tab.name = `${tab.name || index}`;
       const fieldMapDefEntry: FormFieldCompMapEntry = {
         componentClass: TabContentComponent,
@@ -156,6 +183,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 
       try {
         await tabWrapperRef.instance.initWrapperComponent(fieldMapDefEntry, false);
+        this.loggerService.debug(`${this.logName}: Initialized tab wrapper for ${tab.name}`);
       } catch (error) {
         this.loggerService.error(`${this.logName}: Error initializing tab wrapper component`, error);
       }
@@ -175,6 +203,11 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         this.selectTab(tab.name);
       }
     }
+
+    if (this.selectedTabId === null && this.tabs.length > 0) {
+      this.selectTab(this.tabs[0].name);
+    }
+
     await super.setComponentReady();
   }
 

@@ -46,5 +46,5 @@ module.exports.csp = {
   },
 
   // Raw, valueless directives appended as-is (e.g., 'upgrade-insecure-requests')
-  extras: ['upgrade-insecure-requests'],
+  extras: [],
 };

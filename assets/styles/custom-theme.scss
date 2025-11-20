@@ -1,1 +1,10 @@
 // Placeholder SCSS file customisations to the default theme.
+
+.form-control.is-valid {
+  background-image: none !important; /* Use !important if needed, but try without first */
+  padding-right: 0.75em; /* Adjust padding if the checkmark was taking up space */
+}
+
+.valid-feedback {
+    display: none;
+}

@@ -10,7 +10,7 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft'
+        form: 'minimal-rdmp-1.0-draft'
       },
       starting: true
     }
@@ -155,7 +155,7 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft',
+        form: 'minimal-rdmp-1.0-draft',
         baseRecordType: 'rdmp',
         dashboard: {
           table: {

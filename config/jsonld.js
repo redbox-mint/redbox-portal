@@ -6,7 +6,7 @@
 module.exports.jsonld = {
   addJsonLdContext: true,
   contexts: {
-    "default-1.0-draft": {
+    "minimal-rdmp-1.0-draft": {
       "title": "http://purl.org/dc/elements/1.1/title",
       "description": "http://purl.org/dc/elements/1.1/description",
       "startDate": "http://schema.org/Date",
