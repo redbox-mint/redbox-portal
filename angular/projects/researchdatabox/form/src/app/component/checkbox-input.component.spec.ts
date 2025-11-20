@@ -28,7 +28,7 @@ describe('CheckboxInputComponent', () => {
           model: {
             class: 'CheckboxInputModel',
             config: {
-              defaultValue: 'b',
+              value: 'b',
             },
           },
           component: {

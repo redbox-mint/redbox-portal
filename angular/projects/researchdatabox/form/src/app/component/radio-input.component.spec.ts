@@ -28,7 +28,7 @@ describe('RadioInputComponent', () => {
           model: {
             class: 'RadioInputModel',
             config: {
-              defaultValue: 'option1'
+              value: 'option1'
             }
           },
           component: {

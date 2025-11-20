@@ -458,7 +458,12 @@ describe("Client Visitor", async () => {
                                 visible: true,
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {}},
+                                    model: {
+                                        class: 'GroupModel',
+                                        config: {
+
+                                        }
+                                    },
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
@@ -586,7 +591,7 @@ describe("Client Visitor", async () => {
         const constructed = constructor.start(formConfig, "edit");
 
         const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {metadata: {text_2: "text_2_value"}});
+        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {text_2: "text_2_value"});
         expect(actual).to.eql({});
     });
 });

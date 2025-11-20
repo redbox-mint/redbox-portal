@@ -2,7 +2,8 @@ import {
     isBoolean as _isBoolean,
     isArray as _isArray,
     isString as _isString,
-    isPlainObject as _isPlainObject
+    isPlainObject as _isPlainObject,
+    isFunction as _isFunction,
 } from "lodash";
 import {DateTime} from 'luxon';
 import {FormComponentDefinitionFrame} from "./form-component.outline";
@@ -10,12 +11,23 @@ import {FormConfigFrame} from "./form-config.outline";
 import {FieldDefinitionFrame} from "./field.outline";
 import {FormValidatorDefinition} from "../validation/form.model";
 
+export type GuessedType = "null"
+    | "undefined"
+    | "boolean"
+    | "number"
+    | "array"
+    | "object"
+    | "function"
+    | "timestamp"
+    | "string"
+    | "unknown";
+
 /**
  * Guess the type of the value.
  * @param value Guess the type of this value.
  * @private
  */
-export function guessType(value: unknown): "array" | "object" | "boolean" | "string" | "timestamp" | "number" | "null" | "undefined" | "unknown" {
+export function guessType(value: unknown): GuessedType {
     if (value === null) {
         return "null";
     }
@@ -39,6 +51,10 @@ export function guessType(value: unknown): "array" | "object" | "boolean" | "str
         return "object";
     }
 
+    if (_isFunction(value)) {
+        return "function";
+    }
+
     // check for date
     const dateTimeFormats = [
         DateTime.fromISO,
@@ -52,7 +68,6 @@ export function guessType(value: unknown): "array" | "object" | "boolean" | "str
                 return "timestamp";
             }
         }
-
     } catch (err) {
         console.debug(`guessType parse error with value '${value}' formats ${JSON.stringify(dateTimeFormats)}: ${err}`);
     }

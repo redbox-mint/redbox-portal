@@ -26,7 +26,7 @@ import {
     ClientFormConfigVisitor,
     ConstructFormConfigVisitor,
     FormConfigFrame,
-    FormModesConfig
+    FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
@@ -516,22 +516,22 @@ export module Services {
      * @param formMode The form mode.
      * @param userRoles The current user's roles.
      * @param recordData The record data.
+     * @param reusableFormDefs The reusable form definitions.
      */
     public buildClientFormConfig(
         item: FormConfigFrame,
         formMode?: FormModesConfig,
         userRoles?: string[],
-        recordData?: Record<string, unknown>
+        recordData?: Record<string, unknown> | null,
+        reusableFormDefs?: ReusableFormDefinitions
     ): Record<string, unknown> {
-        sails.log.verbose(`FormsService - build client form config for name '${item?.name}'`);
-
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start(item, formMode);
+      const constructed = constructor.start(item, formMode, reusableFormDefs);
 
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       let result: FormConfigFrame;
-      if (recordData) {
+      if (recordData !== null && recordData !== undefined) {
         result = visitor.startExistingRecord(constructed, formMode, userRoles, recordData);
       } else {
         result = visitor.startNewRecord(constructed, formMode, userRoles);

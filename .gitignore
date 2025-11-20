@@ -212,3 +212,6 @@ api/shims/*.js
 
 attachments/
 docs/
+test/unit/**/*.test.js
+
+test/unit/.mocharc.js

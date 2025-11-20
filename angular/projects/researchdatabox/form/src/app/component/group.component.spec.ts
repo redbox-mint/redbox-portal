@@ -46,7 +46,7 @@ describe('GroupFieldComponent', () => {
           model: {
             class: 'GroupModel',
             config: {
-              defaultValue: {},
+              value: {},
             }
           },
           component: {
@@ -79,8 +79,7 @@ describe('GroupFieldComponent', () => {
                   model: {
                     class: 'SimpleInputModel',
                     config: {
-                      value: 'hello world 4!',
-                      defaultValue: 'hello world 4!'
+                      value: 'hello world 4!'
                     }
                   },
                   component: {
@@ -102,7 +101,7 @@ describe('GroupFieldComponent', () => {
                   model: {
                     class: 'GroupModel',
                     config: {
-                      defaultValue: {},
+                      value: {},
                     }
                   },
                   component: {

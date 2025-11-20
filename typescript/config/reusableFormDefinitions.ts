@@ -87,4 +87,4 @@ const reusableDefinitions: ReusableFormDefinitions = {
     // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
     "standard-project-info-fields": [],
 };
-module.exports = reusableDefinitions;
+module.exports.reusableFormDefinitions = reusableDefinitions;

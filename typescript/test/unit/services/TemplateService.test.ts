@@ -130,12 +130,12 @@ describe('The TemplateService', function () {
                 const clientString = ejs.render(templateContent, {entries: clientMapping});
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
-                    for (let i = 0; i < args.contexts; i++) {
+                    for (let i = 0; i < args.contexts.length; i++) {
                         const context = args.contexts[i];
-                        const expected = args.expected[i];
+                        const expectedValue = expected[i];
                         const extra = Object.assign({}, {libraries: {Handlebars: Handlebars}}, context.extra ?? {});
                         const result = clientReady.evaluate(context.key, context.context, extra);
-                        expect(result).to.eql(expected);
+                        expect(result).to.eql(expectedValue);
                     }
                 });
 

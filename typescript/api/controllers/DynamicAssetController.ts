@@ -82,7 +82,9 @@ export module Controllers {
 
       try {
         const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-        const entries = FormRecordConsistencyService.extractRawTemplates(form, editMode ? "edit" : "view");
+        const formMode = editMode ? "edit" : "view";
+        const reusableFormDefs = sails.config.reusableFormDefinitions;
+        const entries = FormRecordConsistencyService.extractRawTemplates(form, formMode, reusableFormDefs);
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         sails.log.error("Could not build compiled items from form config:", error);
