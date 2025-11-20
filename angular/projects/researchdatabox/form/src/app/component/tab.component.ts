@@ -1,7 +1,7 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
-  FormConfigFrame, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
+  FormConfigFrame, guessType, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
   TabComponentName,
   TabContentComponentName, TabContentFieldComponentDefinitionFrame,
   TabContentFormComponentDefinitionFrame,
@@ -54,13 +54,33 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   }
 
   protected get tabInstance(): TabComponent | null {
-    // The tab component layout is created before the tab component, so the component ref can be undefined.
     const instance = this.formFieldCompMapEntry?.componentRef?.instance;
-    if (instance && instance instanceof TabComponent) {
+
+    // The tab component layout is created before the tab component,
+    // so the component ref instance can be undefined.
+    if (this.isTabComponent(instance)) {
       return instance;
+    } else if (instance !== undefined) {
+      // Warn if there is an instance, but it is not the expected instance.
+      this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent, but instance was:`, instance);
     }
-    this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent in TabComponentLayout, but instance was '${instance?.constructor?.name}'.`);
     return null;
+  }
+
+  private isTabComponent(item: unknown): item is TabComponent {
+    if (item === undefined || item === null) {
+      return false;
+    }
+
+    const i = item as TabComponent;
+
+    // Check for presence of the expected properties.
+    // This used to use instanceof, but that was unreliable.
+    const hasTabs = guessType(i.tabs) === 'array';
+    const hasSelectedTabId = ["null", "string"].includes(guessType(i.selectedTabId));
+    const hasSelectTab = guessType(i.selectTab) === 'function';
+
+    return hasTabs && hasSelectedTabId && hasSelectTab;
   }
 
   @HostBinding('id') get hostId(): string {

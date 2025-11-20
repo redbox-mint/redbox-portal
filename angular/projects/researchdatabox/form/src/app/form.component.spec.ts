@@ -36,7 +36,7 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'hello world!'
+              value: 'hello world!'
             }
           },
           component: {
@@ -68,7 +68,7 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'trigger save exec'
+              value: 'trigger save exec'
             }
           },
           component: {
@@ -105,7 +105,7 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'legacy value'
+              value: 'legacy value'
             }
           },
           component: {

@@ -34,7 +34,7 @@ import {FormService} from "../form.service";
 @Component({
   selector: 'redbox-form-default-component-layout',
   template: `
-  @if (model && componentDefinition) {
+  @if (componentDefinition) {
     @if (getStringProperty('label')) {
       @if (isVisible) {
         <label class="form-label">
@@ -143,10 +143,10 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected override async setComponentReady(): Promise<void> {
     await this.untilViewIsInitialised();
     if (!this.componentContainer) {
-      throw new Error("DefaultLayoutComponent: componentContainer is not defined. Cannot create the wrapper component.");
+      throw new Error(`${this.logName}: componentContainer is not defined. Cannot create the wrapper component for name ${JSON.stringify(this.name)} formFieldCompMapEntry ${JSON.stringify(this.formFieldCompMapEntry?.compConfigJson)}`);
     }
     if (!this.formFieldCompMapEntry) {
-      throw new Error("DefaultLayoutComponent: formFieldCompMapEntry is not defined. Cannot create the wrapper component.");
+      throw new Error(`${this.logName}: formFieldCompMapEntry is not defined. Cannot create the wrapper component for name ${JSON.stringify(this.name)}.`);
     }
     if (this.formFieldCompMapEntry && (this.beforeComponentTemplate || this.afterComponentTemplate)) {
       this.formFieldCompMapEntry.componentTemplateRefMap = {

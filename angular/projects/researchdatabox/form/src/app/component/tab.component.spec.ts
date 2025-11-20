@@ -59,7 +59,6 @@ describe('TabComponent', () => {
                             class: 'SimpleInputModel',
                             config: {
                               value: 'Hello from Tab 1!',
-                              defaultValue: 'Default value for Tab 1'
                             }
                           },
                           component: {
@@ -89,7 +88,6 @@ describe('TabComponent', () => {
                             class: 'SimpleInputModel',
                             config: {
                               value: 'Hello from Tab 2!',
-                              defaultValue: 'Default value for Tab 2'
                             }
                           },
                           component: {

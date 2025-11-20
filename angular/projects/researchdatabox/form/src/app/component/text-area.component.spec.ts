@@ -27,7 +27,7 @@ describe('TextAreaComponent', () => {
           model: {
             class: 'TextAreaModel',
             config: {
-              defaultValue: 'Text area hello world test text'
+              value: 'Text area hello world test text'
             }
           },
           component: {

@@ -35,8 +35,7 @@ describe('RepeatableComponent', () => {
           model: {
             class: 'RepeatableModel',
             config: {
-              value: ['hello world from repeatable!'],
-              defaultValue: ['hello world from repeatable, default!']
+              value: ['hello world from repeatable!']
             }
           },
           component: {
@@ -47,7 +46,7 @@ describe('RepeatableComponent', () => {
                 model: {
                   class: 'SimpleInputModel',
                   config: {
-                    defaultValue: 'hello world from elementTemplate!',
+                    value: 'hello world from elementTemplate!',
                   }
                 },
                 component: {
