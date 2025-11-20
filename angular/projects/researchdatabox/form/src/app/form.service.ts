@@ -37,6 +37,7 @@ import {
   LoggerService,
   TranslationService,
   UtilityService,
+  JSONataClientQuerySourcePropertyEntry
 } from '@researchdatabox/portal-ng-common';
 import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
@@ -47,7 +48,10 @@ import {
   FormValidatorSummaryErrors,
   ValidatorsSupport,
   LineagePaths,
+  JSONataQuerySource,
+  JSONataQuerySourcePropertyEntry,
   buildLineagePaths as buildLineagePathsHelper,
+  queryJSONata,
   FormValidationGroups
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
@@ -649,6 +653,57 @@ export class FormService extends HttpClientService {
   public buildLineagePaths(base?: LineagePaths, more?: LineagePaths) : LineagePaths {
     // Delegate to shared helper to keep existing FormService API intact.
     return buildLineagePathsHelper(base, more);
+  }
+
+  public getJSONataPropertyEntry(item: FormFieldCompMapEntry): JSONataClientQuerySourcePropertyEntry {
+    const propertyEntry: JSONataClientQuerySourcePropertyEntry = {
+      name: item.compConfigJson?.name,
+      lineagePaths: item.lineagePaths,
+      component: item.component,
+      model: item.model, 
+      layout: item.layout,
+      jsonPointer: item.lineagePaths?.angularComponentsJsonPointer
+    };
+    const children = item?.component?.formFieldCompMapEntries || [];
+
+    if (!_isEmpty(children)) {
+      // recursively get the query source for the child items
+      propertyEntry.children = [];
+      for (let childItem of children) {
+        const childPropertyEntry = this.getJSONataPropertyEntry(childItem);
+        if (childPropertyEntry) {
+          propertyEntry.children.push(childPropertyEntry);
+        }
+      }
+    }
+    return propertyEntry;
+  }
+
+
+  public getJSONataQuerySource(origObject: FormFieldCompMapEntry[]): JSONataQuerySource {
+    let queryDoc: JSONataQuerySourcePropertyEntry[] = [];
+
+    // loop through each item in the original object and build the query source
+    for (let item of origObject) {
+      const propertyEntry = this.getJSONataPropertyEntry(item);
+      queryDoc.push(propertyEntry);
+    }
+
+    const querySource: JSONataQuerySource = {
+      queryOrigSource: origObject,
+      querySource: queryDoc
+    }
+    return querySource;
+  }
+
+  public queryJSONataSource(
+    jsonataSource: JSONataQuerySource,
+    jsonataExpression: string
+  ): any {
+    return queryJSONata(
+      jsonataSource,
+      jsonataExpression
+    );
   }
 }
 
