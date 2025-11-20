@@ -38,7 +38,7 @@ describe('Form Save Flow Integration', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'initial value',
+              value: 'initial value',
             },
           },
           component: {

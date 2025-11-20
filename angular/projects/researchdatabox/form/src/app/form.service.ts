@@ -327,8 +327,15 @@ export class FormService extends HttpClientService {
     } else {
       // TODO: Is there some way to indicate which components must have a model, and which ones must not?
       //       Then this could throw an error instead of warning about components that can't have a model.
-      // Model is now optional, so we can return null if the model is not defined. Add appropriate warning to catch config errors.
-      this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component. If this is unexpected, check your form configuration.`, compMapEntry);
+      // Model is now optional, so we can return null if the model is not defined.
+      // Log appropriate warning to highlight potential config errors.
+      const name = compMapEntry?.compConfigJson?.name;
+      const componentClassName = compMapEntry?.compConfigJson?.component?.class;
+      const layoutClassName = compMapEntry?.compConfigJson?.layout?.class;
+      const modelClassName = compMapEntry?.compConfigJson?.model?.class;
+      this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component name ${JSON.stringify(name)}. ` +
+        `Component class ${JSON.stringify(componentClassName)} layout class ${JSON.stringify(layoutClassName)} model class ${JSON.stringify(modelClassName)}. ` +
+        `If this is unexpected, check your form configuration.`);
     }
     return null;
   }

@@ -32,7 +32,7 @@ describe('DateInputComponent', () => {
           model: {
             class: 'DateInputModel',
             config: {
-              defaultValue: new Date('2025-08-10T10:00:00Z')
+              value: new Date('2025-08-10T10:00:00Z')
             },
           },
           component: {

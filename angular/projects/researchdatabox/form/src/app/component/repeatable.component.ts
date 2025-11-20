@@ -67,18 +67,18 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected override async initData() {
     await this.untilViewIsInitialised();
     // Prepare the element template
-    const formFieldCompDef = this.componentDefinition;
-    const elementTemplate = (formFieldCompDef?.config as RepeatableFieldComponentConfig)?.elementTemplate;
+    const elementTemplate = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate;
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
     if (!elementTemplate) {
-      throw new Error(`${this.logName}: elementTemplate is not defined in the component definition.`);
+      throw new Error(`${this.logName}: elementTemplate is not defined in the component definition for '${formComponentName}'.`);
     }
 
     // Resolve the classes using the FormService
     this.newElementFormConfig = {
-      name: `form-config-generated-repeatable-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
+      name: `form-config-generated-repeatable-${formComponentName}`,
       // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
       componentDefinitions: [{...elementTemplate, name: ""}],
-      // Get the default config.
+      // TODO: Get the default config?
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
     const parentLineagePaths = this.formService.buildLineagePaths(
@@ -92,10 +92,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
-      throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
+      throw new Error(`${this.logName}: No components found in the formComponentsMap for '${formComponentName}'.`);
     }
     if (!this.model) {
-      throw new Error(`${this.logName}: model is not defined. Cannot initialize the component.`);
+      throw new Error(`${this.logName}: model is not defined. Cannot initialize the component for '${formComponentName}'.`);
     }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
@@ -109,12 +109,18 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Loop through the elements of the model and insert into the container
     const elemVals = this.model.initValue;
     if (!Array.isArray(elemVals)) {
-      throw new Error(`${this.logName}: model value is not an array. Cannot initialize the component.`);
+      throw new Error(`${this.logName}: model value is not an array. Cannot initialize the component for '${formComponentName}'.`);
     }
 
+    // A repeatable needs at least one item.
     if (elemVals.length === 0) {
-      // If the model is empty, we need to create at least one element with the default value
-      elemVals.push(this.model.fieldConfig.config?.defaultValue || null);
+      // If we get here, there is no default from the repeatable or an ancestor.
+      // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
+      // If there is no model value, use undefined.
+      // Undefined is not set to control.value, anything else is set, which is what we want.
+      const elementTemplateValue = elementTemplate?.model?.config?.value;
+      elemVals.push(elementTemplateValue);
+      this.loggerService.warn(`${this.logName}: Created one element for repeatable '${formComponentName}' with no value: ${JSON.stringify(elemVals)}`);
     }
 
     for (const elementValue of elemVals) {
@@ -125,6 +131,11 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public async appendNewElement(value?: any) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
+    }
+    if (value === undefined) {
+      // If the provided value is undefined, use the elementTemplate model config value,
+      // which is the default for new entries.
+      value = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate?.model?.config?.value;
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value);
     await this.createElement(elemEntry);
@@ -267,12 +278,8 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     // Don't call the super method, as this model needs a FormArray, and needs to populate it differently.
     // super.postCreate();
 
-    // Init with empty array if no default value is set
-    if (!this.fieldConfig.config?.defaultValue) {
-      _set(this.fieldConfig, 'config.defaultValue', []);
-    }
-    // Store the init value. Use the default value if the value is not set.
-    this.initValue = _get(this.fieldConfig, 'config.value') ?? this.fieldConfig.config?.defaultValue;
+    // Store the init value. Use an empty array if the value is not set.
+    this.initValue = this.fieldConfig.config?.value ?? [];
 
     // not setting value yet, this will be done in the component for lazy init
     const modelElems: AbstractControl[] = [];
