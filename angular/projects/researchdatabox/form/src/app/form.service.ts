@@ -663,11 +663,15 @@ export class FormService extends HttpClientService {
   }
 
   public getJSONataPropertyEntry(item: FormFieldCompMapEntry): JSONataClientQuerySourcePropertyEntry {
+    if (!item) {
+      throw new Error(`${this.logName}: Cannot get JSONata property entry for null or undefined item.`);
+    }
+
     const propertyEntry: JSONataClientQuerySourcePropertyEntry = {
       name: item.compConfigJson?.name,
       lineagePaths: item.lineagePaths,
       component: item.component,
-      model: item.model, 
+      model: item.model,
       layout: item.layout,
       jsonPointer: item.lineagePaths?.angularComponentsJsonPointer
     };
@@ -678,9 +682,7 @@ export class FormService extends HttpClientService {
       propertyEntry.children = [];
       for (let childItem of children) {
         const childPropertyEntry = this.getJSONataPropertyEntry(childItem);
-        if (childPropertyEntry) {
-          propertyEntry.children.push(childPropertyEntry);
-        }
+        propertyEntry.children.push(childPropertyEntry);
       }
     }
     return propertyEntry;
