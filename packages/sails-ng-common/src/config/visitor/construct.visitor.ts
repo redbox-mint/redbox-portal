@@ -139,8 +139,8 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private result?: FormConfigOutline;
     private data?: FormConfigFrame;
     private formMode: FormModesConfig = "view";
-    private reusableFormConfig: ReusableFormDefinitions = {};
-    private reusableFormConfigNames: string[] = [];
+    private reusableFormDefs: ReusableFormDefinitions = {};
+    private reusableFormDefNames: string[] = [];
 
     private fieldComponentMap?: ComponentClassDefMapType;
     private fieldModelMap?: ModelClassDefMapType;
@@ -159,14 +159,20 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.constructOverrides = new ConstructOverrides();
     }
 
-    start(data: FormConfigFrame, formMode?: FormModesConfig, reusableFormConfig?: ReusableFormDefinitions): FormConfigOutline {
-        this.reusableFormConfig = reusableFormConfig ?? {};
-        this.reusableFormConfigNames = Object.keys(this.reusableFormConfig).sort();
+    start(data: FormConfigFrame, formMode?: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions): FormConfigOutline {
+        this.reusableFormDefs = reusableFormDefs ?? {};
+        this.reusableFormDefNames = Object.keys(this.reusableFormDefs).sort();
         this.formMode = formMode ?? "view";
         this.result = new FormConfig();
         this.data = _cloneDeep(data);
         this.resetCurrentPath();
         this.result.accept(this);
+
+        // for debugging:
+        // this.logger.verbose(`${this.logName}: constructed form config ${JSON.stringify({
+        //     data, formMode, reusableFormDefs,
+        // })}`);
+
         return this.result;
     }
 
@@ -887,7 +893,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const itemReusableFormName = item?.overrides?.reusableFormName ?? "";
 
         const isReusableComponent = componentClassName === ReusableComponentName;
-        const hasReusableFormName = itemReusableFormName && this.reusableFormConfigNames.includes(itemReusableFormName);
+        const hasReusableFormName = itemReusableFormName && this.reusableFormDefNames.includes(itemReusableFormName);
 
         if (!isReusableComponent && !hasReusableFormName) {
             return false;
@@ -908,12 +914,12 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         throw new Error("Invalid usage of reusable form config. " +
             `Component class '${componentClassName}' must be '${ReusableComponentName}' ` +
-            `and reusableFormName '${itemReusableFormName}' must be one of '${this.reusableFormConfigNames.join(', ')}'.`);
+            `and reusableFormName '${itemReusableFormName}' must be one of '${this.reusableFormDefNames.join(', ')}'.`);
     }
 
     protected applyOverrideReusableExpand(item: ReusableFormComponentDefinitionFrame): AvailableFormComponentDefinitionFrames[] {
         const reusableFormName = item?.overrides?.reusableFormName ?? "";
-        const expandedItemsRaw = this.reusableFormConfigNames.includes(reusableFormName) ? this.reusableFormConfig[reusableFormName] : [];
+        const expandedItemsRaw = this.reusableFormDefNames.includes(reusableFormName) ? this.reusableFormDefs[reusableFormName] : [];
         const expandedItems = this.applyOverrideReusable(expandedItemsRaw);
         const additionalItemsRaw = item.component.config?.componentDefinitions ?? [];
         const additionalItems = this.applyOverrideReusable(additionalItemsRaw);
