@@ -292,6 +292,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
+      // Store the form recordType if the recordType was not provided by the page.
+      if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
+        this.recordType.set(this.formDefMap?.formConfig?.type);
+      }
     } else {
       this.loggerService.info(`${this.logName}: creating form definition from provided config`);
       const parentLineagePaths = this.formService.buildLineagePaths({

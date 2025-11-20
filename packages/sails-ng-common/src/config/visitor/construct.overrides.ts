@@ -10,6 +10,14 @@ import {ReusableComponentName} from "../component/reusable.outline";
 import {PopulateProperties} from "./base.model";
 import {ComponentClassNamesType} from "../dictionary.model";
 import {FormOverrideModesClassConfigFrame} from "../form-component.outline";
+import {TextAreaComponentName, TextAreaFormComponentDefinitionFrame} from "../component/text-area.outline";
+import {DropdownInputComponentName} from "../component/dropdown-input.outline";
+import {
+    CheckboxInputComponentName,
+    CheckboxInputFormComponentDefinitionFrame
+} from "../component/checkbox-input.outline";
+import {RadioInputComponentName, RadioInputFormComponentDefinitionFrame} from "../component/radio-input.outline";
+import {DateInputComponentName, DateInputFormComponentDefinitionFrame} from "../component/date-input.outline";
 
 /**
  * The type that specifies the known transformations.
@@ -39,27 +47,63 @@ export class ConstructOverrides {
 
     /**
      * Defines the known transforms between two form components.
-     * Also specifies the 'default' transforms that will be done without needing to be specified.
-     * The defaults can be overridden by specifying the transform in overrides.formModeClasses.
      * @private
      */
     private knownTransforms: KnownTransformsType = {
         [SimpleInputComponentName]: {
-            [SimpleInputComponentName]: this.sourceSimpleInputComponentTargetSimpleInputComponent,
             [ContentComponentName]: this.sourceSimpleInputComponentTargetContentComponent,
         },
         [ContentComponentName]: {
-            [ContentComponentName]: this.sourceContentComponentTargetContentComponent,
             [SimpleInputComponentName]: this.sourceContentComponentTargetSimpleInputComponent,
+        },
+        [TextAreaComponentName]: {
+            [SimpleInputComponentName]: this.sourceTextAreaComponentTargetSimpleInputComponentName,
+        },
+        [DropdownInputComponentName]: {
+            [ContentComponentName]: this.sourceDropdownInputComponentTargetContentComponent,
+        },
+        [CheckboxInputComponentName]: {
+            [ContentComponentName]: this.sourceCheckboxInputComponentTargetContentComponent,
+        },
+        [RadioInputComponentName]: {
+            [ContentComponentName]: this.sourceRadioInputComponentTargetContentComponent,
+        },
+        [DateInputComponentName]: {
+            [ContentComponentName]: this.sourceDateInputComponentTargetContentComponent,
         }
     };
 
+    /**
+     * Specifies the 'default' transforms that will be done without needing to be specified.
+     * The defaults can be overridden by specifying the transform in overrides.formModeClasses.
+     * @private
+     */
     private defaultTransforms: DefaultTransformsType = {
         [SimpleInputComponentName]: {
             "view": {
                 component: ContentComponentName,
             }
-        }
+        },
+        [TextAreaComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
+        [DropdownInputComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
+        [CheckboxInputComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
+        [RadioInputComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
     }
 
     constructor() {
@@ -120,13 +164,6 @@ export class ConstructOverrides {
         return sourceTargetTransform.call(this, result, formMode);
     }
 
-    public sourceSimpleInputComponentTargetSimpleInputComponent(
-        source: SimpleInputFormComponentDefinitionFrame,
-        formMode: FormModesConfig
-    ): SimpleInputFormComponentDefinitionFrame {
-        return source;
-    }
-
     public sourceSimpleInputComponentTargetContentComponent(
         source: SimpleInputFormComponentDefinitionFrame,
         formMode: FormModesConfig
@@ -168,13 +205,6 @@ export class ConstructOverrides {
         return target;
     }
 
-    public sourceContentComponentTargetContentComponent(
-        source: ContentFormComponentDefinitionFrame,
-        formMode: FormModesConfig
-    ): ContentFormComponentDefinitionFrame {
-        return source;
-    }
-
     public sourceContentComponentTargetSimpleInputComponent(
         source: ContentFormComponentDefinitionFrame,
         formMode: FormModesConfig
@@ -213,5 +243,44 @@ export class ConstructOverrides {
         }
 
         return target;
+    }
+
+    private sourceTextAreaComponentTargetSimpleInputComponentName(
+        source: TextAreaFormComponentDefinitionFrame,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionFrame {
+
+    }
+
+    private sourceDropdownInputComponentTargetContentComponent(
+        source: TextAreaFormComponentDefinitionFrame,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionFrame {
+
+
+    }
+
+    private sourceCheckboxInputComponentTargetContentComponent(
+        source: CheckboxInputFormComponentDefinitionFrame,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionFrame {
+
+
+    }
+
+    private sourceRadioInputComponentTargetContentComponent(
+        source: RadioInputFormComponentDefinitionFrame,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionFrame {
+
+
+    }
+
+    private sourceDateInputComponentTargetContentComponent(
+        source: DateInputFormComponentDefinitionFrame,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionFrame {
+
+
     }
 }
