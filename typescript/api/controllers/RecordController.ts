@@ -162,7 +162,9 @@ export module Controllers {
 
       // get the default data model for the form with 'name'
       const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, editMode ? "edit" : "view");
+      const formMode = editMode ? "edit" : "view";
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, formMode, reusableFormDefs);
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
@@ -343,7 +345,8 @@ export module Controllers {
         const formMode = editMode ? "edit" : "view";
         const userRoles = req.user?.roles || [];
         const recordData = currentRec;
-        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData?.metadata ?? {});
+        const reusableFormDefs = sails.config.reusableFormDefinitions;
+        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData?.metadata, reusableFormDefs);
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {

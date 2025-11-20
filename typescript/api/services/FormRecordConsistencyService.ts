@@ -19,10 +19,10 @@
 
 import { PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
-    guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions,
-     FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
+    guessType, FormValidatorSummaryErrors,
+    FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
     TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
-    ValidatorFormConfigVisitor
+    ValidatorFormConfigVisitor, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
 import {firstValueFrom} from "rxjs";
@@ -99,9 +99,12 @@ export module Services {
          *
          * @param changed The new record.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          * @return The merged record.
          */
-        public async mergeRecord(changed: BasicRedboxRecord, formMode: FormModesConfig): Promise<BasicRedboxRecord> {
+        public async mergeRecord(
+            changed: BasicRedboxRecord, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Promise<BasicRedboxRecord> {
             // get the original record
             const original = await RecordsService.getMeta(changed.redboxOid);
 
@@ -111,10 +114,12 @@ export module Services {
             const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
 
             // build the client form config
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode);
+            const userRoles: string[] | undefined = undefined;
+            const recordData = original?.metadata;
+            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordData, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode);
+            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode, reusableFormDefs);
         }
 
         /**
@@ -132,6 +137,7 @@ export module Services {
          * @param changed The new record.
          * @param clientFormConfig The client form config, the fields the current user can't access are already filtered out.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          * @return The merged record.
          */
         public mergeRecordClientFormConfig(
@@ -139,8 +145,9 @@ export module Services {
             changed: BasicRedboxRecord,
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
+            reusableFormDefs?: ReusableFormDefinitions
         ): BasicRedboxRecord {
-            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode);
+            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);
@@ -307,10 +314,13 @@ export module Services {
          * Convert the form config into the matching data model with defaults.
          * @param item The top-level form config.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public buildDataModelDefaultForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+        public buildDataModelDefaultForFormConfig(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode);
+            const constructed = constructor.start(item, formMode, reusableFormDefs);
 
             const visitor = new DefaultValueFormConfigVisitor(this.logger);
             return visitor.start(constructed);
@@ -320,10 +330,13 @@ export module Services {
          * Convert a form config into a schema describing the data model it creates.
          * @param item The form config.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public buildSchemaForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+        public buildSchemaForFormConfig(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode);
+            const constructed = constructor.start(item, formMode, reusableFormDefs);
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
             return visitor.start(constructed);
@@ -445,10 +458,12 @@ export module Services {
          *
          * @param record The record data, including the record type.
          * @param enabledValidationGroups The validation groups to enable.
+         * @param reusableFormDefs The reusable form definitions.
          */
         public async validateRecordValuesForFormConfig(
             record: BasicRedboxRecord,
-            enabledValidationGroups?: string[]
+            enabledValidationGroups?: string[],
+            reusableFormDefs?: ReusableFormDefinitions
         ): Promise<FormValidatorSummaryErrors[]> {
             // get the record's form name
             const formName = record?.metaMetadata?.['form'];
@@ -465,7 +480,7 @@ export module Services {
             const validatorDefinitions = sails.config.validators.definitions;
 
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(formConfig, formMode);
+            const constructed = constructor.start(formConfig, formMode, reusableFormDefs);
 
             const visitor = new ValidatorFormConfigVisitor(this.logger);
             return visitor.startExistingRecord(
@@ -479,10 +494,13 @@ export module Services {
          * The templates are compiled by the TemplateService.buildClientMapping.
          * @param item The form config.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public extractRawTemplates(item: FormConfigFrame, formMode: FormModesConfig): TemplateCompileInput[] {
+        public extractRawTemplates(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): TemplateCompileInput[] {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode);
+            const constructed = constructor.start(item, formMode, reusableFormDefs);
 
             const visitor = new TemplateFormConfigVisitor(this.logger);
             return visitor.start(constructed);
