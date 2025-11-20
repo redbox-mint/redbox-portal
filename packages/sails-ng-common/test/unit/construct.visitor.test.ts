@@ -121,7 +121,7 @@ describe("Construct Visitor", async () => {
         const cases: {
             title: string,
             args: {
-                reusableFormConfig: ReusableFormDefinitions,
+                reusableFormDefs: ReusableFormDefinitions,
                 formConfig: FormConfigFrame,
                 formMode?: FormModesConfig
             };
@@ -130,7 +130,7 @@ describe("Construct Visitor", async () => {
             {
                 title: "expand reusable form config to standard form config in view mode",
                 args: {
-                    reusableFormConfig: reusableDefinitionsExample1,
+                    reusableFormDefs: reusableDefinitionsExample1,
                     formConfig: formConfigExample2,
                     formMode: "view",
                 },
@@ -157,7 +157,7 @@ describe("Construct Visitor", async () => {
             {
                 title: "expand reusable form config to standard form config in edit mode",
                 args: {
-                    reusableFormConfig: reusableDefinitionsExample1,
+                    reusableFormDefs: reusableDefinitionsExample1,
                     formConfig: formConfigExample2,
                     formMode: "edit",
                 },
@@ -185,7 +185,7 @@ describe("Construct Visitor", async () => {
         cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start(args.formConfig, args.formMode, args.reusableFormConfig);
+                const actual = visitor.start(args.formConfig, args.formMode, args.reusableFormDefs);
                 expect(actual).to.containSubset(expected);
             });
         });
