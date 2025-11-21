@@ -291,6 +291,84 @@ describe("Validators", async () => {
             expected: null,
         },
         {
+            title: "orcid - expect failure (URL https)",
+            args: {
+                value: "https://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "https://orcid.org/0000-0002-1825-0097"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (URL http)",
+            args: {
+                value: "http://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "http://orcid.org/0000-0002-1825-0097"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (URL www)",
+            args: {
+                value: "https://www.orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "https://www.orcid.org/0000-0002-1825-0097"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (URL no hyphens)",
+            args: {
+                value: "https://orcid.org/0000000218250097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "https://orcid.org/0000000218250097"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (misplaced hyphen)",
+            args: {
+                value: "00000002182-50097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "00000002182-50097"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (URL with misplaced hyphen)",
+            args: {
+                value: "https://www.orcid.org/00000002182-50097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "https://www.orcid.org/00000002182-50097"}
+                }
+            },
+        },
+        {
             title: "orcid - expect failure (invalid length)",
             args: {
                 value: "0000-0002-1825-009", definition: formValidatorsSharedDefinitions,

@@ -388,7 +388,21 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           return null; // don't validate empty values
         }
 
-        const value = control.value.toString().replace(/-/g, '');
+        let value = control.value.toString();
+
+        // Validate format: either xxxx-xxxx-xxxx-xxxx or xxxxxxxxxxxxxxxx
+        if (!/^(\d{4}-\d{4}-\d{4}-\d{3}[\dX]|\d{15}[\dX])$/i.test(value)) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+
+        value = value.replace(/-/g, '');
 
         if (value.length !== 16 || !/^\d{15}[\dX]$/i.test(value)) {
           return {
