@@ -564,9 +564,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  public async getCompiledItem() {
+  /**
+   * Get the compiled items for the form with the default values.
+   */
+  public async getFormCompiledItems() {
     const recordType = this.trimmedParams.recordType();
-    const result = await this.formService.getDynamicImportFormCompiledItems(recordType);
+    const formMode = this.editMode() ? "edit" : "view";
+    const result = await this.formService.getDynamicImportFormCompiledItems(recordType, undefined, formMode);
+    // TODO: cache?
+    return result;
+  }
+
+  /**
+   * Get the compiled items for the form with the record's values.
+   */
+  public async getRecordCompiledItems() {
+    const recordType = this.trimmedParams.recordType();
+    const oid = this.trimmedParams.oid();
+    const formMode = this.editMode() ? "edit" : "view";
+    const result = await this.formService.getDynamicImportFormCompiledItems(recordType, oid, formMode);
+    // TODO: cache?
     return result;
   }
 

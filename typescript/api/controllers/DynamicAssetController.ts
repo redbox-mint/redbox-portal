@@ -29,6 +29,7 @@ declare var TemplateService;
 declare var FormsService;
 declare var BrandingService;
 declare var FormRecordConsistencyService;
+declare var RecordsService;
 
 /**
  * Package that contains all Controllers.
@@ -78,17 +79,23 @@ export module Controllers {
     public async getFormCompiledItems(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editMode = req.query.edit == "true";
+      const formMode = editMode ? "edit" : "view";
       const recordType = req.param("recordType") || this._recordTypeAuto;
+      const oid = req.param("oid") || "";
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
 
       try {
         const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-        const formMode = editMode ? "edit" : "view";
-        const reusableFormDefs = sails.config.reusableFormDefinitions;
-        const entries = FormRecordConsistencyService.extractRawTemplates(form, formMode, reusableFormDefs);
+        const userRoles = req.user?.roles || [];
+        const recordData = oid ? await RecordsService.getMeta(oid) : undefined;
+        const entries = FormRecordConsistencyService.extractRawTemplates(form, formMode, userRoles, recordData, reusableFormDefs);
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
-        sails.log.error("Could not build compiled items from form config:", error);
-        return res.serverError();
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [error],
+          displayErrors: [{detail: "Could not get form data."}],
+        });
       }
     }
 

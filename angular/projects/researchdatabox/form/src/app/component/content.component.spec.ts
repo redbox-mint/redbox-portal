@@ -16,7 +16,7 @@ describe('ContentComponent', () => {
     });
     utilityService = TestBed.inject(UtilityService);
     spyOn(utilityService, 'getDynamicImport').and.callFake(
-      async function (brandingAndPortalUrl: string, urlPath: string[]) {
+      async function (brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
         const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
         switch (urlKey) {
           // For the simple test that only creates the component
