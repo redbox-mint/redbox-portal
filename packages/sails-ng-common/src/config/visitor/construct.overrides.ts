@@ -57,7 +57,7 @@ export class ConstructOverrides {
             [SimpleInputComponentName]: this.sourceContentComponentTargetSimpleInputComponent,
         },
         [TextAreaComponentName]: {
-            [SimpleInputComponentName]: this.sourceTextAreaComponentTargetSimpleInputComponentName,
+            [ContentComponentName]: this.sourceTextAreaComponentTargetContentComponent,
         },
         [DropdownInputComponentName]: {
             [ContentComponentName]: this.sourceDropdownInputComponentTargetContentComponent,
@@ -100,6 +100,11 @@ export class ConstructOverrides {
             }
         },
         [RadioInputComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
+        [DateInputComponentName]: {
             "view": {
                 component: ContentComponentName,
             }
@@ -147,6 +152,11 @@ export class ConstructOverrides {
             return result;
         }
 
+        // Return the source unmodified if the transformation is to the same component
+        if (transforms?.component === componentClassName){
+            return result;
+        }
+
         // If a transform was provided, check that it is a known transform.
         if (!(transforms?.component in sourceKnownTransforms)) {
             throw new Error(`Invalid form config override config. ` +
@@ -168,39 +178,16 @@ export class ConstructOverrides {
         source: SimpleInputFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
-        // Start with the properties that are simple to define.
-        const target: ContentFormComponentDefinitionFrame = {
-            name: source.name,
-            component: {
-                class: "ContentComponent",
-                config: {}
-            },
-            module: source.module,
-            expressions: source.expressions,
-            constraints: source.constraints,
-            overrides: source.overrides,
-        };
+        const target = this.commonTargetContentComponent(source, formMode);
 
-        if (source.component.config) {
-            // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
-            this.sharedProps.sharedPopulateFieldComponentConfig(source.component.config, target.component.config);
-        }
-
-        // The SimpleInputComponent has a model.
-        // The ContentComponent has no model.
-        // Use the source model to construct the target 'content' property.
-        if (source.model?.config?.value !== undefined && target.component.config) {
+        // Use the source model value to construct the target 'content' property.
+        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
             target.component.config.content = source.model.config.value;
         }
 
         // TODO: The default values don't usually make sense to apply to the ContentComponent:
         //   Do we want to be able to show a form, with the default values, where the values can't be edited? Unlikely, but possible?
         //   Don't set the default value as the content for now.
-
-        // Set the layout only if the source has a layout.
-        if (source.layout) {
-            target.layout = source.layout;
-        }
 
         return target;
     }
@@ -235,52 +222,138 @@ export class ConstructOverrides {
             target.layout = source.layout;
         }
 
-        // Set the model value from the ContentComponent's component.config.content.
-        // TODO: What to do about the ContentComponent's 'template'?
-        //   Does it need to be rendered and used as the model value?
-        if (source.component.config?.content !== undefined && target.model?.config) {
+        // Set the model value from the ContentComponent's content or template.
+        if (source.component.config?.content !== undefined && target.model?.config !== undefined) {
             target.model.config.value = source.component.config.content;
+        } else if (source.component.config?.template !== undefined && target.model?.config !== undefined) {
+            // TODO: What to do about the ContentComponent's 'template'?
+            //   Does it need to be rendered and used as the model value?
+            target.model.config.value = source.component.config.template;
         }
 
         return target;
     }
 
-    private sourceTextAreaComponentTargetSimpleInputComponentName(
+    private sourceTextAreaComponentTargetContentComponent(
         source: TextAreaFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
+        const target = this.commonTargetContentComponent(source, formMode);
 
+        // Use the source model value to construct the target 'content' property.
+        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+            target.component.config.content = source.model.config.value;
+        }
+
+        return target;
     }
 
     private sourceDropdownInputComponentTargetContentComponent(
         source: TextAreaFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
+        const target = this.commonTargetContentComponent(source, formMode);
 
+        // Use the source model value to construct the target 'content' property.
+        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+            target.component.config.content = source.model.config.value;
+        }
 
+        return target;
     }
 
     private sourceCheckboxInputComponentTargetContentComponent(
         source: CheckboxInputFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
+        const target = this.commonTargetContentComponent(source, formMode);
 
+        // Use the source model value to construct the target 'content' property.
+        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+            // Checkbox value can be string, null, array. If string or array, get the labels.
+            const values = source.model.config.value === null
+                ? ["(no value)"]
+                : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
+            const options = source.component.config?.options ?? [];
+            const displayValues = values
+                .map(value => {
+                    const option = options.find(option => option.value === value);
+                    return option ?? {label: value, value: value};
+                });
+            target.component.config.content = displayValues;
+            target.component.config.template = `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+        }
 
+        return target;
     }
 
     private sourceRadioInputComponentTargetContentComponent(
         source: RadioInputFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
+        const target = this.commonTargetContentComponent(source, formMode);
 
+        // Use the source model value to construct the target 'content' property.
+        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+            // Radio value can be string, null, array. If string or array, get the labels.
+            const values = source.model.config.value === null
+                ? ["(no value)"]
+                : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
+            const options = source.component.config?.options ?? [];
+            const displayValues = values
+                .map(value => {
+                    const option = options.find(option => option.value === value);
+                    return option ?? {label: value, value: value};
+                });
+            target.component.config.content = displayValues;
+            target.component.config.template = `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+        }
 
+        return target;
     }
 
     private sourceDateInputComponentTargetContentComponent(
         source: DateInputFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
+        const target = this.commonTargetContentComponent(source, formMode);
 
+        // Use the source model value to construct the target 'content' property.
+        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+            // TODO: create a handlebars partial helper to render dates: https://handlebarsjs.com/guide/partials.html
+            target.component.config.content = source.model.config.value?.toString() ?? "(no value)";
+        }
 
+        return target;
+    }
+
+    private commonTargetContentComponent(
+        source: AllFormComponentDefinitionFrames,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionFrame {
+        // Start with the properties that are simple to define.
+        const target: ContentFormComponentDefinitionFrame = {
+            name: source.name,
+            component: {
+                class: "ContentComponent",
+                config: {}
+            },
+            module: source.module,
+            expressions: source.expressions,
+            constraints: source.constraints,
+            overrides: source.overrides,
+        };
+
+        // Set the layout only if the source has a layout.
+        if (source.layout) {
+            target.layout = source.layout;
+        }
+
+        if (source.component.config) {
+            // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
+            this.sharedProps.sharedPopulateFieldComponentConfig(source.component.config, target.component.config);
+        }
+
+        return target;
     }
 }
