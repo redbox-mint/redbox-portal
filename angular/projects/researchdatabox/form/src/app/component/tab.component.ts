@@ -89,6 +89,13 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> implem
 
   private initialSelectionDone = false;
 
+  protected override async setComponentReady(): Promise<void> {
+    await super.setComponentReady();
+    if (this.wrapperComponentRef) {
+      this.wrapperComponentRef.location.nativeElement.style.flexGrow = '1';
+    }
+  }
+
     ngAfterViewChecked() {
     // This is a workaround to ensure that the initial tab selection is applied
     // after the view has been checked. Without this, the tabs are all shown

@@ -1,10 +1,28 @@
 // Placeholder SCSS file customisations to the default theme.
 
 .form-control.is-valid {
-  background-image: none !important; /* Use !important if needed, but try without first */
+  background-image: none !important; 
   padding-right: 0.75em; /* Adjust padding if the checkmark was taking up space */
 }
 
 .valid-feedback {
-    display: none;
+    display: none !important; 
+}
+
+.form-select.is-valid {
+  background-image: none !important; 
+  padding-right: 0.75em; /* Adjust padding if the checkmark was taking up space */
+}
+
+.alert.alert-info {
+  display: none;
+}
+
+/* Fix for tab buttons changing size when switching between tabs */
+.nav-pills.flex-column .nav-link {
+  white-space: nowrap;
+}
+
+.row > redbox-form-base-wrapper {
+    display: contents;
 }

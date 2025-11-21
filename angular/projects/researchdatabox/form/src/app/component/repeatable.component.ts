@@ -326,10 +326,14 @@ export interface RepeatableElementEntry {
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
-  <ng-container #componentContainer></ng-container>
-  @if (isVisible) {
-    <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
-  }
+  <div class="d-flex align-items-center">
+    <div class="flex-grow-1">
+      <ng-container #componentContainer></ng-container>
+    </div>
+    @if (isVisible) {
+      <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger ms-2" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+    }
+  </div>
   <ng-template #afterComponentTemplate>
     @if (isVisible) {
       @let componentValidationList = getFormValidatorComponentErrors;

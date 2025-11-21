@@ -119,7 +119,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
   onDateChange(dateValue: DateInputModelValueType) {
     this.loggerService.info(`dateValue ${dateValue}`,'');
-    this.model?.setValue(dateValue);
+    // this.model?.setValue(dateValue);
   }
 
   //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input field

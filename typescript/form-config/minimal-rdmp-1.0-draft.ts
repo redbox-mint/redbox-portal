@@ -45,17 +45,47 @@ const formConfig: FormConfigFrame = {
                 config: {
                     hostCssClasses: 'tab-content',
                     tabs: [
-                        // 1. Project Details
                         {
-                            name: 'tab_project_details',
+                            name: 'tab_welcome',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '1. Project Details' }
+                                config: { buttonLabel: 'Welcome' }
                             },
                             component: {
                                 class: 'TabContentComponent',
                                 config: {
                                     selected: true,
+                                    componentDefinitions: [
+                                        {
+                                            name: 'welcome_text',
+                                            component: {
+                                                class: 'ContentComponent',
+                                                config: {
+                                                    content: `<h3>Data management plan</h3>
+<p>Thank you for registering a research data management plan. If you've submitted a research project proposal in Research Master, we should have pre-filled parts of this form for you, where possible. However, research evolves, so it is a good idea to make sure that the pre-fills are correct.</p>
+
+<p>Providing this information will help put you in touch with services that can help you store or analyse your research data and allow you to collaborate online with colleagues. Your data management plan, if kept up to date, will satisfy the requirements of ReDBox policy and most research funder requirements. If your funder has specific requirements beyond the scope of this plan, please contact the eResearch Data Librarian on <a href="mailto:support@redboxresearchdata.com.au">support@redboxresearchdata.com.au</a> for help.</p>
+
+<p>Your plan will also lay the foundation for a catalogue of your research data, ensuring that you (and ReDBox) can meet the data governance responsibilities as required by the Code for the Responsible Conduct of Research, by being able to locate and access the data as required.</p>
+
+<p>If you require any assistance completing your plan, please contact us via <a href="mailto:support@redboxresearchdata.com.au">support@redboxresearchdata.com.au</a>.</p>`
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        // 1. Project Details
+                        {
+                            name: 'tab_project_details',
+                            layout: {
+                                class: 'TabContentLayout',
+                                config: { buttonLabel: 'Project Details' }
+                            },
+                            component: {
+                                class: 'TabContentComponent',
+                                config: {
                                     componentDefinitions: [
                                         {
                                             name: 'title',
@@ -117,59 +147,191 @@ const formConfig: FormConfigFrame = {
                             name: 'tab_people',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '2. People & Roles' }
+                                config: { buttonLabel: 'People & Roles' }
                             },
                             component: {
                                 class: 'TabContentComponent',
                                 config: {
                                     componentDefinitions: [
                                         {
-                                            name: 'ci',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: { label: 'Chief Investigator / Supervisor' }
-                                            },
-                                            model: {
-                                                class: 'SimpleInputModel',
-                                                config: { defaultValue: '' }
-                                            },
-                                            component: { class: 'SimpleInputComponent' }
+                                            name: "",
+                                            layout: {class: "DefaultLayout", config: {label: "Chief Investigator"}},
+                                            model: {class: "GroupModel", config: {defaultValue: {}}},
+                                            component: {
+                                                class: "GroupComponent",
+                                                config: {
+                                                    hostCssClasses: "row g-3",
+                                                    componentDefinitions: [
+                                                        {
+                                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                                            name: "dm_wrapper",
+                                                            component: {
+                                                                class: "ReusableComponent",
+                                                                config: {
+                                                                    componentDefinitions: [
+                                                                        {
+                                                                            name: "name",
+                                                                            overrides: {replaceName: "ci_name"},
+                                                                            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
+                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                        },
+                                                                        {
+                                                                            name: "email",
+                                                                            overrides: {replaceName: "ci_email"},
+                                                                            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
+                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                        },
+                                                                        {
+                                                                            name: "orcid",
+                                                                            overrides: {replaceName: "ci_orcid"},
+                                                                            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
+                                                                            model: {class: "GroupModel", config: {defaultValue: {}}},
+                                                                            component: {
+                                                                                class: "GroupComponent",
+                                                                                config: {
+                                                                                    componentDefinitions: [
+                                                                                        {
+                                                                                            name: "example1",
+                                                                                            overrides: {replaceName: "id"},
+                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                } 
+                                            }
                                         },
                                         {
-                                            name: 'students',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: { label: 'Student(s)' }
-                                            },
-                                            model: {
-                                                class: 'SimpleInputModel',
-                                                config: { defaultValue: '' }
-                                            },
-                                            component: { class: 'SimpleInputComponent' }
+                                            name: "",
+                                            layout: {class: "DefaultLayout", config: {label: "Data Manager"}},
+                                            model: {class: "GroupModel", config: {defaultValue: {}}},
+                                            component: {
+                                                class: "GroupComponent",
+                                                config: {
+                                                    hostCssClasses: "row g-3",
+                                                    componentDefinitions: [
+                                                        {
+                                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                                            name: "data_manager_wrapper",
+                                                            component: {
+                                                                class: "ReusableComponent",
+                                                                config: {
+                                                                    componentDefinitions: [
+                                                                        {
+                                                                            name: "name",
+                                                                            overrides: {replaceName: "data_manager_name"},
+                                                                            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
+                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                        },
+                                                                        {
+                                                                            name: "email",
+                                                                            overrides: {replaceName: "data_manager_email"},
+                                                                            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
+                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                        },
+                                                                        {
+                                                                            name: "orcid",
+                                                                            overrides: {replaceName: "data_manager_orcid"},
+                                                                            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
+                                                                            model: {class: "GroupModel", config: {defaultValue: {}}},
+                                                                            component: {
+                                                                                class: "GroupComponent",
+                                                                                config: {
+                                                                                    componentDefinitions: [
+                                                                                        {
+                                                                                            name: "example1",
+                                                                                            overrides: {replaceName: "id"},
+                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                } 
+                                            }
                                         },
                                         {
-                                            name: 'contributors',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: { label: 'Other Contributors (view only)' }
-                                            },
-                                            model: {
-                                                class: 'SimpleInputModel',
-                                                config: { defaultValue: '' }
-                                            },
-                                            component: { class: 'SimpleInputComponent' }
-                                        },
-                                        {
-                                            name: 'data_manager',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: { label: 'Data Manager (operational role)' }
-                                            },
-                                            model: {
-                                                class: 'SimpleInputModel',
-                                                config: { defaultValue: '' }
-                                            },
-                                            component: { class: 'SimpleInputComponent' }
+                                            name: "contributors",
+                                            layout: {class: "DefaultLayout", config: {label: "Contributors"}},
+                                            model: {class: "RepeatableModel", config: {defaultValue: []}},
+                                            component: {
+                                                class: "RepeatableComponent",
+                                                config: {
+                                                    elementTemplate: {
+                                                        name: "",
+                                                        model: {class: "GroupModel", config: {defaultValue: {}}},
+                                                        component: {
+                                                            class: "GroupComponent",
+                                                            config: {
+                                                                hostCssClasses: "row g-3",
+                                                                componentDefinitions: [
+                                                                    {
+                                                                        overrides: {reusableFormName: "standard-contributor-field"},
+                                                                        name: "contributor_wrapper",
+                                                                        component: {
+                                                                            class: "ReusableComponent",
+                                                                            config: {
+                                                                                componentDefinitions: [
+                                                                                    {
+                                                                                        name: "name",
+                                                                                        overrides: {replaceName: "contributor_name"},
+                                                                                        layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
+                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                        component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                    },
+                                                                                    {
+                                                                                        name: "email",
+                                                                                        overrides: {replaceName: "contributor_email"},
+                                                                                        layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
+                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                        component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                    },
+                                                                                    {
+                                                                                        name: "orcid",
+                                                                                        overrides: {replaceName: "contributor_orcid"},
+                                                                                        layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
+                                                                                        model: {class: "GroupModel", config: {defaultValue: {}}},
+                                                                                        component: {
+                                                                                            class: "GroupComponent",
+                                                                                            config: {
+                                                                                                componentDefinitions: [
+                                                                                                    {
+                                                                                                        name: "example1",
+                                                                                                        overrides: {replaceName: "id"},
+                                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                                        component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                                    }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                } 
+                                            }
                                         }
                                     ]
                                 }
@@ -180,7 +342,7 @@ const formConfig: FormConfigFrame = {
                             name: 'tab_data_description',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '3. Data Description' }
+                                config: { buttonLabel: 'Data Description' }
                             },
                             component: {
                                 class: 'TabContentComponent',
@@ -243,7 +405,7 @@ const formConfig: FormConfigFrame = {
                             name: 'tab_storage',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '4. Storage' }
+                                config: { buttonLabel: 'Storage' }
                             },
                             component: {
                                 class: 'TabContentComponent',
@@ -310,7 +472,7 @@ const formConfig: FormConfigFrame = {
                             name: 'tab_retention',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '5. Retention & Disposal' }
+                                config: { buttonLabel: 'Retention & Disposal' }
                             },
                             component: {
                                 class: 'TabContentComponent',
@@ -345,6 +507,20 @@ const formConfig: FormConfigFrame = {
                                                 class: 'TextAreaComponent',
                                                 config: { rows: 3, cols: 80 }
                                             }
+                                        },
+                                        {
+                                            name: 'disposal_date',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: { label: 'Expected disposal date' }
+                                            },
+                                            model: {
+                                                class: 'DateInputModel',
+                                                config: { defaultValue: null }
+                                            },
+                                            component: {
+                                                class: 'DateInputComponent'
+                                            }
                                         }
                                     ]
                                 }
@@ -355,7 +531,7 @@ const formConfig: FormConfigFrame = {
                             name: 'tab_access',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '6. Access & Rights' }
+                                config: { buttonLabel: 'Access & Rights' }
                             },
                             component: {
                                 class: 'TabContentComponent',
@@ -412,7 +588,7 @@ const formConfig: FormConfigFrame = {
                             name: 'tab_ethics',
                             layout: {
                                 class: 'TabContentLayout',
-                                config: { buttonLabel: '7. Ethics' }
+                                config: { buttonLabel: 'Ethics' }
                             },
                             component: {
                                 class: 'TabContentComponent',
