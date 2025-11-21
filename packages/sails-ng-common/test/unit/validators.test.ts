@@ -266,6 +266,85 @@ describe("Validators", async () => {
         },
         // jsonata-expression - expression evaluation is not available in sails-ng-common
         // This is tested in the sails tests.
+        {
+            title: "orcid - expect pass (valid with hyphens)",
+            args: {
+                value: "0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: null,
+        },
+        {
+            title: "orcid - expect pass (valid without hyphens)",
+            args: {
+                value: "0000000218250097", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: null,
+        },
+        {
+            title: "orcid - expect pass (valid with X checksum)",
+            args: {
+                value: "0000-0002-1694-233X", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: null,
+        },
+        {
+            title: "orcid - expect failure (invalid length)",
+            args: {
+                value: "0000-0002-1825-009", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "0000-0002-1825-009"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (invalid format)",
+            args: {
+                value: "0000-0002-1825-009A", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "0000-0002-1825-009A"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect failure (invalid checksum)",
+            args: {
+                value: "0000-0002-1825-0098", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: {
+                orcid: {
+                    message: "@validator-error-orcid",
+                    params: {actual: "0000-0002-1825-0098"}
+                }
+            },
+        },
+        {
+            title: "orcid - expect pass (empty)",
+            args: {
+                value: "", definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: null,
+        },
+        {
+            title: "orcid - expect pass (null)",
+            args: {
+                value: null, definition: formValidatorsSharedDefinitions,
+                block: {class: "orcid"},
+            },
+            expected: null,
+        },
     ];
     cases.forEach(({title, args, expected}) => {
         it(`should validate ${title}`, async function () {

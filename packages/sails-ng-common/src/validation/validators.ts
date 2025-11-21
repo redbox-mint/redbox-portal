@@ -374,4 +374,57 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       };
     },
   },
+  {
+    class: "orcid",
+    message: "@validator-error-orcid",
+    create: (config) => {
+      const optionNameKey = "class";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "orcid");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-orcid");
+
+      return (control) => {
+        if (control.value == null || control.value === "") {
+          return null; // don't validate empty values
+        }
+
+        const value = control.value.toString().replace(/-/g, '');
+
+        if (value.length !== 16 || !/^\d{15}[\dX]$/i.test(value)) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+
+        const baseDigits = value.substring(0, 15);
+        const checkDigit = value.substring(15);
+
+        let total = 0;
+        for (let i = 0; i < baseDigits.length; i++) {
+          const digit = parseInt(baseDigits.charAt(i), 10);
+          total = (total + digit) * 2;
+        }
+        const remainder = total % 11;
+        const result = (12 - remainder) % 11;
+        const calculatedCheckDigit = result === 10 ? "X" : result.toString();
+
+        if (checkDigit !== calculatedCheckDigit) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
+    },
+  },
 ];
