@@ -3,7 +3,7 @@ import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 const formConfig: FormConfigFrame = {
     name: "minimal-rdmp-1.0-draft",
     type: "rdmp",
-    debugValue: false,
+    debugValue: true,
     domElementType: 'form',
     defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -103,16 +103,19 @@ const formConfig: FormConfigFrame = {
                                             component: { class: 'SimpleInputComponent' }
                                         },
                                         {
-                                            name: 'short_name',
+                                            name: 'project_description',
                                             layout: {
                                                 class: 'DefaultLayout',
-                                                config: { label: 'Short Project Name / Acronym' }
+                                                config: { label: 'Description' }
                                             },
                                             model: {
-                                                class: 'SimpleInputModel',
+                                                class: 'TextAreaModel',
                                                 config: { defaultValue: '' }
                                             },
-                                            component: { class: 'SimpleInputComponent' }
+                                            component: {
+                                                class: 'TextAreaComponent',
+                                                config: { rows: 5, cols: 80 }
+                                            }
                                         },
                                         {
                                             name: 'org_unit',
@@ -180,7 +183,7 @@ const formConfig: FormConfigFrame = {
                                                                             name: "email",
                                                                             overrides: {replaceName: "ci_email"},
                                                                             layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "email"}]}},
                                                                             component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
                                                                         },
                                                                         {
@@ -195,7 +198,7 @@ const formConfig: FormConfigFrame = {
                                                                                         {
                                                                                             name: "example1",
                                                                                             overrides: {replaceName: "id"},
-                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "pattern", message: "Invalid ORCID format", config: {pattern: "^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$"}}]}},
                                                                                             component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
                                                                                         }
                                                                                     ]
@@ -237,7 +240,7 @@ const formConfig: FormConfigFrame = {
                                                                             name: "email",
                                                                             overrides: {replaceName: "data_manager_email"},
                                                                             layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "email"}]}},
                                                                             component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
                                                                         },
                                                                         {
@@ -252,7 +255,7 @@ const formConfig: FormConfigFrame = {
                                                                                         {
                                                                                             name: "example1",
                                                                                             overrides: {replaceName: "id"},
-                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "pattern", message: "Invalid ORCID format", config: {pattern: "^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$"}}]}},
                                                                                             component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
                                                                                         }
                                                                                     ]
@@ -300,7 +303,7 @@ const formConfig: FormConfigFrame = {
                                                                                         name: "email",
                                                                                         overrides: {replaceName: "contributor_email"},
                                                                                         layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
-                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "email"}]}},
                                                                                         component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
                                                                                     },
                                                                                     {
@@ -315,7 +318,7 @@ const formConfig: FormConfigFrame = {
                                                                                                     {
                                                                                                         name: "example1",
                                                                                                         overrides: {replaceName: "id"},
-                                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: ""}},
+                                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "pattern", message: "Invalid ORCID format", config: {pattern: "^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$"}}]}},
                                                                                                         component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
                                                                                                     }
                                                                                                 ]
