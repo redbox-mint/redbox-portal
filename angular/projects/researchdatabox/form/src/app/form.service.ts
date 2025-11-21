@@ -47,8 +47,7 @@ import {
   FormValidatorSummaryErrors,
   ValidatorsSupport,
   LineagePaths,
-  buildLineagePaths as buildLineagePathsHelper,
-  FormValidationGroups
+  buildLineagePaths as buildLineagePathsHelper, FormModesConfig,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
@@ -640,10 +639,16 @@ export class FormService extends HttpClientService {
   /**
    * Get all the compiled items for the form.
    * @param recordType The form record type.
+   * @param oid The record id.
+   * @param formMode The form mode.
    */
-  public async getDynamicImportFormCompiledItems(recordType: string) {
+  public async getDynamicImportFormCompiledItems(recordType: string, oid?: string, formMode?: FormModesConfig) {
     const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+    if (oid) {
+      path.push(oid?.toString());
+    }
+    const params = formMode === "edit" ? {edit: "true"} : undefined;
+    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
     return result;
   }
 

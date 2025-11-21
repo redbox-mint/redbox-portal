@@ -494,16 +494,21 @@ export module Services {
          * The templates are compiled by the TemplateService.buildClientMapping.
          * @param item The form config.
          * @param formMode The form mode.
+         * @param userRoles The current user's roles.
+         * @param recordData The record data.
          * @param reusableFormDefs The reusable form definitions.
          */
         public extractRawTemplates(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+          item: FormConfigFrame,
+          formMode: FormModesConfig,
+          userRoles?: string[],
+          recordData?: Record<string, unknown> | null,
+          reusableFormDefs?: ReusableFormDefinitions
         ): TemplateCompileInput[] {
-            const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode, reusableFormDefs);
+          const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordData, reusableFormDefs);
 
-            const visitor = new TemplateFormConfigVisitor(this.logger);
-            return visitor.start(constructed);
+          const visitor = new TemplateFormConfigVisitor(this.logger);
+          return visitor.start(form);
         }
 
         /**

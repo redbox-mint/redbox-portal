@@ -23,10 +23,10 @@ import {BrandingModel, FormModel, Services as services} from '@researchdatabox/r
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
-    ClientFormConfigVisitor,
-    ConstructFormConfigVisitor,
-    FormConfigFrame,
-    FormModesConfig, ReusableFormDefinitions
+  ClientFormConfigVisitor,
+  ConstructFormConfigVisitor,
+  FormConfigFrame, FormConfigOutline,
+  FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
@@ -524,13 +524,13 @@ export module Services {
         userRoles?: string[],
         recordData?: Record<string, unknown> | null,
         reusableFormDefs?: ReusableFormDefinitions
-    ): Record<string, unknown> {
+    ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start(item, formMode, reusableFormDefs);
 
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      let result: FormConfigFrame;
+      let result: FormConfigOutline;
       if (recordData !== null && recordData !== undefined) {
         result = visitor.startExistingRecord(constructed, formMode, userRoles, recordData);
       } else {
@@ -538,10 +538,12 @@ export module Services {
       }
 
       if (!result) {
-        throw new Error(`The form config is invalid because all form fields were removed, the form config must have at least one field the current user can view.`)
+        throw new Error(`The form config is invalid because all form fields were removed, ` +
+          `the form config must have at least one field the current user can view: ${JSON.stringify({
+            item, formMode, userRoles, recordData, reusableFormDefs
+          })}`);
       }
-      // TODO: can return type be done 'properly' instead of forcing the type?
-      return result as unknown as Record<string, unknown>;
+      return result;
     }
   }
 }

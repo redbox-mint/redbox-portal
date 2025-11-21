@@ -157,7 +157,7 @@ module.exports.routes = {
   // 'get /dynamic/': 'UserController.info',
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
-  'get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType': 'DynamicAssetController.getFormCompiledItems',
+  'get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType/:oid?': 'DynamicAssetController.getFormCompiledItems',
   'get /:branding/:portal/dynamicAsset/formStructureValidations/:recordType/:oid?': 'DynamicAssetController.getFormStructureValidations',
   'get /:branding/:portal/dynamicAsset/formDataValidations/:recordType/:oid?': 'DynamicAssetController.getFormDataValidations',
   'get /:branding/:portal/dynamicAsset/formExpressions/:recordType/:oid?': 'DynamicAssetController.getFormExpressions',
@@ -231,7 +231,7 @@ module.exports.routes = {
   'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
   'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
-  'get /:branding/:portal/record/viewAudit/:oid': 'RecordAuditController.render', 
+  'get /:branding/:portal/record/viewAudit/:oid': 'RecordAuditController.render',
   'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
     controller: 'RecordController',
     action: 'edit',
@@ -451,7 +451,7 @@ module.exports.routes = {
     controller: 'webservice/UserManagementController',
     action: 'getUser',
     csrf: false
-  }, 
+  },
   'get /:branding/:portal/api/users/get': {
     controller: 'webservice/UserManagementController',
     action: 'getUser',
@@ -476,7 +476,7 @@ module.exports.routes = {
     controller: 'webservice/UserManagementController',
     action: 'revokeAPIToken',
     csrf: false
-  }, 
+  },
   'get /:branding/:portal/api/roles':{
     controller: 'webservice/UserManagementController',
     action: 'listSystemRoles',
@@ -511,7 +511,7 @@ module.exports.routes = {
     controller: 'webservice/FormManagementController',
     action: 'listForms',
     csrf: false
-  }, 
+  },
 
   'get /:branding/:portal/api/recordtypes/get': {
     controller: 'webservice/RecordTypeController',
