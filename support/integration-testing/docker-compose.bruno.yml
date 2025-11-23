@@ -70,9 +70,8 @@ services:
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-      npm install -g nyc &&
       npm install &&
-      nyc
+      ./node_modules/.bin/nyc
       --no-clean
       --report-dir coverage/bruno
       --reporter=lcov
