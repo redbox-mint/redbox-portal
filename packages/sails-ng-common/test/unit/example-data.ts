@@ -84,7 +84,7 @@ export const reusableDefinitionsExample1: ReusableFormDefinitions = {
  * A general form config with examples of most of the component types and nested components.
  */
 export const formConfigExample1: FormConfigFrame = {
-    name: "default-1.0-draft",
+    name: "minimal-rdmp-1.0-draft",
     type: "rdmp",
     debugValue: true,
     domElementType: 'form',
@@ -796,7 +796,7 @@ export const formConfigExample1: FormConfigFrame = {
  * Form config example that uses reusable form config.
  */
 export const formConfigExample2: FormConfigFrame = {
-    name: "default-1.0-draft",
+    name: "minimal-rdmp-1.0-draft",
     type: "rdmp",
     debugValue: true,
     domElementType: 'form',
