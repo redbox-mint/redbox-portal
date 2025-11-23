@@ -95,6 +95,11 @@ module.exports.routes = {
     action: 'usersIndex',
     skipAssets: true
   },
+  '/:branding/:portal/admin/supportAgreement': {
+    controller: 'AdminController',
+    action: 'supportAgreementIndex',
+    skipAssets: true
+  },
   '/:branding/:portal/user/profile': {
     controller: 'UserController',
     action: 'profile',
