@@ -635,7 +635,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
 
         // Set an empty config if the form config didn't include one.
-        if (item.config === undefined || !_isPlainObject(item.config)) {
+        if (item.config === null || item.config === undefined) {
             item.config = {};
         }
 
