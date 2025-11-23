@@ -115,26 +115,40 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     private userRoles: string[] = [];
     private recordValues: Record<string, unknown> | null = null;
 
-    private result: FormConfigFrame = {name: '', componentDefinitions: []};
+    private result?: FormConfigOutline;
     private constraintPath: NameConstraints[] = [];
 
     constructor(logger: ILogger) {
         super(logger);
     }
 
-    startExistingRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigFrame {
+    startExistingRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigOutline {
         // The current record data, default to null.
         this.recordValues = recordData ?? null;
 
-        return this.start(form, formMode, userRoles);
+        const result = this.start(form, formMode, userRoles);
+
+        // for debugging:
+        // this.logger.verbose(`${this.logName}: built client form config from existing record ${JSON.stringify({
+        //     form, formMode, userRoles, recordData,
+        // })}`);
+
+        return result;
     }
 
-    startNewRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]): FormConfigFrame {
+    startNewRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]): FormConfigOutline {
         // Use the defaultValues from the form config as the record values.
         const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
         this.recordValues = defaultValueVisitor.start(form);
 
-        return this.start(form, formMode, userRoles);
+        const result = this.start(form, formMode, userRoles);
+
+        // for debugging:
+        // this.logger.verbose(`${this.logName}: built client form config from new record ${JSON.stringify({
+        //     form, formMode, userRoles,
+        // })}`);
+
+        return result;
     }
 
     protected start(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]) {
@@ -550,7 +564,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         // if (!isAllowed) {
         //     const c = currentUserRoles.sort().join(', ');
         //     const r = requiredRoles.sort().join(', ');
-        //     this.logger.debug(`ClientFormConfigVisitor - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
+        //     this.logger.debug(`${this.logName} - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
         // }
 
         return isAllowed;
@@ -573,7 +587,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         // for debugging:
         // const r = requiredModes.sort().join(', ');
-        // this.logger.debug(`ClientFormConfigVisitor - access ${isAllowed ? 'allowed' : 'denied'} for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
+        // this.logger.debug(`${this.logName} - access ${isAllowed ? 'allowed' : 'denied'} for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
 
         return isAllowed;
     }
@@ -617,7 +631,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     protected setModelValue(item: FieldModelDefinition<unknown>) {
         if (item?.config?.value !== undefined) {
-            throw new Error(`ClientFormConfigVisitor - in the field model config '{config:{value: "[some value]"}}', 'value' is for the client only, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
+            throw new Error(`${this.logName} - in the field model config '{config:{value: "[some value]"}}', 'value' is for the client only, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
         }
 
         // Set an empty config if the form config didn't include one.
@@ -632,7 +646,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         item.config.value = value;
 
         // for debugging:
-        // this.logger.debug(`ClientFormConfigVisitor setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
+        // this.logger.debug(`${this.logName} setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
 
         // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
