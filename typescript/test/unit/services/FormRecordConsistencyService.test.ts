@@ -18,7 +18,7 @@ declare const FormsService: FormsModule.Forms;
 
 describe('The FormRecordConsistencyService', function () {
     const formConfigStandard: FormConfigFrame = {
-        name: "default-1.0-draft",
+        name: "minimal-rdmp-1.0-draft",
         type: "rdmp",
         debugValue: true,
         domElementType: 'form',
@@ -31,7 +31,7 @@ describe('The FormRecordConsistencyService', function () {
     };
     const formModelStandard: FormModel = {
         workflowStep: "",
-        name: "default-1.0-draft",
+        name: "minimal-rdmp-1.0-draft",
         type: "rdmp",
         editCssClasses: "redbox-form form",
         skipValidationOnSave: false,
@@ -968,7 +968,7 @@ describe('The FormRecordConsistencyService', function () {
                     ]
                 },
                 {
-                    "id": "default-1.0-draft",
+                    "id": "minimal-rdmp-1.0-draft",
                     "message": null,
                     "parents": [],
                     "errors": [

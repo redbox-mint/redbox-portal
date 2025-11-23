@@ -135,7 +135,7 @@ describe("Construct Visitor", async () => {
                     formMode: "view",
                 },
                 expected: {
-                    name: "default-1.0-draft",
+                    name: "minimal-rdmp-1.0-draft",
                     componentDefinitions: [
                         {name: "contributor_ci_name", component: {class: "ContentComponent"}},
                         {name: "contributor_data_manager_email", component: {class: "ContentComponent"}},
@@ -162,7 +162,7 @@ describe("Construct Visitor", async () => {
                     formMode: "edit",
                 },
                 expected: {
-                    name: "default-1.0-draft",
+                    name: "minimal-rdmp-1.0-draft",
                     componentDefinitions: [
                         {name: "contributor_ci_name", component: {class: "SimpleInputComponent"}},
                         {name: "contributor_data_manager_email", component: {class: "SimpleInputComponent"}},

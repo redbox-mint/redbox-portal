@@ -32,9 +32,9 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
 
-  test("RDMP form name is default-1.0-draft", function () {
+  test("RDMP form name is minimal-rdmp-1.0-draft", function () {
       const jsonData = res.getBody();
-      expect(jsonData.name).to.eql("default-1.0-draft");
+      expect(jsonData.name).to.eql("minimal-rdmp-1.0-draft");
   });
 
   test("Fields array has values", function () {

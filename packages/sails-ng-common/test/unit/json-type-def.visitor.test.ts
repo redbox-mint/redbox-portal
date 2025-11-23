@@ -15,7 +15,7 @@ describe("JSON Type Def Schema Visitor", async () => {
         {
             title: "create basic example",
             args: {
-                name: "default-1.0-draft",
+                name: "minimal-rdmp-1.0-draft",
                 type: "rdmp",
                 debugValue: true,
                 domElementType: 'form',

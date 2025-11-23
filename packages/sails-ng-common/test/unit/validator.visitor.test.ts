@@ -16,7 +16,7 @@ import("chai").then(mod => expect = mod.expect);
 describe("Validator Visitor", async () => {
     it(`should run only expected validators for initial membership none`, async function () {
         const formConfig: FormConfigFrame = {
-            name: "default-1.0-draft",
+            name: "minimal-rdmp-1.0-draft",
             validationGroups: {
                 minimumCreate: {
                     description: "Fields that must be valid to create a new record.",
@@ -93,7 +93,7 @@ describe("Validator Visitor", async () => {
     });
     it(`should run only expected validators for initial membership all`, async function () {
         const formConfig: FormConfigFrame = {
-            name: "default-1.0-draft",
+            name: "minimal-rdmp-1.0-draft",
             validationGroups: {
                 minimumCreate: {
                     description: "Fields that must be valid to create a new record.",
@@ -177,7 +177,7 @@ describe("Validator Visitor", async () => {
     });
     it(`should run expected validators for existing record`, async function () {
         const formConfig: FormConfigFrame = {
-            name: "default-1.0-draft",
+            name: "minimal-rdmp-1.0-draft",
             componentDefinitions: [
                 {
                     name: 'text_7',
@@ -307,7 +307,7 @@ describe("Validator Visitor", async () => {
                         }
                     }
                 ],
-                "id": "default-1.0-draft",
+                "id": "minimal-rdmp-1.0-draft",
                 "message": null,
                 "parents": [],
             },

@@ -74,7 +74,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   styles: [`
     .date-input-width {
       flex: none !important;
-      width: 50% !important;
+      width: 12rem !important;
     }
     .date-input-addon {
       height: 34px;

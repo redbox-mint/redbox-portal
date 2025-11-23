@@ -1,4 +1,4 @@
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 
 const formConfig: FormConfigFrame = {
     name: "minimal-rdmp-1.0-draft",
@@ -158,15 +158,15 @@ const formConfig: FormConfigFrame = {
                                     componentDefinitions: [
                                         {
                                             name: "",
-                                            layout: {class: "DefaultLayout", config: {label: "Chief Investigator"}},
-                                            model: {class: "GroupModel", config: {defaultValue: {}}},
+                                            layout: { class: "DefaultLayout", config: { label: "Chief Investigator" } },
+                                            model: { class: "GroupModel", config: { defaultValue: {} } },
                                             component: {
                                                 class: "GroupComponent",
                                                 config: {
                                                     hostCssClasses: "row g-3",
                                                     componentDefinitions: [
                                                         {
-                                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                                            overrides: { reusableFormName: "standard-contributor-field" },
                                                             name: "dm_wrapper",
                                                             component: {
                                                                 class: "ReusableComponent",
@@ -174,56 +174,45 @@ const formConfig: FormConfigFrame = {
                                                                     componentDefinitions: [
                                                                         {
                                                                             name: "name",
-                                                                            overrides: {replaceName: "ci_name"},
-                                                                            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
-                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                            overrides: { replaceName: "ci_name" },
+                                                                            layout: { class: "DefaultLayout", config: { label: "Name", hostCssClasses: "col-md-4 mb-3" } },
+                                                                            model: { class: "SimpleInputModel", config: { defaultValue: "" } },
+                                                                            component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
                                                                         },
                                                                         {
                                                                             name: "email",
-                                                                            overrides: {replaceName: "ci_email"},
-                                                                            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "email"}]}},
-                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                            overrides: { replaceName: "ci_email" },
+                                                                            layout: { class: "DefaultLayout", config: { label: "Email", hostCssClasses: "col-md-4 mb-3" } },
+                                                                            model: { class: "SimpleInputModel", config: { defaultValue: "", validators: [{ class: "email" }] } },
+                                                                            component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
                                                                         },
                                                                         {
                                                                             name: "orcid",
-                                                                            overrides: {replaceName: "ci_orcid"},
-                                                                            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "GroupModel", config: {defaultValue: {}}},
-                                                                            component: {
-                                                                                class: "GroupComponent",
-                                                                                config: {
-                                                                                    componentDefinitions: [
-                                                                                        {
-                                                                                            name: "example1",
-                                                                                            overrides: {replaceName: "id"},
-                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "pattern", message: "Invalid ORCID format", config: {pattern: "^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$"}}]}},
-                                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
-                                                                                        }
-                                                                                    ]
-                                                                                }
-                                                                            }
+                                                                            overrides: { replaceName: "orcid" },
+                                                                            layout: { class: "DefaultLayout", config: { label: "ORCID", hostCssClasses: "col-md-4 mb-3" } },
+                                                                            model: { class: "SimpleInputModel", config: { defaultValue: "", validators: [{ class: "orcid" }] } },
+                                                                            component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
+
                                                                         }
                                                                     ]
                                                                 }
                                                             }
                                                         }
                                                     ]
-                                                } 
+                                                }
                                             }
                                         },
                                         {
                                             name: "",
-                                            layout: {class: "DefaultLayout", config: {label: "Data Manager"}},
-                                            model: {class: "GroupModel", config: {defaultValue: {}}},
+                                            layout: { class: "DefaultLayout", config: { label: "Data Manager" } },
+                                            model: { class: "GroupModel", config: { defaultValue: {} } },
                                             component: {
                                                 class: "GroupComponent",
                                                 config: {
                                                     hostCssClasses: "row g-3",
                                                     componentDefinitions: [
                                                         {
-                                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                                            overrides: { reusableFormName: "standard-contributor-field" },
                                                             name: "data_manager_wrapper",
                                                             component: {
                                                                 class: "ReusableComponent",
@@ -231,62 +220,51 @@ const formConfig: FormConfigFrame = {
                                                                     componentDefinitions: [
                                                                         {
                                                                             name: "name",
-                                                                            overrides: {replaceName: "data_manager_name"},
-                                                                            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "SimpleInputModel", config: {defaultValue: ""}},
-                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                            overrides: { replaceName: "data_manager_name" },
+                                                                            layout: { class: "DefaultLayout", config: { label: "Name", hostCssClasses: "col-md-4 mb-3" } },
+                                                                            model: { class: "SimpleInputModel", config: { defaultValue: "" } },
+                                                                            component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
                                                                         },
                                                                         {
                                                                             name: "email",
-                                                                            overrides: {replaceName: "data_manager_email"},
-                                                                            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "email"}]}},
-                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                            overrides: { replaceName: "data_manager_email" },
+                                                                            layout: { class: "DefaultLayout", config: { label: "Email", hostCssClasses: "col-md-4 mb-3" } },
+                                                                            model: { class: "SimpleInputModel", config: { defaultValue: "", validators: [{ class: "email" }] } },
+                                                                            component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
                                                                         },
                                                                         {
                                                                             name: "orcid",
-                                                                            overrides: {replaceName: "data_manager_orcid"},
-                                                                            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
-                                                                            model: {class: "GroupModel", config: {defaultValue: {}}},
-                                                                            component: {
-                                                                                class: "GroupComponent",
-                                                                                config: {
-                                                                                    componentDefinitions: [
-                                                                                        {
-                                                                                            name: "example1",
-                                                                                            overrides: {replaceName: "id"},
-                                                                                            model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "pattern", message: "Invalid ORCID format", config: {pattern: "^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$"}}]}},
-                                                                                            component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
-                                                                                        }
-                                                                                    ]
-                                                                                }
-                                                                            }
+                                                                            overrides: { replaceName: "orcid" },
+                                                                            layout: { class: "DefaultLayout", config: { label: "ORCID", hostCssClasses: "col-md-4 mb-3" } },
+                                                                            model: { class: "SimpleInputModel", config: { defaultValue: "", validators: [{ class: "orcid" }] } },
+                                                                            component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
+
                                                                         }
                                                                     ]
                                                                 }
                                                             }
                                                         }
                                                     ]
-                                                } 
+                                                }
                                             }
                                         },
                                         {
                                             name: "contributors",
-                                            layout: {class: "DefaultLayout", config: {label: "Contributors"}},
-                                            model: {class: "RepeatableModel", config: {defaultValue: []}},
+                                            layout: { class: "DefaultLayout", config: { label: "Contributors" } },
+                                            model: { class: "RepeatableModel", config: { defaultValue: [] } },
                                             component: {
                                                 class: "RepeatableComponent",
                                                 config: {
                                                     elementTemplate: {
                                                         name: "",
-                                                        model: {class: "GroupModel", config: {defaultValue: {}}},
+                                                        model: { class: "GroupModel", config: { defaultValue: {} } },
                                                         component: {
                                                             class: "GroupComponent",
                                                             config: {
                                                                 hostCssClasses: "row g-3",
                                                                 componentDefinitions: [
                                                                     {
-                                                                        overrides: {reusableFormName: "standard-contributor-field"},
+                                                                        overrides: { reusableFormName: "standard-contributor-field" },
                                                                         name: "contributor_wrapper",
                                                                         component: {
                                                                             class: "ReusableComponent",
@@ -294,36 +272,25 @@ const formConfig: FormConfigFrame = {
                                                                                 componentDefinitions: [
                                                                                     {
                                                                                         name: "name",
-                                                                                        overrides: {replaceName: "contributor_name"},
-                                                                                        layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
-                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: ""}},
-                                                                                        component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                        overrides: { replaceName: "contributor_name" },
+                                                                                        layout: { class: "DefaultLayout", config: { label: "Name", hostCssClasses: "col-md-4 mb-3" } },
+                                                                                        model: { class: "SimpleInputModel", config: { defaultValue: "" } },
+                                                                                        component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
                                                                                     },
                                                                                     {
                                                                                         name: "email",
-                                                                                        overrides: {replaceName: "contributor_email"},
-                                                                                        layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
-                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "email"}]}},
-                                                                                        component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
+                                                                                        overrides: { replaceName: "contributor_email" },
+                                                                                        layout: { class: "DefaultLayout", config: { label: "Email", hostCssClasses: "col-md-4 mb-3" } },
+                                                                                        model: { class: "SimpleInputModel", config: { defaultValue: "", validators: [{ class: "email" }] } },
+                                                                                        component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
                                                                                     },
                                                                                     {
                                                                                         name: "orcid",
-                                                                                        overrides: {replaceName: "contributor_orcid"},
-                                                                                        layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
-                                                                                        model: {class: "GroupModel", config: {defaultValue: {}}},
-                                                                                        component: {
-                                                                                            class: "GroupComponent",
-                                                                                            config: {
-                                                                                                componentDefinitions: [
-                                                                                                    {
-                                                                                                        name: "example1",
-                                                                                                        overrides: {replaceName: "id"},
-                                                                                                        model: {class: "SimpleInputModel", config: {defaultValue: "", validators: [{class: "pattern", message: "Invalid ORCID format", config: {pattern: "^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$"}}]}},
-                                                                                                        component: {class: "SimpleInputComponent", config: {hostCssClasses: ""}}
-                                                                                                    }
-                                                                                                ]
-                                                                                            }
-                                                                                        }
+                                                                                        overrides: { replaceName: "orcid" },
+                                                                                        layout: { class: "DefaultLayout", config: { label: "ORCID", hostCssClasses: "col-md-4 mb-3" } },
+                                                                                        model: { class: "SimpleInputModel", config: { defaultValue: "", validators: [{ class: "orcid" }] } },
+                                                                                        component: { class: "SimpleInputComponent", config: { hostCssClasses: "" } }
+
                                                                                     }
                                                                                 ]
                                                                             }
@@ -333,7 +300,7 @@ const formConfig: FormConfigFrame = {
                                                             }
                                                         }
                                                     }
-                                                } 
+                                                }
                                             }
                                         }
                                     ]

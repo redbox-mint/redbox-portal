@@ -19,7 +19,7 @@ describe('The FormsService', function () {
     it('should return the default RDMP form', function (done) {
         var brand = BrandingService.getDefault();
         var recordType = 'rdmp';
-        var formName = 'default-1.0-draft';
+        var formName = 'minimal-rdmp-1.0-draft';
         RecordType.find().then(forms => {
             sails.log.verbose(`going to look for ${brand.id}_${recordType}`);
             sails.log.verbose(forms);
@@ -44,7 +44,7 @@ describe('The FormsService', function () {
 
     it('should return the form based of a given record', function (done) {
         let brand = BrandingService.getDefault();
-        let formName = 'default-1.0-draft';
+        let formName = 'minimal-rdmp-1.0-draft';
         let record = {
             metaMetadata: {
                 form: formName,
@@ -102,7 +102,7 @@ describe('The FormsService', function () {
 
     it('should return the form', function (done) {
         let brand = BrandingService.getDefault();
-        let formName = 'default-1.0-draft';
+        let formName = 'minimal-rdmp-1.0-draft';
         FormsService.getForm(brand, formName, true, 'rdmp', {}).then(form => {
             expect(form).to.have.property('name', formName);
             done();

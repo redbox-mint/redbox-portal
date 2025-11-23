@@ -23,17 +23,7 @@ const reusableDefinitions: ReusableFormDefinitions = {
         },
         {
             name: "orcid",
-            component: {
-                class: "GroupComponent",
-                config: {
-                    componentDefinitions: [
-                        {
-                            name: "example1",
-                            component: {class: "SimpleInputComponent", config: {type: "text"}},
-                        }
-                    ]
-                }
-            }
+            component: { class: "SimpleInputComponent", config: { type: "text" } }
         },
     ],
     // TODO: The standard people fields - ci, data manager, supervisor, contributor.
