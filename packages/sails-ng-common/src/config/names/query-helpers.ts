@@ -26,8 +26,6 @@
 
 import { LineagePaths } from "./naming-helpers";
 import jsonata from "jsonata";
-import { includes as _includes } from "lodash"; 
-
 /**
  * Entry representing a property in the JSONata query source tree.  This must have no circular references, see: https://docs.jsonata.org/next/embedding-extending#expressionevaluateinput-bindings-callback
  */
