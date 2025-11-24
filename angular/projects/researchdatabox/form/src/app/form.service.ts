@@ -763,12 +763,13 @@ export class FormService extends HttpClientService {
   }
 
   /**
+   * Queries a JSONata source using the provided expression. Returns an array of FormFieldCompMapEntry objects
+   * corresponding to the results, or, if `returnPointerOnly` is true, returns only the JSON pointer strings.
    * 
-   * Client method to query a JSONata source, defaults to returning the FormFieldCompMapEntry. 
-   * 
-   * @param jsonataSource 
-   * @param jsonataExpression 
-   * @param returnPointerOnly - if true, only the JSON pointer string is returned, defaults to false
+   * @param jsonataSource The JSONataQuerySource to query.
+   * @param jsonataExpression The JSONata expression to evaluate.
+   * @param returnPointerOnly If true, only the JSON pointer strings are returned. Defaults to false.
+   * @returns A Promise resolving to either an array of FormFieldCompMapEntry objects or JSON pointer strings.
    */
   public async queryJSONataSource(
     jsonataSource: JSONataQuerySource,
