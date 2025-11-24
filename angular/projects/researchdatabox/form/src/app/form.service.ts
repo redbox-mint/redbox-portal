@@ -692,12 +692,13 @@ export class FormService extends HttpClientService {
   }
 
   /**
-   * Transforms the array item to a JSON Pointer friendly object.
+   * Transforms a JSONata entry to a JSON Pointer friendly object.
    * 
+   * @param jsonDoc - arbitrary object to build on
    * @param formFieldEntry 
    */
   public transformJSONataEntryToJSONPointerSource(jsonDoc: object, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
-    const object = {
+    const object: JSONataResultDoc = {
       metadata: {
         formFieldEntry: formFieldEntry,
         component: formFieldEntry.component,
@@ -763,7 +764,7 @@ export class FormService extends HttpClientService {
 
   /**
    * 
-   * Convenience method to query a JSONata source, defaults to returning the FormFieldCompMapEntry. 
+   * Client method to query a JSONata source, defaults to returning the FormFieldCompMapEntry. 
    * 
    * @param jsonataSource 
    * @param jsonataExpression 
@@ -819,3 +820,11 @@ export class FormComponentsMap {
     this.withFormControl = undefined;
   }
 }
+
+/**
+ * Internal interface for resulting document from JSONata query with metadata. This will not be returned to consumers.
+ */
+interface JSONataResultDoc {
+  metadata: Record<string, unknown>;
+  [key: string]: unknown;   
+}  
