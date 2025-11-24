@@ -13,7 +13,7 @@ import {
   FieldLayoutConfigFrame,
   FormFieldComponentStatus,
   LineagePaths,
-  JSONataQuerySourcePropertyEntry
+  JSONataQuerySourceProperty
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
@@ -548,10 +548,7 @@ export interface FormFieldCompMapEntry {
 }
 
 
-/** Specialised interface for querying */
-export interface JSONataClientQuerySourcePropertyEntry extends JSONataQuerySourcePropertyEntry {
-  wrapper?: FormFieldBaseComponent<unknown>;
-  component?: FormFieldBaseComponent<unknown>;
-  model?: FormFieldModel<unknown>;
-  layout?: FormFieldBaseComponent<unknown>;
+/** Specialised interface for querying. */
+export interface JSONataClientQuerySourceProperty extends JSONataQuerySourceProperty {
+  // Placeholder for additional client-specific properties can be added here in the future 
 }

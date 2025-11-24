@@ -1,4 +1,4 @@
-import { decycleObject, queryJSONata, JSONataQuerySource } from '../../src/';
+import { decycleObjectForJSONata, queryJSONata, JSONataQuerySource } from '../../src/';
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -7,7 +7,7 @@ describe('query-helpers', () => {
   describe('decycleObject', () => {
     it('should copy a simple object', () => {
       const obj = { a: 1, b: 'test' };
-      const result = decycleObject(obj);
+      const result = decycleObjectForJSONata(obj);
       expect(result).to.deep.equal(obj);
       expect(result).to.not.equal(obj); // Should be a copy
     });
@@ -16,18 +16,17 @@ describe('query-helpers', () => {
       const obj: any = { name: 'root' };
       obj.child = { parent: obj };
       
-      const result = decycleObject(obj);
+      const result = decycleObjectForJSONata(obj);
       // The circular reference 'parent' should be removed
       expect(result).to.deep.equal({ name: 'root', child: {} });
     });
 
-    it('should filter out specified keys', () => {
+    it('should remove functions', () => {
       const obj = { 
         name: 'keep', 
-        lineagePaths: 'remove', 
-        appRef: 'remove' 
+        fn: () => {} 
       };
-      const result = decycleObject(obj);
+      const result = decycleObjectForJSONata(obj);
       expect(result).to.deep.equal({ name: 'keep' });
     });
   });
@@ -36,27 +35,29 @@ describe('query-helpers', () => {
     it('should execute a simple query', async () => {
       const source: JSONataQuerySource = {
         queryOrigSource: {},
+        jsonPointerSource: {},
         querySource: [
-          { name: 'field1', component: { type: 'text' } }
+          { name: 'field1', jsonPointer: '/some/pointer' }
         ]
       };
       
       // jsonata evaluate can return a Promise
-      const result = await queryJSONata(source, "$[name='field1'].component.type");
-      expect(result).to.equal('text');
+      const result = await queryJSONata(source, "$[name='field1'].jsonPointer");
+      expect(result).to.equal('/some/pointer');
     });
 
     it('should handle complex queries', async () => {
        const source: JSONataQuerySource = {
         queryOrigSource: {},
+        jsonPointerSource: {},
         querySource: [
-          { name: 'field1', component: { value: 10 } },
-          { name: 'field2', component: { value: 20 } }
+          { name: 'field1', children: [{ name: 'c1' }, { name: 'c2' }] },
+          { name: 'field2', children: [{ name: 'c3' }] }
         ]
       };
       
-      const result = await queryJSONata(source, "$sum($[].component.value)");
-      expect(result).to.equal(30);
+      const result = await queryJSONata(source, "$sum($[].children.$count($))");
+      expect(result).to.equal(3);
     });
   });
 });

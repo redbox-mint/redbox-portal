@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { formatJsonPointer } from '@jsonjoy.com/json-pointer';
+import { find, findByPointer, formatJsonPointer } from '@jsonjoy.com/json-pointer';
 
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
@@ -44,8 +44,32 @@ export function buildLineagePaths(base?: LineagePaths, more?: LineagePaths): Lin
 		dataModel: [...(base?.dataModel ?? []), ...(more?.dataModel ?? [])],
 		angularComponents: [...(base?.angularComponents ?? []), ...(more?.angularComponents ?? [])],
 	};
-  lineagePaths.angularComponentsJsonPointer = formatJsonPointer(lineagePaths.angularComponents);
+  lineagePaths.angularComponentsJsonPointer = getJSONPointerByArrayPaths(lineagePaths.angularComponents);
   return lineagePaths;
 }
 
+/**
+ * Get a JSON Pointer string from an array of path segments.
+ * 
+ * @param paths 
+ * @returns JSON Pointer string
+ */
 
+export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
+	return formatJsonPointer(paths);
+}
+
+/**
+ * Retrieve any object property using a JSON Pointer or an array of path segments.
+ * 
+ * @param obj 
+ * @param pointer 
+ * @returns JSON Pointer reference: {key: 'key', val: 'object value at key', obj: 'context object, 1 level up from key'}
+ */
+export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): any {
+	if (Array.isArray(pointer)) {
+		return find(obj, pointer);
+	}
+	// Documentation has the order of the parameters reversed compared to the type definition.
+	return findByPointer(pointer, obj);
+}

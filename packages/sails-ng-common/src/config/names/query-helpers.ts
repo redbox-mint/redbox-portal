@@ -28,24 +28,23 @@ import { LineagePaths } from "./naming-helpers";
 import jsonata from "jsonata";
 import { includes as _includes } from "lodash"; 
 
-export interface JSONataQuerySourcePropertyEntry {
+/**
+ * Entry representing a property in the JSONata query source tree.  This must have no circular references, see: https://docs.jsonata.org/next/embedding-extending#expressionevaluateinput-bindings-callback
+ */
+export interface JSONataQuerySourceProperty {
   name: string;
   lineagePaths?: LineagePaths;
   jsonPointer?: string;
-  children?:  JSONataQuerySourcePropertyEntry[] ;
-  // convenience references to component and model
-  // specific type depends on context, specialise as needed
-  wrapper?: unknown;
-  component?: unknown;
-  model?: unknown;
-  layout?: unknown;
+  children?:  JSONataQuerySourceProperty[] ;
 }
 
 export interface JSONataQuerySource {
-  // The original object that this was derived from
+  // The original object that this query source was built from
   queryOrigSource: unknown;
-  // The object that will be used for querying 
-  querySource: JSONataQuerySourcePropertyEntry[];
+  // JSONAtat-ready representation of the original object, satisfies JSONata querying requirements (no circular references, etc.)
+  querySource: JSONataQuerySourceProperty[];
+  // JSONPointer-ready representation of the original source
+  jsonPointerSource: unknown;
 }
 /**
  * Performs a deep copy of an object, removing circular references.
@@ -56,14 +55,12 @@ export interface JSONataQuerySource {
  * @param filters 
  * @returns 
  */
-export function decycleObject(obj: any, filters:string[] = ['lineagePaths', 'appRef', 'lodashTemplateUtilityService', 'expressionStateChanged', 'wrapperRefs', 'componentsDefinitionsContainerRef', 'injector', 'formService']): any {
+export function decycleObjectForJSONata(obj: any): any {
   const cache = new Set();
   return JSON.parse(JSON.stringify(obj, (key, value) => {
-    // Names that will be filtered out to lessen size
-    if (_includes(filters, key)) {
-      return;
+    if (typeof value === 'function') {
+      return; // Remove functions
     }
-
     if (typeof value === 'object' && value !== null) {
       if (cache.has(value)) {
         // Circular reference found, discard key
@@ -76,13 +73,15 @@ export function decycleObject(obj: any, filters:string[] = ['lineagePaths', 'app
 }
 
 /**
- * Simple query function for string inputs. Not meant for integation with the form app, which requires pre-compilation.
+ * Simple query function for string inputs. Not meant for integration with the form app, which requires pre-compilation.
+ * 
  * @param querySource 
  * @param query 
  */
-export function queryJSONata(querySource: JSONataQuerySource, query: string): any {
-  const queryDoc = decycleObject(querySource.querySource);
+export async function queryJSONata(querySource: JSONataQuerySource, query: string): Promise<any> {
+  // `.querySource` should already have no circular references, but just in case...
+  const queryDoc = decycleObjectForJSONata(querySource.querySource);
   const expression = jsonata(query);
-  const result = expression.evaluate(queryDoc);
+  const result = await expression.evaluate(queryDoc);
   return result;
 }
