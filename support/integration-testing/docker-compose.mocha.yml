@@ -4,7 +4,7 @@ networks:
 
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
+    image: qcifengineering/redbox-portal:master
     pull_policy: 'always'
     user: "root"
     ports:
