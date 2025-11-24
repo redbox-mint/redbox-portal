@@ -1,8 +1,5 @@
 import { decycleObjectForJSONata, queryJSONata, JSONataQuerySource } from '../../src/';
-
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-
+import { expect } from "chai";
 describe('query-helpers', () => {
   describe('decycleObject', () => {
     it('should copy a simple object', () => {
