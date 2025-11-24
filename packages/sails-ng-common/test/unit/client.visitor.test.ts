@@ -243,6 +243,12 @@ describe("Client Visitor", async () => {
                         component: {
                             class: 'SimpleInputComponent',
                         },
+                        model: {
+                            class: "SimpleInputModel",
+                            config: {
+                                validators: [{class: 'required'}]
+                            }
+                        }
                     },
                     {
                         name: 'text_2',
@@ -305,6 +311,12 @@ describe("Client Visitor", async () => {
                                 visible: true,
                             },
                         },
+                        model: {
+                            class: "SimpleInputModel",
+                            config: {
+                                validators: [{class: 'required'}]
+                            }
+                        }
                     },
                 ]
             }
