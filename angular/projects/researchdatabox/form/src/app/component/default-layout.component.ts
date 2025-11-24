@@ -9,6 +9,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import {FormService} from "../form.service";
+import { FormValidationStateService } from "../form-validation-state.service";
 
 /**
  * Default Form Component Layout
@@ -62,11 +63,12 @@ import {FormService} from "../form.service";
          @if (isVisible) {
      
            }
-         </ng-template>
-        <ng-template #afterComponentTemplate>
+        </ng-template>
+       <ng-template #afterComponentTemplate>
           @if (isVisible) {
+            @let showValidation = shouldShowValidation;
             @let componentValidationList = getFormValidatorComponentErrors;
-            @if (componentValidationList.length > 0) {
+            @if (showValidation && componentValidationList.length > 0) {
               <div class="invalid-feedback">
                 Field validation errors:
                 <ul>
@@ -76,7 +78,9 @@ import {FormService} from "../form.service";
                 </ul>
               </div>
             }
-            <div class="valid-feedback">The field is valid.</div>
+            @if (showValidation && componentValidationList.length === 0) {
+              <div class="valid-feedback">The field is valid.</div>
+            }
             <br>
             }
           </ng-template>
@@ -100,6 +104,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   afterComponentTemplate!: TemplateRef<any>;
 
   private formService = inject(FormService);
+  private validationState = inject(FormValidationStateService);
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
@@ -175,10 +180,17 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   }
 
   protected get getFormValidatorComponentErrors(): FormValidatorComponentErrors[] {
+    if (!this.shouldShowValidation) {
+      return [];
+    }
     return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
   protected get componentName(){
     return this.formFieldConfigName();
+  }
+
+  protected get shouldShowValidation(): boolean {
+    return this.validationState.shouldShowControlValidation(this.model?.formControl);
   }
 }

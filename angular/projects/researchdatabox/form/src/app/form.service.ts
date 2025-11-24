@@ -397,6 +397,7 @@ export class FormService extends HttpClientService {
     control: AbstractControl | null | undefined = null,
     parents: string[] | null = null,
     results: FormValidatorSummaryErrors[] | null = null,
+    shouldIncludeControl: ((control: AbstractControl | null | undefined) => boolean) | null = null,
   ): FormValidatorSummaryErrors[] {
     // Build a flattened array of control errors.
     // Include the names of the parent controls for each control.
@@ -406,6 +407,8 @@ export class FormService extends HttpClientService {
     if (!results) {
       results = [];
     }
+
+    const includeControl = shouldIncludeControl ?? (() => true);
 
     // control
     name = name || null;
@@ -418,7 +421,7 @@ export class FormService extends HttpClientService {
     const errors = this.getFormValidatorComponentErrors(control);
 
     // Only add the result if there are errors.
-    if (errors.length > 0) {
+    if (includeControl(control) && errors.length > 0) {
       results.push({id: id, message: labelMessage, errors: errors, parents: parents});
     }
 
@@ -428,7 +431,7 @@ export class FormService extends HttpClientService {
         // Create a new array for the parents, so that the existing array of parent names is not modified.
         const newParents = !!name ? [...parents, name] : [...parents];
         const nextComponentDefs = childComponentDefs?.length ? childComponentDefs : componentDefs;
-        this.getFormValidatorSummaryErrors(nextComponentDefs, name, childControl, newParents, results);
+        this.getFormValidatorSummaryErrors(nextComponentDefs, name, childControl, newParents, results, shouldIncludeControl);
       }
     }
 

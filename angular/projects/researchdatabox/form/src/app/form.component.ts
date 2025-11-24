@@ -37,6 +37,7 @@ import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFi
 import { FormStatus, FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
+import { FormValidationStateService } from './form-validation-state.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
@@ -63,7 +64,7 @@ import * as FormActions from './form-state/state/form.actions';
     selector: 'redbox-form',
     templateUrl: './form.component.html',
     styleUrls: ['./form.component.scss'],
-    providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
+    providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }, FormValidationStateService],
     standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
@@ -142,6 +143,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Status of the form, derived from the facade as signal
    */
   status = this.facade.status;
+  /**
+   * Tracks when validation feedback should be displayed.
+   */
+  private validationState = inject(FormValidationStateService);
   /**
    * Indicates whether the form components have been loaded
    */
@@ -484,6 +489,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async saveForm(forceSave: boolean = false, targetStep: string = '', enabledValidationGroups: string[] = ["all"]) {
+    this.validationState.markValidationAttempted();
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
