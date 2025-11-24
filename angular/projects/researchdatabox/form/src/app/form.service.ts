@@ -57,7 +57,7 @@ import {
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
-import { json } from 'stream/consumers';
+
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -696,7 +696,7 @@ export class FormService extends HttpClientService {
    * 
    * @param formFieldEntry 
    */
-  public tranformJSONataEntryToJSONPointerSource(jsonDoc: object, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
+  public transformJSONataEntryToJSONPointerSource(jsonDoc: object, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
     const object = {
       metadata: {
         formFieldEntry: formFieldEntry,
@@ -713,7 +713,7 @@ export class FormService extends HttpClientService {
         const childEntry = jsonataEntry.children[i];
         const childFormFieldEntry = formFieldEntry?.component?.formFieldCompMapEntries?.find(c => c.compConfigJson?.name === childEntry.name);
         if (childFormFieldEntry) {
-          this.tranformJSONataEntryToJSONPointerSource(object, childFormFieldEntry, childEntry);
+          this.transformJSONataEntryToJSONPointerSource(object, childFormFieldEntry, childEntry);
         }
       }
     } 
@@ -750,7 +750,7 @@ export class FormService extends HttpClientService {
       // current array index as pointer prefix
       const propertyEntry = this.transformIntoJSONataProperty(item);
       queryDoc.push(propertyEntry);
-      this.tranformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry);
+      this.transformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry);
     }
 
     const querySource: JSONataQuerySource = {

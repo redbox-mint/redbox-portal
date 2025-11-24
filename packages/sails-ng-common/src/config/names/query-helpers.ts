@@ -41,7 +41,7 @@ export interface JSONataQuerySourceProperty {
 export interface JSONataQuerySource {
   // The original object that this query source was built from
   queryOrigSource: unknown;
-  // JSONAtat-ready representation of the original object, satisfies JSONata querying requirements (no circular references, etc.)
+  // JSONata-ready representation of the original object, satisfies JSONata querying requirements (no circular references, etc.)
   querySource: JSONataQuerySourceProperty[];
   // JSONPointer-ready representation of the original source
   jsonPointerSource: unknown;

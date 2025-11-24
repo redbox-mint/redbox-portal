@@ -77,12 +77,12 @@ describe('The FormService', () => {
       expect(property.children?.[0].jsonPointer).toBe('/components/0/child');
     });
 
-    it('tranformJSONataEntryToJSONPointerSource should build JSON pointer metadata tree', () => {
+    it('transformJSONataEntryToJSONPointerSource should build JSON pointer metadata tree', () => {
       const childEntry = createEntry('child', '/components/0/child');
       const parentEntry = createEntry('parent', '/components/0', [childEntry]);
       const property = service.transformIntoJSONataProperty(parentEntry);
 
-      const result = service.tranformJSONataEntryToJSONPointerSource({}, parentEntry, property);
+      const result = service.transformJSONataEntryToJSONPointerSource({}, parentEntry, property);
       const parentPointer = (result as any)['0'];
       const childPointer = parentPointer?.child;
 
