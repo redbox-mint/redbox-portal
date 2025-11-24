@@ -695,7 +695,8 @@ export class FormService extends HttpClientService {
    * Transforms a JSONata entry to a JSON Pointer friendly object.
    * 
    * @param jsonDoc - arbitrary object to build on
-   * @param formFieldEntry 
+   * @param formFieldEntry The form field entry associated with the JSONata entry.
+   * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
    */
   public transformJSONataEntryToJSONPointerSource(jsonDoc: object, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
     const object: JSONataResultDoc = {
