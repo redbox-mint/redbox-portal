@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { AbstractControl, FormGroup } from '@angular/forms';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class FormValidationStateService {
   private validationAttempted = signal<boolean>(false);
 
