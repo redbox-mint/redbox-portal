@@ -413,6 +413,7 @@ export class FormService extends HttpClientService {
     // TODO: Find the component definition that matches the angular form control using the path instead of only name.
     //  Using name only might find the wrong form component definition, as names are only unique at the same level of nesting.
     const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
+    const childComponentDefs = this.getChildComponentDefinitions(componentDef);
     const {id, labelMessage} = this.componentIdLabel(componentDef);
     const errors = this.getFormValidatorComponentErrors(control);
 
@@ -426,7 +427,8 @@ export class FormService extends HttpClientService {
       for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
         // Create a new array for the parents, so that the existing array of parent names is not modified.
         const newParents = !!name ? [...parents, name] : [...parents];
-        this.getFormValidatorSummaryErrors(componentDefs, name, childControl, newParents, results);
+        const nextComponentDefs = childComponentDefs?.length ? childComponentDefs : componentDefs;
+        this.getFormValidatorSummaryErrors(nextComponentDefs, name, childControl, newParents, results);
       }
     }
 
@@ -441,10 +443,13 @@ export class FormService extends HttpClientService {
   public getFormValidatorComponentErrors(control: AbstractControl | null | undefined): FormValidatorComponentErrors[] {
     return Object.entries(control?.errors ?? {})
         .map(([key, item]) => {
+          const definitionMessage = this.loadedValidatorDefinitions?.get(key)?.message;
+          const resolvedMessage = (item as any)?.message ?? definitionMessage ?? key;
+          const params = (item as any)?.params ?? {};
           return {
             class: key,
-            message: item.message ?? null,
-            params: {...item.params},
+            message: resolvedMessage,
+            params: {...params},
           }
         })
       ?? [];
@@ -472,6 +477,22 @@ export class FormService extends HttpClientService {
 
     // build the result
     return {id: id, labelMessage: labelMessage};
+  }
+
+  private getChildComponentDefinitions(componentDef: FormComponentDefinitionFrame | null): FormComponentDefinitionFrame[] | null {
+    if (!componentDef) {
+      return null;
+    }
+    const componentChildren = (componentDef?.component as any)?.config?.componentDefinitions;
+    const layoutChildren = (componentDef?.layout as any)?.config?.componentDefinitions;
+    const children: FormComponentDefinitionFrame[] = [];
+    if (Array.isArray(componentChildren)) {
+      children.push(...componentChildren);
+    }
+    if (Array.isArray(layoutChildren)) {
+      children.push(...layoutChildren);
+    }
+    return children.length > 0 ? children : null;
   }
 
   /**

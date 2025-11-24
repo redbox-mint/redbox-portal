@@ -12,25 +12,26 @@ import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@resea
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = allValidationErrorsDisplay;
-    @if (validationList.length > 0) {
+    @if (validationList.length === 0) {
+      <div class="alert alert-info mt-3" role="alert">
+        The form is valid.
+      </div>
+    }
+    @else {
       <div class="alert alert-danger mt-3" role="alert">
         <ul>
-          @for (item of validationList; track item.id) {
-            @if (item.errors.length > 0) {
+          @for (summary of validationList; track summary.id ?? summary.message ?? $index) {
+            @if (summary.errors.length > 0) {
               <li>
-                @if (item.id && item.message) {
-                  <a href="#{{ item.id }}">{{ item.message | i18next }}</a>
-                } @else if (item.id && !item.message) {
-                  <a href="#{{ item.id }}">{{ item.id }}</a>
-                } @else if(!item.id && item.message) {
-                  {{ item.message | i18next }}
-                } @else {
-                  {{ "@validator-label-default" | i18next }}
+                @if (summary.id) {
+                  <a [attr.href]="'#' + summary.id">{{ getSummaryLabel(summary) }}</a>
+                }
+                @else {
+                  <span>{{ getSummaryLabel(summary) }}</span>
                 }
                 <ul>
-                  @for (error of item.errors; track $index) {
-                    <li>{{ error.message | i18next: error.params }}
-                    </li>
+                  @for (error of summary.errors; track error.class ?? $index) {
+                    <li>{{ error.message | i18next: error.params }}</li>
                   }
                 </ul>
               </li>
@@ -39,12 +40,6 @@ import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@resea
         </ul>
       </div>
     }
-    @if (validationList.length === 0) {
-      <div class="alert alert-info" role="alert">
-        The form is valid.
-      </div>
-    }
-
     `,
   standalone: false
 })
@@ -63,6 +58,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
     return  this.getFormComponent?.getValidationErrors() ?? [];
+  }
+
+  public getSummaryLabel(summary: FormValidatorSummaryErrors): string {
+    return summary.message || summary.id || '@validator-label-default';
   }
 
   private get getFormComponent(): FormComponent {
