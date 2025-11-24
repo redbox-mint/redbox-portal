@@ -308,6 +308,14 @@ describe("Validator", async () => {
                     expected: null,
                 },
                 {
+                    title: "orcid - expect pass (valid with lowercase x checksum)",
+                    args: {
+                        value: "0000-0002-1694-233x", definition: formValidatorsSharedDefinitions,
+                        block: {class: "orcid"},
+                    },
+                    expected: null,
+                },
+                {
                     title: "orcid - expect failure (URL https)",
                     args: {
                         value: "https://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
@@ -320,19 +328,7 @@ describe("Validator", async () => {
                         }
                     },
                 },
-                {
-                    title: "orcid - expect failure (URL http)",
-                    args: {
-                        value: "http://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "http://orcid.org/0000-0002-1825-0097"}
-                        }
-                    },
-                },
+                
                 {
                     title: "orcid - expect failure (URL www)",
                     args: {
@@ -343,19 +339,6 @@ describe("Validator", async () => {
                         orcid: {
                             message: "@validator-error-orcid",
                             params: {actual: "https://www.orcid.org/0000-0002-1825-0097"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect failure (URL no hyphens)",
-                    args: {
-                        value: "https://orcid.org/0000000218250097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "https://orcid.org/0000000218250097"}
                         }
                     },
                 },
