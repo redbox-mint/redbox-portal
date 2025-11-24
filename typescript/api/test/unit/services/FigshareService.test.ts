@@ -1,5 +1,4 @@
-const { describe, it, beforeEach } = require('mocha');
-const { expect } = require('chai');
+const { describe, it, beforeEach, before } = require('mocha');
 
 // Minimal sails stub required by FigshareService
 (global as any).sails = {
@@ -13,8 +12,8 @@ const { expect } = require('chai');
     },
     figshareAPI: {
       APIToken: 'test-token',
-      baseURL: 'https://api.figshare.test',
-      frontEndURL: 'https://figshare.example',
+      baseURL: 'https://api.figshare.test.localhost',
+      frontEndURL: 'https://figshare.test.localhost',
       mapping: {
         upload: {
           fileListPageSize: 2,
@@ -67,6 +66,12 @@ const FigshareService = Services.FigshareService;
 
 describe('FigshareService - getArticleFileList pagination', () => {
   let service;
+  let expect;
+
+  before(async () => {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
 
   beforeEach(() => {
     axiosCalls.length = 0;
@@ -94,7 +99,7 @@ describe('FigshareService - getArticleFileList pagination', () => {
 
   it('falls back to the default page size when the config value is invalid', async () => {
     (global as any).sails.config.figshareAPI.mapping.upload.fileListPageSize = 'invalid';
-    const expectedDefault = 100;
+    const expectedDefault = 20;
 
     axiosResponses = [
       { status: 200, statusText: 'OK', data: [{ id: 'a' }] }
@@ -106,10 +111,28 @@ describe('FigshareService - getArticleFileList pagination', () => {
     expect(axiosCalls).to.have.length(1);
     expect(axiosCalls[0].url).to.contain(`/account/articles/abc/files?page_size=${expectedDefault}&page=1`);
   });
+
+  it('returns an empty list when no files are found', async () => {
+    axiosResponses = [
+      { status: 200, statusText: 'OK', data: [] }
+    ];
+
+    const files = await (service as any).getArticleFileList('empty');
+
+    expect(files).to.deep.equal([]);
+    expect(axiosCalls).to.have.length(1);
+    expect(axiosCalls[0].url).to.contain('/account/articles/empty/files?page_size=2&page=1');
+  });
 });
 
 describe('FigshareService - isFileUploadInProgress', () => {
   let service;
+  let expect;
+
+  before(async () => {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
 
   beforeEach(() => {
     service = new FigshareService();

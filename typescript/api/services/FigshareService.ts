@@ -715,8 +715,8 @@ export module Services {
 
         let currentPage = responseArticleList.data;
         if(_.isArray(currentPage) && currentPage.length > 0) {
-          articleFileList = articleFileList.concat(currentPage);
-          hasMorePages = currentPage.length === pageSize;
+          articleFileList.push(...currentPage);
+          hasMorePages = currentPage.length >= pageSize;
         } else {
           hasMorePages = false;
         }
@@ -2261,3 +2261,4 @@ export module Services {
   }
 }
 module.exports = new Services.FigshareService().exports();
+module.exports.Services = Services;
