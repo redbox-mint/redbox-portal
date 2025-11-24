@@ -69,6 +69,7 @@ describe('FigshareService - getArticleFileList pagination', () => {
   let expect;
 
   before(async () => {
+    // @ts-ignore
     const chai = await import('chai');
     expect = chai.expect;
   });
@@ -130,6 +131,7 @@ describe('FigshareService - isFileUploadInProgress', () => {
   let expect;
 
   before(async () => {
+    // @ts-ignore
     const chai = await import('chai');
     expect = chai.expect;
   });
