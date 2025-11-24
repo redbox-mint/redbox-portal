@@ -748,7 +748,7 @@ export class FormService extends HttpClientService {
     // loop through each item in the original object and build the query source, index is important
     for (let i = 0; i < origObject.length; i++) {
       const item = origObject[i];
-      // current array index as pointer prefix
+      
       const propertyEntry = this.transformIntoJSONataProperty(item);
       queryDoc.push(propertyEntry);
       this.transformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry);
