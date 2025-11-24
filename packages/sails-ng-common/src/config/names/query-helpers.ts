@@ -21,7 +21,7 @@
 /**
  * Helpers for querying components using JSONata.
  * 
- * Note: these functions are intended to be generic and reusable across contexts, i.e. server and client-side. Further specialisation maybe required to be more useful in the specific context.
+ * Note: these functions are intended to be generic and reusable across contexts, i.e. server and client-side. Further specialisation may be required to be more useful in the specific context.
  */
 
 import { LineagePaths } from "./naming-helpers";
