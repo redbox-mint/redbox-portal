@@ -617,6 +617,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected setModelValue(item: FieldModelDefinition<unknown>) {
+        // TODO: move the pieces that set the `model.config.value` to the construct visitor.
         if (item?.config?.value !== undefined) {
             throw new Error(`${this.logName} - in the field model config '{config:{value: "[some value]"}}', 'value' is for the client only, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
         }

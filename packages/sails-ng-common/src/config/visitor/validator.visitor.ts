@@ -7,7 +7,6 @@ import {
     SimpleServerFormValidatorControl
 } from "../../validation/form.model";
 import {FormConfigOutline} from "../form-config.outline";
-import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -68,8 +67,7 @@ import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {get as _get} from "lodash";
-import {VisitorStartConstructed, VisitorStartCurrentRecordValues} from "./base.outline";
+import {VisitorStartConstructed} from "./base.outline";
 import {FormConfig} from "../form-config.model";
 import {CurrentPathHelper} from "./helpers.outline";
 
@@ -86,15 +84,11 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /**
      * The constructed form to validate.
      */
-    private formConfig: FormConfigOutline;
+    private form: FormConfigOutline;
     /**
      * The validation group names to enable.
      */
     private enabledValidationGroups: string[];
-    /**
-     * The record values to validate.
-     */
-    private recordValues: Record<string, unknown>;
     /**
      * A map of the validator keys to validation functions.
      */
@@ -114,9 +108,8 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     constructor(logger: ILogger) {
         super(logger);
-        this.formConfig = new FormConfig();
+        this.form = new FormConfig();
         this.enabledValidationGroups = [];
-        this.recordValues = {};
         this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
         this.resultPath = [];
         this.result = [];
@@ -134,29 +127,21 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
      * @param options.record The record values.
      * @param options.useFormDefaults Whether to use the form defaults or not.
      */
-    start(options: {
+    start(options: VisitorStartConstructed & {
               enabledValidationGroups?: string[],
               validatorDefinitions?: FormValidatorDefinition[]
-          } & VisitorStartConstructed & VisitorStartCurrentRecordValues
+          }
     ): FormValidatorSummaryErrors[] {
-        this.formConfig = options.form;
-        this.enabledValidationGroups = options.enabledValidationGroups || this.formConfig.enabledValidationGroups || ['all'];
+        this.form = options.form;
+        // use the first non-null, non-undefined value - empty array is a valid value
+        this.enabledValidationGroups = options.enabledValidationGroups ?? this.form.enabledValidationGroups ?? ['all'];
         this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(options.validatorDefinitions || []);
 
-        // Get the record values to use.
-        if (options.record === null || options.record === undefined) {
-            // Use the defaultValues from the form config as the record values.
-            const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
-            this.recordValues = defaultValueVisitor.start({form: options.form});
-        } else {
-            // The current record data, default to null.
-            this.recordValues = options.record;
-        }
 
         this.currentPathHelper.resetCurrentPath();
         this.result = [];
         this.resultPath = [];
-        this.formConfig.accept(this);
+        this.form.accept(this);
         return this.result;
     }
 
@@ -170,7 +155,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
         // Run form-level validators, usually because they involve more than one field.
         const itemName = item?.name ?? "";
-        this.result = [...this.result, ...this.validateFormComponent(itemName, item?.validators)];
+        // TODO: once the lineage paths jsonpointer and other pieces are available, use those to reference the data model property instead of the dotted path.
+        const value = null;
+        this.result = [...this.result, ...this.validateFormComponent(itemName, value, item?.validators)];
     }
 
     /* SimpleInput */
@@ -373,6 +360,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
         this.result = [...this.result, ...this.validateFormComponent(
             item?.name,
+            item?.model?.config?.value,
             item?.model?.config?.validators,
             item?.layout?.config?.label,
         )];
@@ -381,10 +369,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.resultPath = [...itemResultPath];
     }
 
-    protected validateFormComponent(itemName: string, validators?: FormValidatorConfig[], message?: string) {
+    protected validateFormComponent(itemName: string, value: any, validators?: FormValidatorConfig[], message?: string) {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
+
+        // TODO: after the construct visitor includes the values, the values can come straight from the model.config.value.
         // Use the result path to get the value for this component.
-        const value = this.resultPath.length > 0 ? _get(this.recordValues, this.resultPath, undefined) : this.recordValues;
+        // const recordValues = this.currentRecordValuesHelper.recordValues;
+        // const value = this.resultPath.length > 0 ? _get(recordValues, this.resultPath, undefined) : recordValues;
 
         // for debugging:
         // this.logger.verbose(`validateFormComponent resultPath: ${JSON.stringify(this.resultPath)} value: ${JSON.stringify(value)}`);
@@ -392,7 +383,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         // Use the result path to get the parents of the form control.
         const parents: string[] = this.resultPath.length > 1 ? this.resultPath.slice(0, this.resultPath.length - 1) : [];
 
-        const availableValidatorGroups = this.formConfig?.validationGroups ?? {};
+        const availableValidatorGroups = this.form?.validationGroups ?? {};
         const result: FormValidatorSummaryErrors[] = [];
         if (Array.isArray(validators) && validators.length > 0) {
             const filteredValidators = validators.filter(validator =>

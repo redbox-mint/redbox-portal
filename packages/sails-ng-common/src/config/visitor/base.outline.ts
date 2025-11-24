@@ -74,6 +74,8 @@ export interface CanVisit {
     accept(visitor: FormConfigVisitorOutline): void;
 }
 
+// TODO: the visitor start interfaces actually don't make much sense, remove them and use the props in the method signature directly.
+
 /**
  * Interface for starting a visitor with a constructed form.
  */

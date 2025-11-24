@@ -13,6 +13,7 @@ export interface FieldModelConfigFrame<ValueType> {
      * The current value of this model.
      *
      * TODO: The value is only settable and gettable from the client, not the form config.
+     *       The server does need to populate the value.
      *       Maybe use getter/setter methods instead?
      */
     value?: ValueType;
