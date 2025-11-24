@@ -52,7 +52,6 @@ export interface JSONataQuerySource {
  * TODO: Consider trimming more properties that are not needed querying.
  * 
  * @param obj 
- * @param filters 
  * @returns 
  */
 export function decycleObjectForJSONata(obj: any): any {
