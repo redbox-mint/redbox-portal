@@ -16,6 +16,16 @@ describe('The FormsService', function () {
         done();
     });
 
+    const makeCompConfig = function (data) {
+        return Object.assign({}, {
+            autofocus: false,
+            disabled: false,
+            editMode: true,
+            readonly: false,
+            visible: true,
+        }, data);
+    }
+
     it('should return the default RDMP form', function (done) {
         var brand = BrandingService.getDefault();
         var recordType = 'rdmp';
@@ -119,7 +129,7 @@ describe('The FormsService', function () {
     });
 
     describe("build client form config", function () {
-        it('should use the record data in the form', function(done){
+        it('should use the record data in the form edit mode', function (done) {
             const formConfig: FormConfigFrame = {
                 name: "basic-form",
                 type: "rdmp",
@@ -225,6 +235,186 @@ describe('The FormsService', function () {
             expect(result).to.eql(expected);
             done();
         });
+        it('should use the record data in the form view mode', function (done) {
+            const formConfig: FormConfigFrame = {
+                name: "basic-form",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                enabledValidationGroups: ["all"],
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        component: {class: 'SimpleInputComponent'}
+                    },
+                    {
+                        name: 'repeatable_1',
+                        component: {
+                            class: 'RepeatableComponent', config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent", config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: 'text_2',
+                                                    component: {class: 'SimpleInputComponent'}
+                                                },
+                                                {
+                                                    name: "repeatable_2",
+                                                    component: {
+                                                        class: "RepeatableComponent", config: {
+                                                            elementTemplate: {
+                                                                name: "",
+                                                                component: {
+                                                                    class: "GroupComponent", config: {
+                                                                        componentDefinitions: [
+                                                                            {
+                                                                                name: 'text_3',
+                                                                                component: {class: 'SimpleInputComponent'}
+                                                                            },
+                                                                            {
+                                                                                name: 'group_1',
+                                                                                component: {
+                                                                                    class: 'GroupComponent', config: {
+                                                                                        componentDefinitions: [
+                                                                                            {
+                                                                                                name: 'text_4',
+                                                                                                component: {class: 'SimpleInputComponent'}
+                                                                                            },
+                                                                                        ]
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    }
+                ]
+            };
+            const expected: FormConfigFrame = {
+                name: "basic-form",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                enabledValidationGroups: ["all"],
+                validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
+                componentDefinitions: [
+                    {
+                        name: 'text_1',
+                        component: {class: 'ContentComponent', config: makeCompConfig({content: "record text_1 value"})}
+                    },
+                    {
+                        name: 'repeatable_1',
+                        component: {
+                            class: 'RepeatableComponent', config: makeCompConfig({
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent", config: makeCompConfig({
+                                            componentDefinitions: [
+                                                {
+                                                    name: 'text_2',
+                                                    component: {class: 'ContentComponent'}
+                                                },
+                                                {
+                                                    name: "repeatable_2",
+                                                    component: {
+                                                        class: "RepeatableComponent", config: {
+                                                            elementTemplate: {
+                                                                name: "",
+                                                                component: {
+                                                                    class: "GroupComponent", config: {
+                                                                        componentDefinitions: [
+                                                                            {
+                                                                                name: 'text_3',
+                                                                                component: {class: 'ContentComponent', config: {content:"record text_3 value"}}
+                                                                            },
+                                                                            {
+                                                                                name: 'group_1',
+                                                                                component: {
+                                                                                    class: 'GroupComponent', config: {
+                                                                                        componentDefinitions: [
+                                                                                            {
+                                                                                                name: 'text_4',
+                                                                                                component: {class: 'ContentComponent'}
+                                                                                            },
+                                                                                        ]
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        })
+                                    }
+                                }
+                            })
+                        },
+                    }
+                ]
+            };
+            const recordMetadata = {
+                text_1: "record text_1 value",
+                repeatable_1: [
+                    {
+                        repeatable_2: [
+                            {
+                                text_3: "record text_3 value",
+                                group_1: {
+                                    text_4: "record text_4 value",
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        text_2: "record text_2 value",
+                        repeatable_2: [
+                            {
+                                text_3: "record text_3 value",
+                            }
+                        ]
+                    }
+                ]
+            };
+            const original = JSON.stringify(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig, "view", null, recordMetadata);
+
+            // ensure the formConfig has not been modified
+            expect(JSON.stringify(formConfig)).to.eql(original);
+
+            // confirm the client form config looks as expected
+            expect(result).to.eql(expected);
+            done();
+        });
+
         it('should build the expected config', function (done) {
             const formConfig: FormConfigFrame = {
                 name: "basic-form",
@@ -432,7 +622,7 @@ describe('The FormsService', function () {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        model:{
+                        model: {
                             class: "SimpleInputModel",
                             config: {
                                 value: 'text_1_value'

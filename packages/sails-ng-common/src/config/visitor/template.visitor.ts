@@ -1,4 +1,4 @@
-import {CurrentPathFormConfigVisitor} from "./base.model";
+import {FormConfigVisitor} from "./base.model";
 import {FormConfigOutline} from "../form-config.outline";
 import {TemplateCompileInput} from "../../template.outline";
 import {
@@ -59,6 +59,8 @@ import {
 } from "../component/date-input.outline";
 import {FormExpressionsConfigFrame} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+import {VisitorStartConstructed} from "./base.outline";
+import {CurrentPathHelper} from "./helpers";
 
 
 /**
@@ -68,18 +70,23 @@ import {ILogger} from "@researchdatabox/redbox-core-types";
  * This is the data allowing templates and expressions to be compiled on the server-side
  * so they can be provided to the client.
  */
-export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
+export class TemplateFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "TemplateFormConfigVisitor";
-    private result?: TemplateCompileInput[];
+    private result: TemplateCompileInput[];
+
+    private currentPathHelper: CurrentPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
+        this.result = [];
+
+        this.currentPathHelper = new CurrentPathHelper(logger, this);
     }
 
-    start(form: FormConfigOutline): TemplateCompileInput[] {
-        this.resetCurrentPath();
+    start(options: VisitorStartConstructed): TemplateCompileInput[] {
+        this.currentPathHelper.resetCurrentPath();
         this.result = [];
-        form.accept(this);
+        options.form.accept(this);
         return this.result;
     }
 
@@ -87,7 +94,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitFormConfig(item: FormConfigOutline) {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
     }
 
@@ -101,7 +108,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Content */
@@ -110,7 +117,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const template = (item.config?.template ?? "").trim();
         if (template) {
             this.result?.push({
-                key: [...(this.currentPath ?? []), "config", "template"],
+                key: [...(this.currentPathHelper.currentPath ?? []), "config", "template"],
                 value: template,
                 kind: "handlebars"
             });
@@ -119,7 +126,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Repeatable  */
@@ -136,7 +143,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Validation Summary */
@@ -146,7 +153,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Group */
@@ -154,7 +161,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -163,7 +170,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Tab  */
@@ -171,7 +178,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -180,7 +187,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /*  Tab Content */
@@ -188,7 +195,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -197,7 +204,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Save Button  */
@@ -207,7 +214,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Text Area */
@@ -220,7 +227,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Default Layout  */
@@ -238,7 +245,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Dropdown Input */
@@ -251,7 +258,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
@@ -264,7 +271,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Date Input */
@@ -277,13 +284,13 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
     }
 
     protected extractExpressions(expressions?: FormExpressionsConfigFrame): void {
         for (const [name, value] of Object.entries(expressions ?? {})) {
             this.result?.push({
-                key: [...(this.currentPath ?? []), 'expressions', name, 'template'],
+                key: [...(this.currentPathHelper.currentPath ?? []), 'expressions', name, 'template'],
                 value: value?.template,
                 kind: "jsonata"
             });

@@ -106,7 +106,7 @@ describe("Construct Visitor", async () => {
         cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start(args, "edit");
+                const actual = visitor.start({data: args, formMode: "edit"});
                 if (expected.useArgs) {
                     expect(actual).to.containSubset(args);
                 } else {
@@ -185,7 +185,11 @@ describe("Construct Visitor", async () => {
         cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start(args.formConfig, args.formMode, args.reusableFormDefs);
+                const actual = visitor.start({
+                    data: args.formConfig,
+                    formMode: args.formMode,
+                    reusableFormDefs: args.reusableFormDefs
+                });
                 expect(actual).to.containSubset(expected);
             });
         });
@@ -195,23 +199,25 @@ describe("Construct Visitor", async () => {
             const errorFunc = function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            name: "repeatable_test",
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        component: {class: "ReusableComponent"},
-                                        overrides: {reusableFormName: "standard-contributor-field"},
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "repeatable_test",
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "ReusableComponent"},
+                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc).to.throw(Error, 'Repeatable element template overrides must result in exactly one item, got 3');
         });
@@ -220,25 +226,27 @@ describe("Construct Visitor", async () => {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            name: "repeatable_test",
-                            component: {
-                                // Use ts-ignore to easily specify an incorrect class name.
-                                // @ts-ignore
-                                class: 'NotAClass',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        component: {class: "ReusableComponent"},
-                                        overrides: {reusableFormName: "standard-contributor-field"},
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "repeatable_test",
+                                component: {
+                                    // Use ts-ignore to easily specify an incorrect class name.
+                                    // @ts-ignore
+                                    class: 'NotAClass',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "ReusableComponent"},
+                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc).to.throw(Error, "Could not find class for form component class name 'NotAClass'");
         });
@@ -247,24 +255,26 @@ describe("Construct Visitor", async () => {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        // Use ts-ignore to easily specify an incorrect component.
-                        // @ts-ignore
-                        {
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        component: {class: "ReusableComponent"},
-                                        overrides: {reusableFormName: "standard-contributor-field"},
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            // Use ts-ignore to easily specify an incorrect component.
+                            // @ts-ignore
+                            {
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "ReusableComponent"},
+                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc).to.throw(Error, "Invalid FormComponentDefinition at ");
         });
@@ -273,26 +283,28 @@ describe("Construct Visitor", async () => {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            name: "a_name",
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        component: {class: "ReusableComponent"},
-                                        overrides: {
-                                            reusableFormName: "standard-contributor-field",
-                                            replaceName: "new_name"
-                                        },
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "a_name",
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "ReusableComponent"},
+                                            overrides: {
+                                                reusableFormName: "standard-contributor-field",
+                                                replaceName: "new_name"
+                                            },
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "Override for component name '' class 'ReusableComponent' must contain only 'reusableFormName', " +
@@ -303,23 +315,28 @@ describe("Construct Visitor", async () => {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            name: "a_name",
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        component: {class: "ReusableComponent"},
-                                        overrides: {reusableFormName: "standard-contributor", replaceName: "new_name"},
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "a_name",
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "ReusableComponent"},
+                                            overrides: {
+                                                reusableFormName: "standard-contributor",
+                                                replaceName: "new_name"
+                                            },
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc1).to.throw(Error, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
 
@@ -327,26 +344,28 @@ describe("Construct Visitor", async () => {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            name: "a_name",
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        component: {class: "TextAreaComponent"},
-                                        overrides: {
-                                            reusableFormName: "standard-contributor-field",
-                                            replaceName: "new_name"
-                                        },
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "a_name",
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "TextAreaComponent"},
+                                            overrides: {
+                                                reusableFormName: "standard-contributor-field",
+                                                replaceName: "new_name"
+                                            },
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc2).to.throw(Error, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
         });
@@ -355,99 +374,108 @@ describe("Construct Visitor", async () => {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            overrides: {reusableFormName: "standard-contributor-field"},
-                            name: "one",
-                            component: {
-                                class: "ReusableComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {
-                                            name: "a_name",
-                                            component: {
-                                                class: 'SimpleInputComponent',
-                                                config: {}
-                                            },
-                                        }
-                                    ]
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                overrides: {reusableFormName: "standard-contributor-field"},
+                                name: "one",
+                                component: {
+                                    class: "ReusableComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: "a_name",
+                                                component: {
+                                                    class: 'SimpleInputComponent',
+                                                    config: {}
+                                                },
+                                            }
+                                        ]
+                                    }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "Each item in the ReusableComponent componentDefinitions must have a name that matches an item in the reusable form config 'standard-contributor-field'. " +
                 "Names 'a_name' did not match any reusable form config items. Available names ");
         });
         it("should fail when override reusable form config override does not have unique names", async () => {
-            const errorFunc = function () {
-                const visitor = new ConstructFormConfigVisitor(logger);
+                const errorFunc = function () {
+                        const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            overrides: {reusableFormName: "standard-contributor-field"},
-                            name: "one",
-                            component: {
-                                class: "ReusableComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {
-                                            name: "name",
-                                            component: {
-                                                class: 'SimpleInputComponent',
-                                                config: {}
-                                            },
-                                        },
-                                        {
-                                            name: "name",
-                                            component: {
-                                                class: 'SimpleInputComponent',
-                                                config: {}
-                                            },
+                        visitor.start({
+                            data: {
+                                name: "form",
+                                componentDefinitions: [
+                                    {
+                                        overrides: {reusableFormName: "standard-contributor-field"},
+                                        name: "one",
+                                        component: {
+                                            class: "ReusableComponent",
+                                            config: {
+                                                componentDefinitions: [
+                                                    {
+                                                        name: "name",
+                                                        component: {
+                                                            class: 'SimpleInputComponent',
+                                                            config: {}
+                                                        },
+                                                    },
+                                                    {
+                                                        name: "name",
+                                                        component: {
+                                                            class: 'SimpleInputComponent',
+                                                            config: {}
+                                                        },
+                                                    }
+                                                ]
+                                            }
                                         }
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
-            };
-            expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
-                "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
-                "These names were not unique 'name'.");
-        });
+                                    }
+                                ]
+                            }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                        });
+                    }
+                ;
+                expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
+                    "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
+                    "These names were not unique 'name'.");
+            }
+        )
+        ;
         it("should fail when reusable form config override tries to change the class name in the component definition", async () => {
             const errorFunc = function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
                 visitor.start({
-                    name: "form",
-                    componentDefinitions: [
-                        {
-                            overrides: {reusableFormName: "standard-contributor-field"},
-                            name: "one",
-                            component: {
-                                class: "ReusableComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {
-                                            name: "name",
-                                            component: {
-                                                class: 'CheckboxInputComponent',
-                                                config: {options: []}
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                overrides: {reusableFormName: "standard-contributor-field"},
+                                name: "one",
+                                component: {
+                                    class: "ReusableComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: "name",
+                                                component: {
+                                                    class: 'CheckboxInputComponent',
+                                                    config: {options: []}
+                                                },
                                             },
-                                        },
-                                    ]
+                                        ]
+                                    }
                                 }
                             }
-                        }
-                    ]
-                }, "edit", reusableDefinitionsExample1);
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "The class must match the reusable form config. " +

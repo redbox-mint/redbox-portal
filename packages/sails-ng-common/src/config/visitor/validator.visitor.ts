@@ -1,4 +1,4 @@
-import {CurrentPathFormConfigVisitor} from "./base.model";
+import {FormConfigVisitor} from "./base.model";
 import {
     FormValidatorConfig,
     FormValidatorControl,
@@ -69,6 +69,9 @@ import {
     DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {get as _get} from "lodash";
+import {VisitorStartConstructed, VisitorStartCurrentRecordValues} from "./base.outline";
+import {FormConfig} from "../form-config.model";
+import {CurrentPathHelper} from "./helpers";
 
 /**
  * Visit each form config component and run its validators.
@@ -79,16 +82,19 @@ import {get as _get} from "lodash";
  * By default, all validators are run: ['all'].
  * Specify which validators are run by providing enabledValidationGroups.
  */
-export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
-    private formConfig: FormConfigOutline | undefined = undefined;
+export class ValidatorFormConfigVisitor extends FormConfigVisitor {
+    /**
+     * The constructed form to validate.
+     */
+    private formConfig: FormConfigOutline;
     /**
      * The validation group names to enable.
      */
-    private enabledValidationGroups: string[] = [];
+    private enabledValidationGroups: string[];
     /**
      * The record values to validate.
      */
-    private recordValues: Record<string, unknown> | undefined = undefined;
+    private recordValues: Record<string, unknown>;
     /**
      * A map of the validator keys to validation functions.
      */
@@ -97,50 +103,57 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
      * The 'lineage path' from the form to the current component.
      * This is updated as processing progresses to reflect the nesting to the current component.
      */
-    private resultPath: string[] = [];
+    private resultPath: string[];
     /**
      * Any validation errors, including the identifier of form field control for each.
      */
-    private result: FormValidatorSummaryErrors[] = [];
+    private result: FormValidatorSummaryErrors[];
+
     private validatorSupport: ValidatorsSupport;
+    private currentPathHelper: CurrentPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
+        this.formConfig = new FormConfig();
+        this.enabledValidationGroups = [];
+        this.recordValues = {};
         this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
+        this.resultPath = [];
+        this.result = [];
+
         this.validatorSupport = new ValidatorsSupport();
+        this.currentPathHelper = new CurrentPathHelper(logger, this);
     }
 
-    startExistingRecord(
-        form: FormConfigOutline,
-        enabledValidationGroups?: string[],
-        validatorDefinitions?: FormValidatorDefinition[],
-        recordData?: Record<string, unknown>
+    /**
+     * Start the visitor.
+     * @param options
+     * @param options.enabledValidationGroups The validation groups to enable.
+     * @param options.validatorDefinitions The validation definitions to make available.
+     * @param options.form The constructed form.
+     * @param options.record The record values.
+     * @param options.useFormDefaults Whether to use the form defaults or not.
+     */
+    start(options: {
+              enabledValidationGroups?: string[],
+              validatorDefinitions?: FormValidatorDefinition[]
+          } & VisitorStartConstructed & VisitorStartCurrentRecordValues
     ): FormValidatorSummaryErrors[] {
-        this.recordValues = recordData ?? undefined;
-        return this.start(form, enabledValidationGroups, validatorDefinitions);
-    }
+        this.formConfig = options.form;
+        this.enabledValidationGroups = options.enabledValidationGroups || this.formConfig.enabledValidationGroups || ['all'];
+        this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(options.validatorDefinitions || []);
 
-    startNewRecord(
-        form: FormConfigOutline,
-        enabledValidationGroups?: string[],
-        validatorDefinitions?: FormValidatorDefinition[]
-    ): FormValidatorSummaryErrors[] {
-        // Use the defaultValues from the form config as the record values.
-        const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
-        this.recordValues = defaultValueVisitor.start(form);
-        return this.start(form, enabledValidationGroups, validatorDefinitions);
-    }
+        // Get the record values to use.
+        if (options.record === null || options.record === undefined) {
+            // Use the defaultValues from the form config as the record values.
+            const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
+            this.recordValues = defaultValueVisitor.start({form: options.form});
+        } else {
+            // The current record data, default to null.
+            this.recordValues = options.record;
+        }
 
-    protected start(
-        formConfig: FormConfigOutline,
-        enabledValidationGroups?: string[],
-        validatorDefinitions?: FormValidatorDefinition[]
-    ): FormValidatorSummaryErrors[] {
-        this.formConfig = formConfig;
-        this.enabledValidationGroups = enabledValidationGroups || this.formConfig.enabledValidationGroups || ['all'];
-        this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions || []);
-
-        this.resetCurrentPath();
+        this.currentPathHelper.resetCurrentPath();
         this.result = [];
         this.resultPath = [];
         this.formConfig.accept(this);
@@ -152,7 +165,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
 
         // Run form-level validators, usually because they involve more than one field.
@@ -211,7 +224,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -227,7 +240,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -243,7 +256,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -364,7 +377,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
             item?.layout?.config?.label,
         )];
 
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
     }
 
@@ -387,7 +400,10 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
             const recordFormControl = this.createFormControlFromRecordValue(value);
-            this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
+
+            // for debugging:
+            // this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
+
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,
                 message: message || null,

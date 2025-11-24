@@ -228,10 +228,10 @@ describe("Default Value Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start(args, "edit");
+            const constructed = constructor.start({data: args, formMode:"edit"});
 
             const visitor = new DefaultValueFormConfigVisitor(logger);
-            const actual = visitor.start(constructed);
+            const actual = visitor.start({form: constructed});
             expect(actual).to.eql(expected);
         });
     });

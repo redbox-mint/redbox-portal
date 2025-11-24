@@ -1,6 +1,4 @@
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormModesConfig} from "../shared.outline";
+import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -67,7 +65,6 @@ import {
 } from "../component/date-input.outline";
 import {FormConstraintConfig} from "../form-component.model";
 import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
 import {get as _get, isPlainObject as _isPlainObject} from "lodash";
 import {FieldModelDefinition} from "../field-model.model";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
@@ -75,6 +72,10 @@ import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+import {VisitorStartCurrentRecordValues, VisitorStartConstructed} from "./base.outline";
+import {FormConfig} from "../form-config.model";
+import {FormConfigVisitor} from "./base.model";
+import {CurrentPathHelper, CurrentRecordValuesHelper} from "./helpers";
 
 /**
  * The details needed to evaluate the constraint config.
@@ -109,59 +110,44 @@ export type NameConstraints = {
  * - use the various 'viewCssClasses' and 'editCssClasses' to set the css classes depending on the form mode, then remove these properties
  * - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
  */
-export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
+export class ClientFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "ClientFormConfigVisitor";
-    private formMode: FormModesConfig = "view";
-    private userRoles: string[] = [];
-    private recordValues: Record<string, unknown> | null = null;
 
-    private result?: FormConfigOutline;
-    private constraintPath: NameConstraints[] = [];
+    private result: FormConfigOutline;
+    private constraintPath: NameConstraints[];
+
+    private currentPathHelper: CurrentPathHelper;
+    private currentRecordValuesHelper: CurrentRecordValuesHelper;
 
     constructor(logger: ILogger) {
         super(logger);
+        this.result = new FormConfig();
+        this.constraintPath = [];
+
+        this.currentPathHelper = new CurrentPathHelper(logger, this);
+        this.currentRecordValuesHelper = new CurrentRecordValuesHelper(logger);
     }
 
-    startExistingRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigOutline {
-        // The current record data, default to null.
-        this.recordValues = recordData ?? null;
+    start(options: VisitorStartConstructed & VisitorStartCurrentRecordValues) {
+        this.currentPathHelper.resetCurrentPath();
 
-        const result = this.start(form, formMode, userRoles);
+        this.currentRecordValuesHelper.start({
+            form: options.form,
+            formMode: options.formMode,
+            userRoles: options.userRoles,
+            record: options.record,
+            useFormDefaults: options.useFormDefaults
+        });
 
-        // for debugging:
-        // this.logger.verbose(`${this.logName}: built client form config from existing record ${JSON.stringify({
-        //     form, formMode, userRoles, recordData,
-        // })}`);
-
-        return result;
-    }
-
-    startNewRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]): FormConfigOutline {
-        // Use the defaultValues from the form config as the record values.
-        const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
-        this.recordValues = defaultValueVisitor.start(form);
-
-        const result = this.start(form, formMode, userRoles);
+        this.constraintPath = [];
+        this.result = options.form;
+        this.result.accept(this);
 
         // for debugging:
-        // this.logger.verbose(`${this.logName}: built client form config from new record ${JSON.stringify({
+        // this.logger.verbose(`${this.logName}: built client form config from record ${JSON.stringify({
         //     form, formMode, userRoles,
         // })}`);
 
-        return result;
-    }
-
-    protected start(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]) {
-        // The current context mode, default to no mode.
-        this.formMode = formMode ?? "view";
-
-        // The current user's roles, default to no roles.
-        this.userRoles = userRoles || [];
-
-        this.resetCurrentPath();
-        this.constraintPath = [];
-        this.result = form;
-        form.accept(this);
         return this.result;
     }
 
@@ -171,7 +157,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const that = this;
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            that.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
         item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
 
@@ -197,7 +183,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -214,7 +200,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -226,7 +212,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.processFieldComponentDefinition(item);
 
         if (item.config?.elementTemplate) {
-            this.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+            this.currentPathHelper.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
         }
     }
 
@@ -243,7 +229,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -266,7 +252,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -281,7 +267,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const that = this;
         (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            that.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
         if (item.config) {
             item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
@@ -297,7 +283,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -316,7 +302,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -329,7 +315,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -348,7 +334,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -361,7 +347,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -384,7 +370,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -405,7 +391,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -432,7 +418,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -453,7 +439,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -474,7 +460,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -495,7 +481,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptCheckConstraintsCurrentPath(
             item,
             () => {
-                that.acceptFormComponentDefinition(item);
+                that.currentPathHelper.acceptFormComponentDefinition(item);
             }
         )
         this.processFormComponentDefinition(item);
@@ -546,7 +532,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected isAllowedByUserRoles(): boolean {
-        const currentUserRoles = Array.from(new Set(this.userRoles.filter(i => !!i)));
+        const currentUserRoles = Array.from(new Set(this.currentRecordValuesHelper.userRoles.filter(i => !!i)));
         const constraints = this.constraintPath
         const requiredRoles = Array.from(new Set(constraints
             ?.map(b => b?.constraints?.authorization?.allowRoles ?? [])
@@ -571,7 +557,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected isAllowedByFormMode(): boolean {
-        const currentContextMode = this.formMode;
+        const currentContextMode = this.currentRecordValuesHelper.formMode;
         const constraints = this.constraintPath;
         const requiredModes = Array.from(new Set(constraints
             ?.map(b => b?.constraints?.allowModes ?? [])
@@ -640,9 +626,11 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
 
         // Set the config value from the record values.
-        const recordValues = this.recordValues && _isPlainObject(this.recordValues) ? this.recordValues : {};
+        const rawRecordValues = this.currentRecordValuesHelper.recordValues
+        const recordValues = rawRecordValues && _isPlainObject(rawRecordValues) ? rawRecordValues : {};
         const path = this.constraintPath?.filter(i => !!i && i.model)?.map(i => i?.name) ?? [];
         const value = _get(recordValues, path, undefined);
+
         item.config.value = value;
 
         // for debugging:
@@ -655,7 +643,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected hasObjectProps(item: any) {
-        if (item === null || item === undefined){
+        if (item === null || item === undefined) {
             return false;
         }
         return Object.keys(item).length > 0;

@@ -320,10 +320,10 @@ export module Services {
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
         ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode, reusableFormDefs);
+            const constructed = constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new DefaultValueFormConfigVisitor(this.logger);
-            return visitor.start(constructed);
+            return visitor.start({form: constructed});
         }
 
         /**
@@ -336,10 +336,10 @@ export module Services {
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
         ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode, reusableFormDefs);
+            const constructed = constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            return visitor.start(constructed);
+            return visitor.start({form: constructed});
         }
 
         /**
@@ -480,12 +480,15 @@ export module Services {
             const validatorDefinitions = sails.config.validators.definitions;
 
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(formConfig, formMode, reusableFormDefs);
+            const constructed = constructor.start({data: formConfig, formMode, reusableFormDefs});
 
             const visitor = new ValidatorFormConfigVisitor(this.logger);
-            return visitor.startExistingRecord(
-                constructed, enabledValidationGroups || ["all"], validatorDefinitions, record?.metadata ?? {}
-            );
+            return visitor.start({
+              form: constructed,
+              enabledValidationGroups: enabledValidationGroups || ["all"],
+              validatorDefinitions,
+              record: record?.metadata ?? {}
+            });
         }
 
         /**

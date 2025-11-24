@@ -1,6 +1,6 @@
 import {get as _get} from "lodash";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
+import {FormConfigOutline} from "../form-config.outline";
+import {FormConfigVisitorOutline} from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,31 +44,29 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline,
 } from "../component/text-area.outline";
-import {
-    DefaultFieldLayoutDefinitionOutline,
-} from "../component/default-layout.outline";
+import {DefaultFieldLayoutDefinitionOutline,} from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline
+    CheckboxInputFieldModelDefinitionOutline,
+    CheckboxInputFormComponentDefinitionOutline
 } from "../component/checkbox-input.outline";
 import {
     DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline
+    DropdownInputFieldModelDefinitionOutline,
+    DropdownInputFormComponentDefinitionOutline
 } from "../component/dropdown-input.outline";
 import {
     RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
+    RadioInputFieldModelDefinitionOutline,
+    RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
-import {FieldLayoutConfigFrame} from "../field-layout.outline";
-import {FieldModelConfigFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame} from "../field-component.outline";
 import {
     DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
+    DateInputFieldModelDefinitionOutline,
+    DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {TemplateCompileKey} from "../../template.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+import {PopulateProperties} from "./helpers";
 
 
 /**
@@ -289,151 +287,4 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
         return result;
     }
-
-
-}
-
-export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
-    protected currentPath: TemplateCompileKey = [];
-
-    protected constructor(logger: ILogger) {
-        super(logger);
-    }
-
-    /**
-     * Reset the current path to an empty array.
-     * @protected
-     */
-    protected resetCurrentPath(): void {
-        this.currentPath = [];
-    }
-
-    /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item
-     * @param suffixPath
-     * @protected
-     */
-    protected acceptCurrentPath(item: CanVisit, suffixPath: TemplateCompileKey): void {
-        const itemCurrentPath = [...(this.currentPath ?? [])];
-        try {
-            this.currentPath = [...itemCurrentPath, ...(suffixPath ?? [])];
-
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
-
-            item.accept(this);
-        } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
-            throw error;
-        } finally {
-            this.currentPath = itemCurrentPath;
-        }
-    }
-
-    /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
-     * @protected
-     */
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptCurrentPath(item.component, ['component']);
-        if (item.model) {
-            this.acceptCurrentPath(item.model, ['model']);
-        }
-        if (item.layout) {
-            this.acceptCurrentPath(item.layout, ['layout']);
-        }
-    }
-}
-
-export class PopulateProperties {
-    public sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, config?: FieldComponentConfigFrame) {
-        // Set the common field component config properties
-        this.setPropOverride('readonly', item, config);
-        this.setPropOverride('visible', item, config);
-        this.setPropOverride('editMode', item, config);
-        this.setPropOverride('label', item, config);
-        this.setPropOverride('defaultComponentCssClasses', item, config);
-        this.setPropOverride('hostCssClasses', item, config);
-        this.setPropOverride('wrapperCssClasses', item, config);
-        this.setPropOverride('disabled', item, config);
-        this.setPropOverride('autofocus', item, config);
-        this.setPropOverride('tooltip', item, config);
-    }
-
-    public sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, config?: FieldModelConfigFrame<unknown>) {
-        // Set the common field model config properties
-        this.setPropOverride('disableFormBinding', item, config);
-        this.setPropOverride('value', item, config);
-        this.setPropOverride('defaultValue', item, config);
-        this.setPropOverride('validators', item, config);
-        this.setPropOverride('wrapperCssClasses', item, config);
-        this.setPropOverride('editCssClasses', item, config);
-    }
-
-    public sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, config?: FieldLayoutConfigFrame) {
-        // Set the common field model config properties
-        this.sharedPopulateFieldComponentConfig(item, config);
-        this.setPropOverride('labelRequiredStr', item, config);
-        this.setPropOverride('helpText', item, config);
-        this.setPropOverride('cssClassesMap', item, config);
-        this.setPropOverride('helpTextVisibleOnInit', item, config);
-        this.setPropOverride('helpTextVisible', item, config);
-    }
-
-    /**
-     * Set the property on target.
-     * Retain the target property value if it is not undefined.
-     * Use the value of the property from the first source with a non-undefined property of the same name.
-     *
-     * @param target Set the name property on the target.
-     * @param name The property to set.
-     * @param sources The sources that might have the name property.
-     */
-    public setPropDefault(
-        name: string,
-        target: { [x: string]: any },
-        ...sources: ({ [x: string]: any; } | null | undefined)[]
-    ) {
-        if (target === undefined || target === null) {
-            throw new Error("Target provided to setProp was undefined or null.");
-        }
-        if (name === undefined || name === null) {
-            throw new Error("Property name provided to setProp was undefined or null.");
-        }
-
-        const propValue = [target, ...sources].find(val => val?.[name] !== undefined)?.[name];
-        if (propValue !== undefined) {
-            target[name] = propValue;
-        }
-    }
-
-    /**
-     * Set the property on target.
-     * Override the value of the property from the last source with a non-undefined property of the same name.
-     * @param target Set the name property on the target.
-     * @param name The property to set.
-     * @param sources The sources that might have the name property.
-     */
-    public setPropOverride(
-        name: string,
-        target: { [x: string]: any },
-        ...sources: ({ [x: string]: any; } | null | undefined)[]
-    ) {
-        if (target === undefined || target === null) {
-            throw new Error("Target provided to setPropOverride was undefined or null.");
-        }
-        if (name === undefined || name === null) {
-            throw new Error("Property name provided to setPropOverride was undefined or null.");
-        }
-
-        const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];
-        if (propValue !== undefined) {
-            target[name] = propValue;
-        }
-    }
-
-
 }

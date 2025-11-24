@@ -1,4 +1,4 @@
-import {CurrentPathFormConfigVisitor} from "./base.model";
+import { FormConfigVisitor} from "./base.model";
 import {FormConfigOutline} from "../form-config.outline";
 import {set as _set} from "lodash";
 import {
@@ -61,6 +61,8 @@ import {guessType} from "../helpers";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+import {VisitorStartConstructed} from "./base.outline";
+import {CurrentPathHelper} from "./helpers";
 
 
 /**
@@ -68,20 +70,26 @@ import {ILogger} from "@researchdatabox/redbox-core-types";
  *
  * One use for this is to enable merging two records.
  */
-export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVisitor {
+export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "JsonTypeDefSchemaFormConfigVisitor";
-    private result: Record<string, unknown> = {};
-    private resultPath: string[] = [];
+    private result: Record<string, unknown>;
+    private resultPath: string[];
+
+    private currentPathHelper: CurrentPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-    }
-
-    start(form: FormConfigOutline): Record<string, unknown> {
-        this.resetCurrentPath();
         this.result = {};
         this.resultPath = [];
-        form.accept(this);
+
+        this.currentPathHelper = new CurrentPathHelper(logger, this);
+    }
+
+    start(options: VisitorStartConstructed): Record<string, unknown> {
+        this.currentPathHelper.resetCurrentPath();
+        this.result = {};
+        this.resultPath = [];
+        options.form.accept(this);
         return this.result;
     }
 
@@ -92,7 +100,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
         this.acceptCurrentResultPath(function () {
             (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
                 // Visit children
-                that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+                that.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
             });
         }, ["properties"]);
     }
@@ -155,7 +163,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
         this.acceptCurrentResultPath(function () {
             (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
                 // Visit children
-                that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+                that.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
             });
         }, ["properties"]);
     }
@@ -173,7 +181,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -189,7 +197,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -296,7 +304,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends CurrentPathFormConfigVis
         if (item.model && item.name) {
             this.resultPath = [...itemResultPath, item.name];
         }
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
     }
 

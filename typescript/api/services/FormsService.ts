@@ -526,15 +526,15 @@ export module Services {
         reusableFormDefs?: ReusableFormDefinitions
     ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start(item, formMode, reusableFormDefs);
+      const constructed = constructor.start({data: item, formMode, reusableFormDefs});
 
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       let result: FormConfigOutline;
       if (recordData !== null && recordData !== undefined) {
-        result = visitor.startExistingRecord(constructed, formMode, userRoles, recordData);
+        result = visitor.start({form:constructed, formMode, userRoles, record:recordData});
       } else {
-        result = visitor.startNewRecord(constructed, formMode, userRoles);
+        result = visitor.start({form: constructed, formMode, userRoles});
       }
 
       if (!result) {

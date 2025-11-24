@@ -7,7 +7,6 @@ import {ContentComponentName, ContentFormComponentDefinitionFrame} from "../comp
 import {FormModesConfig} from "../shared.outline";
 import {AllFormComponentDefinitionFrames} from "../dictionary.outline";
 import {ReusableComponentName} from "../component/reusable.outline";
-import {PopulateProperties} from "./base.model";
 import {ComponentClassNamesType} from "../dictionary.model";
 import {FormOverrideModesClassConfigFrame} from "../form-component.outline";
 import {TextAreaComponentName, TextAreaFormComponentDefinitionFrame} from "../component/text-area.outline";
@@ -18,6 +17,7 @@ import {
 } from "../component/checkbox-input.outline";
 import {RadioInputComponentName, RadioInputFormComponentDefinitionFrame} from "../component/radio-input.outline";
 import {DateInputComponentName, DateInputFormComponentDefinitionFrame} from "../component/date-input.outline";
+import {PopulateProperties} from "./helpers";
 
 /**
  * The type that specifies the known transformations.
@@ -44,6 +44,9 @@ export type DefaultTransformsType = Partial<{
 
 export class ConstructOverrides {
     protected sharedProps: PopulateProperties;
+
+    // Create a way for the server to provide the model data to components with no model.
+    // Create a way for a client-side component to accept model data when it doesn't have a model.
 
     /**
      * Defines the known transforms between two form components.
@@ -115,6 +118,8 @@ export class ConstructOverrides {
         this.sharedProps = new PopulateProperties();
     }
 
+
+
     public transform(source: AllFormComponentDefinitionFrames, formMode: FormModesConfig): AllFormComponentDefinitionFrames {
         const result = _cloneDeep(source);
 
@@ -153,7 +158,7 @@ export class ConstructOverrides {
         }
 
         // Return the source unmodified if the transformation is to the same component
-        if (transforms?.component === componentClassName){
+        if (transforms?.component === componentClassName) {
             return result;
         }
 
@@ -174,7 +179,7 @@ export class ConstructOverrides {
         return sourceTargetTransform.call(this, result, formMode);
     }
 
-    public sourceSimpleInputComponentTargetContentComponent(
+    private sourceSimpleInputComponentTargetContentComponent(
         source: SimpleInputFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionFrame {
@@ -192,7 +197,7 @@ export class ConstructOverrides {
         return target;
     }
 
-    public sourceContentComponentTargetSimpleInputComponent(
+    private sourceContentComponentTargetSimpleInputComponent(
         source: ContentFormComponentDefinitionFrame,
         formMode: FormModesConfig
     ): SimpleInputFormComponentDefinitionFrame {

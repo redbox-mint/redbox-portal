@@ -1,4 +1,4 @@
-import {CurrentPathFormConfigVisitor} from "./base.model";
+import {FormConfigVisitor} from "./base.model";
 import {FormConfigOutline} from "../form-config.outline";
 import {set as _set, get as _get, mergeWith as _mergeWith} from "lodash";
 import {
@@ -60,6 +60,8 @@ import {
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+import {VisitorStartConstructed} from "./base.outline";
+import {CurrentPathHelper} from "./helpers";
 
 
 /**
@@ -72,32 +74,38 @@ import {ILogger} from "@researchdatabox/redbox-core-types";
  * Provides defaults from ancestors to descendants,
  * so the descendants can either use their default or an ancestors default.
  */
-export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor {
+export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "DefaultValueFormConfigVisitor";
-    private result: Record<string, unknown> = {};
-    private resultPath: string[] = [];
-    private defaultValues: Record<string, unknown> = {};
+    private result: Record<string, unknown>;
+    private resultPath: string[];
+    private defaultValues: Record<string, unknown>;
+
+    private currentPathHelper: CurrentPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-    }
-
-    start(form: FormConfigOutline): Record<string, unknown> {
-        this.resetCurrentPath();
         this.result = {};
         this.resultPath = [];
         this.defaultValues = {};
-        form.accept(this);
-        return this.result;
+
+        this.currentPathHelper = new CurrentPathHelper(logger, this);
     }
 
+    start(options: VisitorStartConstructed): Record<string, unknown> {
+        this.currentPathHelper.resetCurrentPath();
+        this.result = {};
+        this.resultPath = [];
+        this.defaultValues = {};
+        options.form.accept(this);
+        return this.result;
+    }
 
     /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
     }
 
@@ -162,7 +170,7 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -179,7 +187,7 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -195,7 +203,7 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -342,7 +350,7 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
         // this.logger.debug(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
         // this.logger.debug(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
 
-        this.acceptFormComponentDefinition(item);
+        this.currentPathHelper.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
     }
 }
