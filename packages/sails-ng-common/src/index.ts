@@ -26,7 +26,8 @@ export * from "./config/names/naming-helpers";
 // config/visitor
 export * from "./config/visitor/base.outline";
 export * from "./config/visitor/base.model";
-export * from "./config/visitor/helpers";
+export * from "./config/visitor/helpers.outline";
+export * from "./config/visitor/helpers.model";
 export * from "./config/visitor/client.visitor";
 export * from "./config/visitor/construct.visitor";
 export * from "./config/visitor/default-value.visitor";
@@ -67,5 +68,3 @@ export * from "./validation/helpers";
 export * from "./validation/form.model";
 export * from "./validation/validators";
 export * from "./validation/validators-support";
-export {PopulateProperties} from "./config/visitor/helpers";
-export {CurrentPathHelper} from "./config/visitor/helpers";

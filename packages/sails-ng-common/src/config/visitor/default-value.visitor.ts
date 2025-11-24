@@ -61,7 +61,7 @@ import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {VisitorStartConstructed} from "./base.outline";
-import {CurrentPathHelper} from "./helpers";
+import {CurrentPathHelper} from "./helpers.outline";
 
 
 /**

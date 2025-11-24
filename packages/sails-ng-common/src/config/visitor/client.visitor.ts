@@ -75,7 +75,8 @@ import {ILogger} from "@researchdatabox/redbox-core-types";
 import {VisitorStartCurrentRecordValues, VisitorStartConstructed} from "./base.outline";
 import {FormConfig} from "../form-config.model";
 import {FormConfigVisitor} from "./base.model";
-import {CurrentPathHelper, CurrentRecordValuesHelper} from "./helpers";
+import {CurrentPathHelper} from "./helpers.outline";
+import {CurrentRecordValuesHelper} from "./helpers.model";
 
 /**
  * The details needed to evaluate the constraint config.

@@ -60,7 +60,7 @@ import {
 import {FormExpressionsConfigFrame} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {VisitorStartConstructed} from "./base.outline";
-import {CurrentPathHelper} from "./helpers";
+import {CurrentPathHelper} from "./helpers.outline";
 
 
 /**

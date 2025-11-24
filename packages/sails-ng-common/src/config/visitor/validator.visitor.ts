@@ -71,7 +71,7 @@ import {
 import {get as _get} from "lodash";
 import {VisitorStartConstructed, VisitorStartCurrentRecordValues} from "./base.outline";
 import {FormConfig} from "../form-config.model";
-import {CurrentPathHelper} from "./helpers";
+import {CurrentPathHelper} from "./helpers.outline";
 
 /**
  * Visit each form config component and run its validators.

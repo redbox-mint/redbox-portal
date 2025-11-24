@@ -17,7 +17,7 @@ import {
 } from "../component/checkbox-input.outline";
 import {RadioInputComponentName, RadioInputFormComponentDefinitionFrame} from "../component/radio-input.outline";
 import {DateInputComponentName, DateInputFormComponentDefinitionFrame} from "../component/date-input.outline";
-import {PopulateProperties} from "./helpers";
+import {PopulateProperties} from "./helpers.outline";
 
 /**
  * The type that specifies the known transformations.

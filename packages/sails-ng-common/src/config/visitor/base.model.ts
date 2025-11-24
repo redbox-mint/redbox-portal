@@ -66,7 +66,7 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {PopulateProperties} from "./helpers";
+import {PopulateProperties} from "./helpers.outline";
 
 
 /**

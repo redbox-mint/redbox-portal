@@ -124,12 +124,12 @@ import {
     isTypeFormConfig,
 } from "../helpers";
 import {AvailableFormComponentDefinitionFrames, ReusableFormDefinitions} from "../dictionary.outline";
-import {FormModesConfig} from "../shared.outline";
 import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "../component/reusable.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {ConstructOverrides} from "./construct.overrides";
 import {VisitorStartCurrentRecordValues} from "./base.outline";
-import {CurrentPathHelper, CurrentRecordValuesHelper} from "./helpers";
+import {CurrentPathHelper} from "./helpers.outline";
+import {CurrentRecordValuesHelper} from "./helpers.model";
 
 
 /**
