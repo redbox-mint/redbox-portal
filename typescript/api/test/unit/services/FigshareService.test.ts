@@ -79,7 +79,7 @@ describe('FigshareService - getArticleFileList pagination', () => {
     axiosResponses = [];
     service = new FigshareService();
     // Set required properties that are private in TS but accessible at runtime
-    (service as any).baseURL = 'https://api.figshare.test';
+    (service as any).baseURL = 'https://api.figshare.test.localhost';
     (service as any).APIToken = 'test-token';
     (global as any).sails.config.figshareAPI.mapping.upload.fileListPageSize = 2;
   });
@@ -138,7 +138,7 @@ describe('FigshareService - isFileUploadInProgress', () => {
 
   beforeEach(() => {
     service = new FigshareService();
-    (service as any).baseURL = 'https://api.figshare.test';
+    (service as any).baseURL = 'https://api.figshare.test.localhost';
     (service as any).APIToken = 'test-token';
   });
 
