@@ -90,8 +90,8 @@ describe('The FormService', () => {
       expect(childPointer?.metadata?.formFieldEntry?.compConfigJson?.name).toBe('child');
     });
 
-    it('getPropertyNameFromJSONPointer should return numeric segments or fallback names', () => {
-      const getProp = (service as any).getPropertyNameFromJSONPointer.bind(service);
+    it('getPropertyNameFromJSONPointerAsNumber should return numeric segments or fallback names', () => {
+      const getProp = (service as any).getPropertyNameFromJSONPointerAsNumber.bind(service);
 
       expect(getProp('/components/3', 'component')).toBe('3');
       expect(getProp('/components/child', 'childName')).toBe('childName');

@@ -698,7 +698,7 @@ export class FormService extends HttpClientService {
    * @param formFieldEntry The form field entry associated with the JSONata entry.
    * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
    */
-  public transformJSONataEntryToJSONPointerSource(jsonDoc: object, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
+  public transformJSONataEntryToJSONPointerSource(jsonDoc: Record<string, unknown>, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
     const object: JSONataResultDoc = {
       metadata: {
         formFieldEntry: formFieldEntry,
@@ -745,7 +745,7 @@ export class FormService extends HttpClientService {
    */
   public getJSONataQuerySource(origObject: FormFieldCompMapEntry[]): JSONataQuerySource {
     let queryDoc: JSONataQuerySourceProperty[] = [];
-    let jsonPointerSource: object = {};
+    let jsonPointerSource: JSONataResultDoc = {};
     // loop through each item in the original object and build the query source, index is important
     for (let i = 0; i < origObject.length; i++) {
       const item = origObject[i];
@@ -776,7 +776,7 @@ export class FormService extends HttpClientService {
     jsonataSource: JSONataQuerySource,
     jsonataExpression: string,
     returnPointerOnly: boolean = false
-  ): Promise<any> {
+  ): Promise<FormFieldCompMapEntry[] | unknown> {
     const queryRes = await queryJSONata(
       jsonataSource,
       jsonataExpression
@@ -827,6 +827,6 @@ export class FormComponentsMap {
  * Internal interface for resulting document from JSONata query with metadata. This will not be returned to consumers.
  */
 interface JSONataResultDoc {
-  metadata: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   [key: string]: unknown;   
 }  
