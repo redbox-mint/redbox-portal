@@ -302,7 +302,7 @@ export class FormService extends HttpClientService {
         _merge(fieldDef, {
           lineagePaths: this.buildLineagePaths(parentLineagePaths, {
             angularComponents: [componentName],
-            dataModel: [componentName],
+            dataModel: modelClass ? [componentName] : [],
             formConfig: [index],
           }),
         });
@@ -789,7 +789,7 @@ export class FormService extends HttpClientService {
     if (Array.isArray(queryRes)) {
       for (let result of queryRes) {
         const obj = getObjectWithJsonPointer(jsonataSource.jsonPointerSource, result.jsonPointer);
-        returnArr.push(obj?.metadata?.formFieldEntry);
+        returnArr.push(obj?.val?.metadata?.formFieldEntry);
       }
     } 
     return returnArr;
