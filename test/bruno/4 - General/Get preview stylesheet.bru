@@ -16,16 +16,13 @@ script:pre-request {
 
 tests {
   test("Status code is 200", function () {
-      expect(200).to.include(res.getStatus());
+      expect(res.getStatus()).to.eql(200);
   });
 
   test("Caches preview ETag when 200", function(){
-      if(res.getStatus() === 200){
-          const etag = res.getHeader("etag");
-          expect(etag).to.exist;
-          expect(etag).to.match(/^W\/\"preview-[a-f0-9]+\"$/);
-          bru.setVar("preview_etag", etag);
-       }
-          bru.setVar("preview_etag", etag);
-      });
+    const etag = res.getHeader("etag");
+    expect(etag).to.exist;
+    expect(etag).to.match(/^W\/\"preview-[a-f0-9]+\"$/);
+    bru.setVar("preview_etag", etag);
+  });
 }

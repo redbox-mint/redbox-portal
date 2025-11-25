@@ -1,47 +1,67 @@
-version: '3.1'
+version: '3.9'
+
+x-rbportal-env: &rbportal-env
+  NODE_ENV: docker
+  PORT: 1500
+  WEBPACK_SKIP: "true"
+  sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
+  sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage
+  sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions
+  # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
+  sails_angularDev: "true"
+  sails_appUrl: http://localhost:1500
+  # Flag to enable the new form framework app, currently enabled in the "edit" mode
+  sails_enableNewForm: "true"
+  sails_redbox__apiKey: c8e844fc-8550-497f-b970-7900ec8741ca
+  sails_record__baseUrl__redbox: http://redbox:9000/redbox
+  sails_record__baseUrl__mint: https://demo.redboxresearchdata.com.au/mint
+  # When testing using the API
+  # sails_brandingConfigurationDefaults__auth__local__default__token: d077835a-696b-4728-85cf-3ffd57152b1e
+  # sails_security__csrf: "false"
+
+x-rbportal-volumes: &rbportal-volumes
+  - "./.dev/attachments:/attachments:delegated"
+  - "./.dev/publication:/publication:delegated"
+  - "./.dev/hooks:/opt/hooks:delegated"
+
+x-rbportal-service: &rbportal-service
+  environment: *rbportal-env
+  ports:
+    - "1500:1500"
+    # Debugging port
+    - "9876:9876"
+  depends_on:
+    - mongodb
+    - solr
+  networks:
+    main:
+      aliases:
+        - rbportal
+  init: true
+  entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
+
 networks:
   main:
+
 services:
-  redboxportal:
-    # uncomment this if you are making changes to the Dockerfile
-    # build: .
-    image: qcifengineering/redbox-portal:develop
-    ports:
-      - "1500:1500"
-      # Debugging port
-      - "9876:9876"
-    user: node
+  rbportal-mount:
+    <<: *rbportal-service
+    profiles: [mount]
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
-      - "../..:/opt/redbox-portal:delegated"
+      - "../../:/opt/redbox-portal:delegated"
       - "./.dev/attachments:/attachments:delegated"
       - "./.dev/publication:/publication:delegated"
       - "./.dev/hooks:/opt/hooks:delegated"
-    expose:
-      - "1500"
-      # Debugging port
-      - "9876"
-    environment:
-      - NODE_ENV=docker
-      - PORT=1500
-      # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
-      - sails_angularDev=true
-      # Flag to enable the new form framework app, currently enabled in the "edit" mode
-      - sails_enableNewForm=true
-      - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
-      - sails_record__baseUrl__redbox=http://redbox:9000/redbox
-      - sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint
-      # When testing using the API
-      # - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
-      # - sails_security__csrf=false
-    # depends_on:
-    #   keycloak:
-    #     condition: service_healthy
-    networks:
-      main:
-        aliases:
-          - rbportal
-    init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
+  rbportal-build:
+    <<: *rbportal-service
+    profiles: [build]
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: runtime
+    image: redbox-portal:dev
+    volumes: *rbportal-volumes
   mongodb:
     #image: mvertes/alpine-mongo:latest
     image: mongo:latest
@@ -62,12 +82,12 @@ services:
     ports:
       - "8983:8983"
     # Example of pre create additional solr cores that needs to be coupled with correct record type configuration
-    # volumes: 
+    # volumes:
     #  - "../integration-testing/solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:
-       aliases:
-         - solr
+        aliases:
+          - solr
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate

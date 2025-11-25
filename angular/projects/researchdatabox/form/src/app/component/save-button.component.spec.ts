@@ -25,13 +25,14 @@ describe('SaveButtonComponent', () => {
         defaultComponentCssClasses: 'row',
       },
       editCssClasses: "redbox-form form",
+      enabledValidationGroups: ["none"],
       componentDefinitions: [
         {
           name: 'text_1_event',
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'hello world default!'
+              value: 'hello world default!'
             }
           },
           component: {
@@ -46,7 +47,6 @@ describe('SaveButtonComponent', () => {
                 label: 'Save',
                 targetStep: 'next_step',
                 forceSave: true,
-                skipValidation: true
             }
           }
         }
@@ -138,7 +138,7 @@ describe('SaveButtonComponent', () => {
       expect(events[0].type).toBe('form.save.requested');
       expect(events[0].force).toBe(true);
       expect(events[0].targetStep).toBe('next_step');
-      expect(events[0].skipValidation).toBe(true);
+      expect(events[0].enabledValidationGroups).toEqual(["none"]);
       // name configured for the component in formConfig
       expect(events[0].sourceId).toBe('save_button');
     } finally {

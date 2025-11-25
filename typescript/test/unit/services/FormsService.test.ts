@@ -119,8 +119,7 @@ describe('The FormsService', function () {
     });
 
     describe("build client form config", function () {
-
-        it('should build the expected config', function (done) {
+        it('should use the record data in the form', function(done){
             const formConfig: FormConfigFrame = {
                 name: "basic-form",
                 type: "rdmp",
@@ -130,7 +129,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -168,8 +167,118 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
+                componentDefinitions: [
+                    {
+                        name: 'text_2',
+                        layout: {
+                            class: 'DefaultLayout',
+                            config: {
+                                label: 'TextField with default wrapper defined',
+                                helpText: 'This is a help text',
+                                autofocus: false,
+                                cssClassesMap: {},
+                                disabled: false,
+                                editMode: true,
+                                helpTextVisible: false,
+                                helpTextVisibleOnInit: false,
+                                labelRequiredStr: "*",
+                                readonly: false,
+                                visible: true,
+                            }
+                        },
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                value: "record text_2 value",
+                            }
+                        },
+                        component: {
+                            class: 'SimpleInputComponent',
+                            config: {
+                                autofocus: false,
+                                disabled: false,
+                                editMode: true,
+                                readonly: false,
+                                type: "text",
+                                visible: true,
+                            },
+                        },
+                    }
+                ]
+            };
+            const recordMetadata = {
+                text_2: "record text_2 value"
+            };
+            const original = JSON.stringify(formConfig);
+            const result = FormsService.buildClientFormConfig(formConfig, "edit", null, recordMetadata);
+
+            // ensure the formConfig has not been modified
+            expect(JSON.stringify(formConfig)).to.eql(original);
+
+            // confirm the client form config looks as expected
+            expect(result).to.eql(expected);
+            done();
+        });
+        it('should build the expected config', function (done) {
+            const formConfig: FormConfigFrame = {
+                name: "basic-form",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                enabledValidationGroups: ["all"],
+                componentDefinitions: [
+                    {
+                        name: 'text_2',
+                        layout: {
+                            class: 'DefaultLayout',
+                            config: {
+                                label: 'TextField with default wrapper defined',
+                                helpText: 'This is a help text',
+                            }
+                        },
+                        model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                                defaultValue: 'hello world 2!',
+                            }
+                        },
+                        component: {
+                            class: 'SimpleInputComponent',
+                        },
+                        constraints: {
+                            authorization: {
+                                allowRoles: [],
+                            },
+                            allowModes: [],
+                        },
+                    }
+                ]
+            };
+            const expected: FormConfigFrame = {
+                name: "basic-form",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                enabledValidationGroups: ["all"],
+                validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -229,7 +338,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -273,8 +382,12 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -312,7 +425,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -367,8 +480,12 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -407,7 +524,7 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',
@@ -494,8 +611,12 @@ describe('The FormsService', function () {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',

@@ -19,12 +19,10 @@
 
 import { PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
-    FormComponentDefinition,
-    ValidatorsSupport,
-    guessType, FormValidatorSummaryErrors, formValidatorsSharedDefinitions, SimpleServerFormValidatorControl,
-    FormValidatorDefinition, GroupFormComponentDefinitionFrame,
-    FormComponentDefinitionFrame, FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
-    TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig
+    guessType, FormValidatorSummaryErrors,
+    FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
+    TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
+    ValidatorFormConfigVisitor, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 import {Sails} from "sails";
 import {firstValueFrom} from "rxjs";
@@ -92,7 +90,6 @@ export module Services {
      */
     @PopulateExportedMethods
     export class FormRecordConsistency extends services.Core.Service {
-        private validatorSupport = new ValidatorsSupport();
         /**
          * Update a stored record by merging the stored record and the new record,
          * using knowledge of the current user's access to the record properties.
@@ -102,9 +99,12 @@ export module Services {
          *
          * @param changed The new record.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          * @return The merged record.
          */
-        public async mergeRecord(changed: BasicRedboxRecord, formMode: FormModesConfig): Promise<BasicRedboxRecord> {
+        public async mergeRecord(
+            changed: BasicRedboxRecord, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Promise<BasicRedboxRecord> {
             // get the original record
             const original = await RecordsService.getMeta(changed.redboxOid);
 
@@ -114,10 +114,12 @@ export module Services {
             const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
 
             // build the client form config
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode);
+            const userRoles: string[] | undefined = undefined;
+            const recordData = original?.metadata;
+            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordData, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode);
+            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode, reusableFormDefs);
         }
 
         /**
@@ -135,6 +137,7 @@ export module Services {
          * @param changed The new record.
          * @param clientFormConfig The client form config, the fields the current user can't access are already filtered out.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          * @return The merged record.
          */
         public mergeRecordClientFormConfig(
@@ -142,8 +145,9 @@ export module Services {
             changed: BasicRedboxRecord,
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
+            reusableFormDefs?: ReusableFormDefinitions
         ): BasicRedboxRecord {
-            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode);
+            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);
@@ -310,10 +314,13 @@ export module Services {
          * Convert the form config into the matching data model with defaults.
          * @param item The top-level form config.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public buildDataModelDefaultForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+        public buildDataModelDefaultForFormConfig(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode);
+            const constructed = constructor.start(item, formMode, reusableFormDefs);
 
             const visitor = new DefaultValueFormConfigVisitor(this.logger);
             return visitor.start(constructed);
@@ -323,10 +330,13 @@ export module Services {
          * Convert a form config into a schema describing the data model it creates.
          * @param item The form config.
          * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public buildSchemaForFormConfig(item: FormConfigFrame, formMode: FormModesConfig): Record<string, unknown> {
+        public buildSchemaForFormConfig(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode);
+            const constructed = constructor.start(item, formMode, reusableFormDefs);
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
             return visitor.start(constructed);
@@ -401,158 +411,96 @@ export module Services {
             return result;
         }
 
-        /**
-         * Use the changes to an original record to create a form config to display the changes.
-         *
-         * Form config is only for 'view' mode.
-         *
-         * @param original The original record data.
-         * @param changes The changes to the original record data.
-         */
-        public async buildFormConfigForChanges(
-            original: { redboxOid: string, [key: string]: unknown },
-            changes: FormRecordConsistencyChange[],
-        ): Promise<FormConfigFrame> {
-            // TODO: Use the record and form config and/or changes between the record and form config
-            //  to build a new form config that displays only the changes.
-            //return {};
-            throw new Error("Not implemented");
-        }
+        // TODO: implement this
+        // /**
+        //  * Use the changes to an original record to create a form config to display the changes.
+        //  *
+        //  * Form config is only for 'view' mode.
+        //  *
+        //  * @param original The original record data.
+        //  * @param changes The changes to the original record data.
+        //  */
+        // public async buildFormConfigForChanges(
+        //     original: { redboxOid: string, [key: string]: unknown },
+        //     changes: FormRecordConsistencyChange[],
+        // ): Promise<FormConfigFrame> {
+        //     // TODO: Use the record and form config and/or changes between the record and form config
+        //     //  to build a new form config that displays only the changes.
+        //     //return {};
+        //     throw new Error("Not implemented");
+        // }
 
-        /**
-         * Validate a record's structure matches the form config associated with the recordtype.
-         *
-         * @param record The record data, including the record type.
-         * @param context The context for the user providing the record.
-         */
-        public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
-            /*
-            // get the record's form name
-            const formName = record?.metaMetadata?.['form'];
-            // the validation will be done on all values present in the data model, so use the form config with all fields included
-            const isEditMode = true;
-            // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode));
-            // get the schema from the form config
-            const schema = this.buildSchemaForFormConfig(formConfig);
-            // TODO: Match the schema to the record and return any differences.
-            return [];
-            */
-            throw new Error("Not implemented");
-        }
+        // TODO: implement this
+        // /**
+        //  * Validate a record's structure matches the form config associated with the recordtype.
+        //  *
+        //  * @param record The record data, including the record type.
+        //  * @param context The context for the user providing the record.
+        //  */
+        // public async validateRecordSchema(record: BasicRedboxRecord): Promise<FormRecordConsistencyChange[]> {
+        //     /*
+        //     // get the record's form name
+        //     const formName = record?.metaMetadata?.['form'];
+        //     // the validation will be done on all values present in the data model, so use the form config with all fields included
+        //     const isEditMode = true;
+        //     // get the record's form config
+        //     const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode));
+        //     // get the schema from the form config
+        //     const schema = this.buildSchemaForFormConfig(formConfig);
+        //     // TODO: Match the schema to the record and return any differences.
+        //     return [];
+        //     */
+        //     throw new Error("Not implemented");
+        // }
 
         /**
          * Validate a record's data model values using the validators specified in the form config.
          *
          * @param record The record data, including the record type.
+         * @param enabledValidationGroups The validation groups to enable.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public async validateRecordValuesForFormConfig(record: BasicRedboxRecord): Promise<FormValidatorSummaryErrors[]> {
+        public async validateRecordValuesForFormConfig(
+            record: BasicRedboxRecord,
+            enabledValidationGroups?: string[],
+            reusableFormDefs?: ReusableFormDefinitions
+        ): Promise<FormValidatorSummaryErrors[]> {
             // get the record's form name
             const formName = record?.metaMetadata?.['form'];
-            // the validation will be done on all values present in the data model, so use the form config with all fields included
-            const isEditMode = true;
+
+            // the validation will be done on all values present in the data model,
+            // so use the form config with all fields included
+            const formMode = "edit";
+            const isEditMode = formMode === "edit";
+
             // get the record's form config
             const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
-            // the validator definitions are in the sails-ng-common package
-            const validatorDefinitions = formValidatorsSharedDefinitions;
-            const validatorDefs = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions);
-            // provide the form config as a top-level group component
-            const formConfigAsFormCompDef: GroupFormComponentDefinitionFrame = {
-                name: formConfig?.name,
-                model: {class: "GroupModel", config: {validators: formConfig?.validators ?? []}},
-                component: {
-                    class: 'GroupComponent',
-                    config: {componentDefinitions: formConfig?.componentDefinitions}
-                }
-            }
-            // validate the record against the form components
-            return this.validateRecordValueForComponentDefinition(record.metadata, formConfigAsFormCompDef, validatorDefs);
+
+            // Get the validator definitions from the sails config, so the definitions can be overwritten.
+            const validatorDefinitions = sails.config.validators.definitions;
+
+            const constructor = new ConstructFormConfigVisitor(this.logger);
+            const constructed = constructor.start(formConfig, formMode, reusableFormDefs);
+
+            const visitor = new ValidatorFormConfigVisitor(this.logger);
+            return visitor.startExistingRecord(
+                constructed, enabledValidationGroups || ["all"], validatorDefinitions, record?.metadata ?? {}
+            );
         }
 
         /**
-         * Validate a record value using the validators specified in the matching form component definition.
-         * @param record The record metadata.
-         * @param item The form component definition.
-         * @param validatorDefinitions The form validator definition mapping.
-         * @param parents The names of the parent controls.
+         * Extract the templates that need to be compiled from the form config.
+         * This method extracts the raw uncompiled templates.
+         * The templates are compiled by the TemplateService.buildClientMapping.
+         * @param item The form config.
+         * @param formMode The form mode.
+         * @param reusableFormDefs The reusable form definitions.
          */
-        public async validateRecordValueForComponentDefinition(
-            record: unknown,
-            item: FormComponentDefinitionFrame,
-            validatorDefinitions: Map<string, FormValidatorDefinition>,
-            parents?: string[],
-        ): Promise<FormValidatorSummaryErrors[]> {
-            const validatorSupport = new ValidatorsSupport();
-            const result: FormValidatorSummaryErrors[] = [];
-            const itemName = item?.name;
-            const componentClass = item?.component?.class;
-            const componentDefinitions = (item?.component?.config?.['componentDefinitions'] ?? []) as FormComponentDefinition[];
-            const elementTemplate = (item?.component?.config?.['elementTemplate'] ?? {}) as FormComponentDefinition;
-            const validators = item?.model?.config?.['validators'] ?? [];
-            parents = parents ?? [];
-
-            sails.log.verbose(`Validating key '${itemName}' with value '${JSON.stringify(record)}' and component class '${componentClass}'.`);
-
-            // Validate any subcomponents
-            for (const componentDefinition of componentDefinitions) {
-                const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                        record?.[componentDefinition.name],
-                        componentDefinition,
-                        validatorDefinitions,
-                        [...parents, itemName],
-                    )
-                ) ?? [];
-                itemErrors.forEach(i => result.push(i));
-            }
-
-            // Validate any array elements
-            if (elementTemplate && Array.isArray(record)) {
-                for (const element of record) {
-                    // The element value is the value of the property that starts with the itemName.
-                    const elementKey = Object.keys(element).find(i => i.startsWith(itemName));
-                    const itemErrors = (await this.validateRecordValueForComponentDefinition(
-                            element?.[elementKey],
-                            elementTemplate,
-                            validatorDefinitions,
-                            [...parents, itemName],
-                            )
-                    ) ?? [];
-                    itemErrors.forEach(i => result.push(i));
-                }
-            }
-
-            // run the validators
-            if (Array.isArray(validators) && validators.length > 0) {
-                const formValidatorFns = validatorSupport.createFormValidatorInstancesFromMapping(validatorDefinitions, validators);
-                const recordFormControl = this.createFormControlFromRecordValue(record);
-                const summaryErrors: FormValidatorSummaryErrors = {
-                    id: itemName,
-                    message: item?.layout?.config?.label || null,
-                    errors: [],
-                    parents: parents,
-                }
-                for (const formValidatorFn of formValidatorFns) {
-                    const funcResult = formValidatorFn(recordFormControl);
-                    Object.entries(funcResult ?? {})
-                        .forEach(([key, item]) => {
-                            summaryErrors.errors.push({
-                                name: key,
-                                message: item.message ?? null,
-                                params: {...item.params},
-                            })
-                        });
-                }
-                if (summaryErrors.errors.length > 0) {
-                    result.push(summaryErrors)
-                }
-            }
-
-            return result;
-        }
-
-        public buildCompiledTemplates(item: FormConfigFrame, formMode: FormModesConfig): TemplateCompileInput[] {
+        public extractRawTemplates(
+            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+        ): TemplateCompileInput[] {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode);
+            const constructed = constructor.start(item, formMode, reusableFormDefs);
 
             const visitor = new TemplateFormConfigVisitor(this.logger);
             return visitor.start(constructed);
@@ -587,22 +535,6 @@ export module Services {
          */
         private arrayStartsWithArray(base: unknown[], check: unknown[]) {
             return base?.every((value, index) => check?.length > index && check?.[index] == value);
-        }
-
-        private createFormControlFromRecordValue(recordValue: unknown) {
-            const guessedType = guessType(recordValue);
-            if (guessedType === "object") {
-                return new SimpleServerFormValidatorControl(
-                    Object.fromEntries(
-                        Object.entries(recordValue as Record<string, unknown>)
-                            .map(([key, value]) => [key, this.createFormControlFromRecordValue(value)])
-                    )
-                );
-            } else if (guessedType === "array") {
-                return (recordValue as Array<unknown>).map(i => this.createFormControlFromRecordValue(i));
-            } else {
-                return new SimpleServerFormValidatorControl(recordValue);
-            }
         }
     }
 }

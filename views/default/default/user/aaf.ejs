@@ -5,7 +5,13 @@
           <span class="panel-title"><%= TranslationService.t('aaf-title') %></span>
         </div>
         <div class="panel-body">
-          <a href='<%=sails.config.auth[branding].aaf.loginUrl%>'><img src='<%= BrandingService.getRootContext() %>/images/aaf_service_223x54.png' alt="<%= TranslationService.t('aaf-logo-alt-text') %>"/></a>
+          <% 
+            const brandingAwareConfig = typeof sails.config.brandingAware === 'function' ? sails.config.brandingAware(branding) : {};
+            const brandAuthConfig = brandingAwareConfig.auth || {};
+            const aafConfig = brandAuthConfig.aaf || {};
+            const aafLoginUrl = aafConfig.loginUrl || '#';
+          %>
+          <a href='<%= aafLoginUrl %>'><img src='<%= BrandingService.getRootContext() %>/images/aaf_service_223x54.png' alt="<%= TranslationService.t('aaf-logo-alt-text') %>"/></a>
         </div>
       </div>
     </div>

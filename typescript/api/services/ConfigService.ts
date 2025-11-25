@@ -24,6 +24,7 @@ import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
 import {Services as appConfigServices} from "./AppConfigService"
 import {Services as brandingService} from "./BrandingService"
+import { glob } from 'fs';
 declare var sails: Sails;
 declare var _;
 declare var CacheEntry: Model;
@@ -45,10 +46,31 @@ export module Services {
     ];
 
     public getBrand(brandName:string, configBlock:string) {
-      let configVal = sails.config[configBlock][brandName];
+      const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default');
+      const resolveFromBrandingAware = (name: string) => {
+        if (_.isFunction(_.get(sails, 'config.brandingAware')) && !_.isEmpty(name)) {
+          const brandingConfig = sails.config.brandingAware(name);
+          const configVal = _.get(brandingConfig, configBlock);
+          if (!_.isUndefined(configVal)) {
+            return configVal;
+          }
+        }
+        return undefined;
+      };
+
+      let configVal = resolveFromBrandingAware(brandName);
       if (_.isUndefined(configVal)) {
-        brandName = sails.config.auth.defaultBrand;
-        configVal = sails.config[configBlock][brandName];
+        configVal = resolveFromBrandingAware(defaultBrand);
+      }
+      if (_.isUndefined(configVal)) {
+        configVal = _.get(sails.config.brandingConfigurationDefaults, configBlock);
+      }
+      if (_.isUndefined(configVal)) {
+        const legacyConfig = _.get(sails.config, configBlock, {});
+        configVal = _.get(legacyConfig, brandName);
+        if (_.isUndefined(configVal)) {
+          configVal = _.get(legacyConfig, defaultBrand);
+        }
       }
       return configVal;
     }
@@ -182,14 +204,19 @@ sails.log.verbose(`${hook_log_header}::Merging branded app configuration...compl
       let apiDirs = ["services"];
       _.each(apiDirs, (apiType) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
+        if (!sails[apiType]) {
+          sails[apiType] = {};
+        }
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
         if (!_.isEmpty(files)) {
           _.each(files, (file) => {
             const apiDef = require(file);
-            const apiElemName = _.toLower(basename(file, '.js'))
+            const globalName = basename(file, '.js')
+            const apiElemName = _.toLower(globalName)
             // TODO: deal with controllers or services in nested directories
             sails[apiType][apiElemName] = apiDef;
+            global[globalName] = apiDef;
           });
         }
       });

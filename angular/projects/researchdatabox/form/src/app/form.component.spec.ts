@@ -36,7 +36,7 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'hello world!'
+              value: 'hello world!'
             }
           },
           component: {
@@ -68,7 +68,7 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'trigger save exec'
+              value: 'trigger save exec'
             }
           },
           component: {
@@ -84,11 +84,11 @@ describe('FormComponent', () => {
     const spy = spyOn(formComponent, 'saveForm').and.stub();
 
     // Publish execute command after subscription is in place
-    bus.publish(createFormSaveExecuteEvent({ force: true, skipValidation: true, targetStep: 'S1' }));
+    bus.publish(createFormSaveExecuteEvent({ force: true, enabledValidationGroups: ["none"], targetStep: 'S1' }));
     fixture.detectChanges();
     await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith(true, 'S1', true);
+    expect(spy).toHaveBeenCalledWith(true, 'S1', ["none"]);
   });
 
   it('allows legacy callers to invoke saveForm directly (Task 17)', async () => {
@@ -105,7 +105,7 @@ describe('FormComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'legacy value'
+              value: 'legacy value'
             }
           },
           component: {
@@ -117,8 +117,8 @@ describe('FormComponent', () => {
 
     const { formComponent } = await createFormAndWaitForReady(formConfig);
     const submitSpy = spyOn(formComponent, 'saveForm').and.stub();
-    await formComponent.saveForm(true, 'legacy-step', true);
-    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step',  true);
+    await formComponent.saveForm(true, 'legacy-step', ["none"]);
+    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step',  ["none"]);
   });
 
 });

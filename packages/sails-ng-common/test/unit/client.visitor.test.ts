@@ -65,7 +65,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -103,8 +102,12 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_2',
@@ -156,7 +159,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -200,8 +202,12 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -231,13 +237,18 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'text_1',
                         component: {
                             class: 'SimpleInputComponent',
                         },
+                        model: {
+                            class: "SimpleInputModel",
+                            config: {
+                                validators: [{class: 'required'}]
+                            }
+                        }
                     },
                     {
                         name: 'text_2',
@@ -280,8 +291,12 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'text_1',
@@ -296,6 +311,12 @@ describe("Client Visitor", async () => {
                                 visible: true,
                             },
                         },
+                        model: {
+                            class: "SimpleInputModel",
+                            config: {
+                                validators: [{class: 'required'}]
+                            }
+                        }
                     },
                 ]
             }
@@ -311,7 +332,6 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',
@@ -427,8 +447,12 @@ describe("Client Visitor", async () => {
                     defaultComponentCssClasses: 'row',
                 },
                 editCssClasses: "redbox-form form",
-                skipValidationOnSave: false,
+                enabledValidationGroups: ["all"],
                 validators: [],
+                validationGroups: {
+                    all: {description: "Validate all fields with validators.", initialMembership: "all"},
+                    none: {description: "Validate none of the fields.", initialMembership: "none"},
+                },
                 componentDefinitions: [
                     {
                         name: 'repeatable_group_1',
@@ -446,7 +470,12 @@ describe("Client Visitor", async () => {
                                 visible: true,
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {}},
+                                    model: {
+                                        class: 'GroupModel',
+                                        config: {
+
+                                        }
+                                    },
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
@@ -541,7 +570,6 @@ describe("Client Visitor", async () => {
                 defaultComponentCssClasses: 'row',
             },
             editCssClasses: "redbox-form form",
-            skipValidationOnSave: false,
             componentDefinitions: [
                 {
                     name: 'text_2',
@@ -575,7 +603,7 @@ describe("Client Visitor", async () => {
         const constructed = constructor.start(formConfig, "edit");
 
         const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {metadata: {text_2: "text_2_value"}});
+        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {text_2: "text_2_value"});
         expect(actual).to.eql({});
     });
 });

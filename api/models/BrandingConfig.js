@@ -32,10 +32,15 @@ module.exports = {
     variables: { type: 'json', custom: validateVariablesMap },
     version: { type: 'number', defaultsTo: 0 },
     hash: { type: 'string', defaultsTo: '' },
-  // Logo metadata (nullable by omission; Waterline JSON attrs cannot use allowNull)
-  logo: { type: 'json' },
+    // Logo metadata (nullable by omission; Waterline JSON attrs cannot use allowNull)
+    logo: { type: 'json' },
     // Brand has many roles
-    roles: { collection: 'role', via: 'branding' }
+    roles: { collection: 'role', via: 'branding' },
+    // Support agreement properties - year-on-year information stored as JSON
+    supportAgreementInformation: {
+      type: 'json',
+      defaultsTo: {}
+    },
   },
   beforeCreate(values, proceed) {
     if (values.variables && _.isPlainObject(values.variables)) {

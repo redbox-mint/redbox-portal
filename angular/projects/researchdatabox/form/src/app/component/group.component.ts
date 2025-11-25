@@ -54,7 +54,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>){
     if (this.formControl && name && targetModel){
-      this.formControl.addControl(name, targetModel.getFormGroupEntry());
+      this.formControl.addControl(name, targetModel.getFormControl());
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
@@ -102,8 +102,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
     const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
     this.elementFormConfig = {
-      name: `form-config-generated-group-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
+      name: `form-config-generated-group-${formComponentName}`,
       // Store the child component definitions.
       componentDefinitions: groupComponentDefinitions,
       // Get the default config.
@@ -147,6 +148,14 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // TODO: is this necessary?
       if (elemFieldEntry) {
+        elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
+          this.formFieldCompMapEntry?.lineagePaths,
+          {
+            angularComponents: [key],
+            dataModel: [],
+            formConfig: [],
+          } 
+        )
         elemFieldEntry.componentRef = wrapperRef;
       }
     }

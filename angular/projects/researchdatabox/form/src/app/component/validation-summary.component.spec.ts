@@ -59,9 +59,9 @@ describe('ValidationSummaryFieldComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: '',
+              value: '',
               validators: [
-                { name: 'required' },
+                { class: 'required' },
               ]
             }
           },

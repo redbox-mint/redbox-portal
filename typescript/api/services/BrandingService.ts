@@ -56,7 +56,8 @@ export module Services {
       'preview',
       'fetchPreview',
       'publish',
-      'rollback'
+      'rollback',
+      'refreshBrandingCache'
     ];
 
     protected availableBrandings: any = []
@@ -287,7 +288,7 @@ export module Services {
     }
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
-    private async refreshBrandingCache(id: any) {
+    public async refreshBrandingCache(id: any) {
       const updated = await BrandingConfig.findOne({ id }).populate('roles');
       if (updated) {
         const idx = this.brandings.findIndex(b => b.id === id);

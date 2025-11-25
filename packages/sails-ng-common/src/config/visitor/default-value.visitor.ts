@@ -1,6 +1,5 @@
 import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {ConstructFormConfigVisitor} from "./construct.visitor";
+import {FormConfigOutline} from "../form-config.outline";
 import {set as _set, get as _get, mergeWith as _mergeWith} from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -127,11 +126,15 @@ export class DefaultValueFormConfigVisitor extends CurrentPathFormConfigVisitor 
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        // NOTES:
-        // - For each element in the default value array, build the component from any ancestor defaultValues.
-        // - The default in the elementTemplate is the default for *new* items, the template default doesn't create any array elements.
-        // - The easiest way to do this is to just not visit the elementTemplate.
-        // item.config?.elementTemplate?.accept(this);
+        // The default in the elementTemplate is the default for *new* items,
+        // the template default doesn't create any array elements.
+        // The easiest way to do this is to just not visit the elementTemplate.
+        // if (item.config?.elementTemplate) {
+        //     this.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+        // }
+        // (Note that the form config needs to include any elementTemplate defaultValue as the value,
+        // as the value is used when creating new items in the repeatable array.
+        // This is implemented in the client visitor.)
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {

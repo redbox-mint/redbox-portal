@@ -152,7 +152,7 @@ defaultForm
         |
         |- name
         |- type
-        |- skipValidationOnSave
+        |- enabledValidationGroups
         |- editCssClasses
         |- viewCssClasses
         |- messages
@@ -174,14 +174,14 @@ defaultForm
 
 The settings in this section control the behaviour of the entire form.
 
-| Field                | Description                                                                                                                                                                                                                                                                                                | Required               | Example                              |
-|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|--------------------------------------|
-| < form-name >        | The label name of the form, should match a "form" value in workflow.js for it to be used                                                                                                                                                                                                                   | Yes                    | rdmp-1.0-draft                       |
-| name                 |        The label name of the form. This should match the < form-name > value. form                                                                                                                                                                                                                                                                                                   | Yes                    | rdmp-1.0-draft                       |
-| skipValidationOnSave | When set to true, validation will only trigger when the record is submitted to change it's workflow state. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields. | No (defaults to false) | true                                 |
-| editCssClasses       | The css classes to apply to each element for styling. These are used in edit mode                                                                                                                                                                                                                          | Yes                    | row col-md-12                        |
-| viewCssClasses       | The css classes to apply to each element for styling. These are used in view mode                                                                                                                                                                                                                          | Yes                    | row col-md-12                        |
-| < message-code >       | A set of key value pairs containing messages to show to the user                                                                                                                                                                                                                                           | Yes                    | "saveSuccess": "Saved successfully." |
+| Field                   | Description                                                                                                                                                                                                                      | Required                 | Example                              |
+|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|--------------------------------------|
+| < form-name >           | The label name of the form, should match a "form" value in workflow.js for it to be used                                                                                                                                         | Yes                      | rdmp-1.0-draft                       |
+| name                    | The label name of the form. This should match the < form-name > value. form                                                                                                                                                      | Yes                      | rdmp-1.0-draft                       |
+| enabledValidationGroups | The validation groups to enable. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields. | No (defaults to ["all"]) | ["minimumCreate"]                    |
+| editCssClasses          | The css classes to apply to each element for styling. These are used in edit mode                                                                                                                                                | Yes                      | row col-md-12                        |
+| viewCssClasses          | The css classes to apply to each element for styling. These are used in view mode                                                                                                                                                | Yes                      | row col-md-12                        |
+| < message-code >        | A set of key value pairs containing messages to show to the user                                                                                                                                                                 | Yes                      | "saveSuccess": "Saved successfully." |
 
 ### Field configuration
 

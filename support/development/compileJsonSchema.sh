@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 cd packages/sails-ng-common
-npm install
+npm install --ignore-scripts --strict-peer-deps
 ./node_modules/.bin/ts-json-schema-generator \
   --path 'src/**/*.ts' \
   --type 'FormConfig' \
@@ -11,7 +11,7 @@ npm install
 cd -
 
 cd ../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom
-npm install
+npm install --ignore-scripts --strict-peer-deps
 ../../../../redbox-portal/packages/sails-ng-common/node_modules/.bin/ts-json-schema-generator \
   --path 'src/**/*.ts' \
   --type 'CustomFormConfig' \

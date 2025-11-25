@@ -26,18 +26,15 @@ headers {
 
 script:pre-request {
   req.setMaxRedirects(0);
-  const cookie = bru.getVar("cookie");
-    
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Welcome message in HTML", function () {
       // Testing login worked by looking for welcome message on page
       expect(res.getBody()).to.include("Test Exception");

@@ -11,7 +11,9 @@ import {
   FieldComponentDefinitionFrame,
   FieldLayoutDefinitionFrame,
   FieldLayoutConfigFrame,
-  FormFieldComponentStatus
+  FormFieldComponentStatus,
+  LineagePaths,
+  JSONataQuerySourceProperty
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
@@ -97,7 +99,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       // Create a method that children can override to prepare their state.
       await this.setComponentReady();
     } catch (error) {
-      this.loggerService.error(`${this.logName}: initialise component failed`, error);
+      this.loggerService.error(`${this.logName}: initialise component failed for '${name}':`, error);
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
@@ -453,7 +455,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get isRequired(): boolean {
-    return this.model?.validators?.some(v => v?.name === 'required') ?? false;
+    return this.model?.validators?.some(v => v?.class === 'required') ?? false;
   }
 
   get isValid(): boolean {
@@ -545,10 +547,8 @@ export interface FormFieldCompMapEntry {
   lineagePaths?: LineagePaths;
 }
 
-export type LineagePath = (string | number)[];
 
-export interface LineagePaths {
-  formConfig: LineagePath;
-  dataModel: LineagePath;
-  angularComponents: LineagePath;
+/** Specialised interface for querying. */
+export interface JSONataClientQuerySourceProperty extends JSONataQuerySourceProperty {
+  // Placeholder for additional client-specific properties can be added here in the future 
 }

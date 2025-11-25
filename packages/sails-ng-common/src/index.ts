@@ -22,6 +22,8 @@ export * from "./config/field.outline";
 export * from "./config/field.model";
 export * from "./config/base-field-component.outline";
 export * from "./config/base-field-component.model";
+export * from "./config/names/query-helpers";
+export * from "./config/names/naming-helpers";
 // config/visitor
 export * from "./config/visitor/base.outline";
 export * from "./config/visitor/base.model";
@@ -30,6 +32,7 @@ export * from "./config/visitor/construct.visitor";
 export * from "./config/visitor/default-value.visitor";
 export * from "./config/visitor/json-type-def.visitor";
 export * from "./config/visitor/template.visitor";
+export * from "./config/visitor/validator.visitor";
 // config/component
 export * from "./config/component/checkbox-input.model";
 export * from "./config/component/checkbox-input.outline";

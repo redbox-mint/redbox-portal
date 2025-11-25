@@ -292,7 +292,8 @@ export module Controllers {
             }
           }
 
-          let oidcConfig = _.get(sails.config, 'auth.default.oidc');
+          const branding = BrandingService.getBrandFromReq(req);
+          const oidcConfig = _.get(ConfigService.getBrand(branding, 'auth'), 'oidc', {});
           let errorMessage = _.get(err, 'message', err?.toString() ?? '');
 
           // Handle specific OIDC errors that should return 403 instead of 500

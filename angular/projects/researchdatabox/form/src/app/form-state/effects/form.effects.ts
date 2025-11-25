@@ -1,6 +1,6 @@
 /**
  * Form Effects
- * 
+ *
  * Handles side effects for form state operations with error sanitization and diagnostics.
  * Per R4.2–R4.7, R5.1–R5.4, R10.3, R11.1–R11.4
  */
@@ -25,28 +25,28 @@ export interface SubmitDriver {
 /**
  * Sanitizes errors into user-safe messages
  * Per R5.4, R11.1–R11.3
- * 
+ *
  * TODO: What is sensitive info? Enhance to remove this.
  */
 function sanitizeError(error: any): string {
   if (typeof error === 'string') {
     return error;
   }
-  
+
   if (error?.message) {
     return error.message;
   }
-  
+
   if (error?.error?.message) {
     return error.error.message;
   }
-  
+
   return 'An unexpected error occurred';
 }
 
 /**
  * FormEffects
- * 
+ *
  * Orchestrates load, submit, and reset side effects.
  * Per R5.1–R5.5
  */
@@ -67,10 +67,10 @@ export class FormEffects {
 
   /**
    * Load Initial Data Effect
-   * 
+   *
    * Handles initial form data loading with INIT guard.
    * Per R5.1, R5.2, R10.3
-   * 
+   *
    * TODO: This is a stub that returns mock success. In production,
    * this would call FormService.getModelData() or similar.
    */
@@ -98,7 +98,7 @@ export class FormEffects {
         //     return of(FormActions.loadInitialDataFailure({ error: sanitized }));
         //   })
         // );
-        
+
         // Stub implementation - returns empty data
         return of(FormActions.loadInitialDataSuccess({ data: {} }));
       }),
@@ -112,10 +112,10 @@ export class FormEffects {
 
   /**
    * Reset All Fields Effect
-   * 
+   *
    * Handles field reset completion.
    * Per R5.1, R2.10 (SAVING status gate handled by reducer)
-   * 
+   *
    * Note: The reducer already increments resetToken and gates during SAVING.
    * This effect just signals completion after a small delay to allow
    * field components to process the resetToken change.
@@ -149,7 +149,7 @@ export class FormEffects {
 
   /**
    * Log Success Actions
-   * 
+   *
    * Diagnostics logging for successful operations.
    * Per R11.4
    */
@@ -168,7 +168,7 @@ export class FormEffects {
 
   /**
    * Log Failure Actions
-   * 
+   *
    * Diagnostics logging for failed operations.
    * Per R11.4
    */
@@ -189,9 +189,9 @@ export class FormEffects {
    * Publish Execute Command on Submit
    *
    * Listens to submitForm and publishes form.save.execute to the EventBus carrying
-   * { force, skipValidation, targetStep }. Non-dispatching effect.
+   * { force, enabledValidationGroups, targetStep }. Non-dispatching effect.
    * Per R5.1, R15.3 (Task 14)
-   * 
+   *
    * TODO: Determine if we need to execute additional pluggable logic here in future.
    */
   publishSaveExecuteOnSubmit$ = createEffect(
@@ -203,7 +203,7 @@ export class FormEffects {
           this.eventBus.publish(
             createFormSaveExecuteEvent({
               force: action.force,
-              skipValidation: action.skipValidation,
+              enabledValidationGroups: action.enabledValidationGroups,
               targetStep: action.targetStep
             })
           );
