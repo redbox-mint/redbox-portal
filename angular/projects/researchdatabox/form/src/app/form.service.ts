@@ -19,7 +19,7 @@
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
 import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty,  merge as _merge} from 'lodash-es';
+import {isEmpty as _isEmpty,  merge as _merge, set as _set, isUndefined as _isUndefined, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
 import {
   StaticComponentClassMap,
   StaticModelClassMap,
@@ -37,6 +37,7 @@ import {
   LoggerService,
   TranslationService,
   UtilityService,
+  JSONataClientQuerySourceProperty
 } from '@researchdatabox/portal-ng-common';
 import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
@@ -47,12 +48,16 @@ import {
   FormValidatorSummaryErrors,
   ValidatorsSupport,
   LineagePaths,
+  JSONataQuerySource,
+  JSONataQuerySourceProperty,
   buildLineagePaths as buildLineagePathsHelper,
-  FormValidationGroups
+  queryJSONata,
+  getObjectWithJsonPointer
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
+
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
@@ -657,6 +662,138 @@ export class FormService extends HttpClientService {
     // Delegate to shared helper to keep existing FormService API intact.
     return buildLineagePathsHelper(base, more);
   }
+
+  /**
+   * Reshapes a FormFieldCompMapEntry into a JSONataClientQuerySourceProperty.
+   * 
+   * @param item 
+   * @returns 
+   */
+  public transformIntoJSONataProperty(item: FormFieldCompMapEntry): JSONataClientQuerySourceProperty {
+    if (!item) {
+      throw new Error(`${this.logName}: Cannot get JSONata property entry for null or undefined item.`);
+    }
+    const jsonPointer = item.lineagePaths?.angularComponentsJsonPointer;
+    const property: JSONataClientQuerySourceProperty = {
+      name: item.compConfigJson?.name,
+      lineagePaths: item.lineagePaths,
+      jsonPointer: jsonPointer,
+    };
+    const children = item?.component?.formFieldCompMapEntries || [];
+    if (!_isEmpty(children)) {
+      // recursively get the query source for the child items
+      property.children = [];
+      for (let childItem of children) {
+        const childPropertyEntry = this.transformIntoJSONataProperty(childItem);
+        property.children.push(childPropertyEntry);
+      }
+    }
+    return property;
+  }
+
+  /**
+   * Transforms a JSONata entry to a JSON Pointer friendly object.
+   * 
+   * @param jsonDoc - arbitrary object to build on
+   * @param formFieldEntry The form field entry associated with the JSONata entry.
+   * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
+   */
+  public transformJSONataEntryToJSONPointerSource(jsonDoc: Record<string, unknown>, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
+    const object: JSONataResultDoc = {
+      metadata: {
+        formFieldEntry: formFieldEntry,
+        component: formFieldEntry.component,
+        model: formFieldEntry.model,
+        lineagePaths: formFieldEntry.lineagePaths,
+        jsonPointer: jsonataEntry.jsonPointer
+      }
+    };
+    
+    // Recursively build the object structure if there are children
+    if (jsonataEntry.children && jsonataEntry.children.length > 0) { 
+      for (let i = 0; i < jsonataEntry.children.length; i++) {
+        const childEntry = jsonataEntry.children[i];
+        const childFormFieldEntry = formFieldEntry?.component?.formFieldCompMapEntries?.find(c => c.compConfigJson?.name === childEntry.name);
+        if (childFormFieldEntry) {
+          this.transformJSONataEntryToJSONPointerSource(object, childFormFieldEntry, childEntry);
+        }
+      }
+    } 
+    _set(jsonDoc, this.getPropertyNameFromJSONPointerAsNumber(jsonataEntry?.jsonPointer, jsonataEntry.name), object);
+    return jsonDoc;
+  }
+
+  /**
+   * Convenience method to get the property name from a JSON Pointer string as a number. Converts last part of the segment to number if possible, otherwise returns the default name. No, the name will not always be a number but conversion is prioritised as per JSON Pointer spec. 
+   * 
+   * @param jsonPointer 
+   * @param defaultName 
+   * @returns 
+   */
+  private getPropertyNameFromJSONPointerAsNumber(jsonPointer?: string, defaultName: string = ''): string {
+    // Intentionally rebuilding the array to decouple this logic from the source of the JSON Pointer data
+    const name = jsonPointer?.split('/').pop() || '';
+    const num = _toNumber(name);
+    return _isFinite(num) ? name : defaultName;
+  }
+
+  /**
+   * Reshapes a FormFieldCompMapEntry array into a JSONataQuerySource. Needed to prepare for JSONata queries.
+   * 
+   * @param origObject 
+   * @returns 
+   */
+  public getJSONataQuerySource(origObject: FormFieldCompMapEntry[]): JSONataQuerySource {
+    let queryDoc: JSONataQuerySourceProperty[] = [];
+    let jsonPointerSource: JSONataResultDoc = {};
+    // loop through each item in the original object and build the query source, index is important
+    for (let i = 0; i < origObject.length; i++) {
+      const item = origObject[i];
+      
+      const propertyEntry = this.transformIntoJSONataProperty(item);
+      queryDoc.push(propertyEntry);
+      this.transformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry);
+    }
+
+    const querySource: JSONataQuerySource = {
+      queryOrigSource: origObject,
+      querySource: queryDoc,
+      jsonPointerSource: jsonPointerSource
+    }
+    return querySource;
+  }
+
+  /**
+   * Queries a JSONata source using the provided expression. Returns an array of FormFieldCompMapEntry objects
+   * corresponding to the results, or, if `returnPointerOnly` is true, returns only the JSON pointer strings.
+   * 
+   * @param jsonataSource The JSONataQuerySource to query.
+   * @param jsonataExpression The JSONata expression to evaluate.
+   * @param returnPointerOnly If true, only the JSON pointer strings are returned. Defaults to false.
+   * @returns A Promise resolving to either an array of FormFieldCompMapEntry objects or JSON pointer strings.
+   */
+  public async queryJSONataSource(
+    jsonataSource: JSONataQuerySource,
+    jsonataExpression: string,
+    returnPointerOnly: boolean = false
+  ): Promise<FormFieldCompMapEntry[] | unknown> {
+    const queryRes = await queryJSONata(
+      jsonataSource,
+      jsonataExpression
+    ); 
+    if (returnPointerOnly) {
+      return queryRes;
+    }
+    // Return an object/array of FormFieldCompMapEntry based on the JSON pointer result
+    const returnArr: FormFieldCompMapEntry[] = [];
+    if (Array.isArray(queryRes)) {
+      for (let result of queryRes) {
+        const obj = getObjectWithJsonPointer(jsonataSource.jsonPointerSource, result.jsonPointer);
+        returnArr.push(obj?.metadata?.formFieldEntry);
+      }
+    } 
+    return returnArr;
+  }
 }
 
 /**
@@ -685,3 +822,11 @@ export class FormComponentsMap {
     this.withFormControl = undefined;
   }
 }
+
+/**
+ * Internal interface for resulting document from JSONata query with metadata. This will not be returned to consumers.
+ */
+interface JSONataResultDoc {
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;   
+}  
