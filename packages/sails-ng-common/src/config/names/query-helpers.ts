@@ -21,13 +21,11 @@
 /**
  * Helpers for querying components using JSONata.
  * 
- * Note: these functions are intended to be generic and reusable across contexts, i.e. server and client-side. Further specialisation maybe required to be more useful in the specific context.
+ * Note: these functions are intended to be generic and reusable across contexts, i.e. server and client-side. Further specialisation may be required to be more useful in the specific context.
  */
 
 import { LineagePaths } from "./naming-helpers";
 import jsonata from "jsonata";
-import { includes as _includes } from "lodash"; 
-
 /**
  * Entry representing a property in the JSONata query source tree.  This must have no circular references, see: https://docs.jsonata.org/next/embedding-extending#expressionevaluateinput-bindings-callback
  */
@@ -52,7 +50,6 @@ export interface JSONataQuerySource {
  * TODO: Consider trimming more properties that are not needed querying.
  * 
  * @param obj 
- * @param filters 
  * @returns 
  */
 export function decycleObjectForJSONata(obj: any): any {
