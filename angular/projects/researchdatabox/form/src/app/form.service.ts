@@ -695,7 +695,7 @@ export class FormService extends HttpClientService {
    * Transforms a JSONata entry to a JSON Pointer friendly object.
    * 
    * @param jsonDoc - arbitrary object to build on
-   * @param formFieldEntry 
+   * @param formFieldEntry The form field entry to use as the source for metadata and structure.  
    */
   public transformJSONataEntryToJSONPointerSource(jsonDoc: object, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
     const object: JSONataResultDoc = {
@@ -718,18 +718,18 @@ export class FormService extends HttpClientService {
         }
       }
     } 
-    _set(jsonDoc, this.getPropertyNameFromJSONPointer(jsonataEntry?.jsonPointer, jsonataEntry.name), object);
+    _set(jsonDoc, this.getPropertyNameFromJSONPointerAsNumber(jsonataEntry?.jsonPointer, jsonataEntry.name), object);
     return jsonDoc;
   }
 
   /**
-   * Convenience method to get the property name from a JSON Pointer string. Converts last part of the segment to number if possible.
+   * Convenience method to get the property name from a JSON Pointer string as a number. Converts last part of the segment to number if possible, otherwise returns the default name. No, the name will not always be a number but conversion is prioritised as per JSON Pointer spec. 
    * 
    * @param jsonPointer 
    * @param defaultName 
    * @returns 
    */
-  private getPropertyNameFromJSONPointer(jsonPointer?: string, defaultName: string = ''): string {
+  private getPropertyNameFromJSONPointerAsNumber(jsonPointer?: string, defaultName: string = ''): string {
     // Intentionally rebuilding the array to decouple this logic from the source of the JSON Pointer data
     const name = jsonPointer?.split('/').pop() || '';
     const num = _toNumber(name);
