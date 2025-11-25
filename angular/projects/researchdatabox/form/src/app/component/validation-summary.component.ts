@@ -27,7 +27,7 @@ import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@resea
                   <a [attr.href]="'#' + summary.id">{{ getSummaryLabel(summary) }}</a>
                 }
                 @else {
-                  <span>{{ getSummaryLabel(summary) }}</span>
+                  <span>{{ getSummaryLabel(summary) | i18next }}</span>
                 }
                 <ul>
                   @for (error of summary.errors; track error.class ?? $index) {
