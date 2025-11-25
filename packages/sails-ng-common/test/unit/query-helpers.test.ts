@@ -1,7 +1,11 @@
 import { decycleObjectForJSONata, queryJSONata, JSONataQuerySource } from '../../src/';
 
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+
+before(async () => {
+  const chai = await import('chai');
+  expect = chai.expect;
+});
 
 describe('query-helpers', () => {
   describe('decycleObject', () => {

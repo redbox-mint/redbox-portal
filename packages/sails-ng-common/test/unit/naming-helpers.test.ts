@@ -6,7 +6,11 @@ import {
 } from '../../src';
 
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+
+before(async () => {
+  const chai = await import('chai');
+  expect = chai.expect;
+});
 
 describe('Naming Helpers: buildLineagePaths', () => {
   it('merges base and more path segments and computes angularComponentsJsonPointer', () => {
