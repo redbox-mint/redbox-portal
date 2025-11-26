@@ -66,7 +66,7 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {PopulateProperties} from "./helpers.outline";
+import {PopulatePropertiesHelper} from "./helpers";
 
 
 /**
@@ -75,11 +75,11 @@ import {PopulateProperties} from "./helpers.outline";
 export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     protected logName = "FormConfigVisitor";
     protected logger: ILogger;
-    protected sharedProps: PopulateProperties;
+    protected sharedProps: PopulatePropertiesHelper;
 
     protected constructor(logger: ILogger) {
         this.logger = logger;
-        this.sharedProps = new PopulateProperties();
+        this.sharedProps = new PopulatePropertiesHelper();
     }
 
     /* Form Config */

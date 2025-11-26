@@ -17,7 +17,7 @@ import {
 } from "../component/checkbox-input.outline";
 import {RadioInputComponentName, RadioInputFormComponentDefinitionFrame} from "../component/radio-input.outline";
 import {DateInputComponentName, DateInputFormComponentDefinitionFrame} from "../component/date-input.outline";
-import {PopulateProperties} from "./helpers.outline";
+import {PopulatePropertiesHelper} from "./helpers";
 
 /**
  * The type that specifies the known transformations.
@@ -43,7 +43,7 @@ export type DefaultTransformsType = Partial<{
 }>;
 
 export class ConstructOverrides {
-    protected sharedProps: PopulateProperties;
+    protected sharedProps: PopulatePropertiesHelper;
 
     // Create a way for the server to provide the model data to components with no model.
     // Create a way for a client-side component to accept model data when it doesn't have a model.
@@ -115,7 +115,7 @@ export class ConstructOverrides {
     }
 
     constructor() {
-        this.sharedProps = new PopulateProperties();
+        this.sharedProps = new PopulatePropertiesHelper();
     }
 
 

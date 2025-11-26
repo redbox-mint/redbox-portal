@@ -61,8 +61,6 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormModesConfig} from "../shared.outline";
-import {FormConfigOutline} from "../form-config.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -74,42 +72,6 @@ export interface CanVisit {
     accept(visitor: FormConfigVisitorOutline): void;
 }
 
-// TODO: the visitor start interfaces actually don't make much sense, remove them and use the props in the method signature directly.
-
-/**
- * Interface for starting a visitor with a constructed form.
- */
-export interface VisitorStartConstructed {
-    /**
-     * The constructed form.
-     */
-    form: FormConfigOutline;
-}
-
-/**
- * Interface for starting a visitor with values to match to constraints
- * and record values or to use the form default values.
- */
-export interface VisitorStartCurrentRecordValues {
-    /**
-     * The currently active form mode.
-     */
-    formMode?: FormModesConfig;
-    /**
-     * The current user's roles.
-     */
-    userRoles?: string[];
-    /**
-     * The record values.
-     * Don't provide useFormDefaults or set to false when providing the record.
-     */
-    record?: Record<string, unknown>;
-    /**
-     * Whether to use the form defaults.
-     * Don't provide the record when setting useFormDefaults to true.
-     */
-    useFormDefaults?: boolean,
-}
 
 /**
  * Visitors must implement this structure.

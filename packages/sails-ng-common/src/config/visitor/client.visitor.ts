@@ -72,11 +72,11 @@ import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {VisitorStartCurrentRecordValues, VisitorStartConstructed} from "./base.outline";
 import {FormConfig} from "../form-config.model";
 import {FormConfigVisitor} from "./base.model";
-import {CurrentPathHelper} from "./helpers.outline";
-import {CurrentRecordValuesHelper} from "./helpers.model";
+import {FormModesConfig} from "../shared.outline";
+import {TemplateCompileKey} from "../../template.outline";
+import {CanVisit} from "./base.outline";
 
 /**
  * The details needed to evaluate the constraint config.
@@ -104,52 +104,84 @@ export type NameConstraints = {
  * - generates client-side fields that are constructed from the server-side fields
  * - populate the value from the defaultValue properties if no record or the provided record metadata
  *
- * TODO:
- * - use the field component config property 'defaultComponentCssClasses' to set the component css classes, then remove the property
- * - use the form config property 'defaultLayoutComponent' to set the default layout, then remove the property
- * - use the form config property 'defaultComponentConfig' to set the default component config, then remove the property
- * - use the various 'viewCssClasses' and 'editCssClasses' to set the css classes depending on the form mode, then remove these properties
- * - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
+ * TODO: future improvements to the client form config visitor:
+ *  - use the field component config property 'defaultComponentCssClasses' to set the component css classes, then remove the property
+ *  - use the form config property 'defaultLayoutComponent' to set the default layout, then remove the property
+ *  - use the form config property 'defaultComponentConfig' to set the default component config, then remove the property
+ *  - use the various 'viewCssClasses' and 'editCssClasses' to set the css classes depending on the form mode, then remove these properties
+ *  - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
  */
 export class ClientFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "ClientFormConfigVisitor";
 
-    private result: FormConfigOutline;
+    private formMode: FormModesConfig;
+    private userRoles: string[];
+    private recordValues: Record<string, unknown> | null;
+
+    private formConfigPath: TemplateCompileKey;
     private constraintPath: NameConstraints[];
 
-    private currentPathHelper: CurrentPathHelper;
-    private currentRecordValuesHelper: CurrentRecordValuesHelper;
+    private clientFormConfig: FormConfigOutline;
 
     constructor(logger: ILogger) {
         super(logger);
-        this.result = new FormConfig();
+
+        this.formMode = "view";
+        this.userRoles = [];
+        this.recordValues = null;
+
+        this.formConfigPath = [];
         this.constraintPath = [];
 
-        this.currentPathHelper = new CurrentPathHelper(logger, this);
-        this.currentRecordValuesHelper = new CurrentRecordValuesHelper(logger);
+        this.clientFormConfig = new FormConfig();
     }
 
-    start(options: VisitorStartConstructed & VisitorStartCurrentRecordValues) {
-        this.currentPathHelper.resetCurrentPath();
+    start(options: {
+        form: FormConfigOutline;
+        formMode?: FormModesConfig;
+        userRoles?: string[];
+        record?: Record<string, unknown>;
+    }) {
+        this.formMode = options.formMode ?? "view";
+        this.userRoles = options.userRoles ?? [];
+        this.recordValues = options.record ?? {};
 
-        this.currentRecordValuesHelper.start({
-            form: options.form,
-            formMode: options.formMode,
-            userRoles: options.userRoles,
-            record: options.record,
-            useFormDefaults: options.useFormDefaults
-        });
-
+        this.formConfigPath = [];
         this.constraintPath = [];
-        this.result = options.form;
-        this.result.accept(this);
+
+        // // Get the record values to use.
+        // if (this.useFormDefaults && (options.record === null || options.record === undefined)) {
+        //     if (!options.form) {
+        //         throw new Error(`${this.logName}: Options indicate to use form defaults, but no form was provided.`);
+        //     }
+        //     // Use the defaultValues from the form config as the record values.
+        //     this.useFormDefaults = true;
+        //     const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
+        //     this.recordValues = defaultValueVisitor.start({form: options.form});
+        // } else if (!this.useFormDefaults && options.record !== null && options.record !== undefined) {
+        //     // The current record data
+        //     this.useFormDefaults = false;
+        //     this.recordValues = options.record;
+        // } else if (!this.useFormDefaults && (options.record === null || options.record === undefined)) {
+        //     // Don't use any default values
+        //     this.useFormDefaults = false;
+        //     this.recordValues = null;
+        // } else {
+        //     throw new Error(`${this.logName}: Conflicting options for record and useFormDefaults: ${JSON.stringify({
+        //         useFormDefaults: options.useFormDefaults,
+        //         record: options.record
+        //     })}`);
+        // }
+
+        this.clientFormConfig = options.form;
+        this.clientFormConfig.accept(this);
 
         // for debugging:
         // this.logger.verbose(`${this.logName}: built client form config from record ${JSON.stringify({
         //     form, formMode, userRoles,
         // })}`);
 
-        return this.result;
+        return this.clientFormConfig;
     }
 
     visitFormConfig(item: FormConfigOutline): void {
@@ -158,7 +190,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const that = this;
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
         item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
 
@@ -180,13 +212,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -197,13 +223,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -213,7 +233,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         this.processFieldComponentDefinition(item);
 
         if (item.config?.elementTemplate) {
-            this.currentPathHelper.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+            this.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
         }
     }
 
@@ -226,13 +246,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if the element template is empty, this is an invalid component
@@ -249,13 +263,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -268,7 +276,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const that = this;
         (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
         if (item.config) {
             item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
@@ -280,13 +288,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if there are no components, this is an invalid component
@@ -303,7 +305,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -312,13 +314,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if there are no tabs, this is an invalid component
@@ -335,7 +331,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -344,13 +340,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if there are no components, this is an invalid component
@@ -367,13 +357,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -388,13 +372,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -415,13 +393,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -436,13 +408,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -457,13 +423,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -478,13 +438,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.currentPathHelper.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -533,7 +487,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected isAllowedByUserRoles(): boolean {
-        const currentUserRoles = Array.from(new Set(this.currentRecordValuesHelper.userRoles.filter(i => !!i)));
+        const currentUserRoles = Array.from(new Set(this.userRoles.filter(i => !!i)));
         const constraints = this.constraintPath
         const requiredRoles = Array.from(new Set(constraints
             ?.map(b => b?.constraints?.authorization?.allowRoles ?? [])
@@ -558,7 +512,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected isAllowedByFormMode(): boolean {
-        const currentContextMode = this.currentRecordValuesHelper.formMode;
+        const currentContextMode = this.formMode;
         const constraints = this.constraintPath;
         const requiredModes = Array.from(new Set(constraints
             ?.map(b => b?.constraints?.allowModes ?? [])
@@ -579,10 +533,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         return isAllowed;
     }
 
-    protected acceptCheckConstraintsCurrentPath(
-        item: AvailableFormComponentDefinitionOutlines,
-        action: () => void,
-    ) {
+    protected acceptCheckConstraintsCurrentPath(item: AvailableFormComponentDefinitionOutlines) {
         const currentConstraintPath = [...this.constraintPath];
         try {
             // add constraints to constraintPath before and after processing components
@@ -604,7 +555,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             const allowedByUserRoles = this.isAllowedByUserRoles();
             const allowedByFormMode = this.isAllowedByFormMode();
             if (allowedByUserRoles && allowedByFormMode) {
-                action();
+                this.acceptFormComponentDefinition(item);
             } else {
                 this.removePropsAll(item)
             }
@@ -616,8 +567,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
+    // TODO: the model.config.value is set in the construct visitor, so should not be set again here.
     protected setModelValue(item: FieldModelDefinition<unknown>) {
-        // TODO: move the pieces that set the `model.config.value` to the construct visitor.
         if (item?.config?.value !== undefined) {
             throw new Error(`${this.logName} - in the field model config '{config:{value: "[some value]"}}', 'value' is for the client only, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
         }
@@ -628,7 +579,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         }
 
         // Set the config value from the record values.
-        const rawRecordValues = this.currentRecordValuesHelper.recordValues
+        const rawRecordValues = this.recordValues
         const recordValues = rawRecordValues && _isPlainObject(rawRecordValues) ? rawRecordValues : {};
         const path = this.constraintPath?.filter(i => !!i && i.model)?.map(i => i?.name) ?? [];
         const value = _get(recordValues, path, undefined);
@@ -649,5 +600,42 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             return false;
         }
         return Object.keys(item).length > 0;
+    }
+
+    /**
+     * Call accept on the provided item and set the current path with the given suffix.
+     * Set the current path to the previous value after the accept method is done.
+     * @param item The item to visit.
+     * @param suffixPath The path to add to the end of the current path.
+     */
+    protected acceptCurrentPath(item: CanVisit, suffixPath: string[]): void {
+        const itemCurrentPath = [...(this.formConfigPath ?? [])];
+        try {
+            this.formConfigPath = [...itemCurrentPath, ...(suffixPath ?? [])];
+
+            // for debugging
+            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
+
+            item.accept(this);
+        } catch (error) {
+            // rethrow error - the finally block will ensure the currentPath is correct
+            throw error;
+        } finally {
+            this.formConfigPath = itemCurrentPath;
+        }
+    }
+
+    /**
+     * Call accept on the properties of the form component definition outline that can be visited.
+     * @param item The form component definition outline.
+     */
+    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
+        this.acceptCurrentPath(item.component, ['component']);
+        if (item.model) {
+            this.acceptCurrentPath(item.model, ['model']);
+        }
+        if (item.layout) {
+            this.acceptCurrentPath(item.layout, ['layout']);
+        }
     }
 }

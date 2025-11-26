@@ -1,9 +1,10 @@
-import { FormConfigVisitor} from "./base.model";
+import {FormConfigVisitor} from "./base.model";
 import {FormConfigOutline} from "../form-config.outline";
 import {set as _set} from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
-    SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline
+    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFormComponentDefinitionOutline
 } from "../component/simple-input.outline";
 import {
     ContentFieldComponentDefinitionOutline,
@@ -12,7 +13,8 @@ import {
 import {
     RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline, RepeatableFormComponentDefinitionOutline
+    RepeatableFieldModelDefinitionOutline,
+    RepeatableFormComponentDefinitionOutline
 } from "../component/repeatable.outline";
 import {
     ValidationSummaryFieldComponentDefinitionOutline,
@@ -30,7 +32,8 @@ import {
 } from "../component/tab.outline";
 import {
     TabContentFieldComponentDefinitionOutline,
-    TabContentFieldLayoutDefinitionOutline, TabContentFormComponentDefinitionOutline
+    TabContentFieldLayoutDefinitionOutline,
+    TabContentFormComponentDefinitionOutline
 } from "../component/tab-content.outline";
 import {
     SaveButtonFieldComponentDefinitionOutline,
@@ -38,31 +41,35 @@ import {
 } from "../component/save-button.outline";
 import {
     TextAreaFieldComponentDefinitionOutline,
-    TextAreaFieldModelDefinitionOutline, TextAreaFormComponentDefinitionOutline
+    TextAreaFieldModelDefinitionOutline,
+    TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
 import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline
+    CheckboxInputFieldModelDefinitionOutline,
+    CheckboxInputFormComponentDefinitionOutline
 } from "../component/checkbox-input.outline";
 import {
     DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline
+    DropdownInputFieldModelDefinitionOutline,
+    DropdownInputFormComponentDefinitionOutline
 } from "../component/dropdown-input.outline";
 import {
     RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
+    RadioInputFieldModelDefinitionOutline,
+    RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
 import {
     DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
+    DateInputFieldModelDefinitionOutline,
+    DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {guessType} from "../helpers";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {VisitorStartConstructed} from "./base.outline";
-import {CurrentPathHelper} from "./helpers.outline";
+import {CanVisit} from "./base.outline";
 
 
 /**
@@ -72,37 +79,38 @@ import {CurrentPathHelper} from "./helpers.outline";
  */
 export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "JsonTypeDefSchemaFormConfigVisitor";
-    private result: Record<string, unknown>;
-    private resultPath: string[];
 
-    private currentPathHelper: CurrentPathHelper;
+    private formConfigPath: string[];
+    private jsonTypeDefPath: string[];
+
+    private jsonTypeDef: Record<string, unknown>;
 
     constructor(logger: ILogger) {
         super(logger);
-        this.result = {};
-        this.resultPath = [];
 
-        this.currentPathHelper = new CurrentPathHelper(logger, this);
+        this.formConfigPath = [];
+        this.jsonTypeDefPath = [];
+
+        this.jsonTypeDef = {};
     }
 
-    start(options: VisitorStartConstructed): Record<string, unknown> {
-        this.currentPathHelper.resetCurrentPath();
-        this.result = {};
-        this.resultPath = [];
+    start(options: { form: FormConfigOutline }): Record<string, unknown> {
+        this.formConfigPath = [];
+        this.jsonTypeDefPath = [];
+
+        this.jsonTypeDef = {};
+
         options.form.accept(this);
-        return this.result;
+        return this.jsonTypeDef;
     }
 
     /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
-        const that = this;
-        this.acceptCurrentResultPath(function () {
-            (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-                // Visit children
-                that.currentPathHelper.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
-            });
-        }, ["properties"]);
+        (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            // Visit children
+            this.acceptJsonTypeDefPath(componentDefinition, ["componentDefinitions", index.toString()], ["properties"]);
+        });
     }
 
     /* SimpleInput */
@@ -130,13 +138,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCurrentResultPath(function () {
-            item.config?.elementTemplate?.accept(that);
-        }, ["elements"]);
+        if (item.config?.elementTemplate) {
+            this.acceptJsonTypeDefPath(item.config?.elementTemplate, ["config", "elementTemplate"], ["elements"]);
+        }
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
+        // Build the json type def from the component instead of model for repeatable.
         // this.setFromModelDefinition(item);
     }
 
@@ -159,16 +167,14 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     /* Group */
 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCurrentResultPath(function () {
-            (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-                // Visit children
-                that.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
-            });
-        }, ["properties"]);
+        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            // Visit children
+            this.acceptJsonTypeDefPath(componentDefinition, ["config", "componentDefinitions", index.toString()], ["properties"]);
+        });
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+        // Build the json type def from the component instead of model for group.
         // this.setFromModelDefinition(item);
     }
 
@@ -181,7 +187,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -197,7 +203,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.currentPathHelper.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -292,33 +298,66 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
         if (item?.config?.defaultValue !== undefined) {
             // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-            _set(this.result, this.resultPath, {type: guessType(item?.config?.defaultValue)});
+            _set(this.jsonTypeDef, this.jsonTypeDefPath, {type: guessType(item?.config?.defaultValue)});
         } else {
             // default to a type of string
-            _set(this.result, this.resultPath, {type: "string"});
+            _set(this.jsonTypeDef, this.jsonTypeDefPath, {type: "string"});
         }
     }
 
+    /**
+     * Call accept on the properties of the form component definition outline that can be visited.
+     * @param item The form component definition outline.
+     * @protected
+     */
     protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
-        const itemResultPath = [...this.resultPath];
-        if (item.model && item.name) {
-            this.resultPath = [...itemResultPath, item.name];
+        const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
+
+        this.acceptJsonTypeDefPath(item.component, ['component'], jsonTypeDefPathKeys);
+        if (item.model) {
+            this.acceptJsonTypeDefPath(item.model, ['model'], jsonTypeDefPathKeys);
         }
-        this.currentPathHelper.acceptFormComponentDefinition(item);
-        this.resultPath = [...itemResultPath];
+        if (item.layout) {
+            this.acceptJsonTypeDefPath(item.layout, ['layout'], jsonTypeDefPathKeys);
+        }
     }
 
-    protected acceptCurrentResultPath(action: () => void, keys: string[]): void {
-        const theCurrentPath = [...(this.resultPath ?? [])];
+    protected acceptJsonTypeDefPath(item: CanVisit, formConfigPathKeys: string[], jsonTypeDefPathKeys: string[]): void {
+        const originalPath = [...this.jsonTypeDefPath];
         try {
-            this.resultPath = [...theCurrentPath, ...(keys ?? [])];
-            _set(this.result, this.resultPath, {});
-            action();
+            this.jsonTypeDefPath = [...originalPath, ...jsonTypeDefPathKeys];
+            // _set(this.result, this.resultPath, {});
+            this.acceptFormConfigPath(item, formConfigPathKeys);
         } catch (error) {
-            // rethrow error - the finally block will ensure the resultPath is correct
+            // rethrow error - the finally block will ensure the currentPath is correct
             throw error;
         } finally {
-            this.resultPath = [...theCurrentPath];
+            this.jsonTypeDefPath = originalPath;
         }
     }
+
+    /**
+     * Call accept on the provided item and set the current path with the given suffix.
+     * Set the current path to the previous value after the accept method is done.
+     * @param item The item to visit.
+     * @param suffixPath The path keys to add at the end of the current path.
+     * @protected
+     */
+    protected acceptFormConfigPath(item: CanVisit, suffixPath: string[]): void {
+        const originalPath = [...(this.formConfigPath ?? [])];
+        try {
+            this.formConfigPath = [...originalPath, ...(suffixPath ?? [])];
+
+            // for debugging
+            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
+
+            item.accept(this);
+        } catch (error) {
+            // rethrow error - the finally block will ensure the currentPath is correct
+            throw error;
+        } finally {
+            this.formConfigPath = originalPath;
+        }
+    }
+
 }
