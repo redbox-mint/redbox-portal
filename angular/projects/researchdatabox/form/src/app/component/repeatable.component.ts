@@ -13,6 +13,7 @@ import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {DefaultLayoutComponent} from "./default-layout.component";
+import { createFormDefinitionChangedEvent, FormComponentEventBus } from '../form-state';
 
 /**
  * Repeatable Form Field Component
@@ -49,6 +50,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
 
   private newElementFormConfig?: FormConfigFrame;
+  private readonly eventBus = inject(FormComponentEventBus);
 
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
@@ -149,10 +151,15 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         angularComponents: [`${index}`],
         dataModel: [],
         formConfig: [],
-      }
-    );
+      });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }
+    // Every time the lineage paths are rebuilt, the form definition has essentially changed. Sending an event to notify listeners.
+    this.eventBus.publish(
+      createFormDefinitionChangedEvent({
+        sourceId: this.formFieldConfigName() || undefined
+      })
+    );
   }
 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {

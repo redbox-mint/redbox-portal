@@ -28,6 +28,13 @@ export interface FieldValueChangedEvent extends FormComponentEventBase {
 }
 
 /**
+ * Form definition changed event - a specialized event for notifying changes to the form definition (e.g. repeatable elements, etc. ). It is primarily used to rebuild the query source.
+ */
+export interface FormDefinitionChangedEvent extends FormComponentEventBase {
+  readonly type: 'form.definition.changed';
+}
+
+/**
  * Field metadata changed event
  * Published when field metadata (visibility, enabled state, etc.) changes
  */
@@ -114,6 +121,7 @@ export interface FormSaveFailureEvent extends FormComponentEventBase {
 export type FormComponentEvent =
   | FieldValueChangedEvent
   | FieldMetaChangedEvent
+  | FormDefinitionChangedEvent
   | FieldDependencyTriggerEvent
   | FieldFocusRequestEvent
   | FormValidationBroadcastEvent
@@ -128,6 +136,7 @@ export type FormComponentEvent =
 export const FormComponentEventType = {
   FIELD_VALUE_CHANGED: 'field.value.changed' as const,
   FIELD_META_CHANGED: 'field.meta.changed' as const,
+  FORM_DEFINITION_CHANGED: 'form.definition.changed' as const,
   FIELD_DEPENDENCY_TRIGGER: 'field.dependency.trigger' as const,
   FIELD_FOCUS_REQUEST: 'field.request.focus' as const,
   FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const,
@@ -143,6 +152,7 @@ export const FormComponentEventType = {
 export interface FormComponentEventMap {
   'field.value.changed': FieldValueChangedEvent;
   'field.meta.changed': FieldMetaChangedEvent;
+  'form.definition.changed': FormDefinitionChangedEvent;
   'field.dependency.trigger': FieldDependencyTriggerEvent;
   'field.request.focus': FieldFocusRequestEvent;
   'form.validation.broadcast': FormValidationBroadcastEvent;
@@ -189,6 +199,18 @@ export function createFieldMetaChangedEvent(
 ): FormComponentEventResult<FieldMetaChangedEvent> {
   return createEventResult<FieldMetaChangedEvent>(
     FormComponentEventType.FIELD_META_CHANGED,
+    options
+  );
+}
+
+/**
+ * Helper factory for creating form definition changed events
+ */
+export function createFormDefinitionChangedEvent(
+  options: FormComponentEventOptions<FormDefinitionChangedEvent>
+): FormComponentEventResult<FormDefinitionChangedEvent> {
+  return createEventResult<FormDefinitionChangedEvent>(
+    FormComponentEventType.FORM_DEFINITION_CHANGED,
     options
   );
 }

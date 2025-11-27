@@ -1,8 +1,9 @@
 import { AbstractControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldValueChangedEvent } from './form-component-event.types';
+import { inject } from '@angular/core';
 
 export interface FormComponentChangeEventProducerOptions {
 	component: FormFieldBaseComponent<unknown>;
@@ -28,6 +29,7 @@ export class FormComponentChangeEventProducer {
 	private scopedBus?: ScopedEventBus;
 	private fieldId?: string;
 	private previousValue: unknown;
+	protected loggerService: LoggerService = inject(LoggerService);
 
 	constructor(eventBus: FormComponentEventBus) {
 		this.eventBus = eventBus;
@@ -40,14 +42,15 @@ export class FormComponentChangeEventProducer {
 	bind(options: FormComponentChangeEventProducerOptions): void {
 		this.destroy();
 
-			const control: AbstractControl | undefined =
-				options.definition?.model?.formControl ?? options.component.model?.formControl;
+		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
 		if (!control) {
+			this.loggerService.warn(`FormComponentChangeEventProducer: No form control found for component '${options.component.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 
 		const fieldId = this.resolveFieldId(options);
 		if (!fieldId) {
+			this.loggerService.warn(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 

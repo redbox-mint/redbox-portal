@@ -113,12 +113,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     // Initialise the component.
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
 
+    // Bind the change event producer if applicable.
     if (this.shouldAttachChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
       this.changeEventProducer.bind({
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
     }
+    
     this.loggerService.debug(`${this.logName}: Finished initComponent for '${name}'.`, this.formFieldCompMapEntry);
 
     // Set the host binding CSS classes for the wrapper element.

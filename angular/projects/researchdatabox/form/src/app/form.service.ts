@@ -64,8 +64,7 @@ declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinit
 
 /**
  *
- * FormService
- * - retrieves form configuration
+ * Responsible for retrieving form configuration and building form components.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *

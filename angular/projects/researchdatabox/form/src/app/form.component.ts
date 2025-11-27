@@ -34,7 +34,7 @@ import { Location, LocationStrategy, PathLocationStrategy } from '@angular/commo
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
-import { FormStatus, FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormStatus, FormConfigFrame, JSONataQuerySource } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
@@ -180,7 +180,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       children: []
   };
 
-
+  componentDefQuerySource?: JSONataQuerySource;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -214,45 +214,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
     // Expressions
-    effect(() => {
-      if (this.componentsLoaded()) {
-        this.registerUpdateExpression();
-      }
-    });
+    // effect(() => {
+    //   if (this.componentsLoaded()) {
+    //     this.registerUpdateExpression();
+    //   }
+    // });
 
-    // This is needed to update the debugging info when form status changes.
-    effect(() => {
-      this.getDebugInfo();
-    });
+    this.initEffects();
 
-    // Monitor async validation state and dispatch actions (R16.3, AC56)
-    effect(() => {
-      const formGroupStatus = this.formGroupStatus();
-      const formGroupIsPending = formGroupStatus?.pending || false;
-      const formGroupWasPending = this.previousFormGroupStatus()?.pending || false;
-      const formGroupIsValid = formGroupStatus?.valid || false;
-      const formGroupWasValid = this.previousFormGroupStatus()?.valid || false;
-      const formIsSaving = this.status() === FormStatus.SAVING;
 
-      // Dispatch validation lifecycle actions instead of direct status mutation
-      // Ignore if saving is in progress
-      if (!formIsSaving) {
-        // If validation is pending
-        if (formGroupIsPending && !formGroupWasPending) {
-          this.store.dispatch(FormActions.formValidationPending());
-        }
-        // If validation completed
-        if (!formGroupIsPending) {
-          if (!formGroupIsValid && formGroupWasValid) {
-            this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
-          }
-          if (formGroupIsValid && !formGroupWasValid) {
-            this.store.dispatch(FormActions.formValidationSuccess());
-          }
-        }
-      }
-      this.previousFormGroupStatus.set(formGroupStatus);
-    });
+    
   }
 
   protected get getFormService(){
@@ -267,16 +238,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       } else {
         this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
       }
-      // Listen for execute save command and invoke saveForm (Task 15)
-      this.subMaps['saveExecuteSub'] =this.eventBus
-        .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
-        .subscribe(async (evt) => {
-          // Default payload handling with safe fallbacks
-          const force = !!evt.force;
-          const targetStep = evt.targetStep ?? '';
-          const enabledValidationGroups = evt.enabledValidationGroups ?? ["all"];
-          await this.saveForm(force, targetStep, enabledValidationGroups);
-        });
+      this.initSubscriptions();
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
       // Dispatch load failure action instead of direct mutation
@@ -315,7 +277,103 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     await this.createFormGroup();
     // Dispatch load success action (R16.2, AC53)
     this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
+    
+    // Build the initial query source for component definitions
+    this.setupQuerySource();
+
+    // Finally set the flag indicating components are loaded
     this.componentsLoaded.set(true);
+  }
+
+  protected setupQuerySource() {
+    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr);
+  }
+  /**
+   * Initialize reactive effects 
+   */
+  protected initEffects() {
+    // This is needed to update the debugging info when form status changes.
+    effect(() => {
+      this.getDebugInfo();
+    });
+
+    // Monitor async validation state and dispatch actions (R16.3, AC56)
+    effect(() => {
+      const formGroupStatus = this.formGroupStatus();
+      const formGroupIsPending = formGroupStatus?.pending || false;
+      const formGroupWasPending = this.previousFormGroupStatus()?.pending || false;
+      const formGroupIsValid = formGroupStatus?.valid || false;
+      const formGroupWasValid = this.previousFormGroupStatus()?.valid || false;
+      const formIsSaving = this.status() === FormStatus.SAVING;
+
+      // Dispatch validation lifecycle actions instead of direct status mutation
+      // Ignore if saving is in progress
+      if (!formIsSaving) {
+        // If validation is pending
+        if (formGroupIsPending && !formGroupWasPending) {
+          this.store.dispatch(FormActions.formValidationPending());
+        }
+        // If validation completed
+        if (!formGroupIsPending) {
+          if (!formGroupIsValid && formGroupWasValid) {
+            this.store.dispatch(FormActions.formValidationFailure({ error: 'Form validation failed' }));
+          }
+          if (formGroupIsValid && !formGroupWasValid) {
+            this.store.dispatch(FormActions.formValidationSuccess());
+          }
+        }
+      }
+      this.previousFormGroupStatus.set(formGroupStatus);
+    });
+  }
+  /**
+   * Initialize subscriptions to event bus
+   */
+  protected initSubscriptions() {  
+    // Listen for execute save command and invoke saveForm (Task 15)
+    this.subMaps['saveExecuteSub'] =this.eventBus
+      .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
+      .subscribe(async (evt) => {
+        // Default payload handling with safe fallbacks
+        const force = !!evt.force;
+        const targetStep = evt.targetStep ?? '';
+        const enabledValidationGroups = evt.enabledValidationGroups ?? ["all"];
+        await this.saveForm(force, targetStep, enabledValidationGroups);
+      });
+    // Listen for any changes components have made to their own definitions and update the query source
+    this.subMaps['componentDefChangesSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DEFINITION_CHANGED)
+      .subscribe(() => {
+        // This will only fire if the Form has been initialized and components loaded successfully
+        if (this.componentsLoaded()) {
+          this.setupQuerySource();
+        }
+      });
+    
+    if (this.form) {
+      // Wire the form events to update the formGroupStatus signal and publish validation events
+      // At the moment, the code will only emit StatusChange and PristineChange events to the EventBus.
+      this.subMaps['formGroupChangesSub']?.unsubscribe();
+      this.subMaps['formGroupChangesSub'] = this.form.events.subscribe((formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
+        if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
+          this.formGroupStatus.set(this.dataStatus);
+          this.eventBus.publish(
+            createFormValidationBroadcastEvent({
+              isValid: this.dataStatus.valid,
+              errors: this.dataStatus.errors,
+              status: this.dataStatus
+            })
+          );
+        }
+      });
+      
+      this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
+        this.debugFormComponents.set(this.getDebugInfo());
+      });
+      // set the initial signal values...
+      this.formGroupStatus.set(this.dataStatus);
+      this.debugFormComponents.set(this.getDebugInfo());
+    }
   }
 
   /**
@@ -330,26 +388,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // create the form group
       if (!_isEmpty(formGroupMap.withFormControl)) {
         this.form = new FormGroup(formGroupMap.withFormControl);
-        if (this.form) {
-          // Wire the form events to update the formGroupStatus signal and publish validation events
-          // At the moment, the code will only emit StatusChange and PristineChange events to the EventBus.
-          this.subMaps['formGroupChangesSub']?.unsubscribe();
-          this.subMaps['formGroupChangesSub'] = this.form.events.subscribe((formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
-            if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
-              this.formGroupStatus.set(this.dataStatus);
-              this.eventBus.publish(
-                createFormValidationBroadcastEvent({
-                  isValid: this.dataStatus.valid,
-                  errors: this.dataStatus.errors,
-                  status: this.dataStatus
-                })
-              );
-            }
-          });
-          
-          this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
-            this.debugFormComponents.set(this.getDebugInfo());
-          });
+        if (!this.form) {
+          const msg = `${this.logName}: Failed to create Angular FormGroup, check the form definition.`;
+          this.loggerService.error(msg);
+          throw new Error(msg);
         }
 
         // set up validators

@@ -5,7 +5,8 @@ import {TestBed} from "@angular/core/testing";
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
 import {FormStatus, FormConfigFrame} from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus } from '../form-state/events';
+import { FormComponentEventBus, createFormValidationBroadcastEvent } from '../form-state/events';
+import { FormGroupStatus } from '../form.component';
 
 let formConfig: FormConfigFrame;
 
@@ -85,6 +86,7 @@ describe('SaveButtonComponent', () => {
 
   it('should enable save button when form status is READY and valid/dirty', async () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
     // Status should already be READY after form loads successfully
     // Simulate valid and dirty
     const textField = fixture.nativeElement.querySelector('input');
@@ -92,6 +94,30 @@ describe('SaveButtonComponent', () => {
     textField.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     await fixture.whenStable();
+
+    // Explicitly publish validation broadcast event to simulate FormComponent behavior
+    const mockStatus: FormGroupStatus = {
+      valid: true,
+      invalid: false,
+      dirty: true,
+      pristine: false,
+      pending: false,
+      disabled: false,
+      enabled: true,
+      touched: true,
+      untouched: false,
+      value: { text_1_event: 'new value' },
+      errors: null,
+      status: 'VALID'
+    };
+    eventBus.publish(createFormValidationBroadcastEvent({
+      isValid: mockStatus.valid,
+      errors: {},
+      status: mockStatus,
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeFalse();
   });
@@ -128,6 +154,30 @@ describe('SaveButtonComponent', () => {
       textField.dispatchEvent(new Event('input'));
       fixture.detectChanges();
       await fixture.whenStable();
+
+      // Explicitly publish validation broadcast event to simulate FormComponent behavior
+      const mockStatus: FormGroupStatus = {
+        valid: true,
+        invalid: false,
+        dirty: true,
+        pristine: false,
+        pending: false,
+        disabled: false,
+        enabled: true,
+        touched: true,
+        untouched: false,
+        value: { text_1_event: 'new value' },
+        errors: null,
+        status: 'VALID'
+      };
+      eventBus.publish(createFormValidationBroadcastEvent({
+        isValid: mockStatus.valid,
+        errors: {},
+        status: mockStatus,
+      }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       // Simulate the save button click
       const saveButton = fixture.nativeElement.querySelector('button');
       saveButton.click();

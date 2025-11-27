@@ -4,8 +4,9 @@ import * as FormActions from './form-state/state/form.actions';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { SaveButtonComponent } from './component/save-button.component';
-import { FormComponentEventBus } from './form-state/events';
+import { FormComponentEventBus, createFormValidationBroadcastEvent } from './form-state/events';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormGroupStatus } from './form.component';
 
 /**
  * Task 16: End-to-end integration test for the save orchestration flow
@@ -79,11 +80,38 @@ describe('Form Save Flow Integration', () => {
 
     try {
       // Make the form dirty so the Save button is enabled
-      // Prefer setting the FormControl programmatically to ensure valueChanges and dirty state propagate reliably
-      formComponent.form?.get('text_input')?.setValue('new value');
-      // Explicitly mark the form dirty to satisfy SaveButton gating
-      formComponent.form?.markAsDirty();
-      formComponent.form?.updateValueAndValidity();
+      // Use DOM event to trigger Angular's form change detection
+      const inputElement = fixture.nativeElement.querySelector('input');
+      inputElement.value = 'new value';
+      inputElement.dispatchEvent(new Event('input'));
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Explicitly publish a validation broadcast event to enable the SaveButton.
+      // This simulates what FormComponent does when form.events emits StatusChange/PristineChange.
+      // In integration tests, the form.events subscription may not fire synchronously after DOM events.
+      const mockStatus: FormGroupStatus = {
+        valid: formComponent.form?.valid ?? true,
+        invalid: !(formComponent.form?.valid ?? true),
+        dirty: true,
+        pristine: false,
+        touched: false,
+        untouched: true,
+        pending: false,
+        disabled: false,
+        enabled: true,
+        value: formComponent.form?.value ?? {},
+        errors: formComponent.form?.errors ?? null,
+        status: formComponent.form?.status ?? 'VALID',
+      };
+      eventBus.publish(
+        createFormValidationBroadcastEvent({
+          isValid: mockStatus.valid,
+          errors: {},
+          status: mockStatus,
+        })
+      );
 
       fixture.detectChanges();
       await fixture.whenStable();

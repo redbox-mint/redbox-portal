@@ -32,6 +32,43 @@ const formConfig: FormConfigFrame = {
     validators: [
         {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
     ],
+    // operations: [
+    //   // sample operations...that can be referenced by expressions
+    //   {
+    //     class: "script",// or "valueEquals", "valueInList", "hasKey" etc.
+    //     config: {
+    //         name: "runSomeOperationThatNeedsTheEntireFormData", // the unique name of the operation
+    //         template: "<%  %>" 
+    //     }
+    //   },
+    //   {
+    //     class: "valueEquals",
+    //     config: {
+    //         name: "setVisibilityByValueEquals",
+    //         config: {
+    //         }
+    //     }
+    //   },
+    //   {
+    //     class: "valueMatches",
+    //     config: {
+    //         name: "setVisibilityByValueMatches",
+    //         config: {
+    //         }
+    //     }
+    //   },
+    // ],
+    // // Operations that will run every time form data changes
+    // expressions: [
+    //     {
+    //         name: "runSomeOperationThatNeedsTheEntireFormData",
+    //         config: {
+    //             // source is undefined
+    //             // target is undefined
+    //             // context could be the FormComponent instance and data, etc.
+    //         }
+    //     }
+    // ],
     componentDefinitions: [
         {
             name: 'main_tab',
@@ -95,7 +132,18 @@ const formConfig: FormConfigFrame = {
                                                     cols: 80,
                                                     tooltip: 'Textarea tooltip'
                                                 }
-                                            }
+                                            },
+                                            // expressions: [
+                                            //     {
+                                            //         name: "setVisibilityByValueScript",
+                                            //         config: {
+                                            //             sources: [
+                                            //                 "tab1.text_1_event/value",
+                                            //                 "tab1.text_1_event/metadata"
+                                            //             ]
+                                            //         }   
+                                            //     }
+                                            // ]
                                         },
                                         {
                                             name: 'dropdown_1',
@@ -366,15 +414,9 @@ const formConfig: FormConfigFrame = {
                                                     type: 'text'
                                                 }
                                             },
-                                            expressions: {
-                                                'component.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
-                            return false;
-                          } else {
-                            return true;
-                          } %>`
-                                                }
-                                            }
+                                            // expressions: [
+                                                
+                                            // ]
                                         },
                                         {
                                             name: 'text_3_event',
@@ -491,7 +533,7 @@ const formConfig: FormConfigFrame = {
                                                             // second group component, nested in first group component
                                                             name: 'group_2_component',
                                                             layout: {
-                                                                class: 'DefaultLayout',
+                                                                            class: 'DefaultLayout',
                                                                 config: {
                                                                     label: 'Group2 label',
                                                                     helpText: 'Group 2 help',
