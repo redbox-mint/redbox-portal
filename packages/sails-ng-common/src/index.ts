@@ -22,6 +22,7 @@ export * from "./config/field.outline";
 export * from "./config/field.model";
 export * from "./config/base-field-component.outline";
 export * from "./config/base-field-component.model";
+export * from "./config/names/query-helpers";
 export * from "./config/names/naming-helpers";
 // config/visitor
 export * from "./config/visitor/base.outline";

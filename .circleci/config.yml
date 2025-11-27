@@ -682,43 +682,7 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - deploy-runtime-datastream-cloud:
-          requires:
-            - build-runtime-datastream-cloud
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-          filters:
-            branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-pdfgen:
-          requires:
-            - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-          filters:
-            branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-cloud-pdfgen:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-          filters:
-            branches:
-              ignore: /^dependabot.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+
       - generate-docs:
           requires:
             - test-bruno-general
@@ -769,13 +733,6 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-          filters:
-            branches:
-              ignore: /^dependabot.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -940,48 +897,4 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-runtime-datastream-cloud:
-          requires:
-            - build-runtime-datastream-cloud
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - deploy-runtime-pdfgen:
-          requires:
-            - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - deploy-runtime-cloud-pdfgen:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
+

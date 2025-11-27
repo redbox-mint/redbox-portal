@@ -88,6 +88,9 @@ else
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
+      echo "-------------------------"
+      echo "Building ${ng2app} ..."
+      echo "-------------------------"
       buildAngularApp "${ng2app}"
     fi
   done

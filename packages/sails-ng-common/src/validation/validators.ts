@@ -374,4 +374,73 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       };
     },
   },
+  // Validates an ORCID identifier. Details on the ORCID format and checksum can be found at https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier
+  {
+    class: "orcid",
+    message: "@validator-error-orcid",
+    create: (config) => {
+      const optionNameKey = "class";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "orcid");
+      const optionMessageKey = "message";
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-orcid");
+
+      return (control) => {
+        if (control.value == null || control.value === "") {
+          return null; // don't validate empty values
+        }
+
+        let value = control.value.toString();
+
+        // Validate format: either xxxx-xxxx-xxxx-xxxx or xxxxxxxxxxxxxxxx, last digit can be X or x
+        if (!/^(\d{4}-\d{4}-\d{4}-\d{3}[\dXx]|\d{15}[\dXx])$/.test(value)) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+
+        value = value.replace(/-/g, '');
+
+        if (value.length !== 16) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+
+
+        const baseDigits = value.substring(0, 15);
+        const checkDigit = value.substring(15);
+
+        let total = 0;
+        for (let i = 0; i < baseDigits.length; i++) {
+          const digit = parseInt(baseDigits.charAt(i), 10);
+          total = (total + digit) * 2;
+        }
+        const remainder = total % 11;
+        const result = (12 - remainder) % 11;
+        const calculatedCheckDigit = result === 10 ? "X" : result.toString();
+
+        if (checkDigit.toUpperCase() !== calculatedCheckDigit) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+        return null;
+      };
+    },
+  },
 ];
