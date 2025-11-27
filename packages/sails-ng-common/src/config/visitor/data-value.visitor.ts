@@ -1,7 +1,6 @@
-
 import {FormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {get as _get, mergeWith as _mergeWith, set as _set, cloneDeep as _cloneDeep} from "lodash";
+import {FormConfigOutline} from "../form-config.outline";
+import {set as _set} from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -69,63 +68,55 @@ import {
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {CanVisit} from "./base.outline";
 import {LineagePath} from "../names/naming-helpers";
 import {FormConfig} from "../form-config.model";
+import {FormConfigPathHelper} from "./common.model";
 
 
 /**
- * Visit each form config component and extract the default value for each field.
- * This is used for new records to populate the value defaults.
+ * Visit each form config component and extract the value for each field.
  *
- * Each component definition is a property,
- * where the key is the name and the value is the model value.
+ * This is used for to create a record data model structure from a form config.
  *
- * Provides defaults from ancestors to descendants,
- * so the descendants can either use their default or an ancestors default.
+ * Each component definition is a property, where the key is the name and the value is the model value.
  */
-export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
-    protected override logName = "DefaultValueFormConfigVisitor";
+export class DataValueFormConfigVisitor extends FormConfigVisitor {
+    protected override logName = "DataValueFormConfigVisitor";
 
-    private formConfigPath: string[];
     private dataModelPath: LineagePath;
 
-    private data: FormConfigFrame;
-
-    private defaultValues: Record<string, unknown>;
-    private intermediateValues: Record<string, unknown>;
+    private dataValues: Record<string, unknown>;
 
     private formConfig: FormConfigOutline;
 
+    private formConfigPathHelper: FormConfigPathHelper;
+
     constructor(logger: ILogger) {
         super(logger);
-        this.formConfigPath = [];
         this.dataModelPath = [];
 
-        this.data = {name: "", componentDefinitions: []};
-
-        this.defaultValues = {};
-        this.intermediateValues = {};
+        this.dataValues = {};
 
         this.formConfig = new FormConfig();
+
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
     }
 
-    // TODO:  the default value visitor needs to be able to start with FormConfigFrame
-    start(options: { data: FormConfigFrame }): Record<string, unknown> {
-        this.formConfigPath = [];
+    /**
+     * Start the visitor.
+     * @param options Configure the visitor.
+     * @param options.form The constructed form.
+     */
+    start(options: { form: FormConfigOutline }): Record<string, unknown> {
         this.dataModelPath = [];
+        this.formConfigPathHelper.reset();
 
-        this.data = _cloneDeep(options.data);
+        this.dataValues = {};
 
-        this.defaultValues = {};
-        this.intermediateValues = {};
-
-        this.formConfig = new FormConfig();
-
-        // TODO: construct basic class instances to support getting the default values.
+        this.formConfig = options.form;
         this.formConfig.accept(this);
 
-        return this.defaultValues;
+        return this.dataValues;
     }
 
     /* Form Config */
@@ -133,7 +124,7 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
     }
 
@@ -162,19 +153,16 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        // The default in the elementTemplate is the default for *new* items,
-        // the template default doesn't create any array elements.
-        // The easiest way to do this is to just not visit the elementTemplate.
-        // if (item.config?.elementTemplate) {
-        //     this.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
-        // }
-        // (Note that the form config needs to include any elementTemplate defaultValue as the value,
-        // as the value is used when creating new items in the repeatable array.
-        // This is implemented in the client visitor.)
+        if (item.config?.elementTemplate) {
+            this.formConfigPathHelper.acceptFormConfigPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+        }
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
+        // The value in the elementTemplate is the value for *new* items,
+        // no new array elements are created as part of the data value visitor.
+        // So, don't set the data value from the model definition.
+        // this.setFromModelDefinition(item);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
@@ -198,7 +186,7 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -215,7 +203,7 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -231,7 +219,7 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -324,15 +312,18 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
     /* Shared */
 
     /**
-     * Set the default value for the form component when visiting the model definition.
+     * Set the value for the form component when visiting the model definition.
+     *
+     * Some components might have data values in other places (e.g. ContentComponent component.config.content).
+     * This is currently not included in the built data value structure.
+     *
+     * There may be future uses cases for extracting data values from places other than the model.config.value.
+     *
      * @param item The field model definition.
      * @protected
      */
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
-        const defaultValue = _get(this.intermediateValues, this.dataModelPath, item?.config?.defaultValue);
-        if (defaultValue !== undefined) {
-            _set(this.defaultValues, this.dataModelPath, defaultValue);
-        }
+        _set(this.dataValues, this.dataModelPath, item?.config?.value);
     }
 
     /**
@@ -341,82 +332,21 @@ export class DefaultValueFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
-        const itemResultPath = [...this.dataModelPath];
+        const original = [...(this.dataModelPath ?? [])];
         const itemName = item?.name ?? "";
-        const itemDefaultValue = item?.model?.config?.defaultValue;
-
-        if (item.model && itemName) {
-            this.dataModelPath = [...itemResultPath, itemName];
-        }
-
-        if (itemName && itemDefaultValue !== undefined) {
-            const defaultValue = _set({}, this.dataModelPath, itemDefaultValue);
-            // Use lodash mergeWith because it will recurse into nested objects and arrays.
-            // Object.assign and the spread operator do not recurse.
-            // The lodash mergeWith also allows specifying how to handle arrays, which we need to handle in a special way.
-            if (defaultValue !== undefined) {
-                _mergeWith(
-                    this.intermediateValues,
-                    defaultValue,
-                    (objValue, srcValue) => {
-                        // merge approach for arrays is to choose the source array,
-                        // or the one that is an array if the other isn't
-                        if (Array.isArray(objValue) && Array.isArray(srcValue)) {
-                            return srcValue;
-                        } else if (Array.isArray(objValue) && !Array.isArray(srcValue)) {
-                            return objValue;
-                        } else if (!Array.isArray(objValue) && Array.isArray(srcValue)) {
-                            return srcValue;
-                        }
-                        // undefined = use the default merge approach
-                        return undefined;
-                    });
-            }
-        }
-
-        // For debugging:
-        // this.logger.debug(`Default Value Visitor defaults for '${itemName}': ${JSON.stringify(this.defaultValues)}`);
-        // this.logger.debug(`Default Value Visitor result path for '${itemName}': ${JSON.stringify(this.resultPath)}`);
-
-        this.acceptFormComponentDefinition(item);
-        this.dataModelPath = [...itemResultPath];
-    }
-
-    /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
-     */
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptCurrentPath(item.component, ['component']);
-        if (item.model) {
-            this.acceptCurrentPath(item.model, ['model']);
-        }
-        if (item.layout) {
-            this.acceptCurrentPath(item.layout, ['layout']);
-        }
-    }
-
-    /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item
-     * @param suffixPath
-     * @protected
-     */
-    protected acceptCurrentPath(item: CanVisit, suffixPath: string[]): void {
-        const itemCurrentPath = [...(this.formConfigPath ?? [])];
         try {
-            this.formConfigPath = [...itemCurrentPath, ...(suffixPath ?? [])];
+            if (item.model && itemName) {
+                // NOTE: The repeatable elementTemplate should not be part of the data model path.
+                // It might have a model, but it should not have a name.
+                this.dataModelPath = [...original, itemName];
+            }
 
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
-
-            item.accept(this);
+            this.formConfigPathHelper.acceptFormComponentDefinition(item);
         } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
+            // rethrow error - the finally block will ensure the dataModelPath is correct
             throw error;
         } finally {
-            this.formConfigPath = itemCurrentPath;
+            this.dataModelPath = original;
         }
     }
 }

@@ -76,7 +76,7 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {FormConfig} from "../form-config.model";
-import {CanVisit} from "./base.outline";
+import {FormConfigPathHelper} from "./common.model";
 
 /**
  * Visit each form config component and run its validators.
@@ -88,7 +88,6 @@ import {CanVisit} from "./base.outline";
  * Specify which validators are run by providing enabledValidationGroups.
  */
 export class ValidatorFormConfigVisitor extends FormConfigVisitor {
-    private formConfigPath: string[];
     private resultPath: string[];
 
     private validatorSupport: ValidatorsSupport;
@@ -99,10 +98,11 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     private validationErrors: FormValidatorSummaryErrors[];
 
+    private formConfigPathHelper: FormConfigPathHelper;
+
     constructor(logger: ILogger) {
         super(logger);
 
-        this.formConfigPath = [];
         this.resultPath = [];
 
         this.validatorSupport = new ValidatorsSupport();
@@ -112,16 +112,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
 
         this.validationErrors = [];
+
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
     }
 
     /**
      * Start the visitor.
-     * @param options
+     * @param options Configure the visitor.
+     * @param options.form The constructed form.
      * @param options.enabledValidationGroups The validation groups to enable.
      * @param options.validatorDefinitions The validation definitions to make available.
-     * @param options.form The constructed form.
-     * @param options.record The record values.
-     * @param options.useFormDefaults Whether to use the form defaults or not.
      */
     start(options: {
               form: FormConfigOutline;
@@ -129,7 +129,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
               validatorDefinitions?: FormValidatorDefinition[];
           }
     ): FormValidatorSummaryErrors[] {
-        this.formConfigPath = [];
+        this.formConfigPathHelper.reset();
         this.resultPath = [];
 
         this.form = options.form;
@@ -150,12 +150,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
 
         // Run form-level validators, usually because they involve more than one field.
         const itemName = item?.name ?? "";
-        // TODO: once the lineage paths jsonpointer and other pieces are available, use those to reference the data model property instead of the dotted path.
+        // TODO: once the lineage paths jsonpointer and other pieces are available,
+        //  use those to reference the data model property instead of the dotted path.
         const value = null;
         this.validationErrors = [...this.validationErrors, ...this.validateFormComponent(itemName, value, item?.validators)];
     }
@@ -211,7 +212,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -227,7 +228,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -243,7 +244,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -365,20 +366,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             item?.layout?.config?.label,
         )];
 
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
     }
 
     protected validateFormComponent(itemName: string, value: any, validators?: FormValidatorConfig[], message?: string) {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
-
-        // TODO: after the construct visitor includes the values, the values can come straight from the model.config.value.
-        // Use the result path to get the value for this component.
-        // const recordValues = this.currentRecordValuesHelper.recordValues;
-        // const value = this.resultPath.length > 0 ? _get(recordValues, this.resultPath, undefined) : recordValues;
-
-        // for debugging:
-        // this.logger.verbose(`validateFormComponent resultPath: ${JSON.stringify(this.resultPath)} value: ${JSON.stringify(value)}`);
 
         // Use the result path to get the parents of the form control.
         const parents: string[] = this.resultPath.length > 1 ? this.resultPath.slice(0, this.resultPath.length - 1) : [];
@@ -391,10 +384,6 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
             const recordFormControl = this.createFormControlFromRecordValue(value);
-
-            // for debugging:
-            // this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
-
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,
                 message: message || null,
@@ -419,43 +408,4 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
         return result;
     }
-
-    /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
-     */
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptCurrentPath(item.component, ['component']);
-        if (item.model) {
-            this.acceptCurrentPath(item.model, ['model']);
-        }
-        if (item.layout) {
-            this.acceptCurrentPath(item.layout, ['layout']);
-        }
-    }
-
-    /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item
-     * @param suffixPath
-     * @protected
-     */
-    protected acceptCurrentPath(item: CanVisit, suffixPath: string[]): void {
-        const itemCurrentPath = [...(this.formConfigPath ?? [])];
-        try {
-            this.formConfigPath = [...itemCurrentPath, ...(suffixPath ?? [])];
-
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
-
-            item.accept(this);
-        } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
-            throw error;
-        } finally {
-            this.formConfigPath = itemCurrentPath;
-        }
-    }
-
 }

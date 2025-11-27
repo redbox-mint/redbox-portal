@@ -1,15 +1,6 @@
-import {cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith} from "lodash";
+import {cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set} from "lodash";
 import {FormConfig} from "../form-config.model";
-import {
-    ComponentClassDefMapType,
-    FieldComponentDefinitionMap,
-    FieldLayoutDefinitionMap,
-    FieldModelDefinitionMap,
-    FormComponentClassDefMapType,
-    FormComponentDefinitionMap,
-    LayoutClassDefMapType,
-    ModelClassDefMapType,
-} from "../dictionary.model";
+
 import {FormConfigVisitor} from "./base.model";
 import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
 import {
@@ -55,7 +46,6 @@ import {
     DefaultLayoutName
 } from "../component/default-layout.outline";
 import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
     ContentComponentName,
@@ -158,141 +148,101 @@ import {
     isTypeFormComponentDefinition,
     isTypeFormComponentDefinitionName,
     isTypeFormConfig,
-} from "../helpers";
-import {AvailableFormComponentDefinitionFrames, ReusableFormDefinitions} from "../dictionary.outline";
-import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "../component/reusable.outline";
+} from "../form-types.outline";
+import {ReusableFormDefinitions} from "../dictionary.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {FormModesConfig} from "../shared.outline";
-import {FieldModelDefinition} from "../field-model.model";
-import {CanVisit} from "./base.outline";
-import {ConstructOverrides} from "./construct.overrides";
+import {FieldModelDefinitionOutline} from "../field-model.outline";
+import {FormOverride} from "../form-override.model";
+import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
 
 
 /**
  * Visit each form config frame and create an instance of the associated class.
- * Populate the form config hierarchy with the class instances.
+ *
+ * This visitor performs the tasks needed to create a form component class instances:
+ * - populate the instance properties from the form config data
+ * - assign the created classes to the expected property to build the component hierarchy
+ * - populate the model.config.value and/or the properties specific to a component from either a record or the form defaults
+ * - when using form defaults, provide default values from ancestors to descendants, so the descendants can either use their default or an ancestors default
+ * - expand reusable form config to the actual form config
+ * - transform component definitions to be a different component(s)
  */
 export class ConstructFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "ConstructFormConfigVisitor";
 
     private formMode: FormModesConfig;
-    private recordValues: Record<string, unknown> | null;
-    private useFormDefaults: boolean;
+    private recordValues: Record<string, unknown>;
+    private extractedDefaultValues: Record<string, unknown> | null;
 
-    private formConfigPath: string[];
     private dataModelPath: string[];
 
     private data: FormConfigFrame;
 
     private reusableFormDefs: ReusableFormDefinitions;
-    private reusableFormDefNames: string[];
-
-    private fieldComponentMap: ComponentClassDefMapType;
-    private fieldModelMap: ModelClassDefMapType;
-    private fieldLayoutMap: LayoutClassDefMapType;
-    private formComponentMap: FormComponentClassDefMapType;
 
     private formConfig: FormConfigOutline;
 
-    private constructOverrides: ConstructOverrides;
+    private formOverride: FormOverride;
+    private formConfigPathHelper: FormConfigPathHelper;
+    private sharedProps: PropertiesHelper;
 
     constructor(logger: ILogger) {
         super(logger);
 
         this.formMode = "view";
-        this.recordValues = null;
-        this.useFormDefaults = false;
+        this.recordValues = {};
+        this.extractedDefaultValues = null;
 
-        this.formConfigPath = [];
         this.dataModelPath = [];
 
         this.data = {name: "", componentDefinitions: []};
 
         this.reusableFormDefs = {};
-        this.reusableFormDefNames = [];
-
-        this.fieldComponentMap = FieldComponentDefinitionMap;
-        this.fieldModelMap = FieldModelDefinitionMap;
-        this.fieldLayoutMap = FieldLayoutDefinitionMap;
-        this.formComponentMap = FormComponentDefinitionMap;
 
         this.formConfig = new FormConfig();
 
-        this.constructOverrides = new ConstructOverrides();
+        this.formOverride = new FormOverride();
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.sharedProps = new PropertiesHelper();
     }
 
+    /**
+     * Start the visitor.
+     * @param options Configure the visitor.
+     * @param options.data The form config to construct into class instances.
+     * @param options.reusableFormDefs The reusable form definitions. Default empty.
+     * @param options.formMode The currently active form mode. Defaults to 'view'.
+     * @param options.record The record values. Don't set (undefined) or set to null to use the form default values.
+     */
     start(options: {
-              /**
-               * The form config to construct into class instances.
-               */
               data: FormConfigFrame;
-              /**
-               * The reusable form definitions.
-               */
               reusableFormDefs?: ReusableFormDefinitions;
-              /**
-               * The currently active form mode.
-               */
               formMode?: FormModesConfig;
-              /**
-               * The record values. The record values can be an existing record or the form defaults.
-               */
-              record?: Record<string, unknown>;
+              record?: Record<string, unknown> | null;
           }
     ): FormConfigOutline {
+        this.data = _cloneDeep(options.data);
+        this.reusableFormDefs = options.reusableFormDefs ?? {};
         this.formMode = options.formMode ?? "view";
+
+        // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
         this.recordValues = options.record ?? {};
 
-        this.formConfigPath = [];
+        // extractedDefaultValues are only used when extracting the default values from the form config
+        this.extractedDefaultValues = options.record === null || options.record === undefined ? {} : null;
 
-        this.data = _cloneDeep(options.data);
-
-        this.reusableFormDefs = options.reusableFormDefs ?? {};
-        this.reusableFormDefNames = Object.keys(this.reusableFormDefs).sort();
+        this.formConfigPathHelper.reset();
 
         this.formConfig = new FormConfig();
-
-        // // Get the record values to use.
-        // if (this.useFormDefaults && (options.record === null || options.record === undefined)) {
-        //     if (!options.data) {
-        //         throw new Error(`${this.logName}: Options indicate to use form defaults, but no form was provided.`);
-        //     }
-        //
-        //     throw new Error(`${this.logName}: Not yet implemented starting construct visitor with form defaults.`);
-        //
-        //     // TODO: Use the defaultValues from the form config as the record values.
-        //     // this.useFormDefaults = true;
-        //     // const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
-        //     // this.recordValues = defaultValueVisitor.start({form: options.data});
-        // } else if (!this.useFormDefaults && options.record !== null && options.record !== undefined) {
-        //     // The current record data
-        //     this.useFormDefaults = false;
-        //     this.recordValues = options.record;
-        // } else if (!this.useFormDefaults && (options.record === null || options.record === undefined)) {
-        //     // Don't use any default values
-        //     this.useFormDefaults = false;
-        //     this.recordValues = null;
-        // } else {
-        //     throw new Error(`${this.logName}: Conflicting options for record and useFormDefaults: ${JSON.stringify({
-        //         useFormDefaults: options.useFormDefaults,
-        //         record: options.record
-        //     })}`);
-        // }
-
         this.formConfig.accept(this);
-
-        // for debugging:
-        // this.logger.verbose(`${this.logName}: constructed form config ${JSON.stringify({
-        //     data, formMode, reusableFormDefs,
-        // })}`);
-
         return this.formConfig;
     }
 
     /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFormConfig(currentData)) {
             return;
         }
@@ -328,17 +278,20 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             };
         }
 
-        currentData.componentDefinitions = this.applyOverrides(currentData?.componentDefinitions ?? []);
+        currentData.componentDefinitions = this.formOverride.applyOverridesReusable(currentData?.componentDefinitions ?? [], this.reusableFormDefs);
 
         // Visit the components
         currentData?.componentDefinitions.forEach((componentDefinition, index) => {
-            const formComponent = this.sharedConstructFormComponent(componentDefinition);
-
-            // Store the instances on the item
-            item.componentDefinitions.push(formComponent);
+            const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
-            this.acceptCurrentPath(formComponent, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["componentDefinitions", index.toString()]);
+
+            // After the construction is done, apply any transforms
+            const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+
+            // Store the instance on the item
+            item.componentDefinitions.push(itemTransformed);
         });
     }
 
@@ -346,7 +299,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<SimpleInputFieldComponentDefinitionFrame>(currentData, SimpleInputComponentName)) {
             return;
         }
@@ -362,7 +315,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<SimpleInputFieldModelDefinitionFrame>(currentData, SimpleInputModelName)) {
             return;
         }
@@ -376,14 +329,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Content */
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<ContentFieldComponentDefinitionFrame>(currentData, ContentComponentName)) {
             return;
         }
@@ -399,14 +352,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(currentData, RepeatableComponentName)) {
             return;
         }
@@ -418,28 +371,31 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
         if (!isTypeFormComponentDefinition(frame?.elementTemplate)) {
-            throw new Error(`Invalid elementTemplate for repeatable at '${this.formConfigPath}'.`);
+            throw new Error(`Invalid elementTemplate for repeatable at '${this.formConfigPathHelper.formConfigPath}'.`);
         }
 
-        const compDefs = this.applyOverrides([frame?.elementTemplate]);
+        const compDefs = this.formOverride.applyOverridesReusable([frame?.elementTemplate], this.reusableFormDefs);
         const compDefLength = compDefs?.length ?? 0;
         if (compDefLength !== 1) {
             throw new Error(`Repeatable element template overrides must result in exactly one item, got ${compDefLength}.`);
         }
         frame.elementTemplate = compDefs[0];
 
-        const formComponent = this.sharedConstructFormComponent(frame.elementTemplate);
-
-        // Store the instances on the item
-        item.config.elementTemplate = formComponent;
+        const formComponent = this.constructFormComponent(frame.elementTemplate);
 
         // Continue the construction
-        this.acceptCurrentPath(formComponent, ["config", "elementTemplate"]);
+        this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "elementTemplate"]);
+
+        // After the construction is done, apply any transforms
+        const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+
+        // Store the instance on the item
+        item.config.elementTemplate = itemTransformed;
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RepeatableFieldModelDefinitionFrame>(currentData, RepeatableModelName)) {
             return;
         }
@@ -448,11 +404,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new RepeatableFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RepeatableElementFieldLayoutDefinitionFrame>(currentData, RepeatableElementLayoutName)) {
             return;
         }
@@ -465,14 +423,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Validation Summary */
 
     visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<ValidationSummaryFieldComponentDefinitionFrame>(currentData, ValidationSummaryComponentName)) {
             return;
         }
@@ -485,14 +443,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Group */
 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
             return;
         }
@@ -503,23 +461,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
-        frame.componentDefinitions = this.applyOverrides(frame?.componentDefinitions ?? []);
+        frame.componentDefinitions = this.formOverride.applyOverridesReusable(frame?.componentDefinitions ?? [], this.reusableFormDefs);
 
         // Visit the components
         frame.componentDefinitions.forEach((componentDefinition, index) => {
-            const formComponent = this.sharedConstructFormComponent(componentDefinition);
-
-            // Store the instances on the item
-            item.config?.componentDefinitions.push(formComponent);
+            const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
-            this.acceptCurrentPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+
+            // After the construction is done, apply any transforms
+            const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+
+            // Store the instance on the item
+            item.config?.componentDefinitions.push(itemTransformed);
         });
     }
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<GroupFieldModelDefinitionFrame>(currentData, GroupFieldModelName)) {
             return;
         }
@@ -528,17 +489,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new GroupFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Tab  */
 
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
             return;
         }
@@ -549,7 +512,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
-        const compDefs = this.applyOverrides(frame?.tabs ?? []);
+        const compDefs = this.formOverride.applyOverridesReusable(frame?.tabs ?? [], this.reusableFormDefs);
         const tabs: TabContentFormComponentDefinitionFrame[] = [];
         for (const compDef of compDefs) {
             if (isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(compDef, TabContentComponentName)) {
@@ -562,23 +525,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         frame?.tabs.forEach((componentDefinition, index) => {
 
             if (isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(componentDefinition, TabContentComponentName)) {
+                const formComponent = this.constructFormComponent(componentDefinition)
+
+                // Continue the construction
+                this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "tabs", index.toString()]);
+
+                // After the construction is done, apply any transforms
                 // TODO: Use type assert for now.
                 //  The Map<string,T> type in dictionary.model.ts should map specific string -> specific type.
                 //  It currently maps string -> type union, which is too loose, as it doesn't imply that a particular string key maps to one type.
-                const formComponent = this.sharedConstructFormComponent(componentDefinition) as TabContentFormComponentDefinition;
+                const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode) as TabContentFormComponentDefinition;
 
-                // Store the instances on the item
-                item.config?.tabs.push(formComponent);
-
-                // Continue the construction
-                this.acceptCurrentPath(formComponent, ["config", "tabs", index.toString()]);
+                // Store the instance on the item
+                item.config?.tabs.push(itemTransformed);
             }
         });
     }
 
     visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabFieldLayoutDefinitionFrame>(currentData, TabLayoutName)) {
             return;
         }
@@ -596,14 +562,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Tab Content */
 
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
             return;
         }
@@ -616,23 +582,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.setPropOverride('selected', item.config, config);
 
-        config.componentDefinitions = this.applyOverrides(config?.componentDefinitions ?? []);
+        config.componentDefinitions = this.formOverride.applyOverridesReusable(config?.componentDefinitions ?? [], this.reusableFormDefs);
 
         // Visit the components
         config?.componentDefinitions.forEach((componentDefinition, index) => {
-            const formComponent = this.sharedConstructFormComponent(componentDefinition);
-
-            // Store the instances on the item
-            item.config?.componentDefinitions.push(formComponent);
+            const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
-            this.acceptCurrentPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+
+            // After the construction is done, apply any transforms
+            const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+
+            // Store the instance on the item
+            item.config?.componentDefinitions.push(itemTransformed);
         });
     }
 
     visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabContentFieldLayoutDefinitionFrame>(currentData, TabContentLayoutName)) {
             return;
         }
@@ -647,14 +616,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Save Button  */
 
     visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<SaveButtonFieldComponentDefinitionFrame>(currentData, SaveButtonComponentName)) {
             return;
         }
@@ -672,14 +641,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Text Area */
 
     visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TextAreaFieldComponentDefinitionFrame>(currentData, TextAreaComponentName)) {
             return;
         }
@@ -697,7 +666,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TextAreaFieldModelDefinitionFrame>(currentData, TextAreaModelName)) {
             return;
         }
@@ -706,17 +675,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new TextAreaFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Default Layout  */
 
     visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DefaultFieldLayoutDefinitionFrame>(currentData, DefaultLayoutName)) {
             return;
         }
@@ -731,7 +702,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<CheckboxInputFieldComponentDefinitionFrame>(currentData, CheckboxInputComponentName)) {
             return;
         }
@@ -749,7 +720,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<CheckboxInputFieldModelDefinitionFrame>(currentData, CheckboxInputModelName)) {
             return;
         }
@@ -758,17 +729,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new CheckboxInputFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Dropdown Input */
 
     visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DropdownInputFieldComponentDefinitionFrame>(currentData, DropdownInputComponentName)) {
             return;
         }
@@ -785,7 +758,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DropdownInputFieldModelDefinitionFrame>(currentData, DropdownInputModelName)) {
             return;
         }
@@ -794,17 +767,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new DropdownInputFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Radio Input */
 
     visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RadioInputFieldComponentDefinitionFrame>(currentData, RadioInputComponentName)) {
             return;
         }
@@ -820,7 +795,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RadioInputFieldModelDefinitionFrame>(currentData, RadioInputModelName)) {
             return;
         }
@@ -829,17 +804,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new RadioInputFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Date Input */
 
     visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DateInputFieldComponentDefinitionFrame>(currentData, DateInputComponentName)) {
             return;
         }
@@ -860,7 +837,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+        const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DateInputFieldModelDefinitionFrame>(currentData, DateInputModelName)) {
             return;
         }
@@ -869,99 +846,54 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new DateInputFieldModelConfig();
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item);
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.sharedPopulateFormComponent(item);
+        this.populateFormComponent(item);
     }
 
     /* Shared */
 
-    protected sharedConstructFormComponent(item: FormComponentDefinitionFrame) {
-        // The class to use is identified by the class property string values in the field definitions.
-        const componentClassString = item?.component?.class;
-
-        // The class to use is identified by the class property string values in the field definitions.
-        // The form component is identifier the component field class string
-        const formComponentClass = this.formComponentMap?.get(componentClassString);
-
-        // Create new instance
-        if (!formComponentClass) {
-            throw new Error(`Could not find class for form component class name '${componentClassString}' at path '${this.formConfigPath}'.`)
+    protected constructFormComponent(item: FormComponentDefinitionFrame) {
+        const constructed = this.sharedProps.sharedConstructFormComponent(item);
+        if (!constructed) {
+            throw new Error(`Could not find class for form component class name '${item?.component?.class}' at path '${this.formConfigPathHelper.formConfigPath}'.`)
         }
-        return new formComponentClass();
+        return constructed;
     }
 
-    protected sharedPopulateFormComponent(item: FormComponentDefinitionOutline): void {
-        // Get the current raw data for constructing the class instance.
-        const currentData = this.getDataPath(this.data, this.formConfigPath);
+    protected populateFormComponent(item: FormComponentDefinitionOutline) {
+        const currentData = this.getData();
         if (!isTypeFormComponentDefinition(currentData)) {
-            throw new Error(`Invalid FormComponentDefinition at '${this.formConfigPath}': ${JSON.stringify(currentData)}`);
+            throw new Error(`Invalid FormComponentDefinition at '${this.formConfigPathHelper.formConfigPath}': ${JSON.stringify(currentData)}`);
         }
+        this.sharedProps.sharedPopulateFormComponent(item, currentData);
 
-        // Set the simple properties
-        item.name = currentData.name;
-        item.module = currentData.module;
-
-        // Set the constraints
-        item.constraints = new FormConstraintConfig();
-        item.constraints.allowModes = currentData?.constraints?.allowModes ?? [];
-
-        item.constraints.authorization = new FormConstraintAuthorizationConfig();
-        item.constraints.authorization.allowRoles = currentData?.constraints?.authorization?.allowRoles ?? [];
-
-        // Set the expressions
-        item.expressions = new FormExpressionsConfig();
-        for (const [key, value] of Object.entries(currentData.expressions ?? {})) {
-            item.expressions[key] = value;
-        }
-
-        // Get the class string names.
-        const componentClassString = currentData?.component?.class;
-        const modelClassString = currentData?.model?.class;
-        const layoutClassString = currentData?.layout?.class;
-
-        // Get the classes
-        const componentClass = this.fieldComponentMap?.get(componentClassString);
-        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
-        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
-
-        // Create new instances
-        if (!componentClass) {
-            throw new Error(`Could not find class for field component class string '${componentClassString}'.`)
-        }
-        const component = new componentClass();
-        const model = modelClass ? new modelClass() : null;
-        const layout = layoutClass ? new layoutClass() : null;
-
-        // Set the instances
-        item.component = component;
-        item.model = model || undefined;
-        item.layout = layout || undefined;
-
-        // Continue visiting
-        this.acceptFormComponentDefinition(item);
+        this.acceptFormComponentDefinitionWithValue(item);
     }
 
-    protected setModelValue(item: FieldModelDefinition<unknown>) {
+    /**
+     * Set the model value from the record values.
+     * @param item The field model component instance.
+     * @protected
+     */
+    protected setModelValue(item: FieldModelDefinitionOutline<unknown>) {
         if (item?.config?.value !== undefined) {
-            throw new Error(`${this.logName}: in the field model config '{config:{value: "[some value]"}}', 'value' is calculated, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
+            throw new Error(`${this.logName}: Use 'model.config.defaultValue' in form config instead of 'model.config.value': ${JSON.stringify(item)}`);
         }
 
-        // Set an empty config if the form config didn't include one.
         if (item.config === null || item.config === undefined) {
             throw new Error(`${this.logName}: Missing config for item: ${JSON.stringify(item)}`);
         }
 
-        // Set the config value from the record values.
-        const rawRecordValues = this.recordValues
-        const recordValues = !!rawRecordValues ? rawRecordValues : {};
-        const value = _get(recordValues, this.dataModelPath, undefined);
-
-        item.config.value = value;
-
-        // for debugging:
-        // this.logger.debug(`${this.logName} setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
+        // Set the model.config.value:
+        //   Use the collected default value if form config default values are being used, otherwise, use the record values.
+        const useFormConfigDefaultValues = this.extractedDefaultValues !== null;
+        const dataValueSource = useFormConfigDefaultValues ? this.extractedDefaultValues : this.recordValues;
+        const defaultValue = useFormConfigDefaultValues ? item?.config?.defaultValue : undefined;
+        item.config.value = _get(dataValueSource, this.dataModelPath, defaultValue);
 
         // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
@@ -969,180 +901,73 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
-    protected applyOverrides(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
-        // NOTE: The order the overrides are actioned matters - different orders will produce different results.
-
-        // Replace the 'ReusableComponent' with the definitions from the 'reusableFormName'.
-        // This must be done first, as the other overrides don't make sense without this step.
-        const itemsReusableExpanded = this.applyOverrideReusable(items);
-
-        // Apply the rest of the overrides.
-        return itemsReusableExpanded.map(item => {
-            // Update the class names using 'formModeClasses' and the default transforms.
-            const itemTransformed = this.constructOverrides.transform(item, this.formMode);
-
-            // Use 'replaceName' to update the form component name.
-            if (itemTransformed.overrides?.replaceName) {
-                // for debugging:
-                // this.logger.debug(`Name changed from '${item.name}' to '${item.overrides?.replaceName}'.`);
-
-                itemTransformed.name = itemTransformed.overrides?.replaceName;
-            }
-
-            // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-            if ('overrides' in itemTransformed) {
-                delete itemTransformed['overrides'];
-            }
-
-            return itemTransformed;
-        });
-    }
-
-    protected applyOverrideReusable(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
-        // Expanding the reusable form name to the associated form config requires replacing the item in the array.
-        // Changing the array that's currently being iterated can result in unstable or undefined behaviour.
-        // Instead, find the index of the first item that is a reusable component.
-        const index = items.findIndex((item) => this.isReusableComponent(item));
-
-        // When there are no more items to expand, return the updated items array.
-        if (index === -1) {
-            return items;
-        }
-
-        // Update the items array to remove the reusable component and replace it with the form config it represents.
-        const item = items[index];
-        if (this.isReusableComponent(item)) {
-            const expandedItems = this.applyOverrideReusableExpand(item);
-
-            // for debugging
-            // this.logger.debug(`Expanded '${item.overrides?.reusableFormName}' to ${expandedItems.length} ` +
-            //     `items ${expandedItems.map(i => `'${i.name}:${i.component.class}'`).join(', ')}`);
-
-            const newItems = [...items];
-            newItems.splice(index, 1, ...expandedItems);
-            items = newItems;
-        } else {
-            throw new Error(`Somehow the isReusableComponent was true earlier, but is now false, for the same item. Logic error?`);
-        }
-
-        // Continue until there are no more reusable components to expand.
-        return this.applyOverrideReusable(items);
-    }
-
-    protected isReusableComponent(item: AvailableFormComponentDefinitionFrames): item is ReusableFormComponentDefinitionFrame {
-        const componentClassName = item?.component?.class ?? "";
-        const itemReusableFormName = item?.overrides?.reusableFormName ?? "";
-
-        const isReusableComponent = componentClassName === ReusableComponentName;
-        const hasReusableFormName = itemReusableFormName && this.reusableFormDefNames.includes(itemReusableFormName);
-
-        if (!isReusableComponent && !hasReusableFormName) {
-            return false;
-        }
-
-        if (hasReusableFormName && isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
-            const overrides = item?.overrides ?? {};
-            const overrideKeys = Object.keys(overrides);
-            const reusableFormNameOnly = overrideKeys.includes('reusableFormName') && overrideKeys.length === 1;
-            const noKeys = overrideKeys.length === 0;
-            if (!reusableFormNameOnly && !noKeys) {
-                throw new Error("Invalid usage of reusable form config. " +
-                    `Override for component name '${item.name}' class '${item.component.class}' must contain only 'reusableFormName', ` +
-                    `it cannot be combined with other properties '${JSON.stringify(overrides)}'.`);
-            }
-            return true;
-        }
-
-        throw new Error("Invalid usage of reusable form config. " +
-            `Component class '${componentClassName}' must be '${ReusableComponentName}' ` +
-            `and reusableFormName '${itemReusableFormName}' must be one of '${this.reusableFormDefNames.join(', ')}'.`);
-    }
-
-    protected applyOverrideReusableExpand(item: ReusableFormComponentDefinitionFrame): AvailableFormComponentDefinitionFrames[] {
-        const reusableFormName = item?.overrides?.reusableFormName ?? "";
-        const expandedItemsRaw = this.reusableFormDefNames.includes(reusableFormName) ? this.reusableFormDefs[reusableFormName] : [];
-        const expandedItems = this.applyOverrideReusable(expandedItemsRaw);
-        const additionalItemsRaw = item.component.config?.componentDefinitions ?? [];
-        const additionalItems = this.applyOverrideReusable(additionalItemsRaw);
-
-        const expandedItemNames = expandedItems.map(i => i.name);
-        const extraAdditionalItems = additionalItems.filter((i) => !expandedItemNames.includes(i.name));
-        if (extraAdditionalItems.length > 0) {
-            throw new Error("Invalid usage of reusable form config. " +
-                `Each item in the ${ReusableComponentName} componentDefinitions must have a name that matches an item in the reusable form config '${reusableFormName}'. ` +
-                `Names '${extraAdditionalItems.map(i => i.name)}' did not match any reusable form config items. ` +
-                `Available names are '${expandedItems.map((i) => i.name).sort().join(', ')}'.`);
-        }
-
-        const result = [];
-        for (const expandedItem of expandedItems) {
-            const additionalItemsMatched = additionalItems.filter((additionalItem) => expandedItem.name === additionalItem.name);
-            if (additionalItemsMatched.length > 1) {
-                throw new Error("Invalid usage of reusable form config. " +
-                    `Each item in the ${ReusableComponentName} componentDefinitions must have a unique name. ` +
-                    `These names were not unique '${Array.from(new Set(additionalItemsMatched.map(i => i.name))).sort().join(', ')}'.`);
-            }
-
-            if (additionalItemsMatched.length === 1) {
-                const additionalItem = additionalItemsMatched[0];
-                const known = {
-                    component: {reusable: expandedItem.component.class, additional: additionalItem.component.class},
-                    model: {reusable: expandedItem.model?.class, additional: additionalItem.model?.class},
-                    layout: {reusable: expandedItem.layout?.class, additional: additionalItem.layout?.class},
-                };
-                for (const [key, values] of Object.entries(known)) {
-                    const reusableValue = values['reusable'];
-                    const additionalValue = values['additional'];
-                    if (reusableValue && additionalValue && reusableValue !== additionalValue) {
-                        throw new Error(
-                            "Invalid usage of reusable form config. The class must match the reusable form config. " +
-                            "To change the class, use 'formModeClasses'. " +
-                            `The ${key} class in reusable form config '${reusableFormName}' item '${expandedItem.name}' ` +
-                            `is '${reusableValue}' given class was '${additionalValue}'.`);
-                    }
-                }
-            }
-
-            const newItem = _mergeWith({}, expandedItem, additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {});
-            result.push(newItem);
-        }
-        return result;
-    }
-
     /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item The item to visit.
-     * @param suffixPath The path to add to the end of the current path.
+     * Extract the default value from the form component definition.
+     * @param item The form component definition.
+     * @protected
      */
-    protected acceptCurrentPath(item: CanVisit, suffixPath: string[]): void {
-        const itemCurrentPath = [...(this.formConfigPath ?? [])];
+    protected acceptFormComponentDefinitionWithValue(item: FormComponentDefinitionOutline): void {
+        const original = [...(this.dataModelPath ?? [])];
+        const itemName = item?.name ?? "";
+        const itemDefaultValue = item?.model?.config?.defaultValue;
+
         try {
-            this.formConfigPath = [...itemCurrentPath, ...(suffixPath ?? [])];
+            if (item.model && itemName) {
+                this.dataModelPath = [...original, itemName];
+            }
 
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
+            // Merge the default value if form default values are being used and item has a default value.
+            if (this.extractedDefaultValues !== null && itemDefaultValue !== undefined) {
+                this.mergeDefaultValues(itemName, itemDefaultValue);
+            }
 
-            item.accept(this);
+            // Continue visiting
+            this.formConfigPathHelper.acceptFormComponentDefinition(item);
         } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
+            // rethrow error - the finally block will ensure the dataModelPath is correct
             throw error;
         } finally {
-            this.formConfigPath = itemCurrentPath;
+            this.dataModelPath = original;
         }
     }
 
     /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
+     * Merge the items' default value into the intermediate values.
+     * @param itemName The item name.
+     * @param itemDefaultValue The item's default value.
+     * @protected
      */
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptCurrentPath(item.component, ['component']);
-        if (item.model) {
-            this.acceptCurrentPath(item.model, ['model']);
+    protected mergeDefaultValues(itemName: string, itemDefaultValue: unknown): void {
+        if (itemName && itemDefaultValue !== undefined) {
+            // Set the default value at the current data model path.
+            // This makes it easier to merge defaults.
+            const defaultValue = _set({}, this.dataModelPath, itemDefaultValue);
+            // Merging is only needed if there is a default value.
+            if (defaultValue !== undefined) {
+                // Use lodash mergeWith because it will recurse into nested objects and arrays.
+                // Object.assign and the spread operator do not recurse.
+                // The lodash mergeWith also allows specifying how to handle arrays, which we need to handle in a special way.
+                _mergeWith(
+                    this.extractedDefaultValues,
+                    defaultValue,
+                    (objValue, srcValue) => {
+                        // merge approach for arrays is to choose the source array,
+                        // or the one that is an array if the other isn't
+                        if (Array.isArray(objValue) && Array.isArray(srcValue)) {
+                            return srcValue;
+                        } else if (Array.isArray(objValue) && !Array.isArray(srcValue)) {
+                            return objValue;
+                        } else if (!Array.isArray(objValue) && Array.isArray(srcValue)) {
+                            return srcValue;
+                        }
+                        // undefined = use the default merge approach
+                        return undefined;
+                    });
+            }
         }
-        if (item.layout) {
-            this.acceptCurrentPath(item.layout, ['layout']);
-        }
+    }
+
+    protected getData() {
+        return this.sharedProps.getDataPath(this.data, this.formConfigPathHelper.formConfigPath);
     }
 }

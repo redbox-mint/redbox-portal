@@ -70,6 +70,7 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {CanVisit} from "./base.outline";
+import {FormConfigPathHelper} from "./common.model";
 
 
 /**
@@ -80,22 +81,28 @@ import {CanVisit} from "./base.outline";
 export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "JsonTypeDefSchemaFormConfigVisitor";
 
-    private formConfigPath: string[];
     private jsonTypeDefPath: string[];
 
     private jsonTypeDef: Record<string, unknown>;
 
+    private formConfigPathHelper: FormConfigPathHelper;
+
     constructor(logger: ILogger) {
         super(logger);
-
-        this.formConfigPath = [];
         this.jsonTypeDefPath = [];
 
         this.jsonTypeDef = {};
+
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
     }
 
+    /**
+     * Start the visitor.
+     * @param options Configure the visitor.
+     * @param options.form The constructed form.
+     */
     start(options: { form: FormConfigOutline }): Record<string, unknown> {
-        this.formConfigPath = [];
+        this.formConfigPathHelper.reset();
         this.jsonTypeDefPath = [];
 
         this.jsonTypeDef = {};
@@ -187,7 +194,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -203,7 +210,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -326,8 +333,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         const originalPath = [...this.jsonTypeDefPath];
         try {
             this.jsonTypeDefPath = [...originalPath, ...jsonTypeDefPathKeys];
+            // TODO: is this needed?
             // _set(this.result, this.resultPath, {});
-            this.acceptFormConfigPath(item, formConfigPathKeys);
+            this.formConfigPathHelper.acceptFormConfigPath(item, formConfigPathKeys);
         } catch (error) {
             // rethrow error - the finally block will ensure the currentPath is correct
             throw error;
@@ -335,29 +343,4 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
             this.jsonTypeDefPath = originalPath;
         }
     }
-
-    /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item The item to visit.
-     * @param suffixPath The path keys to add at the end of the current path.
-     * @protected
-     */
-    protected acceptFormConfigPath(item: CanVisit, suffixPath: string[]): void {
-        const originalPath = [...(this.formConfigPath ?? [])];
-        try {
-            this.formConfigPath = [...originalPath, ...(suffixPath ?? [])];
-
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
-
-            item.accept(this);
-        } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
-            throw error;
-        } finally {
-            this.formConfigPath = originalPath;
-        }
-    }
-
 }

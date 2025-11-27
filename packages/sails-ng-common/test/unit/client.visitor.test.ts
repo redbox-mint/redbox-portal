@@ -489,7 +489,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {}
+                                                        config: {value: 'hello world 2!'}
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',
@@ -605,7 +605,7 @@ describe("Client Visitor", async () => {
             form: constructed,
             formMode: "view",
             userRoles: ["Librarian"],
-            record: {text_2: "text_2_value"}
+            // record: {text_2: "text_2_value"}
         });
         expect(actual).to.eql({});
     });

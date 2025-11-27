@@ -5,7 +5,7 @@ import {
     TemplateFormConfigVisitor
 } from "../../src";
 
-import {formConfigExample1, reusableDefinitionsExample1} from "./example-data";
+import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;

@@ -1,4 +1,4 @@
-import {FormConfigFrame, DefaultValueFormConfigVisitor, ConstructFormConfigVisitor} from "../../src";
+import {FormConfigFrame, DataValueFormConfigVisitor, ConstructFormConfigVisitor} from "../../src";
 import {formConfigExample1, reusableDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
 
@@ -230,7 +230,7 @@ describe("Default Value Visitor", async () => {
             const constructor = new ConstructFormConfigVisitor(logger);
             const constructed = constructor.start({data: args, formMode:"edit"});
 
-            const visitor = new DefaultValueFormConfigVisitor(logger);
+            const visitor = new DataValueFormConfigVisitor(logger);
             const actual = visitor.start({form: constructed});
             expect(actual).to.eql(expected);
         });

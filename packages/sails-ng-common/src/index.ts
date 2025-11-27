@@ -26,10 +26,9 @@ export * from "./config/names/naming-helpers";
 // config/visitor
 export * from "./config/visitor/base.outline";
 export * from "./config/visitor/base.model";
-export * from "./config/visitor/helpers";
 export * from "./config/visitor/client.visitor";
 export * from "./config/visitor/construct.visitor";
-export * from "./config/visitor/default-value.visitor";
+export * from "./config/visitor/data-value.visitor";
 export * from "./config/visitor/json-type-def.visitor";
 export * from "./config/visitor/template.visitor";
 export * from "./config/visitor/validator.visitor";

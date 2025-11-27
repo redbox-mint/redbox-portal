@@ -65,9 +65,9 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionOutline, FormExpressionsConfigFrame} from "../form-component.outline";
+import {FormExpressionsConfigFrame} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {CanVisit} from "./base.outline";
+import {FormConfigPathHelper} from "./common.model";
 
 
 /**
@@ -80,18 +80,23 @@ import {CanVisit} from "./base.outline";
 export class TemplateFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "TemplateFormConfigVisitor";
 
-    private formConfigPath: string[];
+    private formConfigPathHelper: FormConfigPathHelper;
 
     private templates: TemplateCompileInput[];
 
     constructor(logger: ILogger) {
         super(logger);
-        this.formConfigPath = [];
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
         this.templates = [];
     }
 
+    /**
+     * Start the visitor.
+     * @param options Configure the visitor.
+     * @param options.form The constructed form.
+     */
     start(options: { form: FormConfigOutline }): TemplateCompileInput[] {
-        this.formConfigPath = [];
+        this.formConfigPathHelper.reset();
         this.templates = [];
 
         options.form.accept(this);
@@ -102,7 +107,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline) {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
     }
 
@@ -116,7 +121,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Content */
@@ -125,7 +130,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
         const template = (item.config?.template ?? "").trim();
         if (template) {
             this.templates?.push({
-                key: [...(this.formConfigPath ?? []), "config", "template"],
+                key: [...(this.formConfigPathHelper.formConfigPath ?? []), "config", "template"],
                 value: template,
                 kind: "handlebars"
             });
@@ -134,7 +139,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Repeatable  */
@@ -151,7 +156,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Validation Summary */
@@ -161,7 +166,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Group */
@@ -169,7 +174,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -178,7 +183,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Tab  */
@@ -186,7 +191,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -195,7 +200,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /*  Tab Content */
@@ -203,7 +208,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -212,7 +217,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Save Button  */
@@ -222,7 +227,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Text Area */
@@ -235,7 +240,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Default Layout  */
@@ -253,7 +258,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Dropdown Input */
@@ -266,7 +271,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
@@ -279,7 +284,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     /* Date Input */
@@ -292,56 +297,16 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
     protected extractExpressions(expressions?: FormExpressionsConfigFrame): void {
         for (const [name, value] of Object.entries(expressions ?? {})) {
             this.templates?.push({
-                key: [...(this.formConfigPath ?? []), 'expressions', name, 'template'],
+                key: [...(this.formConfigPathHelper.formConfigPath ?? []), 'expressions', name, 'template'],
                 value: value?.template,
                 kind: "jsonata"
             });
-        }
-    }
-
-
-    /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item
-     * @param suffixPath
-     * @protected
-     */
-    protected acceptCurrentPath(item: CanVisit, suffixPath: string[]): void {
-        const itemCurrentPath = [...(this.formConfigPath ?? [])];
-        try {
-            this.formConfigPath = [...itemCurrentPath, ...(suffixPath ?? [])];
-
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
-
-            item.accept(this);
-        } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
-            throw error;
-        } finally {
-            this.formConfigPath = itemCurrentPath;
-        }
-    }
-
-    /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
-     * @protected
-     */
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptCurrentPath(item.component, ['component']);
-        if (item.model) {
-            this.acceptCurrentPath(item.model, ['model']);
-        }
-        if (item.layout) {
-            this.acceptCurrentPath(item.layout, ['layout']);
         }
     }
 }

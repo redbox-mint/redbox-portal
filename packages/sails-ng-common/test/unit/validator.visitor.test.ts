@@ -5,7 +5,7 @@ import {
     formValidatorsSharedDefinitions,
     FormValidatorSummaryErrors
 } from "../../src";
-import {ValidatorFormConfigVisitor} from "../../src/config/visitor/validator.visitor";
+import {ValidatorFormConfigVisitor} from "../../src";
 import {logger} from "./helpers";
 import {formConfigExample1} from "./example-data";
 
@@ -251,7 +251,7 @@ describe("Validator Visitor", async () => {
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
-            record
+            // record
         });
         expect(actual).to.eql(expected);
     });
@@ -334,7 +334,7 @@ describe("Validator Visitor", async () => {
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
-            record
+            // record
         });
         expect(actual).to.eql(expected);
     });

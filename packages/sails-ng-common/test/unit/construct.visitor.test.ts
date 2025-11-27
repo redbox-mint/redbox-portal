@@ -1,7 +1,7 @@
 import {
     ConstructFormConfigVisitor,
     FormConfig,
-    FormConfigFrame, FormConfigOutline, FormModesConfig, ReusableFormDefinitions,
+    FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
 } from "../../src";
 import {formConfigExample1, formConfigExample2, reusableDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
@@ -14,12 +14,12 @@ describe("Construct Visitor", async () => {
         const cases: {
             title: string,
             args: FormConfigFrame;
-            expected: { useArgs: boolean, value?: FormConfig };
+            expected: FormConfigFrame;
         }[] = [
             {
                 title: "create empty item",
                 args: {name: '', componentDefinitions: []},
-                expected: {useArgs: false, value: new FormConfig()},
+                expected:  new FormConfig(),
             },
             {
                 title: "create simple example",
@@ -95,23 +95,90 @@ describe("Construct Visitor", async () => {
                         }
                     ]
                 },
-                expected: {useArgs: true},
+                expected: {
+                    name: '',
+                    componentDefinitions: [
+                        {
+                            name: 'repeatable_group_1',
+                            model: {
+                                class: 'RepeatableModel',
+                                config: {
+                                    value: [{text_3: "hello world from repeating groups"}]
+                                }
+                            },
+                            component: {
+                                class: 'RepeatableComponent',
+                                config: {
+                                    elementTemplate: {
+                                        // first group component
+                                        name: "",
+                                        model: {
+                                            class: 'GroupModel',
+                                            config: {
+                                                value: {},
+                                            }
+                                        },
+                                        component: {
+                                            class: 'GroupComponent',
+                                            config: {
+                                                wrapperCssClasses: 'col',
+                                                componentDefinitions: [
+                                                    {
+                                                        name: 'text_3',
+                                                        model: {
+                                                            class: 'SimpleInputModel',
+                                                            config: {
+                                                                value: 'hello world 3!',
+                                                                validators: [
+                                                                    {
+                                                                        class: 'minLength',
+                                                                        message: "@validator-error-custom-text_3",
+                                                                        config: {minLength: 3}
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        component: {
+                                                            class: 'SimpleInputComponent',
+                                                            config: {
+                                                                type: 'text'
+                                                            }
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                        layout: {
+                                            class: 'RepeatableElementLayout',
+                                            config: {
+                                                hostCssClasses: 'row align-items-start'
+                                            }
+                                        },
+                                    }
+                                },
+                            },
+                            layout: {
+                                class: 'DefaultLayout',
+                                config: {
+                                    label: 'Repeatable TextField not inside the tab with default wrapper defined',
+                                    helpText: 'Repeatable component help text',
+                                }
+                            },
+                        }
+                    ]
+                },
             },
             {
                 title: "create full example",
                 args: formConfigExample1,
-                expected: {useArgs: true},
+                expected: formConfigExample1,
             }
         ];
         cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
                 const actual = visitor.start({data: args, formMode: "edit"});
-                if (expected.useArgs) {
-                    expect(actual).to.containSubset(args);
-                } else {
-                    expect(actual).to.eql(expected.value);
-                }
+                expect(actual).to.containSubset(expected);
             });
         });
     });

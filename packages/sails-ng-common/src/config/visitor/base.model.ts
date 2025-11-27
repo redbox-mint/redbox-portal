@@ -1,6 +1,6 @@
-import {get as _get} from "lodash";
+
 import {FormConfigOutline} from "../form-config.outline";
-import {FormConfigVisitorOutline} from "./base.outline";
+import { FormConfigVisitorOutline} from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -66,7 +66,6 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {PopulatePropertiesHelper} from "./helpers";
 
 
 /**
@@ -75,11 +74,9 @@ import {PopulatePropertiesHelper} from "./helpers";
 export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     protected logName = "FormConfigVisitor";
     protected logger: ILogger;
-    protected sharedProps: PopulatePropertiesHelper;
 
     protected constructor(logger: ILogger) {
         this.logger = logger;
-        this.sharedProps = new PopulatePropertiesHelper();
     }
 
     /* Form Config */
@@ -272,19 +269,5 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
     protected notImplemented() {
         throw new Error(`Visitor method must be implemented.`);
-    }
-
-    // TODO: fix typing
-    protected getDataPath(data?: unknown, path?: string[]) {
-        const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
-
-        // for debugging:
-        // const msg = [
-        //     result?.['name'] ? `with name '${result?.['name']}'` : '',
-        //     result?.['class'] ? `with class '${result?.['class']}'` : '',
-        // ];
-        // this.logger.debug(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
-
-        return result;
     }
 }

@@ -20,7 +20,7 @@
 import { PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
     guessType, FormValidatorSummaryErrors,
-    FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
+    FormConfigFrame, DataValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
     TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
     ValidatorFormConfigVisitor, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
@@ -322,7 +322,7 @@ export module Services {
             const constructor = new ConstructFormConfigVisitor(this.logger);
             const constructed = constructor.start({data: item, formMode, reusableFormDefs});
 
-            const visitor = new DefaultValueFormConfigVisitor(this.logger);
+            const visitor = new DataValueFormConfigVisitor(this.logger);
             return visitor.start({form: constructed});
         }
 
@@ -480,14 +480,18 @@ export module Services {
             const validatorDefinitions = sails.config.validators.definitions;
 
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start({data: formConfig, formMode, reusableFormDefs});
+            const constructed = constructor.start({
+              data: formConfig,
+              formMode,
+              reusableFormDefs,
+              record: record?.metadata ?? {}
+            });
 
             const visitor = new ValidatorFormConfigVisitor(this.logger);
             return visitor.start({
               form: constructed,
               enabledValidationGroups: enabledValidationGroups || ["all"],
               validatorDefinitions,
-              record: record?.metadata ?? {}
             });
         }
 
