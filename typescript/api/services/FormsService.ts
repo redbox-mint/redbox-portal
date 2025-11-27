@@ -526,16 +526,11 @@ export module Services {
         reusableFormDefs?: ReusableFormDefinitions
     ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start({data: item, formMode, reusableFormDefs});
+      const constructed = constructor.start({data: item, reusableFormDefs, formMode, record: recordData});
 
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      let result: FormConfigOutline;
-      if (recordData !== null && recordData !== undefined) {
-        result = visitor.start({form:constructed, formMode, userRoles, record:recordData});
-      } else {
-        result = visitor.start({form: constructed, formMode, userRoles});
-      }
+      const result = visitor.start({form: constructed, formMode, userRoles});
 
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, ` +
