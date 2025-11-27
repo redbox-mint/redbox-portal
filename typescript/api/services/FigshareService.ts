@@ -695,15 +695,38 @@ export module Services {
     }
 
     private async getArticleFileList(articleId:string, logEnabled:boolean = true) {
-      let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-      if(logEnabled) {
-        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+      const defaultPageSize = 20;
+      const pageSizeConfig = _.get(sails.config, 'figshareAPI.mapping.upload.fileListPageSize', defaultPageSize);
+      const pageSize = _.isNumber(pageSizeConfig) && pageSizeConfig > 0 ? pageSizeConfig : defaultPageSize;
+
+      let page = 1;
+      let articleFileList = [];
+      let hasMorePages = true;
+
+      while(hasMorePages) {
+        let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files?page_size=${pageSize}&page=${page}`, null);
+        if(logEnabled) {
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - page ${page} - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
+        }
+        let responseArticleList = await axios(articleFileListConfig);
+        if(logEnabled) {
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - page ${page} status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+        }
+
+        let currentPage = responseArticleList.data;
+        if(_.isArray(currentPage) && currentPage.length > 0) {
+          articleFileList.push(...currentPage);
+          hasMorePages = currentPage.length >= pageSize;
+        } else {
+          hasMorePages = false;
+        }
+        page++;
       }
-      let responseArticleList = await axios(articleFileListConfig);
+
       if(logEnabled) {
-        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - getArticleFileList - total files fetched ${articleFileList.length}`);
       }
-      let articleFileList = responseArticleList.data;
+
       return articleFileList;
     }
 
@@ -1401,11 +1424,7 @@ export module Services {
 
             //Try to upload files to article
             let that = this;
-            let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
-            let responseArticleList = await axios(articleFileListConfig);
-            sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - checkUploadFilesPending - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
-            let articleFileList = responseArticleList.data;
+            let articleFileList = await this.getArticleFileList(articleId);
             let filePath = sails.config.figshareAPI.attachmentsFigshareTempDir;
             sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - attachmentsFigshareTempDir '+filePath);
 
@@ -1440,9 +1459,8 @@ export module Services {
                   let attachId = attachmentFile.fileId;
                   let fileName = attachmentFile.name;
                   let fileSize = attachmentFile.size;
-                  //check if the file has been uploaded already or not to the figshare article 
-                  responseArticleList = await axios(articleFileListConfig);
-                  articleFileList = responseArticleList.data;
+                  //check if the file has been uploaded already or not to the figshare article
+                  articleFileList = await this.getArticleFileList(articleId, false);
                   sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - checkUploadFilesPending - article file list: '+JSON.stringify(articleFileList));
                   let filePendingToBeUploaded = _.find(articleFileList, ['name', fileName]);
                   let fileFullPath = filePath + '/' +fileName;
@@ -1899,11 +1917,7 @@ export module Services {
 
         if(articleId > 0) {
 
-          let articleFileListConfig = this.getAxiosConfig('get', `/account/articles/${articleId}/files`, null);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesAndUpdateDataLocationEntries - ${articleFileListConfig.method} - ${articleFileListConfig.url}`);
-          let responseArticleList = await axios(articleFileListConfig);
-          sails.log[this.createUpdateFigshareArticleLogLevel](`FigService - deleteFilesAndUpdateDataLocationEntries - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
-          let articleFileList = responseArticleList.data;
+          let articleFileList = await this.getArticleFileList(articleId);
 
           let dataLocations = _.get(record,this.dataLocationsPathInRecord);
           let urlList = [];
@@ -2247,3 +2261,4 @@ export module Services {
   }
 }
 module.exports = new Services.FigshareService().exports();
+module.exports.Services = Services;
