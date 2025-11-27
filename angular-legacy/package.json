@@ -15,7 +15,7 @@
     "@angular-devkit/core": "^9.0.7",
     "@angular/animations": "^4.0.0",
     "@angular/cli": "^1.7.4",
-    "@angular/common": "^4.0.0",
+    "@angular/common": "^19.2.16",
     "@angular/compiler": "^4.0.0",
     "@angular/core": "^4.0.0",
     "@angular/forms": "^4.0.0",
