@@ -1,87 +1,90 @@
-<div class="default-page">
-  <div class="header">
-    <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <h1 class="hero-title"><span class="hero-title-bold">ReDBox:</span> <span class="hero-title-light"><%- TranslationService.t('hero-tagline') %></span></h1>
+    <p class="hero-subtitle"><%- TranslationService.t('hero-description') %></p>
+    <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit" class="btn btn-hero"><%- TranslationService.t('hero-cta-button') %></a>
   </div>
-<div class="row equal">
-    <div class="col-md-3 homepanel">
-      <div class="panel panel-default">
-         <div class="panel-heading text-center">
-             <span class="panel-title">
-               <div><i class="icon-checklist icon-3x" ></i></div>
-               <%= TranslationService.t('menu-plan')%>
-             </span>
-         </div>
-         <div class="panel-body">
-           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
-           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></div>
-             <% if (TranslationService.t('get-advice-link') != "get-advice-link") {
-             %>
-                 <div><a rel="noopener noreferrer" target="_blank" href="<%= TranslationService.t('get-advice-link') %>"><%= TranslationService.t('get-advice') %></a></div>
-             <% } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
-                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></div>
-             <% } %>
-         </div>
-      </div>
-    </div>
-    <div class="col-md-3 homepanel">
-      <div class="panel panel-default">
-        <div class="panel-heading text-center">
-          <div><i class="fa fa-sitemap fa-3x"></i></div>
-          <span class="panel-title"><%= TranslationService.t('menu-organise-worspace')%></span>
-        </div>
-        <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></div>
-            <% if (TranslationService.t('workspace-services-list-link') != "workspace-services-list-link") {
-            %>
-                <div><a rel="noopener noreferrer" target="_blank" href="<%= TranslationService.t('workspace-services-list-link') %>"><%= TranslationService.t('workspace-services-list') %></a></div>
-            <%  } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
-                <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></div>
-            <% } %>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 homepanel">
-      <div class="panel panel-default">
-        <div class="panel-heading text-center">
-            <div><i class="fa fa-laptop fa-3x"></i></div>
-            <span class="panel-title"><%= TranslationService.t('menu-manage')%></span>
-        </div>
-        <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></div>
-        </div>
-       </div>
-    </div>
-    <div class="col-md-3 homepanel">
-      <div class="panel panel-default">
-        <div class="panel-heading text-center">
-            <div><i class="fa fa-rocket fa-3x"></i></div>
-            <span class="panel-title"><%= TranslationService.t('menu-publish')%></span>
-        </div>
-        <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></div>
-        </div>
-       </div>
-    </div>
-
 </div>
 
-<!-- simple jquery script to make all the panels equal height -->
-<script <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-  $( document ).ready(function() {
-   const panels = document.querySelectorAll('.homepanel .panel-default .panel-body');
-   let maxHeight = 0;
-   for (let i = 0; i < panels.length; i++) {
-      const panel = panels[i];
-      const panelHeight = panel.offsetHeight;
-      if (maxHeight < panelHeight) {
-        maxHeight = panelHeight;
-      }
-    }
-    for (let panel of panels) {
-      panel.style.minHeight = `${maxHeight}px`;
-    }
-  });
-</script>
+<!-- Feature Cards Section -->
+<div class="container feature-cards-section">
+  <h2 class="section-title text-center"><%- TranslationService.t('welcome-title') %></h2>
+  <div class="row">
+    <!-- Plan Your Research Card -->
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="feature-card">
+        <div class="feature-card-header">
+          <div class="feature-icon">
+            <i class="icon-checklist"></i>
+          </div>
+          <h3 class="feature-title"><%= TranslationService.t('menu-plan')%></h3>
+        </div>
+        <div class="feature-card-body">
+          <p class="feature-description"><%- TranslationService.t('home-plan-description') %></p>
+          <div class="feature-buttons">
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit" class="btn btn-feature-primary"><%= TranslationService.t('create-rdmp')%></a>
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp" class="btn btn-feature-secondary"><%= TranslationService.t('edit-dashboard-rdmp')%></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Organise Workspaces Card -->
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="feature-card">
+        <div class="feature-card-header">
+          <div class="feature-icon">
+            <i class="fa fa-sitemap"></i>
+          </div>
+          <h3 class="feature-title"><%= TranslationService.t('menu-organise-worspace')%></h3>
+        </div>
+        <div class="feature-card-body">
+          <p class="feature-description"><%- TranslationService.t('home-workspace-description') %></p>
+          <div class="feature-buttons">
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list" class="btn btn-feature-primary"><%= TranslationService.t('workspaces-dashboard')%></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Your Data Card -->
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="feature-card">
+        <div class="feature-card-header">
+          <div class="feature-icon">
+            <i class="fa fa-laptop"></i>
+          </div>
+          <h3 class="feature-title"><%= TranslationService.t('menu-manage')%></h3>
+        </div>
+        <div class="feature-card-body">
+          <p class="feature-description"><%- TranslationService.t('home-manage-description') %></p>
+          <div class="feature-buttons">
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit" class="btn btn-feature-primary"><%= TranslationService.t('create-datarecord')%></a>
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord" class="btn btn-feature-secondary"><%= TranslationService.t('edit-dashboard-datarecord')%></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Publish and Share Card -->
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="feature-card">
+        <div class="feature-card-header">
+          <div class="feature-icon">
+            <i class="fa fa-rocket"></i>
+          </div>
+          <h3 class="feature-title"><%= TranslationService.t('menu-publish')%></h3>
+        </div>
+        <div class="feature-card-body">
+          <p class="feature-description"><%- TranslationService.t('home-publish-description') %></p>
+          <div class="feature-buttons">
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit" class="btn btn-feature-primary"><%= TranslationService.t('create-data-publication')%></a>
+            <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication" class="btn btn-feature-secondary"><%= TranslationService.t('edit-dashboard-publication')%></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

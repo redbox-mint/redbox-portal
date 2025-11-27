@@ -1,10 +1,52 @@
 <div class="container">
   <div class="row">
-    <div class="col-md-8">
-      <div class="copyright">
-        <p>&copy; <%= new Date().getFullYear() %> Queensland Cyber Infrastructure Foundation</p>
+    <!-- Footer Navigation Column -->
+    <div class="col-md-3 footer-column">
+      <h4 class="footer-heading"><%= TranslationService.t('footer-heading-navigation') %></h4>
+      <ul class="footer-links">
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('menu-home') %></a></li>
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('menu-plan') %></a></li>
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('menu-organise-worspace') %></a></li>
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('menu-publish') %></a></li>
+      </ul>
+    </div>
+
+    <!-- Footer Links Column -->
+    <div class="col-md-3 footer-column">
+      <h4 class="footer-heading"><%= TranslationService.t('footer-heading-links') %></h4>
+      <ul class="footer-links">
+        <li><a href="<%= TranslationService.t('footer-about-link') %>" target="_blank" rel="noopener noreferrer"><%= TranslationService.t('footer-about') %></a></li>
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('menu-organise-worspace') %></a></li>
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('menu-manage') %></a></li>
+        <% if (req.isAuthenticated() && req.user && req.user.roles && req.user.roles.includes('Admin')) { %>
+        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-admin') %></a></li>
+        <% } %>
+      </ul>
+    </div>
+
+    <!-- Logo Column -->
+    <div class="col-md-3 footer-column text-center">
+      <div class="footer-logo">
+        <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>">
       </div>
     </div>
 
+    <!-- Contact Info Column -->
+    <div class="col-md-3 footer-column">
+      <h4 class="footer-heading"><%= TranslationService.t('footer-heading-contact') %></h4>
+      <div class="footer-contact-info">
+        <p><%= TranslationService.t('footer-org-name') %></p>
+        <p><a href="<%= TranslationService.t('footer-website-link') %>" target="_blank" rel="noopener noreferrer"><%= TranslationService.t('footer-website') %></a></p>
+        <p><a href="mailto:<%= TranslationService.t('footer-email') %>"><%= TranslationService.t('footer-email') %></a></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="copyright text-center">
+        <p>&copy; <%= new Date().getFullYear() %> Queensland Cyber Infrastructure Foundation</p>
+      </div>
+    </div>
   </div>
 </div>

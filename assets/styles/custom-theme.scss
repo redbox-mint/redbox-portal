@@ -1,1 +1,436 @@
 // Placeholder SCSS file customisations to the default theme.
+
+// =============================================
+// Unified Header Styles
+// =============================================
+.unified-header {
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1000;
+}
+
+.unified-navbar {
+  padding: 0;
+  width: 100%;
+  
+  .navbar-collapse {
+    display: flex !important;
+    flex-basis: auto;
+    flex-grow: 1;
+    justify-content: flex-end;
+  }
+  
+  .main-nav {
+    margin-right: auto;
+  }
+  
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    text-decoration: none;
+    
+    .header-logo {
+      height: 40px;
+      width: auto;
+      margin-right: 10px;
+    }
+    
+    .brand-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: $panel-branding-background-color;
+    }
+  }
+  
+  .navbar-toggler {
+    border-color: $panel-branding-background-color;
+    
+    .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28177, 16, 26, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+  }
+  
+  .main-nav {
+    .nav-item {
+      .nav-link {
+        color: #333;
+        font-weight: 500;
+        padding: 15px 15px;
+        text-transform: uppercase;
+        font-size: 1.8rem;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: $panel-branding-background-color;
+        }
+      }
+      
+      &.dropdown {
+        .dropdown-menu {
+          border: none;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          border-radius: 4px;
+          
+          .dropdown-item {
+            padding: 10px 20px;
+            font-size: 1.8rem;
+
+            &:hover {
+              background-color: $panel-branding-background-color;
+              color: #fff;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .user-nav {
+    display: flex;
+    align-items: center;
+    
+    .user-welcome {
+      display: flex;
+      align-items: center;
+      
+      .nav-link {
+        color: #666;
+        font-size: 1.8rem;
+        padding: 15px 5px;
+      }
+      
+      .nav-divider {
+        color: #ccc;
+        margin: 0 5px;
+      }
+      
+      .logout-link {
+        color: $panel-branding-background-color;
+        padding: 15px 5px;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+    
+    .nav-item {
+      .nav-link {
+        color: #666;
+        font-size: 1.8rem;
+        padding: 15px 10px;
+
+        i {
+          margin-right: 5px;
+        }
+      }
+    }
+  }
+}
+
+// Hide the old header, branding area, and menu
+.header-area,
+.site-branding-area,
+.mainmenu-area {
+  display: none !important;
+}
+
+// =============================================
+// Hero Section Styles
+// =============================================
+.hero-section {
+  position: relative;
+  min-height: 350px;
+  // Hero background - uses overlay gradient when no image is present
+  // To add a background image, uncomment the line below and add hero-bg.jpg to assets/images/
+  // background-image: url('../images/hero-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-top: 0;
+  padding-top: 0;
+  
+  // Fallback gradient if no image
+  background-color: #4a4a4a;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba($panel-branding-background-color, 0.85) 0%,
+    rgba($main-menu-branding-background-color, 0.75) 100%
+  );
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  padding: 60px 20px;
+  color: #fff;
+}
+
+.hero-title {
+  font-size: 4.2rem;
+  margin-bottom: 20px;
+  font-weight: 300;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hero-title-bold {
+  font-weight: 700;
+}
+
+.hero-title-light {
+  font-style: italic;
+  font-weight: 300;
+}
+
+.hero-subtitle {
+  font-size: 1.875rem;
+  margin-bottom: 30px;
+  opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-hero {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 2px solid #fff;
+  color: #fff;
+  padding: 12px 30px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  
+  &:hover {
+    background-color: #fff;
+    color: $panel-branding-background-color;
+    text-decoration: none;
+  }
+}
+
+// =============================================
+// Feature Cards Section Styles
+// =============================================
+.feature-cards-section {
+  padding: 60px 0;
+  
+  .section-title {
+    font-size: 3.3rem;
+    font-weight: 300;
+    margin-bottom: 40px;
+    color: $main-content-heading-text-branding-color;
+  }
+}
+
+.feature-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.feature-card-header {
+  background-color: #fff;
+  color: #333;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.feature-icon {
+  font-size: 4.5rem;
+  margin-bottom: 15px;
+  
+  i {
+    color: $panel-branding-background-color;
+  }
+}
+
+.feature-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.feature-card-body {
+  padding: 25px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-description {
+  color: #666;
+  font-size: 1.425rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+.feature-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-feature-primary {
+  background-color: $panel-branding-background-color;
+  border: 2px solid $panel-branding-background-color;
+  color: #fff;
+  padding: 10px 20px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+  
+  &:hover {
+    background-color: $main-menu-branding-background-color;
+    border-color: $main-menu-branding-background-color;
+    color: #fff;
+    text-decoration: none;
+  }
+}
+
+.btn-feature-secondary {
+  background-color: $panel-branding-background-color;
+  border: 2px solid $panel-branding-background-color;
+  color: #fff;
+  padding: 10px 20px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+  
+  &:hover {
+    background-color: $main-menu-branding-background-color;
+    border-color: $main-menu-branding-background-color;
+    color: #fff;
+    text-decoration: none;
+  }
+}
+
+// =============================================
+// Enhanced Footer Styles
+// =============================================
+.footer-bottom-area {
+  padding-top: 50px;
+  padding-bottom: 40px;
+}
+
+.footer-column {
+  margin-bottom: 30px;
+}
+
+.footer-heading {
+  font-size: 1.65rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  
+  li {
+    margin-bottom: 10px;
+  }
+  
+  a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    
+    &:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  }
+}
+
+.footer-logo {
+  margin-bottom: 15px;
+  
+  img {
+    max-height: 60px;
+    filter: brightness(0) invert(1);
+  }
+}
+
+.footer-contact-info {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.35rem;
+  
+  p {
+    margin-bottom: 5px;
+  }
+  
+  a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    
+    &:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  }
+}
+
+.copyright {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 20px;
+  margin-top: 30px;
+  
+  p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.275rem;
+    margin: 0;
+  }
+}
+
+// =============================================
+// Adjust main content body for hero
+// =============================================
+.maincontent-body {
+  padding: 0;
+  
+  // Add padding back for non-home pages
+  &:not(:has(.hero-section)) {
+    padding: 80px 0 130px;
+  }
+}
+
+// Fallback for browsers without :has() support
+@supports not selector(:has(*)) {
+  .maincontent-body {
+    padding: 0;
+  }
+}
