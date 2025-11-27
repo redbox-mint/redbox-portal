@@ -371,6 +371,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.debugFormComponents.set(this.getDebugInfo());
       });
     }
+    // set the initial signal values...
+    this.formGroupStatus.set(this.dataStatus);
+    this.debugFormComponents.set(this.getDebugInfo());
+
   }
 
   /**
