@@ -238,7 +238,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       } else {
         this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
       }
-      this.initSubscriptions();
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
       // Dispatch load failure action instead of direct mutation
@@ -280,7 +279,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     
     // Build the initial query source for component definitions
     this.setupQuerySource();
-
+    // Initialize subscriptions to event bus 
+    this.initSubscriptions();
     // Finally set the flag indicating components are loaded
     this.componentsLoaded.set(true);
   }
@@ -370,9 +370,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
         this.debugFormComponents.set(this.getDebugInfo());
       });
-      // set the initial signal values...
-      this.formGroupStatus.set(this.dataStatus);
-      this.debugFormComponents.set(this.getDebugInfo());
     }
   }
 
