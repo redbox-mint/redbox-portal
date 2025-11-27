@@ -4,8 +4,9 @@ networks:
 
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
+    image: qcifengineering/redbox-portal:master
     pull_policy: 'always'
+    user: "root"
     ports:
        - "1500:1500"
       # Debugging port
@@ -46,9 +47,8 @@ services:
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal &&
       ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
-      npm install -g nyc &&
       npm install &&
-      nyc
+      ./node_modules/.bin/nyc
       --no-clean
       --report-dir coverage/mocha 
       --reporter=lcov
