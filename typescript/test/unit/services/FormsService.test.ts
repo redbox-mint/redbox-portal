@@ -625,7 +625,7 @@ describe('The FormsService', function () {
                         model: {
                             class: "SimpleInputModel",
                             config: {
-                                value: 'text_1_value'
+                                defaultValue: 'text_1_value'
                             }
                         }
                     },
@@ -812,7 +812,9 @@ describe('The FormsService', function () {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableModel',
-                            config: {value: [{text_1: "hello world from repeating groups"}]}
+                            config: {
+                                value: [{text_1: "hello world from repeating groups"}]
+                            }
                         },
                         component: {
                             class: 'RepeatableComponent',

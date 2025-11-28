@@ -910,8 +910,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFormComponent(item, currentData);
 
         this.acceptFormComponentDefinitionWithValue(item, currentData, requireModel);
-
-        this.isRepeatableElementTemplate = false;
     }
 
     /**
@@ -929,7 +927,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
 
         // Set the model.config.value
-        item.config.value = this.currentModelValue(item?.config?.defaultValue);
+        if (this.isRepeatableElementTemplate) {
+            item.config.value = item?.config?.defaultValue;
+            this.logger.info(`setModelValue isRepeatableElementTemplate ${JSON.stringify(item)}`);
+        } else {
+            item.config.value = this.currentModelValue();
+        }
 
         // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
@@ -940,9 +943,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     protected currentModelValue(itemDefaultValue?: unknown): unknown {
         //   Use the collected default value if form config default values are being used, otherwise, use the record values.
         const useFormConfigDefaultValues = this.isRepeatableElementTemplate || this.recordValues === null;
-        const dataValueSource = useFormConfigDefaultValues ? this.extractedDefaultValues : this.recordValues;
-        const defaultValue = useFormConfigDefaultValues ? itemDefaultValue : undefined;
-        return _cloneDeep(_get(dataValueSource, this.dataModelPath, defaultValue));
+        return useFormConfigDefaultValues ? this.currentDefaultValue(itemDefaultValue) : this.currentRecordValue();
+    }
+
+    protected currentDefaultValue(itemDefaultValue?: unknown) {
+        return _cloneDeep(_get(this.extractedDefaultValues, this.dataModelPath, itemDefaultValue));
+    }
+
+    protected currentRecordValue() {
+        return _cloneDeep(_get(this.recordValues, this.dataModelPath, undefined));
     }
 
     /**
@@ -964,7 +973,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             }
 
             // Merge the default value if form default values are being used and item has a default value.
-            this.mergeDefaultValues(itemName, itemDefaultValue);
+            if (!this.isRepeatableElementTemplate) {
+                this.mergeDefaultValues(itemName, itemDefaultValue);
+            }
 
             // Continue visiting
             this.formConfigPathHelper.acceptFormComponentDefinition(item);

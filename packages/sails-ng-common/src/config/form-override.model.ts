@@ -38,7 +38,8 @@ import {
     isTypeReusableComponent
 } from "./form-types.outline";
 import {PropertiesHelper} from "./visitor/common.model";
-import { ILogger } from "@researchdatabox/redbox-core-types";
+import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ContentFieldComponentConfig} from "./component/content.model";
 
 
 export class FormOverride {
@@ -324,6 +325,11 @@ export class FormOverride {
         const target = this.commonTargetContentComponent(source, formMode);
 
         // Use the source model value to construct the target 'content' property.
+        this.logger.info(`sourceCheckboxInputComponentTargetContentComponent ${JSON.stringify({
+            source,
+            target,
+            formMode
+        })}`);
         if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
             // Checkbox value can be string, null, array. If string or array, get the labels.
             const values = source.model.config.value === null
@@ -397,6 +403,11 @@ export class FormOverride {
             constraints: source.constraints,
             overrides: source.overrides,
         };
+        // Set the layout only if the source has a layout.
+        if (source.layout) {
+            frame.layout = source.layout;
+        }
+
         const target = this.propertiesHelper.sharedConstructFormComponent(frame);
         if (!target) {
             throw new Error(`Could not find class for form component class name 'ContentComponent': ${JSON.stringify(frame)}.`);
@@ -407,16 +418,11 @@ export class FormOverride {
             throw new Error(`Could not create class for form component class name 'ContentComponent': ${JSON.stringify(target)}.`);
         }
 
+        target.component.config = new ContentFieldComponentConfig();
 
-        // Set the layout only if the source has a layout.
-        if (source.layout) {
-            target.layout = source.layout;
-        }
+        // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
+        this.propertiesHelper.sharedPopulateFieldComponentConfig(target.component.config, source.component.config);
 
-        if (source.component.config) {
-            // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
-            this.propertiesHelper.sharedPopulateFieldComponentConfig(source.component.config, target.component.config);
-        }
 
         return target;
     }
