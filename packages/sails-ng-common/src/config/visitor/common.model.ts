@@ -82,6 +82,9 @@ export class PropertiesHelper {
             item.expressions[key] = value;
         }
 
+        // Set the overrides, as they might be used to transform this component into other components.
+        item.overrides = currentData.overrides;
+
         // Get the class string names.
         const componentClassString = currentData?.component?.class;
         const modelClassString = currentData?.model?.class;

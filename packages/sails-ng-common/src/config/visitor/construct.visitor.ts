@@ -172,10 +172,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "ConstructFormConfigVisitor";
 
     private formMode: FormModesConfig;
-    private recordValues: Record<string, unknown>;
-    private extractedDefaultValues: Record<string, unknown> | null;
+    private recordValues: Record<string, unknown> | null;
+    private extractedDefaultValues: Record<string, unknown>;
 
     private dataModelPath: string[];
+
+    private isRepeatableElementTemplate: boolean = false;
 
     private data: FormConfigFrame;
 
@@ -191,10 +193,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         super(logger);
 
         this.formMode = "view";
-        this.recordValues = {};
-        this.extractedDefaultValues = null;
+        this.recordValues = null;
+        this.extractedDefaultValues = {};
 
         this.dataModelPath = [];
+
+        this.isRepeatableElementTemplate = false;
 
         this.data = {name: "", componentDefinitions: []};
 
@@ -202,7 +206,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.formConfig = new FormConfig();
 
-        this.formOverride = new FormOverride();
+        this.formOverride = new FormOverride(this.logger);
         this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
         this.sharedProps = new PropertiesHelper();
     }
@@ -227,10 +231,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.formMode = options.formMode ?? "view";
 
         // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
-        this.recordValues = options.record ?? {};
+        this.recordValues = (options.record === null || options.record === undefined) ? null : options.record;
 
-        // extractedDefaultValues are only used when extracting the default values from the form config
-        this.extractedDefaultValues = options.record === null || options.record === undefined ? {} : null;
+        // Collect the form config defaults.
+        // The defaults always need to be extract so they are available to any repeatable components.
+        this.extractedDefaultValues = {};
+
+        this.dataModelPath = [];
+
+        this.isRepeatableElementTemplate = false;
 
         this.formConfigPathHelper.reset();
 
@@ -281,7 +290,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         currentData.componentDefinitions = this.formOverride.applyOverridesReusable(currentData?.componentDefinitions ?? [], this.reusableFormDefs);
 
         // Visit the components
-        currentData?.componentDefinitions.forEach((componentDefinition, index) => {
+        currentData.componentDefinitions.forEach((componentDefinition, index) => {
             const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
@@ -347,15 +356,37 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setPropOverride('content', item.config, config);
+        const configContent = {content: this.currentModelValue() ?? config?.content};
+        // this.logger.info(`visitContentFieldComponentDefinition ${JSON.stringify({content: this.currentModelValue(), config})}`);
+
+        this.sharedProps.setPropOverride('content', item.config, configContent);
         this.sharedProps.setPropOverride('template', item.config, config);
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.populateFormComponent(item);
+        const requireModel = false;
+        this.populateFormComponent(item, requireModel);
     }
 
     /* Repeatable  */
+
+    /*
+     * The repeatable model and repeatable elementTemplate are special. Some notes:
+     *
+     * - The repeatable model.config.defaultValue is the default for the whole repeatable.
+     *
+     * - The elementTemplate model.config.defaultValue is the default for *new* entries, not the value for existing entries.
+     *   This means the elementTemplate defaultValue is always used to build the elementTemplate.model.config.value, not the record.
+     *   So, the default values need to be collected whether there is a record or not,
+     *   as the default values need to be available to be able to create new repeatable entries.
+     *
+     * - The repeatable elementTemplate must not have a name.
+     *   The name property needs to be present, but it must be a falsy value.
+     *   This is because it is a template, and the name is generated based on the repeatable's name.
+     *
+     * - There is a dedicated private property 'isRepeatableElementTemplate: boolean' to indicate the current form component is a repeatable element template.
+     *   This is needed to make it possible to construct the templates differently.
+     */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.
@@ -381,6 +412,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
         frame.elementTemplate = compDefs[0];
 
+        if (!!frame.elementTemplate?.name) {
+            throw new Error(`Repeatable element template must have a 'falsy' name, got '${frame.elementTemplate?.name}'.`);
+        }
+
+        this.isRepeatableElementTemplate = true;
+
         const formComponent = this.constructFormComponent(frame.elementTemplate);
 
         // Continue the construction
@@ -391,6 +428,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         // Store the instance on the item
         item.config.elementTemplate = itemTransformed;
+
+        this.isRepeatableElementTemplate = false;
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -419,7 +458,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         item.config = new RepeatableElementFieldLayoutConfig();
 
         this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
-
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
@@ -864,14 +902,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         return constructed;
     }
 
-    protected populateFormComponent(item: FormComponentDefinitionOutline) {
+    protected populateFormComponent(item: FormComponentDefinitionOutline, requireModel?: boolean) {
         const currentData = this.getData();
         if (!isTypeFormComponentDefinition(currentData)) {
             throw new Error(`Invalid FormComponentDefinition at '${this.formConfigPathHelper.formConfigPath}': ${JSON.stringify(currentData)}`);
         }
         this.sharedProps.sharedPopulateFormComponent(item, currentData);
 
-        this.acceptFormComponentDefinitionWithValue(item);
+        this.acceptFormComponentDefinitionWithValue(item, currentData, requireModel);
+
+        this.isRepeatableElementTemplate = false;
     }
 
     /**
@@ -888,12 +928,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             throw new Error(`${this.logName}: Missing config for item: ${JSON.stringify(item)}`);
         }
 
-        // Set the model.config.value:
-        //   Use the collected default value if form config default values are being used, otherwise, use the record values.
-        const useFormConfigDefaultValues = this.extractedDefaultValues !== null;
-        const dataValueSource = useFormConfigDefaultValues ? this.extractedDefaultValues : this.recordValues;
-        const defaultValue = useFormConfigDefaultValues ? item?.config?.defaultValue : undefined;
-        item.config.value = _get(dataValueSource, this.dataModelPath, defaultValue);
+        // Set the model.config.value
+        item.config.value = this.currentModelValue(item?.config?.defaultValue);
 
         // Remove the defaultValue property.
         if (item?.config && 'defaultValue' in item.config) {
@@ -901,25 +937,34 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
+    protected currentModelValue(itemDefaultValue?: unknown): unknown {
+        //   Use the collected default value if form config default values are being used, otherwise, use the record values.
+        const useFormConfigDefaultValues = this.isRepeatableElementTemplate || this.recordValues === null;
+        const dataValueSource = useFormConfigDefaultValues ? this.extractedDefaultValues : this.recordValues;
+        const defaultValue = useFormConfigDefaultValues ? itemDefaultValue : undefined;
+        return _cloneDeep(_get(dataValueSource, this.dataModelPath, defaultValue));
+    }
+
     /**
      * Extract the default value from the form component definition.
      * @param item The form component definition.
+     * @param currentData The form component data.
+     * @param requireModel True if a model needs to be present to update the data model path,
+     *   false to update the data model path regardless of the presence of a model.
      * @protected
      */
-    protected acceptFormComponentDefinitionWithValue(item: FormComponentDefinitionOutline): void {
+    protected acceptFormComponentDefinitionWithValue(item: FormComponentDefinitionOutline, currentData: FormComponentDefinitionFrame, requireModel?: boolean): void {
         const original = [...(this.dataModelPath ?? [])];
         const itemName = item?.name ?? "";
-        const itemDefaultValue = item?.model?.config?.defaultValue;
+        const itemDefaultValue = currentData?.model?.config?.defaultValue;
 
         try {
-            if (item.model && itemName) {
+            if ((requireModel !== false ? !!item.model : true) && itemName) {
                 this.dataModelPath = [...original, itemName];
             }
 
             // Merge the default value if form default values are being used and item has a default value.
-            if (this.extractedDefaultValues !== null && itemDefaultValue !== undefined) {
-                this.mergeDefaultValues(itemName, itemDefaultValue);
-            }
+            this.mergeDefaultValues(itemName, itemDefaultValue);
 
             // Continue visiting
             this.formConfigPathHelper.acceptFormComponentDefinition(item);
@@ -941,15 +986,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (itemName && itemDefaultValue !== undefined) {
             // Set the default value at the current data model path.
             // This makes it easier to merge defaults.
-            const defaultValue = _set({}, this.dataModelPath, itemDefaultValue);
+            const dataModelWithDefaultValue = _set({}, this.dataModelPath, itemDefaultValue);
             // Merging is only needed if there is a default value.
-            if (defaultValue !== undefined) {
+            if (dataModelWithDefaultValue !== undefined) {
                 // Use lodash mergeWith because it will recurse into nested objects and arrays.
                 // Object.assign and the spread operator do not recurse.
                 // The lodash mergeWith also allows specifying how to handle arrays, which we need to handle in a special way.
                 _mergeWith(
                     this.extractedDefaultValues,
-                    defaultValue,
+                    dataModelWithDefaultValue,
                     (objValue, srcValue) => {
                         // merge approach for arrays is to choose the source array,
                         // or the one that is an array if the other isn't

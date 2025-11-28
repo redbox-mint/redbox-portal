@@ -14,7 +14,7 @@ import {
     RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
     RepeatableFieldModelDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline
+    RepeatableFormComponentDefinitionOutline, RepeatableModelName
 } from "../component/repeatable.outline";
 import {
     ValidationSummaryFieldComponentDefinitionOutline,
@@ -152,6 +152,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
         // Build the json type def from the component instead of model for repeatable.
+        // Need to visit nested components to build the correct structure.
         // this.setFromModelDefinition(item);
     }
 
@@ -182,6 +183,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
     visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
         // Build the json type def from the component instead of model for group.
+        // Need to visit nested components to build the correct structure.
         // this.setFromModelDefinition(item);
     }
 
@@ -303,13 +305,25 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     /* Shared */
 
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
-        if (item?.config?.defaultValue !== undefined) {
-            // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-            _set(this.jsonTypeDef, this.jsonTypeDefPath, {type: guessType(item?.config?.defaultValue)});
-        } else {
-            // default to a type of string
-            _set(this.jsonTypeDef, this.jsonTypeDefPath, {type: "string"});
+        const value = item?.config?.value;
+
+        // default to a type of string
+        let guessedType = "string";
+
+        if (value !== undefined) {
+            // this.logger.info(`setFromModelDefinition model class ${JSON.stringify(item?.class)} value: ${JSON.stringify(value)}`);
+            if (item?.class === RepeatableModelName) {
+                if (Array.isArray(value) && value.length > 0) {
+                    guessedType = guessType(value[0]);
+                } else {
+                    guessedType = "string";
+                }
+            } else {
+                guessedType = guessType(value);
+            }
         }
+        // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
+        _set(this.jsonTypeDef, this.jsonTypeDefPath, {type: guessedType});
     }
 
     /**

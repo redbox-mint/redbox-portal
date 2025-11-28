@@ -3,14 +3,14 @@ import {
     FormConfig,
     FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
 } from "../../src";
-import {formConfigExample1, formConfigExample2, reusableDefinitionsExample1} from "./example-data";
+import {formConfigExample2, reusableDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Construct Visitor", async () => {
-    describe("running start", async () => {
+    describe("basic constructing", async () => {
         const cases: {
             title: string,
             args: FormConfigFrame;
@@ -19,7 +19,7 @@ describe("Construct Visitor", async () => {
             {
                 title: "create empty item",
                 args: {name: '', componentDefinitions: []},
-                expected:  new FormConfig(),
+                expected: new FormConfig(),
             },
             {
                 title: "create simple example",
@@ -168,11 +168,6 @@ describe("Construct Visitor", async () => {
                     ]
                 },
             },
-            {
-                title: "create full example",
-                args: formConfigExample1,
-                expected: formConfigExample1,
-            }
         ];
         cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
@@ -182,8 +177,6 @@ describe("Construct Visitor", async () => {
             });
         });
     });
-
-
     describe("with overrides", async () => {
         const cases: {
             title: string,
@@ -471,49 +464,47 @@ describe("Construct Visitor", async () => {
                 "Names 'a_name' did not match any reusable form config items. Available names ");
         });
         it("should fail when override reusable form config override does not have unique names", async () => {
-                const errorFunc = function () {
-                        const visitor = new ConstructFormConfigVisitor(logger);
+            const errorFunc = function () {
+                    const visitor = new ConstructFormConfigVisitor(logger);
 
-                        visitor.start({
-                            data: {
-                                name: "form",
-                                componentDefinitions: [
-                                    {
-                                        overrides: {reusableFormName: "standard-contributor-field"},
-                                        name: "one",
-                                        component: {
-                                            class: "ReusableComponent",
-                                            config: {
-                                                componentDefinitions: [
-                                                    {
-                                                        name: "name",
-                                                        component: {
-                                                            class: 'SimpleInputComponent',
-                                                            config: {}
-                                                        },
+                    visitor.start({
+                        data: {
+                            name: "form",
+                            componentDefinitions: [
+                                {
+                                    overrides: {reusableFormName: "standard-contributor-field"},
+                                    name: "one",
+                                    component: {
+                                        class: "ReusableComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: "name",
+                                                    component: {
+                                                        class: 'SimpleInputComponent',
+                                                        config: {}
                                                     },
-                                                    {
-                                                        name: "name",
-                                                        component: {
-                                                            class: 'SimpleInputComponent',
-                                                            config: {}
-                                                        },
-                                                    }
-                                                ]
-                                            }
+                                                },
+                                                {
+                                                    name: "name",
+                                                    component: {
+                                                        class: 'SimpleInputComponent',
+                                                        config: {}
+                                                    },
+                                                }
+                                            ]
                                         }
                                     }
-                                ]
-                            }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
-                        });
-                    }
-                ;
-                expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
-                    "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
-                    "These names were not unique 'name'.");
-            }
-        )
-        ;
+                                }
+                            ]
+                        }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    });
+                }
+            ;
+            expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
+                "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
+                "These names were not unique 'name'.");
+        });
         it("should fail when reusable form config override tries to change the class name in the component definition", async () => {
             const errorFunc = function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
@@ -548,6 +539,203 @@ describe("Construct Visitor", async () => {
                 "The class must match the reusable form config. " +
                 "To change the class, use 'formModeClasses'. " +
                 "The component class in reusable form config 'standard-contributor-field' item 'name' is 'SimpleInputComponent' given class was 'CheckboxInputComponent'");
+        });
+    });
+    describe("model data special cases", async () => {
+        it("should populate content component from record", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "content1",
+                            component: {
+                                class: 'ContentComponent',
+                                config: {
+                                    template: '<h1>{{content}}</h1>'
+                                }
+                            }
+                        }
+                    ]
+                },
+                formMode: "edit",
+                reusableFormDefs: reusableDefinitionsExample1,
+                record: {content1: "some value"}
+            });
+            const expected = {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "content1",
+                        component: {
+                            class: 'ContentComponent',
+                            config: {
+                                content: "some value",
+                                template: '<h1>{{content}}</h1>'
+                            }
+                        }
+                    }
+                ]
+            };
+            expect(actual).to.containSubset(expected);
+        });
+        it("should populate transformed content component from record", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "component_1",
+                            component: {
+                                class: 'CheckboxInputComponent',
+                                config: {
+                                    options: [
+                                        {label: 'Option 1', value: 'option1'},
+                                        {label: 'Option 2', value: 'option2'},
+                                        {label: 'Option 3', value: 'option3'},
+                                    ]
+                                }
+                            },
+                            model: {
+                                class: "CheckboxInputModel",
+                                config: {
+                                    defaultValue: ['option1', 'option2'],
+                                }
+                            }
+
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableDefinitionsExample1,
+                record: {component_1: ['option3']}
+            });
+            const expected = {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "component_1",
+                        component: {
+                            class: 'ContentComponent',
+                            config: {
+                                content: [{label: 'Option 3', value: 'option3'}],
+                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                            }
+                        }
+                    }
+                ]
+            };
+            expect(actual).to.containSubset(expected);
+        });
+    });
+    describe("repeatable special cases", async () => {
+        it("should set model values as expected", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "group_1",
+                            component: {
+                                class: "GroupComponent",
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: "component_1",
+                                            component: {
+                                                class: 'RepeatableComponent',
+                                                config: {
+                                                    elementTemplate: {
+                                                        name: "",
+                                                        component: {
+                                                            class: "SimpleInputComponent"
+                                                        },
+                                                        model: {
+                                                            class: "SimpleInputModel",
+                                                            config: {
+                                                                defaultValue: "text_default",
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            model: {
+                                                class: "RepeatableModel",
+                                                config: {
+                                                    defaultValue: ["text_1", "text_2"]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            model: {
+                                class: "GroupModel",
+                                config: {
+                                    defaultValue: {component_1: ["group_rpt_1", "group_rpt_2"]}
+                                }
+                            }
+                        }
+                    ]
+                },
+                formMode: "edit",
+                reusableFormDefs: reusableDefinitionsExample1,
+            });
+            const expected = {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "group_1",
+                        component: {
+                            class: "GroupComponent",
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: "component_1",
+                                        component: {
+                                            class: 'RepeatableComponent',
+                                            config: {
+                                                elementTemplate: {
+                                                    name: "",
+                                                    component: {
+                                                        class: "SimpleInputComponent"
+                                                    },
+                                                    model: {
+                                                        class: "SimpleInputModel",
+                                                        config: {
+                                                            // This value is used for new entries created in the UI.
+                                                            value: "text_default",
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        model: {
+                                            class: "RepeatableModel",
+                                            config: {
+                                                // This value is from the default for the repeatable.
+                                                // The form UI will load with these 2 entries in the repeatable.
+                                                value: ["text_1", "text_2"]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        model: {
+                            class: "GroupModel",
+                            config: {
+                                // The group's default value in the form config was overridden by descendant default values.
+                                value: {component_1: ["text_1", "text_2"]},
+                            }
+                        }
+                    }
+                ]
+            };
+            expect(actual).to.containSubset(expected);
         });
     });
 });

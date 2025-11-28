@@ -244,14 +244,13 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: formConfig, formMode: "edit"});
+        const constructed = constructor.start({data: formConfig, formMode: "edit", record});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
-            // record
         });
         expect(actual).to.eql(expected);
     });
@@ -327,14 +326,13 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: args, formMode: "edit"});
+        const constructed = constructor.start({data: args, formMode: "edit", record});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
-            // record
         });
         expect(actual).to.eql(expected);
     });

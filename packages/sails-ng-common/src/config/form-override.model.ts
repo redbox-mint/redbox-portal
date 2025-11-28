@@ -38,12 +38,15 @@ import {
     isTypeReusableComponent
 } from "./form-types.outline";
 import {PropertiesHelper} from "./visitor/common.model";
+import { ILogger } from "@researchdatabox/redbox-core-types";
 
 
 export class FormOverride {
     private propertiesHelper: PropertiesHelper;
+    private logger: ILogger;
 
-    constructor() {
+    constructor(logger: ILogger) {
+        this.logger = logger;
         this.propertiesHelper = new PropertiesHelper();
     }
 
@@ -208,70 +211,68 @@ export class FormOverride {
      * @returns The transformed form component.
      */
     public applyOverrideTransform(source: AllFormComponentDefinitionOutlines, formMode: FormModesConfig): AllFormComponentDefinitionOutlines {
-        const result = _cloneDeep(source);
+        const original = _cloneDeep(source);
 
         // Get the component class name, this is also used as the form component identifier.
-        const componentClassName = result.component.class;
+        const originalComponentClassName = original.component.class;
 
         // Get the provided transforms for the provided form mode.
-        let transforms = result?.overrides?.formModeClasses?.[formMode] ?? {};
+        let transforms = original?.overrides?.formModeClasses?.[formMode] ?? {};
 
         // Apply any default transform for the provided form mode.
-        if (componentClassName in this.defaultTransforms) {
-            const defaultTransform = this.defaultTransforms[componentClassName] ?? {};
+        if (originalComponentClassName in this.defaultTransforms) {
+            const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
             if (formMode in defaultTransform) {
                 const defaultTransformClasses = defaultTransform[formMode] ?? {};
-                transforms = Object.assign({}, defaultTransformClasses, transforms);
+                transforms = _mergeWith({}, defaultTransformClasses, transforms);
             }
         }
+        const transformComponentClassName = transforms?.component;
 
         // Check that the transform is valid.
-        if (!transforms.component && (transforms.model || transforms.layout)) {
+        if (!transformComponentClassName && (transforms.model || transforms.layout)) {
             throw new Error("A transform must specify the component class when specifying other classes." +
                 `Form component name '${source.name}' model class '${transforms.model}' layout class '${transforms.layout}'.`);
         }
 
         // Get the known transformations for the source form component definition.
-        const sourceKnownTransforms = this.knownTransforms[componentClassName] ?? {};
+        const sourceKnownTransforms = this.knownTransforms[originalComponentClassName] ?? {};
 
         // Return the source unmodified if there are no transforms specified.
-        if (!transforms?.component || Object.keys(transforms).length === 0) {
-            return result;
-        }
-
         // Return the source unmodified if the transformation is to the same component
-        if (transforms?.component === componentClassName) {
-            return result;
-        }
+        const isTransformExpected = transformComponentClassName &&
+            transformComponentClassName !== originalComponentClassName &&
+            Object.keys(transforms).length > 0;
 
         // If a transform was provided, check that it is a known transform.
-        if (!(transforms?.component in sourceKnownTransforms)) {
+        if (isTransformExpected && !(transformComponentClassName in sourceKnownTransforms)) {
             throw new Error(`Invalid form config override config. ` +
-                `The source component class '${componentClassName}' does ` +
-                `not define a transform to target component class '${transforms?.component}'.`)
+                `The source component class '${originalComponentClassName}' does ` +
+                `not define a transform to target component class '${transformComponentClassName}'.`)
         }
 
-        const transformFunc = sourceKnownTransforms[transforms?.component];
-        if (!transformFunc) {
+        // Check the transform function specified.
+        const transformFunc = isTransformExpected ? sourceKnownTransforms[transformComponentClassName] : null;
+        if (isTransformExpected && !transformFunc) {
             throw new Error("The known form mode override component class transforms are invalid. " +
-                `The function to execute must be provided for source component class '${componentClassName}' ` +
-                `and target component class '${transforms?.component}'.`);
+                `The function to execute must be provided for source component class '${originalComponentClassName}' ` +
+                `and target component class '${transformComponentClassName}'.`);
         }
 
         // Apply the transform.
-        const itemTransformed = transformFunc.call(this, result, formMode);
+        const result = (transformComponentClassName && transformFunc) ? transformFunc.call(this, original, formMode) : original;
 
         // Use 'replaceName' to update the form component name.
-        if (result.overrides?.replaceName) {
-            itemTransformed.name = result.overrides?.replaceName;
+        if (original.overrides?.replaceName) {
+            result.name = original.overrides?.replaceName;
         }
 
         // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-        if ('overrides' in itemTransformed) {
-            delete itemTransformed['overrides'];
+        if ('overrides' in result) {
+            delete result['overrides'];
         }
 
-        return itemTransformed;
+        return result;
     }
 
     private sourceSimpleInputComponentTargetContentComponent(

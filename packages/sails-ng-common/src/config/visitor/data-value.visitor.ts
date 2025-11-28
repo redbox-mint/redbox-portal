@@ -153,16 +153,16 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        if (item.config?.elementTemplate) {
-            this.formConfigPathHelper.acceptFormConfigPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
-        }
+        // The value in the elementTemplate is the value for *new* items,
+        // no new array elements are created as part of the data value visitor.
+        // So, don't process the element template.
+        // if (item.config?.elementTemplate) {
+        //     this.formConfigPathHelper.acceptFormConfigPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+        // }
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        // The value in the elementTemplate is the value for *new* items,
-        // no new array elements are created as part of the data value visitor.
-        // So, don't set the data value from the model definition.
-        // this.setFromModelDefinition(item);
+        this.setFromModelDefinition(item);
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
@@ -323,7 +323,9 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
-        _set(this.dataValues, this.dataModelPath, item?.config?.value);
+        if (item?.config?.value !== undefined) {
+            _set(this.dataValues, this.dataModelPath, item?.config?.value);
+        }
     }
 
     /**

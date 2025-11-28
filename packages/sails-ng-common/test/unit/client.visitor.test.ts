@@ -598,14 +598,17 @@ describe("Client Visitor", async () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: formConfig, formMode: "edit"});
+        const constructed = constructor.start({
+            data: formConfig,
+            formMode: "edit",
+            record: {text_2: "text_2_value"}
+        });
 
         const visitor = new ClientFormConfigVisitor(logger);
         const actual = visitor.start({
             form: constructed,
             formMode: "view",
             userRoles: ["Librarian"],
-            // record: {text_2: "text_2_value"}
         });
         expect(actual).to.eql({});
     });

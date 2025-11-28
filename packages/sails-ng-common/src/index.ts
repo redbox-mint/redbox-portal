@@ -12,6 +12,8 @@ export * from "./config/form-config.outline";
 export * from "./config/form-config.model";
 export * from "./config/form-component.outline";
 export * from "./config/form-component.model";
+export * from "./config/base-field-component.outline";
+export * from "./config/base-field-component.model";
 export * from "./config/field-model.outline";
 export * from "./config/field-model.model";
 export * from "./config/field-layout.outline";
@@ -20,8 +22,11 @@ export * from "./config/field-component.outline";
 export * from "./config/field-component.model";
 export * from "./config/field.outline";
 export * from "./config/field.model";
-export * from "./config/base-field-component.outline";
-export * from "./config/base-field-component.model";
+export * from "./config/form-override.model";
+export * from "./config/form-override.outline";
+export * from "./config/form-types.model";
+export * from "./config/form-types.outline";
+// names
 export * from "./config/names/query-helpers";
 export * from "./config/names/naming-helpers";
 // config/visitor
