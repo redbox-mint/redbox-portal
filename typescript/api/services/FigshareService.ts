@@ -409,9 +409,10 @@ export module Services {
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigService - uniqueAuthors');
       sails.log[this.createUpdateFigshareArticleLogLevel](uniqueAuthors);
       let getAuthorTemplateRequests = sails.config.figshareAPI.mapping.templates.getAuthor;
+      let uniqueAuthorsControlList = _.clone(uniqueAuthors);
 
       // Process each author in order and build the list maintaining original sequence
-      for(let author of uniqueAuthors) {
+      for(let author of uniqueAuthorsControlList) {
         sails.log[this.createUpdateFigshareArticleLogLevel](author);
 
         let authorMatched = false;
