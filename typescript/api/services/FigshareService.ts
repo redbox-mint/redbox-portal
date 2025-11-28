@@ -410,10 +410,11 @@ export module Services {
       sails.log[this.createUpdateFigshareArticleLogLevel](uniqueAuthors);
       let getAuthorTemplateRequests = sails.config.figshareAPI.mapping.templates.getAuthor;
 
-      let uniqueAuthorsControlList = _.clone(uniqueAuthors);
-
+      // Process each author in order and build the list maintaining original sequence
       for(let author of uniqueAuthors) {
         sails.log[this.createUpdateFigshareArticleLogLevel](author);
+
+        let authorMatched = false;
 
         for(let requestBodyTemplate of getAuthorTemplateRequests) {
           let userId = this.getValueFromObject(author,requestBodyTemplate.template);
@@ -486,7 +487,7 @@ export module Services {
                     sails.log[this.createUpdateFigshareArticleLogLevel](figshareAccountUserID);
                   }
                   authorList.push(figshareAccountUserID);
-                  _.remove(uniqueAuthorsControlList,author);
+                  authorMatched = true;
                   break;
                 }
             } catch (error) {
@@ -496,12 +497,14 @@ export module Services {
             }
           } 
         }
-      }
 
-      for(let externalAuthor of uniqueAuthorsControlList) {
-        let otherContributor = {name: externalAuthor[this.recordAuthorExternalName]};
-        if(!_.isUndefined(otherContributor)) {
-          authorList.push(otherContributor);
+        // If the author was not matched to a Figshare account, add them as an external author
+        // This maintains the original order of authors from the source list
+        if(!authorMatched) {
+          let otherContributor = {name: author[this.recordAuthorExternalName]};
+          if(!_.isUndefined(otherContributor.name)) {
+            authorList.push(otherContributor);
+          }
         }
       }
 
