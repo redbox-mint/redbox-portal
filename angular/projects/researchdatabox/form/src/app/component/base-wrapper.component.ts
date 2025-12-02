@@ -12,7 +12,8 @@ import { set as _set, get as _get } from 'lodash-es';
 import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
 import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
-import { FormComponentChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
+import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
+import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
 
 
 
@@ -45,7 +46,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
 
   private readonly eventBus = inject(FormComponentEventBus);
-  private readonly changeEventProducer = new FormComponentChangeEventProducer(this.eventBus);
+  private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
+  private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
@@ -114,8 +116,15 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
 
     // Bind the change event producer if applicable.
-    if (this.shouldAttachChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
-      this.changeEventProducer.bind({
+    if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.valueChangeEventProducer.bind({
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    }
+
+    if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.valueChangeEventConsumer.bind({
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
@@ -136,7 +145,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   ngOnDestroy() {
-    this.changeEventProducer.destroy();
+    this.valueChangeEventProducer.destroy();
+    this.valueChangeEventConsumer.destroy();
     const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
@@ -156,10 +166,18 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
    * @param instance 
    * @returns 
    */
-  private shouldAttachChangeProducer(
+  private shouldAttachValueChangeProducer(
     entry: FormFieldCompMapEntry | undefined,
     instance: FormFieldBaseComponent<ValueType>
   ): boolean {
     return !!entry && entry.component === instance;
   }
+
+  private shouldAttachValueChangeConsumer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    return !!entry && entry.component === instance;
+  }
+
 }

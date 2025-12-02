@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
-import { FormComponentChangeEventProducer } from './form-component-change-event-producer';
+import { FormComponentValueChangeEventProducer } from './form-component-change-event-producer';
 import {
   FieldValueChangedEvent,
   FormComponentEventResult,
@@ -12,7 +12,7 @@ import {
 describe('FormComponentChangeEventProducer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
   let scopedBus: jasmine.SpyObj<ScopedEventBus>;
-  let producer: FormComponentChangeEventProducer;
+  let producer: FormComponentValueChangeEventProducer;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -23,7 +23,7 @@ describe('FormComponentChangeEventProducer', () => {
     scopedBus = jasmine.createSpyObj<ScopedEventBus>('ScopedEventBus', ['publish']);
     eventBus.scoped.and.returnValue(scopedBus);
 
-    producer = TestBed.runInInjectionContext(() => new FormComponentChangeEventProducer(eventBus));
+    producer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventProducer(eventBus));
   });
 
   function createOptions(fieldId = 'field-123', initialValue: unknown = 'initial') {

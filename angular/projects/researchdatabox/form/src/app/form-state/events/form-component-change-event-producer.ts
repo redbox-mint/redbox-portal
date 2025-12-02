@@ -1,21 +1,14 @@
 import { AbstractControl } from '@angular/forms';
-import { Subscription } from 'rxjs';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
-import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bus.service';
-import { createFieldValueChangedEvent } from './form-component-event.types';
-import { inject } from '@angular/core';
-
-export interface FormComponentChangeEventProducerOptions {
-	component: FormFieldBaseComponent<unknown>;
-	definition?: FormFieldCompMapEntry;
-}
+import { FormComponentEventBus } from './form-component-event-bus.service';
+import { createFieldValueChangedEvent, FormComponentEventType } from './form-component-event.types';
+import { FormComponentEventBaseProducerConsumer, FormComponentEventOptions } from './form-component-base-event-producer-consumer';
 
 /**
  * Wires `FormFieldBaseComponent` instances to the `FormComponentEventBus`.
  *
  * Designed to be owned by `FormBaseWrapperComponent`, which creates components dynamically.
  * 
- * Currently,it will emit the following:
+ * Currently, it will emit the following:
  *
  * 'valueChange' events when the value of the form control changes. These events will be published in both general channel, and in the specific channel for the component, identified by the `name` config property.
  *
@@ -23,23 +16,17 @@ export interface FormComponentChangeEventProducerOptions {
  *
  * 'metadataChange' events when the metadata of the form control changes. These events will be published in both general channel, and in the specific channel for the component, identified by the `name` config property.
  */
-export class FormComponentChangeEventProducer {
-	private readonly eventBus: FormComponentEventBus;
-	private valueChangeSub?: Subscription;
-	private scopedBus?: ScopedEventBus;
-	private fieldId?: string;
+export class FormComponentValueChangeEventProducer extends FormComponentEventBaseProducerConsumer {
 	private previousValue: unknown;
-	protected loggerService: LoggerService = inject(LoggerService);
 
 	constructor(eventBus: FormComponentEventBus) {
-		this.eventBus = eventBus;
+		super(eventBus);
 		this.previousValue = undefined;
 	}
-
 	/**
 	 * Connect the producer to a component instance. Replaces any existing subscription.
 	 */
-	bind(options: FormComponentChangeEventProducerOptions): void {
+	bind(options: FormComponentEventOptions): void {
 		this.destroy();
 
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
@@ -58,22 +45,25 @@ export class FormComponentChangeEventProducer {
 		this.scopedBus = this.eventBus.scoped(fieldId);
 		this.previousValue = control.value;
 
-		this.valueChangeSub = control.valueChanges.subscribe((value: unknown) => {
+		const sub = control.valueChanges.subscribe((value: unknown) => {
 			this.publishValueChanged(value);
 		});
+		this.subscriptions.set(FormComponentEventType.FIELD_VALUE_CHANGED, sub);
 	}
-
 	/**
 	 * Tear down active subscriptions.
 	 */
-	destroy(): void {
-		this.valueChangeSub?.unsubscribe();
-		this.valueChangeSub = undefined;
-		this.scopedBus = undefined;
-		this.fieldId = undefined;
+	override destroy(): void {
+		super.destroy();
 		this.previousValue = undefined;
 	}
-
+	/**
+	 * 
+	 * Publishes value changed events to both the general and scoped event buses.
+	 * 
+	 * @param value 
+	 * @returns 
+	 */
 	private publishValueChanged(value: unknown): void {
 		if (!this.fieldId) {
 			return;
@@ -97,13 +87,5 @@ export class FormComponentChangeEventProducer {
 
 		this.scopedBus?.publish(scopedEvent);
 		this.previousValue = value;
-	}
-
-	private resolveFieldId(options: FormComponentChangeEventProducerOptions): string | undefined {
-		return (
-			options.definition?.compConfigJson?.name ||
-			options.definition?.name ||
-			options.component.formFieldConfigName()
-		);
 	}
 }

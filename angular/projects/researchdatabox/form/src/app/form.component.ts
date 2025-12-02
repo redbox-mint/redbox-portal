@@ -284,7 +284,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Finally set the flag indicating components are loaded
     this.componentsLoaded.set(true);
   }
-
+  /**
+   * Set up the JSONata query source from component definitions
+   */
   protected setupQuerySource() {
     this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr);
   }
@@ -331,7 +333,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   protected initSubscriptions() {  
     // Listen for execute save command and invoke saveForm (Task 15)
-    this.subMaps['saveExecuteSub'] =this.eventBus
+    this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
       .subscribe(async (evt) => {
         // Default payload handling with safe fallbacks
