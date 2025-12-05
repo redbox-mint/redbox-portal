@@ -348,6 +348,7 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
+                                        config: {defaultValue: {text_2: "repeatable_group_1 elementTemplate text_2 default"}},
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -472,7 +473,8 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
-                                        config: {}
+                                        // This value is the default for newly added entries.
+                                        config: {value: "repeatable_group_1 elementTemplate text_2 default"}
                                     },
                                     component: {
                                         class: 'GroupComponent',
