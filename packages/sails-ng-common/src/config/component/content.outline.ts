@@ -22,9 +22,9 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      */
     template?: string;
     /**
-     * The template that can be used for setting content in innerHtml.
+     * The context available to the template as `content`.
      */
-    content?: string;
+    content?: any;
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {

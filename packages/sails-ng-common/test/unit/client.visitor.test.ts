@@ -14,10 +14,10 @@ describe("Client Visitor", async () => {
         const args = formConfigExample1;
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(args, "edit");
+        const constructed = constructor.start({data: args, formMode: "edit"});
 
         const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.startNewRecord(constructed);
+        const actual = visitor.start({form: constructed});
 
         const stringified = JSON.stringify(actual);
         expect(stringified).to.not.contain("expressions");
@@ -348,6 +348,7 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
+                                        config: {defaultValue: {text_2: "repeatable_group_1 elementTemplate text_2 default"}},
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -472,9 +473,8 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
-                                        config: {
-
-                                        }
+                                        // This value is the default for newly added entries.
+                                        config: {value: "repeatable_group_1 elementTemplate text_2 default"}
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -491,7 +491,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {}
+                                                        config: {value: 'hello world 2!'}
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',
@@ -552,10 +552,10 @@ describe("Client Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start(args, "edit");
+            const constructed = constructor.start({data: args, formMode: "edit"});
 
             const visitor = new ClientFormConfigVisitor(logger);
-            const actual = visitor.startNewRecord(constructed);
+            const actual = visitor.start({form: constructed});
             expect(actual).to.eql(expected);
         });
     });
@@ -600,10 +600,18 @@ describe("Client Visitor", async () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(formConfig, "edit");
+        const constructed = constructor.start({
+            data: formConfig,
+            formMode: "edit",
+            record: {text_2: "text_2_value"}
+        });
 
         const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {text_2: "text_2_value"});
+        const actual = visitor.start({
+            form: constructed,
+            formMode: "view",
+            userRoles: ["Librarian"],
+        });
         expect(actual).to.eql({});
     });
 });

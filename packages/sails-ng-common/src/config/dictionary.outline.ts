@@ -77,6 +77,13 @@ export type AvailableFormComponentDefinitionFrames = Exclude<Extract<AllTypes, {
 }>, TabContentFormComponentDefinitionFrame>['class'];
 
 /**
+ * All form component definition outlines.
+ */
+export type AllFormComponentDefinitionOutlines = Extract<AllTypes, {
+    kind: FormComponentDefinitionKindType
+}>['class'];
+
+/**
  * The form component definition outlines available for use in any list of form components.
  */
 export type AvailableFormComponentDefinitionOutlines = Exclude<Extract<AllTypes, {
