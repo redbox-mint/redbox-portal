@@ -87,11 +87,9 @@ describe("Data Value Visitor", async () => {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: "",
-                                                                    // Properties in the elementTemplate defaultValue are only used on the client side as the default for new items.
-                                                                    // For the repeatable, the default is set in the RepeatableModel.
                                                                     model: {
                                                                         class: 'SimpleInputModel',
-                                                                        config: {defaultValue: "elementTemplate default"}
+                                                                        config: {newEntryValue: "elementTemplate default"}
                                                                     },
                                                                     component: {class: 'SimpleInputComponent'},
                                                                 },
@@ -109,7 +107,7 @@ describe("Data Value Visitor", async () => {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: "",
-                                                                    model: {class: 'GroupModel', config: {}},
+                                                                    model: {class: 'GroupModel', config: {newEntryValue: {text_group_repeatable_3: "text_group_repeatable_3 default"}}},
                                                                     component: {
                                                                         class: 'GroupComponent',
                                                                         config: {
@@ -118,7 +116,7 @@ describe("Data Value Visitor", async () => {
                                                                                     name: 'text_group_repeatable_3',
                                                                                     model: {
                                                                                         class: 'SimpleInputModel',
-                                                                                        config: {defaultValue: "text_group_repeatable_3 default"}
+                                                                                        config: {}
                                                                                     },
                                                                                     component: {
                                                                                         class: 'SimpleInputComponent'

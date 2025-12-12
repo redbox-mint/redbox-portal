@@ -325,11 +325,11 @@ export class FormOverride {
         const target = this.commonTargetContentComponent(source, formMode);
 
         // Use the source model value to construct the target 'content' property.
-        this.logger.info(`sourceCheckboxInputComponentTargetContentComponent ${JSON.stringify({
-            source,
-            target,
-            formMode
-        })}`);
+        // this.logger.info(`sourceCheckboxInputComponentTargetContentComponent ${JSON.stringify({
+        //     source,
+        //     target,
+        //     formMode
+        // })}`);
         if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
             // Checkbox value can be string, null, array. If string or array, get the labels.
             const values = source.model.config.value === null

@@ -43,7 +43,7 @@ describe("Construct Visitor", async () => {
                                         model: {
                                             class: 'GroupModel',
                                             config: {
-                                                defaultValue: {},
+                                                newEntryValue: {text_3: 'hello world 3!'},
                                             }
                                         },
                                         component: {
@@ -56,7 +56,6 @@ describe("Construct Visitor", async () => {
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
-                                                                defaultValue: 'hello world 3!',
                                                                 validators: [
                                                                     {
                                                                         class: 'minLength',
@@ -114,9 +113,7 @@ describe("Construct Visitor", async () => {
                                         name: "",
                                         model: {
                                             class: 'GroupModel',
-                                            config: {
-                                                value: {},
-                                            }
+                                            config: { }
                                         },
                                         component: {
                                             class: 'GroupComponent',
@@ -128,7 +125,6 @@ describe("Construct Visitor", async () => {
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
-                                                                value: 'hello world 3!',
                                                                 validators: [
                                                                     {
                                                                         class: 'minLength',
@@ -280,6 +276,71 @@ describe("Construct Visitor", async () => {
                 });
             };
             expect(errorFunc).to.throw(Error, 'Repeatable element template overrides must result in exactly one item, got 3');
+        });
+        it("should fail when repeatable elementTemplate has defaultValue", async () => {
+            const errorFunc = function () {
+                const visitor = new ConstructFormConfigVisitor(logger);
+                visitor.start({
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "repeatable_test",
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {class: "SimpleInputComponent"},
+                                            model: {class: "SimpleInputModel", config: {defaultValue: "not allowed"}}
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
+            };
+            expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate new item default using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', set the repeatable default in 'repeatable.model.config.defaultValue'");
+        });
+        it("should fail when repeatable elementTemplate has descendant with defaultValue", async () => {
+            const errorFunc = function () {
+                const visitor = new ConstructFormConfigVisitor(logger);
+                visitor.start({
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                name: "repeatable_test",
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: "",
+                                            component: {
+                                                class: "GroupComponent", config: {
+                                                    componentDefinitions: [
+                                                        {
+                                                            name: "text_1",
+                                                            component: {class: "SimpleInputComponent"},
+                                                            model: {
+                                                                class: "SimpleInputModel",
+                                                                config: {defaultValue: "not allowed"}
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            },
+
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
+            };
+            expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate descendant component new item default using 'elementTemplate.model.config.newEntryValue', set the repeatable default in 'repeatable.model.config.defaultValue', not the descendant components");
         });
         it("should fail when component class is not available", async () => {
             const errorFunc = function () {
@@ -634,6 +695,8 @@ describe("Construct Visitor", async () => {
         it("should set model values as expected", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
+                formMode: "view",
+                reusableFormDefs: reusableDefinitionsExample1,
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -656,7 +719,7 @@ describe("Construct Visitor", async () => {
                                                         model: {
                                                             class: "SimpleInputModel",
                                                             config: {
-                                                                defaultValue: "text_default",
+                                                                newEntryValue: "text_default",
                                                             }
                                                         }
                                                     }
@@ -681,10 +744,8 @@ describe("Construct Visitor", async () => {
                         }
                     ]
                 },
-                formMode: "edit",
-                reusableFormDefs: reusableDefinitionsExample1,
             });
-            const expected = {
+            const expected: FormConfigFrame = {
                 name: "form",
                 componentDefinitions: [
                     {
@@ -701,15 +762,13 @@ describe("Construct Visitor", async () => {
                                                 elementTemplate: {
                                                     name: "",
                                                     component: {
-                                                        class: "SimpleInputComponent"
-                                                    },
-                                                    model: {
-                                                        class: "SimpleInputModel",
+                                                        class: "ContentComponent",
                                                         config: {
-                                                            // This value is used for new entries created in the UI.
-                                                            value: "text_default",
+                                                            // TODO: how should repeatables behave when converted to 'view'?
+                                                            // TODO: how should repeatable elementTemplates behave when they contain components that have no model?
+                                                            // content: "text_default",
                                                         }
-                                                    }
+                                                    },
                                                 }
                                             }
                                         },

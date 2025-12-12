@@ -141,7 +141,7 @@ describe("JSON Type Def Schema Visitor", async () => {
                                             config: {
                                                 elementTemplate: {
                                                     name: "",
-                                                    model: {class: 'GroupModel', config: {}},
+                                                    model: {class: 'GroupModel', config: {newEntryValue:{repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"]}}},
                                                     component: {
                                                         class: 'GroupComponent',
                                                         config: {
@@ -150,7 +150,7 @@ describe("JSON Type Def Schema Visitor", async () => {
                                                                     name: 'repeatable_4',
                                                                     model: {
                                                                         class: 'RepeatableModel',
-                                                                        config: {defaultValue: ["repeatable_4 default 1", "repeatable_4 default 2"]}
+                                                                        config: {}
                                                                     },
                                                                     component: {
                                                                         class: 'RepeatableComponent',

@@ -338,7 +338,12 @@ describe("Client Visitor", async () => {
                         model: {
                             class: 'RepeatableModel',
                             config: {
-                                defaultValue: [{text_1: "hello world from repeating groups"}]
+                                defaultValue: [{
+                                    text_1: "hello world from repeating groups",
+                                    text_2: 'hello world 2!',
+                                    repeatable_for_admin: ['hello world from repeatable for admin'],
+                                    removed_group: {removed_group_text: 'hello world 1!'},
+                                }]
                             }
                         },
                         component: {
@@ -348,7 +353,12 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
-                                        config: {defaultValue: {text_2: "repeatable_group_1 elementTemplate text_2 default"}},
+                                        config: {
+                                            newEntryValue: {
+                                                text_1: 'hello world 1!',
+                                                text_2: "repeatable_group_1 elementTemplate text_2 default"
+                                            }
+                                        },
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -360,7 +370,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_1',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {defaultValue: 'hello world 1!',}
+                                                        config: {}
                                                     },
                                                     component: {class: 'SimpleInputComponent'},
                                                     constraints: {allowModes: ['edit']},
@@ -369,7 +379,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {defaultValue: 'hello world 2!'}
+                                                        config: {}
                                                     },
                                                     component: {class: 'SimpleInputComponent'},
                                                 },
@@ -384,7 +394,7 @@ describe("Client Visitor", async () => {
                                                                 name: "",
                                                                 model: {
                                                                     class: 'SimpleInputModel',
-                                                                    config: {defaultValue: 'hello world from repeatable for admin'}
+                                                                    config: {}
                                                                 },
                                                                 component: {class: 'SimpleInputComponent'},
                                                                 constraints: {authorization: {allowRoles: ['Admin']}},
@@ -396,7 +406,7 @@ describe("Client Visitor", async () => {
                                                     // all group components are removed, so group is removed
                                                     name: "removed_group",
                                                     model: {
-                                                        class: 'GroupModel', config: {defaultValue: {}}
+                                                        class: 'GroupModel', config: {}
                                                     },
                                                     component: {
                                                         class: 'GroupComponent',
@@ -408,7 +418,7 @@ describe("Client Visitor", async () => {
                                                                     name: 'removed_group_text',
                                                                     model: {
                                                                         class: 'SimpleInputModel',
-                                                                        config: {defaultValue: 'hello world 1!',}
+                                                                        config: {}
                                                                     },
                                                                     component: {class: 'SimpleInputComponent'},
                                                                     constraints: {allowModes: ['edit']},
@@ -473,8 +483,9 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
-                                        // This value is the default for newly added entries.
-                                        config: {value: "repeatable_group_1 elementTemplate text_2 default"}
+                                        config: {newEntryValue: {
+                                                text_2: "repeatable_group_1 elementTemplate text_2 default"
+                                            }}
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -491,7 +502,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {value: 'hello world 2!'}
+                                                        config: {}
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',

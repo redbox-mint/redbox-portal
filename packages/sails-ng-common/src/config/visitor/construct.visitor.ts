@@ -152,7 +152,7 @@ import {
 import {ReusableFormDefinitions} from "../dictionary.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {FormModesConfig} from "../shared.outline";
-import {FieldModelDefinitionOutline} from "../field-model.outline";
+import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
 import {FormOverride} from "../form-override.model";
 import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
 
@@ -160,7 +160,7 @@ import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
 /**
  * Visit each form config frame and create an instance of the associated class.
  *
- * This visitor performs the tasks needed to create a form component class instances:
+ * This visitor performs the tasks needed to create form component class instances:
  * - populate the instance properties from the form config data
  * - assign the created classes to the expected property to build the component hierarchy
  * - populate the model.config.value and/or the properties specific to a component from either a record or the form defaults
@@ -176,6 +176,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     private extractedDefaultValues: Record<string, unknown>;
 
     private dataModelPath: string[];
+
 
     private mostRecentRepeatableElementTemplatePath: string[] | null;
 
@@ -334,7 +335,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
@@ -356,11 +357,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
+        // TODO: cater for elementTemplate?
         const configContent = {content: this.currentModelValue() ?? config?.content};
-        // this.logger.info(`visitContentFieldComponentDefinition ${JSON.stringify({content: this.currentModelValue(), config})}`);
 
         this.sharedProps.setPropOverride('content', item.config, configContent);
-        this.sharedProps.setPropOverride('template', item.config, config);
+        this.sharedProps.setPropOverride('template', item.config, {template: config?.template});
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
@@ -373,28 +374,28 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     /*
      * The repeatable model and repeatable elementTemplate are special. Some notes:
      *
-     * - The repeatable model.config.defaultValue is the default for the whole repeatable.
-     * - The repeatable model.config.value is the value for the whole repeatable.
+     * - Repeatable default: The repeatable model.config.defaultValue is the default for the whole repeatable.
+     *   Can be specified only in the form config.
      *
-     * - The repeatable elementTemplate model.config.defaultValue is the default for *new* entries, not the value for existing entries.
-     *   - This means the elementTemplate defaultValue (or ancestor defaultValue) is always used to build the elementTemplate.model.config.value, not the value from the record.
-     *   - So, the default values need to be collected whether there is a record or not,
-     *     as the default values need to be available to be able to create new repeatable entries.
-     *   - This means that the only way to provide the default for new repeatable elements is from the form config.
-     *     There is no way to provide the default values for new repeatable entries from a record.
-     *   - TODO: This means that when a group component is the elementTemplate in a repeatable,
-     *      The closest ancestor repeatable elementTemplate is the 'top' of the defaultValues available to any ancestor components.
-     *      This is because the components in a group in an elementTemplate can provide their own defaultValues.
-     *      These will only work if the defaultValues of the ancestor components to the repeatable elementTemplate are ignored.
-     *      If this is not done, then the defaultValues for components in an elementTemplate will be incorrect,
-     *      as they will use defaultValues from outside the elementTemplate.
+     * - Repeatable value: The repeatable model.config.value is the value for the whole repeatable.
+     *   Is available only after the form config has been processed, not in 'raw' the form config.
      *
-     * - TODO: The most recently seen repeatable elementTemplate path is tracked, to allow obtaining the defaultValues 'within'
-     *    this most recent elementTemplate.
-     *
-     * - The repeatable elementTemplate must not have a name.
-     *   The name property needs to be present, but it must be a falsy value.
+     * - Repeatable template name: The repeatable elementTemplate must not have a name.
+     *   The name property needs to be present, but it must be a falsy value (usually empty string "").
      *   This is because it is a template, and the name is generated based on the repeatable's name.
+     *
+     * - Repeatable new item default: The repeatable elementTemplate model.config.newEntryValue is the default for *new* entries.
+     *   - The property 'newEntryValue' is only available in elementTemplates.
+     *   - An elementTemplate 'resets' the usual merging of ancestor defaultValues. Only 'newEntryValue' is used.
+     *   - This is because it does not make sense for ancestor components to provide defaults for new entries - they can only operate on the whole repeatable.
+     *   - This also means there is no way to provide the values for new repeatable entries from a record, only the form config.
+     *   - This also means that descendant of an element template cannot provide defaultValues (except for elementTemplates).
+     *
+     *     // anything in a group can't have defaults - enforce in code
+    // only in elementTemplate - ancestors don't influence defaults, only existing record can affect repeatable
+    // only the top-most repeatable can specify the defaultValue - nested components cannot have the defaultValue property
+    //  -> this restriction ensures there is no requirement to do ambiguous merging of array contents (a top-level array item merged with defaults of a nested item)
+    // Since the elementTemplate newEntryValue can only be specified in the elementTemplate, the merging of defaultValues stops at the first repeatable.
      */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
@@ -423,13 +424,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
         frame.elementTemplate = compDefs[0];
 
+        // Check the element template name is falsy
         if (!!frame.elementTemplate?.name) {
             throw new Error(`Repeatable element template must have a 'falsy' name, got '${frame.elementTemplate?.name}' at '${currentFormConfigPath}'.`);
         }
 
+        // Track the most recent element template.
+        // - Ensure newEntryValue is used only in elementTemplate definitions.
+        // - Ensure defaultValue is not defined in elementTemplate or any nested components.
         const previousMostRecentRepeatableElementTemplatePath = this.mostRecentRepeatableElementTemplatePath === null
             ? null : [...this.mostRecentRepeatableElementTemplatePath];
-        this.mostRecentRepeatableElementTemplatePath = currentFormConfigPath;
+        this.mostRecentRepeatableElementTemplatePath = [...currentFormConfigPath, "config", "elementTemplate"];
 
         const formComponent = this.constructFormComponent(frame.elementTemplate);
 
@@ -457,7 +462,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
+
+        // TODO: remove repeatable.model.value items that do not match with a component
+        // TODO: remove repeatable.elementTemplate.model.config.newEntryValue items that do not match with a component
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
@@ -541,7 +549,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
@@ -727,7 +735,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
@@ -781,7 +789,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
@@ -819,7 +827,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
@@ -856,7 +864,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
@@ -898,7 +906,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
-        this.setModelValue(item);
+        this.setModelValue(item, currentData?.config);
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
@@ -928,45 +936,130 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     /**
      * Set the model value from the record values.
      * @param item The field model component instance.
+     * @param config The field model form config.
      * @protected
      */
-    protected setModelValue(item: FieldModelDefinitionOutline<unknown>) {
-        if (item?.config?.value !== undefined) {
-            throw new Error(`${this.logName}: Use 'model.config.defaultValue' in form config instead of 'model.config.value': ${JSON.stringify(item)}`);
+    protected setModelValue(item: FieldModelDefinitionOutline<unknown>, config?: FieldModelConfigFrame<unknown>) {
+        // Use defaultValue in form config, not value.
+        if (item?.config?.value !== undefined || config?.value !== undefined) {
+            throw new Error(`${this.logName}: Use 'model.config.defaultValue' in form config ` +
+                `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`);
         }
 
         if (item.config === null || item.config === undefined) {
             throw new Error(`${this.logName}: Missing config for item: ${JSON.stringify(item)}`);
         }
 
-        // Set the model.config.value
-        // TODO: this.mostRecentRepeatableElementTemplatePath
-        // if (this.isRepeatableElementTemplate) {
-        // item.config.value = item?.config?.defaultValue;
-        // this.logger.info(`setModelValue isRepeatableElementTemplate ${JSON.stringify(item)}`);
-        // } else {
-        item.config.value = this.currentModelValue();
-        // }
+        const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
+        const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
 
-        // Remove the defaultValue property.
-        if (item?.config && 'defaultValue' in item.config) {
-            delete item.config.defaultValue;
+        // Only elementTemplates can use newEntryValue.
+        if (!isElementTemplate && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
+            throw new Error(`${this.logName}: Only repeatable elementTemplates can define 'model.config.newEntryValue', ` +
+                `use 'model.config.defaultValue' in other places ` +
+                `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`);
+        }
+
+        // The elementTemplate definitions cannot have a defaultValue.
+        if (isElementTemplate && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
+            throw new Error(`${this.logName}: Set the repeatable elementTemplate new item default ` +
+                `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
+                `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
+                `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`);
+        }
+
+        // Components in an elementTemplate cannot set default values.
+        if (isElementTemplateDescendant && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
+            throw new Error(`${this.logName}: Set the repeatable elementTemplate descendant component new item default ` +
+                `using 'elementTemplate.model.config.newEntryValue', ` +
+                `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
+                `not the descendant components ` +
+                `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`);
+        }
+
+        // Set the model.config.value or new item value
+        if (isElementTemplate) {
+            item.config.newEntryValue = config?.newEntryValue;
+        } else if (!isElementTemplateDescendant) {
+            // NOTE: It is useless to set the model.config.value on an elementTemplate or a descendant component.
+            // The top-most repeatable must have either:
+            // - no value, in which case the elementTemplate.model.config.newEntryValue will be used if one item is added by default; or
+            // - a value, which will be used to populate the entire repeatable and so any value on nested components will be ignored.
+            item.config.value = this.currentModelValue();
+
+            // Remove the defaultValue property.
+            if (item?.config && 'defaultValue' in item.config) {
+                delete item.config.defaultValue;
+            }
         }
     }
 
+    /**
+     * Get the value for the current data model path.
+     * @param itemDefaultValue The default value if there is no existing value.
+     * @protected
+     */
     protected currentModelValue(itemDefaultValue?: unknown): unknown {
-        //   Use the collected default value if form config default values are being used, otherwise, use the record values.
-        // TODO: this.mostRecentRepeatableElementTemplatePath
+        // Use the collected default value if form config default values are being used, otherwise, use the record values.
         const useFormConfigDefaultValues = this.recordValues === null;
         return useFormConfigDefaultValues ? this.currentDefaultValue(itemDefaultValue) : this.currentRecordValue();
     }
 
+    /**
+     * Get the default value for the current data model path.
+     * @param itemDefaultValue The default value if no default value was provided in the form config.
+     * @protected
+     */
     protected currentDefaultValue(itemDefaultValue?: unknown) {
         return _cloneDeep(_get(this.extractedDefaultValues, this.dataModelPath, itemDefaultValue));
     }
 
+    /**
+     * Get the record / existing value for the current data model path.
+     * @protected
+     */
     protected currentRecordValue() {
         return _cloneDeep(_get(this.recordValues, this.dataModelPath, undefined));
+    }
+
+    /**
+     * Check whether the current form config path matches the
+     * most recent repeatable element template path.
+     * @protected
+     */
+    protected isMostRecentRepeatableElementTemplate(): boolean {
+        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const array2 = this.formConfigPathHelper.formConfigPath;
+        if (!array1 || array1.length === 0 || !array2 || array2.length === 0) {
+            return false;
+        }
+        // Either array can have 'component', 'model', 'layout' at the end and
+        // still match if the other array is one item shorter.
+        const allowedExtras = ["component", "model", "layout"];
+        if (array1.length === array2.length) {
+            return array1.every((value, index) => value === array2[index]);
+        } else if (array1.length === array2.length - 1) {
+            return allowedExtras.includes(array2[array2.length - 1]) &&
+                array1.every((value, index) => value === array2[index]);
+        } else if (array1.length - 1 === array2.length) {
+            return allowedExtras.includes(array1[array1.length - 1]) &&
+                array2.every((value, index) => value === array1[index]);
+        }
+        return false;
+    }
+
+    /**
+     * Check whether the current form config path is a descendant (and not a match)
+     * of the most recent repeatable element template path.
+     * @protected
+     */
+    protected isRepeatableElementTemplateDescendant(): boolean {
+        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const array2 = this.formConfigPathHelper.formConfigPath;
+        if (!array1 || array1.length === 0 || !array2 || array2.length === 0 || array2.length + 2 <= array1.length) {
+            return false;
+        }
+        return array1.every((value, index) => value === array2[index]);
     }
 
     /**
@@ -988,9 +1081,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             }
 
             // Merge the default value if form default values are being used and item has a default value.
-            // TODO: this.mostRecentRepeatableElementTemplatePath
-            this.mergeDefaultValues(itemName, itemDefaultValue);
-            // }
+            // Repeatable elementTemplate and descendants cannot declare a defaultValue.
+            const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
+            const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
+            if (!isElementTemplate && !isElementTemplateDescendant) {
+                this.mergeDefaultValues(itemName, itemDefaultValue);
+            }
 
             // Continue visiting
             this.formConfigPathHelper.acceptFormComponentDefinition(item);
@@ -1009,7 +1105,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected mergeDefaultValues(itemName: string, itemDefaultValue: unknown): void {
-        // TODO: this.mostRecentRepeatableElementTemplatePath
+        const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
+        const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
+        if (isElementTemplate || isElementTemplateDescendant) {
+            throw new Error(`${this.logName}: Cannot merge default values for a repeatable elementTemplate or descendants ` +
+                `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`);
+        }
+
         if (itemName && itemDefaultValue !== undefined) {
             // Set the default value at the current data model path.
             // This makes it easier to merge defaults.
