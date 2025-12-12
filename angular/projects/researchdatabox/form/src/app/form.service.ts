@@ -52,7 +52,8 @@ import {
   JSONataQuerySourceProperty,
   buildLineagePaths as buildLineagePathsHelper,
   queryJSONata,
-  getObjectWithJsonPointer
+  getObjectWithJsonPointer,
+  FormModesConfig,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
@@ -645,10 +646,16 @@ export class FormService extends HttpClientService {
   /**
    * Get all the compiled items for the form.
    * @param recordType The form record type.
+   * @param oid The record id.
+   * @param formMode The form mode.
    */
-  public async getDynamicImportFormCompiledItems(recordType: string) {
+  public async getDynamicImportFormCompiledItems(recordType: string, oid?: string, formMode?: FormModesConfig) {
     const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+    if (oid) {
+      path.push(oid?.toString());
+    }
+    const params = formMode === "edit" ? {edit: "true"} : undefined;
+    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
     return result;
   }
 
@@ -665,9 +672,9 @@ export class FormService extends HttpClientService {
 
   /**
    * Reshapes a FormFieldCompMapEntry into a JSONataClientQuerySourceProperty.
-   * 
-   * @param item 
-   * @returns 
+   *
+   * @param item
+   * @returns
    */
   public transformIntoJSONataProperty(item: FormFieldCompMapEntry): JSONataClientQuerySourceProperty {
     if (!item) {
@@ -693,7 +700,7 @@ export class FormService extends HttpClientService {
 
   /**
    * Transforms a JSONata entry to a JSON Pointer friendly object.
-   * 
+   *
    * @param jsonDoc - arbitrary object to build on
    * @param formFieldEntry The form field entry associated with the JSONata entry.
    * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
@@ -708,9 +715,9 @@ export class FormService extends HttpClientService {
         jsonPointer: jsonataEntry.jsonPointer
       }
     };
-    
+
     // Recursively build the object structure if there are children
-    if (jsonataEntry.children && jsonataEntry.children.length > 0) { 
+    if (jsonataEntry.children && jsonataEntry.children.length > 0) {
       for (let i = 0; i < jsonataEntry.children.length; i++) {
         const childEntry = jsonataEntry.children[i];
         const childFormFieldEntry = formFieldEntry?.component?.formFieldCompMapEntries?.find(c => c.compConfigJson?.name === childEntry.name);
@@ -718,17 +725,17 @@ export class FormService extends HttpClientService {
           this.transformJSONataEntryToJSONPointerSource(object, childFormFieldEntry, childEntry);
         }
       }
-    } 
+    }
     _set(jsonDoc, this.getPropertyNameFromJSONPointerAsNumber(jsonataEntry?.jsonPointer, jsonataEntry.name), object);
     return jsonDoc;
   }
 
   /**
-   * Convenience method to get the property name from a JSON Pointer string as a number. Converts last part of the segment to number if possible, otherwise returns the default name. No, the name will not always be a number but conversion is prioritised as per JSON Pointer spec. 
-   * 
-   * @param jsonPointer 
-   * @param defaultName 
-   * @returns 
+   * Convenience method to get the property name from a JSON Pointer string as a number. Converts last part of the segment to number if possible, otherwise returns the default name. No, the name will not always be a number but conversion is prioritised as per JSON Pointer spec.
+   *
+   * @param jsonPointer
+   * @param defaultName
+   * @returns
    */
   private getPropertyNameFromJSONPointerAsNumber(jsonPointer?: string, defaultName: string = ''): string {
     // Intentionally rebuilding the array to decouple this logic from the source of the JSON Pointer data
@@ -739,9 +746,9 @@ export class FormService extends HttpClientService {
 
   /**
    * Reshapes a FormFieldCompMapEntry array into a JSONataQuerySource. Needed to prepare for JSONata queries.
-   * 
-   * @param origObject 
-   * @returns 
+   *
+   * @param origObject
+   * @returns
    */
   public getJSONataQuerySource(origObject: FormFieldCompMapEntry[]): JSONataQuerySource {
     let queryDoc: JSONataQuerySourceProperty[] = [];
@@ -749,7 +756,7 @@ export class FormService extends HttpClientService {
     // loop through each item in the original object and build the query source, index is important
     for (let i = 0; i < origObject.length; i++) {
       const item = origObject[i];
-      
+
       const propertyEntry = this.transformIntoJSONataProperty(item);
       queryDoc.push(propertyEntry);
       this.transformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry);
@@ -766,7 +773,7 @@ export class FormService extends HttpClientService {
   /**
    * Queries a JSONata source using the provided expression. Returns an array of FormFieldCompMapEntry objects
    * corresponding to the results, or, if `returnPointerOnly` is true, returns only the JSON pointer strings.
-   * 
+   *
    * @param jsonataSource The JSONataQuerySource to query.
    * @param jsonataExpression The JSONata expression to evaluate.
    * @param returnPointerOnly If true, only the JSON pointer strings are returned. Defaults to false.
@@ -780,7 +787,7 @@ export class FormService extends HttpClientService {
     const queryRes = await queryJSONata(
       jsonataSource,
       jsonataExpression
-    ); 
+    );
     if (returnPointerOnly) {
       return queryRes;
     }
@@ -791,7 +798,7 @@ export class FormService extends HttpClientService {
         const obj = getObjectWithJsonPointer(jsonataSource.jsonPointerSource, result.jsonPointer);
         returnArr.push(obj?.val?.metadata?.formFieldEntry);
       }
-    } 
+    }
     return returnArr;
   }
 }
@@ -828,5 +835,5 @@ export class FormComponentsMap {
  */
 interface JSONataResultDoc {
   metadata?: Record<string, unknown>;
-  [key: string]: unknown;   
-}  
+  [key: string]: unknown;
+}

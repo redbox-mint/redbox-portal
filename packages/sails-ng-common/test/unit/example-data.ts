@@ -649,7 +649,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
-                                                                defaultValue: 'hello world from elementTemplate!',
+                                                                newEntryValue: 'hello world from elementTemplate!',
                                                                 validators: [
                                                                     {
                                                                         class: 'pattern',
@@ -725,7 +725,7 @@ export const formConfigExample1: FormConfigFrame = {
                         model: {
                             class: 'GroupModel',
                             config: {
-                                defaultValue: {},
+                                newEntryValue: {text_3: 'hello world 3!'},
                             }
                         },
                         component: {
@@ -738,7 +738,6 @@ export const formConfigExample1: FormConfigFrame = {
                                         model: {
                                             class: 'SimpleInputModel',
                                             config: {
-                                                defaultValue: 'hello world 3!',
                                                 validators: [
                                                     {
                                                         class: 'minLength',

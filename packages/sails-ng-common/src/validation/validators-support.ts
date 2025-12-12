@@ -4,7 +4,7 @@ import {
     FormValidatorDefinition,
     FormValidatorFn
 } from "./form.model";
-import {isTypeFormValidatorDefinition} from "../config/helpers";
+import {isTypeFormValidatorDefinition} from "../config/form-types.model";
 
 export class ValidatorsSupport {
     /**
