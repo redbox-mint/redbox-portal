@@ -74,6 +74,8 @@ import {FormConfig} from "../form-config.model";
 import {FormConfigVisitor} from "./base.model";
 import {FormModesConfig} from "../shared.outline";
 import {FormConfigPathHelper} from "./common.model";
+import {isTypeWithComponentDefinitions} from "../form-types.outline";
+import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -82,6 +84,8 @@ import {FormConfigPathHelper} from "./common.model";
  * - remove fields with constraints that are not met by the provided formMode or userRoles
  * - remove expressions, as these must be processed by the server and retrieved by the client separately
  * - remove fields that have value 'undefined'
+ * - remove repeatable.model.config.value items that have no matching component
+ * - remove repeatable.elementTemplate.model.config.newEntryValue items that have no matching component
  *
  * TODO: future improvements to the client form config visitor:
  *  - use the field component config property 'defaultComponentCssClasses' to set the component css classes, then remove the property
@@ -207,6 +211,25 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         if (!this.hasObjectProps(item.component?.config?.elementTemplate)) {
             this.removePropsAll(item);
         }
+
+        const elementTemplateCompConfig = item.component?.config?.elementTemplate?.component?.config;
+        if (isTypeWithComponentDefinitions(elementTemplateCompConfig)) {
+            // TODO: remove repeatable.model.value items that do not match with a component
+            const itemValue = item.model?.config?.value;
+            // TODO: remove repeatable.elementTemplate.model.config.newEntryValue items that do not match with a component
+            const elementTemplate = item.component?.config?.elementTemplate;
+            const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
+            console.log(`visitRepeatableFormComponentDefinition itemValue ${JSON.stringify({itemValue})}`);
+            console.log(`visitRepeatableFormComponentDefinition newEntryValue ${JSON.stringify({newEntryValue})}`);
+            console.log(`visitRepeatableFormComponentDefinition elementTemplate ${JSON.stringify({elementTemplate})}`);
+
+            const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
+            const formConfigHolder = new FormConfig();
+            formConfigHolder.componentDefinitions = elementTemplateCompConfig.componentDefinitions;
+            const schemaHolder = schemaVisitor.start({form: formConfigHolder});
+            console.log(`visitRepeatableFormComponentDefinition schemaHolder ${JSON.stringify({dataModelHolder: schemaHolder})}`);
+        }
+
     }
 
     /* Validation Summary */

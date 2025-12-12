@@ -339,7 +339,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
         try {
             if (item.model && itemName) {
                 // NOTE: The repeatable elementTemplate should not be part of the data model path.
-                // It might have a model, but it should not have a name.
+                // It might have a model, but it must have a 'falsy' name.
                 this.dataModelPath = [...original, itemName];
             }
 

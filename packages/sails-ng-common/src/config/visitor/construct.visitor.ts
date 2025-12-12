@@ -358,6 +358,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
         // TODO: cater for elementTemplate?
+        //  Does it make sense to populate the content from the defaults / record?
         const configContent = {content: this.currentModelValue() ?? config?.content};
 
         this.sharedProps.setPropOverride('content', item.config, configContent);
@@ -463,9 +464,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
 
         this.setModelValue(item, currentData?.config);
-
-        // TODO: remove repeatable.model.value items that do not match with a component
-        // TODO: remove repeatable.elementTemplate.model.config.newEntryValue items that do not match with a component
     }
 
     visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
