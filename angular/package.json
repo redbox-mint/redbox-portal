@@ -22,7 +22,7 @@
     "@ngrx/effects": "^20.1.0",
     "@ngrx/store": "^20.1.0",
     "@ngrx/store-devtools": "^20.1.0",
-    "@ngx-formly/bootstrap": "^6.3.10",
+    "@ngx-formly/bootstrap": "^7.0.1",
     "@ngx-formly/core": "^6.3.6",
     "@researchdatabox/sails-ng-common": "../packages/sails-ng-common",
     "angular-i18next": "^20.0.1",
