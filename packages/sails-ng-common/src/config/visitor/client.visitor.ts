@@ -1,3 +1,4 @@
+import {get as _get} from 'lodash';
 import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -76,6 +77,7 @@ import {FormModesConfig} from "../shared.outline";
 import {FormConfigPathHelper} from "./common.model";
 import {isTypeWithComponentDefinitions} from "../form-types.outline";
 import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
+import {guessType} from "../helpers";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -212,24 +214,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             this.removePropsAll(item);
         }
 
-        const elementTemplateCompConfig = item.component?.config?.elementTemplate?.component?.config;
-        if (isTypeWithComponentDefinitions(elementTemplateCompConfig)) {
-            // TODO: remove repeatable.model.value items that do not match with a component
-            const itemValue = item.model?.config?.value;
-            // TODO: remove repeatable.elementTemplate.model.config.newEntryValue items that do not match with a component
-            const elementTemplate = item.component?.config?.elementTemplate;
-            const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
-            console.log(`visitRepeatableFormComponentDefinition itemValue ${JSON.stringify({itemValue})}`);
-            console.log(`visitRepeatableFormComponentDefinition newEntryValue ${JSON.stringify({newEntryValue})}`);
-            console.log(`visitRepeatableFormComponentDefinition elementTemplate ${JSON.stringify({elementTemplate})}`);
-
-            const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            const formConfigHolder = new FormConfig();
-            formConfigHolder.componentDefinitions = elementTemplateCompConfig.componentDefinitions;
-            const schemaHolder = schemaVisitor.start({form: formConfigHolder});
-            console.log(`visitRepeatableFormComponentDefinition schemaHolder ${JSON.stringify({dataModelHolder: schemaHolder})}`);
-        }
-
+        // Constraints may remove some components.
+        // The data model items in 'repeatable.model.value' and 'repeatable.elementTemplate.model.config.newEntryValue'
+        // need to be updated to reflect any changes in components.
+        this.updateRepeatableDataModels(item);
     }
 
     /* Validation Summary */
@@ -528,5 +516,157 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             return false;
         }
         return Object.keys(item).length > 0;
+    }
+
+    /**
+     * The data model items in 'repeatable.model.value' and 'repeatable.elementTemplate.model.config.newEntryValue'
+     * need to reflect any components removed via constraints.
+     * The item's data models will be updated to match the components.
+     * @param item The repeatable form component.
+     * @protected
+     */
+    protected updateRepeatableDataModels(item: RepeatableFormComponentDefinitionOutline): void {
+        const elementTemplate = item.component?.config?.elementTemplate;
+        const elementTemplateCompConfig = elementTemplate?.component?.config;
+
+        if (!isTypeWithComponentDefinitions(elementTemplateCompConfig)) {
+            // The elementTemplate does not have nested components. Nothing to update.
+            return;
+        }
+
+        // Build the data model schema from the components.
+        const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
+        const elementTemplateFormConfig = new FormConfig();
+        elementTemplateFormConfig.componentDefinitions = elementTemplateCompConfig.componentDefinitions;
+        const elementTemplateSchema = schemaVisitor.start({form: elementTemplateFormConfig});
+
+        // Remove any data model items that are not present in the schema.
+        const toProcess = [{path: [], schema: elementTemplateSchema}];
+
+        const itemValue = item.model?.config?.value;
+        (itemValue ?? []).forEach(value => this.updateRepeatableDataModel(toProcess, value));
+
+        const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
+        this.updateRepeatableDataModel(toProcess, newEntryValue);
+    }
+
+    /**
+     * Update a value using the array of path and schema items.
+     * @param toProcess The array of path and schema items.
+     * @param value The value to compare to the paths and schemas.
+     * @protected
+     */
+    protected updateRepeatableDataModel(
+        toProcess: { path: string[], schema: Record<string, unknown> }[],
+        value: unknown
+    ): void {
+        const processing = [...toProcess];
+        while (processing.length > 0) {
+            const current = processing.shift();
+
+            // Ignore empty item
+            if (current === undefined || current === null) {
+                continue;
+            }
+
+            const path = current.path;
+            const schema = current.schema;
+
+            const currentValue = path.length > 0 ? _get(value, path) : value;
+            const currentValueType = guessType(currentValue);
+
+            const errMsg1 = `Component and data model do not match. Component at '${JSON.stringify(path)}' expected`;
+            const errMsg2 = `but got '${currentValueType}':`;
+            for (const [schemaKey, schemaValue] of Object.entries(schema)) {
+                const schemaCurrent = schemaValue as Record<string, unknown>;
+                switch (schemaKey) {
+                    case "properties":
+                        if (currentValueType !== "object") {
+                            throw new Error(`${errMsg1} an object, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                        }
+                        // Remove names missing in the schema.
+                        // Add names in the schema to the to-process array.
+                        const schemaNames = Object.keys(schemaCurrent);
+                        Object.keys(currentValue).forEach(name => {
+                            if (!schemaNames.includes(name)) {
+                                delete currentValue[name];
+                            } else {
+                                processing.push({path: [...path, name], schema: schemaCurrent[name] as Record<string, unknown>})
+                            }
+                        });
+                        break;
+                    // TODO: determine how elements will work...
+                    // case "elements":
+                    //     if (currentValueType !== "array") {
+                    //         throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                    //     }
+                    //     console.log(JSON.stringify({schemaKey, schemaValue, currentValue}));
+                    //     break;
+                    case "type":
+                        // TODO: do the json type def type names match the guessType names?
+                        if (currentValueType !== schemaValue) {
+                            throw new Error(`${errMsg1} ${schemaValue}, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                        }
+                        // Nothing else to do.
+                        break;
+                    default:
+                        throw new Error(`Unknown schema type '${schemaKey}'.`);
+                }
+            }
+        }
+
+        // visitRepeatableFormComponentDefinition itemValue {"itemValue":[{"text_1":"hello world from repeating groups",
+        // "text_2":"hello world 2!","repeatable_for_admin":["hello world from repeatable for admin"],"removed_group":
+        // {"removed_group_text":"hello world 1!"}}]}
+
+        // visitRepeatableFormComponentDefinition newEntryValue {"newEntryValue":{"text_1":"hello world 1!","text_2":
+        // "repeatable_group_1 elementTemplate text_2 default"}}
+
+        // visitRepeatableFormComponentDefinition elementTemplate {"elementTemplate":{"name":"","component":{"class":
+        // "GroupComponent","config":{"readonly":false,"visible":true,"editMode":true,"wrapperCssClasses":"col",
+        // "disabled":false,"autofocus":false,"componentDefinitions":[{"name":"text_2","component":
+        // {"class":"SimpleInputComponent","config":{"readonly":false,"visible":true,"editMode":true,"disabled":false,
+        // "autofocus":false,"type":"text"}},"model":{"class":"SimpleInputModel","config":{}}}]}},"model":
+        // {"class":"GroupModel","config":{"newEntryValue":{"text_1":"hello world 1!",
+        // "text_2":"repeatable_group_1 elementTemplate text_2 default"}}},"layout":{"class":"RepeatableElementLayout",
+        // "config":{"readonly":false,"visible":true,"editMode":true,"hostCssClasses":"row align-items-start",
+        // "disabled":false,"autofocus":false,"labelRequiredStr":"*","cssClassesMap":{},"helpTextVisibleOnInit":false,
+        // "helpTextVisible":false}}}}
+
+        // visitRepeatableFormComponentDefinition schemaHolder {"dataModelHolder":{"properties":{"text_2":{"type":"string"}}}}
+
+
+        // const itemValueType = guessType(itemValue);
+        // if (itemValue !== undefined && itemValueType === "array") {
+        //
+        // }
+        //
+        // while (toProcess.length > 0) {
+        //     const current = toProcess.shift();
+        //     if (current === undefined || current === null) {
+        //         continue;
+        //     }
+        //     const path = current.path;
+        //     const schema = current.schema;
+        //     for (const [schemaKey, schemaValue] of Object.entries(schema)) {
+        //         console.log(`schemaToProcess path: ${JSON.stringify(path)} schemaKey: ${JSON.stringify(schemaKey)} schemaValue: ${JSON.stringify(schemaValue)}`);
+        //         const itemValueAtPath = path.length > 0 ? _get(itemValue, path) : itemValue;
+        //         const newEntryValueAtPath = path.length > 0 ? _get(newEntryValue, path) : newEntryValue;
+        //         console.log(`schemaToProcess itemValueAtPath: ${JSON.stringify(itemValueAtPath)} newEntryValueAtPath: ${JSON.stringify(newEntryValueAtPath)}`);
+        //         switch (schemaKey) {
+        //             case "properties":
+        //
+        //                 break;
+        //             case "elements":
+        //
+        //                 break;
+        //             case "type":
+        //
+        //                 break;
+        //             default:
+        //                 throw new Error(`schemaToProcess schemaKey ${schemaKey}`);
+        //         }
+        //     }
+        // }
     }
 }

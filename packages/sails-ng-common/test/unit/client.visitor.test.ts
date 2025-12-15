@@ -469,7 +469,7 @@ describe("Client Visitor", async () => {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableModel',
-                            config: {value: [{text_1: "hello world from repeating groups"}]}
+                            config: {value: [{text_2: 'hello world 2!'}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
