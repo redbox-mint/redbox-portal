@@ -38,7 +38,7 @@
     "i18next": "^25.6.3",
     "i18next-fs-backend": "^2.6.1",
     "include-all": "^4.0.3",
-    "isomorphic-dompurify": "^2.32.0",
+    "isomorphic-dompurify": "^2.34.0",
     "jquery": "^3.7.1",
     "jsonata": "^2.1.0",
     "language-data-commons-vocabs": "^1.0.1",
