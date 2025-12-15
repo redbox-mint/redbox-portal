@@ -141,6 +141,8 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     if (this.splitNames) {
       this.groupFieldNames.push('family_name');
       this.groupFieldNames.push('given_name');
+      // Remove text_full_name validator and add validators for split name fields
+      delete this.validators['text_full_name'];
       this.validators['family_name'] = [Validators.required];
       this.validators['given_name'] = [Validators.required];
     }
