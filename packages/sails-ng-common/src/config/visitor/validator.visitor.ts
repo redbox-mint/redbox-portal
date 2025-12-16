@@ -17,7 +17,7 @@ import {guessType} from "../helpers";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ValidatorsSupport} from "../../validation/validators-support";
 import {
-    ContentFieldComponentDefinitionOutline,
+    ContentFieldComponentDefinitionOutline, ContentFieldModelDefinitionOutline,
     ContentFormComponentDefinitionOutline
 } from "../component/content.outline";
 import {
@@ -77,6 +77,7 @@ import {
 } from "../component/date-input.outline";
 import {FormConfig} from "../form-config.model";
 import {FormConfigPathHelper} from "./common.model";
+import {StaticFieldComponentDefinitionOutline, StaticFormComponentDefinitionOutline} from "../component/static.outline";
 
 /**
  * Visit each form config component and run its validators.
@@ -173,13 +174,24 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinitionWithModel(item);
     }
 
-
     /* Content */
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
     }
 
+    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void {
+    }
+
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinitionWithModel(item);
+    }
+
+    /* Static */
+
+    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void {
+    }
+
+    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinitionWithModel(item);
     }
 

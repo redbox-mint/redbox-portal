@@ -7,7 +7,7 @@ import {
     SimpleInputFormComponentDefinitionOutline
 } from "../component/simple-input.outline";
 import {
-    ContentFieldComponentDefinitionOutline,
+    ContentFieldComponentDefinitionOutline, ContentFieldModelDefinitionOutline,
     ContentFormComponentDefinitionOutline
 } from "../component/content.outline";
 import {
@@ -68,6 +68,7 @@ import {
 import {FormExpressionsConfigFrame} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {FormConfigPathHelper} from "./common.model";
+import {StaticFieldComponentDefinitionOutline, StaticFormComponentDefinitionOutline} from "../component/static.outline";
 
 
 /**
@@ -127,6 +128,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     /* Content */
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+        this.logger.warn(`visitContentFieldComponentDefinition ${JSON.stringify(item)}`);
         const template = (item.config?.template ?? "").trim();
         if (template) {
             this.templates?.push({
@@ -137,7 +139,29 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
+    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void {
+    }
+
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+        this.extractExpressions(item.expressions);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
+    }
+
+    /* Static */
+
+    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void {
+        this.logger.warn(`visitStaticFieldComponentDefinition ${JSON.stringify(item)}`);
+        const template = (item.config?.template ?? "").trim();
+        if (template) {
+            this.templates?.push({
+                key: [...(this.formConfigPathHelper.formConfigPath ?? []), "config", "template"],
+                value: template,
+                kind: "handlebars"
+            });
+        }
+    }
+
+    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void {
         this.extractExpressions(item.expressions);
         this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }

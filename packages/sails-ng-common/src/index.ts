@@ -55,6 +55,8 @@ export * from "./config/component/save-button.model";
 export * from "./config/component/save-button.outline";
 export * from "./config/component/simple-input.model";
 export * from "./config/component/simple-input.outline";
+export * from "./config/component/static.model";
+export * from "./config/component/static.outline";
 export * from "./config/component/tab.model";
 export * from "./config/component/tab.outline";
 export * from "./config/component/tab-content.model";

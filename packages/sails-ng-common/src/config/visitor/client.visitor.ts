@@ -7,6 +7,7 @@ import {
 } from "../component/simple-input.outline";
 import {
     ContentFieldComponentDefinitionOutline,
+    ContentFieldModelDefinitionOutline,
     ContentFormComponentDefinitionOutline
 } from "../component/content.outline";
 import {
@@ -78,6 +79,7 @@ import {FormConfigPathHelper} from "./common.model";
 import {isTypeWithComponentDefinitions} from "../form-types.outline";
 import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
 import {guessType} from "../helpers";
+import {StaticFieldComponentDefinitionOutline, StaticFormComponentDefinitionOutline} from "../component/static.outline";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -181,7 +183,22 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         this.processFieldComponentDefinition(item);
     }
 
+    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void {
+        this.processFieldModelDefinition(item);
+    }
+
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+        this.acceptCheckConstraintsCurrentPath(item);
+        this.processFormComponentDefinition(item);
+    }
+
+    /* Static */
+
+    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void {
+        this.processFieldComponentDefinition(item);
+    }
+
+    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void {
         this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }

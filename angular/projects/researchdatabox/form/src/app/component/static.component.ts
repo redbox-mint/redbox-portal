@@ -3,31 +3,24 @@ import {FormFieldBaseComponent, FormFieldModel} from '@researchdatabox/portal-ng
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
 import {
-  ContentComponentName,
-  ContentFieldComponentConfig, ContentModelName,
+  StaticComponentName,
+  StaticFieldComponentConfig,
   FormFieldComponentStatus
 } from "@researchdatabox/sails-ng-common";
 import * as Handlebars from 'handlebars';
 
 /*
  * *** Migration Notes ***
- * This component may replace legacy components: ContentComponent and HtmlRawComponent.
- * This component allows showing a model value in a read-only way.
- * It is used when the model value could be saved.
- *
- * It should not be used for static content that is not linked to a record data model value.
- * For static content, another component should be used. A future 'StaticComponent'?
- *
- * The 'template' is intended for *very* simple display formatting.
- * If the template becomes more than one or two elements, then it likely should be a different component.
+ * This component may replace legacy components: StaticComponent and HtmlRawComponent.
+ * This component allows showing static content.
+ * It should be used for static content that is not linked to a record data model value.
+ * For showing model data in a read-only component, another component should be used, e.g. ContentComponent.
  *
  * Use Cases:
- * - show value of an editable component (e.g. SimpleInputComponent) in view mode
+ * - show value of generated data from server-side in a HTML span
+ * - show value of static text/content that is not saved to the server side metadata
+ * - set on load / init, if needs to be changed, that's what expressions are for
  */
-
-export class ContentModel extends FormFieldModel<string> {
-  protected override logName = ContentModelName;
-}
 
 
 @Component({
@@ -41,14 +34,14 @@ export class ContentModel extends FormFieldModel<string> {
   `,
   standalone: false
 })
-export class ContentComponent extends FormFieldBaseComponent<string> {
-  protected override logName: string = ContentComponentName;
+export class StaticComponent extends FormFieldBaseComponent<string> {
+  protected override logName: string = StaticComponentName;
   public content:string = '';
 
   /**
    * The model associated with this component.
    */
-  @Input() public override model?: ContentModel;
+  @Input() public override model?: never;
 
   private injector = inject(Injector);
   private formService = inject(FormService);
@@ -72,18 +65,17 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
-    const config = this.componentDefinition?.config as ContentFieldComponentConfig;
+    const config = this.componentDefinition?.config as StaticFieldComponentConfig;
 
-    const modelValue = this.model?.getValue() ?? '';
     const template = config?.template ?? '';
     const extraContext = config?.extraContext ?? '';
 
-    if (modelValue && template) {
+    if (extraContext && template) {
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
       try {
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
-        const context = {model: modelValue, extraContext: extraContext};
+        const context = {extraContext: extraContext};
         const extra = {libraries: {Handlebars: Handlebars}};
         this.content = compiledItems.evaluate(templateLineagePath, context, extra);
       } catch (error) {
@@ -91,8 +83,8 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         this.status.set(FormFieldComponentStatus.ERROR);
         this.content = '';
       }
-    } else if (modelValue && !template) {
-      this.content = modelValue;
+    } else if (extraContext && !template) {
+      this.content = extraContext;
     } else {
       this.content = '';
     }

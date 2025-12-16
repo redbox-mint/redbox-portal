@@ -515,7 +515,7 @@ export module Services {
           const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordData, reusableFormDefs);
 
           const visitor = new TemplateFormConfigVisitor(this.logger);
-          return visitor.start(form);
+          return visitor.start({form});
         }
 
         /**

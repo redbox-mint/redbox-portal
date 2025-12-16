@@ -7,9 +7,18 @@ import {
 } from "../field-component.outline";
 import {
     FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
-    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType, FormComponentDefinitionFrameKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FieldModelConfigFrameKindType,
+    FieldModelConfigKindType, FieldModelDefinitionFrameKindType,
+    FieldModelDefinitionKindType, FormComponentDefinitionFrameKindType,
     FormComponentDefinitionKindType
 } from "../shared.outline";
+import {
+    FieldModelConfigFrame,
+    FieldModelConfigOutline,
+    FieldModelDefinitionFrame,
+    FieldModelDefinitionOutline
+} from "../field-model.outline";
 
 /* Content Component */
 
@@ -22,9 +31,9 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      */
     template?: string;
     /**
-     * The context available to the template as `content`.
+     * Additional context available to the template as `extraContext`.
      */
-    content?: any;
+    extraContext?: any;
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -41,26 +50,52 @@ export interface ContentFieldComponentDefinitionOutline extends ContentFieldComp
     config?: ContentFieldComponentConfigOutline;
 }
 
+/* Content Model */
+
+export const ContentModelName = "ContentModel" as const;
+export type ContentModelNameType = typeof ContentModelName;
+export type ContentModelValueType = unknown | null;
+
+export interface ContentFieldModelConfigFrame extends FieldModelConfigFrame<ContentModelValueType> {
+}
+
+export interface ContentFieldModelConfigOutline extends ContentFieldModelConfigFrame, FieldModelConfigOutline<ContentModelValueType> {
+
+}
+
+export interface ContentFieldModelDefinitionFrame extends FieldModelDefinitionFrame<ContentModelValueType> {
+    class: ContentModelNameType;
+    config?: ContentFieldModelConfigFrame;
+}
+
+export interface ContentFieldModelDefinitionOutline extends ContentFieldModelDefinitionFrame, FieldModelDefinitionOutline<ContentModelValueType> {
+    class: ContentModelNameType;
+    config?: ContentFieldModelConfigOutline;
+}
+
 /* Content Form Component */
 export interface ContentFormComponentDefinitionFrame extends FormComponentDefinitionFrame {
     component: ContentFieldComponentDefinitionFrame;
-    model?: never;
+    model?: ContentFieldModelDefinitionFrame;
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
 
 export interface ContentFormComponentDefinitionOutline extends ContentFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: ContentFieldComponentDefinitionOutline;
-    model?: never;
+    model?: ContentFieldModelDefinitionOutline;
     layout?: AvailableFieldLayoutDefinitionOutlines;
 }
 
 export type ContentTypes =
     { kind: FieldComponentConfigFrameKindType, class: ContentFieldComponentConfigFrame }
     | { kind: FieldComponentDefinitionFrameKindType, class: ContentFieldComponentDefinitionFrame }
+    | { kind: FieldModelConfigFrameKindType, class: ContentFieldModelConfigFrame }
+    | { kind: FieldModelDefinitionFrameKindType, class: ContentFieldModelDefinitionFrame }
     | { kind: FormComponentDefinitionFrameKindType, class: ContentFormComponentDefinitionFrame }
     | { kind: FieldComponentConfigKindType, class: ContentFieldComponentConfigOutline }
     | { kind: FieldComponentDefinitionKindType, class: ContentFieldComponentDefinitionOutline }
+    | { kind: FieldModelConfigKindType, class: ContentFieldModelConfigOutline }
+    | { kind: FieldModelDefinitionKindType, class: ContentFieldModelDefinitionOutline }
     | { kind: FormComponentDefinitionKindType, class: ContentFormComponentDefinitionOutline }
     ;
-

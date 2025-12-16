@@ -261,7 +261,8 @@ export class FormOverride {
         }
 
         // Apply the transform.
-        const result = (transformComponentClassName && transformFunc) ? transformFunc.call(this, original, formMode) : original;
+        const hasTransform = !!transformComponentClassName && !!transformFunc;
+        const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
 
         // Use 'replaceName' to update the form component name.
         if (original.overrides?.replaceName) {
@@ -273,6 +274,11 @@ export class FormOverride {
             delete result['overrides'];
         }
 
+        if (hasTransform || !!transformComponentClassName) {
+            this.logger.warn(`Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
+                `from '${originalComponentClassName}' to '${transformComponentClassName}'.`);
+        }
+
         return result;
     }
 
@@ -281,10 +287,9 @@ export class FormOverride {
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonTargetContentComponent(source, formMode);
-
-        // Use the source model value to construct the target 'content' property.
-        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
-            target.component.config.content = source.model.config.value;
+        if (source.model?.config?.value !== undefined
+            && target.model?.config !== undefined) {
+            target.model.config.value = source.model.config.value;
         }
 
         return target;
@@ -296,9 +301,12 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonTargetContentComponent(source, formMode);
 
-        // Use the source model value to construct the target 'content' property.
-        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
-            target.component.config.content = source.model.config.value;
+        if (source.model?.config?.value !== undefined
+            && target.component?.config !== undefined
+            && target.model?.config !== undefined) {
+            target.model.config.value = source.model.config.value;
+            // TODO: does this need to render anything?
+            target.component.config.template = `<pre>{{model}}</pre>`;
         }
 
         return target;
@@ -310,9 +318,9 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonTargetContentComponent(source, formMode);
 
-        // Use the source model value to construct the target 'content' property.
-        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
-            target.component.config.content = source.model.config.value;
+        if (source.model?.config?.value !== undefined
+            && target.model?.config !== undefined) {
+            target.model.config.value = source.model.config.value;
         }
 
         return target;
@@ -324,25 +332,18 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonTargetContentComponent(source, formMode);
 
-        // Use the source model value to construct the target 'content' property.
-        // this.logger.info(`sourceCheckboxInputComponentTargetContentComponent ${JSON.stringify({
-        //     source,
-        //     target,
-        //     formMode
-        // })}`);
-        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+        if (source.model?.config?.value !== undefined
+            && target.component?.config !== undefined
+            && target.model?.config !== undefined) {
+            target.model.config.value = source.model.config.value;
             // Checkbox value can be string, null, array. If string or array, get the labels.
+            // Can have 0, 1, or more values.
             const values = source.model.config.value === null
-                ? ["(no value)"]
+                ? []
                 : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
             const options = source.component.config?.options ?? [];
-            const displayValues = values
-                .map(value => {
-                    const option = options.find(option => option.value === value);
-                    return option ?? {label: value, value: value};
-                });
-            target.component.config.content = displayValues;
-            target.component.config.template = `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+
+            this.commonOptionList(target, values, options);
         }
 
         return target;
@@ -354,20 +355,19 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonTargetContentComponent(source, formMode);
 
-        // Use the source model value to construct the target 'content' property.
-        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+        if (source.model?.config?.value !== undefined
+            && target.component?.config !== undefined
+            && target.model?.config !== undefined) {
+            target.model.config.value = source.model.config.value;
+
             // Radio value can be string, null, array. If string or array, get the labels.
+            // Can have 0 or 1 values.
             const values = source.model.config.value === null
-                ? ["(no value)"]
+                ? []
                 : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
             const options = source.component.config?.options ?? [];
-            const displayValues = values
-                .map(value => {
-                    const option = options.find(option => option.value === value);
-                    return option ?? {label: value, value: value};
-                });
-            target.component.config.content = displayValues;
-            target.component.config.template = `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+
+            this.commonOptionList(target, values, options);
         }
 
         return target;
@@ -379,10 +379,13 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonTargetContentComponent(source, formMode);
 
-        // Use the source model value to construct the target 'content' property.
-        if (source.model?.config?.value !== undefined && target.component.config !== undefined) {
+        if (source.model?.config?.value !== undefined
+            && target.component?.config !== undefined
+            && target.model?.config !== undefined) {
+            target.model.config.value = source.model.config.value;
+
             // TODO: create a handlebars partial helper to render dates: https://handlebarsjs.com/guide/partials.html
-            target.component.config.content = source.model.config.value?.toString() ?? "(no value)";
+            target.component.config.template = `<span data-value="{{model}}">{{model}}</span>`;
         }
 
         return target;
@@ -398,12 +401,16 @@ export class FormOverride {
                 class: "ContentComponent",
                 config: {}
             },
+            model: {
+                class: "ContentModel",
+                config: {},
+            },
             module: source.module,
             expressions: source.expressions,
             constraints: source.constraints,
             overrides: source.overrides,
         };
-        // Set the layout only if the source has a layout.
+        // Set the optional properties only if the source has them.
         if (source.layout) {
             frame.layout = source.layout;
         }
@@ -423,8 +430,37 @@ export class FormOverride {
         // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
         this.propertiesHelper.sharedPopulateFieldComponentConfig(target.component.config, source.component.config);
 
-
         return target;
+    }
+
+    private commonOptionList(
+        target: ContentFormComponentDefinitionOutline,
+        values: string[],
+        options?: { label: string, value: string }[]
+    ): void {
+        if (!target.component.config) {
+            return;
+        }
+        const targetCompConf = target.component.config;
+
+        if (values.length === 0) {
+            // Empty
+            targetCompConf.extraContext = undefined;
+            targetCompConf.template = `<span></span>`;
+        } else if (values.length === 1) {
+            // One value
+            const value = values[0];
+            const label = options?.find(option => option.value === value)?.label ?? value;
+            targetCompConf.extraContext = undefined;
+            targetCompConf.template = `<span data-value="${value}">${label}</span>`;
+        } else {
+            // More than one value
+            targetCompConf.extraContext = values.map(value => options?.find(option => option.value === value) ?? {
+                label: value,
+                value: value
+            });
+            targetCompConf.template = `<ul>{{#each extraContext}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+        }
     }
 
 }

@@ -614,7 +614,7 @@ describe("Construct Visitor", async () => {
                             component: {
                                 class: 'ContentComponent',
                                 config: {
-                                    template: '<h1>{{content}}</h1>'
+                                    template: '<h1>{{model}}</h1>'
                                 }
                             }
                         }
@@ -632,9 +632,12 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: "some value",
-                                template: '<h1>{{content}}</h1>'
+                                template: '<h1>{{model}}</h1>'
                             }
+                        },
+                        model: {
+                            class: "StaticComponent",
+                            config: {value: "some value"}
                         }
                     }
                 ]
@@ -681,9 +684,13 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: [{label: 'Option 3', value: 'option3'}],
-                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                                extraContext: [{label: 'Option 3', value: 'option3'}],
+                                template: `<ul>{{#each extraContext}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
+                        },
+                        model: {
+                            class: "ContentModel",
+                            config: {value: "option3"}
                         }
                     }
                 ]

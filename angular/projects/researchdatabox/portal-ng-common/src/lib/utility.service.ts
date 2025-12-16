@@ -419,6 +419,7 @@ export class UtilityService {
 
     const ts = new Date().getTime().toString();
     url.searchParams.set('ts', ts);
+    url.searchParams.set('apiVersion', "2.0");
 
     Object.entries(params?? {}).forEach(([key, value]) => {
       url.searchParams.set(key, value);

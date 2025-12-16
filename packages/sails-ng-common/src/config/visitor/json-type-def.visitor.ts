@@ -7,7 +7,7 @@ import {
     SimpleInputFormComponentDefinitionOutline
 } from "../component/simple-input.outline";
 import {
-    ContentFieldComponentDefinitionOutline,
+    ContentFieldComponentDefinitionOutline, ContentFieldModelDefinitionOutline,
     ContentFormComponentDefinitionOutline
 } from "../component/content.outline";
 import {
@@ -71,6 +71,7 @@ import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
 import {CanVisit} from "./base.outline";
 import {FormConfigPathHelper} from "./common.model";
+import {StaticFieldComponentDefinitionOutline, StaticFormComponentDefinitionOutline} from "../component/static.outline";
 
 
 /**
@@ -138,7 +139,20 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
     }
 
+    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void {
+        this.setFromModelDefinition(item);
+    }
+
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinitionWithModel(item);
+    }
+
+    /* Static */
+
+    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void {
+    }
+
+    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinitionWithModel(item);
     }
 

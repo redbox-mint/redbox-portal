@@ -20,6 +20,7 @@ import {DropdownInputMap} from "./component/dropdown-input.model";
 import {RadioInputMap} from "./component/radio-input.model";
 import {DateInputMap} from "./component/date-input.model";
 import {ReusableMap} from "./component/reusable.model";
+import {StaticMap} from "./component/static.model";
 
 
 /**
@@ -33,6 +34,7 @@ export const AllDefs = [
     ...SaveButtonMap,
     ...TextAreaMap,
     ...ContentMap,
+    ...StaticMap,
     ...SimpleInputMap,
     ...ValidationSummaryMap,
     ...TabContentMap,
