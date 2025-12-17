@@ -199,7 +199,7 @@ export class DashboardComponent extends BaseComponent {
       recordType = recordTypeFilterBy;
     }
 
-    for (let recType of formatRules.hideWorkflowStepTitleForRecordType) {
+    for (let recType of (formatRules.hideWorkflowStepTitleForRecordType ?? [])) {
       if (recType == recordType) {
         this.hideWorkflowStepTitle = true;
       }
@@ -375,12 +375,6 @@ export class DashboardComponent extends BaseComponent {
     }
 
     this.records[evaluateStepName] = planTable;
-
-    this.records[evaluateStepName] = planTable;
-
-    // We don't call sortChanged here initially to avoid double-loading, 
-    // but we might need to set initial sort state if needed.
-    // this.sortChanged(defaultSortObject);
   }
 
   private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any) {

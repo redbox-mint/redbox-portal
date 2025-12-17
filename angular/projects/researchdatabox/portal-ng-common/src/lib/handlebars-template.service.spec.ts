@@ -62,26 +62,19 @@ describe('HandlebarsTemplateService', () => {
 
     describe('compileAndRunTemplate', () => {
         it('should execute precompiled template from loaded module if keys provided', async () => {
-            // Mock module that returns a template spec
-            const templateSpec = Handlebars.precompile('Precompiled: {{title}}');
-            // evaluate must return the SPEC (object/string whatever Handlebars.template takes)
-            // Handlebars.template takes the precompiled spec (compiled by Handlebars.precompile and eval'd)
-            // Wait, Handlebars.precompile returns a STRING of JS code.
-            // My service expects module.evaluate to return the spec OBJECT or Function?
-            // "const template = Handlebars.template(templateSpec);"
-            // Handlebars.template takes a TemplateSpecification.
-            // In browser, Handlebars.precompile usually returns a string function source.
-            // If I mock evaluate to return a compiled template function directly?
-            // My service code: "const template = Handlebars.template(templateSpec);"
-            // So templateSpec must be the spec object.
+            // Create a real template spec using the full Handlebars (imported in test)
+            const templateString = 'Precompiled: {{title}}';
+            const precompiledString = Handlebars.precompile(templateString);
+            // Convert string to spec object (simulating what the build/loader does)
+            const templateSpec = new Function('return ' + precompiledString)();
 
-            // To test this easily without dealing with Handlebars internals, 
-            // I'll mock Handlebars.template in the test?
-            // Or just trust that if evaluate returns something truthy, it tries.
-
-            // Let's mock the module.evaluate to return a dummy spec.
             const mockModule = {
-                evaluate: jasmine.createSpy('evaluate').and.returnValue('Evaluated Result')
+                evaluate: jasmine.createSpy('evaluate').and.callFake((keyParts, context, options) => {
+                    // Use the Handlebars instance passed from the service (runtime)
+                    const hbs = options.libraries.Handlebars;
+                    const template = hbs.template(templateSpec);
+                    return template(context);
+                })
             };
 
             utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
@@ -96,7 +89,7 @@ describe('HandlebarsTemplateService', () => {
 
             const result = service.compileAndRunTemplate(fallback, context, key);
 
-            expect(result).toBe('Evaluated Result');
+            expect(result).toBe('Precompiled: Test Record');
             expect(mockModule.evaluate).toHaveBeenCalled();
         });
 

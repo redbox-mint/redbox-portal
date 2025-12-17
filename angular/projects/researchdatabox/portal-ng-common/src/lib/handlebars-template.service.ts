@@ -44,8 +44,6 @@ type TemplateFunction = (context: any) => string;
 })
 export class HandlebarsTemplateService extends HttpClientService {
 
-    // Cache of compiled templates
-    private templateCache: Map<string, TemplateFunction> = new Map();
     // Cache of loaded dashboard configurations to avoid re-fetching
     private loadedConfigs: Set<string> = new Set();
     // Registry of loaded template modules
@@ -286,7 +284,7 @@ export class HandlebarsTemplateService extends HttpClientService {
      * @returns true if the template exists in cache
      */
     public hasTemplate(key: string): boolean {
-        return this.templateCache.has(key);
+        return this.moduleRegistry.has(key);
     }
 
     /**
@@ -303,7 +301,6 @@ export class HandlebarsTemplateService extends HttpClientService {
      * Clear all cached templates.
      */
     public clearCache(): void {
-        this.templateCache.clear();
         this.loadedConfigs.clear();
         this.moduleRegistry.clear();
         this.loggerService.debug('Template cache cleared');
@@ -313,6 +310,6 @@ export class HandlebarsTemplateService extends HttpClientService {
      * Get the number of cached templates.
      */
     public getCacheSize(): number {
-        return this.templateCache.size;
+        return this.moduleRegistry.size;
     }
 }

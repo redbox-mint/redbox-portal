@@ -7,7 +7,7 @@ import {
   ContentFieldComponentConfig,
   FormFieldComponentStatus
 } from "@researchdatabox/sails-ng-common";
-import * as Handlebars from 'handlebars';
+import Handlebars from 'handlebars';
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent

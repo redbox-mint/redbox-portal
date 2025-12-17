@@ -3,7 +3,7 @@ import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService } from "@researchdatabox/portal-ng-common";
-import * as Handlebars from "handlebars";
+import Handlebars from "handlebars";
 
 
 

@@ -49,16 +49,19 @@ export module Services {
 
             const result: TemplateCompileItem[] = [];
             for (const input of inputs) {
+                // The key is stored as a string array (composite key).
+                // The duplicate check above uses the flattened, normalized string form (buildKeyString)
+                // to ensure uniqueness across the composite keys.
                 switch (input.kind) {
                     case "jsonata":
                         result.push({
-                            key: [this.buildKeyString(input.key)],
+                            key: input.key,
                             value: `${this.buildClientJsonata(input.value)?.toString()}.evaluate(context)`,
                         })
                         break;
                     case "handlebars":
                         result.push({
-                            key: [this.buildKeyString(input.key)],
+                            key: input.key,
                             value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
                         });
                         break;

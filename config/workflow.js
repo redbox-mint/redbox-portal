@@ -135,7 +135,7 @@ module.exports.workflow = {
               {
                 title: '@related-rdmp-title',
                 variable: 'metadata.rdmpOid',
-                template: "<a href='/{{branding}}/{{portal}}/record/view/{{metadata.rdmpOid}}'>{{metadata.rdmpTitle}}</a>"
+                template: "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{metadata.rdmpOid}}'>{{metadata.rdmpTitle}}</a>"
               }
             ]
           }

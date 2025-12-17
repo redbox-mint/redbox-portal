@@ -193,7 +193,7 @@ export module Controllers {
       sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
       return this.sendAssetView(res, assetId, {
         entries: entries.map(i => {
-          return { key: i.key, value: i.value }
+          return { key: TemplateService.buildKeyString(i.key), value: i.value }
         }),
         layout: false
       });
