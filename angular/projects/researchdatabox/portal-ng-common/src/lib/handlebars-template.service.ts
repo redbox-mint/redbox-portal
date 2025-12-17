@@ -21,7 +21,7 @@ import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
-import Handlebars from 'handlebars';
+import Handlebars from 'handlebars/runtime';
 import { DateTime } from 'luxon';
 import { ConfigService } from './config.service';
 import { LoggerService } from './logger.service';
