@@ -869,8 +869,16 @@ export class DashboardComponent extends BaseComponent {
 
     let fields = _get(this.sortFields, step);
 
+    if (_isUndefined(fields) || _isEmpty(fields) || _isEmpty(sortMapAtStep)) {
+      return '';
+    }
+
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
+
+      if (!_has(sortMapAtStep, sortField) || _isEmpty(sortMapAtStep[sortField])) {
+        continue;
+      }
 
       if (sortMapAtStep[sortField].sort != null) {
 
@@ -1032,5 +1040,4 @@ export class DashboardComponent extends BaseComponent {
   }
 
 }
-
 

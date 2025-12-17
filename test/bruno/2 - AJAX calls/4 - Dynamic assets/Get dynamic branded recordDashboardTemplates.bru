@@ -21,7 +21,9 @@ tests {
   test("Has expected content", function () {
     var body = res.getBody();
     // console.log(body);
+    expect(body).to.contain("export function evaluate");
+    expect(body).to.contain("switch (key)");
+    expect(body).to.match(/\bcase\s+"/);
     expect(body).to.contain("default:");
-    expect(body).to.not.contain(" case ");
   });
 }

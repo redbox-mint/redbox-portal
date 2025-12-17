@@ -119,7 +119,8 @@ describe('DashboardComponent standard', () => {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
             'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result'
+            'runTemplate': 'Template Result',
+            'compileAndRunTemplate': 'Template Result'
           })
         }
       ]
@@ -280,7 +281,8 @@ describe('DashboardComponent workspace', () => {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
             'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result'
+            'runTemplate': 'Template Result',
+            'compileAndRunTemplate': 'Template Result'
           })
         }
       ]
@@ -510,7 +512,8 @@ describe('DashboardComponent consolidated group by record type', () => {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
             'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result'
+            'runTemplate': 'Template Result',
+            'compileAndRunTemplate': 'Template Result'
           })
         }
       ]
@@ -773,7 +776,8 @@ describe('DashboardComponent consolidated group by relationships', () => {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
             'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result'
+            'runTemplate': 'Template Result',
+            'compileAndRunTemplate': 'Template Result'
           })
         }
       ]
