@@ -17,11 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
-import {Sails} from "sails";
-import jsonata, {Expression} from "jsonata";
+import { PopulateExportedMethods, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails } from "sails";
+import jsonata, { Expression } from "jsonata";
 import Handlebars from "handlebars";
-import {TemplateCompileItem, TemplateCompileInput, templateCompileKind} from "@researchdatabox/sails-ng-common";
+import { TemplateCompileItem, TemplateCompileInput, templateCompileKind } from "@researchdatabox/sails-ng-common";
 
 
 declare var sails: Sails;
@@ -52,13 +52,13 @@ export module Services {
                 switch (input.kind) {
                     case "jsonata":
                         result.push({
-                            key: input.key,
+                            key: [this.buildKeyString(input.key)],
                             value: `${this.buildClientJsonata(input.value)?.toString()}.evaluate(context)`,
                         })
                         break;
                     case "handlebars":
                         result.push({
-                            key: input.key,
+                            key: [this.buildKeyString(input.key)],
                             value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
                         });
                         break;

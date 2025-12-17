@@ -1,12 +1,12 @@
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, LoDashTemplateUtilityService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, has as _has, unset as _unset } from 'lodash-es';
 
 @Component({
-    selector: 'dashboard',
-    templateUrl: './dashboard.component.html',
-    standalone: false
+  selector: 'dashboard',
+  templateUrl: './dashboard.component.html',
+  standalone: false
 })
 export class DashboardComponent extends BaseComponent {
   config: any = {};
@@ -40,11 +40,11 @@ export class DashboardComponent extends BaseComponent {
     {
       title: 'Record Title',
       variable: 'metadata.title',
-      template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
+      template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
           <span class="dashboard-controls">
-            <% if(hasEditAccess) { %>
-              <a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
-            <% } %>
+            {{#if hasEditAccess}}
+              <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+            {{/if}}
           </span>
         `,
       initialSort: 'desc'
@@ -52,25 +52,25 @@ export class DashboardComponent extends BaseComponent {
     {
       title: 'header-ci',
       variable: 'metadata.contributor_ci.text_full_name',
-      template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
+      template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
       initialSort: 'desc'
     },
     {
       title: 'header-data-manager',
       variable: 'metadata.contributor_data_manager.text_full_name',
-      template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>',
+      template: '{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}',
       initialSort: 'desc'
     },
     {
       title: 'header-created',
       variable: 'metaMetadata.createdOn',
-      template: '<%= util.formatDateLocale(util.parseDateString(dateCreated), "DATETIME_MED") %>',
+      template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
       initialSort: 'desc'
     },
     {
       title: 'header-modified',
       variable: 'metaMetadata.lastSaveDate',
-      template: '<%= util.formatDateLocale(util.parseDateString(dateModified),"DATETIME_MED") %>',
+      template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
       initialSort: 'desc',
       defaultSort: true
     }
@@ -106,17 +106,17 @@ export class DashboardComponent extends BaseComponent {
     recordTypeFilterBy: '',
     queryFilters: {
       rdmp: [
-              { 
-                filterType: 'text',
-                filterFields: [
-                                { 
-                                  name: 'Title',
-                                  path: 'metadata.title'
-                                }
-                              ]
-              }
-            ]
-      },
+        {
+          filterType: 'text',
+          filterFields: [
+            {
+              name: 'Title',
+              path: 'metadata.title'
+            }
+          ]
+        }
+      ]
+    },
     sortBy: 'metaMetadata.lastSaveDate:-1',
     groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
     sortGroupBy: [], //values: as many levels as required?
@@ -142,7 +142,7 @@ export class DashboardComponent extends BaseComponent {
     @Inject(RecordService) private recordService: RecordService,
     @Inject(UserService) private userService: UserService,
     @Inject(ConfigService) private configService: ConfigService,
-    @Inject(LoDashTemplateUtilityService) private lodashTemplateUtilityService: LoDashTemplateUtilityService,
+    @Inject(HandlebarsTemplateService) private handlebarsTemplateService: HandlebarsTemplateService,
     elementRef: ElementRef
   ) {
     super();
@@ -158,7 +158,7 @@ export class DashboardComponent extends BaseComponent {
       this.dashboardTypeSelected = this.packageType;
     }
 
-    this.initDependencies = [this.translationService, this.recordService, this.userService];
+    this.initDependencies = [this.translationService, this.recordService, this.userService, this.handlebarsTemplateService];
     console.log(`constructor dashboardTypeSelected ${this.dashboardTypeSelected} ${this.packageType}`);
     this.rulesService = this;
   }
@@ -199,8 +199,8 @@ export class DashboardComponent extends BaseComponent {
       recordType = recordTypeFilterBy;
     }
 
-    for(let recType of formatRules.hideWorkflowStepTitleForRecordType) {
-      if(recType == recordType) {
+    for (let recType of formatRules.hideWorkflowStepTitleForRecordType) {
+      if (recType == recordType) {
         this.hideWorkflowStepTitle = true;
       }
     }
@@ -246,6 +246,7 @@ export class DashboardComponent extends BaseComponent {
     let filterWorkflowStepsBy = _get(this.formatRules, 'filterWorkflowStepsBy');
     let steps = [];
 
+    // Filter steps logic...
     if (!_isUndefined(filterWorkflowStepsBy) && _isArray(filterWorkflowStepsBy) && !_isEmpty(filterWorkflowStepsBy)) {
       for (let bfStep of beforeFilterSteps) {
         let filterByStage = _get(bfStep, 'config.workflow.stage');
@@ -260,6 +261,14 @@ export class DashboardComponent extends BaseComponent {
       steps = beforeFilterSteps;
     }
     steps = _orderBy(steps, ['config.displayIndex'], ['asc']);
+
+    // Pre-load templates for all steps
+    for (const step of steps) {
+      if (step.name) {
+        await this.handlebarsTemplateService.loadDashboardTemplates(this.branding, this.portal, recordType, step.name, this.dashboardTypeSelected);
+      }
+    }
+
     return steps;
   }
 
@@ -276,8 +285,8 @@ export class DashboardComponent extends BaseComponent {
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowConfig'))) {
         stepRowConfig = _get(step, 'config.dashboard.table.rowConfig');
-        _unset(this.sortFields,step.name);
-        _set(this.sortFields,step.name,_map(stepRowConfig, (config) => { return config.variable; }));
+        _unset(this.sortFields, step.name);
+        _set(this.sortFields, step.name, _map(stepRowConfig, (config) => { return config.variable; }));
       }
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowRulesConfig'))) {
@@ -318,7 +327,7 @@ export class DashboardComponent extends BaseComponent {
       filterFields = _get(filterBy, 'filterField');
       filterMode = _get(filterBy, 'filterMode');
     }
-    
+
     let sortByString = this.getSortStringFromSortMap(this.sortMap[stepName], stepName, true);
 
     let stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
@@ -352,11 +361,11 @@ export class DashboardComponent extends BaseComponent {
       _set(groupedRecords, 'itemsByGroup', true);
       _set(groupedRecords, 'groupedItems', allItemsByGroup);
 
-      planTable = this.evaluatePlanTableColumns(this.groupRowConfig, this.groupRowRules, this.rowLevelRules, evaluateStepName, groupedRecords);
+      planTable = this.evaluatePlanTableColumns(this.groupRowConfig, this.groupRowRules, this.rowLevelRules, evaluateStepName, groupedRecords, recordType);
 
     } else {
 
-      planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords);
+      planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords, recordType);
 
       if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
         let filter: FilterField = this.getFirstTextFilter();
@@ -367,7 +376,11 @@ export class DashboardComponent extends BaseComponent {
 
     this.records[evaluateStepName] = planTable;
 
-    this.sortChanged(defaultSortObject);
+    this.records[evaluateStepName] = planTable;
+
+    // We don't call sortChanged here initially to avoid double-loading, 
+    // but we might need to set initial sort state if needed.
+    // this.sortChanged(defaultSortObject);
   }
 
   private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any) {
@@ -443,7 +456,7 @@ export class DashboardComponent extends BaseComponent {
     return allItemsByGroup;
   }
 
-  public evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
+  public evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any, recordType: string): PlanTable {
 
     let recordRows: any = [];
     let planTable: PlanTable = {
@@ -486,10 +499,16 @@ export class DashboardComponent extends BaseComponent {
 
           let stepRowConfig: any[] = this.tableConfig[stepName];
 
-          for (let columnConfig of stepRowConfig) {
-            const templateRes = this.runTemplate(columnConfig.template, imports)
-            record[columnConfig.variable] = templateRes;
+          // for (let columnConfig of stepRowConfig) {
+          //   const templateRes = this.runTemplate(columnConfig.template, imports)
+          //   record[columnConfig.variable] = templateRes;
+          // }
+          for (let i = 0; i < stepRowConfig.length; i++) {
+            const columnConfig = stepRowConfig[i];
+            const keyParts = [recordType, stepName, 'rowConfig', i.toString(), columnConfig.variable];
+            record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, keyParts);
           }
+
           recordRows.push(record);
         }
 
@@ -497,11 +516,16 @@ export class DashboardComponent extends BaseComponent {
         if (!_isUndefined(groupRowConfig) && !_isEmpty(groupRowConfig) && recordRows.length > 0 && !_isEmpty(imports)) {
 
           let groupRecord: any = {};
-          for (let groupRow of groupRowConfig) {
-
-            const groupTemplateRes = this.runTemplate(groupRow.template, imports);
-            groupRecord[groupRow.variable] = groupTemplateRes;
+          // for (let groupRow of groupRowConfig) {
+          //   const groupTemplateRes = this.runTemplate(groupRow.template, imports);
+          //   groupRecord[groupRow.variable] = groupTemplateRes;
+          // }
+          for (let i = 0; i < groupRowConfig.length; i++) {
+            const groupRow = groupRowConfig[i];
+            const keyParts = [recordType, stepName, 'groupRowConfig', i.toString(), groupRow.variable];
+            groupRecord[groupRow.variable] = this.handlebarsTemplateService.compileAndRunTemplate(groupRow.template, imports, keyParts);
           }
+
           recordRows.push(groupRecord);
         }
       }
@@ -527,10 +551,16 @@ export class DashboardComponent extends BaseComponent {
           let record: any = {};
           let stepRowConfig = this.tableConfig[stepName];
 
-          for (let columnConfig of stepRowConfig) {
-            const templateRes = this.runTemplate(columnConfig.template, imports);
-            record[columnConfig.variable] = templateRes;
+          // for (let columnConfig of stepRowConfig) {
+          //   const templateRes = this.runTemplate(columnConfig.template, imports);
+          //   record[columnConfig.variable] = templateRes;
+          // }
+          for (let i = 0; i < stepRowConfig.length; i++) {
+            const columnConfig = stepRowConfig[i];
+            const keyParts = [recordType, stepName, 'rowConfig', i.toString(), columnConfig.variable];
+            record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, keyParts);
           }
+
           recordRows.push(record);
         }
       }
@@ -541,54 +571,51 @@ export class DashboardComponent extends BaseComponent {
     return planTable;
   }
 
-  public evaluateRowLevelRules(rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string) {
+  public evaluateRowLevelRules(rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string, recordType: string, stepName: string) {
 
     let res: any;
+
     const imports: any = {};
+    _set(imports, 'branding', this.branding);
+    _set(imports, 'rootContext', this.rootContext);
+    _set(imports, 'baseUrl', this.baseUrl);
+    _set(imports, 'portal', this.portal);
+    _set(imports, 'translationService', this.translationService);
     _set(imports, 'metadata', metadata);
     _set(imports, 'metaMetadata', metaMetadata);
     _set(imports, 'workflow', workflow);
     _set(imports, 'oid', oid);
-    _set(imports, 'branding', this.branding);
-    _set(imports, 'rootContext', this.rootContext);
-    _set(imports, 'portal', this.portal);
-    _set(imports, 'translationService', this.translationService);
 
-    let ruleSetConfig = _find(rulesConfig, ['ruleSetName', ruleSetName]);
+    let rules = _get(rulesConfig, 'rules');
+    if (!_isUndefined(rules) && !_isEmpty(rules)) {
+      for (let i = 0; i < rules.length; i++) {
+        const rule = rules[i];
+        const keyBase = [recordType, stepName, 'rowRules', ruleSetName, i.toString()];
 
-    if (!_isUndefined(ruleSetConfig)) {
-
-      if (_get(ruleSetConfig, 'applyRuleSet') == true) {
-
-        let rules = _get(ruleSetConfig, 'rules');
-        let resArray = [];
-
-        for (let rule of rules) {
-          let name = _get(rule, 'name');
-          console.log('evaluating rule ' + name);
-          let renderItemTemplate = _get(rule, 'renderItemTemplate');
-          let evaluateRulesTemplate = _get(rule, 'evaluateRulesTemplate');
-          _set(imports, 'name', name);
-
-          let evaluatedAction = '';
-          let action = _get(rule, 'action');
-
-          const result = this.runTemplate(evaluateRulesTemplate, imports)
-          if (result == 'true') {
-            evaluatedAction = action;
+        if (rule.evaluateRulesTemplate) {
+          const evaluateKey = [...keyBase, 'evaluate'];
+          let shouldRender = this.handlebarsTemplateService.compileAndRunTemplate(rule.evaluateRulesTemplate, imports, evaluateKey);
+          if (shouldRender == 'true') {
+            if (rule.renderItemTemplate) {
+              const renderKey = [...keyBase, 'render'];
+              let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
+              if (!_isUndefined(res)) {
+                res = res + renderRes;
+              } else {
+                res = renderRes;
+              }
+            }
           }
-
-          if (evaluatedAction == 'show') {
-            const templateRes = this.runTemplate(renderItemTemplate, imports);
-            resArray.push(templateRes);
-          }
-        }
-
-        if (_get(ruleSetConfig, 'type') == 'multi-item-rendering') {
-          let separator = _get(ruleSetConfig, 'separator');
-          res = _join(resArray, separator);
         } else {
-          res = _first(resArray);
+          if (rule.renderItemTemplate) {
+            const renderKey = [...keyBase, 'render'];
+            let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
+            if (!_isUndefined(res)) {
+              res = res + renderRes;
+            } else {
+              res = renderRes;
+            }
+          }
         }
       }
     }
@@ -596,69 +623,48 @@ export class DashboardComponent extends BaseComponent {
     return res;
   }
 
-  public evaluateGroupRowRules(groupRulesConfig: any, groupedItems: any, ruleSetName: string) {
+  public evaluateGroupRowRules(groupRulesConfig: any, groupedItems: any, ruleSetName: string, recordType: string, stepName: string) {
 
     let res: any;
 
-    let ruleSetConfig = _find(groupRulesConfig, ['ruleSetName', ruleSetName]);
+    const imports: any = {};
+    _set(imports, 'branding', this.branding);
+    _set(imports, 'rootContext', this.rootContext);
+    _set(imports, 'baseUrl', this.baseUrl);
+    _set(imports, 'portal', this.portal);
+    _set(imports, 'translationService', this.translationService);
+    _set(imports, 'groupedItems', groupedItems);
 
-    if (!_isUndefined(ruleSetConfig)) {
+    let rules = _get(groupRulesConfig, 'rules');
+    if (!_isUndefined(rules) && !_isEmpty(rules)) {
+      for (let i = 0; i < rules.length; i++) {
+        const rule = rules[i];
+        const keyBase = [recordType, stepName, 'groupRowRules', ruleSetName, i.toString()];
 
-      if (_get(ruleSetConfig, 'applyRuleSet') == true) {
-
-        let rules = _get(ruleSetConfig, 'rules');
-        let resArray = [];
-
-        for (let rule of rules) {
-
-          let name = _get(rule, 'name');
-          console.log('evaluating rule ' + name);
-          let renderItemTemplate = _get(rule, 'renderItemTemplate');
-          let evaluateRulesTemplate = _get(rule, 'evaluateRulesTemplate');
-          let evaluatedAction = '';
-          let results = [];
-          let action = _get(rule, 'action');
-          let mode = _get(rule, 'mode');
-
-          const imports: any = {};
-          for (let item of groupedItems) {
-
-            _set(imports, 'metadata', _get(item, 'metadata.metadata'));
-            _set(imports, 'metaMetadata', _get(item, 'metadata.metaMetadata'));
-            _set(imports, 'workflow', _get(item, 'metadata.workflow'));
-            _set(imports, 'branding', this.branding);
-            _set(imports, 'rootContext', this.rootContext);
-            _set(imports, 'portal', this.portal);
-            _set(imports, 'translationService', this.translationService);
-
-            let oid = _get(item, 'oid');
-            _set(imports, 'oid', oid);
-            _set(imports, 'name', name);
-
-            const result = this.runTemplate(evaluateRulesTemplate, imports);
-            if (result == 'true') {
-              results.push(result);
-            } else if (mode == 'all') {
-              results.push(result);
+        if (rule.evaluateRulesTemplate) {
+          const evaluateKey = [...keyBase, 'evaluate'];
+          let shouldRender = this.handlebarsTemplateService.compileAndRunTemplate(rule.evaluateRulesTemplate, imports, evaluateKey);
+          if (shouldRender == 'true') {
+            if (rule.renderItemTemplate) {
+              const renderKey = [...keyBase, 'render'];
+              let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
+              if (!_isUndefined(res)) {
+                res = res + renderRes;
+              } else {
+                res = renderRes;
+              }
             }
           }
-
-          if (!_isEmpty(results) && (_indexOf(results, 'false') < 0) && (_indexOf(results, 'true') >= 0)) {
-            evaluatedAction = action;
-          }
-
-
-          if (evaluatedAction == 'show') {
-            const templateRes = this.runTemplate(renderItemTemplate, imports);
-            resArray.push(templateRes);
-          }
-        }
-
-        if (_get(ruleSetConfig, 'type') == 'multi-item-rendering') {
-          let separator = _get(ruleSetConfig, 'separator');
-          res = _join(resArray, separator);
         } else {
-          res = _first(resArray);
+          if (rule.renderItemTemplate) {
+            const renderKey = [...keyBase, 'render'];
+            let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
+            if (!_isUndefined(res)) {
+              res = res + renderRes;
+            } else {
+              res = renderRes;
+            }
+          }
         }
       }
     }
@@ -682,16 +688,16 @@ export class DashboardComponent extends BaseComponent {
 
       i = i + 1;
 
-      if(columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
+      if (columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
 
         this.sortMap[step.name][columnConfig.variable] = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          defaultSort:  columnConfig.defaultSort == true ? true : false
+          defaultSort: columnConfig.defaultSort == true ? true : false
         }
       }
 
-      if(columnConfig.defaultSort == true) {
+      if (columnConfig.defaultSort == true) {
         defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
@@ -699,7 +705,7 @@ export class DashboardComponent extends BaseComponent {
           title: '',
           variable: columnConfig.variable
         }
-      } else if(i == stepRowConfigLength && _isEmpty(defaultSortObject)) {
+      } else if (i == stepRowConfigLength && _isEmpty(defaultSortObject)) {
         defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
@@ -715,35 +721,36 @@ export class DashboardComponent extends BaseComponent {
     } else {
       this.enableSort = true;
     }
-    
+
     return defaultSortObject;
   }
 
   public async sortChanged(data: any) {
 
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      
+
       let sortString = `${data.variable}:`;
       let secondarySortString = undefined;
       if (data.sort == 'desc') {
         sortString = sortString + "-1";
-        if(data.secondarySort != undefined && data.secondarySort != '') {
-          secondarySortString = `${data.secondarySort}:`+ "-1";
+        if (data.secondarySort != undefined && data.secondarySort != '') {
+          secondarySortString = `${data.secondarySort}:` + "-1";
         }
       } else {
         sortString = sortString + "1";
-        if(data.secondarySort != undefined && data.secondarySort != '') {
-          secondarySortString = `${data.secondarySort}:`+ "1";
+        if (data.secondarySort != undefined && data.secondarySort != '') {
+          secondarySortString = `${data.secondarySort}:` + "1";
         }
       }
       let stagedRecords: any;
       if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString,this.filterFieldPath,this.getFilterSearchString(data.step),'',secondarySortString);
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString, this.filterFieldPath, this.getFilterSearchString(data.step), '', secondarySortString);
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.getFilterSearchString(data.step),'',secondarySortString);
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString, this.filterFieldPath, this.getFilterSearchString(data.step), '', secondarySortString);
       }
 
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords);
+      let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords, recordType);
 
       this.records[data.step] = planTable;
 
@@ -755,20 +762,20 @@ export class DashboardComponent extends BaseComponent {
 
     let stepRowConfig: any[] = this.tableConfig[sortData.step];
     for (let columnConfig of stepRowConfig) {
-      this.sortMap[sortData.step][columnConfig.variable] = { 
-        sort: columnConfig.noSort ,
+      this.sortMap[sortData.step][columnConfig.variable] = {
+        sort: columnConfig.noSort,
         secondarySort: columnConfig.secondarySort != '' ? columnConfig.secondarySort : ''
       };
     }
 
-    this.sortMap[sortData.step][sortData.variable] = { 
+    this.sortMap[sortData.step][sortData.variable] = {
       sort: sortData.sort,
       secondarySort: sortData.secondarySort
-     };
+    };
   }
 
   public async pageChanged(event: PageChangedEvent, step: string) {
-    
+
     if (this.isProcessingPageChange) {
       return;
     }
@@ -778,13 +785,13 @@ export class DashboardComponent extends BaseComponent {
     let sortMapAtStep = this.sortMap[step];
 
     if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, this.recordType);
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
     } else if (this.dashboardTypeSelected == 'workspace') {
-      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, '');
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
     } else if (this.dashboardTypeSelected == 'consolidated') {
@@ -797,20 +804,14 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
-  private runTemplate(templateString: string, imports: object): any {
-    let config: any = {
-      template: templateString
-    }
-    let data = {}
-    return this.lodashTemplateUtilityService.runTemplate(data, config, imports)
-  }
+
 
   public getSortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _get(workflowStep,'config.workflow.stage','');
+    let step = _get(workflowStep, 'config.workflow.stage', '');
     let sort = 'desc';
-    if(step != '') {
+    if (step != '') {
       let sortMapAtStep = sortMap[step];
-      if(_has(sortMapAtStep,rowConfig.variable)) {
+      if (_has(sortMapAtStep, rowConfig.variable)) {
         sort = sortMapAtStep[rowConfig.variable].sort;
         return sort;
       }
@@ -819,11 +820,11 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getSecondarySortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _get(workflowStep,'config.workflow.stage','');
+    let step = _get(workflowStep, 'config.workflow.stage', '');
     let secondarySort = 'desc';
-    if(step != '') {
+    if (step != '') {
       let sortMapAtStep = sortMap[step];
-      if(_has(sortMapAtStep,rowConfig.variable)) {
+      if (_has(sortMapAtStep, rowConfig.variable)) {
         secondarySort = sortMapAtStep[rowConfig.variable].secondarySort;
         return secondarySort;
       }
@@ -833,12 +834,12 @@ export class DashboardComponent extends BaseComponent {
 
 
   private getSortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-    let fields = _get(this.sortFields,step);
+    let fields = _get(this.sortFields, step);
     let sortString = 'metaMetadata.lastSaveDate:-1';
-    if(!_isUndefined(fields) && !_isEmpty(fields)) {
+    if (!_isUndefined(fields) && !_isEmpty(fields)) {
       for (let i = 0; i < fields.length; i++) {
         let sortField = fields[i];
-        if(!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep,sortField)) {
+        if (!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep, sortField)) {
           if (sortMapAtStep[sortField].sort != null && forceDefault && sortMapAtStep[sortField].defaultSort == true) {
             sortString = `${sortField}:`;
             if (sortMapAtStep[sortField].sort == 'desc') {
@@ -856,7 +857,7 @@ export class DashboardComponent extends BaseComponent {
                 sortString = sortString + "1";
               }
             }
-          } 
+          }
         }
       }
     }
@@ -866,7 +867,7 @@ export class DashboardComponent extends BaseComponent {
 
   private getSecondarySortStringFromSortMap(sortMapAtStep: any, step: string) {
 
-    let fields = _get(this.sortFields,step);
+    let fields = _get(this.sortFields, step);
 
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
@@ -876,13 +877,13 @@ export class DashboardComponent extends BaseComponent {
         let secondarySort = sortMapAtStep[sortField].secondarySort;
 
         if (sortMapAtStep[sortField].sort == 'desc') {
-          if(secondarySort != '' ) {
+          if (secondarySort != '') {
             let sortString = `${secondarySort}:`;
             sortString = sortString + "-1";
             return sortString;
           }
         } else {
-          if(secondarySort != '') {
+          if (secondarySort != '') {
             let sortString = `${secondarySort}:`;
             sortString = sortString + "1";
             return sortString;
@@ -893,44 +894,31 @@ export class DashboardComponent extends BaseComponent {
     return '';
   }
 
-  private getFirstFilter(type:string): FilterField {
+  private getFirstFilter(type: string): FilterField {
     try {
       let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-      for(let queryFilter of queryFilters) {
-        if(queryFilter.filterType == type) {
-          for(let filterField of queryFilter.filterFields) {
+      for (let queryFilter of queryFilters) {
+        if (queryFilter.filterType == type) {
+          for (let filterField of queryFilter.filterFields) {
             return filterField;
           }
         }
       }
       return this.defaultFilterField;
-    } catch(error) {
+    } catch (error) {
       return this.defaultFilterField;
     }
   }
 
-  private findFilterTemplate(filterFieldPath: string): string {
-    let templateString: string = '';
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    if(_isArray(queryFilters)) {
-      for(let queryFilter of queryFilters) {
-          for(let filterField of queryFilter.filterFields) {
-            if(filterField.path == filterFieldPath) {
-              return _get(filterField,'template','');
-            }
-          }
-      }
-    }
-    return templateString;
-  }
 
-  private getFilters(type:string) {
+
+  private getFilters(type: string) {
     let filterFields: FilterField[] = [];
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    if(_isArray(queryFilters)) {
-      for(let queryFilter of queryFilters) {
-        if(queryFilter.filterType == type) {
-          for(let filterField of queryFilter.filterFields) {
+    if (_isArray(queryFilters)) {
+      for (let queryFilter of queryFilters) {
+        if (queryFilter.filterType == type) {
+          for (let filterField of queryFilter.filterFields) {
             filterFields.push(filterField);
           }
         }
@@ -948,8 +936,8 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilterSearchDisplayed(step: any): boolean {
-    let filterDisplayed = _get(this.isFilterSearchDisplayed,step,'');
-    if(filterDisplayed == 'filterDisplayed') {
+    let filterDisplayed = _get(this.isFilterSearchDisplayed, step, '');
+    if (filterDisplayed == 'filterDisplayed') {
       return true;
     } else {
       return false;
@@ -957,8 +945,8 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getIsSearching(step: any): boolean {
-    let searching = _get(this.isSearching,step,'');
-    if(searching == 'searching') {
+    let searching = _get(this.isSearching, step, '');
+    if (searching == 'searching') {
       return true;
     } else {
       return false;
@@ -966,11 +954,26 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilterSearchString(step: any): string {
-    let filterString = _get(this.filterSearchString,step,'');
-    let templateOrPath = this.findFilterTemplate(this.filterFieldPath);
-    if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
-      const imports: any = { value: filterString};
-      return this.runTemplate(templateOrPath,imports);
+    let filterString = _get(this.filterSearchString, step, '');
+
+    // Find filter template by iterating and generating key
+    let queryFilters: QueryFilter[] = _get(this.formatRules, `queryFilters.${this.recordType}`);
+    if (_isArray(queryFilters)) {
+      for (let i = 0; i < queryFilters.length; i++) {
+        let queryFilter = queryFilters[i];
+        if (_isArray(queryFilter.filterFields)) {
+          for (let j = 0; j < queryFilter.filterFields.length; j++) {
+            let filterField = queryFilter.filterFields[j];
+            if (filterField.path == this.filterFieldPath) {
+              if (filterField.template) {
+                const keyBase = [this.recordType, this.dashboardTypeSelected, 'filters', i.toString(), 'fields', j.toString(), 'template'];
+                const imports: any = { value: filterString };
+                return this.handlebarsTemplateService.compileAndRunTemplate(filterField.template, imports, keyBase);
+              }
+            }
+          }
+        }
+      }
     }
     return filterString;
   }
@@ -983,19 +986,22 @@ export class DashboardComponent extends BaseComponent {
       let sortMapAtStep = this.sortMap[step];
       this.records[step].currentPage = 1;
       let stagedRecords: any;
-      if(this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      if (this.dashboardTypeSelected == 'workspace') {
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       }
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+
+      let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, recordType);
+
       this.records[step] = planTable;
       this.isSearching[step] = '';
     }
   }
 
   public async resetFilterAndSearch(step: string, e: any) {
-    
+
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
       this.setFilterField(this.getFirstTextFilter(), e);
       this.isSearching[step] = 'searching';
@@ -1003,18 +1009,21 @@ export class DashboardComponent extends BaseComponent {
       this.filterSearchString[step] = '';
       this.records[step].currentPage = 1;
       let stagedRecords: any;
-      if(this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      if (this.dashboardTypeSelected == 'workspace') {
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       }
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+
+      let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, recordType);
+
       this.records[step] = planTable;
       this.isSearching[step] = '';
     }
   }
 
-  public setFilterField(filterField:FilterField, e: any) {
+  public setFilterField(filterField: FilterField, e: any) {
     if (e) {
       e.preventDefault();
     }
