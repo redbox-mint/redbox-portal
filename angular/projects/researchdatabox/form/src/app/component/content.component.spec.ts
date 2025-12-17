@@ -2,17 +2,24 @@ import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { UtilityService } from "@researchdatabox/portal-ng-common";
+import { UtilityService, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import Handlebars from "handlebars";
 
 
 
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
+  const mockHandlebarsTemplateService = {
+    getLibraries: () => ({ Handlebars })
+  };
+
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {"ContentComponent": ContentComponent},
-      providers: {"UtilityService": null}
+      providers: {
+        "UtilityService": null,
+        "HandlebarsTemplateService": { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService }
+      }
     });
     utilityService = TestBed.inject(UtilityService);
     spyOn(utilityService, 'getDynamicImport').and.callFake(

@@ -312,4 +312,11 @@ export class HandlebarsTemplateService extends HttpClientService {
     public getCacheSize(): number {
         return this.moduleRegistry.size;
     }
+
+    /**
+     * Get the libraries used by the templates (e.g. Handlebars with registered helpers).
+     */
+    public getLibraries(): any {
+        return { Handlebars };
+    }
 }
