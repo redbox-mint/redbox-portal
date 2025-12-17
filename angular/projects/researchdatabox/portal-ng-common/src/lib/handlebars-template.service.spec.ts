@@ -56,7 +56,7 @@ describe('HandlebarsTemplateService', () => {
 
             await service.loadDashboardTemplates('default', 'portal', 'rdmp', 'draft');
 
-            expect(loggerServiceSpy.error).toHaveBeenCalledWith(jasmine.stringMatching(/Error loading dashboard templates/), 'Network error');
+            expect(loggerServiceSpy.error).toHaveBeenCalledWith(jasmine.stringMatching(/Failed to load dashboard templates/), 'Network error');
         });
     });
 
@@ -80,13 +80,9 @@ describe('HandlebarsTemplateService', () => {
             // Or just trust that if evaluate returns something truthy, it tries.
 
             // Let's mock the module.evaluate to return a dummy spec.
-            const mockSpec = { main: () => "Evaluated Result" }; // Fake spec
             const mockModule = {
-                evaluate: jasmine.createSpy('evaluate').and.returnValue(mockSpec)
+                evaluate: jasmine.createSpy('evaluate').and.returnValue('Evaluated Result')
             };
-
-            // We need to spy on Handlebars.template to return a dummy function
-            spyOn(Handlebars, 'template').and.returnValue(() => 'Evaluated Result');
 
             utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
 
