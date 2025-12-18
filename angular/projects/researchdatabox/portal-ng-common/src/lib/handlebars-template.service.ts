@@ -44,8 +44,6 @@ type TemplateFunction = (context: any) => string;
 })
 export class HandlebarsTemplateService extends HttpClientService {
 
-    // Cache of loaded dashboard configurations to avoid re-fetching
-    private loadedConfigs: Set<string> = new Set();
     // Registry of loaded template modules
     private moduleRegistry: Map<string, any> = new Map();
     private helpersRegistered = false;
@@ -96,11 +94,6 @@ export class HandlebarsTemplateService extends HttpClientService {
     public async loadDashboardTemplates(branding: string, portal: string, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<void> {
         const cacheKey = `${branding}/${portal}/${recordType}/${workflowStage}/${dashboardType}`;
 
-        if (this.loadedConfigs.has(cacheKey)) {
-            this.loggerService.debug(`Templates already loaded for ${cacheKey}`);
-            return;
-        }
-
         try {
             const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
             // path array for getDynamicImport
@@ -115,7 +108,6 @@ export class HandlebarsTemplateService extends HttpClientService {
                 // Register the module using keys derived from the configuration context
                 this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${recordType}__${workflowStage}`);
-                this.loadedConfigs.add(cacheKey);
                 this.loggerService.debug(`Loaded templates for ${cacheKey}`);
             } else {
                 this.loggerService.error(`Invalid module loaded for ${cacheKey}`);
@@ -137,11 +129,6 @@ export class HandlebarsTemplateService extends HttpClientService {
     public async loadReportTemplates(branding: string, portal: string, reportName: string): Promise<void> {
         const cacheKey = `${branding}/${portal}/report/${reportName}`;
 
-        if (this.loadedConfigs.has(cacheKey)) {
-            this.loggerService.debug(`Report templates already loaded for ${cacheKey}`);
-            return;
-        }
-
         try {
             const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
             // path array for getDynamicImport
@@ -156,7 +143,6 @@ export class HandlebarsTemplateService extends HttpClientService {
                 // Register the module using the report name as key
                 this.registerReportModule(module, reportName);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered report module for ${reportName}`);
-                this.loadedConfigs.add(cacheKey);
                 this.loggerService.debug(`Loaded report templates for ${cacheKey}`);
             } else {
                 this.loggerService.error(`Invalid report module loaded for ${cacheKey}`);
@@ -287,7 +273,7 @@ export class HandlebarsTemplateService extends HttpClientService {
      * Clear all cached templates.
      */
     public clearCache(): void {
-        this.loadedConfigs.clear();
+        this.utilService.clearDynamicImportCache();
         this.moduleRegistry.clear();
         this.loggerService.debug('Template cache cleared');
     }
