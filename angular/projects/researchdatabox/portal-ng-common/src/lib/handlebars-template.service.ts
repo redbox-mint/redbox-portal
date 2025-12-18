@@ -161,8 +161,6 @@ export class HandlebarsTemplateService extends HttpClientService {
 
     private registerReportModule(module: any, reportName: string) {
         // Register under report name key
-        this.moduleRegistry.set(`report__${reportName}`, module);
-        // Also register with just the report name for simpler lookup
         this.moduleRegistry.set(reportName, module);
     }
 
@@ -182,7 +180,7 @@ export class HandlebarsTemplateService extends HttpClientService {
      */
     public compileAndRunTemplate(templateString: string, context: any, keyParts?: string[]): string {
         // Try pre-compiled first
-        if (keyParts && keyParts.length >= 2) {
+        if (keyParts && keyParts.length > 0) {
             const result = this.runPrecompiled(keyParts, context);
             if (result !== null) {
                 return result;
@@ -190,7 +188,7 @@ export class HandlebarsTemplateService extends HttpClientService {
         }
 
         // Return empty string if no pre-compiled template found - CSP restricts runtime compilation
-        if (!keyParts || keyParts.length < 2) {
+        if (!keyParts || keyParts.length === 0) {
             this.loggerService.warn(`No key parts provided for template execution. Runtime compilation is disabled by CSP. Template: ${templateString.substring(0, 50)}...`);
             return '';
         }
@@ -208,44 +206,30 @@ export class HandlebarsTemplateService extends HttpClientService {
      */
     private runPrecompiled(keyParts: string[], context: any): string | null {
         // keyParts is array
-        if (!_isArray(keyParts) || keyParts.length < 2) {
+        if (!_isArray(keyParts) || keyParts.length === 0) {
             return null;
         }
 
-        const firstKey = keyParts[0];
-        const secondKey = keyParts[1];
-
-        // Try multiple key patterns to find the module
-        const keysToTry = [
-            `${firstKey}__${secondKey}`,           // Dashboard: recordType__workflowStage
-            `report__${firstKey}`,                  // Report: report__reportName
-            firstKey,                               // Report: just reportName
-        ];
-
-        let module = null;
-        let foundKey = null;
-        for (const key of keysToTry) {
-            module = this.moduleRegistry.get(key);
+        // Standardised lookup: try to find a module matching the key parts, 
+        // starting from the most specific (longest key) down to the least specific.
+        // This supports keys of any length (e.g. recordType__workflowStage or just reportName).
+        for (let i = keyParts.length; i > 0; i--) {
+            const key = this.buildKeyString(keyParts.slice(0, i));
+            const module = this.moduleRegistry.get(key);
+            
             if (module) {
-                foundKey = key;
-                break;
+                try {
+                    // The evaluate function compiles and runs the template with the context
+                    // dynamicScriptAsset returns the rendered result directly: Handlebars.template(spec)(context)
+                    return module.evaluate(keyParts, context, { libraries: { Handlebars } });
+                } catch (e) {
+                    this.loggerService.error(`HandlebarsTemplateService: Error executing pre-compiled template for key ${keyParts.join('__')}: ${e}`);
+                    return null;
+                }
             }
         }
 
-        if (!module) {
-            this.loggerService.warn(`HandlebarsTemplateService: Module not found for keys: ${keysToTry.join(', ')}. Available keys: ${Array.from(this.moduleRegistry.keys()).join(', ')}`);
-            return null;
-        }
-
-        try {
-            // The evaluate function compiles and runs the template with the context
-            // dynamicScriptAsset returns the rendered result directly: Handlebars.template(spec)(context)
-            const result = module.evaluate(keyParts, context, { libraries: { Handlebars } });
-            return result;
-        } catch (e) {
-            this.loggerService.error(`HandlebarsTemplateService: Error executing pre-compiled template for key ${keyParts.join('__')}: ${e}`);
-        }
-
+        this.loggerService.warn(`HandlebarsTemplateService: Module not found for keys: ${keyParts.join('__')}. Available keys: ${Array.from(this.moduleRegistry.keys()).join(', ')}`);
         return null;
     }
 
