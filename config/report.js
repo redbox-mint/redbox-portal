@@ -40,34 +40,34 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
-        "exportTemplate": "${data.title}"
+        "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}'>{{title}}</a>",
+        "exportTemplate": "{{title}}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
+        "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "lastSaveDate",
-        "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate lastSaveDate \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Date Created",
         "property": "dateCreated",
-        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate dateCreated \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_ci', '')}"
+        "template" : "{{get this \"metadata.contributor_ci\"}}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_data_manager', '') }"
+        "template" : "{{get this \"metadata.contributor_data_manager\"}}"
       }
     ]
   },
@@ -172,34 +172,34 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
-        "exportTemplate": "${data.title}"
+        "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}'>{{title}}</a>",
+        "exportTemplate": "{{title}}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
+        "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "lastSaveDate",
-        "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate lastSaveDate \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Date Created",
         "property": "dateCreated",
-        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate dateCreated \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
+        "template" : "{{get this \"metadata.contributor_ci.text_full_name\"}}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
+        "template" : "{{get this \"metadata.contributor_data_manager.text_full_name\"}}"
       }
     ]
   },
@@ -244,34 +244,34 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
-        "exportTemplate": "${data.title}"
+        "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}'>{{title}}</a>",
+        "exportTemplate": "{{title}}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
+        "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "lastSaveDate",
-        "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate lastSaveDate \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Date Created",
         "property": "dateCreated",
-        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate dateCreated \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
+        "template" : "{{get this \"metadata.contributor_ci.text_full_name\"}}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
+        "template" : "{{get this \"metadata.contributor_data_manager.text_full_name\"}}"
       }
     ]
   },
@@ -325,34 +325,34 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
-        "exportTemplate": "${data.title}"
+        "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}'>{{title}}</a>",
+        "exportTemplate": "{{title}}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
+        "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "lastSaveDate",
-        "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate lastSaveDate \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Embargoed Until",
         "property": "metadata.embargoUntil",
-        "template" : "${ DateTime.fromISO(data.metadata.embargoUntil).toFormat('dd/MM/yyyy') }"
+        "template" : "{{formatDate (get this \"metadata.embargoUntil\") \"dd/MM/yyyy\"}}"
       },
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
+        "template" : "{{get this \"metadata.contributor_ci.text_full_name\"}}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
+        "template" : "{{get this \"metadata.contributor_data_manager.text_full_name\"}}"
       }
     ]
   },
@@ -397,34 +397,34 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
-        "exportTemplate": "${data.title}"
+        "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}'>{{title}}</a>",
+        "exportTemplate": "{{title}}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
+        "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{oid}}",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "lastSaveDate",
-        "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate lastSaveDate \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Date Created",
         "property": "dateCreated",
-        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate dateCreated \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
+        "template" : "{{get this \"metadata.contributor_ci.text_full_name\"}}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
+        "template" : "{{get this \"metadata.contributor_data_manager.text_full_name\"}}"
       }
     ]
   },
@@ -464,32 +464,32 @@ module.exports.reports = {
       {
         "label": "Name",
         "property": "name",
-        "template": "${ _.get(data, 'metadata.name', '')}",
+        "template": "{{get this \"metadata.name\"}}"
       },
       {
         "label": "Email",
         "property": "oid",
-        "template" : "${ _.get(data, 'metadata.email', '')}"
+        "template" : "{{get this \"metadata.email\"}}"
       },
       {
         "label": "Username",
         "property": "title",
-        "template" : "${ _.get(data, 'metadata.username', '') }"
+        "template" : "{{get this \"metadata.username\"}}"
       },
       {
         "label": "User Type",
         "property": "userType",
-        "template" : "${ _.get(data, 'metadata.type', '') }"
+        "template" : "{{get this \"metadata.type\"}}"
       },
       {
         "label": "Date Last Login",
         "property": "lastLogin",
-        "template" : "${ DateTime.fromISO(_.get(data, 'metadata.lastLogin', '')).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate (get this \"metadata.lastLogin\") \"dd/MM/yyyy hh:mm a\"}}"
       },
       {
         "label": "Date Created",
         "property": "dateCreated",
-        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+        "template" : "{{formatDate dateCreated \"dd/MM/yyyy hh:mm a\"}}"
       }
     ]
   }
