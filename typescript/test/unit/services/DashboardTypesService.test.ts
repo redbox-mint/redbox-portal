@@ -20,6 +20,81 @@ describe('DashboardTypesService', function () {
         global.WorkflowStepsService = originalWorkflowStepsService;
     });
 
+    // Helper to mock Waterline queries which are expected by CoreService.getObservable
+    const mockQuery = (result) => ({
+        exec: (cb) => cb(null, result),
+        then: (resolve) => resolve(result),
+        catch: (reject) => {}
+    });
+
+    describe('bootstrap', function () {
+        let originalDashboardType;
+        let originalAppMode;
+        let originalDashboardTypeConfig;
+
+        before(function() {
+            originalDashboardType = global.DashboardType;
+            originalAppMode = global.sails.config.appmode;
+            originalDashboardTypeConfig = global.sails.config.dashboardtype;
+        });
+
+        after(function() {
+            global.DashboardType = originalDashboardType;
+            global.sails.config.appmode = originalAppMode;
+            global.sails.config.dashboardtype = originalDashboardTypeConfig;
+        });
+
+        it('should bootstrap dashboard types if none exist', async function () {
+             const mockConfig = {
+                 'type1': { searchFilters: {}, formatRules: {}, searchable: true }
+             };
+             global.sails.config.dashboardtype = mockConfig;
+             global.sails.config.appmode = { bootstrapAlways: false };
+             
+             global.DashboardType = {
+                 find: () => Promise.resolve([]),
+                 create: (data) => mockQuery(data)
+             };
+             
+             const result = await DashboardTypesService.bootstrap({ id: 'brand1' });
+             expect(result).to.have.lengthOf(1);
+             expect(result[0].name).to.equal('type1');
+        });
+
+        it('should return existing dashboard types if they exist', async function () {
+            const mockDashboardTypes = [{ name: 'existing' }];
+            global.DashboardType = {
+                find: () => Promise.resolve(mockDashboardTypes),
+                destroy: () => Promise.resolve([])
+            };
+            global.sails.config.appmode = { bootstrapAlways: false };
+
+            const result = await DashboardTypesService.bootstrap({ id: 'brand1' });
+            expect(result).to.deep.equal(mockDashboardTypes);
+        });
+    });
+
+    describe('getDashboardTableConfig', function () {
+        it('should return null if record type not found', async function () {
+            global.RecordTypesService = {
+                get: () => of(null)
+            };
+            const result = await DashboardTypesService.getDashboardTableConfig({}, 'invalid', 'draft');
+            expect(result).to.be.null;
+        });
+
+        it('should return null if workflow step not found', async function () {
+            global.RecordTypesService = {
+                get: () => of({ name: 'valid' })
+            };
+            global.WorkflowStepsService = {
+                get: () => of(null)
+            };
+            const result = await DashboardTypesService.getDashboardTableConfig({}, 'valid', 'invalid');
+            expect(result).to.be.null;
+        });
+    });
+
     describe('extractDashboardTemplates', function () {
         it('should extract templates using default config when rowConfig is missing', async function () {
             // Mock RecordTypesService
@@ -85,6 +160,49 @@ describe('DashboardTypesService', function () {
             const customTemplate = templates[0];
             expect(customTemplate.key).to.contain('custom.field');
             expect(customTemplate.value).to.equal('<b>{{custom.field}}</b>');
+        });
+
+        it('should extract templates from queryFilters in DashboardType config', async function () {
+            let originalDashboardType = global.DashboardType;
+            
+            // Mock RecordTypesService
+            global.RecordTypesService = {
+                get: () => of({ name: 'rdmp' })
+            };
+            // Mock WorkflowStepsService
+            global.WorkflowStepsService = {
+                get: () => of({ config: { dashboard: { table: {} } } })
+            };
+            
+            const mockDashboardType = {
+                formatRules: {
+                    queryFilters: {
+                        'rdmp': [
+                            {
+                                filterFields: [
+                                    {
+                                        template: '{{filterTemplate}}'
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            };
+            
+            global.DashboardType = {
+                findOne: () => mockQuery(mockDashboardType)
+            };
+            
+            try {
+                const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft', 'standard');
+                
+                const filterTemplate = templates.find(t => t.value === '{{filterTemplate}}');
+                expect(filterTemplate).to.exist;
+                expect(filterTemplate.key).to.include('filters');
+            } finally {
+                global.DashboardType = originalDashboardType;
+            }
         });
     });
 });
