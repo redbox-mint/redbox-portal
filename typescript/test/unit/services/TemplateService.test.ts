@@ -1,3 +1,4 @@
+
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
@@ -25,7 +26,7 @@ const simulateBrowserLoadingJsFile = async function (value, callback) {
         console.error(err);
     } finally {
         if (tempDir) {
-            await fs.rm(tempDir, {recursive: true, force: true});
+            await fs.rm(tempDir, { recursive: true, force: true });
         }
     }
 }
@@ -36,7 +37,7 @@ describe('The TemplateService', function () {
             {
                 args: {
                     expression: "$sum(example.value)",
-                    input: {example: [{value: 4}, {value: 7}, {value: 13}]},
+                    input: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] },
                     bindings: undefined
                 },
                 expected: 24,
@@ -45,12 +46,12 @@ describe('The TemplateService', function () {
                 args: {
                     expression: "$a + $b()",
                     input: {},
-                    bindings: {a: 4, b: () => 78},
+                    bindings: { a: 4, b: () => 78 },
                 },
                 expected: 82,
             }
         ];
-        cases.forEach(({args, expected}) => {
+        cases.forEach(({ args, expected }) => {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // server
                 const serverReady = TemplateService.buildServerJsonata(args.expression);
@@ -72,11 +73,11 @@ describe('The TemplateService', function () {
     describe('Handlebars template', function () {
         const cases = [
             {
-                args: {template: "Handlebars <b>{{doesWhat}}</b> precompiled!", context: {doesWhat: "testing"}},
+                args: { template: "Handlebars <b>{{doesWhat}}</b> precompiled!", context: { doesWhat: "testing" } },
                 expected: "Handlebars <b>testing</b> precompiled!",
             }
         ];
-        cases.forEach(({args, expected}) => {
+        cases.forEach(({ args, expected }) => {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // server
                 const serverReady = TemplateService.buildServerHandlebars(args.template);
@@ -97,20 +98,20 @@ describe('The TemplateService', function () {
     describe('compile mapping', function () {
         const cases = [
             {
-                args: {inputs: [], contexts: []},
+                args: { inputs: [], contexts: [] },
                 expected: [],
             },
             {
                 args: {
                     inputs: [
-                        {key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!"},
-                        {key: ['test2'], kind: "jsonata", value: "$sum(example.value)"}
+                        { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!" },
+                        { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" }
                     ],
                     contexts: [
-                        {key: ["test1"], context: {doesWhat: "testing"}},
-                        {key: ["test1"], context: {doesWhat: "another one"}},
-                        {key: ["test2"], context: {example: [{value: 4}, {value: 7}, {value: 13}]}, extra: {}},
-                        {key: ["test2"], context: {example: [{value: 52}, {value: 185}]}, extra: {}},
+                        { key: ["test1"], context: { doesWhat: "testing" } },
+                        { key: ["test1"], context: { doesWhat: "another one" } },
+                        { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: {} },
+                        { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: {} },
                     ]
                 },
                 expected: [
@@ -121,19 +122,28 @@ describe('The TemplateService', function () {
                 ],
             },
         ];
-        cases.forEach(({args, expected}) => {
+        cases.forEach(({ args, expected }) => {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // client
                 const clientMapping = TemplateService.buildClientMapping(args.inputs);
+
+                // Verify structure matches new implementation (key is [string], value has (context))
+                // For handlebars:
+                const handlebarsItem = clientMapping.find(i => i.key[0] === 'test1');
+                if (handlebarsItem) {
+                    expect(handlebarsItem.key).to.be.an('array');
+                    expect(handlebarsItem.value).to.contain('(context)');
+                }
+
                 // render the view template
                 const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
-                const clientString = ejs.render(templateContent, {entries: clientMapping});
+                const clientString = ejs.render(templateContent, { entries: clientMapping });
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
                     for (let i = 0; i < args.contexts.length; i++) {
                         const context = args.contexts[i];
                         const expectedValue = expected[i];
-                        const extra = Object.assign({}, {libraries: {Handlebars: Handlebars}}, context.extra ?? {});
+                        const extra = Object.assign({}, { libraries: { Handlebars: Handlebars } }, context.extra ?? {});
                         const result = clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expectedValue);
                     }

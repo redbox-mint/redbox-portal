@@ -17,11 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
-import {Sails} from "sails";
-import jsonata, {Expression} from "jsonata";
+import { PopulateExportedMethods, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails } from "sails";
+import jsonata, { Expression } from "jsonata";
 import Handlebars from "handlebars";
-import {TemplateCompileItem, TemplateCompileInput, templateCompileKind} from "@researchdatabox/sails-ng-common";
+import { TemplateCompileItem, TemplateCompileInput, templateCompileKind } from "@researchdatabox/sails-ng-common";
 
 
 declare var sails: Sails;
@@ -49,6 +49,9 @@ export module Services {
 
             const result: TemplateCompileItem[] = [];
             for (const input of inputs) {
+                // The key is stored as a string array (composite key).
+                // The duplicate check above uses the flattened, normalized string form (buildKeyString)
+                // to ensure uniqueness across the composite keys.
                 switch (input.kind) {
                     case "jsonata":
                         result.push({
