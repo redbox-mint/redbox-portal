@@ -565,6 +565,14 @@ export class DashboardComponent extends BaseComponent {
     return planTable;
   }
 
+  private getRuleSetConfig(rulesConfig: any, ruleSetName: string) {
+    if (_isArray(rulesConfig)) {
+      return _find(rulesConfig, (ruleSet: any) => _get(ruleSet, 'ruleSetName') === ruleSetName);
+    }
+
+    return rulesConfig;
+  }
+
   public evaluateRowLevelRules(rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string, recordType: string, stepName: string) {
 
     let res: any;
@@ -580,8 +588,13 @@ export class DashboardComponent extends BaseComponent {
     _set(imports, 'workflow', workflow);
     _set(imports, 'oid', oid);
 
-    let rules = _get(rulesConfig, 'rules');
+    const ruleSetConfig = this.getRuleSetConfig(rulesConfig, ruleSetName);
+    if (_isUndefined(ruleSetConfig) || _get(ruleSetConfig, 'applyRuleSet', true) === false) {
+      return res;
+    }
+    let rules = _get(ruleSetConfig, 'rules');
     if (!_isUndefined(rules) && !_isEmpty(rules)) {
+      let renderedRules: any[] = [];
       for (let i = 0; i < rules.length; i++) {
         const rule = rules[i];
         const keyBase = [recordType, stepName, 'rowRules', ruleSetName, i.toString()];
@@ -593,24 +606,20 @@ export class DashboardComponent extends BaseComponent {
             if (rule.renderItemTemplate) {
               const renderKey = [...keyBase, 'render'];
               let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
-              if (!_isUndefined(res)) {
-                res = res + renderRes;
-              } else {
-                res = renderRes;
-              }
+              renderedRules.push(renderRes);
             }
           }
         } else {
           if (rule.renderItemTemplate) {
             const renderKey = [...keyBase, 'render'];
             let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
-            if (!_isUndefined(res)) {
-              res = res + renderRes;
-            } else {
-              res = renderRes;
-            }
+            renderedRules.push(renderRes);
           }
         }
+      }
+      const separator = _get(ruleSetConfig, 'separator', '');
+      if (!_isEmpty(renderedRules)) {
+        res = _join(renderedRules, separator);
       }
     }
 
@@ -629,8 +638,13 @@ export class DashboardComponent extends BaseComponent {
     _set(imports, 'translationService', this.translationService);
     _set(imports, 'groupedItems', groupedItems);
 
-    let rules = _get(groupRulesConfig, 'rules');
+    const ruleSetConfig = this.getRuleSetConfig(groupRulesConfig, ruleSetName);
+    if (_isUndefined(ruleSetConfig) || _get(ruleSetConfig, 'applyRuleSet', true) === false) {
+      return res;
+    }
+    let rules = _get(ruleSetConfig, 'rules');
     if (!_isUndefined(rules) && !_isEmpty(rules)) {
+      let renderedRules: any[] = [];
       for (let i = 0; i < rules.length; i++) {
         const rule = rules[i];
         const keyBase = [recordType, stepName, 'groupRowRules', ruleSetName, i.toString()];
@@ -642,24 +656,20 @@ export class DashboardComponent extends BaseComponent {
             if (rule.renderItemTemplate) {
               const renderKey = [...keyBase, 'render'];
               let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
-              if (!_isUndefined(res)) {
-                res = res + renderRes;
-              } else {
-                res = renderRes;
-              }
+              renderedRules.push(renderRes);
             }
           }
         } else {
           if (rule.renderItemTemplate) {
             const renderKey = [...keyBase, 'render'];
             let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, renderKey);
-            if (!_isUndefined(res)) {
-              res = res + renderRes;
-            } else {
-              res = renderRes;
-            }
+            renderedRules.push(renderRes);
           }
         }
+      }
+      const separator = _get(ruleSetConfig, 'separator', '');
+      if (!_isEmpty(renderedRules)) {
+        res = _join(renderedRules, separator);
       }
     }
 
@@ -1034,4 +1044,3 @@ export class DashboardComponent extends BaseComponent {
   }
 
 }
-
