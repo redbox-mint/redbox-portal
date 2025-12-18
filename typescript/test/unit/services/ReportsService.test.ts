@@ -5,7 +5,7 @@ describe('The Reporting Service', function () {
     done()
   })
 
-  it("Should generate valid data rows", function (done) {
+  it("Should generate valid data rows with Handlebars templates", function (done) {
     let reportConfig = {
       "title": "List RDMP records",
       "solr_query": "metaMetadata_type:rdmp",
@@ -37,29 +37,29 @@ describe('The Reporting Service', function () {
         {
           "label": "Title",
           "property": "title",
-          "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
-          "exportTemplate": "${data.title}"
+          "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{id}}'>{{title}}</a>",
+          "exportTemplate": "{{title}}"
         },
         {
           "label": "External URL",
           "property": "reportExternalURL",
-          "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+          "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{id}}",
           "hide": true
         },
         {
           "label": "Date Modified",
           "property": "date_object_modified",
-          "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
+          "template" : "{{formatDate date_object_modified \"dd/MM/yyyy hh:mm a\"}}"
         },
         {
           "label": "Date Created",
           "property": "date_object_created",
-          "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
+          "template" : "{{formatDate date_object_created \"dd/MM/yyyy hh:mm a\"}}"
         },
         {
           "label": "Chief Investigator",
           "property": "contributor_ci.text_full_name",
-          "template" : "${ data['contributor_ci.text_full_name'] }"
+          "template" : "{{get this \"contributor_ci.text_full_name\"}}"
         }
       ]
     }
@@ -117,29 +117,29 @@ describe('The Reporting Service', function () {
         {
           "label": "Title",
           "property": "title",
-          "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
-          "exportTemplate": "${data.title}"
+          "template": "<a href='{{optTemplateData.brandingAndPortalUrl}}/record/view/{{id}}'>{{title}}</a>",
+          "exportTemplate": "{{title}}"
         },
         {
           "label": "External URL",
           "property": "reportExternalURL",
-          "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+          "exportTemplate": "{{optTemplateData.brandingAndPortalUrl}}/record/view/{{id}}",
           "hide": true
         },
         {
           "label": "Date Modified",
           "property": "date_object_modified",
-          "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
+          "template" : "{{formatDate date_object_modified \"dd/MM/yyyy hh:mm a\"}}"
         },
         {
           "label": "Date Created",
           "property": "date_object_created",
-          "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
+          "template" : "{{formatDate date_object_created \"dd/MM/yyyy hh:mm a\"}}"
         },
         {
           "label": "Chief Investigator",
           "property": "contributor_ci.text_full_name",
-          "template" : "${ data['contributor_ci.text_full_name'] }"
+          "template" : "{{get this \"contributor_ci.text_full_name\"}}"
         }
       ]
     }

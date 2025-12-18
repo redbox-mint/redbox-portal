@@ -22,12 +22,12 @@ import { HttpClient } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import Handlebars from 'handlebars/runtime';
-import { DateTime } from 'luxon';
 import { ConfigService } from './config.service';
 import { LoggerService } from './logger.service';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, isArray as _isArray } from 'lodash-es';
+import { isArray as _isArray } from 'lodash-es';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
+import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 
 // Type for compiled Handlebars template function
 type TemplateFunction = (context: any) => string;
@@ -68,97 +68,16 @@ export class HandlebarsTemplateService extends HttpClientService {
     }
 
     /**
-     * Register Handlebars helpers for use in dashboard templates.
-     * Provides utility functions for date formatting, conditionals, etc.
+     * Register Handlebars helpers for use in dashboard and report templates.
+     * Uses shared helpers from sails-ng-common for consistency between server and client.
      */
     private registerHelpers() {
         if (this.helpersRegistered) {
             return;
         }
 
-        // Locale-aware date formatting helper
-        Handlebars.registerHelper('formatDateLocale', (dateString: string, presetName?: string) => {
-            if (!dateString) { return ''; }
-            try {
-                const dt = DateTime.fromISO(dateString);
-                if (!dt.isValid) { return dateString; }
-
-                const presetMap: any = {
-                    DATE_SHORT: DateTime.DATE_SHORT,
-                    DATE_MED: DateTime.DATE_MED,
-                    DATE_FULL: DateTime.DATE_FULL,
-                    DATETIME_MED: DateTime.DATETIME_MED,
-                    DATETIME_SHORT: DateTime.DATETIME_SHORT,
-                    DATETIME_FULL: DateTime.DATETIME_FULL
-                };
-
-                const preset = presetMap[presetName || 'DATETIME_MED'];
-                return dt.setLocale(navigator.language).toLocaleString(preset);
-            } catch {
-                return dateString;
-            }
-        });
-
-        // Parse date string helper (for chaining)
-        Handlebars.registerHelper('parseDateString', (dateString: string) => {
-            return dateString;
-        });
-
-        // Get nested property helper
-        Handlebars.registerHelper('get', (obj: any, path: string) => {
-            return _get(obj, path, '');
-        });
-
-        // Equality comparison helper
-        Handlebars.registerHelper('eq', (a: any, b: any) => {
-            return a === b;
-        });
-
-        // Not equal helper
-        Handlebars.registerHelper('ne', (a: any, b: any) => {
-            return a !== b;
-        });
-
-        // And helper
-        Handlebars.registerHelper('and', (...args: any[]) => {
-            args.pop(); // Remove options hash
-            return args.every(Boolean);
-        });
-
-        // Or helper 
-        Handlebars.registerHelper('or', (...args: any[]) => {
-            args.pop(); // Remove options hash
-            return args.some(Boolean);
-        });
-
-        // isEmpty helper
-        Handlebars.registerHelper('isEmpty', (value: any) => {
-            return _isEmpty(value);
-        });
-
-        // isUndefined helper
-        Handlebars.registerHelper('isUndefined', (value: any) => {
-            return _isUndefined(value);
-        });
-
-        // isNull helper
-        Handlebars.registerHelper('isNull', (value: any) => {
-            return _isNull(value);
-        });
-
-        // isDefined helper (not undefined and not null)
-        Handlebars.registerHelper('isDefined', (value: any) => {
-            return !_isUndefined(value) && !_isNull(value);
-        });
-
-        // Translation helper - will be resolved via context.translationService
-        Handlebars.registerHelper('t', function (this: any, key: string) {
-            const translationService = this.translationService;
-            if (translationService && typeof translationService.t === 'function') {
-                return translationService.t(key);
-            }
-            return key;
-        });
+        // Register all shared helpers from sails-ng-common
+        registerSharedHandlebarsHelpers(Handlebars);
 
         this.helpersRegistered = true;
         this.loggerService.debug('Handlebars helpers registered');
@@ -194,7 +113,7 @@ export class HandlebarsTemplateService extends HttpClientService {
 
             if (module && typeof module.evaluate === 'function') {
                 // Register the module using keys derived from the configuration context
-                this.registerModule(module, recordType, workflowStage, dashboardType);
+                this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${recordType}__${workflowStage}`);
                 this.loadedConfigs.add(cacheKey);
                 this.loggerService.debug(`Loaded templates for ${cacheKey}`);
@@ -207,10 +126,63 @@ export class HandlebarsTemplateService extends HttpClientService {
         }
     }
 
-    private registerModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
+    /**
+     * Load pre-compiled templates from the server for a specific report.
+     * Templates are loaded as ES modules using dynamic import.
+     * 
+     * @param branding The branding name
+     * @param portal The portal name
+     * @param reportName The name of the report
+     */
+    public async loadReportTemplates(branding: string, portal: string, reportName: string): Promise<void> {
+        const cacheKey = `${branding}/${portal}/report/${reportName}`;
+
+        if (this.loadedConfigs.has(cacheKey)) {
+            this.loggerService.debug(`Report templates already loaded for ${cacheKey}`);
+            return;
+        }
+
+        try {
+            const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
+            // path array for getDynamicImport
+            const urlPath = ['dynamicAsset', 'adminReportTemplates', reportName];
+
+            this.loggerService.debug(`Loading report templates module for ${cacheKey}`);
+
+            // Load module
+            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
+
+            if (module && typeof module.evaluate === 'function') {
+                // Register the module using the report name as key
+                this.registerReportModule(module, reportName);
+                this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered report module for ${reportName}`);
+                this.loadedConfigs.add(cacheKey);
+                this.loggerService.debug(`Loaded report templates for ${cacheKey}`);
+            } else {
+                this.loggerService.error(`Invalid report module loaded for ${cacheKey}`);
+            }
+
+        } catch (error) {
+            this.loggerService.error(`HandlebarsTemplateService: Failed to load report templates for ${cacheKey}:`, error);
+        }
+    }
+
+    private registerDashboardModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
         // Register under specific context keys
         this.moduleRegistry.set(`${recordType}__${workflowStage}`, module);
         this.moduleRegistry.set(`${recordType}__${dashboardType}`, module);
+    }
+
+    private registerReportModule(module: any, reportName: string) {
+        // Register under report name key
+        this.moduleRegistry.set(`report__${reportName}`, module);
+        // Also register with just the report name for simpler lookup
+        this.moduleRegistry.set(reportName, module);
+    }
+
+    // Keep backward compatibility with existing code
+    private registerModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
+        this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
     }
 
     /**
@@ -254,14 +226,28 @@ export class HandlebarsTemplateService extends HttpClientService {
             return null;
         }
 
-        const recordType = keyParts[0];
-        const secondary = keyParts[1]; // workflowStage or dashboardType
+        const firstKey = keyParts[0];
+        const secondKey = keyParts[1];
 
-        const moduleKey = `${recordType}__${secondary}`;
-        const module = this.moduleRegistry.get(moduleKey);
+        // Try multiple key patterns to find the module
+        const keysToTry = [
+            `${firstKey}__${secondKey}`,           // Dashboard: recordType__workflowStage
+            `report__${firstKey}`,                  // Report: report__reportName
+            firstKey,                               // Report: just reportName
+        ];
+
+        let module = null;
+        let foundKey = null;
+        for (const key of keysToTry) {
+            module = this.moduleRegistry.get(key);
+            if (module) {
+                foundKey = key;
+                break;
+            }
+        }
 
         if (!module) {
-            this.loggerService.warn(`HandlebarsTemplateService: Module not found for key: ${moduleKey}. Available keys: ${Array.from(this.moduleRegistry.keys()).join(', ')}`);
+            this.loggerService.warn(`HandlebarsTemplateService: Module not found for keys: ${keysToTry.join(', ')}. Available keys: ${Array.from(this.moduleRegistry.keys()).join(', ')}`);
             return null;
         }
 

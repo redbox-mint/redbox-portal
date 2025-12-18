@@ -24,7 +24,7 @@ import { UtilityService } from './utility.service';
 import { isEmpty as _isEmpty, get as _get, merge as _merge } from 'lodash-es';
 import { RecordSource } from './record.model';
 import { RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
-import { LoDashTemplateUtilityService } from './lodash-template-utility.service';
+import { HandlebarsTemplateService } from './handlebars-template.service';
 import {HeaderSortComponent} from "./header-sort.component";
 
 /**
@@ -53,6 +53,8 @@ export class RecordTableComponent extends BaseComponent {
   @Input() dataSource: RecordSource = null as any;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
+  // report name for template key construction (required for Handlebars templates)
+  @Input() reportName: string = '';
   // pagination
   @Input() paginationItemsPerPage: number = 10;
   @Input() paginationDirectionLinks:boolean = false;
@@ -72,7 +74,7 @@ export class RecordTableComponent extends BaseComponent {
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,
-    @Inject(LoDashTemplateUtilityService) private lodashTemplateUtilityService: LoDashTemplateUtilityService,
+    @Inject(HandlebarsTemplateService) private handlebarsTemplateService: HandlebarsTemplateService,
     ) {
     super();
     // no deps
@@ -98,6 +100,29 @@ export class RecordTableComponent extends BaseComponent {
     }
   }
 
+  /**
+   * Get the column index from columnConfig for template key construction.
+   */
+  private getColumnIndex(col: RecordPropViewMetaDto): number {
+    if (!this.columnConfig) return -1;
+    return this.columnConfig.findIndex(c => c.property === col.property && c.label === col.label);
+  }
+
+  /**
+   * Build template key parts for HandlebarsTemplateService.
+   * Key structure: [reportName, 'columns', columnIndex, 'render']
+   */
+  private buildTemplateKeyParts(col: RecordPropViewMetaDto): string[] {
+    if (!this.reportName) {
+      return [];
+    }
+    const colIndex = this.getColumnIndex(col);
+    if (colIndex < 0) {
+      return [];
+    }
+    return [this.reportName, 'columns', colIndex.toString(), 'render'];
+  }
+
   getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
     if (!_isEmpty(col.template)) {
@@ -108,7 +133,10 @@ export class RecordTableComponent extends BaseComponent {
         },
         optTemplateData: this.optTemplateData
       });
-      retVal = this.lodashTemplateUtilityService.runTemplate(data, {template: col.template});
+      
+      // Build template key parts for pre-compiled template lookup
+      const keyParts = this.buildTemplateKeyParts(col);
+      retVal = this.handlebarsTemplateService.compileAndRunTemplate(col.template, data, keyParts);
     } else {
       retVal = _get(row, col.property, val);
     }
