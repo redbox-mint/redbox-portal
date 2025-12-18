@@ -2,6 +2,7 @@
 
 import { expect } from 'chai';
 import * as _ from 'lodash';
+import { DateTime } from 'luxon';
 
 // Mock sails global BEFORE requiring ReportsService
 (global as any).sails = {
@@ -100,10 +101,14 @@ describe('The Reporting Service', function () {
     expect(result[0][0], 'Expect first element of first row to be 1').to.have.equal(1)
     expect(result[0][1], 'Expect second element of first row to be Record 1').to.have.equal("Record 1")
     expect(result[0][2], 'Expect third element of first row to be http://localhost:1500/default/rdmp/record/view/1').to.have.equal("http://localhost:1500/default/rdmp/record/view/1")
-    // Adjusted for UTC timezone in test environment (original: 18/05/2023 01:30 AM +10:00)
-    expect(result[0][3], 'Expect fourth element of first row to be 17/05/2023 03:30 PM').to.have.equal("17/05/2023 03:30 PM")
-    // Adjusted for UTC timezone in test environment (original: 17/05/2023 01:30 AM +10:00)
-    expect(result[0][4], 'Expect fifth element of first row to be 16/05/2023 03:30 PM').to.have.equal("16/05/2023 03:30 PM")
+    
+    // Calculate expected date based on system timezone to avoid CI failures
+    const expectedModified = DateTime.fromISO("2023-05-18T01:30:00+10:00").toFormat("dd/MM/yyyy hh:mm a");
+    expect(result[0][3], `Expect fourth element of first row to be ${expectedModified}`).to.have.equal(expectedModified)
+    
+    const expectedCreated = DateTime.fromISO("2023-05-17T01:30:00+10:00").toFormat("dd/MM/yyyy hh:mm a");
+    expect(result[0][4], `Expect fifth element of first row to be ${expectedCreated}`).to.have.equal(expectedCreated)
+    
     expect(result[0][5], 'Expect sixth element of first row to be Contributor 1').to.have.equal("Contributor 1")
     done()
   })
