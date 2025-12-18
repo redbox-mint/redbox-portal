@@ -164,11 +164,6 @@ export class HandlebarsTemplateService extends HttpClientService {
         this.moduleRegistry.set(reportName, module);
     }
 
-    // Keep backward compatibility with existing code
-    private registerModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
-        this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
-    }
-
     /**
      * Compile and run a template.
      * Tries to use pre-compiled template first if keyParts are provided.
