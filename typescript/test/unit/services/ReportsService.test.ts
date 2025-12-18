@@ -18,6 +18,8 @@ if (!(global as any)._) {
   (global as any)._ = _;
 }
 
+process.env["sails_redbox__mochaTesting"] = "true";
+
 // Require ReportsService after mocks
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ReportsService = require('../../../api/services/ReportsService');
@@ -188,5 +190,28 @@ describe('The Reporting Service', function () {
     
     done()
   })
+
+  it("Should parse JSON result when config.json is true", function () {
+          const data = { name: "World" };
+          const config = { 
+              template: '{"greeting": "Hello {{name}}"}',
+              json: true 
+          };
+          const result = ReportsService.runTemplate(data, config);
+          expect(result).to.deep.equal({ greeting: "Hello World" });
+      });
+
+  it("Should return empty entries when report is not found", async function () {
+    // Mock Report.findOne to return null
+    (global as any).Report = {
+      findOne: async () => null
+    };
+
+    const brand = { id: 'default' };
+    const reportName = 'nonExistentReport';
+
+    const result = await ReportsService.extractReportTemplates(brand, reportName);
+    expect(result).to.be.an('array').that.is.empty;
+  });
 
 })

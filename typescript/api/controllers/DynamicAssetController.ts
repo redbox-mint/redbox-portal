@@ -150,11 +150,6 @@ export module Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const reportName = req.param("reportName") || "";
 
-      if (!reportName) {
-        sails.log.warn(`getAdminReportTemplates called without reportName`);
-        return this.sendClientMappingJavascript(res, []);
-      }
-
       try {
         const entries = await ReportsService.extractReportTemplates(brand, reportName);
         return this.sendClientMappingJavascript(res, entries);
