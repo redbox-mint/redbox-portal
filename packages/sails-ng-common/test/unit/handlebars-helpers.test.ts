@@ -1,7 +1,12 @@
-import { expect } from 'chai';
 import { handlebarsHelperDefinitions } from '../../src/handlebars-helpers';
 
 describe('Shared Handlebars Helpers', function () {
+    let expect: any;
+
+    before(async function () {
+        const chai = await import('chai');
+        expect = chai.expect;
+    });
 
     describe('formatDate', function () {
         it('should format ISO date with default format', function () {

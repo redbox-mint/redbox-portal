@@ -62,12 +62,12 @@ module.exports.reports = {
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "{{get this \"metadata.contributor_ci\"}}"
+        "template" : "{{get this \"metadata.contributor_ci.text_full_name\"}}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "{{get this \"metadata.contributor_data_manager\"}}"
+        "template" : "{{get this \"metadata.contributor_data_manager.text_full_name\"}}"
       }
     ]
   },

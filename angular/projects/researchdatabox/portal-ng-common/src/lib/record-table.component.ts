@@ -86,6 +86,13 @@ export class RecordTableComponent extends BaseComponent {
       this.loggerService.error(`RecordTableComponent is missing a datasource parameter!`);
       throw new Error(`RecordTableComponent is missing a datasource parameter!`);
     }
+
+    // Validate reportName if any columns use templates
+    const hasTemplates = this.columnConfig?.some(col => !_isEmpty(col.template));
+    if (hasTemplates && !this.reportName) {
+      this.loggerService.error(`RecordTableComponent requires reportName when using Handlebars templates!`);
+      throw new Error(`RecordTableComponent requires reportName when using Handlebars templates!`);
+    }
   }
 
   getColValue(row: any, col: RecordPropViewMetaDto) {
