@@ -1,18 +1,25 @@
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { UtilityService } from "@researchdatabox/portal-ng-common";
-import * as Handlebars from "handlebars";
+import { UtilityService, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
+import Handlebars from "handlebars";
 
 
 
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
+  const mockHandlebarsTemplateService = {
+    getLibraries: () => ({ Handlebars })
+  };
+
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {"ContentComponent": ContentComponent},
-      providers: {"UtilityService": null}
+      providers: {
+        "UtilityService": null,
+        "HandlebarsTemplateService": { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService }
+      }
     });
     utilityService = TestBed.inject(UtilityService);
     spyOn(utilityService, 'getDynamicImport').and.callFake(
@@ -24,7 +31,7 @@ describe('ContentComponent', () => {
             return {
               evaluate: function (key: string[], context: any, extra: any) {
                 // normalise the key the same way as the server
-                const keyStr = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
+                const keyStr = buildKeyString(key);
                 switch (keyStr) {
                   case "componentDefinitions__0__component__config__template":
                     return Handlebars.compile('<h3>{{content}}</h3>')(context);

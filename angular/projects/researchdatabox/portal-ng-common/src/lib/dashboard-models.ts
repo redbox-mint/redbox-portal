@@ -17,14 +17,15 @@ export class Plan {
   title: string = '';
   dateCreated: string = '';
   dateModified: string = '';
-  hasEditAccess:boolean = false;
+  hasEditAccess: boolean = false;
   metadata: object = {};
   dashboardTitle: string = '';
 }
 
 export declare class FilterField {
-    name: string;
-    path: string;
+  name: string;
+  path: string;
+  template?: string;
 }
 
 export declare class QueryFilter {
@@ -52,6 +53,6 @@ export declare class FormatRules {
 
 export declare class DashboardConfig {
   [key: string]: {
-      formatRules: FormatRules;
+    formatRules: FormatRules;
   }
 }
