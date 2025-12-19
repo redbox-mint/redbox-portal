@@ -92,14 +92,14 @@ export class HandlebarsTemplateService extends HttpClientService {
      * @param dashboardType Optional dashboard type to load specific configuration
      */
     public async loadDashboardTemplates(branding: string, portal: string, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<void> {
-        const cacheKey = `${branding}/${portal}/${recordType}/${workflowStage}/${dashboardType}`;
+        const dashboardHintPath = `${branding}/${portal}/${recordType}/${workflowStage}/${dashboardType}`;
 
         try {
             const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
             // path array for getDynamicImport
             const urlPath = ['dynamicAsset', 'recordDashboardTemplates', recordType, `${workflowStage}?dashboardType=${dashboardType}`];
 
-            this.loggerService.debug(`Loading dashboard templates module for ${cacheKey}`);
+            this.loggerService.debug(`Loading dashboard templates module for ${dashboardHintPath}`);
 
             // Load module
             const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
@@ -108,13 +108,13 @@ export class HandlebarsTemplateService extends HttpClientService {
                 // Register the module using keys derived from the configuration context
                 this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${recordType}__${workflowStage}`);
-                this.loggerService.debug(`Loaded templates for ${cacheKey}`);
+                this.loggerService.debug(`Loaded templates for ${dashboardHintPath}`);
             } else {
-                this.loggerService.error(`Invalid module loaded for ${cacheKey}`);
+                this.loggerService.error(`Invalid module loaded for ${dashboardHintPath}`);
             }
 
         } catch (error) {
-            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard templates for ${cacheKey}:`, error);
+            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard templates for ${dashboardHintPath}:`, error);
         }
     }
 
@@ -127,14 +127,14 @@ export class HandlebarsTemplateService extends HttpClientService {
      * @param reportName The name of the report
      */
     public async loadReportTemplates(branding: string, portal: string, reportName: string): Promise<void> {
-        const cacheKey = `${branding}/${portal}/report/${reportName}`;
+        const reportHintPath = `${branding}/${portal}/report/${reportName}`;
 
         try {
             const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
             // path array for getDynamicImport
             const urlPath = ['dynamicAsset', 'adminReportTemplates', reportName];
 
-            this.loggerService.debug(`Loading report templates module for ${cacheKey}`);
+            this.loggerService.debug(`Loading report templates module for ${reportHintPath}`);
 
             // Load module
             const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
@@ -143,13 +143,13 @@ export class HandlebarsTemplateService extends HttpClientService {
                 // Register the module using the report name as key
                 this.registerReportModule(module, reportName);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered report module for ${reportName}`);
-                this.loggerService.debug(`Loaded report templates for ${cacheKey}`);
+                this.loggerService.debug(`Loaded report templates for ${reportHintPath}`);
             } else {
-                this.loggerService.error(`Invalid report module loaded for ${cacheKey}`);
+                this.loggerService.error(`Invalid report module loaded for ${reportHintPath}`);
             }
 
         } catch (error) {
-            this.loggerService.error(`HandlebarsTemplateService: Failed to load report templates for ${cacheKey}:`, error);
+            this.loggerService.error(`HandlebarsTemplateService: Failed to load report templates for ${reportHintPath}:`, error);
         }
     }
 
