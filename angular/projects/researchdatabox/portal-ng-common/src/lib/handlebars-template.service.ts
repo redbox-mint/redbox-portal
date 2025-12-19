@@ -27,7 +27,7 @@ import { LoggerService } from './logger.service';
 import { isArray as _isArray } from 'lodash-es';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
-import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
+import { registerSharedHandlebarsHelpers, buildKeyString } from '@researchdatabox/sails-ng-common';
 
 // Type for compiled Handlebars template function
 type TemplateFunction = (context: any) => string;
@@ -209,7 +209,7 @@ export class HandlebarsTemplateService extends HttpClientService {
         // starting from the most specific (longest key) down to the least specific.
         // This supports keys of any length (e.g. recordType__workflowStage or just reportName).
         for (let i = keyParts.length; i > 0; i--) {
-            const key = this.buildKeyString(keyParts.slice(0, i));
+            const key = buildKeyString(keyParts.slice(0, i));
             const module = this.moduleRegistry.get(key);
             
             if (module) {
@@ -240,12 +240,13 @@ export class HandlebarsTemplateService extends HttpClientService {
 
     /**
      * Build a template key string from key parts (same format as server).
+     * Delegates to the shared function from sails-ng-common.
      * 
      * @param keyParts Array of key parts
      * @returns The formatted key string
      */
     public buildKeyString(keyParts: string[]): string {
-        return keyParts.map(i => i?.toString()?.normalize('NFKC')).join('__');
+        return buildKeyString(keyParts);
     }
 
     /**

@@ -21,7 +21,7 @@ import { PopulateExportedMethods, Services as services } from '@researchdatabox/
 import { Sails } from "sails";
 import jsonata, { Expression } from "jsonata";
 import Handlebars from "handlebars";
-import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registerSharedHandlebarsHelpers } from "@researchdatabox/sails-ng-common";
+import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
 
 
 declare var sails: Sails;
@@ -52,7 +52,7 @@ export module Services {
          * @param inputs
          */
         public buildClientMapping(inputs: TemplateCompileInput[]): TemplateCompileItem[] {
-            const keys = inputs.map(i => this.buildKeyString(i.key));
+            const keys = inputs.map(i => buildKeyString(i.key));
             const keysUnique = new Set(keys);
             if (keysUnique.size != keys.length) {
                 const duplicates = keys.filter((item, index) => keys.indexOf(item) != index);
@@ -171,7 +171,7 @@ export module Services {
         }
 
         public buildKeyString(key: string[]): string {
-            return (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
+            return buildKeyString(key);
         }
 
         private buildSharedJsonata(expression: string): Expression {
