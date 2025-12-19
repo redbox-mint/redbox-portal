@@ -1,0 +1,78 @@
+<div class="admin-sidebar">
+  <div class="admin-sidebar-header">
+    <i class="fa fa-cog"></i>
+    <span><%= TranslationService.t('menu-admin') %></span>
+  </div>
+
+  <!-- Analyze Section -->
+  <div class="admin-sidebar-section">
+    <a class="admin-sidebar-section-header" data-bs-toggle="collapse" href="#analyzeSection" role="button" aria-expanded="true" aria-controls="analyzeSection">
+      <span><%= TranslationService.t('menu-analyze') %></span>
+      <i class="fa fa-chevron-down"></i>
+    </a>
+    <div class="collapse show" id="analyzeSection">
+      <div class="admin-sidebar-links">
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><%= TranslationService.t('reports-heading') %></a>
+        </div>
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/export"><%= TranslationService.t('menu-export') %></a>
+        </div>
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/deletedRecords"><%= TranslationService.t('deleted-records-heading') %></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if (hasRole(req, 'Admin')) { %>
+  <!-- System Settings Section -->
+  <div class="admin-sidebar-section">
+    <a class="admin-sidebar-section-header" data-bs-toggle="collapse" href="#sysSettingsSection" role="button" aria-expanded="true" aria-controls="sysSettingsSection">
+      <span><%= TranslationService.t('menu-syssettings') %></span>
+      <i class="fa fa-chevron-down"></i>
+    </a>
+    <div class="collapse show" id="sysSettingsSection">
+      <div class="admin-sidebar-links">
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/roles"><%= TranslationService.t('menu-rolemgmt') %></a>
+        </div>
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/users"><%= TranslationService.t('menu-usermgmt') %></a>
+        </div>
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/supportAgreement"><%= TranslationService.t('menu-supportagreement') %></a>
+        </div>
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/appconfig/edit/systemMessage"><%= TranslationService.t('menu-systemmessages') %></a>
+        </div>
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/appconfig/edit/authorizedDomainsEmails"><%= TranslationService.t('menu-authorizeddomainsemails') %></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lookup Records Section -->
+  <div class="admin-sidebar-section">
+    <a class="admin-sidebar-section-header" data-bs-toggle="collapse" href="#lookupSection" role="button" aria-expanded="true" aria-controls="lookupSection">
+      <span><%= TranslationService.t('system-lookup-records') %></span>
+      <i class="fa fa-chevron-down"></i>
+    </a>
+    <div class="collapse show" id="lookupSection">
+      <div class="admin-sidebar-links">
+        <div class="admin-sidebar-link">
+          <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/party"><%= TranslationService.t('system-lookup-record-item1') %></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="admin-sidebar-footer">
+    <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/branding"><%= TranslationService.t('admin-configure-branding') %></a>
+  </div>
+  <div class="admin-sidebar-footer">
+    <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/translation"><%= TranslationService.t('admin-configure-translation') %></a>
+  </div>
+</div>
