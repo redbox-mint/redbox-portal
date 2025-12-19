@@ -30,6 +30,7 @@ declare var FormsService;
 declare var BrandingService;
 declare var FormRecordConsistencyService;
 declare var DashboardTypesService;
+declare var ReportsService;
 
 /**
  * Package that contains all Controllers.
@@ -145,11 +146,17 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public getAdminReportTemplates(req, res) {
+    public async getAdminReportTemplates(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const reportName = req.param("reportName") || "";
-      // TODO:
-      const entries = [];
-      return this.sendClientMappingJavascript(res, entries);
+
+      try {
+        const entries = await ReportsService.extractReportTemplates(brand, reportName);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build report templates:", error);
+        return res.serverError();
+      }
     }
 
     /**

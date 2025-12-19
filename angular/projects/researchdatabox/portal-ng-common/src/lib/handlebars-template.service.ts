@@ -22,12 +22,12 @@ import { HttpClient } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import Handlebars from 'handlebars/runtime';
-import { DateTime } from 'luxon';
 import { ConfigService } from './config.service';
 import { LoggerService } from './logger.service';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, isArray as _isArray } from 'lodash-es';
+import { isArray as _isArray } from 'lodash-es';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
+import { registerSharedHandlebarsHelpers, buildKeyString } from '@researchdatabox/sails-ng-common';
 
 // Type for compiled Handlebars template function
 type TemplateFunction = (context: any) => string;
@@ -44,8 +44,6 @@ type TemplateFunction = (context: any) => string;
 })
 export class HandlebarsTemplateService extends HttpClientService {
 
-    // Cache of loaded dashboard configurations to avoid re-fetching
-    private loadedConfigs: Set<string> = new Set();
     // Registry of loaded template modules
     private moduleRegistry: Map<string, any> = new Map();
     private helpersRegistered = false;
@@ -68,97 +66,16 @@ export class HandlebarsTemplateService extends HttpClientService {
     }
 
     /**
-     * Register Handlebars helpers for use in dashboard templates.
-     * Provides utility functions for date formatting, conditionals, etc.
+     * Register Handlebars helpers for use in dashboard and report templates.
+     * Uses shared helpers from sails-ng-common for consistency between server and client.
      */
     private registerHelpers() {
         if (this.helpersRegistered) {
             return;
         }
 
-        // Locale-aware date formatting helper
-        Handlebars.registerHelper('formatDateLocale', (dateString: string, presetName?: string) => {
-            if (!dateString) { return ''; }
-            try {
-                const dt = DateTime.fromISO(dateString);
-                if (!dt.isValid) { return dateString; }
-
-                const presetMap: any = {
-                    DATE_SHORT: DateTime.DATE_SHORT,
-                    DATE_MED: DateTime.DATE_MED,
-                    DATE_FULL: DateTime.DATE_FULL,
-                    DATETIME_MED: DateTime.DATETIME_MED,
-                    DATETIME_SHORT: DateTime.DATETIME_SHORT,
-                    DATETIME_FULL: DateTime.DATETIME_FULL
-                };
-
-                const preset = presetMap[presetName || 'DATETIME_MED'];
-                return dt.setLocale(navigator.language).toLocaleString(preset);
-            } catch {
-                return dateString;
-            }
-        });
-
-        // Parse date string helper (for chaining)
-        Handlebars.registerHelper('parseDateString', (dateString: string) => {
-            return dateString;
-        });
-
-        // Get nested property helper
-        Handlebars.registerHelper('get', (obj: any, path: string) => {
-            return _get(obj, path, '');
-        });
-
-        // Equality comparison helper
-        Handlebars.registerHelper('eq', (a: any, b: any) => {
-            return a === b;
-        });
-
-        // Not equal helper
-        Handlebars.registerHelper('ne', (a: any, b: any) => {
-            return a !== b;
-        });
-
-        // And helper
-        Handlebars.registerHelper('and', (...args: any[]) => {
-            args.pop(); // Remove options hash
-            return args.every(Boolean);
-        });
-
-        // Or helper 
-        Handlebars.registerHelper('or', (...args: any[]) => {
-            args.pop(); // Remove options hash
-            return args.some(Boolean);
-        });
-
-        // isEmpty helper
-        Handlebars.registerHelper('isEmpty', (value: any) => {
-            return _isEmpty(value);
-        });
-
-        // isUndefined helper
-        Handlebars.registerHelper('isUndefined', (value: any) => {
-            return _isUndefined(value);
-        });
-
-        // isNull helper
-        Handlebars.registerHelper('isNull', (value: any) => {
-            return _isNull(value);
-        });
-
-        // isDefined helper (not undefined and not null)
-        Handlebars.registerHelper('isDefined', (value: any) => {
-            return !_isUndefined(value) && !_isNull(value);
-        });
-
-        // Translation helper - will be resolved via context.translationService
-        Handlebars.registerHelper('t', function (this: any, key: string) {
-            const translationService = this.translationService;
-            if (translationService && typeof translationService.t === 'function') {
-                return translationService.t(key);
-            }
-            return key;
-        });
+        // Register all shared helpers from sails-ng-common
+        registerSharedHandlebarsHelpers(Handlebars);
 
         this.helpersRegistered = true;
         this.loggerService.debug('Handlebars helpers registered');
@@ -175,42 +92,76 @@ export class HandlebarsTemplateService extends HttpClientService {
      * @param dashboardType Optional dashboard type to load specific configuration
      */
     public async loadDashboardTemplates(branding: string, portal: string, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<void> {
-        const cacheKey = `${branding}/${portal}/${recordType}/${workflowStage}/${dashboardType}`;
-
-        if (this.loadedConfigs.has(cacheKey)) {
-            this.loggerService.debug(`Templates already loaded for ${cacheKey}`);
-            return;
-        }
+        const dashboardHintPath = `${branding}/${portal}/${recordType}/${workflowStage}/${dashboardType}`;
 
         try {
             const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
             // path array for getDynamicImport
             const urlPath = ['dynamicAsset', 'recordDashboardTemplates', recordType, `${workflowStage}?dashboardType=${dashboardType}`];
 
-            this.loggerService.debug(`Loading dashboard templates module for ${cacheKey}`);
+            this.loggerService.debug(`Loading dashboard templates module for ${dashboardHintPath}`);
 
             // Load module
             const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
 
             if (module && typeof module.evaluate === 'function') {
                 // Register the module using keys derived from the configuration context
-                this.registerModule(module, recordType, workflowStage, dashboardType);
+                this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${recordType}__${workflowStage}`);
-                this.loadedConfigs.add(cacheKey);
-                this.loggerService.debug(`Loaded templates for ${cacheKey}`);
+                this.loggerService.debug(`Loaded templates for ${dashboardHintPath}`);
             } else {
-                this.loggerService.error(`Invalid module loaded for ${cacheKey}`);
+                this.loggerService.error(`Invalid module loaded for ${dashboardHintPath}`);
             }
 
         } catch (error) {
-            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard templates for ${cacheKey}:`, error);
+            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard templates for ${dashboardHintPath}:`, error);
         }
     }
 
-    private registerModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
+    /**
+     * Load pre-compiled templates from the server for a specific report.
+     * Templates are loaded as ES modules using dynamic import.
+     * 
+     * @param branding The branding name
+     * @param portal The portal name
+     * @param reportName The name of the report
+     */
+    public async loadReportTemplates(branding: string, portal: string, reportName: string): Promise<void> {
+        const reportHintPath = `${branding}/${portal}/report/${reportName}`;
+
+        try {
+            const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
+            // path array for getDynamicImport
+            const urlPath = ['dynamicAsset', 'adminReportTemplates', reportName];
+
+            this.loggerService.debug(`Loading report templates module for ${reportHintPath}`);
+
+            // Load module
+            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
+
+            if (module && typeof module.evaluate === 'function') {
+                // Register the module using the report name as key
+                this.registerReportModule(module, reportName);
+                this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered report module for ${reportName}`);
+                this.loggerService.debug(`Loaded report templates for ${reportHintPath}`);
+            } else {
+                this.loggerService.error(`Invalid report module loaded for ${reportHintPath}`);
+            }
+
+        } catch (error) {
+            this.loggerService.error(`HandlebarsTemplateService: Failed to load report templates for ${reportHintPath}:`, error);
+        }
+    }
+
+    private registerDashboardModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
         // Register under specific context keys
         this.moduleRegistry.set(`${recordType}__${workflowStage}`, module);
         this.moduleRegistry.set(`${recordType}__${dashboardType}`, module);
+    }
+
+    private registerReportModule(module: any, reportName: string) {
+        // Register under report name key
+        this.moduleRegistry.set(reportName, module);
     }
 
     /**
@@ -224,7 +175,7 @@ export class HandlebarsTemplateService extends HttpClientService {
      */
     public compileAndRunTemplate(templateString: string, context: any, keyParts?: string[]): string {
         // Try pre-compiled first
-        if (keyParts && keyParts.length >= 2) {
+        if (keyParts && keyParts.length > 0) {
             const result = this.runPrecompiled(keyParts, context);
             if (result !== null) {
                 return result;
@@ -232,7 +183,7 @@ export class HandlebarsTemplateService extends HttpClientService {
         }
 
         // Return empty string if no pre-compiled template found - CSP restricts runtime compilation
-        if (!keyParts || keyParts.length < 2) {
+        if (!keyParts || keyParts.length === 0) {
             this.loggerService.warn(`No key parts provided for template execution. Runtime compilation is disabled by CSP. Template: ${templateString.substring(0, 50)}...`);
             return '';
         }
@@ -250,30 +201,30 @@ export class HandlebarsTemplateService extends HttpClientService {
      */
     private runPrecompiled(keyParts: string[], context: any): string | null {
         // keyParts is array
-        if (!_isArray(keyParts) || keyParts.length < 2) {
+        if (!_isArray(keyParts) || keyParts.length === 0) {
             return null;
         }
 
-        const recordType = keyParts[0];
-        const secondary = keyParts[1]; // workflowStage or dashboardType
-
-        const moduleKey = `${recordType}__${secondary}`;
-        const module = this.moduleRegistry.get(moduleKey);
-
-        if (!module) {
-            this.loggerService.warn(`HandlebarsTemplateService: Module not found for key: ${moduleKey}. Available keys: ${Array.from(this.moduleRegistry.keys()).join(', ')}`);
-            return null;
+        // Standardised lookup: try to find a module matching the key parts, 
+        // starting from the most specific (longest key) down to the least specific.
+        // This supports keys of any length (e.g. recordType__workflowStage or just reportName).
+        for (let i = keyParts.length; i > 0; i--) {
+            const key = buildKeyString(keyParts.slice(0, i));
+            const module = this.moduleRegistry.get(key);
+            
+            if (module) {
+                try {
+                    // The evaluate function compiles and runs the template with the context
+                    // dynamicScriptAsset returns the rendered result directly: Handlebars.template(spec)(context)
+                    return module.evaluate(keyParts, context, { libraries: { Handlebars } });
+                } catch (e) {
+                    this.loggerService.error(`HandlebarsTemplateService: Error executing pre-compiled template for key ${keyParts.join('__')}: ${e}`);
+                    return null;
+                }
+            }
         }
 
-        try {
-            // The evaluate function compiles and runs the template with the context
-            // dynamicScriptAsset returns the rendered result directly: Handlebars.template(spec)(context)
-            const result = module.evaluate(keyParts, context, { libraries: { Handlebars } });
-            return result;
-        } catch (e) {
-            this.loggerService.error(`HandlebarsTemplateService: Error executing pre-compiled template for key ${keyParts.join('__')}: ${e}`);
-        }
-
+        this.loggerService.warn(`HandlebarsTemplateService: Module not found for keys: ${keyParts.join('__')}. Available keys: ${Array.from(this.moduleRegistry.keys()).join(', ')}`);
         return null;
     }
 
@@ -289,19 +240,20 @@ export class HandlebarsTemplateService extends HttpClientService {
 
     /**
      * Build a template key string from key parts (same format as server).
+     * Delegates to the shared function from sails-ng-common.
      * 
      * @param keyParts Array of key parts
      * @returns The formatted key string
      */
     public buildKeyString(keyParts: string[]): string {
-        return keyParts.map(i => i?.toString()?.normalize('NFKC')).join('__');
+        return buildKeyString(keyParts);
     }
 
     /**
      * Clear all cached templates.
      */
     public clearCache(): void {
-        this.loadedConfigs.clear();
+        this.utilService.clearDynamicImportCache();
         this.moduleRegistry.clear();
         this.loggerService.debug('Template cache cleared');
     }
