@@ -490,7 +490,15 @@ const defaultAdminSidebarConfig = {
         { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
         { id: 'support', labelKey: 'menu-supportagreement', href: '/admin/supportAgreement' },
         { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
-        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
+        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' }
+      ]
+    },
+    {
+      id: 'navigation',
+      titleKey: 'menu-navigation',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
         { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
         { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
         { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' }

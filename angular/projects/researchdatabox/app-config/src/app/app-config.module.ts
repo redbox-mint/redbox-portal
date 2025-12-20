@@ -12,10 +12,11 @@ import { ObjectTypeComponent } from './fieldTypes/object.type';
 import { TextAreaComponent } from './fieldTypes/textarea.type';
 import { FormlyFieldTextArea } from '@ngx-formly/bootstrap/textarea';
 import { MenuEditorTypeComponent } from './fieldTypes/menu-editor';
+import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-editor';
 
 @NgModule({
   declarations: [
-    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, MenuEditorTypeComponent
+    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent
   ],
   imports: [
     BrowserModule,
@@ -28,7 +29,8 @@ import { MenuEditorTypeComponent } from './fieldTypes/menu-editor';
       { name: 'array', component: ArrayTypeComponent },
       { name: 'object', component: ObjectTypeComponent },
       { name: 'textarea', component: FormlyFieldTextArea },
-      { name: 'menu-editor', component: MenuEditorTypeComponent }
+      { name: 'menu-editor', component: MenuEditorTypeComponent },
+      { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent }
     ],
   }),
     FormlyBootstrapModule

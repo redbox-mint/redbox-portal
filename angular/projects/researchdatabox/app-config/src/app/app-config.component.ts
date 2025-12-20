@@ -108,6 +108,14 @@ export class AppConfigComponent extends BaseComponent {
       this.applyWidgetTypeToField(fields, 'items', 'menu-editor');
       this.hideFieldByKey(fields, 'showSearch');
     }
+    
+    // Admin sidebar config: Use admin-sidebar-editor for the header field
+    // The editor handles all three fields (header, sections, footerLinks) in a unified UI
+    if (this.configKey === 'adminSidebar') {
+      this.applyWidgetTypeToField(fields, 'header', 'admin-sidebar-editor');
+      this.hideFieldByKey(fields, 'sections');
+      this.hideFieldByKey(fields, 'footerLinks');
+    }
   }
 
   /**

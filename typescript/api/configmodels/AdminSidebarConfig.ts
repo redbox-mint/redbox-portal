@@ -292,3 +292,97 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
     { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
   ]
 };
+
+/**
+ * Custom JSON Schema for AdminSidebarConfig that specifies the admin-sidebar-editor widget
+ * for the sections and footerLinks fields. This schema is used by @ngx-formly/core/json-schema
+ * to render the custom visual editor instead of the generic array component.
+ */
+export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
+  type: 'object',
+  title: 'Admin Sidebar Configuration',
+  properties: {
+    header: {
+      type: 'object',
+      title: 'Header',
+      description: 'Header configuration for the admin sidebar',
+      widget: {
+        formlyConfig: {
+          type: 'admin-sidebar-editor'
+        }
+      },
+      properties: {
+        titleKey: { type: 'string', title: 'Title Key', default: 'menu-admin' },
+        iconClass: { type: 'string', title: 'Icon Class', default: 'fa fa-cog' }
+      }
+    },
+    sections: {
+      type: 'array',
+      title: 'Sections',
+      description: 'Collapsible sections in the admin sidebar',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', title: 'ID' },
+          titleKey: { type: 'string', title: 'Title Key' },
+          defaultExpanded: { type: 'boolean', title: 'Default Expanded', default: true },
+          requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
+          hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+          requiredRoles: {
+            type: 'array',
+            title: 'Required Roles',
+            items: { type: 'string' },
+            default: []
+          },
+          featureFlag: { type: 'string', title: 'Feature Flag' },
+          items: {
+            type: 'array',
+            title: 'Items',
+            items: { $ref: '#/definitions/sidebarItem' },
+            default: []
+          }
+        },
+        required: ['id', 'titleKey', 'items']
+      },
+      default: []
+    },
+    footerLinks: {
+      type: 'array',
+      title: 'Footer Links',
+      description: 'Links displayed at the bottom of the sidebar',
+      items: { $ref: '#/definitions/sidebarItem' },
+      default: []
+    }
+  },
+  definitions: {
+    sidebarItem: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', title: 'ID' },
+        labelKey: { type: 'string', title: 'Label Key' },
+        href: { type: 'string', title: 'URL' },
+        external: { type: 'boolean', title: 'External Link', default: false },
+        requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
+        hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+        requiredRoles: {
+          type: 'array',
+          title: 'Required Roles',
+          items: { type: 'string' },
+          default: []
+        },
+        featureFlag: { type: 'string', title: 'Feature Flag' },
+        visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
+        placeholderFallback: {
+          type: 'object',
+          title: 'Placeholder Fallback',
+          properties: {
+            translationKey: { type: 'string', title: 'Translation Key' },
+            placeholderPath: { type: 'string', title: 'Placeholder Path' }
+          }
+        }
+      },
+      required: ['labelKey', 'href']
+    }
+  },
+  required: ['sections', 'footerLinks']
+};
