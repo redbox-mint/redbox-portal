@@ -1,6 +1,7 @@
 import {SystemMessage} from './SystemMessage';
 import {AuthorizedDomainsEmails} from './AuthorizedDomainsEmails';
 import {MenuConfig} from './MenuConfig';
+import {HomePanelConfig} from './HomePanelConfig';
 
 export class ConfigModels {
     private static modelsMap: Map<string, any> = new Map([
@@ -15,6 +16,12 @@ export class ConfigModels {
             title: 'Menu Configuration',
             class: MenuConfig,
             tsGlob: 'typescript/api/configmodels/MenuConfig.ts'
+        }],
+        ['homePanels', {
+            modelName: 'HomePanelConfig',
+            title: 'Home Panels Configuration',
+            class: HomePanelConfig,
+            tsGlob: 'typescript/api/configmodels/HomePanelConfig.ts'
         }],
     ]);
 

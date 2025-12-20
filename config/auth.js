@@ -394,7 +394,74 @@ const defaultMenuConfig = {
   showSearch: true
 };
 
+/**
+ * Default home panel configuration that mirrors the current static researcher home page.
+ * This can be overridden per-brand via the admin UI or environment config.
+ */
+const defaultHomePanelsConfig = {
+  panels: [
+    {
+      id: 'plan',
+      titleKey: 'menu-plan',
+      iconClass: 'icon-checklist icon-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+        { id: 'plan-dashboard', labelKey: 'edit-dashboard-rdmp', href: '/dashboard/rdmp' },
+        {
+          id: 'plan-advice',
+          labelKey: 'get-advice',
+          href: '/getAdvice',
+          placeholderFallback: {
+            translationKey: 'get-advice-link',
+            placeholderPath: '/getAdvice'
+          }
+        }
+      ]
+    },
+    {
+      id: 'organise',
+      titleKey: 'menu-organise-worspace',
+      iconClass: 'fa fa-sitemap fa-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'org-workspaces', labelKey: 'workspaces-dashboard', href: '/workspaces/list' },
+        {
+          id: 'org-services',
+          labelKey: 'workspace-services-list',
+          href: '/availableServicesList',
+          placeholderFallback: {
+            translationKey: 'workspace-services-list-link',
+            placeholderPath: '/availableServicesList'
+          }
+        }
+      ]
+    },
+    {
+      id: 'manage',
+      titleKey: 'menu-manage',
+      iconClass: 'fa fa-laptop fa-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
+        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
+      ]
+    },
+    {
+      id: 'publish',
+      titleKey: 'menu-publish',
+      iconClass: 'fa fa-rocket fa-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
+        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
+      ]
+    }
+  ]
+};
+
 module.exports.brandingConfigurationDefaults = {
   auth: defaultBrandAuthConfig,
-  menu: defaultMenuConfig
+  menu: defaultMenuConfig,
+  homePanels: defaultHomePanelsConfig
 };

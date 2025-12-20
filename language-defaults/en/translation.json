@@ -785,6 +785,7 @@
 	"system-lookup-record-item1": "Parties",
 	"menu-authorizeddomainsemails": "Authorized Domains and Emails",
 	"menu-menuconfiguration": "Menu Configuration",
+	"menu-homepanelsconfiguration": "Home Panels Configuration",
 	"authorized-email-denied": "Email is not authorized to login.",
 	"admin-welcome-heading": "Administration",
 	"admin-welcome-message": "Welcome to the administration area. Use the navigation links on the left to access various administrative features and settings.",

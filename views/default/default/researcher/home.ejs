@@ -3,6 +3,26 @@
     <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
+<% if (typeof homePanels !== 'undefined' && homePanels && homePanels.panels) { %>
+  <% for (const panel of homePanels.panels) { %>
+    <div class="<%= panel.columnClass %>">
+      <div class="panel panel-default">
+         <div class="panel-heading text-center">
+             <span class="panel-title">
+               <div><i class="<%= panel.iconClass %>" ></i></div>
+               <%= panel.title %>
+             </span>
+         </div>
+         <div class="panel-body">
+           <% for (const item of panel.items) { %>
+             <div><a <% if (item.external) { %>rel="noopener noreferrer" target="_blank"<% } %> href="<%= item.href %>"><%= item.label %></a></div>
+           <% } %>
+         </div>
+      </div>
+    </div>
+  <% } %>
+<% } else { %>
+    <!-- Fallback to static panels if homePanels is not available -->
     <div class="col-md-3 homepanel">
       <div class="panel panel-default">
          <div class="panel-heading text-center">
@@ -64,7 +84,7 @@
         </div>
        </div>
     </div>
-
+<% } %>
 </div>
 
 <!-- simple jquery script to make all the panels equal height -->
