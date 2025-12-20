@@ -460,8 +460,61 @@ const defaultHomePanelsConfig = {
   ]
 };
 
+/**
+ * Default admin sidebar configuration that mirrors the current static admin sidebar structure.
+ * This can be overridden per-brand via the admin UI or environment config.
+ */
+const defaultAdminSidebarConfig = {
+  header: {
+    titleKey: 'menu-admin',
+    iconClass: 'fa fa-cog'
+  },
+  sections: [
+    {
+      id: 'analyze',
+      titleKey: 'menu-analyze',
+      defaultExpanded: true,
+      items: [
+        { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
+        { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
+        { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
+      ]
+    },
+    {
+      id: 'system',
+      titleKey: 'menu-syssettings',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
+        { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
+        { id: 'support', labelKey: 'menu-supportagreement', href: '/admin/supportAgreement' },
+        { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
+        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
+        { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
+        { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
+        { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' }
+      ]
+    },
+    {
+      id: 'lookup',
+      titleKey: 'system-lookup-records',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }
+      ]
+    }
+  ],
+  footerLinks: [
+    { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
+    { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
+  ]
+};
+
 module.exports.brandingConfigurationDefaults = {
   auth: defaultBrandAuthConfig,
   menu: defaultMenuConfig,
-  homePanels: defaultHomePanelsConfig
+  homePanels: defaultHomePanelsConfig,
+  adminSidebar: defaultAdminSidebarConfig
 };

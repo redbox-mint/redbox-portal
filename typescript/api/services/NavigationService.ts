@@ -35,6 +35,15 @@ import {
   ResolvedHomePanels,
   DEFAULT_HOME_PANEL_CONFIG
 } from '../configmodels/HomePanelConfig';
+import {
+  AdminSidebarSection,
+  AdminSidebarItem,
+  AdminSidebarConfigData,
+  ResolvedAdminSidebar,
+  ResolvedAdminSidebarSection,
+  ResolvedAdminSidebarItem,
+  DEFAULT_ADMIN_SIDEBAR_CONFIG
+} from '../configmodels/AdminSidebarConfig';
 
 declare var sails: Sails;
 declare var BrandingService: any;
@@ -86,8 +95,10 @@ export module Services {
     protected _exportedMethods: any = [
       'resolveMenu',
       'resolveHomePanels',
+      'resolveAdminSidebar',
       'getDefaultMenuConfig',
-      'getDefaultHomePanelConfig'
+      'getDefaultHomePanelConfig',
+      'getDefaultAdminSidebarConfig'
     ];
 
     // =========================================================================
@@ -106,6 +117,13 @@ export module Services {
      */
     public getDefaultHomePanelConfig(): HomePanelConfigData {
       return DEFAULT_HOME_PANEL_CONFIG;
+    }
+
+    /**
+     * Returns the default admin sidebar configuration
+     */
+    public getDefaultAdminSidebarConfig(): AdminSidebarConfigData {
+      return DEFAULT_ADMIN_SIDEBAR_CONFIG;
     }
 
     /**
@@ -182,6 +200,70 @@ export module Services {
         // Return empty panels on error
         return {
           panels: []
+        };
+      }
+    }
+
+    /**
+     * Resolves the admin sidebar configuration for the current request context
+     * 
+     * @param req - The Express/Sails request object
+     * @returns ResolvedAdminSidebar ready for rendering in templates
+     */
+    public async resolveAdminSidebar(req: any): Promise<ResolvedAdminSidebar> {
+      try {
+        const context = this.buildResolutionContext(req);
+
+        // Pull config from brandingAware or fall back to defaults
+        let adminSidebarConfig: AdminSidebarConfigData = DEFAULT_ADMIN_SIDEBAR_CONFIG;
+        const brandName = BrandingService.getBrandFromReq(req);
+        if (typeof sails.config.brandingAware === 'function') {
+          const brandingConfig = sails.config.brandingAware(brandName);
+          if (brandingConfig?.adminSidebar?.sections) {
+            adminSidebarConfig = this.mergeAdminSidebarWithDefaults(brandingConfig.adminSidebar);
+          }
+        }
+
+        // Resolve header
+        const headerConfig = adminSidebarConfig.header || {};
+        const header = {
+          title: this.translateLabel(headerConfig.titleKey || 'menu-admin'),
+          iconClass: headerConfig.iconClass || 'fa fa-cog'
+        };
+
+        // Resolve sections
+        const resolvedSections: ResolvedAdminSidebarSection[] = [];
+        for (const section of adminSidebarConfig.sections) {
+          const resolvedSection = await this.resolveAdminSidebarSection(section, context);
+          if (resolvedSection && resolvedSection.items.length > 0) {
+            resolvedSections.push(resolvedSection);
+          }
+        }
+
+        // Resolve footer links
+        const resolvedFooterLinks: ResolvedAdminSidebarItem[] = [];
+        for (const item of adminSidebarConfig.footerLinks || []) {
+          const resolved = await this.resolveAdminSidebarItem(item, context);
+          if (resolved) {
+            resolvedFooterLinks.push(resolved);
+          }
+        }
+
+        return {
+          header,
+          sections: resolvedSections,
+          footerLinks: resolvedFooterLinks
+        };
+      } catch (error) {
+        sails.log.error('[NavigationService] Error resolving admin sidebar:', error);
+        // Return minimal sidebar on error
+        return {
+          header: {
+            title: 'Admin',
+            iconClass: 'fa fa-cog'
+          },
+          sections: [],
+          footerLinks: []
         };
       }
     }
@@ -387,6 +469,115 @@ export module Services {
 
       // Build resolved item
       const resolved: ResolvedHomePanelItem = {
+        label: visibilityResult.resolvedLabel,
+        href,
+        external
+      };
+
+      if (external) {
+        resolved.target = '_blank';
+      }
+
+      return resolved;
+    }
+
+    // =========================================================================
+    // Admin Sidebar Resolution
+    // =========================================================================
+
+    /**
+     * Merges custom admin sidebar config with defaults
+     */
+    private mergeAdminSidebarWithDefaults(customConfig: Partial<AdminSidebarConfigData>): AdminSidebarConfigData {
+      return {
+        header: customConfig.header || DEFAULT_ADMIN_SIDEBAR_CONFIG.header,
+        sections: customConfig.sections || DEFAULT_ADMIN_SIDEBAR_CONFIG.sections,
+        footerLinks: customConfig.footerLinks || DEFAULT_ADMIN_SIDEBAR_CONFIG.footerLinks
+      };
+    }
+
+    /**
+     * Resolves a single admin sidebar section
+     */
+    private async resolveAdminSidebarSection(
+      section: AdminSidebarSection,
+      context: ResolutionContext
+    ): Promise<ResolvedAdminSidebarSection | null> {
+      const { isAuthenticated, user, brand } = context;
+
+      // Check section-level visibility rules
+
+      // 1. Auth state filtering for section
+      const requiresAuth = section.requiresAuth !== false; // default true
+      const hideWhenAuth = section.hideWhenAuth === true;
+
+      if (requiresAuth && !isAuthenticated) {
+        return null;
+      }
+      if (hideWhenAuth && isAuthenticated) {
+        return null;
+      }
+
+      // 2. Feature flag check for section
+      if (section.featureFlag) {
+        const flagValue = _.get(sails.config.appmode, section.featureFlag, true);
+        if (!flagValue) {
+          return null;
+        }
+      }
+
+      // 3. Role filtering for section
+      if (section.requiredRoles && section.requiredRoles.length > 0 && isAuthenticated && user) {
+        const hasRequiredRole = this.userHasAnyRole(user, brand, section.requiredRoles);
+        if (!hasRequiredRole) {
+          return null;
+        }
+      }
+
+      // Resolve section items
+      const resolvedItems: ResolvedAdminSidebarItem[] = [];
+      for (const item of section.items) {
+        const resolved = await this.resolveAdminSidebarItem(item, context);
+        if (resolved) {
+          resolvedItems.push(resolved);
+        }
+      }
+
+      // If no items passed the filter, don't render the section
+      if (resolvedItems.length === 0) {
+        return null;
+      }
+
+      return {
+        id: section.id,
+        title: this.translateLabel(section.titleKey),
+        defaultExpanded: section.defaultExpanded !== false, // default true
+        items: resolvedItems
+      };
+    }
+
+    /**
+     * Resolves a single admin sidebar item, returning null if it should be hidden
+     */
+    private async resolveAdminSidebarItem(
+      item: AdminSidebarItem,
+      context: ResolutionContext
+    ): Promise<ResolvedAdminSidebarItem | null> {
+      // Check visibility rules (shared logic)
+      const visibilityResult = this.checkItemVisibility(item, context);
+      if (!visibilityResult.visible) {
+        return null;
+      }
+
+      // Get the resolved href and external flag
+      let href = visibilityResult.resolvedHref || item.href;
+      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+
+      // URL building
+      href = this.resolveUrl(href, context.brandPortalPath, external);
+
+      // Build resolved item
+      const resolved: ResolvedAdminSidebarItem = {
         label: visibilityResult.resolvedLabel,
         href,
         external

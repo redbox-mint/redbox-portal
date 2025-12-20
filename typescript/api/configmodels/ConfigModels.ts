@@ -2,6 +2,7 @@ import {SystemMessage} from './SystemMessage';
 import {AuthorizedDomainsEmails} from './AuthorizedDomainsEmails';
 import {MenuConfig} from './MenuConfig';
 import {HomePanelConfig} from './HomePanelConfig';
+import {AdminSidebarConfig} from './AdminSidebarConfig';
 
 export class ConfigModels {
     private static modelsMap: Map<string, any> = new Map([
@@ -22,6 +23,12 @@ export class ConfigModels {
             title: 'Home Panels Configuration',
             class: HomePanelConfig,
             tsGlob: 'typescript/api/configmodels/HomePanelConfig.ts'
+        }],
+        ['adminSidebar', {
+            modelName: 'AdminSidebarConfig',
+            title: 'Admin Sidebar Configuration',
+            class: AdminSidebarConfig,
+            tsGlob: 'typescript/api/configmodels/AdminSidebarConfig.ts'
         }],
     ]);
 
