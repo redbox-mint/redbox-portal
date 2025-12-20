@@ -397,7 +397,7 @@ export module Services {
       }
 
       // Check if current path starts with this href (for nested routes)
-      if (href !== '/' && currentPath.startsWith(href)) {
+      if (href !== '/' && (currentPath.startsWith(href + '/') || currentPath === href)) {
         return true;
       }
 
@@ -643,7 +643,7 @@ export module Services {
       // Handle placeholder fallback logic
       if (item.placeholderFallback) {
         const translatedLink = this.translateLabel(item.placeholderFallback.translationKey);
-        
+
         // Check if translation exists (returns actual URL, not the key)
         if (translatedLink !== item.placeholderFallback.translationKey && translatedLink.trim() !== '') {
           // Translation exists - use it as external link

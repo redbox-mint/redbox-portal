@@ -392,16 +392,13 @@ describe('NavigationService', function () {
       // If not and hidePlaceholderPages is false, it should show placeholder path
       // If hidePlaceholderPages is true, it should be hidden
       
-      // This test verifies the item is either present (with correct behavior) or absent
       const adviceItem = planPanel.items.find(item => 
         item.label && (item.label.includes('advice') || item.label === 'get-advice')
       );
       
-      // If present, should have valid href
-      if (adviceItem) {
-        expect(adviceItem.href).to.be.a('string');
-        expect(adviceItem.href.length).to.be.greaterThan(0);
-      }
+      expect(adviceItem).to.exist;
+      expect(adviceItem.href).to.be.a('string');
+      expect(adviceItem.href.length).to.be.greaterThan(0);
     });
 
     it('should return empty panels on error', async function () {
@@ -602,16 +599,19 @@ describe('NavigationService', function () {
         const resolvedMenu = await navigationService.resolveMenu(unauthReq);
         // Should have items (at minimum the anonymous home)
         expect(resolvedMenu.items.length).to.be.greaterThan(0);
-        // All items should be for anonymous users (not require auth)
-        // The resolved menu should only contain items visible to anonymous users
+        // Verify no items require authentication
+        resolvedMenu.items.forEach((item: any) => {
+          // Items shown to anonymous users should not have requiresAuth: true
+          // (this is already filtered by the service, but we verify the result)
+          expect(item.href).to.not.include('/researcher/home');
+        });
       });
       it('should resolve URLs with brand/portal prefix', async function () {
         const resolvedMenu = await navigationService.resolveMenu(mockReq);
         // Find home item
         const homeItem = resolvedMenu.items.find((item: any) => item.href && item.href.includes('/researcher/home'));
-        if (homeItem) {
-          expect(homeItem.href).to.include('/default/rdmp');
-        }
+        expect(homeItem).to.exist;
+        expect(homeItem.href).to.include('/default/rdmp');
       });
       it('should handle dropdown menus with children', async function () {
         const resolvedMenu = await navigationService.resolveMenu(mockReq);
@@ -661,9 +661,8 @@ describe('NavigationService', function () {
         const resolvedMenu = await navigationService.resolveMenu(mockReq);
         // Find home item - it should be marked as active
         const homeItem = resolvedMenu.items.find((item: any) => item.href && item.href.includes('/researcher/home'));
-        if (homeItem) {
-          expect(homeItem.active).to.equal(true);
-        }
+        expect(homeItem).to.exist;
+        expect(homeItem.active).to.equal(true);
       });
       it('should bubble active state to parent dropdown', async function () {
         // Set path to match a child item (e.g., dashboard/rdmp)
@@ -671,9 +670,8 @@ describe('NavigationService', function () {
         const resolvedMenu = await navigationService.resolveMenu(mockReq);
         // Find Plan dropdown - should be active because child is active
         const planDropdown = resolvedMenu.items.find((item: any) => item.children && item.children.some((child: any) => child.href && child.href.includes('/dashboard/rdmp')));
-        if (planDropdown) {
-          expect(planDropdown.active).to.equal(true);
-        }
+        expect(planDropdown).to.exist;
+        expect(planDropdown.active).to.equal(true);
       });
     });
 

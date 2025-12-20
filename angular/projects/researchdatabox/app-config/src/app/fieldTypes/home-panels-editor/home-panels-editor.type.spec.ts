@@ -11,9 +11,6 @@ describe('HomePanelsEditorTypeComponent', () => {
     Object.defineProperty(component, 'model', { value: { panels } });
 
     const panelsControl = new FormControl(panels);
-    new FormGroup({
-      panels: panelsControl
-    });
 
     Object.defineProperty(component, 'formControl', { value: panelsControl });
 
@@ -96,8 +93,8 @@ describe('HomePanelsEditorTypeComponent', () => {
 
     expect(authPanels.length).toBe(1);
     expect(anonPanels.length).toBe(1);
-    expect(authPanels[0].items[0].id).toBe('auth');
-    expect(anonPanels[0].items[0].id).toBe('anon');
+    expect(authPanels[0].panel.items[0].id).toBe('auth');
+    expect(anonPanels[0].panel.items[0].id).toBe('anon');
   });
 
   it('converts icon class size for preview', () => {

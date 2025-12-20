@@ -3,9 +3,9 @@
     <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
-<% if (typeof homePanels !== 'undefined' && homePanels && homePanels.panels) { %>
+<% if (typeof homePanels !== 'undefined' && homePanels && homePanels.panels && homePanels.panels.length > 0) { %>
   <% for (const panel of homePanels.panels) { %>
-    <div class="<%= panel.columnClass %>">
+    <div class="<%= panel.columnClass %> homepanel">
       <div class="panel panel-default">
          <div class="panel-heading text-center">
              <span class="panel-title">

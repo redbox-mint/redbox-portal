@@ -249,22 +249,34 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
       .replace(/\b\w/g, char => char.toUpperCase());
   }
 
-  getAuthenticatedPanels(): HomePanel[] {
-    return this.panels.map(panel => ({
-      ...panel,
-      items: panel.items.filter(item => 
-        item.requiresAuth !== false && !item.hideWhenAuth
-      )
-    })).filter(panel => panel.items.length > 0);
+  getAuthenticatedPanels(): { panel: HomePanel, originalIndex: number }[] {
+    return this.panels
+      .map((panel, index) => ({ panel, originalIndex: index }))
+      .map(({ panel, originalIndex }) => ({
+        panel: {
+          ...panel,
+          items: panel.items.filter(item => 
+            item.requiresAuth !== false && !item.hideWhenAuth
+          )
+        },
+        originalIndex
+      }))
+      .filter(({ panel }) => panel.items.length > 0);
   }
 
-  getAnonymousPanels(): HomePanel[] {
-    return this.panels.map(panel => ({
-      ...panel,
-      items: panel.items.filter(item => 
-        !item.requiresAuth || item.hideWhenAuth
-      )
-    })).filter(panel => panel.items.length > 0);
+  getAnonymousPanels(): { panel: HomePanel, originalIndex: number }[] {
+    return this.panels
+      .map((panel, index) => ({ panel, originalIndex: index }))
+      .map(({ panel, originalIndex }) => ({
+        panel: {
+          ...panel,
+          items: panel.items.filter(item => 
+            !item.requiresAuth || item.hideWhenAuth
+          )
+        },
+        originalIndex
+      }))
+      .filter(({ panel }) => panel.items.length > 0);
   }
 
   getIconPreviewClass(iconClass: string): string {

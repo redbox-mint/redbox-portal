@@ -50,7 +50,7 @@ describe('menuResolver policy', function () {
       resolveAdminSidebar: async () => { throw new Error('boom'); }
     };
 
-    const req: any = {};
+    const req: any = { options: {} };
     const res: any = {};
     let nextCalled = false;
 

@@ -11,7 +11,7 @@ describe('MenuEditorTypeComponent', () => {
     Object.defineProperty(component, 'model', { value: { showSearch: true, items } });
 
     const itemsControl = new FormControl(items);
-    new FormGroup({
+    const formGroup = new FormGroup({
       items: itemsControl,
       showSearch: new FormControl(true)
     });
@@ -72,7 +72,7 @@ describe('MenuEditorTypeComponent', () => {
 
     expect(component.items.length).toBe(2);
     expect(component.items[1].id).toContain('item-1-copy-');
-    expect(component.items[1].children?.[0].id).toBe('child-1-copy');
+    expect(component.items[1].children?.[0].id).toContain('child-1-copy-');
   });
 
   it('moves items and updates expanded state', () => {
@@ -120,5 +120,21 @@ describe('MenuEditorTypeComponent', () => {
     expect(anonItems.length).toBe(1);
     expect(authItems[0].id).toBe('auth');
     expect(anonItems[0].id).toBe('anon');
+  });
+
+  it('enforces mutual exclusivity between requiresAuth and hideWhenAuth', () => {
+    const { component } = setup([
+      { id: 'item-1', labelKey: 'test', href: '/', requiresAuth: true, hideWhenAuth: false }
+    ]);
+
+    // Set hideWhenAuth to true, requiresAuth should become false
+    component.updateItemField(0, 'hideWhenAuth', true);
+    expect(component.items[0].hideWhenAuth).toBeTrue();
+    expect(component.items[0].requiresAuth).toBeFalse();
+
+    // Set requiresAuth to true, hideWhenAuth should become false
+    component.updateItemField(0, 'requiresAuth', true);
+    expect(component.items[0].requiresAuth).toBeTrue();
+    expect(component.items[0].hideWhenAuth).toBeFalse();
   });
 });

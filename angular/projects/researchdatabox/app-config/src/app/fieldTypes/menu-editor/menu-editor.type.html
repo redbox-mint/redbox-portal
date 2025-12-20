@@ -42,7 +42,13 @@
       @for (item of items; track trackById($index, item); let i = $index) {
         <div class="item-card" [class.expanded]="isExpanded(i)">
           <!-- Item Header (Summary) -->
-          <div class="item-header" (click)="toggleItem(i)">
+          <div class="item-header" 
+               (click)="toggleItem(i)" 
+               (keydown.enter)="toggleItem(i)" 
+               (keydown.space)="toggleItem(i); $event.preventDefault()"
+               tabindex="0" 
+               role="button"
+               [attr.aria-expanded]="isExpanded(i)">
             <div class="d-flex align-items-center w-100">
               <span class="item-index">{{ i + 1 }}</span>
               <div class="item-summary flex-grow-1">
@@ -53,7 +59,7 @@
                   Children: {{ item.children?.length || 0 }}
                 </div>
               </div>
-              <div class="item-actions btn-group btn-group-sm" (click)="$event.stopPropagation()">
+              <div class="item-actions btn-group btn-group-sm" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
                 <button 
                   type="button" 
                   class="btn btn-outline-secondary"
@@ -156,6 +162,7 @@
                         type="checkbox" 
                         class="form-check-input"
                         [checked]="item.requiresAuth !== false"
+                        [disabled]="item.hideWhenAuth"
                         (change)="updateItemField(i, 'requiresAuth', $any($event.target).checked)">
                       <label class="form-check-label" [for]="'item-requiresAuth-' + i">
                         Requires authentication
@@ -178,6 +185,7 @@
                         type="checkbox" 
                         class="form-check-input"
                         [checked]="item.hideWhenAuth"
+                        [disabled]="item.requiresAuth !== false"
                         (change)="updateItemField(i, 'hideWhenAuth', $any($event.target).checked)">
                       <label class="form-check-label" [for]="'item-hideWhenAuth-' + i">
                         Hide when authenticated
@@ -201,7 +209,8 @@
                       <label>Roles</label>
                       <div class="roles-selector">
                         @for (role of availableRoles; track role) {
-                          <span 
+                          <button
+                            type="button" 
                             class="role-badge"
                             [class.active]="hasRole(i, role)"
                             (click)="toggleRole(i, role)">
@@ -209,7 +218,7 @@
                             @if (hasRole(i, role)) {
                               <i class="fa fa-check ms-1"></i>
                             }
-                          </span>
+                          </button>
                         }
                         @if (!item.requiredRoles?.length) {
                           <span class="role-badge any-user">Any user</span>
@@ -391,7 +400,7 @@
   <!-- Child Editor Modal -->
   @if (childEditorState.visible) {
     <div class="modal-backdrop" (click)="closeChildEditor()">
-      <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()" (keydown)="trapFocus($event)" #childEditorModal>
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
@@ -461,7 +470,7 @@
             <button 
               type="button" 
               class="btn btn-primary"
-              [disabled]="!childEditorState.item.labelKey || !childEditorState.item.href"
+              [disabled]="!childEditorState.item.id || !childEditorState.item.labelKey || !childEditorState.item.href"
               (click)="saveChildItem()">
               {{ childEditorState.mode === 'add' ? 'Add Child' : 'Save Changes' }}
             </button>

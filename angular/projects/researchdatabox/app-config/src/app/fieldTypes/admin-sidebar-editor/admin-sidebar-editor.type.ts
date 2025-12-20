@@ -8,7 +8,8 @@
  * - Footer links
  * - Live preview
  */
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { FormGroup } from '@angular/forms';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './admin-sidebar-item.interface';
 
@@ -19,6 +20,9 @@ import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './adm
   standalone: false
 })
 export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  @ViewChild('modalDialog') modalDialog?: ElementRef;
+  private previousActiveElement: HTMLElement | null = null;
+
   /** Currently expanded section indices */
   expandedSections: Set<number> = new Set([0]);
   
@@ -59,6 +63,40 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     }
   }
 
+  @HostListener('document:keydown', ['$event'])
+  handleKeydown(event: KeyboardEvent) {
+    if (!this.itemEditorState.visible || !this.modalDialog) return;
+
+    if (event.key === 'Escape') {
+      this.closeItemEditor();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      const dialogElement = this.modalDialog.nativeElement;
+      const focusableElements = dialogElement.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+      if (event.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          event.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          event.preventDefault();
+        }
+      }
+    }
+  }
+
   // ============ Header Accessors ============
   
   get header(): AdminSidebarHeader | undefined {
@@ -66,7 +104,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   }
 
   updateHeader(header: AdminSidebarHeader): void {
-    const parentControl: any = this.formControl?.parent;
+    const parentControl = this.formControl?.parent as FormGroup | null;
     const headerControl = parentControl?.get ? parentControl.get('header') : null;
 
     if (headerControl) {
@@ -76,7 +114,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     }
 
     if (this.model) {
-      (this.model as any).header = header;
+      this.model.header = header;
     }
   }
 
@@ -225,34 +263,66 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   // ============ Section Item Management ============
   
   openItemEditor(sectionIndex: number, itemIndex: number = -1): void {
+    this.previousActiveElement = document.activeElement as HTMLElement;
     const section = this.sections[sectionIndex];
-    const isEdit = itemIndex >= 0;
+    
+    // Validate edit request
+    const isEditRequest = itemIndex >= 0;
+    const hasItems = section && Array.isArray(section.items);
+    const isValidIndex = hasItems && itemIndex < section.items.length;
+    
+    const isEdit = isEditRequest && isValidIndex;
     
     this.itemEditorState = {
       visible: true,
       mode: isEdit ? 'edit' : 'add',
       context: 'section',
       sectionIndex,
-      itemIndex,
+      itemIndex: isEdit ? itemIndex : -1,
       item: isEdit && section.items
         ? { ...section.items[itemIndex] }
         : {
-            id: `${section.id}-item-${Date.now()}`,
+            id: `${section?.id || 'section'}-item-${Date.now()}`,
             labelKey: '',
             href: '',
             requiresAuth: true
           }
     };
     this.cdr.detectChanges();
+    this.focusFirstModalElement();
   }
 
   closeItemEditor(): void {
     this.itemEditorState.visible = false;
     this.cdr.detectChanges();
+    
+    if (this.previousActiveElement) {
+      this.previousActiveElement.focus();
+      this.previousActiveElement = null;
+    }
+  }
+
+  private focusFirstModalElement(): void {
+    setTimeout(() => {
+      if (this.modalDialog) {
+        const focusable = this.modalDialog.nativeElement.querySelector('input, button, [href], [tabindex]:not([tabindex="-1"])');
+        if (focusable) {
+          focusable.focus();
+        } else {
+          this.modalDialog.nativeElement.focus();
+        }
+      }
+    });
   }
 
   saveItem(): void {
     const { sectionIndex, itemIndex, item, mode, context } = this.itemEditorState;
+    
+    // Validate required fields
+    if (!item.labelKey?.trim() || !item.href?.trim()) {
+      console.error('Item must have labelKey and href');
+      return;
+    }
     
     if (context === 'section') {
       const sections = [...this.sections];
@@ -366,14 +436,19 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   }
 
   openFooterLinkEditor(itemIndex: number = -1): void {
-    const isEdit = itemIndex >= 0;
+    this.previousActiveElement = document.activeElement as HTMLElement;
+    
+    // Validate edit request
+    const isEditRequest = itemIndex >= 0;
+    const isValidIndex = isEditRequest && itemIndex < this.footerLinks.length;
+    const isEdit = isEditRequest && isValidIndex;
     
     this.itemEditorState = {
       visible: true,
       mode: isEdit ? 'edit' : 'add',
       context: 'footer',
       sectionIndex: -1,
-      itemIndex,
+      itemIndex: isEdit ? itemIndex : -1,
       item: isEdit
         ? { ...this.footerLinks[itemIndex] }
         : {
@@ -384,6 +459,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
           }
     };
     this.cdr.detectChanges();
+    this.focusFirstModalElement();
   }
 
   // ============ Preview Helpers ============

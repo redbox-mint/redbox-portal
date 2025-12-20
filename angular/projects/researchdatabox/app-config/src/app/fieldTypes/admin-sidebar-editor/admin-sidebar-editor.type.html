@@ -58,7 +58,10 @@
       @for (section of sections; track trackById($index, section); let i = $index) {
         <div class="item-card" [class.expanded]="isSectionExpanded(i)">
           <!-- Section Header (Summary) -->
-          <div class="item-header" (click)="toggleSection(i)">
+          <div class="item-header" 
+               (click)="toggleSection(i)"
+               [attr.aria-expanded]="isSectionExpanded(i)"
+               [attr.aria-controls]="'section-body-' + i">
             <div class="d-flex align-items-center w-100">
               <span class="item-index">{{ i + 1 }}</span>
               <div class="item-summary flex-grow-1">
@@ -77,7 +80,8 @@
                   class="btn btn-outline-secondary"
                   [disabled]="i === 0"
                   (click)="moveSection(i, 'up')"
-                  title="Move up">
+                  title="Move up"
+                  aria-label="Move section up">
                   <i class="fa fa-arrow-up"></i>
                 </button>
                 <button 
@@ -85,21 +89,24 @@
                   class="btn btn-outline-secondary"
                   [disabled]="i === sections.length - 1"
                   (click)="moveSection(i, 'down')"
-                  title="Move down">
+                  title="Move down"
+                  aria-label="Move section down">
                   <i class="fa fa-arrow-down"></i>
                 </button>
                 <button 
                   type="button" 
                   class="btn btn-outline-secondary"
                   (click)="duplicateSection(i)"
-                  title="Duplicate">
+                  title="Duplicate"
+                  aria-label="Duplicate section">
                   <i class="fa fa-copy"></i>
                 </button>
                 <button 
                   type="button" 
                   class="btn btn-outline-danger"
                   (click)="removeSection(i)"
-                  title="Remove">
+                  title="Remove"
+                  aria-label="Remove section">
                   <i class="fa fa-trash"></i>
                 </button>
               </div>
@@ -111,7 +118,7 @@
 
           <!-- Section Body (Expanded) -->
           @if (isSectionExpanded(i)) {
-            <div class="item-body">
+            <div class="item-body" [id]="'section-body-' + i">
               <!-- Basic Info Group -->
               <div class="field-group">
                 <div class="group-title">Basic Info</div>
@@ -238,7 +245,8 @@
                             class="btn btn-sm btn-link"
                             [disabled]="itemIdx === 0"
                             (click)="moveItem(i, itemIdx, 'up')"
-                            title="Move up">
+                            title="Move up"
+                            aria-label="Move item up">
                             <i class="fa fa-chevron-up"></i>
                           </button>
                           <button 
@@ -246,7 +254,8 @@
                             class="btn btn-sm btn-link"
                             [disabled]="itemIdx === section.items.length - 1"
                             (click)="moveItem(i, itemIdx, 'down')"
-                            title="Move down">
+                            title="Move down"
+                            aria-label="Move item down">
                             <i class="fa fa-chevron-down"></i>
                           </button>
                         </div>
@@ -326,7 +335,8 @@
                   class="btn btn-outline-secondary"
                   [disabled]="i === 0"
                   (click)="moveFooterLink(i, 'up')"
-                  title="Move up">
+                  title="Move up"
+                  aria-label="Move footer link up">
                   <i class="fa fa-arrow-up"></i>
                 </button>
                 <button 
@@ -334,20 +344,23 @@
                   class="btn btn-outline-secondary"
                   [disabled]="i === footerLinks.length - 1"
                   (click)="moveFooterLink(i, 'down')"
-                  title="Move down">
+                  title="Move down"
+                  aria-label="Move footer link down">
                   <i class="fa fa-arrow-down"></i>
                 </button>
                 <button 
                   type="button" 
                   class="btn btn-outline-secondary"
-                  (click)="openFooterLinkEditor(i)">
+                  (click)="openFooterLinkEditor(i)"
+                  aria-label="Edit footer link">
                   <i class="fa fa-edit"></i>
                 </button>
                 <button 
                   type="button" 
                   class="btn btn-outline-danger"
                   (click)="removeFooterLink(i)"
-                  title="Remove">
+                  title="Remove"
+                  aria-label="Remove footer link">
                   <i class="fa fa-trash"></i>
                 </button>
               </div>
@@ -468,15 +481,20 @@
 
   <!-- Item Editor Modal -->
   @if (itemEditorState.visible) {
-    <div class="modal-backdrop" (click)="closeItemEditor()">
-      <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-backdrop" (click)="closeItemEditor()" (keydown.escape)="closeItemEditor()">
+      <div class="modal-dialog" 
+           role="dialog" 
+           aria-modal="true"
+           aria-labelledby="modal-title"
+           (click)="$event.stopPropagation()"
+           #modalDialog>
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">
+            <h5 class="modal-title" id="modal-title">
               {{ itemEditorState.mode === 'add' ? 'Add' : 'Edit' }} 
               {{ itemEditorState.context === 'footer' ? 'Footer Link' : 'Item' }}
             </h5>
-            <button type="button" class="btn-close" (click)="closeItemEditor()"></button>
+            <button type="button" class="btn-close" aria-label="Close" (click)="closeItemEditor()"></button>
           </div>
           <div class="modal-body">
             <div class="field-grid">

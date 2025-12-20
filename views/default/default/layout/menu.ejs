@@ -29,7 +29,7 @@
                     </ul>
                   </li>
                 <% } else { %>
-                  <li class="<%= item.active ? 'active' : '' %>">
+                  <li class="nav-item<%= item.active ? ' active' : '' %>">
                     <a href="<%= item.href %>"
                        <% if (item.external) { %>target="_blank" rel="noopener noreferrer"<% } %>
                     ><%= item.label %></a>

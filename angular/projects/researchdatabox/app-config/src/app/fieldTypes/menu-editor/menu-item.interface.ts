@@ -18,7 +18,7 @@ export interface MenuItem {
   /** If true, item is only shown when user is authenticated */
   requiresAuth?: boolean;
   
-  /** If true, item is hidden when user is authenticated (for anonymous-only items) */
+  /** If true, item is hidden when user is authenticated (for anonymous-only items). Note: Should not be used with requiresAuth. */
   hideWhenAuth?: boolean;
   
   /** Role names required to see this item (user must have at least one) */
@@ -27,7 +27,7 @@ export interface MenuItem {
   /** Optional feature flag key */
   featureFlag?: string;
   
-  /** If true, item is hidden when translation equals the key */
+  /** If true, item is only visible when a translation exists (hidden when translation equals its key) */
   visibleWhenTranslationExists?: boolean;
   
   /** Fallback behavior for placeholder pages */

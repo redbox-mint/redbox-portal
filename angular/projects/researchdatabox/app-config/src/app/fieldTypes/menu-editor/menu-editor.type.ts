@@ -8,7 +8,7 @@
  * - Live preview
  * - Drag-and-drop reordering (future enhancement)
  */
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import { MenuItem } from './menu-item.interface';
 
@@ -18,7 +18,10 @@ import { MenuItem } from './menu-item.interface';
   styleUrls: ['./menu-editor.type.scss'],
   standalone: false
 })
-export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit, AfterViewInit {
+  @ViewChild('childEditorModal') childEditorModal?: ElementRef;
+  private previousActiveElement: HTMLElement | null = null;
+
   /** Currently expanded item indices */
   expandedItems: Set<number> = new Set([0]);
   
@@ -51,6 +54,38 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     // Initialize model if empty
     if (!this.model || !this.model[this.key as string]) {
       this.formControl.setValue([]);
+    }
+  }
+
+  ngAfterViewInit(): void {
+    // Focus trap logic handled in template via (keydown)
+  }
+
+  trapFocus(event: KeyboardEvent): void {
+    if (!this.childEditorState.visible || !this.childEditorModal) return;
+
+    const modalElement = this.childEditorModal.nativeElement;
+    const focusableElements = modalElement.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    const firstElement = focusableElements[0] as HTMLElement;
+    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+    if (event.key === 'Tab') {
+      if (event.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          event.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          event.preventDefault();
+        }
+      }
+    } else if (event.key === 'Escape') {
+      this.closeChildEditor();
     }
   }
 
@@ -124,11 +159,12 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
 
   duplicateItem(index: number): void {
     const item = { ...this.items[index] };
-    item.id = `${item.id}-copy-${Date.now()}`;
+    const suffix = `-copy-${Date.now()}`;
+    item.id = `${item.id}${suffix}`;
     if (item.children) {
       item.children = item.children.map((child: MenuItem) => ({
         ...child,
-        id: `${child.id}-copy`
+        id: child.id ? `${child.id}${suffix}` : undefined
       }));
     }
     const items = [...this.items];
@@ -159,7 +195,16 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
 
   updateItemField(index: number, field: keyof MenuItem, value: any): void {
     const items = [...this.items];
-    items[index] = { ...items[index], [field]: value };
+    const updatedItem = { ...items[index], [field]: value };
+
+    // Enforce mutual exclusivity between requiresAuth and hideWhenAuth
+    if (field === 'requiresAuth' && value === true) {
+      updatedItem.hideWhenAuth = false;
+    } else if (field === 'hideWhenAuth' && value === true) {
+      updatedItem.requiresAuth = false;
+    }
+
+    items[index] = updatedItem;
     this.formControl.setValue(items);
     this.formControl.markAsDirty();
   }
@@ -187,6 +232,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
 
   // Child item management
   openChildEditor(parentIndex: number, childIndex: number = -1): void {
+    this.previousActiveElement = document.activeElement as HTMLElement;
     const parent = this.items[parentIndex];
     const isEdit = childIndex >= 0;
     
@@ -205,15 +251,35 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
           }
     };
     this.cdr.detectChanges();
+    
+    // Focus first input after modal opens
+    setTimeout(() => {
+      if (this.childEditorModal) {
+        const firstInput = this.childEditorModal.nativeElement.querySelector('input');
+        if (firstInput) firstInput.focus();
+      }
+    });
   }
 
   closeChildEditor(): void {
     this.childEditorState.visible = false;
     this.cdr.detectChanges();
+    
+    // Restore focus
+    if (this.previousActiveElement) {
+      this.previousActiveElement.focus();
+      this.previousActiveElement = null;
+    }
   }
 
   saveChildItem(): void {
     const { parentIndex, childIndex, item, mode } = this.childEditorState;
+
+    // Enforce mutual exclusivity
+    if (item.requiresAuth) {
+      item.hideWhenAuth = false;
+    }
+
     const items = [...this.items];
     const parent = { ...items[parentIndex] };
     const children = [...(parent.children || [])];

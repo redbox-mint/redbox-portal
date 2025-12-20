@@ -57,8 +57,16 @@
     background: #fff;
     transition: background-color 0.15s ease-in-out;
 
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       background: #f8f9fa;
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bs-primary, #007bff);
+      outline-offset: -2px;
     }
   }
 
@@ -257,9 +265,16 @@
     cursor: pointer;
     transition: all 0.15s ease-in-out;
 
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       border-color: var(--bs-primary, #007bff);
       background: #e7f1ff;
+      outline: none;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
 
     &.active {
@@ -427,8 +442,16 @@
     cursor: pointer;
     transition: color 0.15s ease-in-out;
 
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: #fff;
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: -2px;
     }
 
     .section-collapse-icon {
@@ -500,8 +523,17 @@
       cursor: pointer;
       text-decoration: none;
 
-      &:hover {
+      &:hover,
+      &:focus,
+      &:focus-visible {
         text-decoration: underline;
+        outline: none;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--bs-primary, #007bff);
+        outline-offset: 2px;
+        border-radius: 2px;
       }
     }
 

@@ -43,7 +43,8 @@
                   class="btn btn-outline-secondary"
                   [disabled]="i === 0"
                   (click)="movePanel(i, 'up')"
-                  title="Move up">
+                  title="Move up"
+                  aria-label="Move panel up">
                   <i class="fa fa-arrow-up"></i>
                 </button>
                 <button 
@@ -51,21 +52,24 @@
                   class="btn btn-outline-secondary"
                   [disabled]="i === panels.length - 1"
                   (click)="movePanel(i, 'down')"
-                  title="Move down">
+                  title="Move down"
+                  aria-label="Move panel down">
                   <i class="fa fa-arrow-down"></i>
                 </button>
                 <button 
                   type="button" 
                   class="btn btn-outline-secondary"
                   (click)="duplicatePanel(i)"
-                  title="Duplicate">
+                  title="Duplicate"
+                  aria-label="Duplicate panel">
                   <i class="fa fa-copy"></i>
                 </button>
                 <button 
                   type="button" 
                   class="btn btn-outline-danger"
                   (click)="removePanel(i)"
-                  title="Remove">
+                  title="Remove"
+                  aria-label="Remove panel">
                   <i class="fa fa-trash"></i>
                 </button>
               </div>
@@ -164,7 +168,8 @@
                             class="btn btn-sm btn-link"
                             [disabled]="ii === 0"
                             (click)="moveItem(i, ii, 'up')"
-                            title="Move up">
+                            title="Move up"
+                            aria-label="Move item up">
                             <i class="fa fa-chevron-up"></i>
                           </button>
                           <button 
@@ -172,7 +177,8 @@
                             class="btn btn-sm btn-link"
                             [disabled]="ii === (panel.items?.length || 0) - 1"
                             (click)="moveItem(i, ii, 'down')"
-                            title="Move down">
+                            title="Move down"
+                            aria-label="Move item down">
                             <i class="fa fa-chevron-down"></i>
                           </button>
                         </div>
@@ -244,14 +250,14 @@
         <!-- Authenticated View -->
         <h6 class="preview-section-title">Authenticated View</h6>
         <div class="preview-panels-grid mb-3">
-          @for (panel of getAuthenticatedPanels(); track panel.id; let pi = $index) {
-            <div class="preview-panel-card" (click)="expandedPanels.add(pi)">
+          @for (wrapper of getAuthenticatedPanels(); track wrapper.panel.id) {
+            <div class="preview-panel-card" (click)="expandedPanels.add(wrapper.originalIndex)">
               <div class="preview-panel-header">
-                <i [class]="getIconPreviewClass(panel.iconClass)"></i>
-                <span class="preview-panel-title">{{ getResolvedLabel(panel.titleKey) }}</span>
+                <i [class]="getIconPreviewClass(wrapper.panel.iconClass)"></i>
+                <span class="preview-panel-title">{{ getResolvedLabel(wrapper.panel.titleKey) }}</span>
               </div>
               <ul class="preview-panel-items">
-                @for (item of panel.items; track item.id) {
+                @for (item of wrapper.panel.items; track item.id) {
                   <li>
                     <i class="fa fa-angle-right me-1"></i>
                     {{ getResolvedLabel(item.labelKey) }}
@@ -268,14 +274,14 @@
         <!-- Anonymous View -->
         <h6 class="preview-section-title">Anonymous View</h6>
         <div class="preview-panels-grid mb-3">
-          @for (panel of getAnonymousPanels(); track panel.id) {
-            <div class="preview-panel-card">
+          @for (wrapper of getAnonymousPanels(); track wrapper.panel.id) {
+            <div class="preview-panel-card" (click)="expandedPanels.add(wrapper.originalIndex)">
               <div class="preview-panel-header">
-                <i [class]="getIconPreviewClass(panel.iconClass)"></i>
-                <span class="preview-panel-title">{{ getResolvedLabel(panel.titleKey) }}</span>
+                <i [class]="getIconPreviewClass(wrapper.panel.iconClass)"></i>
+                <span class="preview-panel-title">{{ getResolvedLabel(wrapper.panel.titleKey) }}</span>
               </div>
               <ul class="preview-panel-items">
-                @for (item of panel.items; track item.id) {
+                @for (item of wrapper.panel.items; track item.id) {
                   <li>
                     <i class="fa fa-angle-right me-1"></i>
                     {{ getResolvedLabel(item.labelKey) }}
@@ -321,16 +327,19 @@
     </aside>
   </div>
 
-  <!-- Item Editor Modal -->
   @if (itemEditorState.visible) {
-    <div class="modal-backdrop" (click)="closeItemEditor()">
-      <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-backdrop" (click)="closeItemEditor()" (keydown.escape)="closeItemEditor()">
+      <div class="modal-dialog" 
+           (click)="$event.stopPropagation()"
+           role="dialog"
+           aria-modal="true"
+           aria-labelledby="item-editor-title">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">
+            <h5 class="modal-title" id="item-editor-title">
               {{ itemEditorState.mode === 'add' ? 'Add Panel Item' : 'Edit Panel Item' }}
             </h5>
-            <button type="button" class="btn-close" (click)="closeItemEditor()"></button>
+            <button type="button" class="btn-close" (click)="closeItemEditor()" aria-label="Close modal"></button>
           </div>
           <div class="modal-body">
             <div class="field-grid">
