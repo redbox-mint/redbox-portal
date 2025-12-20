@@ -62,21 +62,6 @@ export interface HomePanelItem {
    * @default false
    */
   visibleWhenTranslationExists?: boolean;
-
-  /**
-   * Fallback behavior for placeholder pages
-   * @title Placeholder Fallback
-   */
-  placeholderFallback?: {
-    /**
-     * Translation key to check for external link
-     */
-    translationKey: string;
-    /**
-     * Path to use when placeholder pages are allowed
-     */
-    placeholderPath: string;
-  };
 }
 
 /**
@@ -191,11 +176,7 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
         {
           id: 'plan-advice',
           labelKey: 'get-advice',
-          href: '/getAdvice',
-          placeholderFallback: {
-            translationKey: 'get-advice-link',
-            placeholderPath: '/getAdvice'
-          }
+          href: '/getAdvice'
         }
       ]
     },
@@ -209,11 +190,7 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
         {
           id: 'org-services',
           labelKey: 'workspace-services-list',
-          href: '/availableServicesList',
-          placeholderFallback: {
-            translationKey: 'workspace-services-list-link',
-            placeholderPath: '/availableServicesList'
-          }
+          href: '/availableServicesList'
         }
       ]
     },
@@ -247,7 +224,6 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
  */
 export const HOME_PANEL_CONFIG_SCHEMA = {
   type: 'object',
-  title: 'Home Panels Configuration',
   properties: {
     panels: {
       type: 'array',
@@ -284,15 +260,7 @@ export const HOME_PANEL_CONFIG_SCHEMA = {
                   default: []
                 },
                 featureFlag: { type: 'string', title: 'Feature Flag' },
-                visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
-                placeholderFallback: {
-                  type: 'object',
-                  title: 'Placeholder Fallback',
-                  properties: {
-                    translationKey: { type: 'string', title: 'Translation Key' },
-                    placeholderPath: { type: 'string', title: 'Placeholder Path' }
-                  }
-                }
+                visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false }
               },
               required: ['labelKey', 'href']
             },

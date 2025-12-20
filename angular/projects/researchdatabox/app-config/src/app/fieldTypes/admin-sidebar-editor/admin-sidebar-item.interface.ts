@@ -29,12 +29,6 @@ export interface AdminSidebarItem {
   
   /** If true, item is hidden when translation equals the key */
   visibleWhenTranslationExists?: boolean;
-  
-  /** Fallback behavior for placeholder pages */
-  placeholderFallback?: {
-    translationKey: string;
-    placeholderPath: string;
-  };
 }
 
 /**

@@ -71,10 +71,6 @@ interface FilterableItem {
   hideWhenAuth?: boolean;
   featureFlag?: string;
   requiredRoles?: string[];
-  placeholderFallback?: {
-    translationKey: string;
-    placeholderPath: string;
-  };
   visibleWhenTranslationExists?: boolean;
   labelKey: string;
   href: string;
@@ -196,6 +192,7 @@ export module Services {
           panels: resolvedPanels
         };
       } catch (error) {
+        console.error('[NavigationService] Error resolving home panels:', error);
         sails.log.error('[NavigationService] Error resolving home panels:', error);
         // Return empty panels on error
         return {
@@ -457,6 +454,7 @@ export module Services {
       // Check visibility rules (shared logic)
       const visibilityResult = this.checkItemVisibility(item, context);
       if (!visibilityResult.visible) {
+        // sails.log.debug(`[NavigationService] Item ${item.id || item.labelKey} hidden by visibility rules`);
         return null;
       }
 
@@ -613,9 +611,11 @@ export module Services {
       const hideWhenAuth = item.hideWhenAuth === true;
 
       if (requiresAuth && !isAuthenticated) {
+        // sails.log.debug(`[NavigationService] Item ${item.labelKey} hidden: requiresAuth=${requiresAuth}, isAuthenticated=${isAuthenticated}`);
         return { visible: false, resolvedLabel: '' };
       }
       if (hideWhenAuth && isAuthenticated) {
+        // sails.log.debug(`[NavigationService] Item ${item.labelKey} hidden: hideWhenAuth=${hideWhenAuth}, isAuthenticated=${isAuthenticated}`);
         return { visible: false, resolvedLabel: '' };
       }
 
@@ -635,29 +635,13 @@ export module Services {
         }
       }
 
-      // 4. Translation and placeholder handling
+      // 4. Translation handling
       const label = this.translateLabel(item.labelKey);
       let resolvedHref: string | undefined;
       let resolvedExternal: boolean | undefined;
 
-      // Handle placeholder fallback logic
-      if (item.placeholderFallback) {
-        const translatedLink = this.translateLabel(item.placeholderFallback.translationKey);
-
-        // Check if translation exists (returns actual URL, not the key)
-        if (translatedLink !== item.placeholderFallback.translationKey && translatedLink.trim() !== '') {
-          // Translation exists - use it as external link
-          resolvedHref = translatedLink;
-          resolvedExternal = true;
-        } else if (sails.config.appmode?.hidePlaceholderPages !== true) {
-          // No translation but placeholder pages are allowed (default allow unless explicitly hidden)
-          resolvedHref = item.placeholderFallback.placeholderPath;
-          resolvedExternal = false;
-        } else {
-          // No translation and placeholder pages are hidden
-          return { visible: false, resolvedLabel: '' };
-        }
-      } else if (item.visibleWhenTranslationExists) {
+      // Handle visibleWhenTranslationExists
+      if (item.visibleWhenTranslationExists) {
         // Item should only show if translation exists
         if (label === item.labelKey) {
           return { visible: false, resolvedLabel: '' };

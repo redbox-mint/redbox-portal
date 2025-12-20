@@ -30,12 +30,6 @@ export interface MenuItem {
   /** If true, item is only visible when a translation exists (hidden when translation equals its key) */
   visibleWhenTranslationExists?: boolean;
   
-  /** Fallback behavior for placeholder pages */
-  placeholderFallback?: {
-    translationKey: string;
-    placeholderPath: string;
-  };
-  
   /** Child menu items (for dropdown menus) */
   children?: MenuItem[];
 }

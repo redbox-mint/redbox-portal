@@ -64,21 +64,6 @@ export interface MenuItem {
   visibleWhenTranslationExists?: boolean;
 
   /**
-   * Fallback behavior for placeholder pages
-   * @title Placeholder Fallback
-   */
-  placeholderFallback?: {
-    /**
-     * Translation key to check for external link
-     */
-    translationKey: string;
-    /**
-     * Path to use when placeholder pages are allowed
-     */
-    placeholderPath: string;
-  };
-
-  /**
    * Child menu items (for dropdown menus)
    * @title Children
    * @default []
@@ -167,10 +152,6 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
           id: 'plan-advice',
           labelKey: 'get-advice',
           href: '/getAdvice',
-          placeholderFallback: {
-            translationKey: 'get-advice-link',
-            placeholderPath: '/getAdvice'
-          },
           visibleWhenTranslationExists: true
         }
       ]
@@ -186,10 +167,6 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
           id: 'org-services',
           labelKey: 'workspace-services-list',
           href: '/availableServicesList',
-          placeholderFallback: {
-            translationKey: 'workspace-services-list-link',
-            placeholderPath: '/availableServicesList'
-          },
           visibleWhenTranslationExists: true
         }
       ]
@@ -239,7 +216,6 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
  */
 export const MENU_CONFIG_SCHEMA = {
   type: 'object',
-  title: 'Menu Configuration',
   properties: {
     showSearch: {
       type: 'boolean',
@@ -273,14 +249,6 @@ export const MENU_CONFIG_SCHEMA = {
           },
           featureFlag: { type: 'string', title: 'Feature Flag' },
           visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
-          placeholderFallback: {
-            type: 'object',
-            title: 'Placeholder Fallback',
-            properties: {
-              translationKey: { type: 'string', title: 'Translation Key' },
-              placeholderPath: { type: 'string', title: 'Placeholder Path' }
-            }
-          },
           children: {
             type: 'array',
             title: 'Children',

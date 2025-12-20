@@ -215,57 +215,6 @@ describe('NavigationService', function () {
       expect(resolvedMenu.items).to.have.length(0);
     });
 
-    it('should use external link when placeholder translation exists', async function () {
-      translationMap['help-link'] = 'https://example.com/help';
-      sails.config.brandingAware = () => ({
-        menu: {
-          items: [
-            {
-              id: 'help',
-              labelKey: 'help',
-              href: '/help',
-              placeholderFallback: {
-                translationKey: 'help-link',
-                placeholderPath: '/help-placeholder'
-              }
-            }
-          ]
-        }
-      });
-
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
-
-      expect(resolvedMenu.items).to.have.length(1);
-      expect(resolvedMenu.items[0].href).to.equal('https://example.com/help');
-      expect(resolvedMenu.items[0].external).to.equal(true);
-      expect(resolvedMenu.items[0].target).to.equal('_blank');
-    });
-
-    it('should fall back to placeholder path when translation missing and placeholders allowed', async function () {
-      sails.config.appmode = { hidePlaceholderPages: false };
-      sails.config.brandingAware = () => ({
-        menu: {
-          items: [
-            {
-              id: 'help',
-              labelKey: 'help',
-              href: '/help',
-              placeholderFallback: {
-                translationKey: 'missing-link',
-                placeholderPath: '/placeholder'
-              }
-            }
-          ]
-        }
-      });
-
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
-
-      expect(resolvedMenu.items).to.have.length(1);
-      expect(resolvedMenu.items[0].href).to.equal('/default/rdmp/placeholder');
-      expect(resolvedMenu.items[0].external).to.equal(false);
-    });
-
     it('should hide items when translation missing and visibleWhenTranslationExists is true', async function () {
       sails.config.brandingAware = () => ({
         menu: {
@@ -379,26 +328,6 @@ describe('NavigationService', function () {
         item.href && item.href.includes('/record/dataPublication/edit')
       );
       expect(createPubItem).to.exist;
-    });
-
-    it('should handle placeholder fallback items correctly', async function () {
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
-      const planPanel = resolvedPanels.panels.find(p => p.id === 'plan');
-      expect(planPanel).to.exist;
-      
-      // The get-advice item has placeholderFallback
-      // If translation exists, it should be external
-      // If not and hidePlaceholderPages is false, it should show placeholder path
-      // If hidePlaceholderPages is true, it should be hidden
-      
-      const adviceItem = planPanel.items.find(item => 
-        item.label && (item.label.includes('advice') || item.label === 'get-advice')
-      );
-      
-      expect(adviceItem).to.exist;
-      expect(adviceItem.href).to.be.a('string');
-      expect(adviceItem.href.length).to.be.greaterThan(0);
     });
 
     it('should return empty panels on error', async function () {
