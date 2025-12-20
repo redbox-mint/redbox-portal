@@ -1,7 +1,7 @@
 import {SystemMessage} from './SystemMessage';
 import {AuthorizedDomainsEmails} from './AuthorizedDomainsEmails';
 import {MenuConfig, MENU_CONFIG_SCHEMA} from './MenuConfig';
-import {HomePanelConfig} from './HomePanelConfig';
+import {HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA} from './HomePanelConfig';
 import {AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA} from './AdminSidebarConfig';
 
 export class ConfigModels {
@@ -23,6 +23,7 @@ export class ConfigModels {
             modelName: 'HomePanelConfig',
             title: 'Home Panels Configuration',
             class: HomePanelConfig,
+            schema: HOME_PANEL_CONFIG_SCHEMA,
             tsGlob: 'typescript/api/configmodels/HomePanelConfig.ts'
         }],
         ['adminSidebar', {

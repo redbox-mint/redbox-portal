@@ -239,3 +239,70 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
     }
   ]
 };
+
+/**
+ * Custom JSON Schema for HomePanelConfig that specifies the home-panels-editor widget
+ * for the panels field. This schema is used by @ngx-formly/core/json-schema
+ * to render the custom visual editor instead of the generic array component.
+ */
+export const HOME_PANEL_CONFIG_SCHEMA = {
+  type: 'object',
+  title: 'Home Panels Configuration',
+  properties: {
+    panels: {
+      type: 'array',
+      title: 'Home Panels',
+      description: 'Panels to display on the researcher home page',
+      widget: {
+        formlyConfig: {
+          type: 'home-panels-editor'
+        }
+      },
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', title: 'ID' },
+          titleKey: { type: 'string', title: 'Title Key' },
+          iconClass: { type: 'string', title: 'Icon Class' },
+          columnClass: { type: 'string', title: 'Column Class', default: 'col-md-3 homepanel' },
+          items: {
+            type: 'array',
+            title: 'Panel Items',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', title: 'ID' },
+                labelKey: { type: 'string', title: 'Label Key' },
+                href: { type: 'string', title: 'URL' },
+                external: { type: 'boolean', title: 'External Link', default: false },
+                requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
+                hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+                requiredRoles: { 
+                  type: 'array', 
+                  title: 'Required Roles',
+                  items: { type: 'string' },
+                  default: []
+                },
+                featureFlag: { type: 'string', title: 'Feature Flag' },
+                visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
+                placeholderFallback: {
+                  type: 'object',
+                  title: 'Placeholder Fallback',
+                  properties: {
+                    translationKey: { type: 'string', title: 'Translation Key' },
+                    placeholderPath: { type: 'string', title: 'Placeholder Path' }
+                  }
+                }
+              },
+              required: ['labelKey', 'href']
+            },
+            default: []
+          }
+        },
+        required: ['titleKey', 'iconClass', 'items']
+      },
+      default: []
+    }
+  },
+  required: ['panels']
+};

@@ -116,6 +116,11 @@ export class AppConfigComponent extends BaseComponent {
       this.hideFieldByKey(fields, 'sections');
       this.hideFieldByKey(fields, 'footerLinks');
     }
+
+    // Home panels config: Use home-panels-editor for the panels field
+    if (this.configKey === 'homePanels') {
+      this.applyWidgetTypeToField(fields, 'panels', 'home-panels-editor');
+    }
   }
 
   /**
