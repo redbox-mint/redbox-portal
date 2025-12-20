@@ -1,5 +1,6 @@
 import {SystemMessage} from './SystemMessage';
 import {AuthorizedDomainsEmails} from './AuthorizedDomainsEmails';
+import {MenuConfig} from './MenuConfig';
 
 export class ConfigModels {
     private static modelsMap: Map<string, any> = new Map([
@@ -8,6 +9,12 @@ export class ConfigModels {
             modelName: 'AuthorizedDomainsEmails',
             title: 'Authorized Domains and Emails',
             class: AuthorizedDomainsEmails
+        }],
+        ['menu', {
+            modelName: 'MenuConfig',
+            title: 'Menu Configuration',
+            class: MenuConfig,
+            tsGlob: 'typescript/api/configmodels/MenuConfig.ts'
         }],
     ]);
 

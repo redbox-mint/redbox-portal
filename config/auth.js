@@ -305,6 +305,96 @@ module.exports.auth = {
   postLogoutRedir: '/default/rdmp/home'
 };
 
+/**
+ * Default menu configuration that mirrors the current static menu structure.
+ * This can be overridden per-brand via the admin UI or environment config.
+ */
+const defaultMenuConfig = {
+  items: [
+    {
+      id: 'home-auth',
+      labelKey: 'menu-home',
+      href: '/researcher/home',
+      requiresAuth: true
+    },
+    {
+      id: 'plan',
+      labelKey: 'menu-plan-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+        { id: 'plan-dashboard', labelKey: 'edit-dashboard-rdmp', href: '/dashboard/rdmp' },
+        {
+          id: 'plan-advice',
+          labelKey: 'get-advice',
+          href: '/getAdvice',
+          placeholderFallback: {
+            translationKey: 'get-advice-link',
+            placeholderPath: '/getAdvice'
+          },
+          visibleWhenTranslationExists: true
+        }
+      ]
+    },
+    {
+      id: 'org',
+      labelKey: 'menu-organisation-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'org-workspaces', labelKey: 'workspaces-dashboard', href: '/workspaces/list' },
+        {
+          id: 'org-services',
+          labelKey: 'workspace-services-list',
+          href: '/availableServicesList',
+          placeholderFallback: {
+            translationKey: 'workspace-services-list-link',
+            placeholderPath: '/availableServicesList'
+          },
+          visibleWhenTranslationExists: true
+        }
+      ]
+    },
+    {
+      id: 'manage',
+      labelKey: 'menu-manage-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
+        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
+      ]
+    },
+    {
+      id: 'publish',
+      labelKey: 'menu-publish-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
+        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
+      ]
+    },
+    {
+      id: 'admin',
+      labelKey: 'menu-admin',
+      href: '/admin',
+      requiresAuth: true,
+      requiredRoles: ['Admin', 'Librarians']
+    },
+    {
+      id: 'home-anon',
+      labelKey: 'menu-home',
+      href: '/home',
+      requiresAuth: false,
+      hideWhenAuth: true
+    }
+  ],
+  showSearch: true
+};
+
 module.exports.brandingConfigurationDefaults = {
-  auth: defaultBrandAuthConfig
+  auth: defaultBrandAuthConfig,
+  menu: defaultMenuConfig
 };
