@@ -1,0 +1,473 @@
+<div class="menu-editor">
+  <!-- Editor Controls -->
+  <div class="editor-controls d-flex flex-wrap align-items-center mb-3">
+    <button 
+      type="button" 
+      class="btn btn-outline-primary btn-sm ms-auto"
+      (click)="addItem()">
+      <i class="fa fa-plus"></i> Add menu item
+    </button>
+  </div>
+
+  <div class="row">
+    <!-- Menu Items Editor (Left Column) -->
+    <div class="col-lg-8 mb-3">
+      <div class="card global-settings mb-3">
+        <div class="card-body">
+          <h6 class="section-title mb-2">Global Settings</h6>
+          <div class="form-check form-switch">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="toggle-search"
+              [checked]="showSearch"
+              (change)="onShowSearchToggle($any($event.target).checked)">
+            <label class="form-check-label" for="toggle-search">
+              Show search bar
+            </label>
+          </div>
+          <p class="text-muted small mb-0">Controls whether the search field is displayed in the live menu for users.</p>
+        </div>
+      </div>
+
+      <h6 class="section-title">Menu Items</h6>
+      
+      @if (items.length === 0) {
+        <div class="alert alert-info">
+          <i class="fa fa-info-circle"></i>
+          No menu items configured. Click "Add menu item" to create your first navigation item.
+        </div>
+      }
+
+      @for (item of items; track trackById($index, item); let i = $index) {
+        <div class="item-card" [class.expanded]="isExpanded(i)">
+          <!-- Item Header (Summary) -->
+          <div class="item-header" (click)="toggleItem(i)">
+            <div class="d-flex align-items-center w-100">
+              <span class="item-index">{{ i + 1 }}</span>
+              <div class="item-summary flex-grow-1">
+                <div class="item-id fw-bold">{{ item.id || 'unnamed' }}</div>
+                <div class="item-meta text-muted small">
+                  Label: {{ getResolvedLabel(item.labelKey) }} ({{ item.labelKey }}) | 
+                  URL: {{ item.href }} | 
+                  Children: {{ item.children?.length || 0 }}
+                </div>
+              </div>
+              <div class="item-actions btn-group btn-group-sm" (click)="$event.stopPropagation()">
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary"
+                  [disabled]="i === 0"
+                  (click)="moveItem(i, 'up')"
+                  title="Move up">
+                  <i class="fa fa-arrow-up"></i>
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary"
+                  [disabled]="i === items.length - 1"
+                  (click)="moveItem(i, 'down')"
+                  title="Move down">
+                  <i class="fa fa-arrow-down"></i>
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary"
+                  (click)="duplicateItem(i)"
+                  title="Duplicate">
+                  <i class="fa fa-copy"></i>
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-danger"
+                  (click)="removeItem(i)"
+                  title="Remove">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+              <span class="expand-icon ms-2">
+                <i class="fa" [class.fa-chevron-down]="!isExpanded(i)" [class.fa-chevron-up]="isExpanded(i)"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Item Body (Expanded) -->
+          @if (isExpanded(i)) {
+            <div class="item-body">
+              <!-- Basic Info Group -->
+              <div class="field-group">
+                <div class="group-title">Basic Info</div>
+                <div class="field-grid">
+                  <div class="field">
+                    <label [for]="'item-id-' + i">
+                      ID <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'item-id-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="item.id"
+                      (input)="updateItemField(i, 'id', $any($event.target).value)"
+                      placeholder="unique-item-id">
+                  </div>
+                  <div class="field">
+                    <label [for]="'item-labelKey-' + i">
+                      Label Key <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'item-labelKey-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="item.labelKey"
+                      (input)="updateItemField(i, 'labelKey', $any($event.target).value)"
+                      placeholder="translation-key">
+                  </div>
+                  <div class="field full-width">
+                    <label [for]="'item-href-' + i">
+                      URL <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'item-href-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="item.href"
+                      (input)="updateItemField(i, 'href', $any($event.target).value)"
+                      placeholder="/path or https://external.url">
+                  </div>
+                </div>
+                <div class="help-text">
+                  <i class="fa fa-info-circle"></i>
+                  Label key is resolved to a human label in the preview. Use a translation key instead of hard-coded text. 
+                  URL can be relative (brand/portal) or absolute if external is enabled.
+                </div>
+              </div>
+
+              <!-- Visibility and Access Group -->
+              <details class="field-group collapsible">
+                <summary class="group-title clickable">
+                  <i class="fa fa-chevron-right expand-indicator"></i>
+                  Visibility and Access
+                </summary>
+                <div class="group-content">
+                  <div class="checkbox-row">
+                    <div class="form-check">
+                      <input 
+                        [id]="'item-requiresAuth-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="item.requiresAuth !== false"
+                        (change)="updateItemField(i, 'requiresAuth', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'item-requiresAuth-' + i">
+                        Requires authentication
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input 
+                        [id]="'item-external-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="item.external"
+                        (change)="updateItemField(i, 'external', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'item-external-' + i">
+                        External link
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input 
+                        [id]="'item-hideWhenAuth-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="item.hideWhenAuth"
+                        (change)="updateItemField(i, 'hideWhenAuth', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'item-hideWhenAuth-' + i">
+                        Hide when authenticated
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input 
+                        [id]="'item-visibleWhenTranslation-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="item.visibleWhenTranslationExists"
+                        (change)="updateItemField(i, 'visibleWhenTranslationExists', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'item-visibleWhenTranslation-' + i">
+                        Visible when translation exists
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="field-grid mt-3">
+                    <div class="field">
+                      <label>Roles</label>
+                      <div class="roles-selector">
+                        @for (role of availableRoles; track role) {
+                          <span 
+                            class="role-badge"
+                            [class.active]="hasRole(i, role)"
+                            (click)="toggleRole(i, role)">
+                            {{ role }}
+                            @if (hasRole(i, role)) {
+                              <i class="fa fa-check ms-1"></i>
+                            }
+                          </span>
+                        }
+                        @if (!item.requiredRoles?.length) {
+                          <span class="role-badge any-user">Any user</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label [for]="'item-featureFlag-' + i">Feature Flag</label>
+                      <input 
+                        [id]="'item-featureFlag-' + i"
+                        type="text" 
+                        class="form-control"
+                        [value]="item.featureFlag || ''"
+                        (input)="updateItemField(i, 'featureFlag', $any($event.target).value || undefined)"
+                        placeholder="Optional flag name">
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Children Group -->
+              <div class="field-group">
+                <div class="group-title">Children ({{ item.children?.length || 0 }})</div>
+                
+                @if (item.children?.length) {
+                  <div class="children-list">
+                    @for (child of item.children; track child.id || $index; let ci = $index) {
+                      <div class="child-card">
+                        <div class="child-reorder">
+                          <button 
+                            type="button" 
+                            class="btn btn-sm btn-link"
+                            [disabled]="ci === 0"
+                            (click)="moveChild(i, ci, 'up')"
+                            title="Move up">
+                            <i class="fa fa-chevron-up"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-sm btn-link"
+                            [disabled]="ci === (item.children?.length || 0) - 1"
+                            (click)="moveChild(i, ci, 'down')"
+                            title="Move down">
+                            <i class="fa fa-chevron-down"></i>
+                          </button>
+                        </div>
+                        <div class="child-info flex-grow-1">
+                          <strong>{{ child.id || 'unnamed' }}</strong>
+                          <div class="text-muted small">
+                            Label: {{ getResolvedLabel(child.labelKey) }} | URL: {{ child.href }}
+                          </div>
+                        </div>
+                        <div class="child-actions">
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary btn-sm"
+                            (click)="openChildEditor(i, ci)">
+                            Edit
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-danger btn-sm"
+                            (click)="removeChild(i, ci)">
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-muted small mb-2">
+                    No child items. Add children to create a dropdown menu.
+                  </p>
+                }
+                
+                <button 
+                  type="button" 
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="openChildEditor(i)">
+                  <i class="fa fa-plus"></i> Add child item
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Live Preview (Right Column) -->
+    <aside class="col-lg-4">
+      <div class="preview-panel">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="section-title mb-0">Live Preview</h6>
+          <div class="form-check form-switch preview-toggle">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="toggle-translations"
+              [checked]="resolveTranslations"
+              (change)="resolveTranslations = !resolveTranslations">
+            <label class="form-check-label" for="toggle-translations">
+              Resolve labels
+            </label>
+          </div>
+        </div>
+        <div class="alert alert-warning small mb-3">
+          <i class="fa fa-info-circle"></i>
+          Preview is a representation of the current form state with resolved labels. 
+          Use the tree to jump directly to a menu item.
+        </div>
+
+        <!-- Authenticated View -->
+        <h6 class="preview-section-title">Authenticated View</h6>
+        <div class="preview-nav mb-3">
+          @for (item of getAuthenticatedItems(); track item.id) {
+            <span class="nav-item" [class.has-children]="item.children?.length">
+              {{ getResolvedLabel(item.labelKey) }}
+              @if (item.children?.length) {
+                <i class="fa fa-caret-down ms-1"></i>
+              }
+            </span>
+          }
+          @if (showSearch) {
+            <span class="search-badge">
+              <i class="fa fa-search"></i> Search
+            </span>
+          }
+        </div>
+
+        <!-- Anonymous View -->
+        <h6 class="preview-section-title">Anonymous View</h6>
+        <div class="preview-nav mb-3">
+          @for (item of getAnonymousItems(); track item.id) {
+            <span class="nav-item" [class.has-children]="item.children?.length">
+              {{ getResolvedLabel(item.labelKey) }}
+              @if (item.children?.length) {
+                <i class="fa fa-caret-down ms-1"></i>
+              }
+            </span>
+          }
+          @if (showSearch) {
+            <span class="search-badge">
+              <i class="fa fa-search"></i> Search
+            </span>
+          }
+        </div>
+
+        <!-- Menu Tree -->
+        <h6 class="preview-section-title">Menu Tree</h6>
+        <ul class="menu-tree">
+          @for (item of items; track item.id; let i = $index) {
+            <li>
+              <a 
+                class="tree-link"
+                (click)="expandedItems.add(i); $event.preventDefault()">
+                {{ item.id || 'item-' + i }}
+              </a>
+              @if (item.children?.length) {
+                <ul>
+                  @for (child of item.children; track child.id) {
+                    <li class="text-muted">{{ child.id || child.labelKey }}</li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+
+        <!-- Quick Guidance -->
+        <h6 class="preview-section-title">Quick Guidance</h6>
+        <p class="text-muted small mb-0">
+          Required fields show a red asterisk. Items collapse to a summary line to reduce scroll length. 
+          Children are indented and grouped under their parent. Use the arrow buttons to reorder items.
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Child Editor Modal -->
+  @if (childEditorState.visible) {
+    <div class="modal-backdrop" (click)="closeChildEditor()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              {{ childEditorState.mode === 'add' ? 'Add Child Item' : 'Edit Child Item' }}
+            </h5>
+            <button type="button" class="btn-close" (click)="closeChildEditor()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="field-grid">
+              <div class="field">
+                <label for="child-id">ID <span class="required">*</span></label>
+                <input 
+                  id="child-id"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="childEditorState.item.id"
+                  placeholder="child-item-id">
+              </div>
+              <div class="field">
+                <label for="child-labelKey">Label Key <span class="required">*</span></label>
+                <input 
+                  id="child-labelKey"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="childEditorState.item.labelKey"
+                  placeholder="translation-key">
+              </div>
+              <div class="field full-width">
+                <label for="child-href">URL <span class="required">*</span></label>
+                <input 
+                  id="child-href"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="childEditorState.item.href"
+                  placeholder="/path or https://external.url">
+              </div>
+              <div class="field">
+                <div class="form-check">
+                  <input 
+                    id="child-requiresAuth"
+                    type="checkbox" 
+                    class="form-check-input"
+                    [(ngModel)]="childEditorState.item.requiresAuth">
+                  <label class="form-check-label" for="child-requiresAuth">
+                    Requires authentication
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <div class="form-check">
+                  <input 
+                    id="child-external"
+                    type="checkbox" 
+                    class="form-check-input"
+                    [(ngModel)]="childEditorState.item.external">
+                  <label class="form-check-label" for="child-external">
+                    External link
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeChildEditor()">
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              [disabled]="!childEditorState.item.labelKey || !childEditorState.item.href"
+              (click)="saveChildItem()">
+              {{ childEditorState.mode === 'add' ? 'Add Child' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

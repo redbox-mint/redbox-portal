@@ -231,3 +231,67 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
   ],
   showSearch: true
 };
+
+/**
+ * Custom JSON Schema for MenuConfig that specifies the menu-editor widget
+ * for the items field. This schema is used by @ngx-formly/core/json-schema
+ * to render the custom visual editor instead of the generic array component.
+ */
+export const MENU_CONFIG_SCHEMA = {
+  type: 'object',
+  title: 'Menu Configuration',
+  properties: {
+    showSearch: {
+      type: 'boolean',
+      title: 'Show Search Bar',
+      default: true,
+      description: 'Whether to show the search bar in the navigation menu'
+    },
+    items: {
+      type: 'array',
+      title: 'Menu Items',
+      description: 'Navigation menu items to display',
+      widget: {
+        formlyConfig: {
+          type: 'menu-editor'
+        }
+      },
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', title: 'ID' },
+          labelKey: { type: 'string', title: 'Label Key' },
+          href: { type: 'string', title: 'URL' },
+          external: { type: 'boolean', title: 'External Link', default: false },
+          requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
+          hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+          requiredRoles: { 
+            type: 'array', 
+            title: 'Required Roles',
+            items: { type: 'string' },
+            default: []
+          },
+          featureFlag: { type: 'string', title: 'Feature Flag' },
+          visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
+          placeholderFallback: {
+            type: 'object',
+            title: 'Placeholder Fallback',
+            properties: {
+              translationKey: { type: 'string', title: 'Translation Key' },
+              placeholderPath: { type: 'string', title: 'Placeholder Path' }
+            }
+          },
+          children: {
+            type: 'array',
+            title: 'Children',
+            items: { $ref: '#/properties/items/items' },
+            default: []
+          }
+        },
+        required: ['labelKey', 'href']
+      },
+      default: []
+    }
+  },
+  required: ['items', 'showSearch']
+};

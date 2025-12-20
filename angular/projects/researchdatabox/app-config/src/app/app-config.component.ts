@@ -80,9 +80,67 @@ export class AppConfigComponent extends BaseComponent {
       }
     }
 
-    this.fields = [this.formlyJsonschema.toFieldConfig(jsonObject)]
+    let generatedField: FormlyFieldConfig;
+    try {
+      generatedField = this.formlyJsonschema.toFieldConfig(jsonObject);
+    } catch (error: any) {
+      // Emit a descriptive error to help diagnose schema conversion issues.
+      console.error('FormlyJsonschema conversion failed for configKey', this.configKey, error?.message, error);
+      throw error;
+    }
+
+    this.fields = [generatedField];
+    
+    // Apply custom widget types for specific config models
+    this.applyCustomWidgetTypes(this.fields);
+    
     this.model = result.model;
     this.loggerService.debug(`AppConfig initialised.`);
+  }
+
+  /**
+   * Apply custom Formly widget types for specific config models.
+   * This enables using rich visual editors instead of generic array/object components.
+   */
+  private applyCustomWidgetTypes(fields: FormlyFieldConfig[]): void {
+    // Menu config: Use menu-editor for the items field
+    if (this.configKey === 'menu') {
+      this.applyWidgetTypeToField(fields, 'items', 'menu-editor');
+      this.hideFieldByKey(fields, 'showSearch');
+    }
+  }
+
+  /**
+   * Recursively find a field by key and apply a custom widget type.
+   */
+  private applyWidgetTypeToField(fields: FormlyFieldConfig[], key: string, widgetType: string): void {
+    for (const field of fields) {
+      if (field.key === key) {
+        field.type = widgetType;
+        // Clear fieldGroup since the custom widget handles its own rendering
+        field.fieldGroup = undefined;
+        field.fieldArray = undefined;
+        return;
+      }
+      if (field.fieldGroup) {
+        this.applyWidgetTypeToField(field.fieldGroup, key, widgetType);
+      }
+    }
+  }
+
+  /**
+   * Hide a field by key so it does not render in the generated form.
+   */
+  private hideFieldByKey(fields: FormlyFieldConfig[], key: string): void {
+    for (const field of fields) {
+      if (field.key === key) {
+        field.hide = true;
+        return;
+      }
+      if (field.fieldGroup) {
+        this.hideFieldByKey(field.fieldGroup, key);
+      }
+    }
   }
 
 

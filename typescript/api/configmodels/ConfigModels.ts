@@ -1,6 +1,6 @@
 import {SystemMessage} from './SystemMessage';
 import {AuthorizedDomainsEmails} from './AuthorizedDomainsEmails';
-import {MenuConfig} from './MenuConfig';
+import {MenuConfig, MENU_CONFIG_SCHEMA} from './MenuConfig';
 import {HomePanelConfig} from './HomePanelConfig';
 import {AdminSidebarConfig} from './AdminSidebarConfig';
 
@@ -16,6 +16,7 @@ export class ConfigModels {
             modelName: 'MenuConfig',
             title: 'Menu Configuration',
             class: MenuConfig,
+            schema: MENU_CONFIG_SCHEMA,
             tsGlob: 'typescript/api/configmodels/MenuConfig.ts'
         }],
         ['homePanels', {
