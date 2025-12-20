@@ -649,8 +649,8 @@ export module Services {
           // Translation exists - use it as external link
           resolvedHref = translatedLink;
           resolvedExternal = true;
-        } else if (sails.config.appmode?.hidePlaceholderPages === false) {
-          // No translation but placeholder pages are allowed
+        } else if (sails.config.appmode?.hidePlaceholderPages !== true) {
+          // No translation but placeholder pages are allowed (default allow unless explicitly hidden)
           resolvedHref = item.placeholderFallback.placeholderPath;
           resolvedExternal = false;
         } else {
