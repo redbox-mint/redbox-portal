@@ -35,7 +35,7 @@
     "glob": "^13.0.0",
     "handlebars": "^4.7.8",
     "har-validator": "5.1.5",
-    "i18next": "^25.6.3",
+    "i18next": "^25.7.3",
     "i18next-fs-backend": "^2.6.1",
     "include-all": "^4.0.3",
     "isomorphic-dompurify": "^2.34.0",
