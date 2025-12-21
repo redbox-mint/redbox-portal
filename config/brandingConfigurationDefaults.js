@@ -329,10 +329,6 @@ const defaultMenuConfig = {
           id: 'plan-advice',
           labelKey: 'get-advice',
           href: '/getAdvice',
-          placeholderFallback: {
-            translationKey: 'get-advice-link',
-            placeholderPath: '/getAdvice'
-          },
           visibleWhenTranslationExists: true
         }
       ]
@@ -348,10 +344,6 @@ const defaultMenuConfig = {
           id: 'org-services',
           labelKey: 'workspace-services-list',
           href: '/availableServicesList',
-          placeholderFallback: {
-            translationKey: 'workspace-services-list-link',
-            placeholderPath: '/availableServicesList'
-          },
           visibleWhenTranslationExists: true
         }
       ]
@@ -411,11 +403,7 @@ const defaultHomePanelsConfig = {
         {
           id: 'plan-advice',
           labelKey: 'get-advice',
-          href: '/getAdvice',
-          placeholderFallback: {
-            translationKey: 'get-advice-link',
-            placeholderPath: '/getAdvice'
-          }
+          href: '/getAdvice'
         }
       ]
     },
@@ -429,11 +417,7 @@ const defaultHomePanelsConfig = {
         {
           id: 'org-services',
           labelKey: 'workspace-services-list',
-          href: '/availableServicesList',
-          placeholderFallback: {
-            translationKey: 'workspace-services-list-link',
-            placeholderPath: '/availableServicesList'
-          }
+          href: '/availableServicesList'
         }
       ]
     },
