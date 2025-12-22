@@ -55,6 +55,11 @@ module.exports = {
     hooks: {
       type: 'json',
       required: false
+    },
+    // Dashboard-level configuration (separate from workflow-specific table config)
+    dashboard: {
+      type: 'json',
+      required: false
     }
   },
     beforeCreate: function(recordType, cb) {
