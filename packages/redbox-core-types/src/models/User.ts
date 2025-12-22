@@ -14,10 +14,10 @@ export interface UserAttributes {
   workspaceApps?: unknown[];
 }
 
-export interface S extends Sails.Model {
+export interface User extends Sails.Model {
   attributes: UserAttributes;
 }
 
 declare global {
-  var User: UserWaterlineModel;
+  var User: User;
 }

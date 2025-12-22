@@ -204,7 +204,6 @@ function attributeToTsType(attr: AttributeOptions): string {
 }
 
 function buildTypeDefinition(meta: EntityMeta): string {
-  console.log('DEBUG: Generating type definition for ' + meta.className);
   const attributes = meta.attributes;
   const lines: string[] = [];
   // Import sails to ensure global types are available and to make this a module
@@ -224,12 +223,13 @@ function buildTypeDefinition(meta: EntityMeta): string {
   }
   lines.push('}');
   lines.push('');
-  lines.push(`export interface ${meta.className}WaterlineModel extends Sails.Model {`);
+  const interfaceName = meta.className === 'User' ? meta.className : `${meta.className}WaterlineModel`;
+  lines.push(`export interface ${interfaceName} extends Sails.Model {`);
   lines.push(`  attributes: ${meta.className}Attributes;`);
   lines.push('}');
   lines.push('');
   lines.push(`declare global {`);
-  lines.push(`  var ${meta.className}: ${meta.className}WaterlineModel;`);
+  lines.push(`  var ${meta.className}: ${interfaceName};`);
   lines.push(`}`);
   lines.push('');
   return lines.join('\n');

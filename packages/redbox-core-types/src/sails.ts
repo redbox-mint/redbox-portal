@@ -153,6 +153,19 @@ declare global {
 
 			where(condition: Object): QueryBuilder;
 
+			meta(options: {
+				fetch?: boolean;
+				cascade?: boolean;
+				skipAllLifecycleCallbacks?: boolean;
+				skipRecordVerification?: boolean;
+				skipExpandingDefaultSelectClause?: boolean;
+				decrypt?: boolean;
+				encryptWith?: string;
+				makeLikeModifierCaseInsensitive?: boolean;
+				enableExperimentalDeepTargets?: boolean;
+				[key: string]: any;
+			}): QueryBuilder;
+
 			limit(lim: number): QueryBuilder;
 
 			skip(num: number): QueryBuilder;
