@@ -36,6 +36,15 @@ export module Services {
   }
 
   /**
+   * Top-level dashboard configuration interface for a record type
+   * This is configured at the recordtype level (not workflow-specific)
+   */
+  export interface RecordTypeDashboardConfig {
+    /** Whether to show the admin sidebar on the dashboard page */
+    showAdminSideBar?: boolean;
+  }
+
+  /**
    * Dashboard Types related functions...
    */
   export class DashboardTypes extends services.Core.Service {
@@ -46,6 +55,7 @@ export module Services {
       'get',
       'getAll',
       'getDashboardTableConfig',
+      'getRecordTypeDashboardConfig',
       'extractDashboardTemplates'
     ];
 
@@ -181,6 +191,35 @@ export module Services {
         return dashboardConfig;
       } catch (error) {
         sails.log.error(`Error getting dashboard table config for ${recordType}/${workflowStage}:`, error);
+        return null;
+      }
+    }
+
+    /**
+     * Get the top-level dashboard configuration for a specific record type.
+     * This configuration is stored at the recordtype level, not the workflow step level.
+     * 
+     * @param brand The branding model
+     * @param recordType The record type name
+     * @returns The record type dashboard configuration, or null if not found
+     */
+    public async getRecordTypeDashboardConfig(brand: BrandingModel, recordType: string): Promise<RecordTypeDashboardConfig | null> {
+      try {
+        // Get record type - need full config, so not limiting fields
+        const recType = await firstValueFrom(RecordTypesService.get(brand, recordType));
+        if (!recType) {
+          sails.log.warn(`Record type not found: ${recordType}`);
+          return null;
+        }
+
+        // Extract top-level dashboard config from record type
+        // This is different from the workflow-specific table config
+        const dashboardConfig = _.get(recType, 'dashboard', {}) as RecordTypeDashboardConfig;
+        sails.log.verbose(`DashboardTypesService: loaded record type dashboard config for ${recordType}: ${JSON.stringify(dashboardConfig)}`);
+
+        return dashboardConfig;
+      } catch (error) {
+        sails.log.error(`Error getting record type dashboard config for ${recordType}:`, error);
         return null;
       }
     }
