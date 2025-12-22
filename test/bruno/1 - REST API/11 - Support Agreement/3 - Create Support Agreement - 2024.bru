@@ -1,0 +1,75 @@
+meta {
+  name: Create Support Agreement - 2024
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "agreedSupportDays": 15,
+    "releaseNotes": [
+      {
+        "title": "v2.0.0 Release",
+        "date": "2024-01-15",
+        "summary": "Major release with new features",
+        "url": "https://github.com/redbox-mint/redbox-portal/releases/v2.0.0"
+      },
+      {
+        "title": "v2.1.0 Release",
+        "date": "2024-06-20",
+        "summary": "Feature enhancements and bug fixes"
+      }
+    ],
+    "timesheetSummary": [
+      {
+        "summary": "January maintenance and support",
+        "days": 2.5
+      },
+      {
+        "summary": "February bug fixes",
+        "days": 1.5
+      },
+      {
+        "summary": "March feature development",
+        "days": 3.0
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Response has success message and data", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('message');
+    expect(jsonData.message).to.include('created successfully');
+    expect(jsonData).to.have.property('data');
+  });
+
+  test("Created agreement has correct properties", function () {
+    var jsonData = res.getBody();
+    var agreement = jsonData.data;
+    expect(agreement).to.have.property('id');
+    expect(agreement).to.have.property('year', 2024);
+    expect(agreement).to.have.property('agreedSupportDays', 15);
+    expect(agreement).to.have.property('usedSupportDays', 7);
+    expect(agreement).to.have.property('releaseNotes');
+    expect(agreement.releaseNotes).to.have.length(2);
+    expect(agreement).to.have.property('timesheetSummary');
+    expect(agreement.timesheetSummary).to.have.length(3);
+  });
+}

@@ -1,0 +1,33 @@
+meta {
+  name: Final Verify - List Empty
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response is an array", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.be.an('array');
+  });
+
+  test("Test agreements have been cleaned up (no 2024 or 2025)", function () {
+    var jsonData = res.getBody();
+    var years = jsonData.map(function(a) { return a.year; });
+    expect(years).to.not.include(2024);
+    expect(years).to.not.include(2025);
+  });
+}

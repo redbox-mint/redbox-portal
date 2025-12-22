@@ -1,0 +1,56 @@
+meta {
+  name: Update Support Agreement - Release Notes
+  type: http
+  seq: 12
+}
+
+put {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "releaseNotes": [
+      {
+        "title": "v2.0.0 Release",
+        "date": "2024-01-15",
+        "summary": "Major release with new features",
+        "url": "https://github.com/redbox-mint/redbox-portal/releases/v2.0.0"
+      },
+      {
+        "title": "v2.1.0 Release",
+        "date": "2024-06-20",
+        "summary": "Feature enhancements and bug fixes"
+      },
+      {
+        "title": "v2.2.0 Release",
+        "date": "2024-09-15",
+        "summary": "Performance improvements and new admin features"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Release notes have been updated", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.data.releaseNotes).to.have.length(3);
+  });
+
+  test("New release note is present", function () {
+    var jsonData = res.getBody();
+    var titles = jsonData.data.releaseNotes.map(function(n) { return n.title; });
+    expect(titles).to.include('v2.2.0 Release');
+  });
+}

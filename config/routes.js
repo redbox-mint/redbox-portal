@@ -655,5 +655,31 @@ module.exports.routes = {
   'post /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled': {
     controller: 'webservice/TranslationController',
     action: 'updateBundleEnabled'
+  },
+  // Support Agreement REST API (admin-only)
+  'get /:branding/:portal/api/support-agreements': {
+    controller: 'webservice/SupportAgreementController',
+    action: 'list',
+    csrf: false
+  },
+  'get /:branding/:portal/api/support-agreements/:year': {
+    controller: 'webservice/SupportAgreementController',
+    action: 'get',
+    csrf: false
+  },
+  'post /:branding/:portal/api/support-agreements/:year': {
+    controller: 'webservice/SupportAgreementController',
+    action: 'create',
+    csrf: false
+  },
+  'put /:branding/:portal/api/support-agreements/:year': {
+    controller: 'webservice/SupportAgreementController',
+    action: 'update',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/support-agreements/:year': {
+    controller: 'webservice/SupportAgreementController',
+    action: 'remove',
+    csrf: false
   }
 };

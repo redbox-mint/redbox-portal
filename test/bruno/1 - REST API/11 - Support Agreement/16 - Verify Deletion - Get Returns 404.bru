@@ -1,0 +1,27 @@
+meta {
+  name: Verify Deletion - Get Returns 404
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements/2025
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Agreement for 2025 no longer exists", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('message');
+    expect(jsonData.message).to.include('not found');
+  });
+}

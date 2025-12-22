@@ -25,9 +25,10 @@ import { of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 
 import { v4 as uuidv4 } from 'uuid';
-declare var BrandingService, RolesService, UsersService;
+declare var BrandingService, RolesService, UsersService, SupportAgreementService;
 
 import { Controllers as controllers, BrandingModel } from '@researchdatabox/redbox-core-types';
+import { firstValueFrom } from 'rxjs';
 
 export module Controllers {
   /**
@@ -74,38 +75,46 @@ export module Controllers {
       return this.sendView(req, res, 'admin/users');
     }
 
-    public supportAgreementIndex(req, res) {
-      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      var currentYear = new Date().getFullYear();
-      var selectedYear = parseInt(req.query.year) || currentYear;
-      
-      // Get support agreement information from the new structure
-      // TODO: Remove the any cast once this is merged to develop and it's using the right core package version
-      var supportInfo = (brand as any).supportAgreementInformation || {};
-      var yearData = supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 };
-      
-      // If no data exists for the selected year but legacy data exists, use legacy for current year
-      if (!supportInfo[selectedYear] && selectedYear === currentYear) {
-        yearData = {
-          agreedSupportDays: (brand as any).agreedSupportDays || 0,
-          usedSupportDays: (brand as any).usedSupportDays || 0
-        };
+    public async supportAgreementIndex(req, res) {
+      try {
+        const brandName = req.session.branding;
+        const brand: BrandingModel = BrandingService.getBrand(brandName);
+        const currentYear = new Date().getFullYear();
+        const selectedYear = parseInt(req.query.year) || currentYear;
+
+        // Fetch available years
+        let availableYears: number[] = await firstValueFrom(SupportAgreementService.getAvailableYears(brand.id));
+        if (!availableYears || availableYears.length === 0) {
+          availableYears = [currentYear];
+        } else if (!availableYears.includes(currentYear)) {
+          // Ensure current year is always an option if not present
+          availableYears.push(currentYear);
+          availableYears.sort((a: number, b: number) => b - a);
+        }
+
+        // Fetch agreement for the selected year
+        let agreement = await firstValueFrom(SupportAgreementService.getByBrandAndYear(brand.id, selectedYear));
+
+        // If no agreement exists for the selected year, provide defaults
+        if (!agreement) {
+          agreement = {
+            year: selectedYear,
+            agreedSupportDays: 0,
+            usedSupportDays: 0,
+            releaseNotes: [],
+            timesheetSummary: []
+          };
+        }
+
+        return this.sendView(req, res, 'admin/supportAgreement', {
+          selectedYear: selectedYear,
+          availableYears: availableYears,
+          agreement: agreement
+        });
+      } catch (error) {
+        sails.log.error('AdminController.supportAgreementIndex error:', error);
+        return this.sendView(req, res, '500', { error: error });
       }
-      
-      // Get all available years from support agreement information
-      var availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
-      if (availableYears.length === 0 || availableYears.indexOf(currentYear) === -1) {
-        availableYears.push(currentYear);
-      }
-      availableYears.sort((a, b) => b - a); // Sort descending (most recent first)
-      
-      return this.sendView(req, res, 'admin/supportAgreement', {
-        agreedSupportDays: yearData.agreedSupportDays,
-        usedSupportDays: yearData.usedSupportDays,
-        selectedYear: selectedYear,
-        availableYears: availableYears,
-        currentYear: currentYear
-      });
     }
 
     public getUsers(req, res) {

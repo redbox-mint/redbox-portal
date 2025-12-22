@@ -1,0 +1,49 @@
+meta {
+  name: Create Support Agreement - 2025
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/default/rdmp/api/support-agreements/2025
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "agreedSupportDays": 20,
+    "releaseNotes": [
+      {
+        "title": "v3.0.0 Planning",
+        "date": "2025-01-10",
+        "summary": "Initial planning for major version"
+      }
+    ],
+    "timesheetSummary": [
+      {
+        "summary": "January planning meetings",
+        "days": 0.5
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Created agreement for 2025 has correct properties", function () {
+    var jsonData = res.getBody();
+    var agreement = jsonData.data;
+    expect(agreement).to.have.property('year', 2025);
+    expect(agreement).to.have.property('agreedSupportDays', 20);
+    expect(agreement).to.have.property('usedSupportDays', 0.5);
+  });
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Update Support Agreement - Not Found
+  type: http
+  seq: 13
+}
+
+put {
+  url: {{host}}/default/rdmp/api/support-agreements/9999
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "agreedSupportDays": 10
+  }
+}
+
+tests {
+  test("Status code is 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Response indicates agreement not found", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('message');
+    expect(jsonData.message).to.include('not found');
+  });
+}

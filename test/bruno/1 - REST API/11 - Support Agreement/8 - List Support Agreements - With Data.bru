@@ -1,0 +1,44 @@
+meta {
+  name: List Support Agreements - With Data
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response is an array with at least 2 agreements", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.be.an('array');
+    expect(jsonData.length).to.be.at.least(2);
+  });
+
+  test("Agreements are sorted by year descending", function () {
+    var jsonData = res.getBody();
+    if (jsonData.length >= 2) {
+      expect(jsonData[0].year).to.be.at.least(jsonData[1].year);
+    }
+  });
+
+  test("Each agreement has required properties", function () {
+    var jsonData = res.getBody();
+    jsonData.forEach(function(agreement) {
+      expect(agreement).to.have.property('id');
+      expect(agreement).to.have.property('year');
+      expect(agreement).to.have.property('agreedSupportDays');
+      expect(agreement).to.have.property('usedSupportDays');
+    });
+  });
+}

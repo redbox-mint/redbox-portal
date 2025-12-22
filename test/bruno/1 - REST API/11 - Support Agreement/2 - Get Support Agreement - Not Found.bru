@@ -1,0 +1,27 @@
+meta {
+  name: Get Support Agreement - Not Found
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements/9999
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Response has error message", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('message');
+    expect(jsonData.message).to.include('not found');
+  });
+}

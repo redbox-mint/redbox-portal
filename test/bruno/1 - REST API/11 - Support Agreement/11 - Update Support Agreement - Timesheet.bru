@@ -1,0 +1,55 @@
+meta {
+  name: Update Support Agreement - Timesheet
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "timesheetSummary": [
+      {
+        "summary": "January maintenance and support",
+        "days": 2.5
+      },
+      {
+        "summary": "February bug fixes",
+        "days": 1.5
+      },
+      {
+        "summary": "March feature development",
+        "days": 3.0
+      },
+      {
+        "summary": "April security updates",
+        "days": 2.0
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Timesheet has been updated with new entry", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.data.timesheetSummary).to.have.length(4);
+  });
+
+  test("Used support days is recalculated", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.data.usedSupportDays).to.equal(9);
+  });
+}

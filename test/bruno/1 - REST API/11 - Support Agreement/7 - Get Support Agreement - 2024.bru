@@ -1,0 +1,45 @@
+meta {
+  name: Get Support Agreement - 2024
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Agreement has correct year and properties", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('year', 2024);
+    expect(jsonData).to.have.property('agreedSupportDays', 15);
+    expect(jsonData).to.have.property('usedSupportDays', 7);
+    expect(jsonData).to.have.property('releaseNotes');
+    expect(jsonData).to.have.property('timesheetSummary');
+  });
+
+  test("Release notes have expected structure", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.releaseNotes).to.be.an('array').with.length(2);
+    expect(jsonData.releaseNotes[0]).to.have.property('title', 'v2.0.0 Release');
+    expect(jsonData.releaseNotes[0]).to.have.property('date');
+    expect(jsonData.releaseNotes[0]).to.have.property('summary');
+  });
+
+  test("Timesheet summary has expected structure", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.timesheetSummary).to.be.an('array').with.length(3);
+    expect(jsonData.timesheetSummary[0]).to.have.property('summary');
+    expect(jsonData.timesheetSummary[0]).to.have.property('days');
+  });
+}

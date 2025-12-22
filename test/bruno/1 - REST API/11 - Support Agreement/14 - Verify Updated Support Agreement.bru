@@ -1,0 +1,29 @@
+meta {
+  name: Verify Updated Support Agreement
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("All previous updates are persisted", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.agreedSupportDays).to.equal(25);
+    expect(jsonData.usedSupportDays).to.equal(9);
+    expect(jsonData.releaseNotes).to.have.length(3);
+    expect(jsonData.timesheetSummary).to.have.length(4);
+  });
+}

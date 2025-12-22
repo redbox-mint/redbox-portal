@@ -1,0 +1,27 @@
+meta {
+  name: Delete Support Agreement - 2024 Cleanup
+  type: http
+  seq: 18
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response has success message", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('message');
+    expect(jsonData.message).to.include('deleted successfully');
+  });
+}

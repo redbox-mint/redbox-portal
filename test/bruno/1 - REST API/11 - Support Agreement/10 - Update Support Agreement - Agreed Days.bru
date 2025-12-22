@@ -1,0 +1,39 @@
+meta {
+  name: Update Support Agreement - Agreed Days
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{host}}/default/rdmp/api/support-agreements/2024
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "agreedSupportDays": 25
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response has success message", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('message');
+    expect(jsonData.message).to.include('updated successfully');
+  });
+
+  test("Agreement has updated agreedSupportDays", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.data).to.have.property('agreedSupportDays', 25);
+  });
+}

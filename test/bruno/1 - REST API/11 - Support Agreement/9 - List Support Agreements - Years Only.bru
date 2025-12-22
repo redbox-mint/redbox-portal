@@ -1,0 +1,41 @@
+meta {
+  name: List Support Agreements - Years Only
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/default/rdmp/api/support-agreements?yearsOnly=true
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response has years array", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property('years');
+    expect(jsonData.years).to.be.an('array');
+  });
+
+  test("Years array contains expected years", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.years).to.include(2024);
+    expect(jsonData.years).to.include(2025);
+  });
+
+  test("Years are sorted descending", function () {
+    var jsonData = res.getBody();
+    var years = jsonData.years;
+    for (var i = 0; i < years.length - 1; i++) {
+      expect(years[i]).to.be.at.least(years[i + 1]);
+    }
+  });
+}
