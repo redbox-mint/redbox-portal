@@ -37,41 +37,45 @@
                   Items: {{ panel.items?.length || 0 }}
                 </div>
               </div>
-              <div class="panel-actions btn-group btn-group-sm" (click)="$event.stopPropagation()">
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === 0"
-                  (click)="movePanel(i, 'up')"
-                  title="Move up"
-                  aria-label="Move panel up">
-                  <i class="fa fa-arrow-up"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === panels.length - 1"
-                  (click)="movePanel(i, 'down')"
-                  title="Move down"
-                  aria-label="Move panel down">
-                  <i class="fa fa-arrow-down"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  (click)="duplicatePanel(i)"
-                  title="Duplicate"
-                  aria-label="Duplicate panel">
-                  <i class="fa fa-copy"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-danger"
-                  (click)="removePanel(i)"
-                  title="Remove"
-                  aria-label="Remove panel">
-                  <i class="fa fa-trash"></i>
-                </button>
+              <div class="panel-actions top-level-toolbar btn-toolbar" (click)="$event.stopPropagation()">
+                <div class="btn-group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === 0"
+                    (click)="movePanel(i, 'up')"
+                    title="Move up"
+                    aria-label="Move panel up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === panels.length - 1"
+                    (click)="movePanel(i, 'down')"
+                    title="Move down"
+                    aria-label="Move panel down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group ms-2">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    (click)="duplicatePanel(i)"
+                    title="Duplicate"
+                    aria-label="Duplicate panel">
+                    <i class="fa fa-copy"></i> <span class="btn-label">Duplicate</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removePanel(i)"
+                    title="Remove"
+                    aria-label="Remove panel">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
               </div>
               <span class="expand-icon ms-2">
                 <i class="fa" [class.fa-chevron-down]="!isPanelExpanded(i)" [class.fa-chevron-up]="isPanelExpanded(i)"></i>
@@ -162,45 +166,51 @@
                   <div class="items-list">
                     @for (item of panel.items; track item.id || $index; let ii = $index) {
                       <div class="item-card">
-                        <div class="item-reorder">
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-link"
-                            [disabled]="ii === 0"
-                            (click)="moveItem(i, ii, 'up')"
-                            title="Move up"
-                            aria-label="Move item up">
-                            <i class="fa fa-chevron-up"></i>
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-link"
-                            [disabled]="ii === (panel.items?.length || 0) - 1"
-                            (click)="moveItem(i, ii, 'down')"
-                            title="Move down"
-                            aria-label="Move item down">
-                            <i class="fa fa-chevron-down"></i>
-                          </button>
-                        </div>
                         <div class="item-info flex-grow-1">
                           <strong>{{ item.id || 'unnamed' }}</strong>
                           <div class="text-muted small">
                             Label: {{ getResolvedLabel(item.labelKey) }} | URL: {{ item.href }}
                           </div>
                         </div>
-                        <div class="item-actions">
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-secondary btn-sm"
-                            (click)="openItemEditor(i, ii)">
-                            Edit
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-danger btn-sm"
-                            (click)="removeItem(i, ii)">
-                            Remove
-                          </button>
+                        <div class="item-actions second-level-toolbar btn-toolbar">
+                          <div class="btn-group btn-group-sm">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="ii === 0"
+                              (click)="moveItem(i, ii, 'up')"
+                              title="Move up"
+                              aria-label="Move item up">
+                              <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="ii === (panel.items?.length || 0) - 1"
+                              (click)="moveItem(i, ii, 'down')"
+                              title="Move down"
+                              aria-label="Move item down">
+                              <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                            </button>
+                          </div>
+                          <div class="btn-group btn-group-sm ms-1">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              (click)="openItemEditor(i, ii)"
+                              title="Edit"
+                              aria-label="Edit item">
+                              <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-danger"
+                              (click)="removeItem(i, ii)"
+                              title="Remove"
+                              aria-label="Remove item">
+                              <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     }

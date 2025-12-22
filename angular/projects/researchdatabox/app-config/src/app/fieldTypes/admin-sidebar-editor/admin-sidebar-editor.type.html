@@ -74,41 +74,45 @@
                   }
                 </div>
               </div>
-              <div class="item-actions btn-group btn-group-sm" (click)="$event.stopPropagation()">
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === 0"
-                  (click)="moveSection(i, 'up')"
-                  title="Move up"
-                  aria-label="Move section up">
-                  <i class="fa fa-arrow-up"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === sections.length - 1"
-                  (click)="moveSection(i, 'down')"
-                  title="Move down"
-                  aria-label="Move section down">
-                  <i class="fa fa-arrow-down"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  (click)="duplicateSection(i)"
-                  title="Duplicate"
-                  aria-label="Duplicate section">
-                  <i class="fa fa-copy"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-danger"
-                  (click)="removeSection(i)"
-                  title="Remove"
-                  aria-label="Remove section">
-                  <i class="fa fa-trash"></i>
-                </button>
+              <div class="item-actions top-level-toolbar btn-toolbar" (click)="$event.stopPropagation()">
+                <div class="btn-group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === 0"
+                    (click)="moveSection(i, 'up')"
+                    title="Move up"
+                    aria-label="Move section up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === sections.length - 1"
+                    (click)="moveSection(i, 'down')"
+                    title="Move down"
+                    aria-label="Move section down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group ms-2">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    (click)="duplicateSection(i)"
+                    title="Duplicate"
+                    aria-label="Duplicate section">
+                    <i class="fa fa-copy"></i> <span class="btn-label">Duplicate</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removeSection(i)"
+                    title="Remove"
+                    aria-label="Remove section">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
               </div>
               <span class="expand-icon ms-2">
                 <i class="fa" [class.fa-chevron-down]="!isSectionExpanded(i)" [class.fa-chevron-up]="isSectionExpanded(i)"></i>
@@ -239,45 +243,51 @@
                   <div class="children-list">
                     @for (item of section.items; track item.id || $index; let itemIdx = $index) {
                       <div class="child-card">
-                        <div class="child-reorder">
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-link"
-                            [disabled]="itemIdx === 0"
-                            (click)="moveItem(i, itemIdx, 'up')"
-                            title="Move up"
-                            aria-label="Move item up">
-                            <i class="fa fa-chevron-up"></i>
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-link"
-                            [disabled]="itemIdx === section.items.length - 1"
-                            (click)="moveItem(i, itemIdx, 'down')"
-                            title="Move down"
-                            aria-label="Move item down">
-                            <i class="fa fa-chevron-down"></i>
-                          </button>
-                        </div>
                         <div class="child-info flex-grow-1">
                           <strong>{{ item.id || 'unnamed' }}</strong>
                           <div class="text-muted small">
                             Label: {{ getResolvedLabel(item.labelKey) }} | URL: {{ item.href }}
                           </div>
                         </div>
-                        <div class="child-actions">
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-secondary btn-sm"
-                            (click)="openItemEditor(i, itemIdx)">
-                            Edit
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-danger btn-sm"
-                            (click)="removeItem(i, itemIdx)">
-                            Remove
-                          </button>
+                        <div class="child-actions second-level-toolbar btn-toolbar">
+                          <div class="btn-group btn-group-sm">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="itemIdx === 0"
+                              (click)="moveItem(i, itemIdx, 'up')"
+                              title="Move up"
+                              aria-label="Move item up">
+                              <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="itemIdx === section.items.length - 1"
+                              (click)="moveItem(i, itemIdx, 'down')"
+                              title="Move down"
+                              aria-label="Move item down">
+                              <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                            </button>
+                          </div>
+                          <div class="btn-group btn-group-sm ms-1">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              (click)="openItemEditor(i, itemIdx)"
+                              title="Edit"
+                              aria-label="Edit item">
+                              <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-danger"
+                              (click)="removeItem(i, itemIdx)"
+                              title="Remove"
+                              aria-label="Remove item">
+                              <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     }
@@ -329,40 +339,45 @@
                   Label: {{ getResolvedLabel(link.labelKey) }} | URL: {{ link.href }}
                 </div>
               </div>
-              <div class="btn-group btn-group-sm">
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === 0"
-                  (click)="moveFooterLink(i, 'up')"
-                  title="Move up"
-                  aria-label="Move footer link up">
-                  <i class="fa fa-arrow-up"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === footerLinks.length - 1"
-                  (click)="moveFooterLink(i, 'down')"
-                  title="Move down"
-                  aria-label="Move footer link down">
-                  <i class="fa fa-arrow-down"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  (click)="openFooterLinkEditor(i)"
-                  aria-label="Edit footer link">
-                  <i class="fa fa-edit"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-danger"
-                  (click)="removeFooterLink(i)"
-                  title="Remove"
-                  aria-label="Remove footer link">
-                  <i class="fa fa-trash"></i>
-                </button>
+              <div class="second-level-toolbar btn-toolbar">
+                <div class="btn-group btn-group-sm">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    [disabled]="i === 0"
+                    (click)="moveFooterLink(i, 'up')"
+                    title="Move up"
+                    aria-label="Move footer link up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    [disabled]="i === footerLinks.length - 1"
+                    (click)="moveFooterLink(i, 'down')"
+                    title="Move down"
+                    aria-label="Move footer link down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group btn-group-sm ms-1">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    (click)="openFooterLinkEditor(i)"
+                    title="Edit"
+                    aria-label="Edit footer link">
+                    <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removeFooterLink(i)"
+                    title="Remove"
+                    aria-label="Remove footer link">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
