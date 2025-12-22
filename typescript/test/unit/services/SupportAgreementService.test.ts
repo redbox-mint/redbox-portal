@@ -327,6 +327,16 @@ describe('The SupportAgreementService', function () {
       const result = SupportAgreementService.validateAgreement(2024, 10, [{ summary: 'Task', days: -1 }]);
       expect(result).to.match(/non-negative days value/);
     });
+
+    it('should reject if usedSupportDays does not match timesheetSummary sum', function () {
+      const result = SupportAgreementService.validateAgreement(2024, 10, [{ summary: 'Task', days: 5 }], 10);
+      expect(result).to.match(/usedSupportDays must match the sum of days in timesheetSummary/);
+    });
+
+    it('should accept if usedSupportDays matches timesheetSummary sum', function () {
+      const result = SupportAgreementService.validateAgreement(2024, 10, [{ summary: 'Task', days: 5 }], 5);
+      expect(result).to.be.null;
+    });
   });
 
   describe('withDerivedTotals()', function () {

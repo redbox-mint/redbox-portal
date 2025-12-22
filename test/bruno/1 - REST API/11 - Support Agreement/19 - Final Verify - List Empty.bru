@@ -26,6 +26,7 @@ tests {
 
   test("Test agreements have been cleaned up (no 2024 or 2025)", function () {
     var jsonData = res.getBody();
+    expect(jsonData).to.have.lengthOf(0);
     var years = jsonData.map(function(a) { return a.year; });
     expect(years).to.not.include(2024);
     expect(years).to.not.include(2025);

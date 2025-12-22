@@ -27,7 +27,7 @@ import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 declare var BrandingService, RolesService, UsersService, SupportAgreementService;
 
-import { Controllers as controllers, BrandingModel } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, BrandingModel, calculateUsedSupportDays } from '@researchdatabox/redbox-core-types';
 import { firstValueFrom } from 'rxjs';
 
 export module Controllers {
@@ -79,8 +79,16 @@ export module Controllers {
       try {
         const brandName = req.session.branding;
         const brand: BrandingModel = BrandingService.getBrand(brandName);
+        if (!brand) {
+          sails.log.error('AdminController.supportAgreementIndex: Brand not found for', brandName);
+          return this.sendView(req, res, '500', { error: 'Brand not found' });
+        }
         const currentYear = new Date().getFullYear();
-        const selectedYear = parseInt(req.query.year) || currentYear;
+        
+        let selectedYear = parseInt(req.query.year);
+        if (!Number.isInteger(selectedYear) || selectedYear < 1900 || selectedYear > 2100) {
+          selectedYear = currentYear;
+        }
 
         // Fetch available years
         let availableYears: number[] = await firstValueFrom(SupportAgreementService.getAvailableYears(brand.id));
@@ -97,12 +105,14 @@ export module Controllers {
 
         // If no agreement exists for the selected year, provide defaults
         if (!agreement) {
+          const defaultTimesheet: any[] = [];
           agreement = {
+            branding: brand.id,
             year: selectedYear,
             agreedSupportDays: 0,
-            usedSupportDays: 0,
+            usedSupportDays: calculateUsedSupportDays(defaultTimesheet),
             releaseNotes: [],
-            timesheetSummary: []
+            timesheetSummary: defaultTimesheet
           };
         }
 

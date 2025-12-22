@@ -139,11 +139,12 @@ export module Controllers {
         const agreement = await firstValueFrom(SupportAgreementService.create(brand.id, year, {
           agreedSupportDays: agreedSupportDays,
           releaseNotes: body.releaseNotes,
-          timesheetSummary: body.timesheetSummary
+          timesheetSummary: body.timesheetSummary,
+          usedSupportDays: body.usedSupportDays
         }));
 
         const response = new APIActionResponse('Support agreement created successfully');
-        (response as any).data = agreement;
+        response.data = agreement;
 
         return this.apiRespond(req, res, response, 201);
       } catch (error) {
@@ -189,11 +190,14 @@ export module Controllers {
         if (body.timesheetSummary !== undefined) {
           updateData.timesheetSummary = body.timesheetSummary;
         }
+        if (body.usedSupportDays !== undefined) {
+          updateData.usedSupportDays = body.usedSupportDays;
+        }
 
         const agreement = await firstValueFrom(SupportAgreementService.update(brand.id, year, updateData));
 
         const response = new APIActionResponse('Support agreement updated successfully');
-        (response as any).data = agreement;
+        response.data = agreement;
 
         return this.apiRespond(req, res, response, 200);
       } catch (error) {

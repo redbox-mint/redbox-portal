@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { Services as services, SupportAgreementModel, ReleaseNoteItem, TimesheetSummaryItem } from '@researchdatabox/redbox-core-types';
+import { map, switchMap } from 'rxjs/operators';
+import { Services as services, SupportAgreementModel, ReleaseNoteItem, TimesheetSummaryItem, calculateUsedSupportDays, validateUsedSupportDays, sanitizeUrl, sanitizeReleaseNotes } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from 'sails';
 
 declare var sails: Sails;
@@ -100,25 +100,38 @@ export module Services {
         agreedSupportDays: number;
         releaseNotes?: ReleaseNoteItem[];
         timesheetSummary?: TimesheetSummaryItem[];
+        usedSupportDays?: number;
       }
     ): Observable<SupportAgreementModel> {
-      const validationError = this.validateAgreement(year, data.agreedSupportDays, data.timesheetSummary);
+      const validationError = this.validateAgreement(year, data.agreedSupportDays, data.timesheetSummary, data.usedSupportDays);
       if (validationError) {
         return new Observable(subscriber => {
           subscriber.error(new Error(validationError));
         });
       }
 
-      const record = {
-        branding: brandId,
-        year: year,
-        agreedSupportDays: data.agreedSupportDays,
-        releaseNotes: data.releaseNotes || [],
-        timesheetSummary: data.timesheetSummary || []
-      };
+      return from(
+        SupportAgreement.findOne({ branding: brandId, year: year })
+      ).pipe(
+        map((existing: any) => {
+          if (existing) {
+            throw new Error(`Support agreement already exists for brand ${brandId} and year ${year}`);
+          }
+          return existing;
+        }),
+        switchMap(() => {
+          const record = {
+            branding: brandId,
+            year: year,
+            agreedSupportDays: data.agreedSupportDays,
+            releaseNotes: sanitizeReleaseNotes(data.releaseNotes),
+            timesheetSummary: data.timesheetSummary || []
+          };
 
-      return from(SupportAgreement.create(record).fetch()).pipe(
-        map((created: any) => this.withDerivedTotals(created))
+          return from(SupportAgreement.create(record).fetch()).pipe(
+            map((created: any) => this.withDerivedTotals(created))
+          );
+        })
       );
     }
 
@@ -136,9 +149,10 @@ export module Services {
         agreedSupportDays?: number;
         releaseNotes?: ReleaseNoteItem[];
         timesheetSummary?: TimesheetSummaryItem[];
+        usedSupportDays?: number;
       }
     ): Observable<SupportAgreementModel> {
-      const validationError = this.validateAgreement(year, data.agreedSupportDays, data.timesheetSummary);
+      const validationError = this.validateAgreement(year, data.agreedSupportDays, data.timesheetSummary, data.usedSupportDays);
       if (validationError) {
         return new Observable(subscriber => {
           subscriber.error(new Error(validationError));
@@ -150,7 +164,7 @@ export module Services {
         updateData.agreedSupportDays = data.agreedSupportDays;
       }
       if (data.releaseNotes !== undefined) {
-        updateData.releaseNotes = data.releaseNotes;
+        updateData.releaseNotes = sanitizeReleaseNotes(data.releaseNotes);
       }
       if (data.timesheetSummary !== undefined) {
         updateData.timesheetSummary = data.timesheetSummary;
@@ -188,7 +202,7 @@ export module Services {
      * @returns The record with usedSupportDays computed.
      */
     public withDerivedTotals(record: any): SupportAgreementModel {
-      const usedDays = this.computeUsedDays(record.timesheetSummary);
+      const usedDays = calculateUsedSupportDays(record.timesheetSummary);
       return {
         id: record.id,
         branding: record.branding,
@@ -203,18 +217,12 @@ export module Services {
     }
 
     /**
-     * Computes the total used days from a timesheetSummary array.
-     * @param timesheetSummary Array of { summary, days } objects.
-     * @returns The sum of days values.
+     * Computes the total used days from a timesheet summary.
+     * @param timesheetSummary Array of timesheet summary items.
+     * @returns The total number of days.
      */
-    public computeUsedDays(timesheetSummary: TimesheetSummaryItem[] | undefined): number {
-      if (!timesheetSummary || !Array.isArray(timesheetSummary)) {
-        return 0;
-      }
-      return timesheetSummary.reduce((total, item) => {
-        const days = typeof item.days === 'number' ? item.days : 0;
-        return total + days;
-      }, 0);
+    public computeUsedDays(timesheetSummary: TimesheetSummaryItem[]): number {
+      return calculateUsedSupportDays(timesheetSummary);
     }
 
     /**
@@ -222,12 +230,14 @@ export module Services {
      * @param year The year (must be a positive integer).
      * @param agreedSupportDays The agreed days (must be non-negative if provided).
      * @param timesheetSummary Optional timesheet summary (each days value must be non-negative).
+     * @param usedSupportDays Optional computed total (must match sum of timesheetSummary if provided).
      * @returns An error message string if invalid, or null if valid.
      */
     public validateAgreement(
       year: number,
       agreedSupportDays?: number,
-      timesheetSummary?: TimesheetSummaryItem[]
+      timesheetSummary?: TimesheetSummaryItem[],
+      usedSupportDays?: number
     ): string | null {
       if (!Number.isInteger(year) || year < 1900 || year > 2200) {
         return 'Year must be a valid integer between 1900 and 2200.';
@@ -240,6 +250,11 @@ export module Services {
           if (typeof item.days !== 'number' || item.days < 0) {
             return 'Each timesheetSummary item must have a non-negative days value.';
           }
+        }
+      }
+      if (usedSupportDays !== undefined && usedSupportDays !== null) {
+        if (!validateUsedSupportDays({ timesheetSummary, usedSupportDays } as any)) {
+          return 'usedSupportDays must match the sum of days in timesheetSummary.';
         }
       }
       return null;
