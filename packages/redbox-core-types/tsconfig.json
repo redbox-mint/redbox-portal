@@ -7,8 +7,7 @@
     "strict": false,
     "inlineSourceMap": true,
     "lib": [
-      "es2023",
-      "dom"
+      "es2023"
     ]
   },
   "include": [
