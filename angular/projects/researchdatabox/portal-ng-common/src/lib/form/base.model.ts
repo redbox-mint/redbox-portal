@@ -48,7 +48,9 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
   }
 
   public override postCreate(): void {
-    this.initValue = _get(this.fieldConfig.config, 'value', this.fieldConfig.config?.defaultValue);
+    // The server processes the form config and combines defaultValue and value into just value.
+    // The client should not check defaultValue.
+    this.initValue = this.fieldConfig.config?.value;
 
     // create the form model
     this.formControl = this.initValue === undefined ? new FormControl() : new FormControl<ValueType>(this.initValue);

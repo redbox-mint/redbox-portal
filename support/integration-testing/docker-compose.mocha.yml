@@ -10,7 +10,7 @@ x-rbportal-env: &rbportal-env
   - sails_record__baseUrl_redbox=http://redbox:9000/redbox
   - sails_record__baseUrl_mint=http://203.101.226.160/mint
   - sails_redbox__mochaTesting=true
-  - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
   - datacite_username=${datacite_username:-}
   - datacite_password=${datacite_password:-}
@@ -28,8 +28,8 @@ x-rbportal-depends: &rbportal-depends
     condition: 'service_healthy'
 
 x-rbportal-service: &rbportal-service
-  image: redbox-portal:test
-  pull_policy: 'never'
+  image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+  pull_policy: 'missing'
   user: root
   ports:
     - "1500:1500"
@@ -60,10 +60,11 @@ x-rbportal-service: &rbportal-service
 services:
   redboxportal:
     <<: *rbportal-service
+    profiles: [portal]
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
-    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    ports: []
     volumes:
       - "../../:/opt/redbox-portal:delegated"
       - "../../.tmp/attachments:/attachments"

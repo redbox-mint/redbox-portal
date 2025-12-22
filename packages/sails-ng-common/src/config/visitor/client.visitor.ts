@@ -211,7 +211,9 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         this.processFieldComponentDefinition(item);
 
-        item.config?.elementTemplate?.accept(this);
+        if (item.config?.elementTemplate) {
+            this.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+        }
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -619,7 +621,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
 
         // Set an empty config if the form config didn't include one.
-        if (item.config === undefined || !_isPlainObject(item.config)) {
+        if (item.config === null || item.config === undefined) {
             item.config = {};
         }
 

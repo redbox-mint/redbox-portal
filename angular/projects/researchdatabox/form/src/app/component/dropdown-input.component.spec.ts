@@ -28,7 +28,7 @@ describe('DropdownInputComponent', () => {
           model: {
             class: 'DropdownInputModel',
             config: {
-              defaultValue: 'b',
+              value: 'b',
             },
           },
           component: {

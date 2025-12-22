@@ -3,6 +3,7 @@ export * from "./record.model";
 export * from "./report.model";
 export * from "./status.model";
 export * from "./template.outline";
+export * from "./handlebars-helpers";
 // config
 export * from "./config/helpers";
 export * from "./config/dictionary.outline";
@@ -22,6 +23,7 @@ export * from "./config/field.outline";
 export * from "./config/field.model";
 export * from "./config/base-field-component.outline";
 export * from "./config/base-field-component.model";
+export * from "./config/names/naming-helpers";
 // config/visitor
 export * from "./config/visitor/base.outline";
 export * from "./config/visitor/base.model";

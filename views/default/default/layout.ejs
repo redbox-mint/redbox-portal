@@ -16,9 +16,9 @@
   </title>
 
   <!-- Google Fonts -->
-  <link href='//fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
-  <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
-  <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
 
 
   <!-- Custom CSS -->
@@ -59,10 +59,10 @@
         <div class="col-md-4">
           <div class="mt-3" >
             <div class="dropdown pull-right">
-                <% 
+                <%
                   // Use available languages from the i18nLanguages policy
                   const languages = (typeof availableLanguages !== 'undefined' && availableLanguages) ? availableLanguages : [{ code: 'en', displayName: 'English' }];
-                  if (languages.length > 1) { 
+                  if (languages.length > 1) {
                     // Find current language display name
                     const currentLang = languages.find(l => l.code === lang) || languages[0];
                   %>
@@ -81,10 +81,10 @@
                         <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= language.displayName %></a></li>
                         <%
                       }
-                    } 
+                    }
                   %>
                   </ul>
-                    <% 
+                    <%
                   }
                 %>
             </div>
@@ -118,7 +118,7 @@
   <!-- End mainmenu area -->
 <% if (typeof title!== 'undefined') { %>
 <% } %>
- 
+
 <% if (sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.enabled === true) { %>
   <div id="system-message-area" class="container">
   <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
@@ -144,8 +144,8 @@
 
   </div>
 
-  
-  <script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+
+  <script <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
   document.addEventListener('DOMContentLoaded', function () {
     // Remove any pre-existing active classes from nav items
     document.querySelectorAll('li.active').forEach(function (li) {

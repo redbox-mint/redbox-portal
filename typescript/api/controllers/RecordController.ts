@@ -162,7 +162,9 @@ export module Controllers {
 
       // get the default data model for the form with 'name'
       const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, editMode ? "edit" : "view");
+      const formMode = editMode ? "edit" : "view";
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, formMode, reusableFormDefs);
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
@@ -179,7 +181,7 @@ export module Controllers {
     public edit(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
-      const recordType = req.param('recordType') ? req.param('recordType') : '';
+      let recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
       let localFormName;
       if (!_.isUndefined(req.options.locals) && !_.isNull(req.options.locals)) {
@@ -234,6 +236,9 @@ export module Controllers {
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
+          }
+          if (!recordType) {
+            recordType = form['type'];
           }
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
@@ -332,15 +337,16 @@ export module Controllers {
               v1: {message: msg}
             });
           }
-          let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-          FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
+          // let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+          // FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
         }
 
         // process the form config to provide only the fields accessible by the current user
         const formMode = editMode ? "edit" : "view";
         const userRoles = req.user?.roles || [];
         const recordData = currentRec;
-        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData);
+        const reusableFormDefs = sails.config.reusableFormDefinitions;
+        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData?.metadata, reusableFormDefs);
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {

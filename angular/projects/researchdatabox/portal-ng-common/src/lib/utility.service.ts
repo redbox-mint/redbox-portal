@@ -17,10 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Injectable, computed, Signal} from '@angular/core';
+import {Injectable, computed, Signal, Inject} from '@angular/core';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find, trim as _trim } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
+import { LoggerService } from './logger.service';
 /**
  * Utility service...
  *
@@ -29,6 +30,12 @@ import { Initable } from './initable.interface';
  */
 @Injectable()
 export class UtilityService {
+
+  private dynamicImportCache: Map<string, any> = new Map();
+
+  constructor(
+    @Inject(LoggerService) private loggerService: LoggerService
+  ) {}
 
   /**
    * returns concatenated string
@@ -124,13 +131,13 @@ export class UtilityService {
 
 
   public logSubscribeDebugToConsole(data: any, config: any, field: any) {
-    console.log("Logging subscription information" )
-    console.log("The data is:" )
-    console.log(JSON.stringify(data))
-    console.log("Config is:" )
-    console.log(JSON.stringify(config))
-    console.log("Field is:" )
-    console.log(JSON.stringify(field))
+    this.loggerService.log("Logging subscription information" )
+    this.loggerService.log("The data is:" )
+    this.loggerService.log(JSON.stringify(data))
+    this.loggerService.log("Config is:" )
+    this.loggerService.log(JSON.stringify(config))
+    this.loggerService.log("Field is:" )
+    this.loggerService.log(JSON.stringify(field))
     return data;
   }
 
@@ -187,7 +194,7 @@ export class UtilityService {
           } else {
             fieldValues.push(value);
           }
-          console.log(fieldValues);
+          this.loggerService.log(fieldValues);
         }
       }
     }
@@ -347,7 +354,7 @@ export class UtilityService {
       value = _get(data,field);
     }
     const converted = DateTime.fromFormat(value, formatOrigin).toFormat(formatTarget);
-    console.log(`convertToDateFormat ${converted}`);
+    this.loggerService.log(`convertToDateFormat ${converted}`);
     return converted;
   }
 
@@ -413,12 +420,24 @@ export class UtilityService {
     }
     const path = (urlPath || []).join('/');
     const rawUrl = `${brandingAndPortalUrl}/${path}`;
-    console.debug(`getDynamicImport rawUrl ${rawUrl}`);
+
+    if (this.dynamicImportCache.has(rawUrl)) {
+      this.loggerService.debug(`getDynamicImport returning cached module for ${rawUrl}`);
+      return this.dynamicImportCache.get(rawUrl);
+    }
+
+    this.loggerService.debug(`getDynamicImport rawUrl ${rawUrl}`);
     const url = new URL(`${brandingAndPortalUrl}/${path}`);
 
     const ts = new Date().getTime().toString();
     url.searchParams.set('ts', ts);
 
-    return await import(url.toString());
+    const module = await import(url.toString());
+    this.dynamicImportCache.set(rawUrl, module);
+    return module;
+  }
+
+  public clearDynamicImportCache() {
+    this.dynamicImportCache.clear();
   }
 }

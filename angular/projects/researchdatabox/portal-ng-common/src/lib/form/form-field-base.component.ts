@@ -11,7 +11,8 @@ import {
   FieldComponentDefinitionFrame,
   FieldLayoutDefinitionFrame,
   FieldLayoutConfigFrame,
-  FormFieldComponentStatus
+  FormFieldComponentStatus,
+  LineagePaths
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
@@ -97,7 +98,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       // Create a method that children can override to prepare their state.
       await this.setComponentReady();
     } catch (error) {
-      this.loggerService.error(`${this.logName}: initialise component failed`, error);
+      this.loggerService.error(`${this.logName}: initialise component failed for '${name}':`, error);
       this.status.set(FormFieldComponentStatus.ERROR);
     }
   }
@@ -543,12 +544,4 @@ export interface FormFieldCompMapEntry {
   // optional control map to support 'container' like components that don't have a model themselves
   formControlMap?: { [key: string]: FormControl };
   lineagePaths?: LineagePaths;
-}
-
-export type LineagePath = (string | number)[];
-
-export interface LineagePaths {
-  formConfig: LineagePath;
-  dataModel: LineagePath;
-  angularComponents: LineagePath;
 }

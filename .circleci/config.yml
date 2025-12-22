@@ -99,6 +99,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -106,6 +108,9 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -157,6 +162,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -164,6 +171,9 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -215,6 +225,8 @@ jobs:
     machine:
       image: ubuntu-2004:current
     resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
       - attach_workspace:
@@ -222,6 +234,9 @@ jobs:
       - run:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -325,7 +340,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /home/circleci/project
+          at: /tmp
       - run:
           name: Install codecov
           command: |
@@ -389,7 +404,6 @@ jobs:
             fi
             export DEPLOY_TAG=${TAG//\//-}
             export REPO=${REPO:-qcifengineering/redbox-portal}
-
             # Tag and push the tested amd64 image
             docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
@@ -494,7 +508,6 @@ jobs:
           no_output_timeout: 30m
           command: |
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
             # Determine the tag
             if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
               export TAG="$CIRCLE_BRANCH"
@@ -505,7 +518,6 @@ jobs:
             fi
             export DEPLOY_TAG=${TAG//\//-}
             export REPO=${REPO:-qcifengineering/redbox-portal}
-
             docker build \
               --progress plain \
               --target runtime \
@@ -522,7 +534,6 @@ jobs:
           name: Create and push multi-arch manifest
           command: |
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
             # Determine the tag
             if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
               export TAG="$CIRCLE_BRANCH"
@@ -533,7 +544,6 @@ jobs:
             fi
             export DEPLOY_TAG=${TAG//\//-}
             export REPO=${REPO:-qcifengineering/redbox-portal}
-
             docker manifest create "${REPO}:${DEPLOY_TAG}" \
               "${REPO}:${DEPLOY_TAG}-amd64" \
               "${REPO}:${DEPLOY_TAG}-arm64"
@@ -672,6 +682,7 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
+
       - generate-docs:
           requires:
             - test-bruno-general
@@ -886,3 +897,4 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+
