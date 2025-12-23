@@ -1,6 +1,8 @@
+declare var TranslationService: any;
 describe('The TriggerService', function () {
-    before(function (done) {
-        done();
+    before(async function () {
+        // Ensure translations are loaded
+        await TranslationService.bootstrap();
     });
     describe('should validate fields using regex', function () {
         it('valid value passes', async function () {
