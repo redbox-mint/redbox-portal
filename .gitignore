@@ -130,7 +130,7 @@ nbproject
 # Typescript stuff
 #
 ###################################################
-typescript/controllers/*.js
+internal/sails-ts/controllers/*.js
 api/controllers/typescript/*.js
 api/controllers/typescript/webservice/*.js
 assets/angular/**/*.js
@@ -178,10 +178,11 @@ RecordController.js
 redbox-portal/assets/angular
 www
 api/controllers/**/*.js
-typescript/api/controllers/**/*.js
-typescript/api/services/**/*.js
+internal/sails-ts/api/controllers/**/*.js
+internal/sails-ts/api/services/**/*.js
 assets/angular
 api/core/**/*.js
+api/models/
 dev
 .dev
 api/models/Record.js
@@ -216,3 +217,4 @@ docs/
 test/unit/**/*.test.js
 
 test/unit/.mocharc.js
+internal/typescript-models/**/*.js
