@@ -3,6 +3,7 @@ export * from "./record.model";
 export * from "./report.model";
 export * from "./status.model";
 export * from "./template.outline";
+export * from "./handlebars-helpers";
 // config
 export * from "./config/helpers";
 export * from "./config/dictionary.outline";

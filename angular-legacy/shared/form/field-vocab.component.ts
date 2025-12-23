@@ -919,8 +919,13 @@ export class VocabFieldComponent extends SimpleComponent {
         // means user can't edit, so no worries!
         this.field.setValue(null, emitEvent, updateTitle);
       } else {
-        // set whatever value on the searchStr, let the fields decide how to parse the string...
-        this.field.setValue(this.field.getValue(this.field.searchStr), emitEvent, updateTitle);
+        // Fixed: when previously selected value is modified to a non-match, we need to clear the value
+        if (this.field.restrictToSelection) {
+          this.field.setEmptyValue(false);
+        } else {
+          // set whatever value on the searchStr, let the fields decide how to parse the string...
+          this.field.setValue(this.field.getValue(this.field.searchStr), emitEvent, updateTitle);
+        }
       }
     }
   }

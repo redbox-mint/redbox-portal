@@ -19,8 +19,8 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import {BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import {TemplateCompileInput} from "@researchdatabox/sails-ng-common";
+import { BrandingModel, Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
 
 declare var module;
@@ -30,6 +30,8 @@ declare var FormsService;
 declare var BrandingService;
 declare var FormRecordConsistencyService;
 declare var RecordsService;
+declare var DashboardTypesService;
+declare var ReportsService;
 
 /**
  * Package that contains all Controllers.
@@ -46,13 +48,13 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'get',
-        'getFormCompiledItems',
-        'getFormStructureValidations',
-        'getFormDataValidations',
-        'getFormExpressions',
-        'getAdminReportTemplates',
-        'getRecordDashboardTemplates',
+      'get',
+      'getFormCompiledItems',
+      'getFormStructureValidations',
+      'getFormDataValidations',
+      'getFormExpressions',
+      'getAdminReportTemplates',
+      'getRecordDashboardTemplates',
     ];
 
     private _recordTypeAuto = "auto";
@@ -73,7 +75,7 @@ export module Controllers {
       let assetId = req.param("asset");
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
-      this.sendAssetView(res, assetId, {layout: false});
+      this.sendAssetView(res, assetId, { layout: false });
     }
 
     public async getFormCompiledItems(req, res) {
@@ -151,11 +153,17 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public getAdminReportTemplates(req, res) {
+    public async getAdminReportTemplates(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const reportName = req.param("reportName") || "";
-      // TODO:
-      const entries = [];
-      return this.sendClientMappingJavascript(res, entries);
+
+      try {
+        const entries = await ReportsService.extractReportTemplates(brand, reportName);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build report templates:", error);
+        return res.serverError();
+      }
     }
 
     /**
@@ -163,12 +171,24 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public getRecordDashboardTemplates(req, res) {
-      const recordType = req.param("name") || "";
+    public async getRecordDashboardTemplates(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const recordType = req.param("recordType") || "";
       const workflowStage = req.param("workflowStage") || "";
-      // TODO:
-      const entries = [];
-      return this.sendClientMappingJavascript(res, entries);
+      const dashboardType = req.param("dashboardType") || "standard";
+
+      if (!recordType || !workflowStage) {
+        sails.log.warn(`getRecordDashboardTemplates called without recordType or workflowStage`);
+        return this.sendClientMappingJavascript(res, []);
+      }
+
+      try {
+        const entries = await DashboardTypesService.extractDashboardTemplates(brand, recordType, workflowStage, dashboardType);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build dashboard templates:", error);
+        return res.serverError();
+      }
     }
 
     private isNewRecord(recordType: string, oid: string): boolean {
@@ -185,12 +205,12 @@ export module Controllers {
       const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
       const assetId = "dynamicScriptAsset";
       sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
-        return this.sendAssetView(res, assetId, {
-            entries: entries.map(i => {
-                return {key: TemplateService.buildKeyString(i.key), value: i.value}
-            }),
-            layout: false
-        });
+      return this.sendAssetView(res, assetId, {
+        entries: entries.map(i => {
+          return { key: TemplateService.buildKeyString(i.key), value: i.value }
+        }),
+        layout: false
+      });
     }
 
     private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {
@@ -202,11 +222,11 @@ export module Controllers {
       return res.view(dynamicAssetInfo.view, viewContext);
     }
 
-      /**
-     **************************************************************************************************
-     **************************************** Override magic methods **********************************
-     **************************************************************************************************
-     */
+    /**
+   **************************************************************************************************
+   **************************************** Override magic methods **********************************
+   **************************************************************************************************
+   */
   }
 }
 

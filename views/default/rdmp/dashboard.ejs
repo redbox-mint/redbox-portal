@@ -1,5 +1,34 @@
-<link href='//fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
 <% let appName='dashboard' ; %>
+<% if (typeof showAdminSideBar !== 'undefined' && showAdminSideBar) { %>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('../default/admin/layout/sidebar.ejs') %>
+  </div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <div class="default-page">
+      <div class="header">
+        <h1 id="main-title" class="container">
+          <%= titleLabel %>
+        </h1>
+      </div>
+      <div class="main container clearfix">
+        <dashboard recordType="<%= typeof recordType == 'undefined'? data.recordType : recordType %>"
+          dashboardType="standard" packageType="<%= typeof packageType == 'undefined' ? data.recordType : packageType %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+          <div class="col-xs-1">
+          </div>
+          <div class="col-xs-10">
+            <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg"
+              alt="<%= TranslationService.t('loading-alt-text') %>">
+          </div>
+          <div class="col-xs-1">
+          </div>
+        </dashboard>
+      </div>
+    </div>
+  </div>
+</div>
+<% } else { %>
   <div class="default-page">
     <div class="header">
       <h1 id="main-title" class="container">
@@ -20,6 +49,7 @@
       </dashboard>
     </div>
 </div>
+<% } %>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
   type="module"></script>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"

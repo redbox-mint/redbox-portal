@@ -1,13 +1,13 @@
 import {cloneDeep as _cloneDeep, set as _set} from "lodash";
 import {Component, inject, Injector, Input} from '@angular/core';
-import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
+import {FormFieldBaseComponent, HandlebarsTemplateService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
 import {
   ContentComponentName,
   ContentFieldComponentConfig,
   FormFieldComponentStatus
 } from "@researchdatabox/sails-ng-common";
-import * as Handlebars from 'handlebars';
+
 
 /*
  * *** Migration Notes ***
@@ -53,6 +53,8 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   @Input() public override model?: never;
 
   private injector = inject(Injector);
+  private formService = inject(FormService);
+  private handlebarsTemplateService = inject(HandlebarsTemplateService);
 
   /*
    * The below template is a reference that needs to be taken into account for legacy compatibility
@@ -92,7 +94,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
 
         // The variables available to the template.
         const context = {value: value, formValue: formValue};
-        const extra = {libraries: {Handlebars: Handlebars}};
+        const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         this.content = compiledItems.evaluate(templateLineagePath, context, extra);
       } catch (error) {

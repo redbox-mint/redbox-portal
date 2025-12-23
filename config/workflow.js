@@ -117,25 +117,25 @@ module.exports.workflow = {
           editRoles: ['Admin', 'Librarians']
         },
         form: 'existing-locations-1.0-draft',
-        
+
         dashboard: {
           table: {
             rowConfig: [
               {
                 title: '@workspace-name',
                 variable: 'metadata.title',
-                template: "<%= metadata.title %>",
+                template: "{{metadata.title}}",
                 initialSort: 'desc'
               },
               {
                 title: '@workspace-type',
                 variable: 'metadata.storage_type',
-                template: "<%= metadata.storage_type %>"
+                template: "{{metadata.storage_type}}"
               },
               {
                 title: '@related-rdmp-title',
                 variable: 'metadata.rdmpOid',
-                template: "<a href='/<%= branding %>/<%= portal %>/record/view/<%= metadata.rdmpOid %>'><%= metadata.rdmpTitle %></a>"
+                template: "<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{metadata.rdmpOid}}'>{{metadata.rdmpTitle}}</a>"
               }
             ]
           }
@@ -163,50 +163,50 @@ module.exports.workflow = {
               {
                 title: 'header-record-type',
                 variable: 'metaMetadata.type',
-                template: '<%= metaMetadata.type %>',
-                
+                template: '{{metaMetadata.type}}',
+
               },
               {
                 title: 'Record Title',
                 variable: 'metadata.title',
-                template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
+                template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
                             <span class="dashboard-controls">
-                              <% if(hasEditAccess) { %>
-                                <a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
-                              <% } %>
+                              {{#if hasEditAccess}}
+                                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+                              {{/if}}
                             </span>
                           `
               },
               {
                 title: 'header-ci',
                 variable: 'metadata.contributor_ci.text_full_name',
-                template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
-                
+                template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
+
               },
               {
                 title: 'header-created',
                 variable: 'metaMetadata.createdOn',
-                template: '<%= dateCreated %>',
-                
+                template: '{{dateCreated}}',
+
               },
               {
                 title: 'header-modified',
                 variable: 'metaMetadata.lastSaveDate',
-                template: '<%= dateModified %>'
+                template: '{{dateModified}}'
               },
               {
                 title: 'Actions',
                 variable: '',
-                template: `<%= rulesService.evaluateRowLevelRules(rulesConfig, metadata, metaMetadata, workflow, oid, 'dashboardActionsPerRow') %>`
+                template: `{{evaluateRowLevelRules rulesConfig metadata metaMetadata workflow oid "dashboardActionsPerRow"}}`
               }
             ],
             formatRules: {
-              filterBy: {filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' }, //filterBase can only have two values user or record
+              filterBy: { filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' }, //filterBase can only have two values user or record
               sortBy: '',
               groupBy: 'groupedByRecordType', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
-              sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }, 
-                            { rowLevel: 1, compareFieldValue: 'dataRecord' }, 
-                            { rowLevel: 2, compareFieldValue: 'dataPublication'}] //values: as many levels as required
+              sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' },
+              { rowLevel: 1, compareFieldValue: 'dataRecord' },
+              { rowLevel: 2, compareFieldValue: 'dataPublication' }] //values: as many levels as required
             },
             rowRulesConfig: [
               {
@@ -214,68 +214,68 @@ module.exports.workflow = {
                 applyRuleSet: true, //easy way to enable or desable the whole rule set
                 type: 'multi-item-rendering',
                 separator: ' | ',
-                rules: [ 
-                    {
-                      name: 'Edit', 
-                      action: 'show', //options show / hide
-                      renderItemTemplate: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/edit/<%= oid %>'><%= name %></a>`,
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' %>`  
-                    },
-                    {
-                      name: 'Create dataset from this plan', 
-                      action: 'show', //options show / hide
-                      renderItemTemplate: '<%= name %>',
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' && _.get(metaMetadata, 'type') == 'rdmp' %>`
-                    },
-                    {
-                      name: 'Close data plan', 
-                      action: 'show', //options show / hide
-                      renderItemTemplate: '<%= name %>',
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' && _.get(metaMetadata, 'type') == 'rdmp' %>`
-                    },
-                    {
-                      name: 'Create a publication record from this dataset', 
-                      action: 'show', //options show / hide
-                      renderItemTemplate: '<%= name %>',
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' && _.get(metaMetadata, 'type') == 'dataRecord' %>`
-                    },
-                    {
-                      name: 'Close dataset info', 
-                      action: 'show', //options show / hide
-                      renderItemTemplate: '<%= name %>',
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' && _.get(metaMetadata, 'type') == 'dataRecord' %>`
-                    },
-                    {
-                      name: 'Submit for library review', 
-                      action: 'show', //options show / hide
-                      renderItemTemplate: '<%= name %>',
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' && _.get(metaMetadata, 'type') == 'dataPublication' %>`
-                    }
-                  ]
-                }
-              ],
-              groupRowConfig: [
-                {
-                  title: 'Actions',
-                  variable: '',
-                  template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
-                }
-              ],
-              groupRowRulesConfig: [
-                {
-                  ruleSetName: 'dashboardActionsPerGroupRow',
-                  applyRuleSet: true, //easy way to enable or desable the whole rule set
-                  rules: [ 
-                    {
-                      name: 'Send for Conferral', 
-                      action: 'show', //options show / hide
-                      mode: 'alo', //options 'all' members of the group pass the rule or 'alo' at least one member of the group row passes the rule
-                      renderItemTemplate: `<%= name %>`,
-                      evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' %>`
-                    }
-                  ]
-                }
-              ]
+                rules: [
+                  {
+                    name: 'Edit',
+                    action: 'show', //options show / hide
+                    renderItemTemplate: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}'>{{name}}</a>`,
+                    evaluateRulesTemplate: `{{eq (get workflow "stage") "draft"}}`
+                  },
+                  {
+                    name: 'Create dataset from this plan',
+                    action: 'show', //options show / hide
+                    renderItemTemplate: '{{name}}',
+                    evaluateRulesTemplate: `{{and (eq (get workflow "stage") "draft") (eq (get metaMetadata "type") "rdmp")}}`
+                  },
+                  {
+                    name: 'Close data plan',
+                    action: 'show', //options show / hide
+                    renderItemTemplate: '{{name}}',
+                    evaluateRulesTemplate: `{{and (eq (get workflow "stage") "draft") (eq (get metaMetadata "type") "rdmp")}}`
+                  },
+                  {
+                    name: 'Create a publication record from this dataset',
+                    action: 'show', //options show / hide
+                    renderItemTemplate: '{{name}}',
+                    evaluateRulesTemplate: `{{and (eq (get workflow "stage") "draft") (eq (get metaMetadata "type") "dataRecord")}}`
+                  },
+                  {
+                    name: 'Close dataset info',
+                    action: 'show', //options show / hide
+                    renderItemTemplate: '{{name}}',
+                    evaluateRulesTemplate: `{{and (eq (get workflow "stage") "draft") (eq (get metaMetadata "type") "dataRecord")}}`
+                  },
+                  {
+                    name: 'Submit for library review',
+                    action: 'show', //options show / hide
+                    renderItemTemplate: '{{name}}',
+                    evaluateRulesTemplate: `{{and (eq (get workflow "stage") "draft") (eq (get metaMetadata "type") "dataPublication")}}`
+                  }
+                ]
+              }
+            ],
+            groupRowConfig: [
+              {
+                title: 'Actions',
+                variable: '',
+                template: `{{evaluateGroupRowRules groupRulesConfig groupedItems "dashboardActionsPerGroupRow"}}`
+              }
+            ],
+            groupRowRulesConfig: [
+              {
+                ruleSetName: 'dashboardActionsPerGroupRow',
+                applyRuleSet: true, //easy way to enable or desable the whole rule set
+                rules: [
+                  {
+                    name: 'Send for Conferral',
+                    action: 'show', //options show / hide
+                    mode: 'alo', //options 'all' members of the group pass the rule or 'alo' at least one member of the group row passes the rule
+                    renderItemTemplate: `{{name}}`,
+                    evaluateRulesTemplate: `{{eq (get workflow "stage") "draft"}}`
+                  }
+                ]
+              }
+            ]
           }
         }
       },
@@ -301,31 +301,31 @@ module.exports.workflow = {
               {
                 title: 'Party Name',
                 variable: 'metadata.GIVEN_NAME',
-                template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.GIVEN_NAME %> <%= metadata.FAMILY_NAME %></a>`,
+                template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.GIVEN_NAME}} {{metadata.FAMILY_NAME}}</a>`,
                 initialSort: 'desc'
               },
               {
                 title: 'Party Title',
                 variable: 'metadata.JOB_TITLE',
-                template: '<%= metadata.JOB_TITLE %>',
+                template: '{{metadata.JOB_TITLE}}',
                 initialSort: 'desc'
               },
               {
                 title: 'Party Email',
                 variable: 'metadata.EMAIL',
-                template: '<%= metadata.EMAIL %>',
+                template: '{{metadata.EMAIL}}',
                 initialSort: 'desc'
               },
               {
                 title: 'header-created',
                 variable: 'metaMetadata.createdOn',
-                template: '<%= util.formatDateLocale(util.parseDateString(dateCreated), "DATETIME_MED") %>',
+                template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
                 initialSort: 'desc'
               },
               {
                 title: 'header-modified',
                 variable: 'metaMetadata.lastSaveDate',
-                template: '<%= util.formatDateLocale(util.parseDateString(dateModified),"DATETIME_MED") %>',
+                template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
                 initialSort: 'desc'
               }
             ]
