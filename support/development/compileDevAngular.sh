@@ -18,14 +18,15 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc 
+nvm install
+nvm use
 ARCH=$(uname -m)
 if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
   echo "Detected ARM64 architecture"
-  npm install --save-dev @esbuild/linux-arm64
+  npm install --save-dev @esbuild/linux-arm64 --ignore-scripts --strict-peer-deps
 else
   echo "Detected $ARCH architecture"
-  npm install
+  npm install --ignore-scripts --strict-peer-deps
 fi
 
 if [ "$2" == "--watch" ]; then
@@ -39,12 +40,12 @@ cp ../support/build/angular-i18next-index.d.ts node_modules/angular-i18next/inde
 if [ $# -ne 0 ]
   then
     buildAngularApp "$1"
-else 
+else
   # Check if the custom form components directory is included in this build. Set `BUILD_PORTAL_NG_FORM_CUSTOM` to true if you want to build the custom form components.
   if [ "$BUILD_PORTAL_NG_FORM_CUSTOM" == "true" ]; then
     # Check if the custom form components placeholder is available one directory up from the parent, clone if not...
     PORTAL_NG_FORM_CUSTOM_DIR="../../portal-ng-form-custom"
-    if [[ -d "${PORTAL_NG_FORM_CUSTOM_DIR}" ]]; then 
+    if [[ -d "${PORTAL_NG_FORM_CUSTOM_DIR}" ]]; then
       echo "Custom form component placeholder already available"
     else
       echo "Cloning custom form component placeholder..."
@@ -56,14 +57,14 @@ else
       PORTAL_NG_FORM_CUSTOM_BRANCH="$3"
       CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
       if [ $? -ne 0 ]; then
-        if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then 
+        if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
           echo "Custom form branch specified, using ${PORTAL_NG_FORM_CUSTOM_BRANCH}"
           CURRENT_BRANCH="$PORTAL_NG_FORM_CUSTOM_BRANCH"
         else
           echo "No core branch specified, using default branch for core and custom form repositories"
           CURRENT_BRANCH=""
-        fi 
-      else 
+        fi
+      else
         if [ -z "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
           echo "No custom branch repo specified, checking current core branch '${CURRENT_BRANCH}'"
           if [ "$CURRENT_BRANCH" != "master" ]; then
@@ -82,7 +83,7 @@ else
         git checkout "${PORTAL_NG_FORM_CUSTOM_BRANCH}"
         cd -
       fi
-    fi 
+    fi
   fi
   echo "Building core..."
   buildAngularApp "portal-ng-common" "ignore-ouput"
@@ -90,13 +91,13 @@ else
   if [ "$BUILD_PORTAL_NG_FORM_CUSTOM" == "true" ]; then
     echo "Building form-custom..."
     cd "${PORTAL_NG_FORM_CUSTOM_DIR}/projects/researchdatabox/portal-ng-form-custom"
-    npm i
+    npm install --ignore-scripts --strict-peer-deps
     cd -
     cp angular.json angular-orig.json
     cp angular-custom.json angular.json
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
     mv angular-orig.json angular.json
-  else 
+  else
     echo "Building form-custom placeholder..."
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
   fi
