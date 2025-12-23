@@ -91,7 +91,7 @@
     "debug": "node debug app.js",
     "start": "node app.js",
 
-    "generate:models": "ts-node scripts/generate-models.ts",
+    "generate:models": "ts-node internal/typescript-models/scripts/generate-models.ts",
     "test:mocha": "docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal redboxportal",
     "test:mocha:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal-mount redboxportal-mount",
     "test:mocha:clean": "docker compose --profile portal --profile mount -f ./support/integration-testing/docker-compose.mocha.yml down",
@@ -111,7 +111,7 @@
     "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
     "compile:core": "cd packages/redbox-core-types && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
-    "compile:all": "npm run compile:core && npm run compile:sails-ng-common && npm run compile:sails && npm run compile:ng && npm run webpack",
+    "compile:all": "npm run compile:core && npm run compile:sails-ng-common && npm run generate:models && npm run compile:sails && npm run compile:ng && npm run webpack",
     "compile:core:prod": "cd packages/redbox-core-types && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",

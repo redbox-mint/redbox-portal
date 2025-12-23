@@ -2,7 +2,7 @@
     "extends": "@tsconfig/node18/tsconfig.json",   
     "compilerOptions": {
       "outDir": "./",
-      "rootDir": "./typescript",
+      "rootDir": "./internal/sails-ts",
       "strict": false,
       "inlineSourceMap": true,
       "experimentalDecorators": true,
@@ -19,9 +19,9 @@
       "angular/**"
     ],
     "include": [
-      "typescript/**/*.ts",
-      "typescript/**/*.d.ts",
-      "typescript/test/unit/.mocharc.ts"
+      "internal/sails-ts/**/*.ts",
+      "internal/sails-ts/**/*.d.ts",
+      "internal/sails-ts/test/unit/.mocharc.ts"
     ],
     "compileOnSave": true,
     "buildOnSave": false,
