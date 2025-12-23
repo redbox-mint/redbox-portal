@@ -15,6 +15,7 @@ function testAngular() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
+nvm install
 nvm use
 npm install --ignore-scripts --strict-peer-deps
 

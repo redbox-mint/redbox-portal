@@ -6,6 +6,7 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
+nvm install
 nvm use
 npm ci --ignore-scripts --strict-peer-deps
 
