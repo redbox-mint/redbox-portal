@@ -111,7 +111,6 @@ function indentLines(value: string, indentSize: number): string {
 function buildModelModule(meta: EntityMeta): string {
   const definition: WaterlineModelDefinition = toWaterlineModelDef(meta);
   const {
-    identity,
     primaryKey,
     attributes,
     ...rest
@@ -129,9 +128,8 @@ function buildModelModule(meta: EntityMeta): string {
   const lifecycleSet = new Set(lifecycleHooks);
   const lines: string[] = [];
   lines.push('module.exports = {');
-  lines.push(`  identity: '${identity}',`);
   lines.push(`  primaryKey: '${primaryKey}',`);
-  const emittedKeys = new Set<string>(['identity', 'primaryKey', 'attributes']);
+  const emittedKeys = new Set<string>([ 'primaryKey', 'attributes', 'identity']);
   const orderedKeys: string[] = [
     'tableName',
     'datastore',
@@ -166,11 +164,18 @@ function buildModelModule(meta: EntityMeta): string {
       | Function[]
       | undefined;
     if (handlers && handlers.length) {
-      lines.push(`  ${hook}: [`);
-      handlers.forEach(handler => {
-        lines.push(`${indentLines(handler.toString(), 4)},`);
-      });
-      lines.push('  ],');
+      if (handlers.length === 1) {
+        // Unwrap single handler to avoid array wrapper which might confuse Sails 1.0
+        // We use trimLeft() on the first line to align it with the property key
+        const indented = indentLines(handlers[0].toString(), 2);
+        lines.push(`  ${hook}: ${indented.trimStart()},`);
+      } else {
+        lines.push(`  ${hook}: [`);
+        handlers.forEach(handler => {
+          lines.push(`${indentLines(handler.toString(), 4)},`);
+        });
+        lines.push('  ],');
+      }
     }
   }
   lines.push('};');
@@ -207,7 +212,7 @@ function buildTypeDefinition(meta: EntityMeta): string {
   const attributes = meta.attributes;
   const lines: string[] = [];
   // Import sails to ensure global types are available and to make this a module
-  lines.push(`import '../../sails';`);
+  lines.push(`/// <reference path="../sails.ts" />`);
   lines.push(`import { JsonMap } from './types';`);
   lines.push('');
   const attributeEntries = Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b));

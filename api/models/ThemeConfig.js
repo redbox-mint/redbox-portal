@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'themeconfig',
   primaryKey: 'id',
   tableName: 'themeconfig',
   attributes: {

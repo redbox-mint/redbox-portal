@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'workspaceapp',
   primaryKey: 'id',
   tableName: 'workspaceapp',
   indexes: [

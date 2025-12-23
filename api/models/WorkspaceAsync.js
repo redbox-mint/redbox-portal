@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'workspaceasync',
   primaryKey: 'id',
   tableName: 'workspaceasync',
   attributes: {

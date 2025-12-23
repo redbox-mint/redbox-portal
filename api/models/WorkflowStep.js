@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'workflowstep',
   primaryKey: 'id',
   tableName: 'workflowstep',
   attributes: {

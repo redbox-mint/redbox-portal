@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'form',
   primaryKey: 'id',
   tableName: 'form',
   attributes: {

@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'role',
   primaryKey: 'id',
   tableName: 'role',
   attributes: {

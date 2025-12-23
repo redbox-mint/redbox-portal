@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'pathrule',
   primaryKey: 'id',
   tableName: 'pathrule',
   attributes: {

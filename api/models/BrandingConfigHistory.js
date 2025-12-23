@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'brandingconfighistory',
   primaryKey: 'id',
   tableName: 'brandingconfighistory',
   datastore: 'redboxStorage',

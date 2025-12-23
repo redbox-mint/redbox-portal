@@ -1,8 +1,9 @@
-import '../../sails';
+/// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
 export interface RecordTypeAttributes {
   branding: string | number;
+  dashboard?: JsonMap;
   hooks?: JsonMap;
   key?: string;
   name: string;

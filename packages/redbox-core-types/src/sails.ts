@@ -28,6 +28,9 @@ declare global {
 		services: {
 			[key: string]: any;
 		};
+		models: {
+			[key: string]: any;
+		};
 		after(events: string | string[], cb: () => void): void;
 	}		export interface Hook {
 			initialize: (cb: () => void) => void;

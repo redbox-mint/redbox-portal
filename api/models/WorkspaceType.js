@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'workspacetype',
   primaryKey: 'id',
   tableName: 'workspacetype',
   attributes: {

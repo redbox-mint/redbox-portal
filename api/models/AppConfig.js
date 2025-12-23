@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'appconfig',
   primaryKey: 'id',
   tableName: 'appconfig',
   attributes: {

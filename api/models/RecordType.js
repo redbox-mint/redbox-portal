@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'recordtype',
   primaryKey: 'id',
   tableName: 'recordtype',
   attributes: {
@@ -46,10 +45,8 @@ module.exports = {
       via: 'recordType'
     },
   },
-  beforeCreate: [
-    (recordType, cb) => {
-        recordType.key = `${recordType.branding}_${recordType.name}`;
-        cb();
-    },
-  ],
+  beforeCreate: (recordType, cb) => {
+      recordType.key = `${recordType.branding}_${recordType.name}`;
+      cb();
+  },
 };

@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'i18ntranslation',
   primaryKey: 'id',
   tableName: 'i18ntranslation',
   attributes: {
@@ -38,26 +37,22 @@ module.exports = {
       required: true
     },
   },
-  beforeCreate: [
-    (translation, cb) => {
-        try {
-            assignUid(translation);
-            cb();
-        }
-        catch (error) {
-            cb(error);
-        }
-    },
-  ],
-  beforeUpdate: [
-    (values, cb) => {
-        try {
-            assignUid(values);
-            cb();
-        }
-        catch (error) {
-            cb(error);
-        }
-    },
-  ],
+  beforeCreate: (translation, cb) => {
+      try {
+          assignUid(translation);
+          cb();
+      }
+      catch (error) {
+          cb(error);
+      }
+  },
+  beforeUpdate: (values, cb) => {
+      try {
+          assignUid(values);
+          cb();
+      }
+      catch (error) {
+          cb(error);
+      }
+  },
 };

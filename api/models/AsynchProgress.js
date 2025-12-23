@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'asynchprogress',
   primaryKey: 'id',
   tableName: 'asynchprogress',
   attributes: {

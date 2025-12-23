@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'i18nbundle',
   primaryKey: 'id',
   tableName: 'i18nbundle',
   attributes: {
@@ -34,28 +33,24 @@ module.exports = {
       unique: true
     },
   },
-  beforeCreate: [
-    (bundle, cb) => {
-        try {
-            buildUid(bundle);
-            cb();
-        }
-        catch (error) {
-            cb(error);
-        }
-    },
-  ],
-  beforeUpdate: [
-    (values, cb) => {
-        try {
-            if (values.locale || values.namespace || values.branding) {
-                buildUid(values);
-            }
-            cb();
-        }
-        catch (error) {
-            cb(error);
-        }
-    },
-  ],
+  beforeCreate: (bundle, cb) => {
+      try {
+          buildUid(bundle);
+          cb();
+      }
+      catch (error) {
+          cb(error);
+      }
+  },
+  beforeUpdate: (values, cb) => {
+      try {
+          if (values.locale || values.namespace || values.branding) {
+              buildUid(values);
+          }
+          cb();
+      }
+      catch (error) {
+          cb(error);
+      }
+  },
 };

@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'report',
   primaryKey: 'id',
   tableName: 'report',
   attributes: {
@@ -37,10 +36,8 @@ module.exports = {
       required: true
     },
   },
-  beforeCreate: [
-    (report, cb) => {
-        report.key = `${report.branding}_${report.name}`;
-        cb();
-    },
-  ],
+  beforeCreate: (report, cb) => {
+      report.key = `${report.branding}_${report.name}`;
+      cb();
+  },
 };

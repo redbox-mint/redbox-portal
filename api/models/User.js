@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'user',
   primaryKey: 'id',
   tableName: 'user',
   attributes: {
@@ -74,54 +73,48 @@ module.exports = {
           }
       }
   },
-  beforeCreate: [
-    (user, cb) => {
-        if (!user.password) {
-            return cb();
-        }
-        const bcryptLib = (() => {
-            try {
-                return require('bcrypt');
-            }
-            catch (error) {
-                if (typeof sails !== 'undefined' && sails.log && typeof sails.log.warn === 'function') {
-                    sails.log.warn('Falling back to bcryptjs due to error loading bcrypt', error);
-                }
-                return require('bcryptjs');
-            }
-        })();
-        bcryptLib.genSalt(10, (err, salt) => {
-            if (err) {
-                sails.log.error(err);
-                return cb(err);
-            }
-            bcryptLib.hash(user.password, salt, (hashErr, hash) => {
-                if (hashErr) {
-                    sails.log.error(hashErr);
-                    return cb(hashErr);
-                }
-                user.password = hash;
-                return cb();
-            });
-        });
-    },
-  ],
-  afterCreate: [
-    (user, cb) => {
-        const userModel = typeof globalThis !== 'undefined' ? globalThis.User : undefined;
-        if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
-            userModel.assignAccessToPendingRecords(user);
-        }
-        cb();
-    },
-  ],
-  afterUpdate: [
-    (user, cb) => {
-        const userModel = typeof globalThis !== 'undefined' ? globalThis.User : undefined;
-        if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
-            userModel.assignAccessToPendingRecords(user);
-        }
-        cb();
-    },
-  ],
+  beforeCreate: (user, cb) => {
+      if (!user.password) {
+          return cb();
+      }
+      const bcryptLib = (() => {
+          try {
+              return require('bcrypt');
+          }
+          catch (error) {
+              if (typeof sails !== 'undefined' && sails.log && typeof sails.log.warn === 'function') {
+                  sails.log.warn('Falling back to bcryptjs due to error loading bcrypt', error);
+              }
+              return require('bcryptjs');
+          }
+      })();
+      bcryptLib.genSalt(10, (err, salt) => {
+          if (err) {
+              sails.log.error(err);
+              return cb(err);
+          }
+          bcryptLib.hash(user.password, salt, (hashErr, hash) => {
+              if (hashErr) {
+                  sails.log.error(hashErr);
+                  return cb(hashErr);
+              }
+              user.password = hash;
+              return cb();
+          });
+      });
+  },
+  afterCreate: (user, cb) => {
+      const userModel = typeof globalThis !== 'undefined' ? globalThis.User : undefined;
+      if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
+          userModel.assignAccessToPendingRecords(user);
+      }
+      cb();
+  },
+  afterUpdate: (user, cb) => {
+      const userModel = typeof globalThis !== 'undefined' ? globalThis.User : undefined;
+      if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
+          userModel.assignAccessToPendingRecords(user);
+      }
+      cb();
+  },
 };

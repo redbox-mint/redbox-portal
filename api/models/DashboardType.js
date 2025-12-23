@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'dashboardtype',
   primaryKey: 'id',
   tableName: 'dashboardtype',
   attributes: {
@@ -24,10 +23,8 @@ module.exports = {
       defaultsTo: true
     },
   },
-  beforeCreate: [
-    (dashboardType, cb) => {
-        dashboardType.key = `${dashboardType.branding}_${dashboardType.name}`;
-        cb();
-    },
-  ],
+  beforeCreate: (dashboardType, cb) => {
+      dashboardType.key = `${dashboardType.branding}_${dashboardType.name}`;
+      cb();
+  },
 };

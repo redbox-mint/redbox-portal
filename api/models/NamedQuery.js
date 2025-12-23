@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'namedquery',
   primaryKey: 'id',
   tableName: 'namedquery',
   attributes: {
@@ -35,10 +34,8 @@ module.exports = {
       required: true
     },
   },
-  beforeCreate: [
-    (namedQuery, cb) => {
-        namedQuery.key = `${namedQuery.branding}_${namedQuery.name}`;
-        cb();
-    },
-  ],
+  beforeCreate: (namedQuery, cb) => {
+      namedQuery.key = `${namedQuery.branding}_${namedQuery.name}`;
+      cb();
+  },
 };

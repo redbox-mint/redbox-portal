@@ -1,4 +1,4 @@
-import '../../sails';
+/// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
 export interface AsynchProgressAttributes {

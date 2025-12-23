@@ -40,4 +40,7 @@ export class RecordType {
 
   @Attr({ type: 'json' })
   public hooks?: Record<string, unknown>;
+
+  @Attr({ type: 'json' })
+  public dashboard?: Record<string, unknown>;
 }

@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'cacheentry',
   primaryKey: 'id',
   tableName: 'cacheentry',
   attributes: {

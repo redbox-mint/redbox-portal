@@ -1,5 +1,4 @@
 module.exports = {
-  identity: 'counter',
   primaryKey: 'id',
   tableName: 'counter',
   attributes: {
