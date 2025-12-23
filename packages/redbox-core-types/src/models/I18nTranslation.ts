@@ -10,7 +10,7 @@ export interface I18nTranslationAttributes {
   locale: string;
   namespace?: string;
   uid?: string;
-  value: JsonMap;
+  value?: JsonMap;
 }
 
 export interface I18nTranslationWaterlineModel extends Sails.Model {

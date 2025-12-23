@@ -1,6 +1,12 @@
 import { Attr, BelongsTo, BeforeCreate, BeforeUpdate, Entity } from '../../lib/decorators';
 
 const beforeCreate = (translation: Record<string, any>, cb: (err?: Error) => void) => {
+  // Manual validation for 'value' because required:true disallows empty strings
+  if (translation.value === undefined || translation.value === null) {
+    const err = new Error('Value is required');
+    (err as any).code = 'E_INVALID_NEW_RECORD';
+    return cb(err);
+  }
   try {
     const brandingPart = translation.branding ? String(translation.branding) : 'global';
     const locale = translation.locale;
@@ -16,6 +22,12 @@ const beforeCreate = (translation: Record<string, any>, cb: (err?: Error) => voi
 };
 
 const beforeUpdate = (values: Record<string, any>, cb: (err?: Error) => void) => {
+  // Manual validation for 'value'
+  if (Object.hasOwn(values, 'value') && values.value === null) {
+    const err = new Error('Value cannot be null');
+    (err as any).code = 'E_INVALID_NEW_RECORD';
+    return cb(err);
+  }
   try {
     const brandingPart = values.branding ? String(values.branding) : 'global';
     const locale = values.locale;
@@ -43,7 +55,7 @@ export class I18nTranslation {
   @Attr({ type: 'string', defaultsTo: 'translation' })
   public namespace?: string;
 
-  @Attr({ type: 'json', required: true })
+  @Attr({ type: 'json', required: false })
   public value!: unknown;
 
   @Attr({ type: 'string', allowNull: true })

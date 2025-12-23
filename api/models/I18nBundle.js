@@ -35,7 +35,10 @@ module.exports = {
   },
   beforeCreate: (bundle, cb) => {
       try {
-          buildUid(bundle);
+          const brandingPart = bundle.branding ? String(bundle.branding) : 'global';
+          const locale = bundle.locale;
+          const ns = bundle.namespace || 'translation';
+          bundle.uid = `${brandingPart}:${locale}:${ns}`;
           cb();
       }
       catch (error) {
@@ -45,7 +48,9 @@ module.exports = {
   beforeUpdate: (values, cb) => {
       try {
           if (values.locale || values.namespace || values.branding) {
-              buildUid(values);
+              const brandingPart = values.branding ? String(values.branding) : 'global';
+              const locale = values.locale;
+              const ns = values.namespace || 'translation';
           }
           cb();
       }

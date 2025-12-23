@@ -1,15 +1,11 @@
 import { Attr, BelongsTo, BeforeCreate, BeforeUpdate, Entity, HasMany } from '../../lib/decorators';
 
-const buildUid = (values: Record<string, any>) => {
-  const brandingPart = values.branding ? String(values.branding) : 'global';
-  const locale = values.locale;
-  const ns = values.namespace || 'translation';
-  values.uid = `${brandingPart}:${locale}:${ns}`;
-};
-
 const beforeCreate = (bundle: Record<string, any>, cb: (err?: Error) => void) => {
   try {
-    buildUid(bundle);
+    const brandingPart = bundle.branding ? String(bundle.branding) : 'global';
+    const locale = bundle.locale;
+    const ns = bundle.namespace || 'translation';
+    bundle.uid = `${brandingPart}:${locale}:${ns}`;
     cb();
   } catch (error) {
     cb(error as Error);
@@ -19,7 +15,9 @@ const beforeCreate = (bundle: Record<string, any>, cb: (err?: Error) => void) =>
 const beforeUpdate = (values: Record<string, any>, cb: (err?: Error) => void) => {
   try {
     if (values.locale || values.namespace || values.branding) {
-      buildUid(values);
+      const brandingPart = values.branding ? String(values.branding) : 'global';
+      const locale = values.locale;
+      const ns = values.namespace || 'translation';
     }
     cb();
   } catch (error) {

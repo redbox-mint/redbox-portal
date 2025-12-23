@@ -34,10 +34,16 @@ module.exports = {
     },
     value: {
       type: 'json',
-      required: true
+      required: false
     },
   },
   beforeCreate: (translation, cb) => {
+      // Manual validation for 'value' because required:true disallows empty strings
+      if (translation.value === undefined || translation.value === null) {
+          const err = new Error('Value is required');
+          err.code = 'E_INVALID_NEW_RECORD';
+          return cb(err);
+      }
       try {
           const brandingPart = translation.branding ? String(translation.branding) : 'global';
           const locale = translation.locale;
@@ -53,6 +59,12 @@ module.exports = {
       }
   },
   beforeUpdate: (values, cb) => {
+      // Manual validation for 'value'
+      if (Object.hasOwn(values, 'value') && values.value === null) {
+          const err = new Error('Value cannot be null');
+          err.code = 'E_INVALID_NEW_RECORD';
+          return cb(err);
+      }
       try {
           const brandingPart = values.branding ? String(values.branding) : 'global';
           const locale = values.locale;
