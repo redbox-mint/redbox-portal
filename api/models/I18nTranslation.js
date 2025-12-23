@@ -88,7 +88,7 @@ module.exports = {
 
   beforeUpdate: function (valuesToUpdate, cb) {
     // Manual validation for 'value'
-    if (Object.prototype.hasOwnProperty.call(valuesToUpdate, 'value') && valuesToUpdate.value === null) {
+    if (Object.hasOwn(valuesToUpdate, 'value') && valuesToUpdate.value === null) {
       const err = new Error('Value cannot be null');
       err.code = 'E_INVALID_NEW_RECORD';
       return cb(err);

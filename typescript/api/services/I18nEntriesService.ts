@@ -29,6 +29,24 @@ declare var I18nBundle: Model;
 declare let BrandingService: any;
 
 export module Services {
+
+  export interface Bundle {
+    id?: string | number;
+    branding?: any;
+    locale: string;
+    namespace?: string;
+    data: any;
+  }
+
+  export function isBundle(obj: any): obj is Bundle {
+    return (
+      obj &&
+      typeof obj === 'object' &&
+      'data' in obj &&
+      'locale' in obj
+    );
+  }
+
   /**
    * I18nEntriesService: Manage i18next translations stored in DB.
    * - Per-key entries in I18nTranslation
@@ -78,14 +96,14 @@ export module Services {
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
-              const existing = await this.getBundle(defaultBrand, lng, ns);
+              
               const filePath = path.join(localesDir, lng, `${ns}.json`);
               if (!fs.existsSync(filePath)) {
                 continue; // nothing to seed/sync for this pair
               }
 
               const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
+              const existing = await this.getBundle(defaultBrand, lng, ns);
               if (!existing) {
                 // First-time seed: create bundle and split to entries (no overwrite)
                 await this.setBundle(defaultBrand, lng, ns, json, undefined, { splitToEntries: true, overwriteEntries: false });
@@ -365,7 +383,7 @@ export module Services {
     }
 
   public async syncEntriesFromBundle(bundleOrId: any, overwrite = false): Promise<void> {
-      const bundle = (bundleOrId && typeof bundleOrId === 'object' && 'data' in bundleOrId && 'locale' in bundleOrId)
+      const bundle = isBundle(bundleOrId)
         ? bundleOrId
         : await I18nBundle.findOne({ id: bundleOrId });
       if (!bundle) throw new Error('Bundle not found');
@@ -394,7 +412,7 @@ export module Services {
       const keys = Object.keys(flat);
 
       // Ensure we have a BrandingModel for downstream calls
-      const brandingModel: BrandingModel = (BrandingService.getBrandById?.(brandingId)
+      const brandingModel: BrandingModel = (BrandingService.getBrandById(brandingId)
         || BrandingService.getBrand?.(brandingId)
         || ({ id: brandingId } as BrandingModel));
 

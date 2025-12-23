@@ -33,17 +33,17 @@ describe('I18nEntriesService', function () {
 
   async function cleanup() {
     try {
-      if (branding && branding.id) {
+      if (branding?.id) {
         await I18nTranslation.destroy({ branding: branding.id }).fetch();
       }
     } catch (e) { /* ignore */ }
     try {
-      if (branding && branding.id) {
+      if (branding?.id) {
         await I18nBundle.destroy({ branding: branding.id }).fetch();
       }
     } catch (e) { /* ignore */ }
     try {
-      if (branding && branding.id) {
+      if (branding?.id) {
         await BrandingConfig.destroy({ id: branding.id }).fetch();
       }
     } catch (e) { /* ignore */ }
@@ -65,7 +65,7 @@ describe('I18nEntriesService', function () {
     const bundle = await I18nEntriesService.setBundle(branding, locale, ns, dataV1, undefined, { overwriteEntries: true });
   expect(bundle).to.be.ok;
   expect(bundle).to.have.property('data');
-  expect(bundle && bundle.data && bundle.data.section && bundle.data.section.title).to.equal('Hello');
+  expect(bundle?.data?.section?.title).to.equal('Hello');
 
     const got = await I18nEntriesService.getBundle(branding, locale, ns);
     expect(got).to.be.ok;
@@ -100,7 +100,7 @@ describe('I18nEntriesService', function () {
 
   const b = await I18nEntriesService.getBundle(branding, locale, ns);
   expect(b).to.be.ok;
-  expect(b && b.data && b.data.section && b.data.section.title).to.equal('World');
+  expect(b?.data?.section?.title).to.equal('World');
   });
 
   it('listEntries supports keyPrefix filtering', async function () {
@@ -210,8 +210,8 @@ describe('I18nEntriesService', function () {
 
       const merged = await I18nEntriesService.getBundle(branding, testLocale, testNamespace);
       expect(merged).to.be.ok;
-      expect(merged && merged.data && merged.data.section && merged.data.section.title).to.equal('Existing Title');
-      expect(merged && merged.data && merged.data.section && merged.data.section.extra).to.equal('Added');
+      expect(merged?.data?.section?.title).to.equal('Existing Title');
+      expect(merged?.data?.section?.extra).to.equal('Added');
     } finally {
       BrandingService.getBrand = originalGetBrand;
       try { fs.rmSync(localeDir, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
