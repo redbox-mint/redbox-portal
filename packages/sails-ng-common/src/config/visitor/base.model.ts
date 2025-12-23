@@ -1,5 +1,5 @@
 import {get as _get} from "lodash";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
+import {FormConfigOutline} from "../form-config.outline";
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -430,6 +430,12 @@ export class PopulateProperties {
         }
 
         const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];
+
+        // for debugging:
+        // if (name === 'options') {
+        //     console.log(`Get property ${JSON.stringify(name)} from sources ${JSON.stringify(sources)} for target ${JSON.stringify(target)} propValue ${JSON.stringify(propValue)}.`);
+        // }
+
         if (propValue !== undefined) {
             target[name] = propValue;
         }
