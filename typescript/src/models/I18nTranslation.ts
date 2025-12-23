@@ -1,18 +1,14 @@
 import { Attr, BelongsTo, BeforeCreate, BeforeUpdate, Entity } from '../../lib/decorators';
 
-const assignUid = (values: Record<string, any>) => {
-  const brandingPart = values.branding ? String(values.branding) : 'global';
-  const locale = values.locale;
-  const ns = values.namespace || 'translation';
-  const key = values.key;
-  if (brandingPart && locale && ns && key) {
-    values.uid = `${brandingPart}:${locale}:${ns}:${key}`;
-  }
-};
-
 const beforeCreate = (translation: Record<string, any>, cb: (err?: Error) => void) => {
   try {
-    assignUid(translation);
+    const brandingPart = translation.branding ? String(translation.branding) : 'global';
+    const locale = translation.locale;
+    const ns = translation.namespace || 'translation';
+    const key = translation.key;
+    if (brandingPart && locale && ns && key) {
+      translation.uid = `${brandingPart}:${locale}:${ns}:${key}`;
+    }
     cb();
   } catch (error) {
     cb(error as Error);
@@ -21,7 +17,13 @@ const beforeCreate = (translation: Record<string, any>, cb: (err?: Error) => voi
 
 const beforeUpdate = (values: Record<string, any>, cb: (err?: Error) => void) => {
   try {
-    assignUid(values);
+    const brandingPart = values.branding ? String(values.branding) : 'global';
+    const locale = values.locale;
+    const ns = values.namespace || 'translation';
+    const key = values.key;
+    if (brandingPart && locale && ns && key) {
+      values.uid = `${brandingPart}:${locale}:${ns}:${key}`;
+    }
     cb();
   } catch (error) {
     cb(error as Error);
