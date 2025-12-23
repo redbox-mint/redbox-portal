@@ -61,7 +61,7 @@ const axiosStub = (config) => {
 };
 (require as any).cache[require.resolve('axios')] = { exports: axiosStub as any };
 
-const { Services } = require('../../../services/FigshareService');
+const { Services } = require('../../../api/services/FigshareService');
 const FigshareService = Services.FigshareService;
 
 describe('FigshareService - getArticleFileList pagination', () => {
