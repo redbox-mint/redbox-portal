@@ -77,17 +77,8 @@ module.exports = {
       if (!user.password) {
           return cb();
       }
-      const bcryptLib = (() => {
-          try {
-              return require('bcrypt');
-          }
-          catch (error) {
-              if (typeof sails !== 'undefined' && sails.log && typeof sails.log.warn === 'function') {
-                  sails.log.warn('Falling back to bcryptjs due to error loading bcrypt', error);
-              }
-              return require('bcryptjs');
-          }
-      })();
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const bcryptLib = require('bcryptjs');
       bcryptLib.genSalt(10, (err, salt) => {
           if (err) {
               sails.log.error(err);
