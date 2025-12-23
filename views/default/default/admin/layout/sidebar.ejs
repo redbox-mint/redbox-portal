@@ -1,0 +1,37 @@
+<div class="admin-sidebar">
+  <% if (typeof adminSidebar !== 'undefined' && adminSidebar && adminSidebar.header) { %>
+  <div class="admin-sidebar-header">
+    <i class="<%= adminSidebar.header.iconClass %>"></i>
+    <span><%= adminSidebar.header.title %></span>
+  </div>
+  <% } %>
+
+  <% if (typeof adminSidebar !== 'undefined' && adminSidebar && adminSidebar.sections && Array.isArray(adminSidebar.sections)) { %>
+  <% adminSidebar.sections.forEach(function(section) { %>
+  <!-- <%= section.title %> Section -->
+  <div class="admin-sidebar-section">
+    <a class="admin-sidebar-section-header" data-bs-toggle="collapse" href="#<%= section.id %>Section" role="button" aria-expanded="<%= section.defaultExpanded ? 'true' : 'false' %>" aria-controls="<%= section.id %>Section">
+      <span><%= section.title %></span>
+      <i class="fa fa-chevron-down"></i>
+    </a>
+    <div class="collapse<%= section.defaultExpanded ? ' show' : '' %>" id="<%= section.id %>Section">
+      <div class="admin-sidebar-links">
+        <% section.items.forEach(function(item) { %>
+        <div class="admin-sidebar-link">
+          <a href="<%= item.href %>"<% if (item.external) { %><% if (item.target) { %> target="<%= item.target %>"<% } %> rel="noopener noreferrer"<% } %>><%= item.label %></a>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+  <% }); %>
+  <% } %>
+
+  <% if (typeof adminSidebar !== 'undefined' && adminSidebar && adminSidebar.footerLinks && Array.isArray(adminSidebar.footerLinks)) { %>
+  <% adminSidebar.footerLinks.forEach(function(link) { %>
+  <div class="admin-sidebar-footer">
+    <a href="<%= link.href %>"<% if (link.external) { %><% if (link.target) { %> target="<%= link.target %>"<% } %> rel="noopener noreferrer"<% } %>><%= link.label %></a>
+  </div>
+  <% }); %>
+  <% } %>
+</div>

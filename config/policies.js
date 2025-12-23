@@ -22,6 +22,7 @@ const defaultPolicies = [
   'setLang',
   'prepWs',
   'i18nLanguages',
+  'menuResolver',
   'isWebServiceAuthenticated',
   'checkAuth',
   'contentSecurityPolicy',

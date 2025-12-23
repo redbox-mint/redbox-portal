@@ -1,10 +1,10 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
+import { NextFunction } from "express";
 import express = require("express");
 
 declare global {
 	namespace Sails {
-		import Request = express.Request;
-
+		
 	// Recursive type for nested config objects - using any for maximum flexibility
 	export interface ConfigObject {
 		[key: string]: any;
@@ -103,7 +103,12 @@ declare global {
 
 		}
 
-		export interface Req extends express.Request { }
+		export interface NextFunction extends express.NextFunction {}
+		
+		export interface Req extends express.Request {
+			options?: any;
+			[key: string]: any;
+		 }
 
 		export interface Res extends express.Response {
 			attachement(filename: string);
@@ -118,6 +123,8 @@ declare global {
 
 			view(route: string);
 		}
+
+		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;
 
 		export class WaterlinePromise<T> extends Promise<T> {
 			exec(cb: (err: Error, results: Array<QueryResult>) => void);

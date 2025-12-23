@@ -1,14 +1,9 @@
-<div class="row">
-    <div class="col-md-offset-5 col-md-3">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <span class="panel-title">
-            <%= TranslationService.t('admin-title') %>
-          </span>
-        </div>
-        <div class="panel-body">
-
-        </div>
-      </div>
-    </div>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('layout/sidebar.ejs') %>
+  </div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <h1><i class="fa fa-home"></i> <%= TranslationService.t('admin-title') %></h1>
+    <p><%= TranslationService.t('admin-welcome-message') %></p>
+  </div>
 </div>
