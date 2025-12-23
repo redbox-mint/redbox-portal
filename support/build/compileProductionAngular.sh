@@ -6,7 +6,9 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm ci
+nvm use
+npm ci --ignore-scripts --strict-peer-deps
+
 # TODO: resolve index.d.ts issue with angular-i18next: https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/6522/workflows/5fecfd02-1eee-4493-97c7-ddf72e236807/jobs/15925?invite=true#step-107-2409_63
 # Inlined error:
 # ------------------------------------------------------------------------------

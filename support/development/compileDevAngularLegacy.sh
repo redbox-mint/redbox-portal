@@ -14,7 +14,9 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular-legacy
-nvm i < .nvmrc && npm install --legacy-peer-deps
+nvm use
+# Some packages use postinstall, so can't use --ignore-scripts here.
+npm install --legacy-peer-deps
 
 if [ $# -ne 0 ]
   then

@@ -18,14 +18,14 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc 
+nvm use
 ARCH=$(uname -m)
 if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
   echo "Detected ARM64 architecture"
-  npm install --save-dev @esbuild/linux-arm64
+  npm install --save-dev @esbuild/linux-arm64 --ignore-scripts --strict-peer-deps
 else
   echo "Detected $ARCH architecture"
-  npm install
+  npm install --ignore-scripts --strict-peer-deps
 fi
 
 if [ "$2" == "--watch" ]; then
@@ -90,7 +90,7 @@ else
   if [ "$BUILD_PORTAL_NG_FORM_CUSTOM" == "true" ]; then
     echo "Building form-custom..."
     cd "${PORTAL_NG_FORM_CUSTOM_DIR}/projects/researchdatabox/portal-ng-form-custom"
-    npm i
+    npm install --ignore-scripts --strict-peer-deps
     cd -
     cp angular.json angular-orig.json
     cp angular-custom.json angular.json
