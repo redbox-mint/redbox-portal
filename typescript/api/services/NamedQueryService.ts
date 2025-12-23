@@ -110,9 +110,9 @@ export module Services {
       // Get the total count of matching records
       let totalItems = 0;
       if(collectionName == 'user') {
-        totalItems = await User.count(mongoQuery);
+        totalItems = await User.count(mongoQuery).meta(criteriaMeta);
       } else {
-        totalItems = await Record.count(mongoQuery);
+        totalItems = await Record.count(mongoQuery).meta(criteriaMeta);
       }
 
       // Build query criteria

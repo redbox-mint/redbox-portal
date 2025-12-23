@@ -162,6 +162,7 @@ declare global {
 			populate(association: string): WaterlinePromise<T>;
 			populate(association: string, filter: Object): WaterlinePromise<T>;
 			set(values: Object): WaterlinePromise<T>;
+			meta(options: Object): WaterlinePromise<T>;
 		}
 
 		export class Record {
