@@ -29,6 +29,24 @@ declare var I18nBundle: Model;
 declare let BrandingService: any;
 
 export module Services {
+
+  export interface Bundle {
+    id?: string | number;
+    branding?: any;
+    locale: string;
+    namespace?: string;
+    data: any;
+  }
+
+  export function isBundle(obj: any): obj is Bundle {
+    return (
+      obj &&
+      typeof obj === 'object' &&
+      'data' in obj &&
+      'locale' in obj
+    );
+  }
+
   /**
    * I18nEntriesService: Manage i18next translations stored in DB.
    * - Per-key entries in I18nTranslation
@@ -41,8 +59,9 @@ export module Services {
   /**
    * Seed default i18n bundles into DB from language-defaults for the default brand.
    * - Only creates bundles if none exist (no overwrite).
+   * @param languages Optional list of languages to bootstrap. If omitted, scans language-defaults.
    */
-  public async bootstrap(): Promise<void> {
+  public async bootstrap(languages?: string[]): Promise<void> {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
@@ -51,14 +70,18 @@ export module Services {
         const localesDir = path.join(sails.config.appPath, 'language-defaults');
         const supported: string[] = [];
         
-        if (fs.existsSync(localesDir)) {
-          const entries = fs.readdirSync(localesDir, { withFileTypes: true });
-          supported.push(...entries.filter(d => d.isDirectory()).map(d => d.name));
-        }
-        
-        // Fallback to config if no directories found
-        if (supported.length === 0) {
-          supported.push(...((sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en']));
+        if (languages && languages.length > 0) {
+          supported.push(...languages);
+        } else {
+          if (fs.existsSync(localesDir)) {
+            const entries = fs.readdirSync(localesDir, { withFileTypes: true });
+            supported.push(...entries.filter(d => d.isDirectory()).map(d => d.name));
+          }
+          
+          // Fallback to config if no directories found
+          if (supported.length === 0) {
+            supported.push(...((sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en']));
+          }
         }
         
         const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
@@ -73,22 +96,35 @@ export module Services {
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
-              const existing = await this.getBundle(defaultBrand, lng, ns);
+              
               const filePath = path.join(localesDir, lng, `${ns}.json`);
               if (!fs.existsSync(filePath)) {
                 continue; // nothing to seed/sync for this pair
               }
 
               const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
+              const existing = await this.getBundle(defaultBrand, lng, ns);
               if (!existing) {
                 // First-time seed: create bundle and split to entries (no overwrite)
                 await this.setBundle(defaultBrand, lng, ns, json, undefined, { splitToEntries: true, overwriteEntries: false });
                 this.logger.debug(`Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
               } else {
-                // Incremental: add any new keys found in defaults into entries; do not touch bundle data
-                await this.syncEntriesFromBundle({ branding: defaultBrand, locale: lng, namespace: ns, id: existing.id, data: json }, false);
-                this.logger.debug(`Synced new keys for ${defaultBrand.id}:${lng}:${ns}`);
+                // Incremental: merge defaults into existing bundle data
+                // Clone to ensure we have a plain object and don't run into ORM object issues
+                const dbData = _.cloneDeep(existing.data || {});
+                
+                // defaultsDeep fills in missing properties in dbData from json
+                _.defaultsDeep(dbData, json);
+                
+                // Update the bundle with merged data
+                const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: dbData });
+                
+                // Sync entries to match the updated bundle
+                // Use the updated record when available to avoid type/refresh edge cases
+                this.syncEntriesFromBundle(updatedBundle || { ...existing, data: dbData }, false)
+                  .catch(err => this.logger.warn(`Background sync failed for ${defaultBrand.id}:${lng}:${ns}`, err));
+                
+                this.logger.debug(`Merged defaults and synced keys for ${defaultBrand.id}:${lng}:${ns}`);
               }
             } catch (e) {
               this.logger.debug('Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
@@ -163,8 +199,12 @@ export module Services {
       delete cursor[parts[parts.length - 1]];
     }
 
-    private resolveBrandingId(branding: BrandingModel): string {
-      return branding?.id || 'global';
+    private resolveBrandingId(branding: BrandingModel | string | any): string {
+      if (!branding) return 'global';
+      if (typeof branding === 'string') return branding;
+      if (branding.id) return String(branding.id);
+      if (branding._id) return String(branding._id);
+      return String(branding);
     }
 
     private buildUid(branding: BrandingModel, locale: string, namespace: string, key: string): string {
@@ -343,12 +383,13 @@ export module Services {
     }
 
   public async syncEntriesFromBundle(bundleOrId: any, overwrite = false): Promise<void> {
-      const bundle = _.isString(bundleOrId)
-        ? await I18nBundle.findOne({ id: bundleOrId })
-        : bundleOrId;
+      const bundle = isBundle(bundleOrId)
+        ? bundleOrId
+        : await I18nBundle.findOne({ id: bundleOrId });
       if (!bundle) throw new Error('Bundle not found');
 
       const { branding, locale, namespace, id: bundleId } = bundle;
+      const brandingId = this.resolveBrandingId(branding as any);
       const data = bundle.data || {};
       
       // Load centralized metadata
@@ -371,23 +412,30 @@ export module Services {
       const keys = Object.keys(flat);
 
       // Ensure we have a BrandingModel for downstream calls
-      const brandingModel: BrandingModel = (typeof branding === 'string')
-        ? (BrandingService.getBrand(branding) || ({ id: branding } as BrandingModel))
-        : (branding as BrandingModel);
+      const brandingModel: BrandingModel = (BrandingService.getBrandById(brandingId)
+        || BrandingService.getBrand(brandingId)
+        || ({ id: brandingId } as BrandingModel));
 
       // Track existing keys to detect removals
-      const existingEntries = await I18nTranslation.find({ branding: brandingModel.id || brandingModel, locale, namespace });
+      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
       const existingKeysSet = new Set(existingEntries.map(e => e.key));
 
       for (const key of keys) {
-        const val = flat[key];
+        let val = flat[key];
         existingKeysSet.delete(key); // still present
         const existing = await this.getEntry(brandingModel, locale, namespace, key);
-        if (existing && !overwrite) continue;
-  await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
-      }
 
-      // Any keys left in existingKeysSet are no longer present in the bundle -> remove to avoid desync
+        if (existing && !overwrite) continue;
+
+        try {
+          if(val === '' || val === null || val === undefined) {
+            val = key; // default empty values to the key itself
+          }
+          await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
+        } catch (e) {
+          throw e;
+        }
+      }
   for (const obsoleteKey of existingKeysSet) {
         try {
   await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
@@ -396,7 +444,7 @@ export module Services {
         }
       }
   // Bulk operation complete; reload once
-  try { (global as any).TranslationService?.reloadResources?.(brandingModel.id || brandingModel); } catch (_e) { /* ignore */ }
+  try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
     }
 
 
