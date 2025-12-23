@@ -1,13 +1,14 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
 
-export interface AsynchProgressAttributes {
-  branding: string | number;
+export interface AsynchProgressAttributes extends Sails.WaterlineAttributes {
+  branding: string | number | BrandingConfigAttributes;
   currentIdx?: number;
   date_completed?: string;
   date_started?: string;
   message?: string;
-  metadata?: JsonMap;
+  metadata?: Record<string, unknown>;
   name: string;
   relatedRecordId?: string;
   started_by: string;
@@ -16,7 +17,7 @@ export interface AsynchProgressAttributes {
   taskType?: string;
 }
 
-export interface AsynchProgressWaterlineModel extends Sails.Model {
+export interface AsynchProgressWaterlineModel extends Sails.Model<AsynchProgressAttributes> {
   attributes: AsynchProgressAttributes;
 }
 

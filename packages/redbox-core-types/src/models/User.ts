@@ -1,8 +1,8 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
-export interface UserAttributes {
-  additionalAttributes?: JsonMap;
+export interface UserAttributes extends Sails.WaterlineAttributes {
+  additionalAttributes?: Record<string, unknown>;
   email: string;
   lastLogin?: string;
   name: string;
@@ -14,7 +14,7 @@ export interface UserAttributes {
   workspaceApps?: unknown[];
 }
 
-export interface User extends Sails.Model {
+export interface User extends Sails.Model<UserAttributes> {
   attributes: UserAttributes;
 }
 

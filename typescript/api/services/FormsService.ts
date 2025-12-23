@@ -30,10 +30,6 @@ import {
 } from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
-declare var Form: Model;
-declare var RecordType: Model;
-declare var WorkflowStep: Model;
-
 declare var _;
 
 export module Services {

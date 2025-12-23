@@ -29,7 +29,6 @@ import * as stream from 'stream';
 const finished = promisify(stream.finished);
 import {languageProfileURI} from "language-data-commons-vocabs";
 import * as mime from 'mime-types';
-import {ROCrate} from "ro-crate";
 
 let wktParserHelper;
 declare var sails: Sails;

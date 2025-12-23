@@ -35,9 +35,7 @@ import numeral from 'numeral';
 // removed duplicate isObservable import
 
 declare var sails: Sails;
-declare var RecordType, Counter: Model;
 declare var _this;
-declare var User;
 declare var _;
 declare var TranslationService, WorkspaceService;
 

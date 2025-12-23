@@ -1,11 +1,11 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
-export interface WorkspaceAsyncAttributes {
-  args: JsonMap;
+export interface WorkspaceAsyncAttributes extends Sails.WaterlineAttributes {
+  args: unknown;
   date_completed?: string;
   date_started?: string;
-  message?: JsonMap;
+  message?: Record<string, unknown>;
   method: string;
   name: string;
   recordType: string;
@@ -14,7 +14,7 @@ export interface WorkspaceAsyncAttributes {
   status?: string;
 }
 
-export interface WorkspaceAsyncWaterlineModel extends Sails.Model {
+export interface WorkspaceAsyncWaterlineModel extends Sails.Model<WorkspaceAsyncAttributes> {
   attributes: WorkspaceAsyncAttributes;
 }
 

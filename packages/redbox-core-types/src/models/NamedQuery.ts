@@ -1,9 +1,10 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
 
-export interface NamedQueryAttributes {
+export interface NamedQueryAttributes extends Sails.WaterlineAttributes {
   brandIdFieldPath?: string;
-  branding: string | number;
+  branding: string | number | BrandingConfigAttributes;
   collectionName: string;
   key?: string;
   mongoQuery: string;
@@ -12,7 +13,7 @@ export interface NamedQueryAttributes {
   resultObjectMapping: string;
 }
 
-export interface NamedQueryWaterlineModel extends Sails.Model {
+export interface NamedQueryWaterlineModel extends Sails.Model<NamedQueryAttributes> {
   attributes: NamedQueryAttributes;
 }
 

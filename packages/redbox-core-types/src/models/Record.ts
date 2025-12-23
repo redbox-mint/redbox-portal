@@ -1,7 +1,7 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
-export interface RecordAttributes {
+export interface RecordAttributes extends Sails.WaterlineAttributes {
   authorization?: JsonMap;
   dateCreated?: string;
   harvestId?: string;
@@ -12,7 +12,7 @@ export interface RecordAttributes {
   workflow?: JsonMap;
 }
 
-export interface RecordWaterlineModel extends Sails.Model {
+export interface RecordWaterlineModel extends Sails.Model<RecordAttributes> {
   attributes: RecordAttributes;
 }
 

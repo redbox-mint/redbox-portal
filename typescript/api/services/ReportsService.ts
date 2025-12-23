@@ -31,7 +31,6 @@ import { NamedQueryResponseRecord } from './NamedQueryService'
 import Handlebars from "handlebars";
 
 declare var sails: Sails;
-declare var Report: Model;
 declare var _this;
 declare var NamedQueryService;
 declare var _;

@@ -1,12 +1,12 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
-export interface FormAttributes {
-  attachmentFields?: JsonMap;
-  customAngularApp?: JsonMap;
+export interface FormAttributes extends Sails.WaterlineAttributes {
+  attachmentFields?: Record<string, unknown>;
+  customAngularApp?: Record<string, unknown>;
   editCssClasses?: string;
-  fields?: JsonMap;
-  messages?: JsonMap;
+  fields?: Record<string, unknown>;
+  messages?: Record<string, unknown>;
   name: string;
   requiredFieldIndicator?: string;
   skipValidationOnSave?: boolean;
@@ -15,7 +15,7 @@ export interface FormAttributes {
   workflowStep?: string | number;
 }
 
-export interface FormWaterlineModel extends Sails.Model {
+export interface FormWaterlineModel extends Sails.Model<FormAttributes> {
   attributes: FormAttributes;
 }
 

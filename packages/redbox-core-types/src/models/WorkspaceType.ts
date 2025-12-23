@@ -1,8 +1,9 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
 
-export interface WorkspaceTypeAttributes {
-  branding: string | number;
+export interface WorkspaceTypeAttributes extends Sails.WaterlineAttributes {
+  branding: string | number | BrandingConfigAttributes;
   description?: string;
   externallyProvisioned?: boolean;
   logo?: string;
@@ -10,7 +11,7 @@ export interface WorkspaceTypeAttributes {
   subtitle?: string;
 }
 
-export interface WorkspaceTypeWaterlineModel extends Sails.Model {
+export interface WorkspaceTypeWaterlineModel extends Sails.Model<WorkspaceTypeAttributes> {
   attributes: WorkspaceTypeAttributes;
 }
 

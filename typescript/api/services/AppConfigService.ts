@@ -17,18 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
 import { BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
-import { find } from 'lodash';
 import { ConfigModels } from '../configmodels/ConfigModels'; // Import the ConfigModels module
-import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
 import { Services as Brandings } from './BrandingService'
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 import { config } from 'node:process';
-
-declare var AppConfig;
 
 declare var sails: Sails;
 declare var BrandingService: Brandings.Branding;

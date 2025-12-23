@@ -24,7 +24,6 @@ import {Sails, Model} from "sails";
 import { default as UrlPattern } from 'url-pattern';
 
 declare var sails: Sails;
-declare var PathRule: Model;
 declare var RolesService, BrandingService;
 declare var _this;
 declare var _;

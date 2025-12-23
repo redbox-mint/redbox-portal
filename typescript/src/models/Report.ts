@@ -33,5 +33,13 @@ export class Report {
   public filter!: Record<string, unknown>;
 
   @Attr({ type: 'json', required: true })
-  public columns!: Record<string, unknown>;
+  public columns!: ReportColumn[];
+}
+
+export interface ReportColumn {
+  label: string;
+  property: string;
+  exportTemplate?: string;
+  hide?: boolean;
+  template?: string;
 }

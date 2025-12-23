@@ -43,18 +43,86 @@ async function discoverModelFiles(dir: string): Promise<string[]> {
   return files;
 }
 
-async function loadModelModules(): Promise<void> {
+async function loadModelModules(): Promise<Map<string, string>> {
   const files = await discoverModelFiles(MODELS_DIR);
+  const fileMap = new Map<string, string>();
   if (!files.length) {
     console.warn(`No model files found in ${MODELS_DIR}`);
-    return;
+    return fileMap;
   }
 
   for (const file of files) {
     // The generator executes through ts-node which registers a require hook for TypeScript files.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     require(file);
+    const className = path.basename(file, '.ts');
+    fileMap.set(className, file);
   }
+  return fileMap;
+}
+
+async function extractLocalTypes(filePath: string): Promise<string> {
+  const content = await fs.readFile(filePath, 'utf8');
+  const lines = content.split('\n');
+  const typeDefinitions: string[] = [];
+  let buffer: string[] = [];
+  let inBlock = false;
+  let braceCount = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    if (!inBlock) {
+      if ((trimmed.startsWith('export interface') || trimmed.startsWith('export type')) && !trimmed.includes('Attributes extends Sails.WaterlineAttributes')) {
+         inBlock = true;
+         buffer.push(line);
+         braceCount += (line.match(/{/g) || []).length;
+         braceCount -= (line.match(/}/g) || []).length;
+         
+         if (braceCount === 0) {
+             if (trimmed.includes(';') || trimmed.endsWith('}')) {
+                 typeDefinitions.push(buffer.join('\n'));
+                 buffer = [];
+                 inBlock = false;
+             }
+         }
+      }
+    } else {
+      buffer.push(line);
+      braceCount += (line.match(/{/g) || []).length;
+      braceCount -= (line.match(/}/g) || []).length;
+      
+      if (braceCount === 0) {
+        typeDefinitions.push(buffer.join('\n'));
+        buffer = [];
+        inBlock = false;
+      }
+    }
+  }
+  
+  return typeDefinitions.join('\n\n');
+}
+
+async function extractPropertyTypes(filePath: string): Promise<Record<string, string>> {
+  const content = await fs.readFile(filePath, 'utf8');
+  const typeMap: Record<string, string> = {};
+  
+  // Match public property definitions
+  // public name?: type;
+  // public name!: type;
+  // public name: type;
+  const regex = /public\s+(\w+)\s*(?:[?!])?\s*:\s*([^;]+);/g;
+  
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    const propName = match[1];
+    let typeDef = match[2].trim();
+    // Remove any trailing comments if present (simple check)
+    typeDef = typeDef.split('//')[0].trim();
+    typeMap[propName] = typeDef;
+  }
+  
+  return typeMap;
 }
 
 function escapeString(value: string): string {
@@ -183,12 +251,19 @@ function buildModelModule(meta: EntityMeta): string {
   return lines.join('\n');
 }
 
-function attributeToTsType(attr: AttributeOptions): string {
+function attributeToTsType(attr: AttributeOptions, entities: EntityMeta[], explicitType?: string): string {
   if (attr.collection) {
     return 'unknown[]';
   }
   if (attr.model) {
+    const related = entities.find(e => e.entity.identity === attr.model);
+    if (related) {
+      return `string | number | ${related.className}Attributes`;
+    }
     return 'string | number';
+  }
+  if (attr.type === 'json' && explicitType) {
+    return explicitType;
   }
   switch (attr.type) {
     case 'string':
@@ -208,28 +283,53 @@ function attributeToTsType(attr: AttributeOptions): string {
   }
 }
 
-function buildTypeDefinition(meta: EntityMeta): string {
+function buildTypeDefinition(meta: EntityMeta, entities: EntityMeta[], propertyTypes: Record<string, string> = {}, localTypes: string = ''): string {
   const attributes = meta.attributes;
   const lines: string[] = [];
   // Import sails to ensure global types are available and to make this a module
   lines.push(`/// <reference path="../sails.ts" />`);
   lines.push(`import { JsonMap } from './types';`);
+
+  const imports = new Set<string>();
+  Object.values(attributes).forEach(attr => {
+     if (attr.model) {
+        const related = entities.find(e => e.entity.identity === attr.model);
+        if (related && related.className !== meta.className) {
+           imports.add(related.className);
+        }
+     }
+  });
+  
+  Array.from(imports).sort().forEach(cls => {
+      lines.push(`import { ${cls}Attributes } from './${cls}';`);
+  });
+
   lines.push('');
+  
+  if (localTypes) {
+    lines.push(localTypes);
+    lines.push('');
+  }
+
   const attributeEntries = Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b));
-  const usesJsonMap = attributeEntries.some(([, attr]) => attributeToTsType(attr) === 'JsonMap');
+  const usesJsonMap = attributeEntries.some(([name, attr]) => {
+    const explicitType = propertyTypes[name];
+    return attributeToTsType(attr, entities, explicitType) === 'JsonMap';
+  });
   // if (usesJsonMap) {
   //   lines.push('type JsonMap = { [key: string]: unknown };');
   //   lines.push('');
   // }
-  lines.push(`export interface ${meta.className}Attributes {`);
+  lines.push(`export interface ${meta.className}Attributes extends Sails.WaterlineAttributes {`);
   for (const [name, attr] of attributeEntries) {
     const optionalFlag = attr.required ? '' : '?';
-    lines.push(`  ${name}${optionalFlag}: ${attributeToTsType(attr)};`);
-  }
+    const explicitType = propertyTypes[name];
+    lines.push(`  ${name}${optionalFlag}: ${attributeToTsType(attr, entities, explicitType)};`);
+  } 
   lines.push('}');
   lines.push('');
   const interfaceName = meta.className === 'User' ? meta.className : `${meta.className}WaterlineModel`;
-  lines.push(`export interface ${interfaceName} extends Sails.Model {`);
+  lines.push(`export interface ${interfaceName} extends Sails.Model<${meta.className}Attributes> {`);
   lines.push(`  attributes: ${meta.className}Attributes;`);
   lines.push('}');
   lines.push('');
@@ -245,11 +345,11 @@ async function ensureDirectories() {
   await fs.mkdir(TYPES_MODELS_DIR, { recursive: true });
 }
 
-async function writeOutputs(meta: EntityMeta) {
+async function writeOutputs(meta: EntityMeta, entities: EntityMeta[], propertyTypes: Record<string, string>, localTypes: string) {
   const jsTarget = path.join(API_MODELS_DIR, `${meta.className}.js`);
   const typeTarget = path.join(TYPES_MODELS_DIR, `${meta.className}.ts`);
   await fs.writeFile(jsTarget, buildModelModule(meta), 'utf8');
-  await fs.writeFile(typeTarget, buildTypeDefinition(meta), 'utf8');
+  await fs.writeFile(typeTarget, buildTypeDefinition(meta, entities, propertyTypes, localTypes), 'utf8');
   const jsRelative = path.relative(PROJECT_ROOT, jsTarget);
   const typeRelative = path.relative(PROJECT_ROOT, typeTarget);
   console.log(`Generated ${jsRelative} and ${typeRelative}`);
@@ -263,7 +363,7 @@ async function generateIndexFile(entities: EntityMeta[]) {
 }
 
 async function main() {
-  await loadModelModules();
+  const fileMap = await loadModelModules();
   const entities = getRegisteredEntities();
   if (!entities.length) {
     console.warn('No decorated entities registered. Nothing to generate.');
@@ -271,7 +371,10 @@ async function main() {
   }
   await ensureDirectories();
   for (const meta of entities) {
-    await writeOutputs(meta);
+    const filePath = fileMap.get(meta.className);
+    const propertyTypes = filePath ? await extractPropertyTypes(filePath) : {};
+    const localTypes = filePath ? await extractLocalTypes(filePath) : '';
+    await writeOutputs(meta, entities, propertyTypes, localTypes);
   }
   await generateIndexFile(entities);
 }

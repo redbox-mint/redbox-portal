@@ -27,7 +27,6 @@ import {Services as brandingService} from "./BrandingService"
 import { glob } from 'fs';
 declare var sails: Sails;
 declare var _;
-declare var CacheEntry: Model;
 declare var AppConfigService:appConfigServices.AppConfigs;
 declare var BrandingService:brandingService.Branding;
 

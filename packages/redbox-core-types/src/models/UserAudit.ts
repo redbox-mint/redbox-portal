@@ -1,13 +1,13 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 
-export interface UserAuditAttributes {
+export interface UserAuditAttributes extends Sails.WaterlineAttributes {
   action: string;
-  additionalContext?: JsonMap;
-  user: JsonMap;
+  additionalContext?: Record<string, unknown>;
+  user: Record<string, unknown>;
 }
 
-export interface UserAuditWaterlineModel extends Sails.Model {
+export interface UserAuditWaterlineModel extends Sails.Model<UserAuditAttributes> {
   attributes: UserAuditAttributes;
 }
 

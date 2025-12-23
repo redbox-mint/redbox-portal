@@ -25,7 +25,6 @@ import { Sails, Model } from "sails";
 import axios from 'axios';
 
 declare var sails: Sails;
-declare var Report: Model;
 declare var _this;
 declare var _;
 

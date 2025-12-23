@@ -1,16 +1,17 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { FormAttributes } from './Form';
 
-export interface WorkflowStepAttributes {
-  config: JsonMap;
-  form?: string | number;
+export interface WorkflowStepAttributes extends Sails.WaterlineAttributes {
+  config: Record<string, unknown>;
+  form?: string | number | FormAttributes;
   hidden?: boolean;
   name: string;
   recordType?: string | number;
   starting: boolean;
 }
 
-export interface WorkflowStepWaterlineModel extends Sails.Model {
+export interface WorkflowStepWaterlineModel extends Sails.Model<WorkflowStepAttributes> {
   attributes: WorkflowStepAttributes;
 }
 

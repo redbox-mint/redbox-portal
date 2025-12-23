@@ -23,7 +23,6 @@ import {Sails, Model} from "sails";
 
 declare var sails: Sails;
 declare var _;
-declare var AsynchProgress: Model;
 import { DateTime } from 'luxon';
 
 export module Services {

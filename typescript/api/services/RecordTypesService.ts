@@ -22,7 +22,6 @@ import {BrandingModel, RecordTypeModel, Services as services}   from '@researchd
 import {Sails, Model} from "sails";
 
 declare var sails: Sails;
-declare var RecordType: Model;
 declare var _this;
 declare var _;
 

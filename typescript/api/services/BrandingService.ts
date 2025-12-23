@@ -19,15 +19,13 @@
 
 import { Observable, of, throwError } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
-import { Services as services, BrandingModel } from '@researchdatabox/redbox-core-types';
+import { Services as services, BrandingModel, BrandingConfigWaterlineModel, BrandingConfigAttributes, BrandingConfigHistoryWaterlineModel, CacheEntryWaterlineModel } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 import * as crypto from 'crypto';
 
 declare var sails: Sails;
 declare var _;
-declare var BrandingConfig;
-declare var BrandingConfigHistory;
-declare var CacheEntry;
+
 declare var SassCompilerService;
 declare var ContrastService;
 
@@ -107,8 +105,8 @@ export module Services {
       return _.find(this.brandings, (o) => { return o.id == id });
     }
 
-    public async getBrandingFromDB(name: string): Promise<BrandingModel> {
-      return BrandingConfig.findOne({ name: name });
+    public async getBrandingFromDB(name: string): Promise<BrandingConfigAttributes> {
+      return BrandingConfig.findOne({ name: name }); 
     }
 
     public getAvailable = () => {
@@ -243,7 +241,7 @@ export module Services {
       }
       // Single-use: destroy after first successful fetch
       await CacheEntry.destroy({ id: entry.id });
-      return entry.data;
+      return entry.data as { css: string; branding: string; portal: string; hash: string; };
     }
 
     /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
@@ -269,7 +267,7 @@ export module Services {
     public async rollback(historyId: string, actor: any): Promise<{ version: number; hash: string; branding: any; }> {
       const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding');
       if (!historyEntry) throw new Error('history-not-found');
-      const branding = historyEntry.branding;
+      const branding = historyEntry.branding as BrandingConfigAttributes;
       if (!branding) throw new Error('branding-not-found');
 
       // Restore variables, CSS, hash from history

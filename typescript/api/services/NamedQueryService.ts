@@ -25,9 +25,6 @@ import {
 } from "sails";
 
 declare var sails: Sails;
-declare var Record: Model;
-declare var User: Model;
-declare var NamedQuery: Model;
 import { DateTime } from 'luxon';
 declare var _this;
 declare var _;
@@ -113,9 +110,9 @@ export module Services {
       // Get the total count of matching records
       let totalItems = 0;
       if(collectionName == 'user') {
-        totalItems = await User.count(mongoQuery).meta(criteriaMeta);
+        totalItems = await User.count(mongoQuery);
       } else {
-        totalItems = await Record.count(mongoQuery).meta(criteriaMeta);
+        totalItems = await Record.count(mongoQuery);
       }
 
       // Build query criteria

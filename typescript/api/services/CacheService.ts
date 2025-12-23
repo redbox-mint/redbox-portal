@@ -26,7 +26,6 @@ import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
 declare var sails: Sails;
 declare var _;
-declare var CacheEntry: Model;
 
 export module Services {
   /**

@@ -23,9 +23,6 @@ import { Sails, Model } from 'sails';
 declare var sails: Sails;
 declare var _;
 
-// Waterline globals
-declare var I18nTranslation: Model;
-declare var I18nBundle: Model;
 declare let BrandingService: any;
 
 export module Services {

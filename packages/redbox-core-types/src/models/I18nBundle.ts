@@ -1,9 +1,10 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
 
-export interface I18nBundleAttributes {
-  branding?: string | number;
-  data: JsonMap;
+export interface I18nBundleAttributes extends Sails.WaterlineAttributes {
+  branding?: string | number | BrandingConfigAttributes;
+  data: Record<string, unknown>;
   displayName?: string;
   enabled?: boolean;
   entries?: unknown[];
@@ -12,7 +13,7 @@ export interface I18nBundleAttributes {
   uid?: string;
 }
 
-export interface I18nBundleWaterlineModel extends Sails.Model {
+export interface I18nBundleWaterlineModel extends Sails.Model<I18nBundleAttributes> {
   attributes: I18nBundleAttributes;
 }
 

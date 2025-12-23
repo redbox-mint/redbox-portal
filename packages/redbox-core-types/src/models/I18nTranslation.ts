@@ -1,19 +1,21 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
+import { I18nBundleAttributes } from './I18nBundle';
 
-export interface I18nTranslationAttributes {
-  branding?: string | number;
-  bundle?: string | number;
+export interface I18nTranslationAttributes extends Sails.WaterlineAttributes {
+  branding?: string | number | BrandingConfigAttributes;
+  bundle?: string | number | I18nBundleAttributes;
   category?: string;
   description?: string;
   key: string;
   locale: string;
   namespace?: string;
   uid?: string;
-  value?: JsonMap;
+  value?: unknown;
 }
 
-export interface I18nTranslationWaterlineModel extends Sails.Model {
+export interface I18nTranslationWaterlineModel extends Sails.Model<I18nTranslationAttributes> {
   attributes: I18nTranslationAttributes;
 }
 

@@ -1,22 +1,23 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
 
-export interface RecordTypeAttributes {
-  branding: string | number;
-  dashboard?: JsonMap;
-  hooks?: JsonMap;
+export interface RecordTypeAttributes extends Sails.WaterlineAttributes {
+  branding: string | number | BrandingConfigAttributes;
+  dashboard?: Record<string, unknown>;
+  hooks?: Record<string, unknown>;
   key?: string;
   name: string;
   packageType?: string;
-  relatedTo?: JsonMap;
+  relatedTo?: Record<string, unknown>;
   searchable?: boolean;
   searchCore?: string;
-  searchFilters?: JsonMap;
-  transferResponsibility?: JsonMap;
+  searchFilters?: Record<string, unknown>;
+  transferResponsibility?: Record<string, unknown>;
   workflowSteps?: unknown[];
 }
 
-export interface RecordTypeWaterlineModel extends Sails.Model {
+export interface RecordTypeWaterlineModel extends Sails.Model<RecordTypeAttributes> {
   attributes: RecordTypeAttributes;
 }
 

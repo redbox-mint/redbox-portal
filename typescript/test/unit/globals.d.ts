@@ -46,9 +46,6 @@ declare const VocabService: any;
 
 declare const WorkflowStepsService: any;
 
-declare const RecordType: any;
-declare const User: any;
-
 declare const DateTime: any;
 
 declare const expect: Chai.ExpectStatic;

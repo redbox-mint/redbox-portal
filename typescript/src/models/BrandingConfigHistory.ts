@@ -1,4 +1,5 @@
 import { Attr, BelongsTo, Entity } from '../../lib/decorators';
+import { BrandingConfig } from './BrandingConfig';
 
 @Entity('brandingconfighistory', {
   datastore: 'redboxStorage',

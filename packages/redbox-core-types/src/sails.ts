@@ -42,7 +42,7 @@ declare global {
 			defaults?: { [key: string]: any };
 		}
 
-		export interface Model {
+		export interface Model<T> {
 			attributes: Object;
 
 			create(params: Object): WaterlinePromise<QueryResult>;
@@ -54,9 +54,13 @@ declare global {
 			find(params: Object): QueryBuilder;
 			find(params: Object): WaterlinePromise<Array<QueryResult>>;
 
-			findOne(criteria: Object): WaterlinePromise<QueryResult>;
-			findOne(criteria: Object, cb: (err: Error, found: QueryResult) => void): void;
+			findOne(criteria: Object): WaterlinePromise<T>;
+			findOne(criteria: Object, cb: (err: Error, found: T) => void): void;
 
+			findOrCreate(criteria: Object, values: Object): WaterlinePromise<T>;
+			findOrCreate(criteria: Object, values: Object, cb: (err: Error, found: T) => void): void;
+
+			count(): WaterlinePromise<number>;
 			count(criteria: Object): WaterlinePromise<number>;
 			count(criteria: Array<Object>): WaterlinePromise<number>;
 			count(criteria: string): WaterlinePromise<number>;
@@ -77,6 +81,10 @@ declare global {
 			destroy(criteria: string, cb: (err: Error, deleted: Array<Record>) => void): void;
 			destroy(criteria: number, cb: (err: Error, deleted: Array<Record>) => void): void;
 
+			destroyOne(criteria: Object): WaterlinePromise<T>;
+			destroyOne(criteria: string): WaterlinePromise<T>;
+			destroyOne(criteria: number): WaterlinePromise<T>;
+
 			update(criteria: Object, changes: Object): WaterlinePromise<Array<QueryResult>>;
 			update(criteria: Array<Object>, changes: Object): WaterlinePromise<Array<QueryResult>>;
 			update(criteria: string, changes: Object): WaterlinePromise<Array<QueryResult>>;
@@ -95,8 +103,15 @@ declare global {
 			// Overload for update without changes (chainable with .set())
 			update(criteria: Object): WaterlinePromise<Array<QueryResult>>;
 
+			updateOne(criteria: Object, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: Object): WaterlinePromise<T>;
+			updateOne(criteria: string, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: string): WaterlinePromise<T>;
+			updateOne(criteria: number, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: number): WaterlinePromise<T>;
+
 			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void);
-			native(cb: (err: Error, collection: Model) => void);
+			native(cb: (err: Error, collection: Model<T>) => void);
 
 			stream(criteria: Object, writeEnd: Object): NodeJS.WritableStream;
 			stream(criteria: Array<Object>, writeEnd: Object): NodeJS.WritableStream;
@@ -113,6 +128,10 @@ declare global {
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 		}
 
+		export interface WaterlineAttributes {
+		 id: string;
+		}
+		
 		export interface NextFunction extends express.NextFunction {}
 		
 		export interface Req extends express.Request {

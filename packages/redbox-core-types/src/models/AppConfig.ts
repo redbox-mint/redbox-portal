@@ -1,13 +1,14 @@
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
+import { BrandingConfigAttributes } from './BrandingConfig';
 
-export interface AppConfigAttributes {
-  branding: string | number;
-  configData?: JsonMap;
+export interface AppConfigAttributes extends Sails.WaterlineAttributes {
+  branding: string | number | BrandingConfigAttributes;
+  configData?: Record<string, unknown>;
   configKey: string;
 }
 
-export interface AppConfigWaterlineModel extends Sails.Model {
+export interface AppConfigWaterlineModel extends Sails.Model<AppConfigAttributes> {
   attributes: AppConfigAttributes;
 }
 
