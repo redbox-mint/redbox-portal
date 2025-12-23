@@ -413,7 +413,7 @@ export module Services {
 
       // Ensure we have a BrandingModel for downstream calls
       const brandingModel: BrandingModel = (BrandingService.getBrandById(brandingId)
-        || BrandingService.getBrand?.(brandingId)
+        || BrandingService.getBrand(brandingId)
         || ({ id: brandingId } as BrandingModel));
 
       // Track existing keys to detect removals
