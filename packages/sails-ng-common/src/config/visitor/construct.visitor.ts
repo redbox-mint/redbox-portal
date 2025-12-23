@@ -50,8 +50,8 @@ import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../f
 import {
     ContentComponentName,
     ContentFieldComponentDefinitionFrame,
-    ContentFieldComponentDefinitionOutline, ContentFieldModelDefinitionFrame, ContentFieldModelDefinitionOutline,
-    ContentFormComponentDefinitionOutline, ContentModelName
+    ContentFieldComponentDefinitionOutline,
+    ContentFormComponentDefinitionOutline,
 } from "../component/content.outline";
 import {
     TabComponentName,
@@ -88,7 +88,7 @@ import {
     TextAreaModelName
 } from "../component/text-area.outline";
 import {TextAreaFieldComponentConfig, TextAreaFieldModelConfig} from "../component/text-area.model";
-import {ContentFieldComponentConfig, ContentFieldModelConfig} from "../component/content.model";
+import {ContentFieldComponentConfig} from "../component/content.model";
 import {
     DropdownInputComponentName,
     DropdownInputFieldComponentDefinitionFrame,
@@ -155,12 +155,6 @@ import {FormModesConfig} from "../shared.outline";
 import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
 import {FormOverride} from "../form-override.model";
 import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
-import {
-    StaticComponentName, StaticFieldComponentDefinitionFrame,
-    StaticFieldComponentDefinitionOutline,
-    StaticFormComponentDefinitionOutline
-} from "../component/static.outline";
-import {StaticFieldComponentConfig} from "../component/static.model";
 
 
 /**
@@ -367,49 +361,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
-        this.sharedProps.setPropOverride('extraContext', item.config, config);
         this.sharedProps.setPropOverride('template', item.config, config);
-    }
-
-    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void {
-        // Get the current raw data for constructing the class instance.
-        const currentData = this.getData();
-        if (!isTypeFieldDefinitionName<ContentFieldModelDefinitionFrame>(currentData, ContentModelName)) {
-            return;
-        }
-
-        // Create the class instance for the config
-        item.config = new ContentFieldModelConfig();
-
-        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
-
-        this.setModelValue(item, currentData?.config);
+        this.sharedProps.setPropOverride('staticContent', item.config, config);
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        const requireModel = false;
-        this.populateFormComponent(item, requireModel);
-    }
-    /* Static */
-
-    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void {
-        // Get the current raw data for constructing the class instance.
-        const currentData = this.getData();
-        if (!isTypeFieldDefinitionName<StaticFieldComponentDefinitionFrame>(currentData, StaticComponentName)) {
-            return;
-        }
-        const config = currentData?.config;
-
-        // Create the class instance for the config
-        item.config = new StaticFieldComponentConfig();
-
-        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
-
-        this.sharedProps.setPropOverride('extraContext', item.config, config);
-        this.sharedProps.setPropOverride('template', item.config, config);
-    }
-
-    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void {
         const requireModel = false;
         this.populateFormComponent(item, requireModel);
     }

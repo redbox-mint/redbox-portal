@@ -1,10 +1,10 @@
+import {cloneDeep as _cloneDeep, set as _set} from "lodash";
 import {Component, inject, Injector, Input} from '@angular/core';
-import {FormFieldBaseComponent, FormFieldModel} from '@researchdatabox/portal-ng-common';
-import {FormService} from "../form.service";
+import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
 import {
   ContentComponentName,
-  ContentFieldComponentConfig, ContentModelName,
+  ContentFieldComponentConfig,
   FormFieldComponentStatus
 } from "@researchdatabox/sails-ng-common";
 import * as Handlebars from 'handlebars';
@@ -12,22 +12,24 @@ import * as Handlebars from 'handlebars';
 /*
  * *** Migration Notes ***
  * This component may replace legacy components: ContentComponent and HtmlRawComponent.
- * This component allows showing a model value in a read-only way.
- * It is used when the model value could be saved.
+ * This component allows showing static content or a model value in a read-only way.
  *
- * It should not be used for static content that is not linked to a record data model value.
- * For static content, another component should be used. A future 'StaticComponent'?
+ * The 'template' is intended for *very* simple display formatting using Handlebars.
+ * If the template becomes more than one or two elements or handlebars directives,
+ * then it likely should be a dedicated component instead of a template.
  *
- * The 'template' is intended for *very* simple display formatting.
- * If the template becomes more than one or two elements, then it likely should be a different component.
+ * There are a number of default component transforms from other components into this component in view-only mode.
+ * See 'defaultTransforms in 'sails-ng-common/src/config/form-override.model.ts'.
+ *
+ * There is no data binding in the ContentComponent.
+ * If you find you need to change the value of the ContentComponent, either:
+ * - use an expression to change the 'content' to some other static content
+ * - use a different component that caters for what you want to do
  *
  * Use Cases:
  * - show value of an editable component (e.g. SimpleInputComponent) in view mode
+ * - show a static
  */
-
-export class ContentModel extends FormFieldModel<string> {
-  protected override logName = ContentModelName;
-}
 
 
 @Component({
@@ -48,10 +50,9 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   /**
    * The model associated with this component.
    */
-  @Input() public override model?: ContentModel;
+  @Input() public override model?: never;
 
   private injector = inject(Injector);
-  private formService = inject(FormService);
 
   /*
    * The below template is a reference that needs to be taken into account for legacy compatibility
@@ -74,26 +75,36 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override async initData(): Promise<void> {
     const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
-    const modelValue = this.model?.getValue() ?? '';
     const template = config?.template ?? '';
-    const extraContext = config?.extraContext ?? '';
+    const value = config?.value ?? '';
 
-    if (modelValue && template) {
+    if (value && template) {
+      // If there is both a value and template, retrieve the template and provide the value as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
       try {
-        const compiledItems = await this.getFormComponent.getRecordCompiledItems();
-        const context = {model: modelValue, extraContext: extraContext};
+        // Build the value for the template.
+        const formValue = _cloneDeep(this.getFormComponent.form?.value);
+        const valuePath = this.formFieldCompMapEntry?.lineagePaths?.dataModel;
+        if (valuePath) {
+          _set(formValue, valuePath, value);
+        }
+
+        // The variables available to the template.
+        const context = {value: value, formValue: formValue};
         const extra = {libraries: {Handlebars: Handlebars}};
+        const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         this.content = compiledItems.evaluate(templateLineagePath, context, extra);
       } catch (error) {
         this.loggerService.error(`${this.logName}: Error loading content component '${name}' at ${JSON.stringify(templateLineagePath)}`, error);
         this.status.set(FormFieldComponentStatus.ERROR);
         this.content = '';
       }
-    } else if (modelValue && !template) {
-      this.content = modelValue;
+    } else if (value && !template) {
+      // If there is a value and no template, display the value.
+      this.content = value;
     } else {
+      // If no value or template, display a blank string.
       this.content = '';
     }
   }

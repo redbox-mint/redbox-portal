@@ -636,7 +636,7 @@ describe("Construct Visitor", async () => {
                             }
                         },
                         model: {
-                            class: "StaticComponent",
+                            class: "ContentComponent",
                             config: {value: "some value"}
                         }
                     }

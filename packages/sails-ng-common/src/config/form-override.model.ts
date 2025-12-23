@@ -27,7 +27,7 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "./component/date-input.outline";
 import {DefaultTransformsType, KnownTransformsType} from "./form-override.outline";
-import {cloneDeep as _cloneDeep, mergeWith as _mergeWith,} from "lodash";
+import {cloneDeep as _cloneDeep, merge as _merge} from "lodash";
 
 import {DropdownInputComponentName,} from "./component/dropdown-input.outline";
 
@@ -199,7 +199,7 @@ export class FormOverride {
                 }
             }
 
-            const newItem = _mergeWith({}, expandedItem, additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {});
+            const newItem = _merge({}, expandedItem, additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {});
             result.push(newItem);
         }
         return result;
@@ -212,7 +212,7 @@ export class FormOverride {
      * @returns The transformed form component.
      */
     public applyOverrideTransform(source: AllFormComponentDefinitionOutlines, formMode: FormModesConfig): AllFormComponentDefinitionOutlines {
-        const original = _cloneDeep(source);
+        const original: AllFormComponentDefinitionOutlines = _cloneDeep(source);
 
         // Get the component class name, this is also used as the form component identifier.
         const originalComponentClassName = original.component.class;
@@ -225,7 +225,7 @@ export class FormOverride {
             const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
             if (formMode in defaultTransform) {
                 const defaultTransformClasses = defaultTransform[formMode] ?? {};
-                transforms = _mergeWith({}, defaultTransformClasses, transforms);
+                transforms = _merge({}, defaultTransformClasses, transforms);
             }
         }
         const transformComponentClassName = transforms?.component;
@@ -286,12 +286,8 @@ export class FormOverride {
         source: SimpleInputFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
-        const target = this.commonTargetContentComponent(source, formMode);
-        if (source.model?.config?.value !== undefined
-            && target.model?.config !== undefined) {
-            target.model.config.value = source.model.config.value;
-        }
-
+        const target = this.commonContentComponent(source, formMode);
+        this.commonContentPlain(source, target);
         return target;
     }
 
@@ -299,16 +295,8 @@ export class FormOverride {
         source: TextAreaFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
-        const target = this.commonTargetContentComponent(source, formMode);
-
-        if (source.model?.config?.value !== undefined
-            && target.component?.config !== undefined
-            && target.model?.config !== undefined) {
-            target.model.config.value = source.model.config.value;
-            // TODO: does this need to render anything?
-            target.component.config.template = `<pre>{{model}}</pre>`;
-        }
-
+        const target = this.commonContentComponent(source, formMode);
+        this.commonContentPlain(source, target);
         return target;
     }
 
@@ -316,13 +304,8 @@ export class FormOverride {
         source: TextAreaFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
-        const target = this.commonTargetContentComponent(source, formMode);
-
-        if (source.model?.config?.value !== undefined
-            && target.model?.config !== undefined) {
-            target.model.config.value = source.model.config.value;
-        }
-
+        const target = this.commonContentComponent(source, formMode);
+        this.commonContentPlain(source, target);
         return target;
     }
 
@@ -330,7 +313,7 @@ export class FormOverride {
         source: CheckboxInputFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
-        const target = this.commonTargetContentComponent(source, formMode);
+        const target = this.commonContentComponent(source, formMode);
 
         if (source.model?.config?.value !== undefined
             && target.component?.config !== undefined
@@ -343,7 +326,7 @@ export class FormOverride {
                 : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
             const options = source.component.config?.options ?? [];
 
-            this.commonOptionList(target, values, options);
+            this.commonContentOptionList(target, values, options);
         }
 
         return target;
@@ -353,7 +336,7 @@ export class FormOverride {
         source: RadioInputFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
-        const target = this.commonTargetContentComponent(source, formMode);
+        const target = this.commonContentComponent(source, formMode);
 
         if (source.model?.config?.value !== undefined
             && target.component?.config !== undefined
@@ -367,7 +350,7 @@ export class FormOverride {
                 : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
             const options = source.component.config?.options ?? [];
 
-            this.commonOptionList(target, values, options);
+            this.commonContentOptionList(target, values, options);
         }
 
         return target;
@@ -377,7 +360,7 @@ export class FormOverride {
         source: DateInputFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
-        const target = this.commonTargetContentComponent(source, formMode);
+        const target = this.commonContentComponent(source, formMode);
 
         if (source.model?.config?.value !== undefined
             && target.component?.config !== undefined
@@ -391,7 +374,7 @@ export class FormOverride {
         return target;
     }
 
-    private commonTargetContentComponent(
+    private commonContentComponent(
         source: AllFormComponentDefinitionOutlines,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
@@ -400,10 +383,6 @@ export class FormOverride {
             component: {
                 class: "ContentComponent",
                 config: {}
-            },
-            model: {
-                class: "ContentModel",
-                config: {},
             },
             module: source.module,
             expressions: source.expressions,
@@ -433,7 +412,7 @@ export class FormOverride {
         return target;
     }
 
-    private commonOptionList(
+    private commonContentOptionList(
         target: ContentFormComponentDefinitionOutline,
         values: string[],
         options?: { label: string, value: string }[]
@@ -445,21 +424,31 @@ export class FormOverride {
 
         if (values.length === 0) {
             // Empty
-            targetCompConf.extraContext = undefined;
+            targetCompConf.value = undefined;
             targetCompConf.template = `<span></span>`;
         } else if (values.length === 1) {
             // One value
             const value = values[0];
             const label = options?.find(option => option.value === value)?.label ?? value;
-            targetCompConf.extraContext = undefined;
-            targetCompConf.template = `<span data-value="${value}">${label}</span>`;
+            targetCompConf.value = {value, label};
+            targetCompConf.template = `<span data-value="{{value.value}}">{{value.label}}</span>`;
         } else {
             // More than one value
-            targetCompConf.extraContext = values.map(value => options?.find(option => option.value === value) ?? {
+            targetCompConf.value = values.map(value => options?.find(option => option.value === value) ?? {
                 label: value,
                 value: value
             });
-            targetCompConf.template = `<ul>{{#each extraContext}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+            targetCompConf.template = `<ul>{{#each value}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+        }
+    }
+
+    private commonContentPlain(source: AllFormComponentDefinitionOutlines, target: ContentFormComponentDefinitionOutline): void {
+        if (
+            target.component.config !== undefined
+            && source.model?.config?.value !== undefined
+        ) {
+            target.component.config.value = source.model.config.value;
+            target.component.config.template = `<span>{{value}}</span>`
         }
     }
 

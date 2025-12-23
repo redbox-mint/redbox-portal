@@ -4,7 +4,7 @@ import {
     SimpleInputFormComponentDefinitionOutline,
 } from "../component/simple-input.outline";
 import {
-    ContentFieldComponentDefinitionOutline, ContentFieldModelDefinitionOutline,
+    ContentFieldComponentDefinitionOutline,
     ContentFormComponentDefinitionOutline,
 } from "../component/content.outline";
 import {
@@ -61,7 +61,6 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {StaticFieldComponentDefinitionOutline, StaticFormComponentDefinitionOutline} from "../component/static.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -92,15 +91,7 @@ export interface FormConfigVisitorOutline {
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
-    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void;
-
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
-
-    /* Static */
-
-    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void;
-
-    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void;
 
     /* Repeatable  */
 

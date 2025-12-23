@@ -47,7 +47,6 @@ import { FormComponentEventBus } from './form-state/events/form-component-event-
 import { DateInputComponent } from './component/date-input.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
-import {StaticComponent} from "./component/static.component";
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -56,7 +55,6 @@ import {StaticComponent} from "./component/static.component";
     FormComponent,
     SimpleInputComponent,
     ContentComponent,
-    StaticComponent,
     TextAreaComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,

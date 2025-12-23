@@ -7,7 +7,7 @@ import {
     SimpleInputFormComponentDefinitionOutline,
 } from "../component/simple-input.outline";
 import {
-    ContentFieldComponentDefinitionOutline, ContentFieldModelDefinitionOutline,
+    ContentFieldComponentDefinitionOutline,
     ContentFormComponentDefinitionOutline,
 } from "../component/content.outline";
 import {
@@ -66,7 +66,6 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import {StaticFieldComponentDefinitionOutline, StaticFormComponentDefinitionOutline} from "../component/static.outline";
 
 
 /**
@@ -106,21 +105,7 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented();
     }
 
-    visitContentFieldModelDefinition(item: ContentFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
-
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Static */
-
-    visitStaticFormComponentDefinition(item: StaticFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitStaticFieldComponentDefinition(item: StaticFieldComponentDefinitionOutline): void {
         this.notImplemented();
     }
 

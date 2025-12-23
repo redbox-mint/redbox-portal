@@ -656,6 +656,7 @@ export class FormService extends HttpClientService {
     }
     const params = formMode === "edit" ? {edit: "true"} : undefined;
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
+    // TODO add a type for the result -  {evaluate: function(key, context, extra)}
     return result;
   }
 
