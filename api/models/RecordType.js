@@ -7,6 +7,9 @@ module.exports = {
       required: true,
       model: 'brandingconfig'
     },
+    dashboard: {
+      type: 'json'
+    },
     hooks: {
       type: 'json'
     },

@@ -305,6 +305,208 @@ module.exports.auth = {
   postLogoutRedir: '/default/rdmp/home'
 };
 
+/**
+ * Default menu configuration that mirrors the current static menu structure.
+ * This can be overridden per-brand via the admin UI or environment config.
+ */
+const defaultMenuConfig = {
+  items: [
+    {
+      id: 'home-auth',
+      labelKey: 'menu-home',
+      href: '/researcher/home',
+      requiresAuth: true
+    },
+    {
+      id: 'plan',
+      labelKey: 'menu-plan-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+        { id: 'plan-dashboard', labelKey: 'edit-dashboard-rdmp', href: '/dashboard/rdmp' },
+        {
+          id: 'plan-advice',
+          labelKey: 'get-advice',
+          href: '/getAdvice',
+          visibleWhenTranslationExists: true
+        }
+      ]
+    },
+    {
+      id: 'org',
+      labelKey: 'menu-organisation-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'org-workspaces', labelKey: 'workspaces-dashboard', href: '/workspaces/list' },
+        {
+          id: 'org-services',
+          labelKey: 'workspace-services-list',
+          href: '/availableServicesList',
+          visibleWhenTranslationExists: true
+        }
+      ]
+    },
+    {
+      id: 'manage',
+      labelKey: 'menu-manage-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
+        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
+      ]
+    },
+    {
+      id: 'publish',
+      labelKey: 'menu-publish-nav',
+      href: '#',
+      requiresAuth: true,
+      children: [
+        { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
+        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
+      ]
+    },
+    {
+      id: 'admin',
+      labelKey: 'menu-admin',
+      href: '/admin',
+      requiresAuth: true,
+      requiredRoles: ['Admin', 'Librarians']
+    },
+    {
+      id: 'home-anon',
+      labelKey: 'menu-home',
+      href: '/home',
+      requiresAuth: false,
+      hideWhenAuth: true
+    }
+  ],
+  showSearch: true
+};
+
+/**
+ * Default home panel configuration that mirrors the current static researcher home page.
+ * This can be overridden per-brand via the admin UI or environment config.
+ */
+const defaultHomePanelsConfig = {
+  panels: [
+    {
+      id: 'plan',
+      titleKey: 'menu-plan',
+      iconClass: 'icon-checklist icon-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+        { id: 'plan-dashboard', labelKey: 'edit-dashboard-rdmp', href: '/dashboard/rdmp' },
+        {
+          id: 'plan-advice',
+          labelKey: 'get-advice',
+          href: '/getAdvice'
+        }
+      ]
+    },
+    {
+      id: 'organise',
+      titleKey: 'menu-organise-worspace',
+      iconClass: 'fa fa-sitemap fa-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'org-workspaces', labelKey: 'workspaces-dashboard', href: '/workspaces/list' },
+        {
+          id: 'org-services',
+          labelKey: 'workspace-services-list',
+          href: '/availableServicesList'
+        }
+      ]
+    },
+    {
+      id: 'manage',
+      titleKey: 'menu-manage',
+      iconClass: 'fa fa-laptop fa-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
+        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
+      ]
+    },
+    {
+      id: 'publish',
+      titleKey: 'menu-publish',
+      iconClass: 'fa fa-rocket fa-3x',
+      columnClass: 'col-md-3 homepanel',
+      items: [
+        { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
+        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
+      ]
+    }
+  ]
+};
+
+/**
+ * Default admin sidebar configuration that mirrors the current static admin sidebar structure.
+ * This can be overridden per-brand via the admin UI or environment config.
+ */
+const defaultAdminSidebarConfig = {
+  header: {
+    titleKey: 'menu-admin',
+    iconClass: 'fa fa-cog'
+  },
+  sections: [
+    {
+      id: 'analyze',
+      titleKey: 'menu-analyze',
+      defaultExpanded: true,
+      items: [
+        { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
+        { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
+        { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
+      ]
+    },
+    {
+      id: 'system',
+      titleKey: 'menu-syssettings',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
+        { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
+        { id: 'support', labelKey: 'menu-supportagreement', href: '/admin/supportAgreement' },
+        { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
+        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' }
+      ]
+    },
+    {
+      id: 'navigation',
+      titleKey: 'menu-navigation',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
+        { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
+        { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' }
+      ]
+    },
+    {
+      id: 'lookup',
+      titleKey: 'system-lookup-records',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }
+      ]
+    }
+  ],
+  footerLinks: [
+    { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
+    { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
+  ]
+};
+
 module.exports.brandingConfigurationDefaults = {
-  auth: defaultBrandAuthConfig
+  auth: defaultBrandAuthConfig,
+  menu: defaultMenuConfig,
+  homePanels: defaultHomePanelsConfig,
+  adminSidebar: defaultAdminSidebarConfig
 };

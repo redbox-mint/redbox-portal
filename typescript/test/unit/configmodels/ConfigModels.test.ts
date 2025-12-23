@@ -7,6 +7,9 @@ describe('ConfigModels', function () {
     expect(keys).to.be.an('array');
     expect(keys).to.include('systemMessage');
     expect(keys).to.include('authorizedDomainsEmails');
+    expect(keys).to.include('menu');
+    expect(keys).to.include('homePanels');
+    expect(keys).to.include('adminSidebar');
   });
 
   it('should get model info for existing key', () => {
@@ -20,6 +23,24 @@ describe('ConfigModels', function () {
   it('should return undefined for non-existing key', () => {
     const modelInfo = ConfigModels.getModelInfo('nonExistentKey');
     expect(modelInfo).to.be.undefined;
+  });
+
+  it('should expose navigation config models with schema metadata', () => {
+    const menuInfo = ConfigModels.getModelInfo('menu');
+    const homePanelsInfo = ConfigModels.getModelInfo('homePanels');
+    const adminSidebarInfo = ConfigModels.getModelInfo('adminSidebar');
+
+    expect(menuInfo).to.not.be.undefined;
+    expect(menuInfo.schema).to.exist;
+    expect(menuInfo.tsGlob).to.equal('typescript/api/configmodels/MenuConfig.ts');
+
+    expect(homePanelsInfo).to.not.be.undefined;
+    expect(homePanelsInfo.schema).to.exist;
+    expect(homePanelsInfo.tsGlob).to.equal('typescript/api/configmodels/HomePanelConfig.ts');
+
+    expect(adminSidebarInfo).to.not.be.undefined;
+    expect(adminSidebarInfo.schema).to.exist;
+    expect(adminSidebarInfo.tsGlob).to.equal('typescript/api/configmodels/AdminSidebarConfig.ts');
   });
 
   it('should register a new config model', () => {
