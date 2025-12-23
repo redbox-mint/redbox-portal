@@ -7044,3 +7044,131 @@ button.close {
 .completer-title {
   display: none;
 }
+
+// Admin Sidebar Styles
+.admin-layout {
+    margin: 0;
+    min-height: 70vh;
+    /* remove the negative gutter Bootstrap applies on rows when not inside a container */
+    margin-left: 0;
+    margin-right: 0;
+    flex-wrap: nowrap;
+}
+
+.admin-layout > [class^="col-"],
+.admin-layout > [class*=" col-"] {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Preserve padding for the main content column */
+.admin-layout > .admin-main-content {
+    padding: 0 40px;
+}
+
+.admin-sidebar {
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    padding: 0;
+    min-height: 100%;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    /* Stretch sidebar to align with navbar/footer while keeping main content padding intact */
+    margin-top: -80px;
+    margin-bottom: -130px;
+    height: calc(100% + 210px);
+}
+
+.admin-sidebar-header {
+  background-color: #e9ecef;
+  padding: 15px;
+  font-weight: bold;
+  border-bottom: 1px solid #dee2e6;
+  
+  i {
+    margin-right: 8px;
+  }
+}
+
+.admin-sidebar-section {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.admin-sidebar-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  color: $panel-branding-background-color;
+  font-weight: 600;
+  text-decoration: none;
+  background-color: #fff;
+  
+  &:hover {
+    background-color: #f8f9fa;
+    text-decoration: none;
+  }
+  
+  &[aria-expanded="false"] i.fa-chevron-down {
+    transform: rotate(-90deg);
+  }
+  
+  i.fa-chevron-down {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+  }
+}
+
+.admin-sidebar-links {
+  padding: 0;
+  background-color: #fff;
+}
+
+.admin-sidebar-link {
+  padding: 8px 15px 8px 25px;
+  
+  a {
+    color: #495057;
+    text-decoration: none;
+    display: block;
+    
+    &:hover {
+      color: $panel-branding-background-color;
+      text-decoration: underline;
+    }
+  }
+  
+  &:last-child {
+    padding-bottom: 12px;
+  }
+}
+
+.admin-sidebar-footer {
+  padding: 10px 15px;
+  border-bottom: 1px solid #dee2e6;
+  
+  a {
+    color: $panel-branding-background-color;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.admin-main-content {
+    padding: 0px 40px 0px 40px;
+    background: #fff;
+    border-left: 1px solid #dee2e6;
+    min-height: 70vh;
+  
+    h1 {
+        margin-bottom: 20px;
+    
+        i {
+            margin-right: 10px;
+        }
+    }
+}

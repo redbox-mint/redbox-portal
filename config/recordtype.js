@@ -607,6 +607,9 @@ module.exports.recordtype = {
   },
   "party": {
     packageType: "party",
+    dashboard:{
+      showAdminSideBar: true
+    },
     hooks: {
       onCreate: {
         pre: [
