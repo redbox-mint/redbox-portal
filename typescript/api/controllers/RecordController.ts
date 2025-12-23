@@ -1317,7 +1317,7 @@ export module Controllers {
       return res.redirect(url);
     }
 
-    public render(req, res) {
+    public async render(req, res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
@@ -1329,7 +1329,27 @@ export module Controllers {
           titleLabel = 'workspaces';
         }
       }
-      return this.sendView(req, res, 'dashboard', { recordType: recordType, packageType: packageType, titleLabel: titleLabel });
+
+      // Get dashboard config for the record type to determine if admin sidebar should be shown
+      let showAdminSideBar = false;
+      if (recordType) {
+        try {
+          const brand = BrandingService.getBrand(req.session.branding);
+          const dashboardConfig = await DashboardTypesService.getRecordTypeDashboardConfig(brand, recordType);
+          if (dashboardConfig && dashboardConfig.showAdminSideBar === true) {
+            showAdminSideBar = true;
+          }
+        } catch (error) {
+          sails.log.warn(`Error fetching dashboard config for record type ${recordType}:`, error);
+        }
+      }
+
+      return this.sendView(req, res, 'dashboard', { 
+        recordType: recordType, 
+        packageType: packageType, 
+        titleLabel: titleLabel,
+        showAdminSideBar: showAdminSideBar
+      });
     }
 
 

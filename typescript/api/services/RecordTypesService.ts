@@ -89,7 +89,8 @@ export module Services {
         hooks: config.hooks,
         transferResponsibility: config.transferResponsibility,
         relatedTo: config.relatedTo,
-        searchable: config.searchable
+        searchable: config.searchable,
+        dashboard: (config as any).dashboard
       }));
     }
 

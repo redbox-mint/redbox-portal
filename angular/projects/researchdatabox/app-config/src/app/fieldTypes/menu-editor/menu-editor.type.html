@@ -59,37 +59,41 @@
                   Children: {{ item.children?.length || 0 }}
                 </div>
               </div>
-              <div class="item-actions btn-group btn-group-sm" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === 0"
-                  (click)="moveItem(i, 'up')"
-                  title="Move up">
-                  <i class="fa fa-arrow-up"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  [disabled]="i === items.length - 1"
-                  (click)="moveItem(i, 'down')"
-                  title="Move down">
-                  <i class="fa fa-arrow-down"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  (click)="duplicateItem(i)"
-                  title="Duplicate">
-                  <i class="fa fa-copy"></i>
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-danger"
-                  (click)="removeItem(i)"
-                  title="Remove">
-                  <i class="fa fa-trash"></i>
-                </button>
+              <div class="item-actions top-level-toolbar btn-toolbar" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                <div class="btn-group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === 0"
+                    (click)="moveItem(i, 'up')"
+                    title="Move up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === items.length - 1"
+                    (click)="moveItem(i, 'down')"
+                    title="Move down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group ms-2">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    (click)="duplicateItem(i)"
+                    title="Duplicate">
+                    <i class="fa fa-copy"></i> <span class="btn-label">Duplicate</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removeItem(i)"
+                    title="Remove">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
               </div>
               <span class="expand-icon ms-2">
                 <i class="fa" [class.fa-chevron-down]="!isExpanded(i)" [class.fa-chevron-up]="isExpanded(i)"></i>
@@ -247,43 +251,47 @@
                   <div class="children-list">
                     @for (child of item.children; track child.id || $index; let ci = $index) {
                       <div class="child-card">
-                        <div class="child-reorder">
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-link"
-                            [disabled]="ci === 0"
-                            (click)="moveChild(i, ci, 'up')"
-                            title="Move up">
-                            <i class="fa fa-chevron-up"></i>
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-link"
-                            [disabled]="ci === (item.children?.length || 0) - 1"
-                            (click)="moveChild(i, ci, 'down')"
-                            title="Move down">
-                            <i class="fa fa-chevron-down"></i>
-                          </button>
-                        </div>
                         <div class="child-info flex-grow-1">
                           <strong>{{ child.id || 'unnamed' }}</strong>
                           <div class="text-muted small">
                             Label: {{ getResolvedLabel(child.labelKey) }} | URL: {{ child.href }}
                           </div>
                         </div>
-                        <div class="child-actions">
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-secondary btn-sm"
-                            (click)="openChildEditor(i, ci)">
-                            Edit
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-danger btn-sm"
-                            (click)="removeChild(i, ci)">
-                            Remove
-                          </button>
+                        <div class="child-actions second-level-toolbar btn-toolbar">
+                          <div class="btn-group btn-group-sm">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="ci === 0"
+                              (click)="moveChild(i, ci, 'up')"
+                              title="Move up">
+                              <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="ci === (item.children?.length || 0) - 1"
+                              (click)="moveChild(i, ci, 'down')"
+                              title="Move down">
+                              <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                            </button>
+                          </div>
+                          <div class="btn-group btn-group-sm ms-1">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              (click)="openChildEditor(i, ci)"
+                              title="Edit">
+                              <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-danger"
+                              (click)="removeChild(i, ci)"
+                              title="Remove">
+                              <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     }
