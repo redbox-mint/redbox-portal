@@ -29,6 +29,7 @@
       "es2023",
       "dom"
     ],
+    "baseUrl": ".",
     "inlineSourceMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -36,7 +37,8 @@
     "skipLibCheck": true
   },
   "exclude": [
-    "node_modules/**"
+    "node_modules/**",
+    "dist"
   ],
   "include": [
     "src/**/*.ts",

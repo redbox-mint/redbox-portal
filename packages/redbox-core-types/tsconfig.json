@@ -8,7 +8,13 @@
     "inlineSourceMap": true,
     "lib": [
       "es2023"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@researchdatabox/sails-ng-common": ["../sails-ng-common/src/index.ts"],
+      "@researchdatabox/raido-openapi-generated-node": ["../raido/src/index.ts"],
+      "@researchdatabox/redbox-core-types": ["./src/index.ts"]
+    }
   },
   "include": [
     "src/**/*"
