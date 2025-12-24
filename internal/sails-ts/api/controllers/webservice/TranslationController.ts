@@ -23,9 +23,8 @@ declare var module;
 declare var sails;
 declare var _;
 
-declare var BrandingService;
-declare var I18nEntriesService;
-declare var TranslationService;
+
+
 
 import { APIActionResponse, APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';

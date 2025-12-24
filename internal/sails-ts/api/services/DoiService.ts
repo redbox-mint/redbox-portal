@@ -25,9 +25,9 @@ import moment from '../shims/momentShim';
 import axios from 'axios';
 
 declare var sails: Sails;
-declare var RecordsService;
-declare var BrandingService;
-declare var TranslationService;
+
+
+
 declare var _;
 
 export module Services {

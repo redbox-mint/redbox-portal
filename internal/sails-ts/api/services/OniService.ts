@@ -32,7 +32,7 @@ import * as mime from 'mime-types';
 
 let wktParserHelper;
 declare var sails: Sails;
-declare var RecordsService, UsersService;
+
 declare var _;
 
 const URL_PLACEHOLDER = '{ID_WILL_BE_HERE}'; // config

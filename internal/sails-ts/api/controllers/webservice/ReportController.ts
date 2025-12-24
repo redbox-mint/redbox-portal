@@ -21,10 +21,6 @@
 declare var module;
 declare var sails;
 
-declare var BrandingService;
-declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
 declare var User;
 declare var Record;
 declare var _;
@@ -34,9 +30,6 @@ import { APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-ty
  */
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 
-
-
-declare var NamedQueryService;
 
 export module Controllers {
   /**

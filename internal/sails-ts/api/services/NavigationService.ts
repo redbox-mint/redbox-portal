@@ -46,10 +46,10 @@ import {
 } from '../configmodels/AdminSidebarConfig';
 
 declare var sails: Sails;
-declare var BrandingService: any;
-declare var RolesService: any;
-declare var UsersService: any;
-declare var TranslationService: any;
+
+
+
+
 declare var _: any;
 
 /**

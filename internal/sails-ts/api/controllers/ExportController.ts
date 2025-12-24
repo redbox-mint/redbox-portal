@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs';
-declare var RecordsService, DashboardService, BrandingService, TranslationService;
+
 import { default as util } from 'util';
 import { default as stream } from 'stream';
 const pipeline = util.promisify(stream.pipeline);

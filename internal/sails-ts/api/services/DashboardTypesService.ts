@@ -6,8 +6,8 @@ import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var DashboardType: Model;
-declare var WorkflowStepsService: any;
-declare var RecordTypesService: any;
+
+
 declare var _;
 
 export module Services {

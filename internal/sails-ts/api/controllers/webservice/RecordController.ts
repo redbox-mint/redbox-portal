@@ -21,10 +21,9 @@ declare var module;
 declare var sails;
 declare var _;
 
-declare var BrandingService;
-declare var RolesService;
-declare var RecordTypesService;
-declare var WorkflowStepsService;
+
+
+
 
 declare var Record;
 

@@ -42,6 +42,7 @@ x-rbportal-service: &rbportal-service
     - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
     - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
     - "../../.tmp/attachments:/attachments"
+    - "../../tsconfig.json:/opt/redbox-portal/tsconfig.json"
     - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
     - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
     - "../../internal/test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"

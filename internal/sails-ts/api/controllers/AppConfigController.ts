@@ -5,15 +5,13 @@ import {
   BrandingModel
 } from '@researchdatabox/redbox-core-types';
 declare var _;
-import {Services as AppConfigServiceType} from '../services/AppConfigService';
-import {Services as BrandingServiceType} from '../services/BrandingService';
 
 /**
  * Package that contains all Controllers.
  */
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import { ConfigModels } from '../configmodels/ConfigModels';
-declare var AppConfigService:AppConfigServiceType.AppConfigs, BrandingService:BrandingServiceType.Branding;
+
 
 export module Controllers {
   /**

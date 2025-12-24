@@ -29,8 +29,8 @@ import { Services as vocabService } from '../services/VocabService';
 declare var module;
 declare var sails;
 declare var _;
-declare var VocabService: vocabService.Vocab;
-declare var BrandingService;
+
+
 let flat;
 
 export module Controllers {

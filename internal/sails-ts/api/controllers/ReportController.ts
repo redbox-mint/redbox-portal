@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable, of, from } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
-declare var BrandingService, RolesService, DashboardService, ReportsService;
+
 declare var _;
 /**
  * Package that contains all Controllers.

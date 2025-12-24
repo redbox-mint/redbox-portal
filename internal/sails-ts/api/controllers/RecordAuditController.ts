@@ -20,7 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-declare var RecordsService;
+
 
 /**
  * Package that contains all Controllers.

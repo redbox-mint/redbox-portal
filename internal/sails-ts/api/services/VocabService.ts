@@ -23,8 +23,7 @@ import { SearchService, VocabQueryConfig, BrandingModel, Services as services } 
 import { Sails } from 'sails';
 import axios from 'axios';
 
-declare var CacheService, AsynchsService;
-declare var NamedQueryService;
+
 declare var sails: Sails;
 declare var _;
 

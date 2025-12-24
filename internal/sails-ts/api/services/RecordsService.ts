@@ -56,11 +56,11 @@ import {
 
 const util = require('util');
 
-declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService, SolrSearchService;
+
 declare var sails: Sails;
 declare var _;
 declare var _this;
-declare var TranslationService;
+
 
 export module Services {
   /**
@@ -91,20 +91,12 @@ export module Services {
     }
 
     getStorageService() {
-      if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.storage.serviceName)) {
-        this.storageService = RedboxJavaStorageService;
-      } else {
-        this.storageService = sails.services[sails.config.storage.serviceName];
-      }
+       this.storageService = sails.services[sails.config.storage.serviceName];
     }
 
-    getDatastreamService() {
-      if (_.isEmpty(sails.config.record) || _.isEmpty(sails.config.record.datastreamService)) {
-        this.datastreamService = RedboxJavaStorageService;
-      } else {
+    getDatastreamService() {    
         this.datastreamService = sails.services[sails.config.record.datastreamService];
         sails.log.verbose(`${this.logHeader} Using datastreamService: ${sails.config.record.datastreamService}`);
-      }
     }
 
     getSearchService() {

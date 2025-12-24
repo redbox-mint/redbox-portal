@@ -26,7 +26,7 @@ import { globSync } from 'glob';
 import { config } from 'node:process';
 
 declare var sails: Sails;
-declare var BrandingService: Brandings.Branding;
+
 declare var _;
 
 
@@ -36,7 +36,7 @@ export module Services {
    *
    * 
    */
-  export class AppConfigs extends services.Core.Service {
+  export class AppConfigService extends services.Core.Service {
     brandingAppConfigMap: {};
     modelSchemaMap: any = {};
     private extraTsGlobs: Set<string> = new Set();
@@ -258,4 +258,4 @@ export module Services {
 
 }
 
-module.exports = new Services.AppConfigs().exports();
+module.exports = new Services.AppConfigService().exports();

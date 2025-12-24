@@ -37,7 +37,7 @@ import numeral from 'numeral';
 declare var sails: Sails;
 declare var _this;
 declare var _;
-declare var TranslationService, WorkspaceService;
+
 
 export module Services {
   /**

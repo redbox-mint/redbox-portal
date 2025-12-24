@@ -22,13 +22,9 @@ import {BrandingModel, Services as services}   from '@researchdatabox/redbox-cor
 import {Sails, Model} from "sails";
 import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
-import {Services as appConfigServices} from "./AppConfigService"
-import {Services as brandingService} from "./BrandingService"
 import { glob } from 'fs';
 declare var sails: Sails;
 declare var _;
-declare var AppConfigService:appConfigServices.AppConfigs;
-declare var BrandingService:brandingService.Branding;
 
 export module Services {
   /**

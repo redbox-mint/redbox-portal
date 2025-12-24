@@ -1,0 +1,42 @@
+import { AgendaQueueService, AppConfigService, AsynchsService, BrandingLogoService, BrandingService, CacheService, ConfigService, ContrastService, DashboardTypesService, DoiService, EmailService, FigshareService, FormRecordConsistencyService, FormsService, I18nEntriesService, NamedQueryService, NavigationService, OniService, OrcidService, PathRulesService, RDMPService, RaidService, RecordTypesService, RecordsService, ReportsService, RolesService, SassCompilerService, SolrSearchService, SvgSanitizerService, TemplateService, TranslationService, TriggerService, UsersService, VocabService, WorkflowStepsService, WorkspaceAsyncService, WorkspaceService, WorkspaceTypesService } from './index';
+
+declare global {
+  var AgendaQueueService: AgendaQueueService;
+  var AppConfigService: AppConfigService;
+  var AsynchsService: AsynchsService;
+  var BrandingLogoService: BrandingLogoService;
+  var BrandingService: BrandingService;
+  var CacheService: CacheService;
+  var ConfigService: ConfigService;
+  var ContrastService: ContrastService;
+  var DashboardTypesService: DashboardTypesService;
+  var DoiService: DoiService;
+  var EmailService: EmailService;
+  var FigshareService: FigshareService;
+  var FormRecordConsistencyService: FormRecordConsistencyService;
+  var FormsService: FormsService;
+  var I18nEntriesService: I18nEntriesService;
+  var NamedQueryService: NamedQueryService;
+  var NavigationService: NavigationService;
+  var OniService: OniService;
+  var OrcidService: OrcidService;
+  var PathRulesService: PathRulesService;
+  var RDMPService: RDMPService;
+  var RaidService: RaidService;
+  var RecordTypesService: RecordTypesService;
+  var RecordsService: RecordsService;
+  var ReportsService: ReportsService;
+  var RolesService: RolesService;
+  var SassCompilerService: SassCompilerService;
+  var SolrSearchService: SolrSearchService;
+  var SvgSanitizerService: SvgSanitizerService;
+  var TemplateService: TemplateService;
+  var TranslationService: TranslationService;
+  var TriggerService: TriggerService;
+  var UsersService: UsersService;
+  var VocabService: VocabService;
+  var WorkflowStepsService: WorkflowStepsService;
+  var WorkspaceAsyncService: WorkspaceAsyncService;
+  var WorkspaceService: WorkspaceService;
+  var WorkspaceTypesService: WorkspaceTypesService;
+}

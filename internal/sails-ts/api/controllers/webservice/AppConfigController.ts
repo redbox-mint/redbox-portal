@@ -13,7 +13,7 @@ import {Services as BrandingServiceType} from '../../services/BrandingService';
  * Package that contains all Controllers.
  */
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-declare var AppConfigService:AppConfigServiceType.AppConfigs, BrandingService:BrandingServiceType.Branding;
+
 
 export module Controllers {
   /**

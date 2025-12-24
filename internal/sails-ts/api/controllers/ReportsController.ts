@@ -21,7 +21,6 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs';
-declare var BrandingService, RolesService, DashboardService, ReportsService;
 
 /**
  * Package that contains all Controllers.

@@ -25,7 +25,7 @@ import { of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 
 import { v4 as uuidv4 } from 'uuid';
-declare var BrandingService, RolesService, UsersService;
+
 
 import { Controllers as controllers, BrandingModel } from '@researchdatabox/redbox-core-types';
 

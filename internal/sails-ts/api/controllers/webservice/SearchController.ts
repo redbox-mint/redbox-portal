@@ -24,8 +24,7 @@ import {Services as recordTypesService} from '../../services/RecordTypesService'
 import {Services as brandingService} from '../../services/BrandingService';
 declare var sails:Sails;
 
-declare var RecordTypesService:recordTypesService.RecordTypes;
-declare var BrandingService:brandingService.Branding;
+
 declare var _;
 /**
  * Package that contains all Controllers.

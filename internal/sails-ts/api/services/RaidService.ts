@@ -37,9 +37,9 @@ import axios from 'axios';
 
 
 declare var sails: Sails;
-declare var RecordsService;
-declare var TranslationService;
-declare var AgendaQueueService;
+
+
+
 declare var _;
 
 export module Services {

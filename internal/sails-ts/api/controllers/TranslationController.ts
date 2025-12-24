@@ -19,11 +19,11 @@
 
 declare var module;
 declare var sails;
-declare var BrandingService;
+
 declare var I18nBundle;
 declare var I18nTranslation;
-declare var I18nEntriesService;
-declare var TranslationService;
+
+
 
 import { Controllers as controllers, PopulateExportedMethods } from '@researchdatabox/redbox-core-types';
 import * as path from 'node:path';

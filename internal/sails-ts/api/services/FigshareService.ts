@@ -36,13 +36,13 @@ const fs = require('fs');
 const checkDiskSpace = require('check-disk-space').default;
 
 declare let sails: Sails;
-declare let TranslationService;
-declare let BrandingService;
-declare let RecordsService;
-declare let NamedQueryService;
-declare let RecordTypesService;
-declare let WorkflowStepsService;
-declare let UsersService;
+
+
+
+
+
+
+
 
 export module Services {
 

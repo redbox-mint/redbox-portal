@@ -34,9 +34,9 @@ declare var RecordType: Model;
 declare var _this;
 declare var _;
 declare var User;
-declare var RecordsService;
-declare var TranslationService;
-declare var BrandingService;
+
+
+
 
 export module Services {
   /**

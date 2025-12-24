@@ -1,6 +1,7 @@
 import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import * as ts from 'typescript';
 
 import {
   AttributeOptions,
@@ -19,6 +20,15 @@ const TYPES_MODELS_DIR = path.join(
   'redbox-core-types',
   'src',
   'models',
+);
+const SERVICES_DIR = path.join(PROJECT_ROOT, 'internal', 'sails-ts', 'api', 'services');
+const TYPES_SERVICES_DIR = path.join(
+  PROJECT_ROOT,
+  'packages',
+  'redbox-core-types',
+  'src',
+  'services',
+  'generated',
 );
 
 async function discoverModelFiles(dir: string): Promise<string[]> {
@@ -364,6 +374,289 @@ async function generateIndexFile(entities: EntityMeta[]) {
   console.log(`Generated ${path.relative(PROJECT_ROOT, indexPath)}`);
 }
 
+interface ServiceMeta {
+  className: string;
+  serviceName: string;
+  filePath: string;
+  exportedMethods: string[];
+  methods: Record<string, string>; // name -> signature
+  imports: string[];
+  localTypes: string[];
+}
+
+async function extractServiceMeta(filePath: string): Promise<ServiceMeta> {
+  const content = await fs.readFile(filePath, 'utf8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true
+  );
+
+  const serviceName = path.basename(filePath, '.ts');
+  let className = serviceName;
+  const methods: Record<string, string> = {};
+  const imports: string[] = [];
+  let exportedMethods: string[] = [];
+  const localTypes: string[] = [];
+
+  // Find the class declaration
+  let classDecl: ts.ClassDeclaration | undefined;
+  const shortName = className.replace(/Service$/, '');
+
+  function visit(node: ts.Node) {
+    if (ts.isClassDeclaration(node)) {
+      const name = node.name?.text;
+      if (name) {
+        const isMainClass = !classDecl && (name === className || name === shortName);
+        
+        if (isMainClass) {
+          classDecl = node;
+        } else if (name !== className && name !== shortName) {
+          // Helper class. Extract it.
+          const members: string[] = [];
+          node.members.forEach(m => {
+              if (ts.isPropertyDeclaration(m)) {
+                  const mName = m.name.getText(sourceFile);
+                  const mType = m.type ? m.type.getText(sourceFile) : 'any';
+                  const mods = m.modifiers ? m.modifiers.map(mod => mod.getText(sourceFile)).join(' ') + ' ' : '';
+                  members.push(`  ${mods}${mName}: ${mType};`);
+              } else if (ts.isMethodDeclaration(m)) {
+                  const mName = m.name.getText(sourceFile);
+                  const params = m.parameters.map(p => {
+                      const pName = p.name.getText(sourceFile);
+                      const pType = p.type ? p.type.getText(sourceFile) : 'any';
+                      const optional = p.questionToken || p.initializer ? '?' : '';
+                      return `${pName}${optional}: ${pType}`;
+                  }).join(', ');
+                  const rType = m.type ? m.type.getText(sourceFile) : 'any';
+                  const mods = m.modifiers ? m.modifiers
+                    .filter(mod => mod.kind !== ts.SyntaxKind.AsyncKeyword)
+                    .map(mod => mod.getText(sourceFile)).join(' ') + ' ' : '';
+                  members.push(`  ${mods}${mName}(${params}): ${rType};`);
+              } else if (ts.isConstructorDeclaration(m)) {
+                  const params = m.parameters.map(p => {
+                      const pName = p.name.getText(sourceFile);
+                      const pType = p.type ? p.type.getText(sourceFile) : 'any';
+                      const optional = p.questionToken || p.initializer ? '?' : '';
+                      const pMods = p.modifiers ? p.modifiers.map(mod => mod.getText(sourceFile)).join(' ') + ' ' : '';
+                      return `${pMods}${pName}${optional}: ${pType}`;
+                  }).join(', ');
+                  members.push(`  constructor(${params});`);
+              }
+          });
+          const isExported = node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+          const exportKw = isExported ? 'export ' : '';
+          localTypes.push(`${exportKw}declare class ${name} {\n${members.join('\n')}\n}`);
+        }
+      }
+      return;
+    } 
+    
+    if (ts.isVariableStatement(node)) {
+        if (node.modifiers?.some(m => m.kind === ts.SyntaxKind.DeclareKeyword)) {
+            return;
+        }
+        node.declarationList.declarations.forEach(d => {
+            if (ts.isIdentifier(d.name)) {
+                localTypes.push(`declare const ${d.name.text}: any;`);
+            }
+        });
+        return;
+    } 
+    
+    if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node)) {
+        let text = node.getText(sourceFile);
+        if (!node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
+            text = `export ${text}`;
+        }
+        localTypes.push(text);
+        return;
+    }
+
+    if (ts.isSourceFile(node) || ts.isModuleDeclaration(node) || ts.isModuleBlock(node)) {
+        ts.forEachChild(node, visit);
+    }
+  }
+  visit(sourceFile);
+
+  if (classDecl) {
+    // Extract _exportedMethods property if it exists
+    const exportedMethodsProp = classDecl.members.find(m => {
+      if (ts.isPropertyDeclaration(m)) {
+        const propName = m.name.getText(sourceFile);
+        if (propName === '_exportedMethods') {
+            console.log(`Found _exportedMethods in ${className}`);
+            return true;
+        }
+      }
+      return false;
+    }) as ts.PropertyDeclaration | undefined;
+
+    if (exportedMethodsProp && exportedMethodsProp.initializer && ts.isArrayLiteralExpression(exportedMethodsProp.initializer)) {
+      exportedMethods = exportedMethodsProp.initializer.elements
+        .map(e => e.getText(sourceFile).replace(/['"]/g, ''))
+        .filter(s => s);
+    }
+
+    // Extract methods
+    classDecl.members.forEach(member => {
+      if (ts.isMethodDeclaration(member) && member.name) {
+        const name = member.name.getText(sourceFile);
+        
+        // Check modifiers
+        const modifiers = ts.getModifiers(member);
+        const isPrivate = modifiers?.some(m => m.kind === ts.SyntaxKind.PrivateKeyword);
+        const isProtected = modifiers?.some(m => m.kind === ts.SyntaxKind.ProtectedKeyword);
+        
+        if (isPrivate || isProtected) return;
+
+        // Get parameters
+        const rawParams = member.parameters.map(p => {
+          const paramName = p.name.getText(sourceFile);
+          let paramType = 'any';
+          if (p.type) {
+            paramType = p.type.getText(sourceFile);
+          }
+          
+          const hasInitializer = !!p.initializer;
+          const isOptionalToken = !!p.questionToken;
+          
+          return { name: paramName, type: paramType, hasInitializer, isOptionalToken };
+        });
+
+        // Process parameters for optionality (reverse)
+        const params: string[] = [];
+        let nextParamIsOptional = true;
+
+        for (let i = rawParams.length - 1; i >= 0; i--) {
+            const p = rawParams[i];
+            const canBeOptional = p.isOptionalToken || p.hasInitializer;
+            const isOptional = canBeOptional && nextParamIsOptional;
+            
+            if (isOptional) {
+                params.unshift(`${p.name}?: ${p.type}`);
+                nextParamIsOptional = true;
+            } else {
+                let type = p.type;
+                if (canBeOptional) {
+                    type = `${type} | undefined`;
+                }
+                params.unshift(`${p.name}: ${type}`);
+                nextParamIsOptional = false;
+            }
+        }
+
+        // Get return type
+        let returnType = 'any';
+        if (member.type) {
+          returnType = member.type.getText(sourceFile);
+        }
+
+        methods[name] = `(${params.join(', ')}): ${returnType}`;
+      }
+    });
+  }
+
+  // Extract imports
+  sourceFile.statements.forEach(stmt => {
+    if (ts.isImportDeclaration(stmt)) {
+      const moduleSpecifier = (stmt.moduleSpecifier as ts.StringLiteral).text;
+      
+      if (moduleSpecifier.startsWith('.')) {
+          if (stmt.importClause && stmt.importClause.namedBindings && ts.isNamedImports(stmt.importClause.namedBindings)) {
+              stmt.importClause.namedBindings.elements.forEach(el => {
+                  const name = el.name.text;
+                  localTypes.push(`type ${name} = any;`);
+              });
+          }
+          return;
+      }
+
+      if (moduleSpecifier.includes('@researchdatabox/redbox-core-types')) {
+        const importClause = stmt.importClause?.getText(sourceFile);
+        if (importClause) {
+          let newClause = importClause;
+          const regex = new RegExp(`\\b${serviceName}\\b,?\\s*`, 'g');
+          newClause = newClause.replace(regex, '');
+          newClause = newClause.replace(/,\s*}/, ' }').replace(/{\s*,/, '{ ');
+          
+          if (!newClause.match(/{\s*}/)) {
+              imports.push(`import ${newClause} from '../../index';`);
+          }
+        }
+      } else {
+        imports.push(stmt.getText(sourceFile));
+      }
+    }
+  });
+
+  return { className, serviceName, filePath, exportedMethods, methods, imports, localTypes };
+}
+
+function buildServiceTypeDefinition(meta: ServiceMeta, sourceRelativePath: string): string {
+  const lines: string[] = [];
+  lines.push(`// This file is generated from ${sourceRelativePath}. Do not edit directly.`);
+  lines.push(...meta.imports);
+  lines.push('');
+  
+  if (meta.localTypes.length) {
+      lines.push(...meta.localTypes);
+      lines.push('');
+  }
+
+  lines.push(`export interface ${meta.serviceName} {`);
+  
+  const methodsToExport = meta.exportedMethods.length > 0 ? meta.exportedMethods : Object.keys(meta.methods);
+  
+  for (const method of methodsToExport) {
+    if (meta.methods[method]) {
+      lines.push(`  ${method}${meta.methods[method]};`);
+    } else {
+      lines.push(`  ${method}(...args: any[]): any;`);
+    }
+  }
+  lines.push('}');
+  lines.push('');
+  return lines.join('\n');
+}
+
+async function generateServices() {
+  const files = await discoverModelFiles(SERVICES_DIR);
+  if (!files.length) {
+    console.warn(`No service files found in ${SERVICES_DIR}`);
+    return;
+  }
+
+  await fs.mkdir(TYPES_SERVICES_DIR, { recursive: true });
+
+  const services: ServiceMeta[] = [];
+  for (const file of files) {
+    const meta = await extractServiceMeta(file);
+    services.push(meta);
+    const sourceRelativePath = path.relative(PROJECT_ROOT, file);
+    const typeDef = buildServiceTypeDefinition(meta, sourceRelativePath);
+    await fs.writeFile(path.join(TYPES_SERVICES_DIR, `${meta.serviceName}.ts`), typeDef, 'utf8');
+    console.log(`Generated service type for ${meta.serviceName}`);
+  }
+
+  // Generate index
+  const indexLines = services.map(s => `export * from './${s.serviceName}';`);
+  await fs.writeFile(path.join(TYPES_SERVICES_DIR, 'index.ts'), indexLines.join('\n'), 'utf8');
+
+  // Generate globals
+  const globalLines = [];
+  globalLines.push(`import { ${services.map(s => s.serviceName).join(', ')} } from './index';`);
+  globalLines.push('');
+  globalLines.push('declare global {');
+  for (const s of services) {
+    globalLines.push(`  var ${s.serviceName}: ${s.serviceName};`);
+  }
+  globalLines.push('}');
+  await fs.writeFile(path.join(TYPES_SERVICES_DIR, 'globals.ts'), globalLines.join('\n'), 'utf8');
+  console.log(`Generated service globals`);
+}
+
 async function main() {
   const fileMap = await loadModelModules();
   const entities = getRegisteredEntities();
@@ -380,6 +673,7 @@ async function main() {
     await writeOutputs(meta, entities, propertyTypes, localTypes, sourceRelativePath);
   }
   await generateIndexFile(entities);
+  await generateServices();
 }
 
 main().catch(error => {

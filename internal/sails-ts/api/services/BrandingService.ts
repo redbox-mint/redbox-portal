@@ -26,8 +26,7 @@ import * as crypto from 'crypto';
 declare var sails: Sails;
 declare var _;
 
-declare var SassCompilerService;
-declare var ContrastService;
+
 
 export module Services {
   /**

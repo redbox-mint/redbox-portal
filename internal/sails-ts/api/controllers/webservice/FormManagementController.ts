@@ -29,7 +29,7 @@ import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import { firstValueFrom } from 'rxjs';
 
 declare var sails: Sails;
-declare var FormsService:formsService.Forms;
+
 
 export module Controllers {
   /**

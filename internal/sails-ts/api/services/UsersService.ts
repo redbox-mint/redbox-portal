@@ -41,8 +41,8 @@ import * as crypto from 'crypto';
 
 
 declare var sails: Sails;
-declare var BrandingService, RolesService, ConfigService, RecordsService;
-declare var VocabService;
+
+
 declare const Buffer;
 declare var _;
 

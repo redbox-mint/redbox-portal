@@ -21,7 +21,7 @@
 declare var module;
 declare var sails;
 declare var _;
-declare var BrandingService, UsersService, ConfigService, TranslationService;
+
 import { v4 as uuidv4 } from 'uuid';
 
 import { BrandingModel, Controllers as controllers, RequestDetails } from '@researchdatabox/redbox-core-types';

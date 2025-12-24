@@ -23,7 +23,6 @@ import { Sails, Model } from 'sails';
 declare var sails: Sails;
 declare var _;
 
-declare let BrandingService: any;
 
 export module Services {
 

@@ -10,7 +10,7 @@ import { GridFSBucket, Db } from 'mongodb';
 
 declare const sails: any;
 declare const _: any;
-declare const SvgSanitizerService: any;
+
 // Using skipper-gridfs adapter pattern like BrandingController
 // We'll lazily require to avoid circular load issues.
 

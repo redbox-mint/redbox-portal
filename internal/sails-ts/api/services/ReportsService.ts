@@ -32,9 +32,9 @@ import Handlebars from "handlebars";
 
 declare var sails: Sails;
 declare var _this;
-declare var NamedQueryService;
+
 declare var _;
-declare var BrandingService;
+
 
 export module Services {
   /**

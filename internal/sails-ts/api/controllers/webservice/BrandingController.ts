@@ -8,8 +8,8 @@ import type { Services as BrandingServices } from '../../services/BrandingServic
 import type { Services as BrandingLogoServices } from '../../services/BrandingLogoService';
 
 declare const sails: any;
-declare const BrandingService: BrandingServices.Branding;
-declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
+
+
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
 declare const BrandingVersion: any;

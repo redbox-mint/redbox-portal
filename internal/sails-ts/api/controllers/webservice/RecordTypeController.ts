@@ -21,10 +21,6 @@
 declare var module;
 declare var sails;
 
-declare var BrandingService;
-declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
 declare var User;
 declare var _;
 /**
@@ -33,8 +29,6 @@ declare var _;
 import {APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary}  from '@researchdatabox/redbox-core-types';
 import { firstValueFrom } from 'rxjs';
 
-
-declare var RecordTypesService;
 
 export module Controllers {
   /**

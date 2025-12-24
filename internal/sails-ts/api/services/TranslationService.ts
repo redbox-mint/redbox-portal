@@ -26,7 +26,7 @@ declare var _;
 declare var sails: Sails;
 // Waterline globals
 declare var I18nBundle: Model;
-declare let BrandingService: any;
+
 
 export module Services {
   /**

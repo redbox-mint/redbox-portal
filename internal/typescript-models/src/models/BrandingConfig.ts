@@ -95,7 +95,7 @@ export class BrandingConfig {
       });
     },
   })
-  public variables?: Record<string, unknown>;
+  public variables?: Record<string, string>;
 
   @Attr({ type: 'number', defaultsTo: 0 })
   public version?: number;

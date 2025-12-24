@@ -24,7 +24,7 @@ import {Sails, Model} from "sails";
 
 declare var sails: Sails;
 declare var Role, BrandingConfig: Model;
-declare var ConfigService;
+
 declare var _;
 
 

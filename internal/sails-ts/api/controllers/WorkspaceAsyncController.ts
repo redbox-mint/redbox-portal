@@ -2,12 +2,8 @@
 declare var module;
 declare var sails;
 
-declare var BrandingService;
-declare var RolesService;
-declare var  DashboardService;
-declare var  UsersService;
 declare var  User;
-declare var WorkspaceAsyncService;
+
 
 /**
  * Package that contains all Controllers.
@@ -50,7 +46,7 @@ export module Controllers {
     status(req, res) {
       const status = req.param('status');
       const recordType = req.param('recordType');
-      return WorkspaceAsyncService.status({status, recordType})
+      return WorkspaceAsyncService.status(status, recordType)
       .subscribe(response => {
         this.ajaxOk(req, res, null, response);
       }, error => {

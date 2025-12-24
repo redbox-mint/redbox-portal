@@ -24,7 +24,7 @@ declare var _;
 import { Observable } from 'rxjs';
 
 declare function require(name:string);
-declare var AsynchsService, VocabService, BrandingService;
+
 /**
  * Package that contains all Controllers.
  */

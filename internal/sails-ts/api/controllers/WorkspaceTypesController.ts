@@ -23,7 +23,6 @@ import { Observable } from 'rxjs';
 import skipperGridFs from "skipper-gridfs";
 declare var _;
 
-declare var BrandingService, WorkspaceTypesService;
 /**
  * Package that contains all Controllers.
  */

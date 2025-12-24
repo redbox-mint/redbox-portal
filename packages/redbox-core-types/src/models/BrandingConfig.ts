@@ -9,7 +9,7 @@ export interface BrandingConfigAttributes extends Sails.WaterlineAttributes {
   name?: string;
   roles?: unknown[];
   supportAgreementInformation?: Record<string, unknown>;
-  variables?: Record<string, unknown>;
+  variables?: Record<string, string>;
   version?: number;
 }
 

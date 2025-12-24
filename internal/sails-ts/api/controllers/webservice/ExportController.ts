@@ -31,8 +31,6 @@ import { Services as translationService } from '../../services/TranslationServic
 declare var sails: Sails;
 
 
-declare var RecordsService: recordsService.Records, BrandingService: brandingService.Branding, TranslationService: translationService.Translation;
-
 
 const pipeline = util.promisify(stream.pipeline);
 /**

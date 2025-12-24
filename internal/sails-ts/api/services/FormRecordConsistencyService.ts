@@ -31,8 +31,8 @@ import {firstValueFrom} from "rxjs";
 
 declare var sails: Sails;
 declare var _;
-declare var RecordsService;
-declare var FormsService;
+
+
 
 export module Services {
 

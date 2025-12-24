@@ -8,8 +8,8 @@ import type { Services as BrandingServices } from '../services/BrandingService';
 import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
 
 declare const sails: any;
-declare const BrandingService: BrandingServices.Branding;
-declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
+
+
 declare const BrandingConfig: any;
 
 function mapError(e: Error): { status: number; body: any } {

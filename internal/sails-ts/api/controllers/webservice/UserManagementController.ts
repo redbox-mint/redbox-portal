@@ -29,9 +29,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 declare var sails: Sails;
 
-declare var BrandingService: brandingService.Branding;
-declare var RolesService: rolesService.Roles;
-declare var UsersService: userService.Users;
+
+
 declare var User: Model;
 declare var _;
 /**

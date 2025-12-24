@@ -10,8 +10,7 @@ import * as crypto from 'crypto';
 import type { Services as BrandingServices } from '../services/BrandingService';
 import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
 
-declare const BrandingService: BrandingServices.Branding;
-declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
+
 
 
 declare var sails: Sails;

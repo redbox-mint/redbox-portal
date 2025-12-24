@@ -25,12 +25,12 @@ import { firstValueFrom } from "rxjs";
 
 declare var module;
 declare var sails;
-declare var TemplateService;
-declare var FormsService;
-declare var BrandingService;
-declare var FormRecordConsistencyService;
-declare var DashboardTypesService;
-declare var ReportsService;
+
+
+
+
+
+
 
 /**
  * Package that contains all Controllers.

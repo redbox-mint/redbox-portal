@@ -21,11 +21,6 @@
 declare var module;
 declare var sails;
 
-declare var BrandingService;
-declare var AppConfigService;
-declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
 declare var User;
 declare var _;
 import { APIActionResponse, APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
@@ -33,10 +28,7 @@ import { APIActionResponse, APIErrorResponse, BrandingModel } from '@researchdat
  * Package that contains all Controllers.
  */
  import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
- 
 
-
-declare var TranslationService;
 
 export module Controllers {
   /**
@@ -86,7 +78,7 @@ export module Controllers {
         let brandName:string = BrandingService.getBrandFromReq(req);
         let brand:BrandingModel = BrandingService.getBrand(brandName);
         
-        let config = await AppConfigService.createOrUpdateConfig(brand.name, configKey, req.body)
+        let config = await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
         
         let response = new APIActionResponse('App configuration updated successfully');
 

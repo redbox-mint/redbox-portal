@@ -29,7 +29,7 @@ import {
 declare var sails: Sails;
 declare var _;
 declare var _this;
-declare var RecordsService: RecordsService;
+
 let flat;
 import * as luceneEscapeQuery from "lucene-escape-query";
 

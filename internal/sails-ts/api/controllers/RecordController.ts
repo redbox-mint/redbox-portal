@@ -42,11 +42,9 @@ import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
-import {Services as recordTypeService} from '../services/RecordTypesService';
+import {Services as recordsService} from '../services/RecordsService';
 
-declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService,
-    RecordTypesService:recordTypeService.RecordTypes, TranslationService, UsersService,
-    RolesService, FormRecordConsistencyService, DashboardTypesService;
+declare var _;
 
 /**
  * Package that contains all Controllers.
@@ -60,9 +58,9 @@ export module Controllers {
    */
   export class Record extends controllers.Core.Controller {
 
-    recordsService: RecordsService = RecordsService;
+    recordsService = RecordsService;
     searchService: SearchService;
-    datastreamService: DatastreamService = RecordsService;
+    datastreamService = RecordsService as unknown as DatastreamService;
 
     constructor() {
       super();

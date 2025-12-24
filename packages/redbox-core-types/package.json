@@ -19,6 +19,7 @@
     "typescript": "^5.0.4"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.1"
+    "@tsconfig/node24": "^24.0.1",
+    "handlebars": "^4.7.8"
   }
 }
