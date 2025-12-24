@@ -22,7 +22,7 @@ process.env["sails_redbox__mochaTesting"] = "true";
 
 // Require ReportsService after mocks
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const ReportsService = require('../../../api/services/ReportsService');
+const ReportsService = require('../../../../api/services/ReportsService');
 
 describe('The Reporting Service', function () {
   before(function (done) {

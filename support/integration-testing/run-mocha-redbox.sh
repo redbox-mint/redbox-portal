@@ -17,10 +17,12 @@ node_cmd=(node)
 if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then
   node_cmd+=(--inspect=0.0.0.0:9876)
 fi
+export TS_NODE_PROJECT=/opt/redbox-portal/internal/test/tsconfig.json
+
 
 exec node_modules/.bin/nyc --no-clean \
   --report-dir /opt/redbox-portal/coverage/mocha \
   --reporter=lcov --exclude-after-remap=false \
   "${node_cmd[@]}" node_modules/.bin/mocha \
-  --config test/unit/.mocharc.js \
-  --exit test/bootstrap.test.js test/unit/**/*.test.js
+  --config internal/test/.mocharc.js \
+  --exit internal/test/bootstrap.test.ts internal/test/unit/**/*.test.ts

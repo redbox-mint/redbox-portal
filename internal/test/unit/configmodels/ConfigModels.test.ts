@@ -1,4 +1,4 @@
-const { ConfigModels } = require('../../../api/configmodels/ConfigModels');
+const { ConfigModels } = require('../../../../api/configmodels/ConfigModels');
 
 describe('ConfigModels', function () {
 

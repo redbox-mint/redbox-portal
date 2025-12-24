@@ -6,7 +6,7 @@ describe('appConfigService', function () {
 
   beforeEach(() => {
     appConfigService = sails.services.appconfigservice;
-    ConfigModels = sails.config.configmodels || require('../../../api/configmodels/ConfigModels').ConfigModels;
+    ConfigModels = sails.config.configmodels || require('../../../../api/configmodels/ConfigModels').ConfigModels;
     // Save original state
     originalBrandingAppConfigMap = appConfigService.brandingAppConfigMap;
     // Generate unique suffix for test models to avoid conflicts

@@ -1,16 +1,17 @@
-var sails = require('sails');
-var _ = require('lodash');
+const sails = require('sails');
+const _ = require('lodash');
 const { DateTime } = require('luxon');
 
 // Expose Luxon DateTime for tests needing date utilities
-global.DateTime = DateTime;
+const globalAny = global as any;
+globalAny.DateTime = DateTime;
 
 
 before(function (done) {
-  import('chai').then(chai => {
-    global.chai = chai;
-    global.should = chai.should();
-    global.expect = chai.expect;
+  import('chai').then((chai) => {
+    globalAny.chai = chai;
+    globalAny.should = chai.should();
+    globalAny.expect = chai.expect;
     
     // Increase the Mocha timeout so that Sails has enough time to lift.
     this.timeout(5 * 60 * 1000);
@@ -44,7 +45,8 @@ before(function (done) {
       }
     }, function (err, server) {
       if (err) return done(err);
-      done(err, sails);
+      // @ts-ignore
+      done(err,sails);
     });
   });
 

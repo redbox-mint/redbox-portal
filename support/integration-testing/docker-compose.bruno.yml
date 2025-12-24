@@ -8,7 +8,7 @@ services:
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
-      - "../../test/bruno:/opt/bruno-tests"
+      - "../../internal/test/bruno:/opt/bruno-tests"
     working_dir: /opt/bruno-tests
     depends_on:
       redboxportal:
@@ -35,7 +35,7 @@ services:
     volumes:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
-       - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+       - "../../internal/test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'

@@ -16,6 +16,7 @@ x-rbportal-env: &rbportal-env
   - datacite_password=${datacite_password:-}
   - datacite_doiPrefix=${datacite_doiPrefix:-}
   - CI=${CI:-false}
+#  - RBPORTAL_REMOTE_DEBUG=true
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -36,17 +37,18 @@ x-rbportal-service: &rbportal-service
     # Debugging port
     # - "9876:9876"
   volumes:
-    - "../../test:/opt/redbox-portal/test"
+    - "../../internal/test:/opt/redbox-portal/internal/test"
     - "../../support:/opt/redbox-portal/support"
     - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
     - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
     - "../../.tmp/attachments:/attachments"
     - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
     - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
-    - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    - "../../internal/test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
   depends_on: *rbportal-depends
   expose:
     - "1500"
+    # - "9876"
   environment: *rbportal-env
   networks:
     main:
@@ -64,7 +66,9 @@ services:
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
-    ports: []
+    ports:
+      - "1500:1500"
+     #  - "9876:9876"
     volumes:
       - "../../:/opt/redbox-portal:delegated"
       - "../../.tmp/attachments:/attachments"

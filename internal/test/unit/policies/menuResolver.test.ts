@@ -1,7 +1,7 @@
 declare var NavigationService: any;
 
 describe('menuResolver policy', function () {
-  const policy = require('../../../api/policies/menuResolver');
+  const policy = require('../../../../api/policies/menuResolver');
   let originalNavigationService;
 
   beforeEach(() => {

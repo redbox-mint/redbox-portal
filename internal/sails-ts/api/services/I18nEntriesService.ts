@@ -428,7 +428,7 @@ export module Services {
           if(val === '' || val === null || val === undefined) {
             val = key; // default empty values to the key itself
           }
-          await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
+          await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId: bundleId?.toString(), category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
         } catch (e) {
           throw e;
         }

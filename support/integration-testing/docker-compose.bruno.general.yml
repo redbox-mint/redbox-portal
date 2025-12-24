@@ -6,18 +6,18 @@ x-bruno-service: &bruno-service
   pull_policy: 'missing'
   volumes:
     - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
-    - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
-    - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
-    - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
-    - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
-    - "../../test/bruno/environments:/opt/bruno-tests/environments"
-    - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
-    - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
-    - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
-    - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
-    - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
+    - "../../internal/test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
+    - "../../internal/test/bruno/package.json:/opt/bruno-tests/package.json"
+    - "../../internal/test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
+    - "../../internal/test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
+    - "../../internal/test/bruno/environments:/opt/bruno-tests/environments"
+    - "../../internal/test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
+    - "../../internal/test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
+    - "../../internal/test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
+    - "../../internal/test/bruno/4 - General:/opt/bruno-tests/4 - General"
+    - "../../internal/test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
     - "../../support/integration-testing/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh"
-    - "../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
+    - "../../internal/test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
     - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
   working_dir: /opt/bruno-tests
   stop_grace_period: 30m
@@ -61,12 +61,12 @@ x-rbportal-service: &rbportal-service
 #  ports:
 #    - "9876:9876"
   volumes:
-    - "../../test:/opt/redbox-portal/test"
+    - "../../internal/test:/opt/redbox-portal/internal/test"
     - "../../support:/opt/redbox-portal/support"
     - "../../coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general"
     - "../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js"
     - "../../.tmp/attachments:/attachments"
-    - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    - "../../internal/test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
   stop_grace_period: 30m
   healthcheck:
     test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
@@ -110,7 +110,7 @@ services:
     volumes:
       - "../../:/opt/redbox-portal:delegated"
       - "../../.tmp/attachments:/attachments"
-      - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+      - "../../internal/test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
