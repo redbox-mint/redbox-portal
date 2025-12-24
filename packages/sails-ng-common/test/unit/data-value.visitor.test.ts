@@ -1,19 +1,19 @@
-import {FormConfigFrame, DefaultValueFormConfigVisitor, ConstructFormConfigVisitor} from "../../src";
-import {formConfigExample1, reusableDefinitionsExample1} from "./example-data";
+import {FormConfigFrame, DataValueFormConfigVisitor, ConstructFormConfigVisitor} from "../../src";
+import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
 
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
-describe("Default Value Visitor", async () => {
+describe("Data Value Visitor", async () => {
     const cases: {
         title: string;
         args: FormConfigFrame;
         expected: Record<string, unknown>;
     }[] = [
         {
-            title: "create simple example",
+            title: "use defaultValues when no record is provided",
             args: {
                 name: "remove-item-constraint-roles",
                 type: "rdmp",
@@ -87,11 +87,9 @@ describe("Default Value Visitor", async () => {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: "",
-                                                                    // Properties in the elementTemplate defaultValue are only used on the client side as the default for new items.
-                                                                    // For the repeatable, the default is set in the RepeatableModel.
                                                                     model: {
                                                                         class: 'SimpleInputModel',
-                                                                        config: {defaultValue: "elementTemplate default"}
+                                                                        config: {newEntryValue: "elementTemplate default"}
                                                                     },
                                                                     component: {class: 'SimpleInputComponent'},
                                                                 },
@@ -109,7 +107,7 @@ describe("Default Value Visitor", async () => {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: "",
-                                                                    model: {class: 'GroupModel', config: {}},
+                                                                    model: {class: 'GroupModel', config: {newEntryValue: {text_group_repeatable_3: "text_group_repeatable_3 default"}}},
                                                                     component: {
                                                                         class: 'GroupComponent',
                                                                         config: {
@@ -118,7 +116,7 @@ describe("Default Value Visitor", async () => {
                                                                                     name: 'text_group_repeatable_3',
                                                                                     model: {
                                                                                         class: 'SimpleInputModel',
-                                                                                        config: {defaultValue: "text_group_repeatable_3 default"}
+                                                                                        config: {}
                                                                                     },
                                                                                     component: {
                                                                                         class: 'SimpleInputComponent'
@@ -228,11 +226,20 @@ describe("Default Value Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start(args, "edit");
+            const constructed = constructor.start({data: args, formMode:"edit"});
 
-            const visitor = new DefaultValueFormConfigVisitor(logger);
-            const actual = visitor.start(constructed);
+            const visitor = new DataValueFormConfigVisitor(logger);
+            const actual = visitor.start({form: constructed});
             expect(actual).to.eql(expected);
+
+            // Confirm that using an empty record gives empty data value result
+            const constructorEmpty = new ConstructFormConfigVisitor(logger);
+            const constructedEmpty = constructorEmpty.start({data: args, formMode:"edit", record: {}});
+
+            const visitorEmpty = new DataValueFormConfigVisitor(logger);
+            const actualEmpty = visitorEmpty.start({form: constructedEmpty});
+            expect(actualEmpty).to.eql({});
+
         });
     });
 });

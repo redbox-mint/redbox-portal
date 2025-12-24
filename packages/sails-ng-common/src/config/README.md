@@ -132,8 +132,8 @@ There are two aspects to this:
 
 1. The outcome: the complete structure that is needed after processing all items.
    This is implemented using the visitor pattern via the `CanVisit` interface for the components,
-   and the `FormConfigVisitorOutline` interface and `FormConfigVisitor` and `CurrentPathFormConfigVisitor`
-   abstract classes for visitors.
+   and the `FormConfigVisitorOutline` interface and `FormConfigVisitor`
+   abstract class for visitors.
 
 2. The aspects of each component, and the component's various pieces of config.
    This is implemented for each form component via the `visit[component_name]` methods in each visitor class.
@@ -141,7 +141,7 @@ There are two aspects to this:
 To create a visitor:
 
 1. Determine the input and how it will be transformed into the output. This is usually the server-side form config.
-2. Create a new visitor. Extend either the base `FormConfigVisitor` or `CurrentPathFormConfigVisitor` to use the
+2. Create a new visitor. Extend either the base `FormConfigVisitor`  to use the
    `currentPath` tree traversal approach.
 3. Use the visitor-specific approach to starting the visiting process. This is usually a method on the visitor class,
    such as `start`.

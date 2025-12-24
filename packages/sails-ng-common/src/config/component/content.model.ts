@@ -1,12 +1,17 @@
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
-import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
+import {
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind,
+    FormComponentDefinitionKind
+} from "../shared.outline";
 import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
 import {FormComponentDefinition} from "../form-component.model";
 import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 import {
     ContentComponentName,
     ContentFieldComponentConfigOutline,
-    ContentFieldComponentDefinitionOutline, ContentFormComponentDefinitionOutline
+    ContentFieldComponentDefinitionOutline,
+     ContentFormComponentDefinitionOutline,
 } from "./content.outline";
 
 
@@ -14,7 +19,7 @@ import {
 
 export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigOutline {
     template?: string;
-    content?: string;
+    content?: unknown;
 
     constructor() {
         super();
@@ -35,7 +40,6 @@ export class ContentFieldComponentDefinition extends FieldComponentDefinition im
     }
 }
 
-
 /* Content Form Component */
 
 export class ContentFormComponentDefinition extends FormComponentDefinition implements ContentFormComponentDefinitionOutline {
@@ -54,11 +58,7 @@ export class ContentFormComponentDefinition extends FormComponentDefinition impl
 
 export const ContentMap = [
     {kind: FieldComponentConfigKind, def: ContentFieldComponentConfig},
-    {
-        kind: FieldComponentDefinitionKind,
-        def: ContentFieldComponentDefinition,
-        class: ContentComponentName
-    },
+    {kind: FieldComponentDefinitionKind, def: ContentFieldComponentDefinition, class: ContentComponentName},
     {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition, class: ContentComponentName},
 ];
 

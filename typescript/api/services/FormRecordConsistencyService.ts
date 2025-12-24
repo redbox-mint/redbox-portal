@@ -20,7 +20,7 @@
 import { PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
 import {
     guessType, FormValidatorSummaryErrors,
-    FormConfigFrame, DefaultValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
+    FormConfigFrame, DataValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
     TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
     ValidatorFormConfigVisitor, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
@@ -320,10 +320,10 @@ export module Services {
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
         ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode, reusableFormDefs);
+            const constructed = constructor.start({data: item, formMode, reusableFormDefs});
 
-            const visitor = new DefaultValueFormConfigVisitor(this.logger);
-            return visitor.start(constructed);
+            const visitor = new DataValueFormConfigVisitor(this.logger);
+            return visitor.start({form: constructed});
         }
 
         /**
@@ -336,10 +336,10 @@ export module Services {
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
         ): Record<string, unknown> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode, reusableFormDefs);
+            const constructed = constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            return visitor.start(constructed);
+            return visitor.start({form: constructed});
         }
 
         /**
@@ -480,12 +480,19 @@ export module Services {
             const validatorDefinitions = sails.config.validators.definitions;
 
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(formConfig, formMode, reusableFormDefs);
+            const constructed = constructor.start({
+              data: formConfig,
+              formMode,
+              reusableFormDefs,
+              record: record?.metadata ?? {}
+            });
 
             const visitor = new ValidatorFormConfigVisitor(this.logger);
-            return visitor.startExistingRecord(
-                constructed, enabledValidationGroups || ["all"], validatorDefinitions, record?.metadata ?? {}
-            );
+            return visitor.start({
+              form: constructed,
+              enabledValidationGroups: enabledValidationGroups || ["all"],
+              validatorDefinitions,
+            });
         }
 
         /**
@@ -494,16 +501,21 @@ export module Services {
          * The templates are compiled by the TemplateService.buildClientMapping.
          * @param item The form config.
          * @param formMode The form mode.
+         * @param userRoles The current user's roles.
+         * @param recordData The record data.
          * @param reusableFormDefs The reusable form definitions.
          */
         public extractRawTemplates(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
+          item: FormConfigFrame,
+          formMode: FormModesConfig,
+          userRoles?: string[],
+          recordData?: Record<string, unknown> | null,
+          reusableFormDefs?: ReusableFormDefinitions
         ): TemplateCompileInput[] {
-            const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start(item, formMode, reusableFormDefs);
+          const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordData, reusableFormDefs);
 
-            const visitor = new TemplateFormConfigVisitor(this.logger);
-            return visitor.start(constructed);
+          const visitor = new TemplateFormConfigVisitor(this.logger);
+          return visitor.start({form});
         }
 
         /**
