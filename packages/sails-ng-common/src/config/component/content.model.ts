@@ -19,7 +19,7 @@ import {
 
 export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigOutline {
     template?: string;
-    value?: unknown;
+    content?: unknown;
 
     constructor() {
         super();

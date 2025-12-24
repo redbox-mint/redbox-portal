@@ -324,8 +324,7 @@ describe('The FormsService', function () {
                 componentDefinitions: [
                     {
                         name: 'text_1',
-                        component: {class: 'ContentComponent', config: makeCompConfig({})},
-                        model: {class: "ContentModel", config: {value: "record text_1 value"}},
+                        component: {class: 'ContentComponent', config: makeCompConfig({content: "record text_1 value"})},
                     },
                     {
                         name: 'repeatable_1',
@@ -353,9 +352,8 @@ describe('The FormsService', function () {
                                                                                 name: 'text_3',
                                                                                 component: {
                                                                                     class: 'ContentComponent',
-                                                                                    config: {}
+                                                                                    config: {content:"record text_3 value"}
                                                                                 },
-                                                                                model: {class: "ContentModel", config: {value:"record text_3 value"}}
                                                                             },
                                                                             {
                                                                                 name: 'group_1',
@@ -692,12 +690,9 @@ describe('The FormsService', function () {
                                 editMode: true,
                                 readonly: false,
                                 visible: true,
+                                content:"text_1_value",
                             },
                         },
-                        model: {
-                            class: "ContentModel",
-                            config: {value:"text_1_value"},
-                        }
                     },
 
                 ]

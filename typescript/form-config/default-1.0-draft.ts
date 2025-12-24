@@ -68,8 +68,8 @@ const formConfig: FormConfigFrame = {
                                             component: {
                                                 class: 'ContentComponent',
                                                 config: {
-                                                    extraContext: 'My first text block component!!!',
-                                                    template: '<h3>content default value extraContext: {{extraContext}}</h3>'
+                                                    content: 'My first text block component!!!',
+                                                    template: '<h3>content default value content: {{content}}</h3>'
                                                 }
                                             },
                                         },

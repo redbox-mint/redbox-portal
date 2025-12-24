@@ -315,10 +315,10 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonContentComponent(source, formMode);
 
-        if (source.model?.config?.value !== undefined
-            && target.component?.config !== undefined
-            && target.model?.config !== undefined) {
-            target.model.config.value = source.model.config.value;
+        if (
+            target.component.config !== undefined
+            && source.model?.config?.value !== undefined
+        ) {
             // Checkbox value can be string, null, array. If string or array, get the labels.
             // Can have 0, 1, or more values.
             const values = source.model.config.value === null
@@ -338,16 +338,15 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonContentComponent(source, formMode);
 
-        if (source.model?.config?.value !== undefined
-            && target.component?.config !== undefined
-            && target.model?.config !== undefined) {
-            target.model.config.value = source.model.config.value;
-
+        if (
+            target.component.config !== undefined
+            && source.model?.config?.value !== undefined
+        ) {
             // Radio value can be string, null, array. If string or array, get the labels.
             // Can have 0 or 1 values.
             const values = source.model.config.value === null
                 ? []
-                : Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value];
+                : (Array.isArray(source.model.config.value) ? source.model.config.value : [source.model.config.value]);
             const options = source.component.config?.options ?? [];
 
             this.commonContentOptionList(target, values, options);
@@ -362,13 +361,13 @@ export class FormOverride {
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonContentComponent(source, formMode);
 
-        if (source.model?.config?.value !== undefined
-            && target.component?.config !== undefined
-            && target.model?.config !== undefined) {
-            target.model.config.value = source.model.config.value;
-
-            // TODO: create a handlebars partial helper to render dates: https://handlebarsjs.com/guide/partials.html
-            target.component.config.template = `<span data-value="{{model}}">{{model}}</span>`;
+        if (
+            target.component.config !== undefined
+            && source.model?.config?.value !== undefined
+        ) {
+            target.component.config.content = source.model.config.value;
+            // Use the common handlebars formatDate helper
+            target.component.config.template = `<span data-value="{{model}}">{{formatDate value}}</span>`
         }
 
         return target;
@@ -424,17 +423,17 @@ export class FormOverride {
 
         if (values.length === 0) {
             // Empty
-            targetCompConf.value = undefined;
+            targetCompConf.content = undefined;
             targetCompConf.template = `<span></span>`;
         } else if (values.length === 1) {
             // One value
             const value = values[0];
             const label = options?.find(option => option.value === value)?.label ?? value;
-            targetCompConf.value = {value, label};
+            targetCompConf.content = {value, label};
             targetCompConf.template = `<span data-value="{{value.value}}">{{value.label}}</span>`;
         } else {
             // More than one value
-            targetCompConf.value = values.map(value => options?.find(option => option.value === value) ?? {
+            targetCompConf.content = values.map(value => options?.find(option => option.value === value) ?? {
                 label: value,
                 value: value
             });
@@ -442,12 +441,15 @@ export class FormOverride {
         }
     }
 
-    private commonContentPlain(source: AllFormComponentDefinitionOutlines, target: ContentFormComponentDefinitionOutline): void {
+    private commonContentPlain(
+        source: AllFormComponentDefinitionOutlines,
+        target: ContentFormComponentDefinitionOutline
+    ): void {
         if (
             target.component.config !== undefined
             && source.model?.config?.value !== undefined
         ) {
-            target.component.config.value = source.model.config.value;
+            target.component.config.content = source.model.config.value;
             target.component.config.template = `<span>{{value}}</span>`
         }
     }

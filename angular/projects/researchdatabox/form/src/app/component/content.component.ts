@@ -5,7 +5,8 @@ import {FormComponent} from "../form.component";
 import {
   ContentComponentName,
   ContentFieldComponentConfig,
-  FormFieldComponentStatus
+  FormFieldComponentStatus,
+  guessType
 } from "@researchdatabox/sails-ng-common";
 
 
@@ -53,7 +54,6 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   @Input() public override model?: never;
 
   private injector = inject(Injector);
-  private formService = inject(FormService);
   private handlebarsTemplateService = inject(HandlebarsTemplateService);
 
   /*
@@ -78,22 +78,22 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
     const template = config?.template ?? '';
-    const value = config?.value ?? '';
+    const content = config?.content ?? '';
 
-    if (value && template) {
-      // If there is both a value and template, retrieve the template and provide the value as context.
+    if (content && template) {
+      // If there is both a content and template, retrieve the template and provide the content as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
       try {
         // Build the value for the template.
         const formValue = _cloneDeep(this.getFormComponent.form?.value);
-        const valuePath = this.formFieldCompMapEntry?.lineagePaths?.dataModel;
-        if (valuePath) {
-          _set(formValue, valuePath, value);
+        const contentPath = this.formFieldCompMapEntry?.lineagePaths?.dataModel;
+        if (contentPath) {
+          _set(formValue, contentPath, content);
         }
 
         // The variables available to the template.
-        const context = {value: value, formValue: formValue};
+        const context = {content: content, formValue: formValue};
         const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         this.content = compiledItems.evaluate(templateLineagePath, context, extra);
@@ -102,11 +102,11 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         this.status.set(FormFieldComponentStatus.ERROR);
         this.content = '';
       }
-    } else if (value && !template) {
-      // If there is a value and no template, display the value.
-      this.content = value;
+    } else if (content && !template && guessType(content) === "string") {
+      // If there is content and no template, and the content is a string, display the content.
+      this.content = content as string;
     } else {
-      // If no value or template, display a blank string.
+      // If no content or template, display a blank string.
       this.content = '';
     }
   }

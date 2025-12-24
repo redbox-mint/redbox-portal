@@ -684,14 +684,10 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                extraContext: [{label: 'Option 3', value: 'option3'}],
-                                template: `<ul>{{#each extraContext}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                                content: [{label: 'Option 3', value: 'option3'}],
+                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
-                        model: {
-                            class: "ContentModel",
-                            config: {value: "option3"}
-                        }
                     }
                 ]
             };

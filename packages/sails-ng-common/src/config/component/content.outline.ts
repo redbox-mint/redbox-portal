@@ -23,10 +23,10 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      */
     template?: string;
     /**
-     * The value available to the template as `value`.
-     * Set 'value' to static content, with no template, to just show the static content.
+     * The value available to the template as `content`.
+     * Set 'content' to static content, with no template, to just show the static content.
      */
-    value?: unknown;
+    content?: unknown;
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {
