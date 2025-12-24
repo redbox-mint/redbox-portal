@@ -53,6 +53,7 @@ export {
     ILogger
 }
 from "./Logger";
+export { SailsConfig } from "./SailsConfig";
 
 export * from './model'
 export * from './models'
