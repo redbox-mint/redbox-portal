@@ -176,7 +176,7 @@ function indentLines(value: string, indentSize: number): string {
     .join('\n');
 }
 
-function buildModelModule(meta: EntityMeta): string {
+function buildModelModule(meta: EntityMeta, sourceRelativePath: string): string {
   const definition: WaterlineModelDefinition = toWaterlineModelDef(meta);
   const {
     primaryKey,
@@ -195,6 +195,7 @@ function buildModelModule(meta: EntityMeta): string {
   ];
   const lifecycleSet = new Set(lifecycleHooks);
   const lines: string[] = [];
+  lines.push(`// This file is generated from ${sourceRelativePath}. Do not edit directly.`);
   lines.push('module.exports = {');
   lines.push(`  primaryKey: '${primaryKey}',`);
   const emittedKeys = new Set<string>([ 'primaryKey', 'attributes', 'identity']);
@@ -283,9 +284,10 @@ function attributeToTsType(attr: AttributeOptions, entities: EntityMeta[], expli
   }
 }
 
-function buildTypeDefinition(meta: EntityMeta, entities: EntityMeta[], propertyTypes: Record<string, string> = {}, localTypes: string = ''): string {
+function buildTypeDefinition(meta: EntityMeta, entities: EntityMeta[], propertyTypes: Record<string, string>, localTypes: string, sourceRelativePath: string): string {
   const attributes = meta.attributes;
   const lines: string[] = [];
+  lines.push(`// This file is generated from ${sourceRelativePath}. Do not edit directly.`);
   // Import sails to ensure global types are available and to make this a module
   lines.push(`/// <reference path="../sails.ts" />`);
   lines.push(`import { JsonMap } from './types';`);
@@ -345,11 +347,11 @@ async function ensureDirectories() {
   await fs.mkdir(TYPES_MODELS_DIR, { recursive: true });
 }
 
-async function writeOutputs(meta: EntityMeta, entities: EntityMeta[], propertyTypes: Record<string, string>, localTypes: string) {
+async function writeOutputs(meta: EntityMeta, entities: EntityMeta[], propertyTypes: Record<string, string>, localTypes: string, sourceRelativePath: string) {
   const jsTarget = path.join(API_MODELS_DIR, `${meta.className}.js`);
   const typeTarget = path.join(TYPES_MODELS_DIR, `${meta.className}.ts`);
-  await fs.writeFile(jsTarget, buildModelModule(meta), 'utf8');
-  await fs.writeFile(typeTarget, buildTypeDefinition(meta, entities, propertyTypes, localTypes), 'utf8');
+  await fs.writeFile(jsTarget, buildModelModule(meta, sourceRelativePath), 'utf8');
+  await fs.writeFile(typeTarget, buildTypeDefinition(meta, entities, propertyTypes, localTypes, sourceRelativePath), 'utf8');
   const jsRelative = path.relative(PROJECT_ROOT, jsTarget);
   const typeRelative = path.relative(PROJECT_ROOT, typeTarget);
   console.log(`Generated ${jsRelative} and ${typeRelative}`);
@@ -372,9 +374,10 @@ async function main() {
   await ensureDirectories();
   for (const meta of entities) {
     const filePath = fileMap.get(meta.className);
+    const sourceRelativePath = filePath ? path.relative(PROJECT_ROOT, filePath) : 'unknown source';
     const propertyTypes = filePath ? await extractPropertyTypes(filePath) : {};
     const localTypes = filePath ? await extractLocalTypes(filePath) : '';
-    await writeOutputs(meta, entities, propertyTypes, localTypes);
+    await writeOutputs(meta, entities, propertyTypes, localTypes, sourceRelativePath);
   }
   await generateIndexFile(entities);
 }

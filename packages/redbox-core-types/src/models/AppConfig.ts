@@ -1,3 +1,4 @@
+// This file is generated from internal/typescript-models/src/models/AppConfig.ts. Do not edit directly.
 /// <reference path="../sails.ts" />
 import { JsonMap } from './types';
 import { BrandingConfigAttributes } from './BrandingConfig';
