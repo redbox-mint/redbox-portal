@@ -28,6 +28,9 @@ declare global {
 		services: {
 			[key: string]: any;
 		};
+		models: {
+			[key: string]: any;
+		};
 		after(events: string | string[], cb: () => void): void;
 	}		export interface Hook {
 			initialize: (cb: () => void) => void;
@@ -39,7 +42,7 @@ declare global {
 			defaults?: { [key: string]: any };
 		}
 
-		export interface Model {
+		export interface Model<T> {
 			attributes: Object;
 
 			create(params: Object): WaterlinePromise<QueryResult>;
@@ -51,8 +54,13 @@ declare global {
 			find(params: Object): QueryBuilder;
 			find(params: Object): WaterlinePromise<Array<QueryResult>>;
 
-			findOne(criteria: Object): WaterlinePromise<QueryResult>;
+			findOne(criteria: Object): WaterlinePromise<T>;
+			findOne(criteria: Object, cb: (err: Error, found: T) => void): void;
 
+			findOrCreate(criteria: Object, values: Object): WaterlinePromise<T>;
+			findOrCreate(criteria: Object, values: Object, cb: (err: Error, found: T) => void): void;
+
+			count(): WaterlinePromise<number>;
 			count(criteria: Object): WaterlinePromise<number>;
 			count(criteria: Array<Object>): WaterlinePromise<number>;
 			count(criteria: string): WaterlinePromise<number>;
@@ -73,6 +81,10 @@ declare global {
 			destroy(criteria: string, cb: (err: Error, deleted: Array<Record>) => void): void;
 			destroy(criteria: number, cb: (err: Error, deleted: Array<Record>) => void): void;
 
+			destroyOne(criteria: Object): WaterlinePromise<T>;
+			destroyOne(criteria: string): WaterlinePromise<T>;
+			destroyOne(criteria: number): WaterlinePromise<T>;
+
 			update(criteria: Object, changes: Object): WaterlinePromise<Array<QueryResult>>;
 			update(criteria: Array<Object>, changes: Object): WaterlinePromise<Array<QueryResult>>;
 			update(criteria: string, changes: Object): WaterlinePromise<Array<QueryResult>>;
@@ -88,8 +100,18 @@ declare global {
 			update(criteria: string, changes: Array<Object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
 			update(criteria: number, changes: Array<Object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
 
+			// Overload for update without changes (chainable with .set())
+			update(criteria: Object): WaterlinePromise<Array<QueryResult>>;
+
+			updateOne(criteria: Object, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: Object): WaterlinePromise<T>;
+			updateOne(criteria: string, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: string): WaterlinePromise<T>;
+			updateOne(criteria: number, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: number): WaterlinePromise<T>;
+
 			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void);
-			native(cb: (err: Error, collection: Model) => void);
+			native(cb: (err: Error, collection: Model<T>) => void);
 
 			stream(criteria: Object, writeEnd: Object): NodeJS.WritableStream;
 			stream(criteria: Array<Object>, writeEnd: Object): NodeJS.WritableStream;
@@ -101,8 +123,15 @@ declare global {
 			stream(criteria: string, writeEnd: Object): Error;
 			stream(criteria: number, writeEnd: Object): Error;
 
+			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 		}
 
+		export interface WaterlineAttributes {
+		 id: string;
+		}
+		
 		export interface NextFunction extends express.NextFunction {}
 		
 		export interface Req extends express.Request {
@@ -127,17 +156,20 @@ declare global {
 		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;
 
 		export class WaterlinePromise<T> extends Promise<T> {
-			exec(cb: (err: Error, results: Array<QueryResult>) => void);
-			exec(cb: (err: Error, result: QueryResult) => void);
-
-			populate(association: string): QueryBuilder;
-			populate(association: string, filter: Object): QueryBuilder;
+			exec(cb: (err: Error, results: Array<QueryResult>) => void): any;
+			exec(cb: (err: Error, result: QueryResult) => void): any;
+			
+			populate(association: string): WaterlinePromise<T>;
+			populate(association: string, filter: Object): WaterlinePromise<T>;
+			set(values: Object): WaterlinePromise<T>;
+			meta(options: Object): WaterlinePromise<T>;
 		}
 
 		export class Record {
 			id: number;
 			createdAt: Date;
 			updatedAt: Date;
+			[key: string]: any;
 		}
 
 		export class QueryResult extends Record {
@@ -150,6 +182,19 @@ declare global {
 			exec(cb: (error: any, results: Array<QueryResult>) => void);
 
 			where(condition: Object): QueryBuilder;
+
+			meta(options: {
+				fetch?: boolean;
+				cascade?: boolean;
+				skipAllLifecycleCallbacks?: boolean;
+				skipRecordVerification?: boolean;
+				skipExpandingDefaultSelectClause?: boolean;
+				decrypt?: boolean;
+				encryptWith?: string;
+				makeLikeModifierCaseInsensitive?: boolean;
+				enableExperimentalDeepTargets?: boolean;
+				[key: string]: any;
+			}): QueryBuilder;
 
 			limit(lim: number): QueryBuilder;
 
