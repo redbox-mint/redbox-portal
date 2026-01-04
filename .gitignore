@@ -154,7 +154,8 @@ WorkflowStepsService.js
 AsynchsService.js
 !assets/angular/**/rollup-config.js
 api/services/*.js
-
+// Explicitly ignore compiled policy file. Plan to migrate rest of policies in the future
+api/policies/menuResolver.js
 ### acceptance-testing
 coverage/*
 coverage.lcov

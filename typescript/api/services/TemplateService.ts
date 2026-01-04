@@ -17,11 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods, Services as services} from '@researchdatabox/redbox-core-types';
-import {Sails} from "sails";
-import jsonata, {Expression} from "jsonata";
+import { PopulateExportedMethods, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails } from "sails";
+import jsonata, { Expression } from "jsonata";
 import Handlebars from "handlebars";
-import {TemplateCompileItem, TemplateCompileInput, templateCompileKind} from "@researchdatabox/sails-ng-common";
+import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
 
 
 declare var sails: Sails;
@@ -31,6 +31,19 @@ export module Services {
     @PopulateExportedMethods
     export class Template extends services.Core.Service {
 
+        private helpersRegistered: boolean = false;
+
+        /**
+         * Ensure shared Handlebars helpers are registered on the server.
+         */
+        private ensureHelpersRegistered() {
+            if (!this.helpersRegistered) {
+                registerSharedHandlebarsHelpers(Handlebars);
+                this.helpersRegistered = true;
+                sails.log.verbose('TemplateService: Registered shared Handlebars helpers');
+            }
+        }
+
         /**
          * Compile one or more inputs into an output mapping.
          *
@@ -39,7 +52,7 @@ export module Services {
          * @param inputs
          */
         public buildClientMapping(inputs: TemplateCompileInput[]): TemplateCompileItem[] {
-            const keys = inputs.map(i => this.buildKeyString(i.key));
+            const keys = inputs.map(i => buildKeyString(i.key));
             const keysUnique = new Set(keys);
             if (keysUnique.size != keys.length) {
                 const duplicates = keys.filter((item, index) => keys.indexOf(item) != index);
@@ -49,6 +62,9 @@ export module Services {
 
             const result: TemplateCompileItem[] = [];
             for (const input of inputs) {
+                // The key is stored as a string array (composite key).
+                // The duplicate check above uses the flattened, normalized string form (buildKeyString)
+                // to ensure uniqueness across the composite keys.
                 switch (input.kind) {
                     case "jsonata":
                         result.push({
@@ -122,6 +138,7 @@ export module Services {
          */
         public buildClientHandlebars(template: string): string | null {
             try {
+                this.ensureHelpersRegistered();
                 template = this.normalise(template);
                 // handlebars pre-compiled output is already a string
                 const result = Handlebars.precompile(template)?.toString();
@@ -142,6 +159,7 @@ export module Services {
          */
         public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
             try {
+                this.ensureHelpersRegistered();
                 template = this.normalise(template);
                 const result = Handlebars.compile(template);
                 sails.log.verbose(`Built server Handlebars template '${template}'`);
@@ -153,7 +171,7 @@ export module Services {
         }
 
         public buildKeyString(key: string[]): string {
-            return (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
+            return buildKeyString(key);
         }
 
         private buildSharedJsonata(expression: string): Expression {

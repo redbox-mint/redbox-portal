@@ -1,14 +1,15 @@
 <% let appName = 'manage-roles'; %>
-<div class="row">
-  <manage-roles <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-    </div>
-    <div class="col-xs-1">
-    </div>
-  </manage-roles>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('layout/sidebar.ejs') %>
+  </div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <manage-roles <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <div class="col-xs-12">
+        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      </div>
+    </manage-roles>
+  </div>
 </div>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
    type="module"></script>

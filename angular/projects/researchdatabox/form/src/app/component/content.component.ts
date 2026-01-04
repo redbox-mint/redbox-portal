@@ -1,5 +1,5 @@
 import {Component, inject, Injector} from '@angular/core';
-import {FormFieldBaseComponent} from '@researchdatabox/portal-ng-common';
+import {FormFieldBaseComponent, HandlebarsTemplateService} from '@researchdatabox/portal-ng-common';
 import {FormService} from "../form.service";
 import {FormComponent} from "../form.component";
 import {
@@ -7,7 +7,7 @@ import {
   ContentFieldComponentConfig,
   FormFieldComponentStatus
 } from "@researchdatabox/sails-ng-common";
-import * as Handlebars from 'handlebars';
+
 
 // *** Migration Notes ***
 // This component will replace legacy components: ContentComponent and HtmlRawComponent
@@ -35,6 +35,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
 
   private injector = inject(Injector);
   private formService = inject(FormService);
+  private handlebarsTemplateService = inject(HandlebarsTemplateService);
 
   /*
    * The below template is a reference that needs to be taken into account for legacy compatibility
@@ -65,7 +66,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         const compiledItems = await this.getFormComponent.getCompiledItem();
         const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
         const context = {content: content};
-        const extra = {libraries: {Handlebars: Handlebars}};
+        const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
         this.content = compiledItems.evaluate(templateLineagePath, context, extra);
       } catch (error) {
         this.loggerService.error(`${this.logName}: Error loading content component`, error);
