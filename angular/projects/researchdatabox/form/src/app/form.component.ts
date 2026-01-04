@@ -38,7 +38,7 @@ import { FormStatus, FormConfigFrame, JSONataQuerySource } from '@researchdatabo
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
@@ -279,6 +279,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     
     // Build the initial query source for component definitions
     this.setupQuerySource();
+    // Publish the form definition ready event
+    this.eventBus.publish(createFormDefinitionReadyEvent({}));
     // Initialize subscriptions to event bus 
     this.initSubscriptions();
     // Finally set the flag indicating components are loaded
@@ -289,6 +291,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   protected setupQuerySource() {
     this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr);
+  }
+
+  public getQuerySource(): JSONataQuerySource | undefined {
+    return this.componentDefQuerySource;
   }
   /**
    * Initialize reactive effects 
@@ -629,6 +635,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   ngOnDestroy(): void {
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
+  }
+
+  public get componentQuerySource(): JSONataQuerySource | undefined {
+    return this.componentDefQuerySource;
   }
 }
 

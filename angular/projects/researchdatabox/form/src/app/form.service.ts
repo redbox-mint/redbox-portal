@@ -296,6 +296,10 @@ export class FormService extends HttpClientService {
         fieldDef = {};
       }
 
+      if (componentConfig?.expressions) {
+        _set(fieldDef, 'expressions', componentConfig.expressions);
+      }
+
       // Add the field definition to the list if it has the minimum requirements.
       if (!_isEmpty(fieldDef)) {
         _merge(fieldDef, {

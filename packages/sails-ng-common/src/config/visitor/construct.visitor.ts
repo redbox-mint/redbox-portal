@@ -44,7 +44,12 @@ import {
 } from "../component/default-layout.outline";
 import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {
+    FormComponentDefinitionFrame,
+    FormComponentDefinitionOutline,
+    FormExpressionsOperationConfigFrame,
+    FormExpressionsTemplateConfigFrame
+} from "../form-component.outline";
 import {
     ContentComponentName, ContentFieldComponentDefinitionFrame,
     ContentFieldComponentDefinitionOutline,
@@ -197,7 +202,7 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.sharedProps.setPropOverride('validationGroups', item, currentData);
         this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
         this.sharedProps.setPropOverride('debugValue', item, currentData);
-
+        this.sharedProps.setPropOverride('expressions', item, currentData);
         // Ensure the default validation groups are present.
         if (!item.validationGroups) {
             item.validationGroups = {};
@@ -796,9 +801,36 @@ export class ConstructFormConfigVisitor extends CurrentPathFormConfigVisitor {
         item.constraints.authorization.allowRoles = currentData?.constraints?.authorization?.allowRoles ?? [];
 
         // Set the expressions
-        item.expressions = new FormExpressionsConfig();
-        for (const [key, value] of Object.entries(currentData.expressions ?? {})) {
-            item.expressions[key] = value;
+        item.expressions = [];
+        const expressionNames = new Set<string>();
+        for (const exprData of currentData.expressions ?? []) {
+            if (expressionNames.has(exprData.name)) {
+                throw new Error(`Duplicate name in expression: ${exprData.name}`);
+            }
+            expressionNames.add(exprData.name);
+
+            const exprItem = new FormExpressionsConfig();
+            exprItem.name = exprData.name;
+            exprItem.description = exprData.description;
+            const config = exprData.config;
+            if ('operation' in config) {
+                const opConfig = config as FormExpressionsOperationConfigFrame;
+                exprItem.config = {
+                    operation: opConfig.operation,
+                    condition: opConfig.condition,
+                    conditionKind: opConfig.conditionKind,
+                    target: opConfig.target,
+                };
+            } else {
+                const tmplConfig = config as FormExpressionsTemplateConfigFrame;
+                exprItem.config = {
+                    template: tmplConfig.template,
+                    condition: tmplConfig.condition,
+                    conditionKind: tmplConfig.conditionKind,
+                    target: tmplConfig.target,
+                };
+            }
+            item.expressions.push(exprItem);
         }
 
         // Get the class string names.

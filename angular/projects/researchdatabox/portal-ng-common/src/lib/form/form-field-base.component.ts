@@ -13,7 +13,8 @@ import {
   FieldLayoutConfigFrame,
   FormFieldComponentStatus,
   LineagePaths,
-  JSONataQuerySourceProperty
+  JSONataQuerySourceProperty,
+  FormExpressionsConfigOutline
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
@@ -545,6 +546,7 @@ export interface FormFieldCompMapEntry {
   // optional control map to support 'container' like components that don't have a model themselves
   formControlMap?: { [key: string]: FormControl };
   lineagePaths?: LineagePaths;
+  expressions?: FormExpressionsConfigOutline[];
 }
 
 

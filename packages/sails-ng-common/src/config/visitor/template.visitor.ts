@@ -280,13 +280,18 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
-    protected extractExpressions(expressions?: FormExpressionsConfigFrame): void {
-        for (const [name, value] of Object.entries(expressions ?? {})) {
-            this.result?.push({
-                key: [...(this.currentPath ?? []), 'expressions', name, 'template'],
-                value: value?.template,
-                kind: "jsonata"
-            });
+    protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
+        for (const expression of expressions ?? []) {
+            for (const prop of ['template', 'condition'] as const) {
+                const value = (expression.config as any)?.[prop];
+                if (value) {
+                    this.result?.push({
+                        key: [...(this.currentPath ?? []), 'expressions', expression.name, 'config', prop],
+                        value: value,
+                        kind: "jsonata"
+                    });
+                }
+            }
         }
     }
 }

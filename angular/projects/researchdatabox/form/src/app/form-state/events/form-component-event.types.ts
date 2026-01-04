@@ -35,6 +35,13 @@ export interface FormDefinitionChangedEvent extends FormComponentEventBase {
 }
 
 /**
+ * Form definition ready event - published when the form definition has been fully loaded and initialized.
+ */
+export interface FormDefinitionReadyEvent extends FormComponentEventBase {
+  readonly type: 'form.definition.ready';
+}
+
+/**
  * Field metadata changed event
  * Published when field metadata (visibility, enabled state, etc.) changes
  */
@@ -121,14 +128,15 @@ export interface FormSaveFailureEvent extends FormComponentEventBase {
 export type FormComponentEvent =
   | FieldValueChangedEvent
   | FieldMetaChangedEvent
-  | FormDefinitionChangedEvent
   | FieldDependencyTriggerEvent
   | FieldFocusRequestEvent
   | FormValidationBroadcastEvent
   | FormSaveRequestedEvent
   | FormSaveExecuteEvent
   | FormSaveSuccessEvent
-  | FormSaveFailureEvent;
+  | FormSaveFailureEvent
+  | FormDefinitionChangedEvent
+  | FormDefinitionReadyEvent;
 
 /**
  * Event type literals for type-safe subscriptions (R15.17)
@@ -137,6 +145,7 @@ export const FormComponentEventType = {
   FIELD_VALUE_CHANGED: 'field.value.changed' as const,
   FIELD_META_CHANGED: 'field.meta.changed' as const,
   FORM_DEFINITION_CHANGED: 'form.definition.changed' as const,
+  FORM_DEFINITION_READY: 'form.definition.ready' as const,
   FIELD_DEPENDENCY_TRIGGER: 'field.dependency.trigger' as const,
   FIELD_FOCUS_REQUEST: 'field.request.focus' as const,
   FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const,
@@ -153,6 +162,7 @@ export interface FormComponentEventMap {
   'field.value.changed': FieldValueChangedEvent;
   'field.meta.changed': FieldMetaChangedEvent;
   'form.definition.changed': FormDefinitionChangedEvent;
+  'form.definition.ready': FormDefinitionReadyEvent;
   'field.dependency.trigger': FieldDependencyTriggerEvent;
   'field.request.focus': FieldFocusRequestEvent;
   'form.validation.broadcast': FormValidationBroadcastEvent;
@@ -211,6 +221,18 @@ export function createFormDefinitionChangedEvent(
 ): FormComponentEventResult<FormDefinitionChangedEvent> {
   return createEventResult<FormDefinitionChangedEvent>(
     FormComponentEventType.FORM_DEFINITION_CHANGED,
+    options
+  );
+}
+
+/**
+ * Helper factory for creating form definition ready events
+ */
+export function createFormDefinitionReadyEvent(
+  options: FormComponentEventOptions<FormDefinitionReadyEvent>
+): FormComponentEventResult<FormDefinitionReadyEvent> {
+  return createEventResult<FormDefinitionReadyEvent>(
+    FormComponentEventType.FORM_DEFINITION_READY,
     options
   );
 }

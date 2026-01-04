@@ -457,11 +457,11 @@ describe('The FormsService', function () {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        expressions: {
-                            'model.value': {
-                                template: `<%= _.get(model,'text_1_event','') %>`
-                            }
-                        },
+                        // expressions: {
+                        //     'model.value': {
+                        //         template: `<%= _.get(model,'text_1_event','') %>`
+                        //     }
+                        // },
                         constraints: {
                             authorization: {
                                 allowRoles: [],

@@ -124,6 +124,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.valueChangeEventConsumer.formComponent = this.getFormComponentFromAppRef();
       this.valueChangeEventConsumer.bind({
         component: compRef.instance,
         definition: this.formFieldCompMapEntry

@@ -28,7 +28,7 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	 */
 	bind(options: FormComponentEventOptions): void {
 		this.destroy();
-
+		this.options = options;
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
 		if (!control) {
 			this.loggerService.warn(`FormComponentChangeEventProducer: No form control found for component '${options.component.formFieldConfigName()}'. Change events will not be published.`, options.definition);

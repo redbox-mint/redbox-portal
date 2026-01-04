@@ -22,6 +22,20 @@ describe("Construct Visitor", async () => {
                 expected: {useArgs: false, value: new FormConfig()},
             },
             {
+                title: "create item with expressions",
+                args: {
+                    name: 'form-with-expressions',
+                    componentDefinitions: [],
+                    expressions: [{
+                        name: 'my-expressions',
+                        config: {
+                            template: "some expression"
+                        }
+                    }]
+                },
+                expected: {useArgs: true},
+            },
+            {
                 title: "create simple example",
                 args: {
                     name: '',
@@ -191,6 +205,25 @@ describe("Construct Visitor", async () => {
         });
     });
     describe("expected errors", async () => {
+        it("should fail when duplicate expression name is found", async () => {
+            const errorFunc = function () {
+                const visitor = new ConstructFormConfigVisitor(logger);
+                visitor.start({
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "comp1",
+                            component: {class: "SimpleInputComponent"},
+                            expressions: [
+                                {name: "exp1", config: {template: ''}},
+                                {name: "exp1", config: {template: ''}}
+                            ]
+                        }
+                    ]
+                });
+            };
+            expect(errorFunc).to.throw(Error, 'Duplicate name in expression: exp1');
+        });
         it("should fail when repeatable elementTemplate is invalid", async () => {
             const errorFunc = function () {
                 const visitor = new ConstructFormConfigVisitor(logger);

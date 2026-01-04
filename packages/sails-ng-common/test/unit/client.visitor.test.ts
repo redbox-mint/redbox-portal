@@ -268,11 +268,12 @@ describe("Client Visitor", async () => {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        expressions: {
-                            'model.value': {
+                        expressions: [{
+                            name: 'model.value',
+                            config: {
                                 template: `<%= _.get(model,'text_1_event','') %>`
                             }
-                        },
+                        }],
                         constraints: {
                             authorization: {
                                 allowRoles: [],

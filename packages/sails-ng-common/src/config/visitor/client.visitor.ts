@@ -493,9 +493,9 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         if ('constraints' in item) {
             delete item['constraints'];
         }
-        if ('expressions' in item) {
-            delete item['expressions'];
-        }
+        // if ('expressions' in item) {
+        //     delete item['expressions'];
+        // }
         this.removePropsUndefined(item);
     }
 
