@@ -119,11 +119,32 @@
 <% if (typeof title!== 'undefined') { %>
 <% } %>
 
-<% if (sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.enabled === true) { %>
-  <div id="system-message-area" class="container">
+<%
+  var brandingName = BrandingService.getBrandFromReq(req);
+  var portalName = BrandingService.getPortalFromReq(req);
+  var systemMessageConfig = sails.config.brandingAware(brandingName).systemMessage || {};
+  function fnv1aHash(str) {
+    var hash = 2166136261;
+    for (var i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return ('0000000' + (hash >>> 0).toString(16)).slice(-8);
+  }
+  var rawSystemMessageKey = JSON.stringify({
+    title: systemMessageConfig.title || '',
+    message: systemMessageConfig.message || ''
+  });
+  var systemMessageKey = fnv1aHash(rawSystemMessageKey);
+  var systemMessageScope = brandingName + ':' + portalName;
+%>
+<% if (systemMessageConfig.enabled === true) { %>
+  <div id="system-message-area" class="container"
+    data-system-message-key="<%= systemMessageKey %>"
+    data-system-message-scope="<%= systemMessageScope %>">
   <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
-    <h4><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.title %></h4>
-    <div><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.message %></div>
+    <h4><%- systemMessageConfig.title || '' %></h4>
+    <div><%- systemMessageConfig.message || '' %></div>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 </div>
@@ -189,34 +210,73 @@
     }
 
     // System message show/hide and dismissal persistence
-    var storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
+    function safeStorageGet(key) {
+      try {
+        if (!window.localStorage) {
+          return null;
+        }
+        var value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : null;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function safeStorageSet(key, value) {
+      try {
+        if (!window.localStorage) {
+          return;
+        }
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (err) {
+        // Ignore storage failures (privacy mode/quota).
+      }
+    }
+
+    function safeStorageRemove(key) {
+      try {
+        if (!window.localStorage) {
+          return;
+        }
+        localStorage.removeItem(key);
+      } catch (err) {
+        // Ignore storage failures (privacy mode/quota).
+      }
+    }
+
     var systemMessageArea = document.getElementById('system-message-area');
+    var systemMessage = document.getElementById('system-message');
 
     if (systemMessageArea) {
-      if (storedsystemMessageDismissalTime) {
-        var currentsystemMessageDismissalTime = Date.now();
-        var eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-        if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
-          // Show it (mirror jQuery .show())
-          systemMessageArea.style.display = 'block';
-        } else {
-          // Remove the system message area as it takes up space even when hidden
-          systemMessageArea.remove();
-        }
+      var messageKey = systemMessageArea.getAttribute('data-system-message-key') || '';
+      var messageScope = systemMessageArea.getAttribute('data-system-message-scope') || 'default';
+      var storageKey = 'systemMessageDismissal:' + messageScope;
+      var dismissal = safeStorageGet(storageKey);
+      var now = Date.now();
+      var eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+      var dismissedAt = dismissal && Number(dismissal.dismissedAt);
+      var hasValidDismissal = dismissal && dismissal.key === messageKey && isFinite(dismissedAt);
+
+      safeStorageRemove('systemMessageDismissalTime');
+
+      if (hasValidDismissal && now - dismissedAt <= eightHoursInMillis) {
+        // Remove the system message area as it takes up space even when hidden
+        systemMessageArea.remove();
       } else {
-        // Ensure visible on first load
+        // Ensure visible on first load or when the message changes
         systemMessageArea.style.display = 'block';
       }
     }
 
-    var systemMessage = document.getElementById('system-message');
     if (systemMessage) {
       systemMessage.addEventListener('closed.bs.alert', function () {
-        var currentEpochMillis = Date.now();
-        localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
-        // Remove the system message area as it takes up space even when hidden
         var area = document.getElementById('system-message-area');
         if (area) {
+          var messageKey = area.getAttribute('data-system-message-key') || '';
+          var messageScope = area.getAttribute('data-system-message-scope') || 'default';
+          var storageKey = 'systemMessageDismissal:' + messageScope;
+          safeStorageSet(storageKey, { key: messageKey, dismissedAt: Date.now() });
+          // Remove the system message area as it takes up space even when hidden
           area.remove();
         }
       });
