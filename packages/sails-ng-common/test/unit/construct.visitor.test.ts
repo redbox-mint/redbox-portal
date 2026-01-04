@@ -624,7 +624,7 @@ describe("Construct Visitor", async () => {
                 reusableFormDefs: reusableDefinitionsExample1,
                 record: {content1: "some value"}
             });
-            const expected = {
+            const expected: FormConfigFrame = {
                 name: "form",
                 componentDefinitions: [
                     {
@@ -635,10 +635,6 @@ describe("Construct Visitor", async () => {
                                 template: '<h1>{{model}}</h1>'
                             }
                         },
-                        model: {
-                            class: "ContentComponent",
-                            config: {value: "some value"}
-                        }
                     }
                 ]
             };
@@ -668,24 +664,54 @@ describe("Construct Visitor", async () => {
                                     defaultValue: ['option1', 'option2'],
                                 }
                             }
-
+                        },
+                        {
+                            name: "component_2",
+                            component: {
+                                class: 'CheckboxInputComponent',
+                                config: {
+                                    options: [
+                                        {label: 'Option 1', value: 'option1'},
+                                        {label: 'Option 2', value: 'option2'},
+                                        {label: 'Option 3', value: 'option3'},
+                                    ]
+                                }
+                            },
+                            model: {
+                                class: "CheckboxInputModel",
+                                config: {
+                                    defaultValue: ['option1', 'option3'],
+                                }
+                            }
                         }
                     ]
                 },
                 formMode: "view",
                 reusableFormDefs: reusableDefinitionsExample1,
-                record: {component_1: ['option3']}
+                record: {component_1: ['option3'], component_2: ['option2', 'option3']}
             });
             const expected = {
                 name: "form",
                 componentDefinitions: [
                     {
+                        // One value
                         name: "component_1",
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: [{label: 'Option 3', value: 'option3'}],
-                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                                content: {label: 'Option 3', value: 'option3'},
+                                template: `<span data-value="{{value.value}}">{{value.label}}</span>`
+                            }
+                        },
+                    },
+                    {
+                        // More than one value
+                        name: "component_2",
+                        component: {
+                            class: 'ContentComponent',
+                            config: {
+                                content: [{label: 'Option 2', value: 'option2'},{label: 'Option 3', value: 'option3'}],
+                                template: `<ul>{{#each value}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
                     }
