@@ -7,9 +7,10 @@
     "strict": false,
     "inlineSourceMap": true,
     "lib": [
-      "es2023",
-      "dom"
-    ]
+      "es2023"
+    ],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": [
     "src/**/*"

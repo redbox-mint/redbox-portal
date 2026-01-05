@@ -3,56 +3,61 @@ import "./sails";
 export {
     Attachment
 }
-from "./Attachment";
+    from "./Attachment";
 export {
     Controllers
 }
-from "./CoreController";
+    from "./CoreController";
 export {
     Services
 }
-from "./CoreService";
+    from "./CoreService";
 export {
     Datastream
 }
-from "./Datastream";
+    from "./Datastream";
 export {
     StorageServiceResponse
 }
-from "./StorageServiceResponse";
+    from "./StorageServiceResponse";
 export {
     DatastreamServiceResponse
 }
-from "./DatastreamServiceResponse";
+    from "./DatastreamServiceResponse";
 
 export {
     DatastreamService
 }
-from "./DatastreamService";
+    from "./DatastreamService";
 export {
     QueueService
 }
-from "./QueueService";
+    from "./QueueService";
 export {
     RecordsService
 }
-from "./RecordsService";
+    from "./RecordsService";
 export {
     SearchService
 }
-from "./SearchService";
+    from "./SearchService";
 export {
     StorageService
 }
-from "./StorageService";
+    from "./StorageService";
 export {
     RecordAuditParams
 }
-from "./RecordAuditParams";
+    from "./RecordAuditParams";
 export {
     ILogger
 }
-from "./Logger";
+    from "./Logger";
 
-export * from './model'
-export * from './decorator'
+export * from './model';
+export * from './decorator';
+
+export { WaterlineModels } from './waterline-models';
+export const SailsServices = {};
+export const SailsControllers = {};
+export const WebserviceControllers = {};
