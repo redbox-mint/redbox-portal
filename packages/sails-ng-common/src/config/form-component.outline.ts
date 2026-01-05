@@ -38,7 +38,7 @@ export interface FormExpressionsBaseConfigFrame {
     /**
      * Optional property name that will receive the result of the expression. If unspecified, the result is not stored. Note that the template or operation might set values directly.
      */
-    target?: string;
+    target?: "model.value" | `layout.${string}` | `component.${string}`;
 }
 
 interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame {

@@ -155,6 +155,8 @@ export const FormComponentEventType = {
   FORM_SAVE_FAILURE: 'form.save.failure' as const
 } as const;
 
+export type FormComponentEventTypeValue = typeof FormComponentEventType[keyof typeof FormComponentEventType];
+
 /**
  * Event type map for type-safe select operations
  */

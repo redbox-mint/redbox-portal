@@ -1,11 +1,14 @@
 
 import { Subscription } from 'rxjs';
+import { AbstractControl } from '@angular/forms';
 import { inject } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bus.service';
-import { FormComponentEventBase, FormComponentEventType } from './form-component-event.types';
-import { getObjectWithJsonPointer, JSONataQuerySource, ExpressionsConditionKindType } from '@researchdatabox/sails-ng-common';
+import { FormComponentEvent, FormComponentEventBase, FormComponentEventType, FormComponentEventTypeValue } from './form-component-event.types';
+import { getObjectWithJsonPointer, JSONataQuerySource, ExpressionsConditionKindType, FormExpressionsConfigFrame, ExpressionsConditionKind } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../../form.component';
+import { isEmpty as _isEmpty } from 'lodash-es';
+import _ from 'lodash';
 
 /**
  * Options for binding event consumers/producers to components.
@@ -49,6 +52,8 @@ export abstract class FormComponentEventBaseProducerConsumer {
 	protected componentDefQuerySource?: JSONataQuerySource;
 	protected formComp?: FormComponent;
 	protected options?: FormComponentEventOptions;
+	protected control?: AbstractControl;
+	protected expressions?: FormExpressionsConfigFrame[];
 
 	constructor(eventBus: FormComponentEventBus) {
 		this.eventBus = eventBus;
@@ -62,6 +67,10 @@ export abstract class FormComponentEventBaseProducerConsumer {
 
 	public set formComponent(component: FormComponent | undefined) {
 		this.formComp = component;
+	}
+
+	public get formComponent(): FormComponent | undefined {
+		return this.formComp;
 	}
 	/**
 	 * Tear down active subscriptions.
@@ -122,7 +131,13 @@ export abstract class FormComponentEventBaseProducerConsumer {
 		}
 		return false;
 	}
-
+	/**
+	 * 
+	 * Combines the component query source with the event.
+	 * 
+	 * @param event 
+	 * @returns 
+	 */
 	protected getEventQuerySource(event: FormComponentEventBase): FormComponentEventQuerySource | undefined {
 		if (!this.componentDefQuerySource) {
 			return undefined;
@@ -132,8 +147,10 @@ export abstract class FormComponentEventBaseProducerConsumer {
 			event
 		};
 	}	
-
-	protected setupQuerySourceUpdateLister(): void {
+	/**
+	 * Sets up listeners to update the component query source when the form definition changes.
+	 */
+	protected setupQuerySourceUpdateListener(): void {
 		if (this.formComp) {
 			this.subscriptions.set('componentQuerySourceReady', this.eventBus
 				.select$(FormComponentEventType.FORM_DEFINITION_READY)
@@ -147,4 +164,58 @@ export abstract class FormComponentEventBaseProducerConsumer {
 				}));
 		}
 	}
+	
+	protected setupEventConsumption(options: FormComponentEventOptions, eventType: FormComponentEventTypeValue) {
+		this.options = options;
+	
+		const expressions: FormExpressionsConfigFrame[] | undefined  = options.definition?.expressions;
+		if (expressions === undefined || _isEmpty(expressions)) {
+			const msg = `FormComponentValueChangeEventConsumer: No expressions defined for component '${options.component.formFieldConfigName()}'. Change events will not be consumed.`;
+			this.loggerService.debug(msg, options.definition);
+			throw new Error(msg);
+		}	
+		this.expressions = expressions;
+		// FormControl is optional for some components
+		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
+		if (!control) {
+			this.loggerService.warn(`FormComponentValueChangeEventConsumer: No form control found for component '${options.component.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+		} else {
+			this.control = control;
+		}
+
+		this.setupQuerySourceUpdateListener();
+
+		const sub = this.eventBus.select$(eventType).subscribe((event: FormComponentEvent) => {
+			const hasConditionMatch = this.getMatchedExpressions(event, this.expressions!);
+			if (hasConditionMatch) {
+				for (const expr of hasConditionMatch) {
+					this.consumeEvent(event, expr);
+				}
+			}
+		});
+		this.subscriptions.set(eventType, sub);
+	}
+
+	protected getMatchedExpressions(event: FormComponentEvent, expressions: FormExpressionsConfigFrame[]): FormExpressionsConfigFrame[] | null {
+		const matchedExpressions: FormExpressionsConfigFrame[] = [];
+		for (const expr of expressions) {
+			if (expr.config.conditionKind == ExpressionsConditionKind.JSONPointer) {
+				const matchOpts: FormComponentEventJSONPointerMatchOptions = {
+					condition: expr.config.condition || '',
+					conditionKind: expr.config.conditionKind,
+					querySource: this.getEventQuerySource(event)!
+				};
+				if (this.hasMatchedJSONPointerCondition(matchOpts)) {
+					matchedExpressions.push(expr);
+				}
+			}	
+		}
+		return !_isEmpty(matchedExpressions) ? matchedExpressions : null;
+	}
+
+	protected consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): void {
+		// To be implemented by subclasses
+		this.loggerService.warn(`FormComponentEventBaseProducerConsumer: consumeEvent not implemented for event type '${event.type}'.`, event);
+	}
+
 }
