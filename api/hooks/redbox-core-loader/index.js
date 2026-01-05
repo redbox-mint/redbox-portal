@@ -62,7 +62,7 @@ module.exports = function redboxCoreLoader(sails) {
 
       const modelCount = Object.keys(WaterlineModels).length;
 
-      sails.log.verbose(`redbox-core-loader: ${modelCount} models, ${serviceCount} services, ${controllerCount} controllers, ${webserviceCount} webservice controllers available from @researchdatabox/redbox-core-types`);
+      sails.log.verbose(`redbox-core-loader: ${modelCount} models available from @researchdatabox/redbox-core-types`);
 
       // Generate model shims before ORM loads them
       const modelsDir = path.resolve(__dirname, '../../models');
