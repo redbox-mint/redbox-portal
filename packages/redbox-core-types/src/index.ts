@@ -58,6 +58,3 @@ export * from './model';
 export * from './decorator';
 
 export { WaterlineModels } from './waterline-models';
-export const SailsServices = {};
-export const SailsControllers = {};
-export const WebserviceControllers = {};
