@@ -730,7 +730,7 @@ describe('The FormsService', function () {
                             config: {
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {defaultValue: {}}},
+                                    model: {class: 'GroupModel', config: {newEntryValue: {text_1: 'hello world 1!', text_2:'hello world 2!'}}},
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
@@ -739,19 +739,13 @@ describe('The FormsService', function () {
                                                 {
                                                     // requires mode edit, so expect to be removed
                                                     name: 'text_1',
-                                                    model: {
-                                                        class: 'SimpleInputModel',
-                                                        config: {defaultValue: 'hello world 1!',}
-                                                    },
+                                                    model: {class: 'SimpleInputModel', config: {}},
                                                     component: {class: 'SimpleInputComponent'},
                                                     constraints: {allowModes: ['edit']},
                                                 },
                                                 {
                                                     name: 'text_2',
-                                                    model: {
-                                                        class: 'SimpleInputModel',
-                                                        config: {defaultValue: 'hello world 2!'}
-                                                    },
+                                                    model: {class: 'SimpleInputModel', config: {}},
                                                     component: {class: 'SimpleInputComponent'},
                                                 },
                                                 {
@@ -765,7 +759,7 @@ describe('The FormsService', function () {
                                                                 name: null,
                                                                 model: {
                                                                     class: 'SimpleInputModel',
-                                                                    config: {defaultValue: 'hello world from repeatable for admin'}
+                                                                    config: {newEntryValue: 'hello world from repeatable for admin'}
                                                                 },
                                                                 component: {class: 'SimpleInputComponent'},
                                                                 constraints: {authorization: {allowRoles: ['Admin']}},
@@ -829,7 +823,7 @@ describe('The FormsService', function () {
                                 visible: true,
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {}},
+                                    model: {class: 'GroupModel', config: {newEntryValue: {text_2:'hello world 2!'}}},
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
