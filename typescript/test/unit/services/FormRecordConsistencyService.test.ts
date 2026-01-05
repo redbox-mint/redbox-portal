@@ -134,7 +134,7 @@ describe('The FormRecordConsistencyService', function () {
                                 config: {
                                     elementTemplate: {
                                         name: null,
-                                        model: {class: 'GroupModel', config: {newEntryValue: {}}},
+                                        model: {class: 'GroupModel', config: {newEntryValue: {text_2: 'hello world 2!'}}},
                                         component: {
                                             class: 'GroupComponent',
                                             config: {
@@ -142,10 +142,7 @@ describe('The FormRecordConsistencyService', function () {
                                                 componentDefinitions: [
                                                     {
                                                         name: 'text_2',
-                                                        model: {
-                                                            class: 'SimpleInputModel',
-                                                            config: {defaultValue: 'hello world 2!'}
-                                                        },
+                                                        model: {class: 'SimpleInputModel', config: {}},
                                                         component: {
                                                             class: 'SimpleInputComponent'
                                                         },
@@ -457,7 +454,9 @@ describe('The FormRecordConsistencyService', function () {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: null,
-                                                                    model: {class: 'GroupModel', config: {}},
+                                                                    model: {class: 'GroupModel', config: {newEntryValue: {
+                                                                        text_group_repeatable_3:"text_group_repeatable_3 default"
+                                                                    }}},
                                                                     component: {
                                                                         class: 'GroupComponent',
                                                                         config: {
@@ -466,7 +465,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                                     name: 'text_group_repeatable_3',
                                                                                     model: {
                                                                                         class: 'SimpleInputModel',
-                                                                                        config: {defaultValue: "text_group_repeatable_3 default"}
+                                                                                        config: {}
                                                                                     },
                                                                                     component: {
                                                                                         class: 'SimpleInputComponent'

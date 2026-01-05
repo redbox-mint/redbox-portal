@@ -691,6 +691,7 @@ describe('The FormsService', function () {
                                 readonly: false,
                                 visible: true,
                                 content:"text_1_value",
+                                template: "<span>{{value}}</span>",
                             },
                         },
                     },
