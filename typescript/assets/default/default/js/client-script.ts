@@ -62,7 +62,7 @@ function initSystemMessage() {
       // Remove the system message area as it takes up space even when hidden
       systemMessageArea.remove();
     } else {
-      // Ensure visible on first load or when the message changes
+      // Ensure visible on first load, when it was dismissed more than 8 hours ago or when the message changes
       systemMessageArea.style.display = 'block';
     }
   }
