@@ -4,9 +4,9 @@ import { BaseComponent, UtilityService, LoggerService, TranslationService, Recor
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, has as _has, unset as _unset } from 'lodash-es';
 
 @Component({
-    selector: 'dashboard',
-    templateUrl: './dashboard.component.html',
-    standalone: false
+  selector: 'dashboard',
+  templateUrl: './dashboard.component.html',
+  standalone: false
 })
 export class DashboardComponent extends BaseComponent {
   config: any = {};
@@ -106,17 +106,17 @@ export class DashboardComponent extends BaseComponent {
     recordTypeFilterBy: '',
     queryFilters: {
       rdmp: [
-              { 
-                filterType: 'text',
-                filterFields: [
-                                { 
-                                  name: 'Title',
-                                  path: 'metadata.title'
-                                }
-                              ]
-              }
-            ]
-      },
+        {
+          filterType: 'text',
+          filterFields: [
+            {
+              name: 'Title',
+              path: 'metadata.title'
+            }
+          ]
+        }
+      ]
+    },
     sortBy: 'metaMetadata.lastSaveDate:-1',
     groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
     sortGroupBy: [], //values: as many levels as required?
@@ -199,8 +199,8 @@ export class DashboardComponent extends BaseComponent {
       recordType = recordTypeFilterBy;
     }
 
-    for(let recType of formatRules.hideWorkflowStepTitleForRecordType) {
-      if(recType == recordType) {
+    for (let recType of formatRules.hideWorkflowStepTitleForRecordType) {
+      if (recType == recordType) {
         this.hideWorkflowStepTitle = true;
       }
     }
@@ -276,8 +276,8 @@ export class DashboardComponent extends BaseComponent {
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowConfig'))) {
         stepRowConfig = _get(step, 'config.dashboard.table.rowConfig');
-        _unset(this.sortFields,step.name);
-        _set(this.sortFields,step.name,_map(stepRowConfig, (config) => { return config.variable; }));
+        _unset(this.sortFields, step.name);
+        _set(this.sortFields, step.name, _map(stepRowConfig, (config) => { return config.variable; }));
       }
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowRulesConfig'))) {
@@ -318,7 +318,7 @@ export class DashboardComponent extends BaseComponent {
       filterFields = _get(filterBy, 'filterField');
       filterMode = _get(filterBy, 'filterMode');
     }
-    
+
     let sortByString = this.getSortStringFromSortMap(this.sortMap[stepName], stepName, true);
 
     let stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
@@ -682,16 +682,16 @@ export class DashboardComponent extends BaseComponent {
 
       i = i + 1;
 
-      if(columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
+      if (columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
 
         this.sortMap[step.name][columnConfig.variable] = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          defaultSort:  columnConfig.defaultSort == true ? true : false
+          defaultSort: columnConfig.defaultSort == true ? true : false
         }
       }
 
-      if(columnConfig.defaultSort == true) {
+      if (columnConfig.defaultSort == true) {
         defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
@@ -699,7 +699,7 @@ export class DashboardComponent extends BaseComponent {
           title: '',
           variable: columnConfig.variable
         }
-      } else if(i == stepRowConfigLength && _isEmpty(defaultSortObject)) {
+      } else if (i == stepRowConfigLength && _isEmpty(defaultSortObject)) {
         defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
@@ -715,32 +715,32 @@ export class DashboardComponent extends BaseComponent {
     } else {
       this.enableSort = true;
     }
-    
+
     return defaultSortObject;
   }
 
   public async sortChanged(data: any) {
 
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      
+
       let sortString = `${data.variable}:`;
       let secondarySortString = undefined;
       if (data.sort == 'desc') {
         sortString = sortString + "-1";
-        if(data.secondarySort != undefined && data.secondarySort != '') {
-          secondarySortString = `${data.secondarySort}:`+ "-1";
+        if (data.secondarySort != undefined && data.secondarySort != '') {
+          secondarySortString = `${data.secondarySort}:` + "-1";
         }
       } else {
         sortString = sortString + "1";
-        if(data.secondarySort != undefined && data.secondarySort != '') {
-          secondarySortString = `${data.secondarySort}:`+ "1";
+        if (data.secondarySort != undefined && data.secondarySort != '') {
+          secondarySortString = `${data.secondarySort}:` + "1";
         }
       }
       let stagedRecords: any;
       if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString,this.filterFieldPath,this.getFilterSearchString(data.step),'',secondarySortString);
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString, this.filterFieldPath, this.getFilterSearchString(data.step), '', secondarySortString);
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.getFilterSearchString(data.step),'',secondarySortString);
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString, this.filterFieldPath, this.getFilterSearchString(data.step), '', secondarySortString);
       }
 
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords);
@@ -755,20 +755,20 @@ export class DashboardComponent extends BaseComponent {
 
     let stepRowConfig: any[] = this.tableConfig[sortData.step];
     for (let columnConfig of stepRowConfig) {
-      this.sortMap[sortData.step][columnConfig.variable] = { 
-        sort: columnConfig.noSort ,
+      this.sortMap[sortData.step][columnConfig.variable] = {
+        sort: columnConfig.noSort,
         secondarySort: columnConfig.secondarySort != '' ? columnConfig.secondarySort : ''
       };
     }
 
-    this.sortMap[sortData.step][sortData.variable] = { 
+    this.sortMap[sortData.step][sortData.variable] = {
       sort: sortData.sort,
       secondarySort: sortData.secondarySort
-     };
+    };
   }
 
   public async pageChanged(event: PageChangedEvent, step: string) {
-    
+
     if (this.isProcessingPageChange) {
       return;
     }
@@ -778,12 +778,12 @@ export class DashboardComponent extends BaseComponent {
     let sortMapAtStep = this.sortMap[step];
 
     if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
     } else if (this.dashboardTypeSelected == 'workspace') {
-      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
@@ -806,11 +806,11 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getSortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _get(workflowStep,'config.workflow.stage','');
+    let step = _get(workflowStep, 'config.workflow.stage', '');
     let sort = 'desc';
-    if(step != '') {
+    if (step != '') {
       let sortMapAtStep = sortMap[step];
-      if(_has(sortMapAtStep,rowConfig.variable)) {
+      if (_has(sortMapAtStep, rowConfig.variable)) {
         sort = sortMapAtStep[rowConfig.variable].sort;
         return sort;
       }
@@ -819,11 +819,11 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getSecondarySortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _get(workflowStep,'config.workflow.stage','');
+    let step = _get(workflowStep, 'config.workflow.stage', '');
     let secondarySort = 'desc';
-    if(step != '') {
+    if (step != '') {
       let sortMapAtStep = sortMap[step];
-      if(_has(sortMapAtStep,rowConfig.variable)) {
+      if (_has(sortMapAtStep, rowConfig.variable)) {
         secondarySort = sortMapAtStep[rowConfig.variable].secondarySort;
         return secondarySort;
       }
@@ -833,12 +833,12 @@ export class DashboardComponent extends BaseComponent {
 
 
   private getSortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-    let fields = _get(this.sortFields,step);
+    let fields = _get(this.sortFields, step);
     let sortString = 'metaMetadata.lastSaveDate:-1';
-    if(!_isUndefined(fields) && !_isEmpty(fields)) {
+    if (!_isUndefined(fields) && !_isEmpty(fields)) {
       for (let i = 0; i < fields.length; i++) {
         let sortField = fields[i];
-        if(!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep,sortField)) {
+        if (!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep, sortField)) {
           if (sortMapAtStep[sortField].sort != null && forceDefault && sortMapAtStep[sortField].defaultSort == true) {
             sortString = `${sortField}:`;
             if (sortMapAtStep[sortField].sort == 'desc') {
@@ -856,7 +856,7 @@ export class DashboardComponent extends BaseComponent {
                 sortString = sortString + "1";
               }
             }
-          } 
+          }
         }
       }
     }
@@ -866,7 +866,7 @@ export class DashboardComponent extends BaseComponent {
 
   private getSecondarySortStringFromSortMap(sortMapAtStep: any, step: string) {
 
-    let fields = _get(this.sortFields,step);
+    let fields = _get(this.sortFields, step);
     if (_isUndefined(fields) || _isEmpty(fields)) {
       return '';
     }
@@ -879,13 +879,13 @@ export class DashboardComponent extends BaseComponent {
         let secondarySort = sortMapAtStep[sortField].secondarySort;
 
         if (sortMapAtStep[sortField].sort == 'desc') {
-          if(secondarySort != '' ) {
+          if (secondarySort != null && secondarySort !== '') {
             let sortString = `${secondarySort}:`;
             sortString = sortString + "-1";
             return sortString;
           }
         } else {
-          if(secondarySort != '') {
+          if (secondarySort != null && secondarySort !== '') {
             let sortString = `${secondarySort}:`;
             sortString = sortString + "1";
             return sortString;
@@ -896,18 +896,18 @@ export class DashboardComponent extends BaseComponent {
     return '';
   }
 
-  private getFirstFilter(type:string): FilterField {
+  private getFirstFilter(type: string): FilterField {
     try {
       let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-      for(let queryFilter of queryFilters) {
-        if(queryFilter.filterType == type) {
-          for(let filterField of queryFilter.filterFields) {
+      for (let queryFilter of queryFilters) {
+        if (queryFilter.filterType == type) {
+          for (let filterField of queryFilter.filterFields) {
             return filterField;
           }
         }
       }
       return this.defaultFilterField;
-    } catch(error) {
+    } catch (error) {
       return this.defaultFilterField;
     }
   }
@@ -915,25 +915,25 @@ export class DashboardComponent extends BaseComponent {
   private findFilterTemplate(filterFieldPath: string): string {
     let templateString: string = '';
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    if(_isArray(queryFilters)) {
-      for(let queryFilter of queryFilters) {
-          for(let filterField of queryFilter.filterFields) {
-            if(filterField.path == filterFieldPath) {
-              return _get(filterField,'template','');
-            }
+    if (_isArray(queryFilters)) {
+      for (let queryFilter of queryFilters) {
+        for (let filterField of queryFilter.filterFields) {
+          if (filterField.path == filterFieldPath) {
+            return _get(filterField, 'template', '');
           }
+        }
       }
     }
     return templateString;
   }
 
-  private getFilters(type:string) {
+  private getFilters(type: string) {
     let filterFields: FilterField[] = [];
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    if(_isArray(queryFilters)) {
-      for(let queryFilter of queryFilters) {
-        if(queryFilter.filterType == type) {
-          for(let filterField of queryFilter.filterFields) {
+    if (_isArray(queryFilters)) {
+      for (let queryFilter of queryFilters) {
+        if (queryFilter.filterType == type) {
+          for (let filterField of queryFilter.filterFields) {
             filterFields.push(filterField);
           }
         }
@@ -951,8 +951,8 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilterSearchDisplayed(step: any): boolean {
-    let filterDisplayed = _get(this.isFilterSearchDisplayed,step,'');
-    if(filterDisplayed == 'filterDisplayed') {
+    let filterDisplayed = _get(this.isFilterSearchDisplayed, step, '');
+    if (filterDisplayed == 'filterDisplayed') {
       return true;
     } else {
       return false;
@@ -960,8 +960,8 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getIsSearching(step: any): boolean {
-    let searching = _get(this.isSearching,step,'');
-    if(searching == 'searching') {
+    let searching = _get(this.isSearching, step, '');
+    if (searching == 'searching') {
       return true;
     } else {
       return false;
@@ -969,11 +969,11 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilterSearchString(step: any): string {
-    let filterString = _get(this.filterSearchString,step,'');
+    let filterString = _get(this.filterSearchString, step, '');
     let templateOrPath = this.findFilterTemplate(this.filterFieldPath);
     if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
-      const imports: any = { value: filterString};
-      return this.runTemplate(templateOrPath,imports);
+      const imports: any = { value: filterString };
+      return this.runTemplate(templateOrPath, imports);
     }
     return filterString;
   }
@@ -986,10 +986,10 @@ export class DashboardComponent extends BaseComponent {
       let sortMapAtStep = this.sortMap[step];
       this.records[step].currentPage = 1;
       let stagedRecords: any;
-      if(this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      if (this.dashboardTypeSelected == 'workspace') {
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       }
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
@@ -998,7 +998,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public async resetFilterAndSearch(step: string, e: any) {
-    
+
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
       this.setFilterField(this.getFirstTextFilter(), e);
       this.isSearching[step] = 'searching';
@@ -1006,10 +1006,10 @@ export class DashboardComponent extends BaseComponent {
       this.filterSearchString[step] = '';
       this.records[step].currentPage = 1;
       let stagedRecords: any;
-      if(this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      if (this.dashboardTypeSelected == 'workspace') {
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
       }
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
@@ -1017,7 +1017,7 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
-  public setFilterField(filterField:FilterField, e: any) {
+  public setFilterField(filterField: FilterField, e: any) {
     if (e) {
       e.preventDefault();
     }
