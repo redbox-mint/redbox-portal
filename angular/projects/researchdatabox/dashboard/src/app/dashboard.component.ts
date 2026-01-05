@@ -867,11 +867,14 @@ export class DashboardComponent extends BaseComponent {
   private getSecondarySortStringFromSortMap(sortMapAtStep: any, step: string) {
 
     let fields = _get(this.sortFields,step);
+    if (_isUndefined(fields) || _isEmpty(fields)) {
+      return '';
+    }
 
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
 
-      if (sortMapAtStep[sortField].sort != null) {
+      if (!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep, sortField) && sortMapAtStep[sortField].sort != null) {
 
         let secondarySort = sortMapAtStep[sortField].secondarySort;
 
@@ -1023,5 +1026,4 @@ export class DashboardComponent extends BaseComponent {
   }
 
 }
-
 

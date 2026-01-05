@@ -158,6 +158,14 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
   });
+
+  it('returns empty secondary sort string when fields are missing', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance as any;
+    dashboardComponent.sortFields = {};
+    const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(undefined, 'draft');
+    expect(secondarySort).toEqual('');
+  });
 });
 
 let recordDataWorkspace = { 
