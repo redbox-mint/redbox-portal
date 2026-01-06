@@ -1,4 +1,5 @@
 import { get as _get } from 'lodash';
+import {LineagePath} from "../config/names/naming-helpers";
 
 /**
  * The parameters for a validator error.
@@ -42,17 +43,21 @@ export type FormValidatorCreateConfig = {
  * Some form controls are a collection of controls, these must provide a way to access the controls they contain.
  *
  * This is similar to the angular AbstractControl class, with only the properties needed for validation.
+ *
+ * @see https://angular.dev/api/forms/AbstractControl
  */
 export interface FormValidatorControl {
   /**
    * The value of the control.
+   * @see https://angular.dev/api/forms/AbstractControl#value
    */
   value: unknown;
   /**
    * Get the descendant control that matches the path.
+   * @see https://angular.dev/api/forms/AbstractControl#get
    * @param path
    */
-  get<P extends string>(path: P): FormValidatorControl | null;
+  get<P extends string | LineagePath>(path: P): FormValidatorControl | null;
 }
 
 /**
@@ -67,11 +72,11 @@ export class SimpleServerFormValidatorControl implements FormValidatorControl {
         this.value = value;
     }
 
-    get<P extends string>(path: P): FormValidatorControl | null {
+    get<P extends string | LineagePath>(path: P): FormValidatorControl | null {
         const result = _get(this.value, path) ?? null;
 
         // For debugging:
-        // console.debug(`SimpleServerFormValidatorControl.get path '${path}' with result '${JSON.stringify(result)}' from value '${JSON.stringify(this.value)}'`);
+        // console.debug(`SimpleServerFormValidatorControl.get path ${JSON.stringify(path)} with result ${JSON.stringify(result)} from value ${JSON.stringify(this.value)}`);
 
         return result;
     }

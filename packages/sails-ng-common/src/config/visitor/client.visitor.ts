@@ -614,59 +614,5 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                 }
             }
         }
-
-        // visitRepeatableFormComponentDefinition itemValue {"itemValue":[{"text_1":"hello world from repeating groups",
-        // "text_2":"hello world 2!","repeatable_for_admin":["hello world from repeatable for admin"],"removed_group":
-        // {"removed_group_text":"hello world 1!"}}]}
-
-        // visitRepeatableFormComponentDefinition newEntryValue {"newEntryValue":{"text_1":"hello world 1!","text_2":
-        // "repeatable_group_1 elementTemplate text_2 default"}}
-
-        // visitRepeatableFormComponentDefinition elementTemplate {"elementTemplate":{"name":"","component":{"class":
-        // "GroupComponent","config":{"readonly":false,"visible":true,"editMode":true,"wrapperCssClasses":"col",
-        // "disabled":false,"autofocus":false,"componentDefinitions":[{"name":"text_2","component":
-        // {"class":"SimpleInputComponent","config":{"readonly":false,"visible":true,"editMode":true,"disabled":false,
-        // "autofocus":false,"type":"text"}},"model":{"class":"SimpleInputModel","config":{}}}]}},"model":
-        // {"class":"GroupModel","config":{"newEntryValue":{"text_1":"hello world 1!",
-        // "text_2":"repeatable_group_1 elementTemplate text_2 default"}}},"layout":{"class":"RepeatableElementLayout",
-        // "config":{"readonly":false,"visible":true,"editMode":true,"hostCssClasses":"row align-items-start",
-        // "disabled":false,"autofocus":false,"labelRequiredStr":"*","cssClassesMap":{},"helpTextVisibleOnInit":false,
-        // "helpTextVisible":false}}}}
-
-        // visitRepeatableFormComponentDefinition schemaHolder {"dataModelHolder":{"properties":{"text_2":{"type":"string"}}}}
-
-
-        // const itemValueType = guessType(itemValue);
-        // if (itemValue !== undefined && itemValueType === "array") {
-        //
-        // }
-        //
-        // while (toProcess.length > 0) {
-        //     const current = toProcess.shift();
-        //     if (current === undefined || current === null) {
-        //         continue;
-        //     }
-        //     const path = current.path;
-        //     const schema = current.schema;
-        //     for (const [schemaKey, schemaValue] of Object.entries(schema)) {
-        //         console.log(`schemaToProcess path: ${JSON.stringify(path)} schemaKey: ${JSON.stringify(schemaKey)} schemaValue: ${JSON.stringify(schemaValue)}`);
-        //         const itemValueAtPath = path.length > 0 ? _get(itemValue, path) : itemValue;
-        //         const newEntryValueAtPath = path.length > 0 ? _get(newEntryValue, path) : newEntryValue;
-        //         console.log(`schemaToProcess itemValueAtPath: ${JSON.stringify(itemValueAtPath)} newEntryValueAtPath: ${JSON.stringify(newEntryValueAtPath)}`);
-        //         switch (schemaKey) {
-        //             case "properties":
-        //
-        //                 break;
-        //             case "elements":
-        //
-        //                 break;
-        //             case "type":
-        //
-        //                 break;
-        //             default:
-        //                 throw new Error(`schemaToProcess schemaKey ${schemaKey}`);
-        //         }
-        //     }
-        // }
     }
 }

@@ -362,7 +362,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
         this.sharedProps.setPropOverride('template', item.config, config);
-        this.sharedProps.setPropOverride('staticContent', item.config, config);
+        this.sharedProps.setPropOverride('content', item.config, config);
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
@@ -390,13 +390,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      *   - An elementTemplate 'resets' the usual merging of ancestor defaultValues. Only 'newEntryValue' is used.
      *   - This is because it does not make sense for ancestor components to provide defaults for new entries - they can only operate on the whole repeatable.
      *   - This also means there is no way to provide the values for new repeatable entries from a record, only the form config.
-     *   - This also means that descendant of an element template cannot provide defaultValues (except for elementTemplates).
-     *
-     *     // anything in a group can't have defaults - enforce in code
-    // only in elementTemplate - ancestors don't influence defaults, only existing record can affect repeatable
-    // only the top-most repeatable can specify the defaultValue - nested components cannot have the defaultValue property
-    //  -> this restriction ensures there is no requirement to do ambiguous merging of array contents (a top-level array item merged with defaults of a nested item)
-    // Since the elementTemplate newEntryValue can only be specified in the elementTemplate, the merging of defaultValues stops at the first repeatable.
+     *   - This also means that a descendant of an element template cannot provide defaultValues.
      */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {

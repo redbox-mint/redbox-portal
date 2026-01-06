@@ -274,7 +274,7 @@ export class FormOverride {
             delete result['overrides'];
         }
 
-        if (hasTransform || !!transformComponentClassName) {
+        if (isTransformExpected) {
             this.logger.warn(`Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
                 `from '${originalComponentClassName}' to '${transformComponentClassName}'.`);
         }
@@ -416,6 +416,7 @@ export class FormOverride {
         values: string[],
         options?: { label: string, value: string }[]
     ): void {
+        this.logger.error(`commonContentOptionList target ${JSON.stringify(target)} values ${JSON.stringify(values)} options ${JSON.stringify(options)}`);
         if (!target.component.config) {
             return;
         }
@@ -445,6 +446,7 @@ export class FormOverride {
         source: AllFormComponentDefinitionOutlines,
         target: ContentFormComponentDefinitionOutline
     ): void {
+        this.logger.error(`commonContentPlain target ${JSON.stringify(target)} source ${JSON.stringify(source)}`);
         if (
             target.component.config !== undefined
             && source.model?.config?.value !== undefined

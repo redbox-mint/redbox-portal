@@ -77,6 +77,7 @@ import {
 } from "../component/date-input.outline";
 import {FormConfig} from "../form-config.model";
 import {FormConfigPathHelper} from "./common.model";
+import {DataValueFormConfigVisitor} from "./data-value.visitor";
 
 /**
  * Visit each form config component and run its validators.
@@ -153,11 +154,11 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
 
-        // Run form-level validators, usually because they involve more than one field.
+        // Run form-level validators using the full form data model.
+        // There are various reasons a validator is at form level, e.g. they involve more than one field.
+        const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
+        const value = dataValueVisitor.start({form: item});
         const itemName = item?.name ?? "";
-        // TODO: once the lineage paths jsonpointer and other pieces are available,
-        //  use those to reference the data model property instead of the dotted path.
-        const value = null;
         this.validationErrors = [...this.validationErrors, ...this.validateFormComponent(itemName, value, item?.validators)];
     }
 
@@ -332,6 +333,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     protected createFormControlFromRecordValue(recordValue: unknown): FormValidatorControl {
         const guessedType = guessType(recordValue);
+        // console.debug(`createFormControlFromRecordValue guessedType ${JSON.stringify(guessedType)} value ${JSON.stringify(recordValue)}`);
         let result;
         if (guessedType === "object") {
             result = new SimpleServerFormValidatorControl(
@@ -382,6 +384,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
                 this.validatorSupport.isValidatorEnabled(availableValidatorGroups, this.enabledValidationGroups, validator)
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
+            // console.debug(`validateFormComponent itemName ${JSON.stringify(itemName)} value ${JSON.stringify(value)}`);
             const recordFormControl = this.createFormControlFromRecordValue(value);
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,
