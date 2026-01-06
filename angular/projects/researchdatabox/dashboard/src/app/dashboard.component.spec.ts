@@ -168,6 +168,276 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
   });
+
+  // getSecondarySortStringFromSortMap tests
+  describe('getSecondarySortStringFromSortMap', () => {
+    it('returns empty string when sortFields is empty', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = {};
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap({}, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns empty string when sortFields is undefined', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = undefined;
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap({}, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns empty string when sortMapAtStep is undefined', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(undefined, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns empty string when sortMapAtStep is empty', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap({}, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns empty string when sortField is not in sortMapAtStep', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'otherField': { sort: 'desc', secondarySort: 'date' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns descending secondary sort string when sort is desc and secondarySort is set', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc', secondarySort: 'dateCreated' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('dateCreated:-1');
+    });
+
+    it('returns ascending secondary sort string when sort is asc and secondarySort is set', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'asc', secondarySort: 'dateCreated' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('dateCreated:1');
+    });
+
+    it('returns empty string when sort is desc but secondarySort is empty', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc', secondarySort: '' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns empty string when sort is asc but secondarySort is empty', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'asc', secondarySort: '' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns empty string when sort is null', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: null, secondarySort: 'dateCreated' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('returns secondary sort when sortField is empty string but exists in sortMapAtStep', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: [''] };
+      const sortMapAtStep = { '': { sort: 'desc', secondarySort: 'dateCreated' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('dateCreated:-1');
+    });
+
+    it('handles step that does not exist in sortFields', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc', secondarySort: 'dateCreated' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'nonexistent');
+      expect(secondarySort).toEqual('');
+    });
+
+    it('uses first matching field with sort when multiple fields exist', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
+      const sortMapAtStep = {
+        'title': { sort: null, secondarySort: 'field1' },
+        'date': { sort: 'asc', secondarySort: 'field2' },
+        'name': { sort: 'desc', secondarySort: 'field3' }
+      };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('field2:1');
+    });
+
+    it('returns empty string when secondarySort is undefined', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc' } };
+      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(secondarySort).toEqual('');
+    });
+  });
+
+  // getSortStringFromSortMap tests
+  describe('getSortStringFromSortMap', () => {
+    it('returns default sort when sortFields is empty', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = {};
+      const sortString = dashboardComponent.getSortStringFromSortMap({}, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('returns default sort when sortFields is undefined', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = undefined;
+      const sortString = dashboardComponent.getSortStringFromSortMap({}, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('returns default sort when sortMapAtStep is undefined', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortString = dashboardComponent.getSortStringFromSortMap(undefined, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('returns default sort when sortMapAtStep is empty', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortString = dashboardComponent.getSortStringFromSortMap({}, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('returns default sort when sortField is not in sortMapAtStep', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'otherField': { sort: 'desc' } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('returns descending sort string when sort is desc', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc' } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(sortString).toEqual('title:-1');
+    });
+
+    it('returns ascending sort string when sort is asc', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'asc' } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(sortString).toEqual('title:1');
+    });
+
+    it('returns default sort when sort is null', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: null } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('returns sort string with forceDefault=true and defaultSort=true for desc', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc', defaultSort: true } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
+      expect(sortString).toEqual('title:-1');
+    });
+
+    it('returns sort string with forceDefault=true and defaultSort=true for asc', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'asc', defaultSort: true } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
+      expect(sortString).toEqual('title:1');
+    });
+
+    it('continues to next field when forceDefault=true but defaultSort=false', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title', 'date'] };
+      const sortMapAtStep = {
+        'title': { sort: 'desc', defaultSort: false },
+        'date': { sort: 'asc', defaultSort: true }
+      };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
+      expect(sortString).toEqual('date:1');
+    });
+
+    it('returns default sort when forceDefault=true but no field has defaultSort=true', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc', defaultSort: false } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
+      expect(sortString).toEqual('title:-1');
+    });
+
+    it('uses last matching field with sort when multiple fields exist', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
+      const sortMapAtStep = {
+        'title': { sort: null },
+        'date': { sort: 'asc' },
+        'name': { sort: 'desc' }
+      };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(sortString).toEqual('name:-1');
+    });
+
+    it('returns default sort when sortField is empty string', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: [''] };
+      const sortMapAtStep = { '': { sort: 'desc' } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('handles step that does not exist in sortFields', () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const dashboardComponent = fixture.componentInstance as any;
+      dashboardComponent.sortFields = { draft: ['title'] };
+      const sortMapAtStep = { 'title': { sort: 'desc' } };
+      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'nonexistent');
+      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
+    });
+  });
 });
 
 let recordDataWorkspace = {
