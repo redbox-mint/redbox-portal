@@ -59,3 +59,4 @@ export * from './decorator';
 export * from './decorators';
 
 export { WaterlineModels } from './waterline-models';
+export * from './transformers/ExportJSONTransformer';

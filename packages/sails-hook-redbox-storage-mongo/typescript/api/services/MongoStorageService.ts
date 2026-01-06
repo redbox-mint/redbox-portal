@@ -12,8 +12,7 @@ import * as fs from 'fs';
 import { Transform } from 'json2csv';
 import { Services as services, DatastreamService, StorageService, StorageServiceResponse, DatastreamServiceResponse, Datastream, Attachment, RecordAuditModel, RecordAuditParams } from '@researchdatabox/redbox-core-types';
 const { transforms: { unwind, flatten } } = require('json2csv');
-import * as path from 'path';
-const ExportJSONTransformer = require(path.resolve(__dirname, '../../transformer/ExportJSONTransformer'));
+import { ExportJSONTransformer } from '@researchdatabox/redbox-core-types';
 
 
 const pipeline = util.promisify(stream.pipeline);
