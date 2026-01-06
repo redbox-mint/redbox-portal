@@ -12,7 +12,8 @@ import * as fs from 'fs';
 import { Transform } from 'json2csv';
 import { Services as services, DatastreamService, StorageService, StorageServiceResponse, DatastreamServiceResponse, Datastream, Attachment, RecordAuditModel, RecordAuditParams } from '@researchdatabox/redbox-core-types';
 const { transforms: { unwind, flatten } } = require('json2csv');
-const ExportJSONTransformer = require('../../transformer/ExportJSONTransformer')
+import * as path from 'path';
+const ExportJSONTransformer = require(path.resolve(__dirname, '../../transformer/ExportJSONTransformer'));
 
 
 const pipeline = util.promisify(stream.pipeline);
@@ -62,7 +63,7 @@ export module Services {
       'getRecordAudit',
       'exists'
     ];
-    
+
 
     constructor() {
       super();
@@ -75,8 +76,8 @@ export module Services {
         sails.log.verbose(`${that.logHeader} Ready!`);
       });
     }
-    
-    
+
+
 
     private getUuid(): string {
       return uuidv1().replace(/-/g, '');
@@ -408,7 +409,7 @@ export module Services {
       return record;
     }
 
-    public async getDeletedRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode:string = 'regex', secondarySort = undefined) {
+    public async getDeletedRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode: string = 'regex', secondarySort = undefined) {
 
 
       // BrandId ...
@@ -438,7 +439,7 @@ export module Services {
         }
       }
 
-      if(!_.isEmpty(secondarySort)) {
+      if (!_.isEmpty(secondarySort)) {
         options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(secondarySort.substring(secondarySort.indexOf(':') + 1));
       }
 
@@ -536,7 +537,7 @@ export module Services {
         }
       }
 
-      if(!_.isEmpty(secondarySort)) {
+      if (!_.isEmpty(secondarySort)) {
         options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(secondarySort.substring(secondarySort.indexOf(':') + 1));
       }
 
@@ -552,7 +553,7 @@ export module Services {
       andArray.push(permissions);
       // Metadata type...
       if (_.isArray(recordType)) {
-        if(recordType.length > 1) {
+        if (recordType.length > 1) {
           let typeArray = [];
           _.each(recordType, rType => {
             typeArray.push({ "metaMetadata.type": rType });
@@ -563,16 +564,16 @@ export module Services {
           query["$or"] = typeArray;
         } else {
           let recType = recordType[0];
-          if(!_.isUndefined(recType) && !_.isEmpty(recType)) {
+          if (!_.isUndefined(recType) && !_.isEmpty(recType)) {
             query["metaMetadata.type"] = recType;
           }
         }
-      } else if(recordType != undefined && recordType != '') {
+      } else if (recordType != undefined && recordType != '') {
         query["metaMetadata.type"] = recordType;
       }
       // Package type...
       if (_.isArray(packageType)) {
-        if(packageType.length > 1) {
+        if (packageType.length > 1) {
           let typeArray = [];
           _.each(packageType, rType => {
             typeArray.push({ "metaMetadata.packageType": rType });
@@ -581,11 +582,11 @@ export module Services {
           query["metaMetadata.packageType"] = types;
         } else {
           let packType = packageType[0];
-          if(!_.isUndefined(packType) && !_.isEmpty(packType)) {
+          if (!_.isUndefined(packType) && !_.isEmpty(packType)) {
             query["metaMetadata.packageType"] = packType;
           }
         }
-      } else if(packageType != undefined && packageType != '') {
+      } else if (packageType != undefined && packageType != '') {
         query["metaMetadata.packageType"] = packageType;
       }
       // Workflow ...
@@ -925,7 +926,7 @@ export module Services {
 
     async restoreRecord(oid: any): Promise<any> {
       const response = new StorageServiceResponse();
-        
+
       if (_.isEmpty(oid)) {
         const msg = `${this.logHeader} restoreRecord() -> refusing to search using an empty OID`;
         sails.log.error(msg);
@@ -934,13 +935,13 @@ export module Services {
 
       try {
         sails.log.verbose(`${this.logHeader} Restoring record ${oid} to DB...`);
-        let deletedRecord = await DeletedRecord.findOne({redboxOid: oid});
+        let deletedRecord = await DeletedRecord.findOne({ redboxOid: oid });
         delete deletedRecord.deletedRecordMetadata._id;
 
         let record = await Record.create(deletedRecord.deletedRecordMetadata);
-        response.metadata = record; 
+        response.metadata = record;
 
-        await DeletedRecord.destroyOne({redboxOid:oid});
+        await DeletedRecord.destroyOne({ redboxOid: oid });
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record restored...`);
         return response;
@@ -955,7 +956,7 @@ export module Services {
 
     async destroyDeletedRecord(oid: any): Promise<any> {
       const response = new StorageServiceResponse();
-        
+
       if (_.isEmpty(oid)) {
         const msg = `${this.logHeader} destroyRecord() -> refusing to search using an empty OID`;
         sails.log.error(msg);
@@ -964,7 +965,7 @@ export module Services {
 
       try {
         sails.log.verbose(`${this.logHeader} destroying deleted record ${oid} to DB...`);
-        await DeletedRecord.destroyOne({redboxOid:oid});
+        await DeletedRecord.destroyOne({ redboxOid: oid });
         response.success = true;
         sails.log.verbose(`${this.logHeader} deleted record destroyed...`);
         return response;
