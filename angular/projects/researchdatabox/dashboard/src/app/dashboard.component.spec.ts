@@ -399,7 +399,7 @@ describe('DashboardComponent standard', () => {
       expect(sortString).toEqual('title:-1');
     });
 
-    it('uses first matching field with sort when multiple fields exist', () => {
+    it('uses last matching field with sort when multiple fields exist', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
