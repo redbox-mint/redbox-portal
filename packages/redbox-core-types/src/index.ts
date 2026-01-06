@@ -56,5 +56,6 @@ export {
 
 export * from './model';
 export * from './decorator';
+export * from './decorators';
 
 export { WaterlineModels } from './waterline-models';

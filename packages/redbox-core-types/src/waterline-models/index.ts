@@ -5,14 +5,11 @@ export * from './BrandingConfigHistory';
 export * from './CacheEntry';
 export * from './Counter';
 export * from './DashboardType';
-export * from './DeletedRecord';
 export * from './Form';
 export * from './I18nBundle';
 export * from './I18nTranslation';
 export * from './NamedQuery';
 export * from './PathRule';
-export * from './Record';
-export * from './RecordAudit';
 export * from './RecordType';
 export * from './Report';
 export * from './Role';
@@ -32,14 +29,11 @@ import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
 import { CounterWLDef } from './Counter';
 import { DashboardTypeWLDef } from './DashboardType';
-import { DeletedRecordWLDef } from './DeletedRecord';
 import { FormWLDef } from './Form';
 import { I18nBundleWLDef } from './I18nBundle';
 import { I18nTranslationWLDef } from './I18nTranslation';
 import { NamedQueryWLDef } from './NamedQuery';
 import { PathRuleWLDef } from './PathRule';
-import { RecordWLDef } from './Record';
-import { RecordAuditWLDef } from './RecordAudit';
 import { RecordTypeWLDef } from './RecordType';
 import { ReportWLDef } from './Report';
 import { RoleWLDef } from './Role';
@@ -52,6 +46,8 @@ import { WorkspaceAsyncWLDef } from './WorkspaceAsync';
 import { WorkspaceTypeWLDef } from './WorkspaceType';
 
 // Consolidated Models map for hook-based loader
+// Note: Record, DeletedRecord, RecordAudit are provided by storage hooks
+// and registered via the core-loader's registerModels() mechanism
 export const WaterlineModels = {
   AppConfig: AppConfigWLDef,
   AsynchProgress: AsynchProgressWLDef,
@@ -60,14 +56,11 @@ export const WaterlineModels = {
   CacheEntry: CacheEntryWLDef,
   Counter: CounterWLDef,
   DashboardType: DashboardTypeWLDef,
-  DeletedRecord: DeletedRecordWLDef,
   Form: FormWLDef,
   I18nBundle: I18nBundleWLDef,
   I18nTranslation: I18nTranslationWLDef,
   NamedQuery: NamedQueryWLDef,
   PathRule: PathRuleWLDef,
-  Record: RecordWLDef,
-  RecordAudit: RecordAuditWLDef,
   RecordType: RecordTypeWLDef,
   Report: ReportWLDef,
   Role: RoleWLDef,

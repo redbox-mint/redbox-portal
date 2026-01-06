@@ -67,6 +67,8 @@ export interface ReportWaterlineModel extends Sails.Model<ReportAttributes> {
   attributes: ReportAttributes;
 }
 
+// Note: Using RBReport to avoid conflict with DOM's Report interface
 declare global {
-  var Report: ReportWaterlineModel;
+  var RBReport: ReportWaterlineModel;
 }
+
