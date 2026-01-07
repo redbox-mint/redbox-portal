@@ -92,7 +92,7 @@ x-rbportal-service: &rbportal-service
 services:
   bruno:
     <<: *bruno-service
-    profiles: [default]
+    profiles: [ci]
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -104,7 +104,7 @@ services:
         condition: service_healthy
   redboxportal:
     <<: *rbportal-service
-    profiles: [default]
+    profiles: [ci]
     ports:
       - "1500:1500"
   redboxportal-mount:
