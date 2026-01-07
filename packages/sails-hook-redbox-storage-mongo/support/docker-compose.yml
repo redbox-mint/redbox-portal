@@ -1,0 +1,79 @@
+name: 'storage-mongo-base'
+
+networks:
+  main:
+
+services:
+
+  rbportal:
+    image: 'qcifengineering/redbox-portal:master'
+    stop_grace_period: 30s
+    init: true
+    expose:
+      - '1500'
+    ports:
+      - '1500:1500'
+    environment:
+      - 'NODE_ENV=docker'
+      - 'PORT=1500'
+      - 'sails_admin__api_token=6b088b4d-d54c-470c-8568-2f2695fcdab9'
+      - 'sails_auth__default__local__default__token=6b088b4d-d54c-470c-8568-2f2695fcdab9'
+      - 'sails_auth__default__local_pdfbot_token=6b088b4d-d54c-470c-8568-2f2695fcdab9'
+      - 'sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint'
+      - 'HOOK_S3_ACCESS_KEY=minioadmin'
+      - 'HOOK_S3_SECRET_KEY=minioadmin'
+      - 'HOOK_S3_REGION=ap-southeast-2'
+      - 'HOOK_S3_BUCKET=attachments'
+      - 'HOOK_S3_ENDPOINT=http://minio:9000'
+      - 'sails_log__level=verbose'
+    volumes:
+      - '../:/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-storage-mongo'
+    networks:
+      main:
+        aliases:
+          - 'rbportal'
+    depends_on:
+      mongodb:
+        condition: 'service_healthy'
+      solr:
+        condition: 'service_healthy'
+
+  mongodb:
+    image: 'mongo:6'
+    expose:
+      - '27017'
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      interval: '15s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    networks:
+      main:
+        aliases:
+          - 'mongodb'
+
+  solr:
+    image: 'solr:8.11'
+    expose:
+      - '8983'
+    ports:
+      - '8983:8983'
+    environment:
+      - 'SOLR_HOME=/var/solr/data'
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
+      interval: '15s'
+      timeout: '5s'
+      retries: 10
+    networks:
+      main:
+        aliases:
+          - 'solr'
+    entrypoint:
+      - 'docker-entrypoint.sh'
+      - 'solr-precreate'
+      - 'redbox'
+

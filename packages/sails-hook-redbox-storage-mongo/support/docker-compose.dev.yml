@@ -1,0 +1,77 @@
+name: 'storage-mongo-dev'
+
+volumes:
+  minio-data:
+  mongodb-data:
+  solr-data:
+  email-data:
+
+services:
+  rbportal:
+    entrypoint:
+      - '/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-storage-mongo/support/run-rbportal.sh'
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home' ]
+      interval: '15s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    depends_on:
+      minio:
+        condition: 'service_healthy'
+      email:
+        condition: 'service_healthy'
+
+  mongodb:
+    volumes:
+      - 'mongodb-data:/data/db'
+
+  solr:
+    volumes:
+      - 'solr-data:/var/solr/data'
+
+  minio:
+    image: 'quay.io/minio/minio:latest'
+    command: [ 'server','/data','--console-address',':9002' ]
+    expose:
+      - '9000'
+      - '9002'
+    ports:
+      - '9000:9000'
+      - '9002:9002'
+    environment:
+      MINIO_ROOT_USER: 'minioadmin'
+      MINIO_ROOT_PASSWORD: 'minioadmin'
+    volumes:
+      - 'minio-data:/data'
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:9000' ]
+      interval: '5s'
+      timeout: '5s'
+      retries: 10
+      start_period: '20s'
+    networks:
+      main:
+        aliases:
+          - 'minio'
+
+  email:
+    image: 'axllent/mailpit:latest'
+    expose:
+      - '1025'
+      - '8025'
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    volumes:
+      - 'email-data:/data'
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: '/data/mailpit.db'
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      TZ: 'Australia/Brisbane'
+    networks:
+      main:
+        aliases:
+          - 'email'
