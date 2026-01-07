@@ -1,6 +1,19 @@
-const crypto = require("node:crypto");
+import { Request, Response, NextFunction } from 'express';
+import * as crypto from 'node:crypto';
+
+declare const sails: any;
+
+interface CspConfig {
+    enabled?: boolean;
+    reportOnly?: boolean;
+    addNonceTo?: string[];
+    directives?: Record<string, string[]>;
+    extras?: string[];
+}
 
 /**
+ * ContentSecurityPolicy Policy
+ *
  * Adds the Content Security Policy (CSP) http header.
  *
  * Includes generating a nonce ("number used once") for verifying server-provided files on the client.
@@ -17,18 +30,15 @@ const crypto = require("node:crypto");
  * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP
  * See: https://angular.dev/best-practices/security#content-security-policy
  * See: https://centralcsp.com/docs
- * @param req Sails request.
- * @param res Sail response.
- * @param next Call this to proceed to the next policy.
  */
-module.exports = function (req, res, next) {
+export function contentSecurityPolicy(req: Request, res: Response, next: NextFunction): any {
     sails.log.verbose(`Setting Content Security Policy nonce headers and view local for ${req.path}`);
 
     // Config can be provided at sails.config.csp or sails.config.security.csp
-    const cfg = (sails.config && (sails.config.csp || (sails.config.security && sails.config.security.csp))) || {};
+    const cfg: CspConfig = (sails.config && (sails.config.csp || (sails.config.security && sails.config.security.csp))) || {};
 
     // Fallback defaults mirror previous hard-coded behavior
-    const defaults = {
+    const defaults: Required<CspConfig> = {
         enabled: true,
         reportOnly: false,
         addNonceTo: ['script-src', 'style-src'],
@@ -52,7 +62,7 @@ module.exports = function (req, res, next) {
     const reportOnly = cfg.reportOnly != null ? !!cfg.reportOnly : defaults.reportOnly;
     const addNonceTo = Array.isArray(cfg.addNonceTo) ? cfg.addNonceTo : defaults.addNonceTo;
     const extras = Array.isArray(cfg.extras) ? cfg.extras : defaults.extras;
-    const directives = Object.assign({}, defaults.directives, cfg.directives || {});
+    const directives: Record<string, string[]> = Object.assign({}, defaults.directives, cfg.directives || {});
 
     if (!enabled) {
         return next();
@@ -74,14 +84,13 @@ module.exports = function (req, res, next) {
     });
 
     // Build the header value
-    const parts = [];
+    const parts: string[] = [];
     Object.keys(directives).forEach((key) => {
         const values = directives[key];
         if (Array.isArray(values) && values.length > 0) {
             parts.push(`${key} ${values.join(' ')}`);
-        } else if (Array.isArray(values) && values.length === 0) {
-            // empty array means emit key with no values (rare), skip to avoid invalid policy
         }
+        // empty array means emit key with no values (rare), skip to avoid invalid policy
     });
     (extras || []).forEach((d) => {
         if (typeof d === 'string' && d.trim().length > 0) {
@@ -101,11 +110,13 @@ module.exports = function (req, res, next) {
     res.set(headerName, `${headerValue};`);
 
     // provide the nonce to the view, so it can be set in the angular app and scripts
-    if (req.options.locals == null) {
-        req.options.locals = {};
+    if ((req as any).options.locals == null) {
+        (req as any).options.locals = {};
     }
-    req.options.locals.contentSecurityPolicyNonce = generatedNonce;
+    (req as any).options.locals.contentSecurityPolicyNonce = generatedNonce;
 
     // proceed to the next policy
     return next();
-};
+}
+
+export default contentSecurityPolicy;

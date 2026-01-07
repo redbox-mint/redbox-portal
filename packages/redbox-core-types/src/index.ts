@@ -60,3 +60,5 @@ export * from './decorators';
 
 export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
+
+export { Policies } from './policies';

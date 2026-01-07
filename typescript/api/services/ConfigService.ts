@@ -249,7 +249,8 @@ export module Services {
         }
       });
       // for simple copying of API elements...
-      const apiCopyDirs = ['policies', 'responses'];
+      // Note: 'policies' removed - now loaded via api/hooks/redbox-core-loader
+      const apiCopyDirs = ['responses'];
       for (let apiCopyDir of apiCopyDirs) {
         const apiCopyFiles = this.walkDirSync(`${hook_root_dir}/api/${apiCopyDir}`, []);
         if (!_.isEmpty(apiCopyFiles)) {
