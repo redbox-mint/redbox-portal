@@ -33,3 +33,7 @@ module.exports = function (sails) {
     }
   }
 };
+
+module.exports.registerRedboxModels = function() {
+  return MongoModels;
+};

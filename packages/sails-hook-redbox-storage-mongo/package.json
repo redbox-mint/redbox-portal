@@ -4,7 +4,8 @@
   "description": "A MongoDB storage plugin for ReDBox.",
   "main": "index.js",
   "sails": {
-    "isHook": true
+    "isHook": true,
+    "hasModels": true
   },
   "repository": {
     "type": "git",

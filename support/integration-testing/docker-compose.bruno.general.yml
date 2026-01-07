@@ -92,6 +92,7 @@ x-rbportal-service: &rbportal-service
 services:
   bruno:
     <<: *bruno-service
+    profiles: [default]
     depends_on:
       redboxportal:
         condition: service_healthy
@@ -103,17 +104,31 @@ services:
         condition: service_healthy
   redboxportal:
     <<: *rbportal-service
+    profiles: [default]
+    ports:
+      - "1500:1500"
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
+    ports:
+      - "1500:1500"
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
       - "../../:/opt/redbox-portal:delegated"
       - "../../.tmp/attachments:/attachments"
       - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    # Mount version runs npm install so needs longer startup time
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 30
+      start_period: '300s'
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
+    ports:
+      - "27017:27017"
     networks:
       main:
         aliases:

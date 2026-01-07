@@ -50,8 +50,6 @@ __decorate([
 exports.RecordClass = RecordClass = __decorate([
     (0, redbox_core_types_1.Entity)('record', {
         datastore: 'redboxStorage',
-        autoCreatedAt: false,
-        autoUpdatedAt: false,
     })
 ], RecordClass);
 exports.RecordWLDef = (0, redbox_core_types_1.toWaterlineModelDef)(RecordClass);

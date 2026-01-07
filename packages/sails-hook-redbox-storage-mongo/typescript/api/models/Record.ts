@@ -5,8 +5,6 @@ export type JsonMap = Record<string, unknown>;
 
 @Entity('record', {
     datastore: 'redboxStorage',
-    autoCreatedAt: false,
-    autoUpdatedAt: false,
 })
 export class RecordClass {
     @Attr({ type: 'string', unique: true })

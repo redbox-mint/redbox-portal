@@ -17,6 +17,58 @@ const { WaterlineModels } = require('@researchdatabox/redbox-core-types');
 // These are skipped from core WaterlineModels unless registered via sails.config.redboxHookModels
 const EXTERNAL_MODELS = ['Record', 'DeletedRecord', 'RecordAudit'];
 
+/**
+ * Dynamically finds and registers models from other redbox hooks.
+ * This is needed because user hooks (like this one) often load before
+ * installable hooks, meaning the installable hooks haven't had a chance
+ * to write to sails.config.redboxHookModels yet.
+ */
+function findAndRegisterHookModels(sails) {
+  if (!sails.config.redboxHookModels) {
+    sails.config.redboxHookModels = {};
+  }
+
+  const appPath = sails.config.appPath || process.cwd();
+  let packageJson;
+  try {
+    packageJson = require(path.join(appPath, 'package.json'));
+  } catch (err) {
+    sails.log.warn('redbox-core-loader: Could not load package.json to find hooks', err);
+    return;
+  }
+
+  const allDependencies = {
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies
+  };
+
+  for (const depName of Object.keys(allDependencies)) {
+    try {
+      // Resolve the package.json of the dependency to check its configuration
+      // We use require.resolve to find the path, ensuring we get the correct installed version
+      // The paths option ensures we look from the app root
+      const depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
+      const depPackageJson = require(depPackageJsonPath);
+
+      if (depPackageJson.sails && depPackageJson.sails.hasModels === true) {
+        sails.log.verbose(`redbox-core-loader: Found hook with models: ${depName}`);
+        
+        const hookModule = require(depName);
+        if (typeof hookModule.registerRedboxModels === 'function') {
+          const models = hookModule.registerRedboxModels();
+          Object.assign(sails.config.redboxHookModels, models);
+          sails.log.verbose(`redbox-core-loader: Registered models from ${depName}`);
+        } else {
+          sails.log.warn(`redbox-core-loader: Hook ${depName} has 'hasModels: true' but no 'registerRedboxModels' function`);
+        }
+      }
+    } catch (err) {
+      // Ignore dependencies that can't be resolved or loaded (they might not be installed or not be hooks)
+      // sails.log.silly(`redbox-core-loader: Could not check dependency ${depName}: ${err.message}`);
+    }
+  }
+}
+
 function generateModelShims(sails, modelsDir) {
   // Get hook-registered models from sails.config
   const hookModels = sails.config.redboxHookModels || {};
@@ -105,6 +157,10 @@ module.exports = function redboxCoreLoader(sails) {
       if (!fs.existsSync(modelsDir)) {
         fs.mkdirSync(modelsDir, { recursive: true });
       }
+
+      // Proactively find models from other hooks to avoid load order issues
+      findAndRegisterHookModels(sails);
+
       const modelStats = generateModelShims(sails, modelsDir);
       sails.log.verbose(`redbox-core-loader: Generated ${modelStats.generated} model shims (${modelStats.fromHooks} from hooks), skipped ${modelStats.skipped} external`);
     },
