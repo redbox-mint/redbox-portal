@@ -214,3 +214,5 @@ docs/
 test/unit/**/*.test.js
 
 test/unit/.mocharc.js
+packages/redbox-core-types/.nyc_output/*
+packages/redbox-core-types/coverage/*
