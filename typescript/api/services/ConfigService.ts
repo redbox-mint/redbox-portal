@@ -17,19 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import type { Observable } from 'rxjs';
-import type { BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
-import type { Sails, Model } from "sails";
-import type { Services as appConfigServices } from "./AppConfigService"
-import type { Services as brandingService } from "./BrandingService"
-
-const { Observable } = require('rxjs');
-const { BrandingModel, Services: services } = require('@researchdatabox/redbox-core-types');
-const fs = require('fs-extra');
-const { resolve, basename } = require('path');
-const { Services: appConfigServices } = require("./AppConfigService");
-const { Services: brandingService } = require("./BrandingService");
-const { glob } = require('fs');
+import { Observable } from 'rxjs';
+import { BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails, Model } from "sails";
+import * as fs from 'fs-extra';
+import { resolve, basename } from 'path';
+import { Services as appConfigServices } from "./AppConfigService"
+import { Services as brandingService } from "./BrandingService"
+import { glob } from 'fs';
 declare var sails: Sails;
 declare var _;
 declare var CacheEntry: Model;
@@ -111,12 +106,12 @@ export module Services {
         if (fs.pathExistsSync(branded_app_config_dir)) {
           var dirs = fs.readdirSync(branded_app_config_dir);
           _.each(dirs, (dir) => {
-            const resolvedDir = resolve(branded_app_config_dir, dir);
-            if (fs.statSync(resolvedDir).isDirectory()) {
-              let brandName = basename(resolvedDir)
+            const fullPath = resolve(branded_app_config_dir, dir);
+            if (fs.statSync(fullPath).isDirectory()) {
+              let brandName = basename(fullPath)
 
               // init-only directory will only create config entries. Intended for initialising config in a new environment that's managed either via API or screens once live.
-              const initFiles = this.walkDirSync(`${resolvedDir}/init-only`, []);
+              const initFiles = this.walkDirSync(`${fullPath}/init-only`, []);
               sails.log.verbose(hook_log_header + "::Processing:");
               sails.log.verbose(initFiles);
               _.each(initFiles, (file_path) => {
@@ -129,7 +124,7 @@ export module Services {
 
 
               // Files in override directory are always updated (for config items without management screens)
-              const overrideFiles = this.walkDirSync(`${resolvedDir}/override`, []);
+              const overrideFiles = this.walkDirSync(`${fullPath}/override`, []);
               sails.log.verbose(hook_log_header + "::Processing:");
               sails.log.verbose(overrideFiles);
               _.each(overrideFiles, (file_path) => {
@@ -145,7 +140,7 @@ export module Services {
               });
 
             } else {
-              sails.log.verbose(hook_log_header + "::Skipping, Found file where we are only expecting directories:" + resolvedDir);
+              sails.log.verbose(hook_log_header + "::Skipping, Found file where we are only expecting directories:" + fullPath);
             }
           });
         } else {
@@ -254,7 +249,7 @@ export module Services {
         }
       });
       // for simple copying of API elements...
-      const apiCopyDirs = ['policies', 'responses'];
+      const apiCopyDirs = ['models', 'policies', 'responses'];
       for (let apiCopyDir of apiCopyDirs) {
         const apiCopyFiles = this.walkDirSync(`${hook_root_dir}/api/${apiCopyDir}`, []);
         if (!_.isEmpty(apiCopyFiles)) {

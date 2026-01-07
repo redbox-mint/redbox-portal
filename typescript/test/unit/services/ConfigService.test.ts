@@ -10,13 +10,13 @@ describe('The ConfigService', function () {
 
     before(async function () {
         // Standalone setup: if global.expect is missing, we are likely running in isolation
-        if (typeof global.expect === 'undefined') {
+        if (typeof (global as any).expect === 'undefined') {
             const chai = await import('chai');
             expect = chai.expect;
 
             // Mock Sails if missing
-            if (typeof global.sails === 'undefined') {
-                global.sails = {
+            if (typeof (global as any).sails === 'undefined') {
+                (global as any).sails = {
                     config: {
                         appPath: process.cwd(),
                         auth: { defaultBrand: 'default' },
@@ -36,17 +36,17 @@ describe('The ConfigService', function () {
             }
 
             // Mock globals
-            if (typeof global._ === 'undefined') {
-                global._ = require('lodash');
+            if (typeof (global as any)._ === 'undefined') {
+                (global as any)._ = require('lodash');
             }
-            if (typeof global.AppConfigService === 'undefined') {
-                global.AppConfigService = {
+            if (typeof (global as any).AppConfigService === 'undefined') {
+                (global as any).AppConfigService = {
                     createConfig: async () => ({}),
                     createOrUpdateConfig: async () => ({})
                 };
             }
-            if (typeof global.BrandingService === 'undefined') {
-                global.BrandingService = {
+            if (typeof (global as any).BrandingService === 'undefined') {
+                (global as any).BrandingService = {
                     getBrand: () => ({})
                 };
             }
@@ -56,18 +56,18 @@ describe('The ConfigService', function () {
                 // Adjust path for standalone run from project root
                 const configServicePath = path.resolve(__dirname, '../../../api/services/ConfigService');
                 const ConfigServiceExport = require(configServicePath);
-                global.sails.services.configservice = ConfigServiceExport;
+                (global as any).sails.services.configservice = ConfigServiceExport;
             } catch (e) {
                 console.error("Failed to load ConfigService:", e);
                 throw e;
             }
         } else {
-            expect = global.expect;
+            expect = (global as any).expect;
         }
 
-        configService = global.sails.services.configservice;
+        configService = (global as any).sails.services.configservice;
         // Store original config
-        originalSailsConfig = _.cloneDeep(global.sails.config);
+        originalSailsConfig = _.cloneDeep((global as any).sails.config);
     });
 
     afterEach(function () {
