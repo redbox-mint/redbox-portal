@@ -281,17 +281,22 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
-        for (const expression of expressions ?? []) {
+        (expressions ?? []).forEach((expression, index) => {
             for (const prop of ['template', 'condition'] as const) {
                 const value = (expression.config as any)?.[prop];
+                const kind = (expression.config as any)?.['conditionKind'];
+                if (kind == 'jsonpointer' && prop == 'condition') {
+                    // Ignore JSONPointer conditions, no need to compile these
+                    continue;
+                }
                 if (value) {
                     this.result?.push({
-                        key: [...(this.currentPath ?? []), 'expressions', expression.name, 'config', prop],
+                        key: [...(this.currentPath ?? []), 'expressions', index.toString(), 'config', prop],
                         value: value,
                         kind: "jsonata"
                     });
                 }
             }
-        }
+        });
     }
 }

@@ -75,7 +75,7 @@ import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-
+import { map as _map } from "lodash-es";
 /**
  * The details needed to evaluate the constraint config.
  */
@@ -493,9 +493,18 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         if ('constraints' in item) {
             delete item['constraints'];
         }
-        // if ('expressions' in item) {
-        //     delete item['expressions'];
-        // }
+        if ('expressions' in item) {
+            // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
+            item.expressions = _map(item.expressions, (expr) => {
+                expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
+                if (expr.config.hasTemplate) {
+                    // delete the template to reduce payload size
+                    delete (expr.config as any).template;
+                }
+                return expr;
+            });
+            // delete item['expressions'];
+        }
         this.removePropsUndefined(item);
     }
 

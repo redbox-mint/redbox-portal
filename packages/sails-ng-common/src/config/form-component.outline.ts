@@ -39,6 +39,10 @@ export interface FormExpressionsBaseConfigFrame {
      * Optional property name that will receive the result of the expression. If unspecified, the result is not stored. Note that the template or operation might set values directly.
      */
     target?: "model.value" | `layout.${string}` | `component.${string}`;
+    /**
+     * Indicates whether the expression has a template defined. Set when template is stripped prior to sending to client.
+     */
+    hasTemplate?: boolean;
 }
 
 interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame {

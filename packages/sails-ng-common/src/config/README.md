@@ -161,6 +161,44 @@ An expressions has three parts:
   client.
 - object value condition: ???
 
+
+### How templates are pre-compiled and used
+
+#### 1. Server-Side Extraction & Compilation
+The process begins in the Sails.js backend where templates are extracted from the form configuration and compiled.
+
+*   **Extraction**: `FormRecordConsistencyService` uses the `TemplateFormConfigVisitor` to traverse the form configuration and extract raw JSONata and Handlebars templates.
+*   **Compilation**: `TemplateService` takes these raw templates and compiles them using the `jsonata` library. The result is a pre-compiled object structure (not just a string) which is then stringified for transport.
+
+#### 2. Dynamic Asset Generation
+The compiled code is served via a specific endpoint that renders a JavaScript module.
+
+*   **Controller**: `DynamicAssetController` gathers the compiled items and renders them using a view.
+*   **View**: `views/dynamicScriptAsset.ejs` generates a valid JavaScript module. This module exports an `evaluate` function that contains the pre-compiled code.
+*   **Endpoint**: `GET /:branding/:portal/dynamicAsset/formCompiledItems/:recordType`
+
+#### 3. Client-Side Consumption
+The Angular frontend dynamically imports this module.
+
+*   **Service**: `FormService` constructs the URL for the dynamic asset based on the record type.
+*   **Loader**: `UtilityService` uses the browser's native **`import()`** function to load the generated URL.
+
+### Key Files
+
+*   **Visitor:** [`packages/sails-ng-common/src/config/visitor/template.visitor.ts`](packages/sails-ng-common/src/config/visitor/template.visitor.ts)
+    *   *Extracts `template` and `condition` strings from form config.*
+*   **Service:** [`typescript/api/services/TemplateService.ts`](typescript/api/services/TemplateService.ts)
+    *   *Compiles the extracted strings into executable JavaScript*
+*   **Controller:** [`typescript/api/controllers/DynamicAssetController.ts`](typescript/api/controllers/DynamicAssetController.ts)
+    *   *Orchestrates the data gathering and response.*
+*   **View:** [`views/dynamicScriptAsset.ejs`](views/dynamicScriptAsset.ejs)
+    *   *Wraps the compiled code in a standard ES Module structure.*
+*   **Client Loader:** [`angular/projects/researchdatabox/portal-ng-common/src/lib/utility.service.ts`](angular/projects/researchdatabox/portal-ng-common/src/lib/utility.service.ts)
+    *   *Loads the module using `import(url)`.*The compiled template is provided to the client via a **dynamically generated JavaScript module** that is imported at runtime.
+
+This approach satisfies CSP requirements by avoiding `eval()` or `new Function()` on the client side, as the code is loaded as a legitimate script module.
+
+
 ## Constraints: restrict when components are included in the form config
 
 Constraints define prerequisites for a component to be included in the form definition.

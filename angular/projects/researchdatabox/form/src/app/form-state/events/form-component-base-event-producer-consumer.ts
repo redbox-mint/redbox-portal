@@ -1,5 +1,5 @@
 
-import { Subscription } from 'rxjs';
+import { Subscription, concatMap } from 'rxjs';
 import { AbstractControl } from '@angular/forms';
 import { inject } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
@@ -38,6 +38,7 @@ export interface FormComponentEventJSONPointerMatchOptions {
 	condition: string;
 	conditionKind: ExpressionsConditionKindType;
 	querySource: FormComponentEventQuerySource;
+	event: FormComponentEvent;
 }
 
 /**
@@ -122,7 +123,7 @@ export abstract class FormComponentEventBaseProducerConsumer {
 		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
 		// Check if the pointer has a match in the query source
 		const ref = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
-		if (ref === undefined) {
+		if (ref === undefined || ref.key != opts.event.sourceId) {
 			return false;
 		}
 		const targetEvent = pointerCondition.event;
@@ -178,21 +179,23 @@ export abstract class FormComponentEventBaseProducerConsumer {
 		// FormControl is optional for some components
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
 		if (!control) {
-			this.loggerService.warn(`FormComponentValueChangeEventConsumer: No form control found for component '${options.component.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+			this.loggerService.debug(`FormComponentValueChangeEventConsumer: No form control found for component '${options.component.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
 		} else {
 			this.control = control;
 		}
 
 		this.setupQuerySourceUpdateListener();
 
-		const sub = this.eventBus.select$(eventType).subscribe((event: FormComponentEvent) => {
-			const hasConditionMatch = this.getMatchedExpressions(event, this.expressions!);
-			if (hasConditionMatch) {
-				for (const expr of hasConditionMatch) {
-					this.consumeEvent(event, expr);
+		const sub = this.eventBus.select$(eventType).pipe(
+			concatMap(async (event: FormComponentEvent) => {
+				const hasConditionMatch = this.getMatchedExpressions(event, this.expressions!);
+				if (hasConditionMatch) {
+					for (const expr of hasConditionMatch) {
+						await this.consumeEvent(event, expr);
+					}
 				}
-			}
-		});
+			})
+		).subscribe();
 		this.subscriptions.set(eventType, sub);
 	}
 
@@ -203,7 +206,8 @@ export abstract class FormComponentEventBaseProducerConsumer {
 				const matchOpts: FormComponentEventJSONPointerMatchOptions = {
 					condition: expr.config.condition || '',
 					conditionKind: expr.config.conditionKind,
-					querySource: this.getEventQuerySource(event)!
+					querySource: this.getEventQuerySource(event)!,
+					event: event
 				};
 				if (this.hasMatchedJSONPointerCondition(matchOpts)) {
 					matchedExpressions.push(expr);
@@ -213,9 +217,8 @@ export abstract class FormComponentEventBaseProducerConsumer {
 		return !_isEmpty(matchedExpressions) ? matchedExpressions : null;
 	}
 
-	protected consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): void {
-		// To be implemented by subclasses
-		this.loggerService.warn(`FormComponentEventBaseProducerConsumer: consumeEvent not implemented for event type '${event.type}'.`, event);
+	protected consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void> {
+		throw new Error(`FormComponentEventBaseProducerConsumer: consumeEvent not implemented for event type '${event.type}'.`);
 	}
 
 }
