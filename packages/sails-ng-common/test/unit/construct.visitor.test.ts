@@ -700,7 +700,7 @@ describe("Construct Visitor", async () => {
                             class: 'ContentComponent',
                             config: {
                                 content: {label: 'Option 3', value: 'option3'},
-                                template: `<span data-value="{{value.value}}">{{value.label}}</span>`
+                                template: `<span data-value="{{content.value}}">{{content.label}}</span>`
                             }
                         },
                     },
@@ -711,7 +711,7 @@ describe("Construct Visitor", async () => {
                             class: 'ContentComponent',
                             config: {
                                 content: [{label: 'Option 2', value: 'option2'},{label: 'Option 3', value: 'option3'}],
-                                template: `<ul>{{#each value}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
                     }

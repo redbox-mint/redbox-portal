@@ -90,6 +90,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+        this.loggerService.debug(`${this.logName}: Set content component '${name}' at ${JSON.stringify(templateLineagePath)} from handlebars template ${JSON.stringify({content, template})}`);
       } catch (error) {
         this.loggerService.error(`${this.logName}: Error loading content component '${name}' at ${JSON.stringify(templateLineagePath)}`, error);
         this.status.set(FormFieldComponentStatus.ERROR);

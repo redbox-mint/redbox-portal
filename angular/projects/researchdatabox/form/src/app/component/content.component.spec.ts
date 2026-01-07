@@ -25,23 +25,21 @@ describe('ContentComponent', () => {
     spyOn(utilityService, 'getDynamicImport').and.callFake(
       async function (brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
         const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
-        switch (urlKey) {
-          // For the simple test that only creates the component
-          case "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp":
-            return {
-              evaluate: function (key: string[], context: any, extra: any) {
-                // normalise the key the same way as the server
-                const keyStr = buildKeyString(key);
-                switch (keyStr) {
-                  case "componentDefinitions__0__component__config__template":
-                    return Handlebars.compile('<h3>{{content}}</h3>')(context);
-                  default:
-                    throw new Error(`Unknown key: ${keyStr}`);
-                }
+        if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
+          return {
+            evaluate: function (key: string[], context: any, extra: any) {
+              // normalise the key the same way as the server
+              const keyStr = buildKeyString(key);
+              switch (keyStr) {
+                case "componentDefinitions__0__component__config__template":
+                  return Handlebars.compile('<h3>{{content}}</h3>')(context);
+                default:
+                  throw new Error(`Unknown key: ${keyStr}`);
               }
-            };
-          default:
-            throw new Error(`Unknown url key: ${urlKey}`);
+            }
+          };
+        } else {
+          throw new Error(`Unknown url key: ${urlKey}`);
         }
       });
   });
