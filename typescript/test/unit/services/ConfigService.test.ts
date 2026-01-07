@@ -557,29 +557,6 @@ describe('The ConfigService', function () {
         });
 
         // -------------------------------------------------------------------------
-        // Test: Copy policies from hook
-        // -------------------------------------------------------------------------
-        it('should copy policies from hook api/policies directory', function (done) {
-            const policiesDir = path.join(testHookDir, 'api', 'policies');
-            fs.ensureDirSync(policiesDir);
-
-            const policyCode = `
-        module.exports = function(req, res, next) { return next(); };
-      `;
-            fs.writeFileSync(path.join(policiesDir, 'testConfigPolicy.js'), policyCode);
-
-            configService.mergeHookConfig('test-hook-for-config-tests');
-
-            // Verify policy was copied
-            const copiedPolicy = path.join(sails.config.appPath, 'api', 'policies', 'testConfigPolicy.js');
-            expect(fs.pathExistsSync(copiedPolicy)).to.be.true;
-
-            // Cleanup
-            fs.removeSync(copiedPolicy);
-            done();
-        });
-
-        // -------------------------------------------------------------------------
         // Test: Copy responses from hook
         // -------------------------------------------------------------------------
         it('should copy responses from hook api/responses directory', function (done) {

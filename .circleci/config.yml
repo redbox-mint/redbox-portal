@@ -380,6 +380,46 @@ jobs:
           when: always
       - store_test_results:
           path: packages/sails-ng-common/support/junit
+  test-redbox-core-types:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install packages
+          command: |
+            cd ./packages/redbox-core-types
+            npm ci
+      - run:
+          name: Run Mocha tests with coverage
+          no_output_timeout: 30m
+          command: |
+            cd ./packages/redbox-core-types
+            npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
+              npx mocha --config test/.mocharc.js 'test/**/*.test.ts'
+      - run:
+          name: Upload redbox-core-types code coverage
+          command: |
+            cd ./packages/redbox-core-types
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-redbox-core-types" --file "./coverage/redbox-core-types/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
   deploy:
     docker:
       - image: 'cimg/node:24.11.1'
@@ -622,6 +662,9 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
+      - test-redbox-core-types:
+          requires:
+            - build
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -629,6 +672,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -639,6 +683,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -650,6 +695,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -661,6 +707,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -672,6 +719,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -690,6 +738,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               only: 'master'
@@ -716,6 +765,9 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
+      - test-redbox-core-types:
+          requires:
+            - build
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -723,6 +775,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -733,6 +786,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -750,6 +804,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             branches:
               only: 'master'
@@ -825,6 +880,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-redbox-core-types:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -832,6 +895,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             tags:
               only: /^v.*/
@@ -844,6 +908,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             tags:
               only: /^v.*/
@@ -857,6 +922,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             tags:
               only: /^v.*/
@@ -870,6 +936,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             tags:
               only: /^v.*/
@@ -883,6 +950,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
           filters:
             tags:
               only: /^v.*/
