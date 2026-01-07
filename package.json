@@ -111,7 +111,7 @@
     "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
     "compile:core": "cd packages/redbox-core-types && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
-    "compile:all": "npm run compile:core && npm run compile:sails-ng-common && npm run compile:storage-mongo && npm run compile:sails && npm run compile:ng && npm run webpack",
+    "compile:all": "npm run compile:raido && npm run compile:core && npm run compile:sails-ng-common && npm run compile:storage-mongo && npm run compile:sails && npm run compile:ng && npm run webpack",
     "compile:core:prod": "cd packages/redbox-core-types && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",

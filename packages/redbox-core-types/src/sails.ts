@@ -147,7 +147,8 @@ declare global {
 			serverError(data: any);
 			serverError(data: any, pathToView: string);
 
-			view(route: string);
+			view(route: string, options?: any);
+			guessView(options: any, cb: () => void);
 		}
 
 		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;

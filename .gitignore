@@ -208,6 +208,9 @@ form-config/reusable-definitions.js
 !support/ng19-forms-migration/parseTabFields.js
 !support/ng19-forms-migration/fieldComponentMap.js
 api/shims/*.js
+api/policies/*.js
+api/middleware/*.js
+api/responses/*.js
 
 attachments/
 docs/
@@ -216,3 +219,4 @@ test/unit/**/*.test.js
 test/unit/.mocharc.js
 packages/redbox-core-types/.nyc_output/*
 packages/redbox-core-types/coverage/*
+

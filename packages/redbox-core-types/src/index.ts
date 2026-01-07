@@ -62,3 +62,9 @@ export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
 
 export { Policies } from './policies';
+
+import * as Middleware from './middleware/redboxSession';
+export { Middleware };
+
+import * as Responses from './responses';
+export { Responses };
