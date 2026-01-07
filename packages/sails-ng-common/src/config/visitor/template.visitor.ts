@@ -127,7 +127,6 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     /* Content */
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
-        this.logger.warn(`visitContentFieldComponentDefinition ${JSON.stringify(item)}`);
         const template = (item.config?.template ?? "").trim();
         if (template) {
             this.templates?.push({

@@ -115,8 +115,8 @@ export module Services {
 
             // build the client form config
             const userRoles: string[] | undefined = undefined;
-            const recordData = original?.metadata;
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordData, reusableFormDefs);
+            const recordMetadata = original?.metadata;
+            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
             return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode, reusableFormDefs);
@@ -502,17 +502,17 @@ export module Services {
          * @param item The form config.
          * @param formMode The form mode.
          * @param userRoles The current user's roles.
-         * @param recordData The record data.
+         * @param recordMetadata The record metadata.
          * @param reusableFormDefs The reusable form definitions.
          */
         public extractRawTemplates(
           item: FormConfigFrame,
           formMode: FormModesConfig,
           userRoles?: string[],
-          recordData?: Record<string, unknown> | null,
+          recordMetadata?: Record<string, unknown> | null,
           reusableFormDefs?: ReusableFormDefinitions
         ): TemplateCompileInput[] {
-          const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordData, reusableFormDefs);
+          const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
 
           const visitor = new TemplateFormConfigVisitor(this.logger);
           return visitor.start({form});

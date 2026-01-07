@@ -32,6 +32,7 @@ declare var FormRecordConsistencyService;
 declare var RecordsService;
 declare var DashboardTypesService;
 declare var ReportsService;
+declare var TranslationService;
 
 /**
  * Package that contains all Controllers.
@@ -87,10 +88,33 @@ export module Controllers {
       const reusableFormDefs = sails.config.reusableFormDefinitions;
 
       try {
-        const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-        const userRoles = req.user?.roles || [];
-        const recordData = oid ? await RecordsService.getMeta(oid) : undefined;
-        const entries = FormRecordConsistencyService.extractRawTemplates(form, formMode, userRoles, recordData, reusableFormDefs);
+        // TODO: this block is very similar to RecordController.getForm - refactor to service?
+        const userRoles = (req.user?.roles ?? []).map(role => role?.name).filter(name => !!name);
+        let form, recordMetadata;
+        if (!oid) {
+          recordMetadata = null;
+          form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+        } else {
+          const record = await RecordsService.getMeta(oid);
+          let hasAccess: boolean = false;
+          if (editMode) {
+            //find form to edit a record
+            hasAccess = await RecordsService.hasEditAccess(brand, req.user, req.user.roles, record);
+          } else {
+            //find form to view a record
+            hasAccess = await RecordsService.hasViewAccess(brand, req.user, req.user.roles, record);
+          }
+          if (!hasAccess) {
+            return this.sendResp(req, res, {
+              status: 403,
+              displayErrors: [{code: 'view-error-no-permissions'}],
+              v1: {message: TranslationService.t('view-error-no-permissions')}
+            });
+          }
+          recordMetadata = record?.metadata ?? {};
+          form = await FormsService.getForm(brand, null, editMode, null, record);
+        }
+        const entries = FormRecordConsistencyService.extractRawTemplates(form, formMode, userRoles, recordMetadata, reusableFormDefs);
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {

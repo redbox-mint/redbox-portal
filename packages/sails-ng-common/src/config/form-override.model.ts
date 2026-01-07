@@ -366,8 +366,9 @@ export class FormOverride {
             && source.model?.config?.value !== undefined
         ) {
             target.component.config.content = source.model.config.value;
+            // The content is provided via the context as a 'content' variable.
             // Use the common handlebars formatDate helper
-            target.component.config.template = `<span data-value="{{model}}">{{formatDate value}}</span>`
+            target.component.config.template = `<span data-value="{{content}}">{{formatDate content}}</span>`
         }
 
         return target;
@@ -416,7 +417,6 @@ export class FormOverride {
         values: string[],
         options?: { label: string, value: string }[]
     ): void {
-        this.logger.error(`commonContentOptionList target ${JSON.stringify(target)} values ${JSON.stringify(values)} options ${JSON.stringify(options)}`);
         if (!target.component.config) {
             return;
         }
@@ -431,14 +431,14 @@ export class FormOverride {
             const value = values[0];
             const label = options?.find(option => option.value === value)?.label ?? value;
             targetCompConf.content = {value, label};
-            targetCompConf.template = `<span data-value="{{value.value}}">{{value.label}}</span>`;
+            targetCompConf.template = `<span data-value="{{content.value}}">{{content.label}}</span>`;
         } else {
             // More than one value
             targetCompConf.content = values.map(value => options?.find(option => option.value === value) ?? {
                 label: value,
                 value: value
             });
-            targetCompConf.template = `<ul>{{#each value}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+            targetCompConf.template = `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
         }
     }
 
@@ -446,13 +446,12 @@ export class FormOverride {
         source: AllFormComponentDefinitionOutlines,
         target: ContentFormComponentDefinitionOutline
     ): void {
-        this.logger.error(`commonContentPlain target ${JSON.stringify(target)} source ${JSON.stringify(source)}`);
         if (
             target.component.config !== undefined
             && source.model?.config?.value !== undefined
         ) {
             target.component.config.content = source.model.config.value;
-            target.component.config.template = `<span>{{value}}</span>`
+            target.component.config.template = `<span>{{content}}</span>`
         }
     }
 

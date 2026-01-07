@@ -595,13 +595,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                             }
                         });
                         break;
-                    // TODO: determine how elements will work...
-                    // case "elements":
-                    //     if (currentValueType !== "array") {
-                    //         throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
-                    //     }
-                    //     console.log(JSON.stringify({schemaKey, schemaValue, currentValue}));
-                    //     break;
+                    case "elements":
+                        if (currentValueType !== "array") {
+                            throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                        }
+                        // TODO: determine how elements will work
+                        throw new Error(`Not implemented updateRepeatableDataModel elements ${JSON.stringify({schemaKey, schemaValue, currentValue})}`);
+                        // break;
                     case "type":
                         // TODO: do the json type def type names match the guessType names?
                         if (currentValueType !== schemaValue) {

@@ -222,7 +222,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      * @param options.data The form config to construct into class instances.
      * @param options.reusableFormDefs The reusable form definitions. Default empty.
      * @param options.formMode The currently active form mode. Defaults to 'view'.
-     * @param options.record The record values. Don't set (undefined) or set to null to use the form default values.
+     * @param options.record The record metadata values. Set to undefined or null to use the form default values.
      */
     start(options: {
               data: FormConfigFrame;
@@ -236,6 +236,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.formMode = options.formMode ?? "view";
 
         // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
+        // This allows for specifying an empty record '{}' and using that instead of the defaults.
         this.recordValues = (options.record === null || options.record === undefined) ? null : options.record;
 
         // Collect the form config defaults.
@@ -994,6 +995,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     protected currentModelValue(itemDefaultValue?: unknown): unknown {
         // Use the collected default value if form config default values are being used, otherwise, use the record values.
         const useFormConfigDefaultValues = this.recordValues === null;
+
+        // For debugging:
+        // const defaultValue = this.currentDefaultValue(itemDefaultValue);
+        // const recordValue = this.currentRecordValue();
+        // this.logger.error(`currentModelValue itemDefaultValue ${JSON.stringify(defaultValue)} defaultValue ${JSON.stringify(defaultValue)} recordValue ${JSON.stringify(recordValue)}`);
+
         return useFormConfigDefaultValues ? this.currentDefaultValue(itemDefaultValue) : this.currentRecordValue();
     }
 

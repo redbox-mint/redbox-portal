@@ -78,11 +78,12 @@ describe('ContentComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
-    // Now run your expectations
-    const compiled = fixture.nativeElement as HTMLElement;
-    const inputElement = compiled.querySelector('h3');
+    // assert
     expect(utilityService.getDynamicImport).toHaveBeenCalled();
-    expect((inputElement as HTMLHeadingElement).textContent).toEqual('My first text block component!!!');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('h3');
+    expect((element as HTMLHeadingElement)?.textContent).toEqual('My first text block component!!!');
   });
 
 });

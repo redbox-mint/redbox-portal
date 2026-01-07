@@ -324,10 +324,38 @@ describe('The FormsService', function () {
                 componentDefinitions: [
                     {
                         name: 'text_1',
-                        component: {class: 'ContentComponent', config: makeCompConfig({content: "record text_1 value"})},
+                        component: {
+                            class: 'ContentComponent',
+                            config: makeCompConfig({content: "value text_1", template: `<span>{{content}}</span>`})
+                        },
                     },
                     {
                         name: 'repeatable_1',
+                        model: {
+                            class: "RepeatableModel",
+                            config: {
+                                value: [
+                                    {
+                                        repeatable_2: [
+                                            {
+                                                text_3: "value repeatable_1.0.repeatable_2.0.text_3",
+                                                group_1: {
+                                                    text_4: "value repeatable_1.0.repeatable_2.0.group_1.text_4",
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        text_2: "value repeatable_1.1.text_2",
+                                        repeatable_2: [
+                                            {
+                                                text_3: "value repeatable_1.1.repeatable_2.0.text_3",
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
                         component: {
                             class: 'RepeatableComponent', config: makeCompConfig({
                                 elementTemplate: {
@@ -351,9 +379,8 @@ describe('The FormsService', function () {
                                                                             {
                                                                                 name: 'text_3',
                                                                                 component: {
-                                                                                    class: 'ContentComponent',
-                                                                                    config: {content:"record text_3 value"}
-                                                                                },
+                                                                                    class: 'ContentComponent'
+                                                                                }
                                                                             },
                                                                             {
                                                                                 name: 'group_1',
@@ -362,7 +389,9 @@ describe('The FormsService', function () {
                                                                                         componentDefinitions: [
                                                                                             {
                                                                                                 name: 'text_4',
-                                                                                                component: {class: 'ContentComponent'}
+                                                                                                component: {
+                                                                                                    class: 'ContentComponent'
+                                                                                                }
                                                                                             },
                                                                                         ]
                                                                                     }
@@ -385,23 +414,23 @@ describe('The FormsService', function () {
                 ]
             };
             const recordMetadata = {
-                text_1: "record text_1 value",
+                text_1: "value text_1",
                 repeatable_1: [
                     {
                         repeatable_2: [
                             {
-                                text_3: "record text_3 value",
+                                text_3: "value repeatable_1.0.repeatable_2.0.text_3",
                                 group_1: {
-                                    text_4: "record text_4 value",
+                                    text_4: "value repeatable_1.0.repeatable_2.0.group_1.text_4",
                                 }
                             }
                         ]
                     },
                     {
-                        text_2: "record text_2 value",
+                        text_2: "value repeatable_1.1.text_2",
                         repeatable_2: [
                             {
-                                text_3: "record text_3 value",
+                                text_3: "value repeatable_1.1.repeatable_2.0.text_3",
                             }
                         ]
                     }
@@ -690,8 +719,8 @@ describe('The FormsService', function () {
                                 editMode: true,
                                 readonly: false,
                                 visible: true,
-                                content:"text_1_value",
-                                template: "<span>{{value}}</span>",
+                                content: "text_1_value",
+                                template: "<span>{{content}}</span>",
                             },
                         },
                     },
@@ -724,14 +753,29 @@ describe('The FormsService', function () {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableModel',
-                            config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
+                            config: {
+                                defaultValue: [{
+                                    text_1: "value repeatable_group_1 defaultValue text_1",
+                                    text_2: "value repeatable_group_1 defaultValue text_2",
+                                    repeatable_for_admin: ["value repeatable_group_1 defaultValue repeatable_for_admin"],
+                                }]
+                            }
                         },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {newEntryValue: {text_1: 'hello world 1!', text_2:'hello world 2!'}}},
+                                    model: {
+                                        class: 'GroupModel',
+                                        config: {
+                                            newEntryValue: {
+                                                text_1: 'value repeatable_group_1 elementTemplate newEntryValue text_1',
+                                                text_2: 'value repeatable_group_1 elementTemplate newEntryValue text_1',
+                                                repeatable_for_admin: ["value repeatable_group_1 elementTemplate newEntryValue repeatable_for_admin"],
+                                            }
+                                        }
+                                    },
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
@@ -740,19 +784,19 @@ describe('The FormsService', function () {
                                                 {
                                                     // requires mode edit, so expect to be removed
                                                     name: 'text_1',
-                                                    model: {class: 'SimpleInputModel', config: {}},
+                                                    model: {class: 'SimpleInputModel'},
                                                     component: {class: 'SimpleInputComponent'},
                                                     constraints: {allowModes: ['edit']},
                                                 },
                                                 {
                                                     name: 'text_2',
-                                                    model: {class: 'SimpleInputModel', config: {}},
+                                                    model: {class: 'SimpleInputModel'},
                                                     component: {class: 'SimpleInputComponent'},
                                                 },
                                                 {
                                                     // requires role 'Admin', so is removed
                                                     name: 'repeatable_for_admin',
-                                                    model: {class: 'RepeatableModel', config: {}},
+                                                    model: {class: 'RepeatableModel'},
                                                     component: {
                                                         class: 'RepeatableComponent',
                                                         config: {
@@ -811,7 +855,7 @@ describe('The FormsService', function () {
                         model: {
                             class: 'RepeatableModel',
                             config: {
-                                value: [{text_1: "hello world from repeating groups"}]
+                                value: [{text_2: "value repeatable_group_1 defaultValue text_2"}]
                             }
                         },
                         component: {
@@ -824,7 +868,13 @@ describe('The FormsService', function () {
                                 visible: true,
                                 elementTemplate: {
                                     name: "",
-                                    model: {class: 'GroupModel', config: {newEntryValue: {text_2:'hello world 2!'}}},
+                                    model: {
+                                        class: 'GroupModel', config: {
+                                            newEntryValue: {
+                                                text_2: 'value repeatable_group_1 elementTemplate newEntryValue text_1',
+                                            }
+                                        }
+                                    },
                                     component: {
                                         class: 'GroupComponent',
                                         config: {

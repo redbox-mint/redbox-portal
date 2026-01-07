@@ -311,6 +311,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionControlNamesKey = "controlNames";
       const optionControlNamesValue = formValidatorGetDefinitionArray(config, optionControlNamesKey);
       return (control) => {
+        // TODO: fix how control values are obtained - need to use full angular component path
         const controls = (optionControlNamesValue ?? [])
           ?.filter(i => i !== null && i !== undefined)
           ?.map(n => control?.get(n?.toString())) ?? [];
