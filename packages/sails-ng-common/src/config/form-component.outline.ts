@@ -51,7 +51,7 @@ interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame
      */
     operation?: string;
     /**
-     * The JSONata template for the expression.
+     * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
      */
     template?: string;
 }
