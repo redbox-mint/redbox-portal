@@ -311,7 +311,6 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         let guessedType = "string";
 
         if (value !== undefined) {
-            // this.logger.info(`setFromModelDefinition model class ${JSON.stringify(item?.class)} value: ${JSON.stringify(value)}`);
             if (item?.class === RepeatableModelName) {
                 if (Array.isArray(value) && value.length > 0) {
                     guessedType = guessType(value[0]);

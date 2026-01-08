@@ -333,7 +333,6 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     protected createFormControlFromRecordValue(recordValue: unknown): FormValidatorControl {
         const guessedType = guessType(recordValue);
-        // console.debug(`createFormControlFromRecordValue guessedType ${JSON.stringify(guessedType)} value ${JSON.stringify(recordValue)}`);
         let result;
         if (guessedType === "object") {
             result = new SimpleServerFormValidatorControl(
@@ -384,7 +383,6 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
                 this.validatorSupport.isValidatorEnabled(availableValidatorGroups, this.enabledValidationGroups, validator)
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
-            // console.debug(`validateFormComponent itemName ${JSON.stringify(itemName)} value ${JSON.stringify(value)}`);
             const recordFormControl = this.createFormControlFromRecordValue(value);
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,

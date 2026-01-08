@@ -1,4 +1,4 @@
-import {get as _get} from 'lodash';
+import {get as _get, cloneDeep as _cloneDeep} from 'lodash';
 import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -215,7 +215,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         }
 
         // Constraints may remove some components.
-        // The data model items in 'repeatable.model.value' and 'repeatable.elementTemplate.model.config.newEntryValue'
+        // The data model items in 'repeatable.model.config.value' and
+        // 'repeatable.elementTemplate.model.config.newEntryValue'
         // need to be updated to reflect any changes in components.
         this.updateRepeatableDataModels(item);
     }
@@ -535,9 +536,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         }
 
         // Build the data model schema from the components.
+        // TODO: This depends on the repeatable model being set.
         const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
         const elementTemplateFormConfig = new FormConfig();
-        elementTemplateFormConfig.componentDefinitions = elementTemplateCompConfig.componentDefinitions;
+        elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
         const elementTemplateSchema = schemaVisitor.start({form: elementTemplateFormConfig});
 
         // Remove any data model items that are not present in the schema.
