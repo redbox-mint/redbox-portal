@@ -9,8 +9,9 @@
  * sails.config.redboxHookModels in their configure() phase.
  */
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
+const { performance } = require('perf_hooks');
 
 const { WaterlineModels, Policies, Middleware, Responses } = require('@researchdatabox/redbox-core-types');
 
@@ -21,20 +22,22 @@ const EXTERNAL_MODELS = [];
 const EXTERNAL_POLICIES = [];
 
 /**
- * Dynamically finds and registers models from other redbox hooks.
- * This is needed because user hooks (like this one) often load before
- * installable hooks, meaning the installable hooks haven't had a chance
- * to write to sails.config.redboxHookModels yet.
+ * Dynamically finds and registers models and policies from other redbox hooks.
+ * This scans dependencies once to find hooks that reference 'hasModels' or 'hasPolicies'.
  */
-function findAndRegisterHookModels(sails) {
+async function findAndRegisterHooks(sails) {
   if (!sails.config.redboxHookModels) {
     sails.config.redboxHookModels = {};
+  }
+  if (!sails.config.redboxHookPolicies) {
+    sails.config.redboxHookPolicies = {};
   }
 
   const appPath = sails.config.appPath || process.cwd();
   let packageJson;
   try {
-    packageJson = require(path.join(appPath, 'package.json'));
+    const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
+    packageJson = JSON.parse(packageJsonContent);
   } catch (err) {
     sails.log.warn('redbox-core-loader: Could not load package.json to find hooks', err);
     return;
@@ -45,14 +48,24 @@ function findAndRegisterHookModels(sails) {
     ...packageJson.devDependencies
   };
 
-  for (const depName of Object.keys(allDependencies)) {
+  const dependencies = Object.keys(allDependencies);
+
+  // Process dependencies concurrently
+  await Promise.all(dependencies.map(async (depName) => {
     try {
       // Resolve the package.json of the dependency to check its configuration
-      // We use require.resolve to find the path, ensuring we get the correct installed version
-      // The paths option ensures we look from the app root
-      const depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-      const depPackageJson = require(depPackageJsonPath);
+      let depPackageJsonPath;
+      try {
+        depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
+      } catch (e) {
+        // Module not found or other resolve error
+        return;
+      }
 
+      const depPackageJsonContent = await fs.readFile(depPackageJsonPath, 'utf8');
+      const depPackageJson = JSON.parse(depPackageJsonContent);
+
+      // Check for models
       if (depPackageJson.sails && depPackageJson.sails.hasModels === true) {
         sails.log.verbose(`redbox-core-loader: Found hook with models: ${depName}`);
 
@@ -65,43 +78,8 @@ function findAndRegisterHookModels(sails) {
           sails.log.warn(`redbox-core-loader: Hook ${depName} has 'hasModels: true' but no 'registerRedboxModels' function`);
         }
       }
-    } catch (err) {
-      // Ignore dependencies that can't be resolved or loaded (they might not be installed or not be hooks)
-      // sails.log.silly(`redbox-core-loader: Could not check dependency ${depName}: ${err.message}`);
-    }
-  }
-}
 
-/**
- * Dynamically finds and registers policies from other redbox hooks.
- * Similar to findAndRegisterHookModels, but for policies.
- * Hooks should export a 'registerRedboxPolicies' function and have
- * 'hasPolicies: true' in their package.json sails configuration.
- */
-function findAndRegisterHookPolicies(sails) {
-  if (!sails.config.redboxHookPolicies) {
-    sails.config.redboxHookPolicies = {};
-  }
-
-  const appPath = sails.config.appPath || process.cwd();
-  let packageJson;
-  try {
-    packageJson = require(path.join(appPath, 'package.json'));
-  } catch (err) {
-    sails.log.warn('redbox-core-loader: Could not load package.json to find hooks with policies', err);
-    return;
-  }
-
-  const allDependencies = {
-    ...packageJson.dependencies,
-    ...packageJson.devDependencies
-  };
-
-  for (const depName of Object.keys(allDependencies)) {
-    try {
-      const depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-      const depPackageJson = require(depPackageJsonPath);
-
+      // Check for policies
       if (depPackageJson.sails && depPackageJson.sails.hasPolicies === true) {
         sails.log.verbose(`redbox-core-loader: Found hook with policies: ${depName}`);
 
@@ -114,10 +92,28 @@ function findAndRegisterHookPolicies(sails) {
           sails.log.warn(`redbox-core-loader: Hook ${depName} has 'hasPolicies: true' but no 'registerRedboxPolicies' function`);
         }
       }
+
     } catch (err) {
       // Ignore dependencies that can't be resolved or loaded
     }
+  }));
+}
+
+/**
+ * Helper to write file only if content changed to save I/O
+ */
+async function writeFileIfChanged(filePath, content) {
+  try {
+    const current = await fs.readFile(filePath, 'utf8').catch(() => null);
+    if (current !== content) {
+      await fs.writeFile(filePath, content, 'utf8');
+      return true; // written
+    }
+  } catch (e) {
+    await fs.writeFile(filePath, content, 'utf8');
+    return true;
   }
+  return false; // skipped
 }
 
 /**
@@ -127,7 +123,7 @@ function findAndRegisterHookPolicies(sails) {
  * Unlike models, policies are simple middleware functions, so we can directly
  * require and re-export them without needing complex shims.
  */
-function generatePolicyShims(sails, policiesDir) {
+async function generatePolicyShims(sails, policiesDir) {
   // Get hook-registered policies from sails.config
   const hookPolicies = sails.config.redboxHookPolicies || {};
 
@@ -139,6 +135,8 @@ function generatePolicyShims(sails, policiesDir) {
   let generated = 0;
   let skipped = 0;
   let fromHooks = 0;
+
+  const promises = [];
 
   for (const name of allPolicyNames) {
     // Check if this policy is registered by a hook (hooks take precedence)
@@ -156,9 +154,10 @@ function generatePolicyShims(sails, policiesDir) {
 const { ${policyExportName} } = require('${hookModuleName}').Policies || require('${hookModuleName}');
 module.exports = ${policyExportName};
 `;
-      fs.writeFileSync(filePath, content, 'utf8');
-      generated++;
-      fromHooks++;
+      promises.push(writeFileIfChanged(filePath, content).then(written => {
+        if (written) generated++;
+        fromHooks++;
+      }));
       continue;
     }
 
@@ -182,15 +181,18 @@ module.exports = ${policyExportName};
 const { Policies } = require('@researchdatabox/redbox-core-types');
 module.exports = Policies['${name}'];
 `;
-      fs.writeFileSync(filePath, content, 'utf8');
-      generated++;
+      promises.push(writeFileIfChanged(filePath, content).then(written => {
+        if (written) generated++;
+      }));
     }
   }
+
+  await Promise.all(promises);
 
   return { generated, skipped, fromHooks };
 }
 
-function generateModelShims(sails, modelsDir) {
+async function generateModelShims(sails, modelsDir) {
   // Get hook-registered models from sails.config
   const hookModels = sails.config.redboxHookModels || {};
 
@@ -202,6 +204,8 @@ function generateModelShims(sails, modelsDir) {
   let generated = 0;
   let skipped = 0;
   let fromHooks = 0;
+
+  const promises = [];
 
   for (const name of allModelNames) {
     // Check if this model is registered by a hook
@@ -218,9 +222,10 @@ function generateModelShims(sails, modelsDir) {
  */
 module.exports = ${JSON.stringify({ ...modelDef, globalId: name }, null, 2)};
 `;
-      fs.writeFileSync(filePath, content, 'utf8');
-      generated++;
-      fromHooks++;
+      promises.push(writeFileIfChanged(filePath, content).then(written => {
+        if (written) generated++;
+        fromHooks++;
+      }));
       continue;
     }
 
@@ -244,15 +249,18 @@ module.exports = ${JSON.stringify({ ...modelDef, globalId: name }, null, 2)};
 const { WaterlineModels } = require('@researchdatabox/redbox-core-types');
 module.exports = { ...WaterlineModels['${name}'], globalId: '${name}' };
 `;
-      fs.writeFileSync(filePath, content, 'utf8');
-      generated++;
+      promises.push(writeFileIfChanged(filePath, content).then(written => {
+        if (written) generated++;
+      }));
     }
   }
+
+  await Promise.all(promises);
 
   return { generated, skipped, fromHooks };
 }
 
-function generateMiddlewareShims(sails, middlewareDir) {
+async function generateMiddlewareShims(sails, middlewareDir) {
   let generated = 0;
   // Currently only redboxSession is needed
   if (Middleware.redboxSession) {
@@ -267,17 +275,17 @@ function generateMiddlewareShims(sails, middlewareDir) {
 const { Middleware } = require('@researchdatabox/redbox-core-types');
 module.exports = Middleware.redboxSession;
 `;
-    fs.writeFileSync(filePath, content, 'utf8');
-    generated++;
+    const written = await writeFileIfChanged(filePath, content);
+    if (written) generated++;
   }
   return { generated };
 }
 
-function generateResponseShims(sails, responsesDir) {
+async function generateResponseShims(sails, responsesDir) {
   let generated = 0;
   const responseNames = Object.keys(Responses || {});
 
-  for (const name of responseNames) {
+  const promises = responseNames.map(async (name) => {
     const filePath = path.join(responsesDir, `${name}.js`);
     const content = `'use strict';
 /**
@@ -289,9 +297,12 @@ function generateResponseShims(sails, responsesDir) {
 const { Responses } = require('@researchdatabox/redbox-core-types');
 module.exports = Responses['${name}'];
 `;
-    fs.writeFileSync(filePath, content, 'utf8');
-    generated++;
-  }
+    const written = await writeFileIfChanged(filePath, content);
+    if (written) generated++;
+  });
+
+  await Promise.all(promises);
+
   return { generated };
 }
 
@@ -307,63 +318,65 @@ module.exports = function redboxCoreLoader(sails) {
     },
 
     configure: function () {
+      // Configuration moved to initialize to allow for async operations
+    },
+
+    initialize: async function (done) {
       if (!sails.config[this.configKey].enabled) {
         sails.log.verbose('redbox-core-loader: Disabled via config');
-        return;
+        return done();
       }
+
+      sails.log.info('redbox-core-loader: Starting shim generation...');
+      const startTime = performance.now();
 
       const coreModelCount = Object.keys(WaterlineModels || {}).length;
       const corePolicyCount = Object.keys(Policies || {}).length;
       sails.log.verbose(`redbox-core-loader: ${coreModelCount} core models available from @researchdatabox/redbox-core-types`);
       sails.log.verbose(`redbox-core-loader: ${corePolicyCount} core policies available from @researchdatabox/redbox-core-types`);
 
-      // Generate model shims before ORM loads them
-      // Note: At configure time, other hooks may not have registered their models yet,
-      // so we generate core models now and hook models will be handled by the hook's own mechanism
-      const modelsDir = path.resolve(__dirname, '../../models');
-      if (!fs.existsSync(modelsDir)) {
-        fs.mkdirSync(modelsDir, { recursive: true });
+      try {
+        // Run dependency scanning (single pass for both models and policies)
+        const depScanStart = performance.now();
+        await findAndRegisterHooks(sails);
+        sails.log.info(`redbox-core-loader: Dependency scanning took ${(performance.now() - depScanStart).toFixed(2)}ms`);
+
+        // Prepare directories concurrently
+        const modelsDir = path.resolve(__dirname, '../../models');
+        const policiesDir = path.resolve(__dirname, '../../policies');
+        const middlewareDir = path.resolve(__dirname, '../../middleware');
+        const responsesDir = path.resolve(__dirname, '../../responses');
+
+        await Promise.all([
+          fs.mkdir(modelsDir, { recursive: true }),
+          fs.mkdir(policiesDir, { recursive: true }),
+          fs.mkdir(middlewareDir, { recursive: true }),
+          fs.mkdir(responsesDir, { recursive: true })
+        ]);
+
+        // Generate shims in parallel
+        const genStart = performance.now();
+        const [modelStats, policyStats, middlewareStats, responseStats] = await Promise.all([
+          generateModelShims(sails, modelsDir),
+          generatePolicyShims(sails, policiesDir),
+          generateMiddlewareShims(sails, middlewareDir),
+          generateResponseShims(sails, responsesDir)
+        ]);
+        sails.log.info(`redbox-core-loader: Shim generation took ${(performance.now() - genStart).toFixed(2)}ms`);
+
+        sails.log.verbose(`redbox-core-loader: Generated ${modelStats.generated} model shims (${modelStats.fromHooks} from hooks), skipped ${modelStats.skipped} external`);
+        sails.log.verbose(`redbox-core-loader: Generated ${policyStats.generated} policy shims (${policyStats.fromHooks} from hooks), skipped ${policyStats.skipped} external`);
+        sails.log.verbose(`redbox-core-loader: Generated ${middlewareStats.generated} middleware shims`);
+        sails.log.verbose(`redbox-core-loader: Generated ${responseStats.generated} response shims`);
+
+        sails.log.info(`redbox-core-loader: Total initialization took ${(performance.now() - startTime).toFixed(2)}ms`);
+        sails.log.verbose('redbox-core-loader: Initialization complete');
+
+        return done();
+      } catch (err) {
+        sails.log.error('redbox-core-loader: Error during initialization', err);
+        return done(err);
       }
-
-      // Proactively find models from other hooks to avoid load order issues
-      findAndRegisterHookModels(sails);
-
-      const modelStats = generateModelShims(sails, modelsDir);
-      sails.log.verbose(`redbox-core-loader: Generated ${modelStats.generated} model shims (${modelStats.fromHooks} from hooks), skipped ${modelStats.skipped} external`);
-
-      // Generate policy shims before the policies hook loads them
-      const policiesDir = path.resolve(__dirname, '../../policies');
-      if (!fs.existsSync(policiesDir)) {
-        fs.mkdirSync(policiesDir, { recursive: true });
-      }
-
-      // Proactively find policies from other hooks
-      findAndRegisterHookPolicies(sails);
-
-      const policyStats = generatePolicyShims(sails, policiesDir);
-      sails.log.verbose(`redbox-core-loader: Generated ${policyStats.generated} policy shims (${policyStats.fromHooks} from hooks), skipped ${policyStats.skipped} external`);
-
-      // Generate middleware shims
-      const middlewareDir = path.resolve(__dirname, '../../middleware');
-      if (!fs.existsSync(middlewareDir)) {
-        fs.mkdirSync(middlewareDir, { recursive: true });
-      }
-      const middlewareStats = generateMiddlewareShims(sails, middlewareDir);
-      sails.log.verbose(`redbox-core-loader: Generated ${middlewareStats.generated} middleware shims`);
-
-      // Generate response shims
-      const responsesDir = path.resolve(__dirname, '../../responses');
-      if (!fs.existsSync(responsesDir)) {
-        fs.mkdirSync(responsesDir, { recursive: true });
-      }
-      const responseStats = generateResponseShims(sails, responsesDir);
-      sails.log.verbose(`redbox-core-loader: Generated ${responseStats.generated} response shims`);
-    },
-
-    initialize: function (done) {
-      sails.log.verbose('redbox-core-loader: Initialization complete');
-      return done();
     }
   };
 };
-
