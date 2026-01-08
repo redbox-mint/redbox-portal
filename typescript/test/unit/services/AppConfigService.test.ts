@@ -11,6 +11,38 @@ describe('appConfigService', function () {
     originalBrandingAppConfigMap = appConfigService.brandingAppConfigMap;
     // Generate unique suffix for test models to avoid conflicts
     testStartTime = Date.now();
+
+    // Cleanup Polluted Keys from previous runs (Fix for split-brain ConfigModels)
+    // We register safe dummies with schemas to prevent initAllConfigFormSchemas from crashing
+    // when accessing these keys on the internal ConfigModels instance.
+    const polluters = [
+      'testConfigWithGlob',
+      'testConfigWithMultipleGlobs',
+      'testSafeConfig',
+      'testNonOverrideConfig',
+      'testFilterGlobs',
+      'testNullMap',
+      'testSingleGlob'
+    ];
+    const safeSchema = { type: 'object', properties: {} };
+    class SafeDummy {
+      [key: string]: any;
+      static getFieldOrder() { return []; }
+    }
+
+    polluters.forEach(key => {
+      appConfigService.registerConfigModel({
+        key,
+        modelName: 'SafeDummy' + key,
+        class: SafeDummy,
+        schema: safeSchema
+      });
+    });
+
+    // Clear extraTsGlobs to prevent TJS from looking for non-existent globs
+    if (appConfigService.extraTsGlobs) {
+      appConfigService.extraTsGlobs.clear();
+    }
   });
 
   afterEach(() => {
