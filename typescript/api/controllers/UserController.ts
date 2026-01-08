@@ -124,14 +124,14 @@ export module Controllers {
       if (req.session.user && req.session.user.type == 'oidc') {
         redirUrl = req.session.logoutUrl;
       }
-      
+
       // If the redirect URL is empty then revert back to the default
-      if(_.isEmpty(redirUrl)) {
-        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir)?`${BrandingService.getBrandAndPortalPath(req)}/home`: sails.config.auth.postLogoutRedir;
+      if (_.isEmpty(redirUrl)) {
+        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req)}/home` : sails.config.auth.postLogoutRedir;
       }
 
       let user = req.session.user ? req.session.user : req.user;
-      req.logout(function(err) {
+      req.logout(function (err) {
         if (err) { res.send(500, 'Logout failed'); }
         UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
           sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`);
@@ -141,7 +141,7 @@ export module Controllers {
         });
         // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
         _.unset(req.session, 'user');
-        res.redirect(redirUrl); 
+        res.redirect(redirUrl);
       });
     }
 
@@ -302,7 +302,7 @@ export module Controllers {
               message: "error-auth",
               detailedMessage: "authorized-email-denied",
             }
-            return res.forbidden();
+            return res.forbidden(req.session['data'], '403');
           }
 
           // Handle OPError from openid-client (like invalid_grant, session not found, etc.)
@@ -311,12 +311,12 @@ export module Controllers {
               message: "error-auth",
               detailedMessage: "There was an issue with your user credentials, please try again.",
             }
-            return res.forbidden();
+            return res.forbidden(req.session['data']);
           }
 
           let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
           sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
-          if(!_.isEmpty(errorMessageDecoded)) {
+          if (!_.isEmpty(errorMessageDecoded)) {
             req.session['data'] = errorMessageDecoded;
             return res.serverError();
           }
@@ -372,24 +372,24 @@ export module Controllers {
 
       let errorMessageDecodedAsObject = {};
 
-      if(!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
+      if (!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
 
         sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
-        for(let errorMappingDetails of errorMappingList) {
+        for (let errorMappingDetails of errorMappingList) {
 
-          let matchRegex =  false;
+          let matchRegex = false;
           let matchString = false;
-          let matchRegexWithGroups =  _.get(errorMappingDetails, 'matchRegexWithGroups', false);
+          let matchRegexWithGroups = _.get(errorMappingDetails, 'matchRegexWithGroups', false);
           let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
           let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
           let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
           let regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
-          
-          if(!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
-            matchRegex =  true;
+
+          if (!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
+            matchRegex = true;
             matchString = false;
-          } else if(!_.isUndefined(regexPattern) && !_.isRegExp(regexPattern) && _.isString(regexPattern) && !_.isEmpty(regexPattern)) {
-            matchRegex =  false;
+          } else if (!_.isUndefined(regexPattern) && !_.isRegExp(regexPattern) && _.isString(regexPattern) && !_.isEmpty(regexPattern)) {
+            matchRegex = false;
             matchString = true;
           } else {
             errorMessageDecoded = fieldLanguageCode;
@@ -398,23 +398,23 @@ export module Controllers {
 
           if (matchRegex) {
             sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
-            if(this.validateRegex(errorMessage, regexPattern)) {
-              if(asObject) {
-                errorMessageDecodedAsObject = { 
-                  message: fieldLanguageCode, 
+            if (this.validateRegex(errorMessage, regexPattern)) {
+              if (asObject) {
+                errorMessageDecodedAsObject = {
+                  message: fieldLanguageCode,
                   detailedMessage: fieldLanguageCode2
                 }
                 break;
-              } else if(matchRegexWithGroups && _.isRegExp(regexPattern)) {
+              } else if (matchRegexWithGroups && _.isRegExp(regexPattern)) {
                 let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
-                if(!_.isEmpty(matchRegexGroupsDecoded)) {
+                if (!_.isEmpty(matchRegexGroupsDecoded)) {
                   sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
                   sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
-                  errorMessageDecodedAsObject = { 
-                    message: fieldLanguageCode, 
+                  errorMessageDecodedAsObject = {
+                    message: fieldLanguageCode,
                     detailedMessage: fieldLanguageCode2,
                     interpolation: true,
-                    interpolationObj: matchRegexGroupsDecoded 
+                    interpolationObj: matchRegexGroupsDecoded
                   }
                   break;
                 }
@@ -423,13 +423,13 @@ export module Controllers {
                 break;
               }
             }
-            
+
           } else if (matchString) {
             let errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
-            if(errorMessage.includes(errorRefDesc)){
-              if(asObject) {
-                errorMessageDecodedAsObject = { 
-                  message: fieldLanguageCode, 
+            if (errorMessage.includes(errorRefDesc)) {
+              if (asObject) {
+                errorMessageDecodedAsObject = {
+                  message: fieldLanguageCode,
                   detailedMessage: fieldLanguageCode2
                 }
               } else {
@@ -438,11 +438,11 @@ export module Controllers {
               break;
             }
           }
-        
+
         }
       }
 
-      if(!_.isEmpty(errorMessageDecodedAsObject)) {
+      if (!_.isEmpty(errorMessageDecodedAsObject)) {
         return errorMessageDecodedAsObject;
       } else {
         return errorMessageDecoded;
@@ -450,7 +450,7 @@ export module Controllers {
     }
 
     private validateRegex(errorMessage, regexPattern) {
-      if(_.isRegExp(regexPattern)) {
+      if (_.isRegExp(regexPattern)) {
         let re = new RegExp(regexPattern);
         sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
         let reTestResult = re.test(errorMessage.toString());
@@ -468,7 +468,7 @@ export module Controllers {
 
       let interpolationMap = {}
       let groups = _.get(matches, 'groups');
-      if(!_.isUndefined(groups)) {
+      if (!_.isUndefined(groups)) {
         interpolationMap = groups;
       }
 
@@ -526,7 +526,7 @@ export module Controllers {
     }
 
     public find(req, res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const searchSource = req.query.source;
       const searchName = req.query.name;
       UsersService.findUsersWithName(searchName, brand.id, searchSource).subscribe(users => {
