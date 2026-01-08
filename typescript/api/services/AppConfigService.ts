@@ -79,17 +79,21 @@ export module Services {
 
     async initAllConfigFormSchemas(): Promise<any> {
       const configKeys: string[] = ConfigModels.getConfigKeys();
+      
+      // First pass: collect all TS globs before generating any schemas
       for (const configKey of configKeys) {
         const modelDefinition: any = ConfigModels.getModelInfo(configKey);
-
-        // Init schema and put it in the cache
-        this.getJsonSchema(modelDefinition);
-
-        // Allow model definition to contribute additional TS globs for schema generation
         if (modelDefinition?.tsGlob) {
           const globs = Array.isArray(modelDefinition.tsGlob) ? modelDefinition.tsGlob : [modelDefinition.tsGlob];
           globs.filter(Boolean).forEach(g => this.extraTsGlobs.add(g));
         }
+      }
+
+      // Second pass: generate schemas (now all globs are available)
+      for (const configKey of configKeys) {
+        const modelDefinition: any = ConfigModels.getModelInfo(configKey);
+        // Init schema and put it in the cache
+        this.getJsonSchema(modelDefinition);
       }
     }
 
