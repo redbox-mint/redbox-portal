@@ -18,11 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs';
-import { BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Services as services, ConfigModels, AppConfig as AppConfigInterface } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 import { find } from 'lodash';
-import { ConfigModels } from '../configmodels/ConfigModels'; // Import the ConfigModels module
-import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
 import { Services as Brandings } from './BrandingService'
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
@@ -83,10 +81,10 @@ export module Services {
       const configKeys: string[] = ConfigModels.getConfigKeys();
       for (const configKey of configKeys) {
         const modelDefinition: any = ConfigModels.getModelInfo(configKey);
-       
+
         // Init schema and put it in the cache
         this.getJsonSchema(modelDefinition);
-        
+
         // Allow model definition to contribute additional TS globs for schema generation
         if (modelDefinition?.tsGlob) {
           const globs = Array.isArray(modelDefinition.tsGlob) ? modelDefinition.tsGlob : [modelDefinition.tsGlob];
@@ -203,12 +201,15 @@ export module Services {
       }
 
       sails.log.verbose("No schema was provided for model, generating it from the typescript model. Model name:", modelDefinition.modelName);
-      const wildcardPath = `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
+      // const wildcardPath = `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
       const extraGlobs = Array.from(this.extraTsGlobs.values());
       const filePaths = Array.from(new Set([
-        ...globSync(wildcardPath),
+        // ...globSync(wildcardPath),
         ...extraGlobs.flatMap(g => globSync(g))
       ]));
+      if (filePaths.length === 0) {
+        sails.log.warn(`No source files found for schema generation for model ${modelDefinition.modelName}`);
+      }
       const typeName = modelDefinition.modelName;
 
       const program = TJS.getProgramFromFiles(filePaths);

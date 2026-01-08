@@ -1,4 +1,5 @@
-const { ConfigModels } = require('../../../api/configmodels/ConfigModels');
+import { ConfigModels } from '../src/configmodels/ConfigModels';
+import { expect } from 'chai';
 
 describe('ConfigModels', function () {
 
@@ -26,21 +27,22 @@ describe('ConfigModels', function () {
   });
 
   it('should expose navigation config models with schema metadata', () => {
-    const menuInfo = ConfigModels.getModelInfo('menu');
-    const homePanelsInfo = ConfigModels.getModelInfo('homePanels');
+    const models = ConfigModels.getConfigKeys();
+    expect(models).to.include('menu');
+
+    const menuModelInfo = ConfigModels.getModelInfo('menu');
+    expect(menuModelInfo.schema).to.not.be.undefined;
+    // Expect absolute path ending with src/configmodels/MenuConfig.ts
+    expect(menuModelInfo.tsGlob).to.contain('src/configmodels/MenuConfig.ts');
+
+    const homePanelsModelInfo = ConfigModels.getModelInfo('homePanels');
+    expect(homePanelsModelInfo.schema).to.not.be.undefined;
+    expect(homePanelsModelInfo.tsGlob).to.contain('src/configmodels/HomePanelConfig.ts');
+
     const adminSidebarInfo = ConfigModels.getModelInfo('adminSidebar');
-
-    expect(menuInfo).to.not.be.undefined;
-    expect(menuInfo.schema).to.exist;
-    expect(menuInfo.tsGlob).to.equal('typescript/api/configmodels/MenuConfig.ts');
-
-    expect(homePanelsInfo).to.not.be.undefined;
-    expect(homePanelsInfo.schema).to.exist;
-    expect(homePanelsInfo.tsGlob).to.equal('typescript/api/configmodels/HomePanelConfig.ts');
-
     expect(adminSidebarInfo).to.not.be.undefined;
     expect(adminSidebarInfo.schema).to.exist;
-    expect(adminSidebarInfo.tsGlob).to.equal('typescript/api/configmodels/AdminSidebarConfig.ts');
+    expect(adminSidebarInfo.tsGlob).to.contain('src/configmodels/AdminSidebarConfig.ts');
   });
 
   it('should register a new config model', () => {
@@ -61,7 +63,7 @@ describe('ConfigModels', function () {
 
     const retrievedInfo = ConfigModels.getModelInfo('testConfig');
     expect(retrievedInfo).to.deep.equal(modelInfo);
-    
+
     const keys = ConfigModels.getConfigKeys();
     expect(keys).to.include('testConfig');
   });

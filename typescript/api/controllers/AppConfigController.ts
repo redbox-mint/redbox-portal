@@ -5,15 +5,15 @@ import {
   BrandingModel
 } from '@researchdatabox/redbox-core-types';
 declare var _;
-import {Services as AppConfigServiceType} from '../services/AppConfigService';
-import {Services as BrandingServiceType} from '../services/BrandingService';
+import { Services as AppConfigServiceType } from '../services/AppConfigService';
+import { Services as BrandingServiceType } from '../services/BrandingService';
 
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import { ConfigModels } from '../configmodels/ConfigModels';
-declare var AppConfigService:AppConfigServiceType.AppConfigs, BrandingService:BrandingServiceType.Branding;
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { ConfigModels } from '@researchdatabox/redbox-core-types';
+declare var AppConfigService: AppConfigServiceType.AppConfigs, BrandingService: BrandingServiceType.Branding;
 
 export module Controllers {
   /**
@@ -46,23 +46,23 @@ export module Controllers {
 
     public bootstrap() { }
 
-    public async editAppConfig(req,res) {
+    public async editAppConfig(req, res) {
       try {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      let appConfigId:string = req.param('appConfigId');
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        let appConfigId: string = req.param('appConfigId');
 
-      if(appConfigId === undefined) {
-        return res.notFound('appConfigId is required');
-      }
-      const modelInfo = await ConfigModels.getModelInfo(appConfigId);
-      if(modelInfo === undefined) {
-        return res.notFound('No config found for key');
-      }
+        if (appConfigId === undefined) {
+          return res.notFound('appConfigId is required');
+        }
+        const modelInfo = await ConfigModels.getModelInfo(appConfigId);
+        if (modelInfo === undefined) {
+          return res.notFound('No config found for key');
+        }
 
-      return this.sendView(req, res, 'admin/appconfig', {
-       configKey: appConfigId,
-       formTitle: modelInfo.title
-      });
+        return this.sendView(req, res, 'admin/appconfig', {
+          configKey: appConfigId,
+          formTitle: modelInfo.title
+        });
       } catch (error) {
         sails.log.error(error);
         return res.serverError(error);
@@ -70,14 +70,14 @@ export module Controllers {
     }
     public async saveAppConfig(req, res) {
       try {
-        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-        let appConfigId:string = req.param('appConfigId');
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        let appConfigId: string = req.param('appConfigId');
         let appConfig = req.body;
-        if(appConfigId === undefined) {
+        if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
         //TODO: validate post body against key?
-        await AppConfigService.createOrUpdateConfig(brand,appConfigId,appConfig)
+        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
         return res.json(appConfig);
       } catch (error) {
         sails.log.error(error);
@@ -87,12 +87,12 @@ export module Controllers {
 
     public async getAppConfigForm(req, res) {
       try {
-        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-        let appConfigId:string = req.param('appConfigId');
-        if(appConfigId === undefined) {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        let appConfigId: string = req.param('appConfigId');
+        if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
-        let appConfig = await AppConfigService.getAppConfigForm(brand,appConfigId)
+        let appConfig = await AppConfigService.getAppConfigForm(brand, appConfigId)
 
         return res.json(appConfig);
       } catch (error) {

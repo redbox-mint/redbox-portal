@@ -25,7 +25,7 @@ import {
   ResolvedMenuItem,
   ResolvedMenu,
   DEFAULT_MENU_CONFIG
-} from '../configmodels/MenuConfig';
+} from '@researchdatabox/redbox-core-types';
 import {
   HomePanel,
   HomePanelItem,
@@ -34,7 +34,7 @@ import {
   ResolvedHomePanelItem,
   ResolvedHomePanels,
   DEFAULT_HOME_PANEL_CONFIG
-} from '../configmodels/HomePanelConfig';
+} from '@researchdatabox/redbox-core-types';
 import {
   AdminSidebarSection,
   AdminSidebarItem,
@@ -43,7 +43,7 @@ import {
   ResolvedAdminSidebarSection,
   ResolvedAdminSidebarItem,
   DEFAULT_ADMIN_SIDEBAR_CONFIG
-} from '../configmodels/AdminSidebarConfig';
+} from '@researchdatabox/redbox-core-types';
 
 declare var sails: Sails;
 declare var BrandingService: any;

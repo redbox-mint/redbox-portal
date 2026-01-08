@@ -1,12 +1,13 @@
-import {SystemMessage} from './SystemMessage';
-import {AuthorizedDomainsEmails} from './AuthorizedDomainsEmails';
-import {MenuConfig, MENU_CONFIG_SCHEMA} from './MenuConfig';
-import {HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA} from './HomePanelConfig';
-import {AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA} from './AdminSidebarConfig';
+import { SystemMessage } from './SystemMessage';
+import { AuthorizedDomainsEmails } from './AuthorizedDomainsEmails';
+import { MenuConfig, MENU_CONFIG_SCHEMA } from './MenuConfig';
+import { HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA } from './HomePanelConfig';
+import { AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA } from './AdminSidebarConfig';
+import * as path from 'path';
 
 export class ConfigModels {
     private static modelsMap: Map<string, any> = new Map([
-        ['systemMessage', {modelName: 'SystemMessage', title: 'System Messages', class: SystemMessage}],
+        ['systemMessage', { modelName: 'SystemMessage', title: 'System Messages', class: SystemMessage }],
         ['authorizedDomainsEmails', {
             modelName: 'AuthorizedDomainsEmails',
             title: 'Authorized Domains and Emails',
@@ -17,21 +18,21 @@ export class ConfigModels {
             title: 'Menu Configuration',
             class: MenuConfig,
             schema: MENU_CONFIG_SCHEMA,
-            tsGlob: 'typescript/api/configmodels/MenuConfig.ts'
+            tsGlob: path.join(__dirname, '../../src/configmodels/MenuConfig.ts')
         }],
         ['homePanels', {
             modelName: 'HomePanelConfig',
             title: 'Home Panels Configuration',
             class: HomePanelConfig,
             schema: HOME_PANEL_CONFIG_SCHEMA,
-            tsGlob: 'typescript/api/configmodels/HomePanelConfig.ts'
+            tsGlob: path.join(__dirname, '../../src/configmodels/HomePanelConfig.ts')
         }],
         ['adminSidebar', {
             modelName: 'AdminSidebarConfig',
             title: 'Admin Sidebar Configuration',
             class: AdminSidebarConfig,
             schema: ADMIN_SIDEBAR_CONFIG_SCHEMA,
-            tsGlob: 'typescript/api/configmodels/AdminSidebarConfig.ts'
+            tsGlob: path.join(__dirname, '../../src/configmodels/AdminSidebarConfig.ts')
         }],
     ]);
 

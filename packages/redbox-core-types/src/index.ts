@@ -61,6 +61,14 @@ export * from './decorators';
 export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
 
+export * from './configmodels/ConfigModels';
+export * from './configmodels/MenuConfig';
+export * from './configmodels/HomePanelConfig';
+export * from './configmodels/AdminSidebarConfig';
+export * from './configmodels/AppConfig.interface';
+export * from './configmodels/AuthorizedDomainsEmails';
+export * from './configmodels/SystemMessage';
+
 export { Policies } from './policies';
 
 import * as Middleware from './middleware/redboxSession';
