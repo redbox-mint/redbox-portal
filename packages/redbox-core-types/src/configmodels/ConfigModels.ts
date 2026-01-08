@@ -7,11 +7,17 @@ import * as path from 'path';
 
 export class ConfigModels {
     private static modelsMap: Map<string, any> = new Map([
-        ['systemMessage', { modelName: 'SystemMessage', title: 'System Messages', class: SystemMessage }],
+        ['systemMessage', {
+            modelName: 'SystemMessage',
+            title: 'System Messages',
+            class: SystemMessage,
+            tsGlob: path.join(__dirname, '../../src/configmodels/SystemMessage.ts')
+        }],
         ['authorizedDomainsEmails', {
             modelName: 'AuthorizedDomainsEmails',
             title: 'Authorized Domains and Emails',
-            class: AuthorizedDomainsEmails
+            class: AuthorizedDomainsEmails,
+            tsGlob: path.join(__dirname, '../../src/configmodels/AuthorizedDomainsEmails.ts')
         }],
         ['menu', {
             modelName: 'MenuConfig',
