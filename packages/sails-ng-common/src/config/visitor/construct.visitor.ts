@@ -167,10 +167,6 @@ import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
  * - when using form defaults, provide default values from ancestors to descendants, so the descendants can either use their default or an ancestors default
  * - expand reusable form config to the actual form config
  * - transform component definitions to be a different component(s)
- *
- * TODO:
- *   - Currently the transforms are applied before some values are available, which means the transformed component is missing the values.
- *     This could be fixed by changing when the transform is done, or how the data model values are applied to the already-transformed components.
  */
 export class ConstructFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "ConstructFormConfigVisitor";
@@ -372,27 +368,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     /* Repeatable  */
-
-    /*
-     * The repeatable model and repeatable elementTemplate are special. Some notes:
-     *
-     * - Repeatable default: The repeatable model.config.defaultValue is the default for the whole repeatable.
-     *   Can be specified only in the form config.
-     *
-     * - Repeatable value: The repeatable model.config.value is the value for the whole repeatable.
-     *   Is available only after the form config has been processed, not in 'raw' the form config.
-     *
-     * - Repeatable template name: The repeatable elementTemplate must not have a name.
-     *   The name property needs to be present, but it must be a falsy value (usually empty string "").
-     *   This is because it is a template, and the name is generated based on the repeatable's name.
-     *
-     * - Repeatable new item default: The repeatable elementTemplate model.config.newEntryValue is the default for *new* entries.
-     *   - The property 'newEntryValue' is only available in elementTemplates.
-     *   - An elementTemplate 'resets' the usual merging of ancestor defaultValues. Only 'newEntryValue' is used.
-     *   - This is because it does not make sense for ancestor components to provide defaults for new entries - they can only operate on the whole repeatable.
-     *   - This also means there is no way to provide the values for new repeatable entries from a record, only the form config.
-     *   - This also means that a descendant of an element template cannot provide defaultValues.
-     */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         // Get the current raw data for constructing the class instance.

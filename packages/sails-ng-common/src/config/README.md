@@ -204,6 +204,17 @@ Transform a component, model, and/or layout class into another class.
 - The transformation is defined in code and cannot be modified.
   Use reusable form config to make changes before transforming the class.
 
+All the available and default transforms are implemented in the `FormOverride` class in `packages/sails-ng-common/src/config/form-override.model.ts`.
+
+- All possible transforms are defined in `knownTransforms`.
+- The transforms applied by default to a particular form mode are defined in `defaultTransforms`.
+  These defaults reduce boilerplate transform definitions.
+  The defaults can be overridden by specifying the transform in form config using `overrides.formModeClasses`.
+- Each transform is from one component to one component.
+- A transform could be from and to the same component. This is mostly a no-op, except that any `overrides` config is removed.
+- A transform might change between a component that has a model and one that doesn't, or the other way.
+  This is fine, provided the transform migrates the model data from or to an appropriate place in the component config for a form component without a model.
+
 ## Design Decisions
 
 ### FormConfig and component class constructors
@@ -301,3 +312,50 @@ enable or disable validators, e.g.:
 - each component may need to update layout or model or other things before or after a validator is toggled
 - toggling a validator on a component that has been removed from the DOM can end up with a validator that cannot be changed - order of operations can differ and is important
 - we're using both angular signals and observables to do things, which mostly works, but has edge cases that each component might need to handle differently
+
+### Merging defaults from ancestors
+
+The construct visitor gathers the default values from each component.
+The defaults for a component are the combination of the `defaultValue` for that component, and any default specified in an ancestor component.
+This approach was used because it allows for specifying defaults for deeply nested components in less deeply nested components,
+making it easier to define more complex defaults.
+
+Note that Repeatable Components work differently, see the section about Repeatable special features.
+
+### The Repeatable Component has some special features
+
+- Repeatable default: The repeatable model.config.defaultValue is the default for the whole repeatable.
+  Can be specified only in the form config.
+
+- Repeatable value: The repeatable model.config.value is the value for the whole repeatable.
+  Is available only after the form config has been processed, not in 'raw' the form config.
+
+- Repeatable template name: The repeatable elementTemplate must not have a name.
+  The name property needs to be present, but it must be a falsy value (usually empty string "").
+  This is because it is a template, and the name is generated based on the repeatable's name.
+
+- Repeatable new item default: The repeatable elementTemplate model.config.newEntryValue is the default for *new* entries.
+  - The property 'newEntryValue' is only available in elementTemplates.
+  - An elementTemplate 'resets' the usual merging of ancestor defaultValues. Only 'newEntryValue' is used.
+  - This is because it does not make sense for ancestor components to provide defaults for new entries - they can only operate on the whole repeatable.
+  - This also means there is no way to provide the values for new repeatable entries from a record, only the form config.
+  - This also means that a descendant of an element template cannot provide defaultValues.
+
+### Order of construct visitor operations
+
+The `ConstructFormConfigVisitor` performs a number of operations to construct class instances from a form config.
+The order of these operations will change the resulting class instances.
+
+The general order, as currently implemented, is:
+
+1. Create an instance of the form component class from the form config data.
+2. Visit the form component class instance.
+3. Populate any top-level properties from the form config, including creating instances of the component, model, layout.
+4. Visit the component class instance, then model class instance, then layout class instance.
+5. In the visit method for each class instance, check it is the expected class instance, and populate the properties, including config.
+   - This step includes setting the model value.
+6. If a component has nested components, apply any re-usable form overrides to all nested components, then go to the start of this list.
+7. Process any component transforms after processing the original form component and component, model, layout properties.
+   - The component transforms are done at this stage to allow access to the model data values and other properties from the original component.
+8. If this is a nested form component, add it to the parent's list of components.
+9. Return the hierarchy of form components.
