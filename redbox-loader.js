@@ -345,6 +345,10 @@ module.exports = Responses['${name}'];
 async function shouldRegenerateShims(appPath, forceRegenerate) {
     const markerPath = path.join(appPath, '.regenerate-shims');
 
+    if (process.env.NODE_ENV !== 'production') {
+        return { shouldRegenerate: true, reason: 'NODE_ENV !== production', deleteMarker: false };
+    }
+
     // Check for marker file
     if (fsSync.existsSync(markerPath)) {
         return { shouldRegenerate: true, reason: '.regenerate-shims marker file exists', deleteMarker: true };
