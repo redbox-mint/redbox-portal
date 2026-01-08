@@ -29,11 +29,17 @@ module.exports.http = {
      * router is invoked by the "router" middleware below.)                     *
      *                                                                          *
      ***************************************************************************/
-    
-    redboxSession: require('../api/middleware/redboxSession')(require('./redboxSession').redboxSession),
+
+    // Lazy load redboxSession to support async shim generation
+    redboxSession: function (req, res, next) {
+      if (!global._redboxSessionMiddleware) {
+        global._redboxSessionMiddleware = require('../api/middleware/redboxSession')(require('./redboxSession').redboxSession);
+      }
+      return global._redboxSessionMiddleware(req, res, next);
+    },
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
-    brandingAndPortalAwareStaticRouter: function(req, res, next) {
+    brandingAndPortalAwareStaticRouter: function (req, res, next) {
       const existsSync = require('fs').existsSync;
       // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
       // it routes the request to the default location
@@ -54,7 +60,7 @@ module.exports.http = {
         }
 
         var resourceLocation = splitUrl.slice(3, splitUrl.length).join("/");
-        if(resourceLocation.lastIndexOf('?') != -1) {
+        if (resourceLocation.lastIndexOf('?') != -1) {
           resourceLocation = resourceLocation.substring(0, resourceLocation.lastIndexOf('?'));
         }
         var resolvedPath = null;
@@ -83,7 +89,7 @@ module.exports.http = {
       }
       next();
     },
-    translate: function(req, res, next){
+    translate: function (req, res, next) {
       next();
     },
 
@@ -153,7 +159,7 @@ module.exports.http = {
      *                                                                          *
      ***************************************************************************/
 
-    myBodyParser: function(req, res, next) {
+    myBodyParser: function (req, res, next) {
       // ignore if there is '/attach/' on the url
       if (req.url.toLowerCase().includes('/attach')) {
         return next();
@@ -165,8 +171,8 @@ module.exports.http = {
       return skipper(req, res, next);
     },
 
-    poweredBy:  function (req, res, next) {
-      res.set('X-Powered-By', "QCIF");      
+    poweredBy: function (req, res, next) {
+      res.set('X-Powered-By', "QCIF");
       return next();
     },
 
@@ -174,7 +180,7 @@ module.exports.http = {
       const originalRedirect = res.redirect;
 
       // Patch the redirect function so that it sets the no-cache headers
-      res.redirect = function(location) {
+      res.redirect = function (location) {
 
         res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.set('Pragma', 'no-cache');
@@ -186,8 +192,8 @@ module.exports.http = {
       return next();
     },
 
-    cacheControl: function(req, res, next) {
-      let sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000 );
+    cacheControl: function (req, res, next) {
+      let sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
       let cacheControlHeaderVal = null;
       let expiresHeaderVal = null;
       if (sessionTimeoutSeconds > 0) {
@@ -209,7 +215,7 @@ module.exports.http = {
       }
       if (!_.isEmpty(cacheControlHeaderVal)) {
         res.set('Cache-Control', cacheControlHeaderVal);
-      } 
+      }
       if (!_.isEmpty(expiresHeaderVal)) {
         res.set('Expires', expiresHeaderVal);
       }
@@ -229,5 +235,5 @@ module.exports.http = {
    *                                                                          *
    ***************************************************************************/
 
-   // cache: 31557600000
+  // cache: 31557600000
 };

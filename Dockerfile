@@ -80,6 +80,7 @@ RUN apt-get update \
 
 COPY --from=builder --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=builder --chown=node:node /opt/redbox-portal/redbox-loader.js ./redbox-loader.js
 COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=builder --chown=node:node /opt/redbox-portal/typescript/api/configmodels ./typescript/api/configmodels
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets

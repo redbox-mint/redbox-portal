@@ -1,5 +1,3 @@
-const _ = require('lodash');
-
 // Import the compiled model definitions
 const { MongoModels } = require('./api/models');
 
@@ -21,19 +19,12 @@ module.exports = function (sails) {
       after: {}
     },
     configure: function () {
-      // Register MongoDB storage models via sails.config
-      // The core-loader hook will pick these up when generating shims
-      if (!sails.config.redboxHookModels) {
-        sails.config.redboxHookModels = {};
-      }
-      Object.assign(sails.config.redboxHookModels, MongoModels);
-      sails.log.verbose('sails-hook-redbox-storage-mongo: Registered', Object.keys(MongoModels).length, 'models via sails.config.redboxHookModels');
     },
     defaults: {
     }
   }
 };
 
-module.exports.registerRedboxModels = function() {
+module.exports.registerRedboxModels = function () {
   return MongoModels;
 };

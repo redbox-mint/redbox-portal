@@ -57,21 +57,38 @@ try {
 
 
 
-// Start server
-sails.lift(rc('sails'));
+// --•
+// ReDBox Loader - Generate shims before Sails lifts
+// This ensures models, policies, middleware, and responses exist before
+// Sails hooks try to load them, eliminating race conditions.
+const redboxLoader = require('./redbox-loader');
 
-// In the integrationtest env, start a simple server to listen for GET / on a separate port.
-// This is needed to ensure the server is shut down when the bruno tests finish and that it shuts down correctly so that code coverage reports are written.
-// This addresses an issue with the server sometimes hanging and causing issues in CI.
+// Generate shims and then lift Sails
+redboxLoader.generateAllShims(__dirname, {
+  forceRegenerate: process.env.REGENERATE_SHIMS === 'true',
+  verbose: process.env.SHIM_VERBOSE === 'true'
+}).then(() => {
+  // Start server
+  sails.lift(rc('sails'));
 
-if (process.env.NODE_ENV === 'integrationtest') {
-  const http = require('http');
-  const server = http.createServer((req, res) => {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('Shutting down...\n');
-    process.exit(0);
-  });
-  server.listen(1599, () => {
-    console.log('Integration test shutdown listener on port 1599');
-  });
-}
+  // In the integrationtest env, start a simple server to listen for GET / on a separate port.
+  // This is needed to ensure the server is shut down when the bruno tests finish and that it shuts down correctly so that code coverage reports are written.
+  // This addresses an issue with the server sometimes hanging and causing issues in CI.
+
+  if (process.env.NODE_ENV === 'integrationtest') {
+    const http = require('http');
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('Shutting down...\n');
+      process.exit(0);
+    });
+    server.listen(1599, () => {
+      console.log('Integration test shutdown listener on port 1599');
+    });
+  }
+
+}).catch(err => {
+  console.error('Fatal: Failed to generate shims before lift');
+  console.error(err);
+  process.exit(1);
+});
