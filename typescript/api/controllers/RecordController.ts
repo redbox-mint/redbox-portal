@@ -343,7 +343,7 @@ export module Controllers {
 
         // process the form config to provide only the fields accessible by the current user
         const formMode = editMode ? "edit" : "view";
-        const userRoles = req.user?.roles || [];
+        const userRoles = (req.user?.roles ?? []).map(role => role?.name).filter(name => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
         const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData?.metadata, reusableFormDefs);
@@ -1344,9 +1344,9 @@ export module Controllers {
         }
       }
 
-      return this.sendView(req, res, 'dashboard', { 
-        recordType: recordType, 
-        packageType: packageType, 
+      return this.sendView(req, res, 'dashboard', {
+        recordType: recordType,
+        packageType: packageType,
         titleLabel: titleLabel,
         showAdminSideBar: showAdminSideBar
       });

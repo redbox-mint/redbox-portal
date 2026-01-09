@@ -413,8 +413,9 @@ export class UtilityService {
    * Dynamically import the javascript file at the url build from the branding, portal, and path parts.
    * @param brandingAndPortalUrl The branding and portal url.
    * @param urlPath The path parts.
+   * @param params The query string parts.
    */
-  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[]) {
+  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
     if (!brandingAndPortalUrl) {
       throw new Error("Must provide brandingAndPortalUrl");
     }
@@ -431,6 +432,11 @@ export class UtilityService {
 
     const ts = new Date().getTime().toString();
     url.searchParams.set('ts', ts);
+    url.searchParams.set('apiVersion', "2.0");
+
+    Object.entries(params?? {}).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
 
     const module = await import(url.toString());
     this.dynamicImportCache.set(rawUrl, module);

@@ -528,6 +528,17 @@ export module Controllers.Core {
         }
       }
 
+      // If there are any display errors and API is version 1, send the conventional error response format.
+      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
+        const errorResponse = new APIErrorResponse();
+        errorResponse.message = RBValidationError.displayMessage({
+          t: TranslationService,
+          displayErrors: collectedDisplayErrors
+        });
+        sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
+        return res.json(errorResponse);
+      }
+
       // If 'v1' is provided and the response is in version 1 format, respond with v1.
       if (v1 !== null && v1 !== undefined && apiVersion === ApiVersion.VERSION_1_0) {
         sails.log.verbose(`Send response status ${status} api version 1 format json.`);
@@ -557,14 +568,6 @@ export module Controllers.Core {
         });
         sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
         return res.json({errors: formattedErrors, meta: meta});
-      }
-
-      // If there are any display errors and API is version 1, send the conventional error response format.
-      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
-        const errorResponse = new APIErrorResponse();
-        errorResponse.message = RBValidationError.displayMessage({t: TranslationService, displayErrors:collectedDisplayErrors});
-        sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
-        return res.json(errorResponse);
       }
 
       // TODO: log unknown situations so they can be considered.

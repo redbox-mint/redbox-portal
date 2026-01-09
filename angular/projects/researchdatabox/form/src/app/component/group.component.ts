@@ -37,13 +37,8 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // Don't call the super method, as this model needs a FormGroup, and needs to populate it differently.
     // super.postCreate();
 
-    // Init with empty object if no default value.
-    if (!this.fieldConfig.config?.defaultValue) {
-      _set(this.fieldConfig, 'config.defaultValue', {});
-    }
-
     // Store the init value. Use the default value if the value is not set.
-    this.initValue = _get(this.fieldConfig, 'config.value') ?? this.fieldConfig.config?.defaultValue;
+    this.initValue = _get(this.fieldConfig, 'config.value');
 
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
@@ -154,7 +149,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
             angularComponents: [key],
             dataModel: [],
             formConfig: [],
-          } 
+          }
         )
         elemFieldEntry.componentRef = wrapperRef;
       }

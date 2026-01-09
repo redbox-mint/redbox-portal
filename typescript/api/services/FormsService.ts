@@ -23,10 +23,10 @@ import {BrandingModel, FormModel, Services as services} from '@researchdatabox/r
 import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
-    ClientFormConfigVisitor,
-    ConstructFormConfigVisitor,
-    FormConfigFrame,
-    FormModesConfig, ReusableFormDefinitions
+  ClientFormConfigVisitor,
+  ConstructFormConfigVisitor,
+  FormConfigFrame, FormConfigOutline,
+  FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
 declare var sails: Sails;
@@ -474,19 +474,20 @@ export module Services {
     }
 
     protected setFormEditMode(fields, editMode): void{
-      _.remove(fields, field => {
-        if (editMode) {
-          return field.viewOnly == true;
-        } else {
-          return field.editOnly == true;
-        }
-      });
-      _.forEach(fields, field => {
-        field.definition.editMode = editMode;
-        if (!_.isEmpty(field.definition.fields)) {
-          this.setFormEditMode(field.definition.fields, editMode);
-        }
-      });
+      // TODO: Form is processed differently now, see buildClientFormConfig
+      // _.remove(fields, field => {
+      //   if (editMode) {
+      //     return field.viewOnly == true;
+      //   } else {
+      //     return field.editOnly == true;
+      //   }
+      // });
+      // _.forEach(fields, field => {
+      //   field.definition.editMode = editMode;
+      //   if (!_.isEmpty(field.definition.fields)) {
+      //     this.setFormEditMode(field.definition.fields, editMode);
+      //   }
+      // });
     }
 
     public filterFieldsHasEditAccess(fields, hasEditAccess):void {
@@ -515,33 +516,30 @@ export module Services {
      * @param item The source item.
      * @param formMode The form mode.
      * @param userRoles The current user's roles.
-     * @param recordData The record data.
+     * @param recordMetadata The record metadata.
      * @param reusableFormDefs The reusable form definitions.
      */
     public buildClientFormConfig(
-        item: FormConfigFrame,
-        formMode?: FormModesConfig,
-        userRoles?: string[],
-        recordData?: Record<string, unknown> | null,
-        reusableFormDefs?: ReusableFormDefinitions
-    ): Record<string, unknown> {
+      item: FormConfigFrame,
+      formMode?: FormModesConfig,
+      userRoles?: string[],
+      recordMetadata?: Record<string, unknown> | null,
+      reusableFormDefs?: ReusableFormDefinitions
+    ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start(item, formMode, reusableFormDefs);
+      const constructed = constructor.start({data: item, reusableFormDefs, formMode, record: recordMetadata});
 
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      let result: FormConfigFrame;
-      if (recordData !== null && recordData !== undefined) {
-        result = visitor.startExistingRecord(constructed, formMode, userRoles, recordData);
-      } else {
-        result = visitor.startNewRecord(constructed, formMode, userRoles);
-      }
+      const result = visitor.start({form: constructed, formMode, userRoles});
 
       if (!result) {
-        throw new Error(`The form config is invalid because all form fields were removed, the form config must have at least one field the current user can view.`)
+        throw new Error(`The form config is invalid because all form fields were removed, ` +
+          `the form config must have at least one field the current user can view: ${JSON.stringify({
+            item, formMode, userRoles, recordData: recordMetadata, reusableFormDefs
+          })}`);
       }
-      // TODO: can return type be done 'properly' instead of forcing the type?
-      return result as unknown as Record<string, unknown>;
+      return result;
     }
   }
 }
