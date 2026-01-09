@@ -124,7 +124,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
      * @param options Configure the visitor.
      * @param options.form The constructed form.
      * @param options.formMode The currently active form mode.
-     * @param options.userRoles TThe current user's roles.
+     * @param options.userRoles The current user's roles.
      */
     start(options: {
         form: FormConfigOutline;

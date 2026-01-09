@@ -39,7 +39,6 @@ export class PropertiesHelper {
     /**
      * Create a new instance of a form component.
      * @param item The form component definition.
-     * @protected
      */
     public sharedConstructFormComponent(item: FormComponentDefinitionFrame) {
         // The class to use is identified by the class property string values in the field definitions.
@@ -143,7 +142,7 @@ export class PropertiesHelper {
     }
 
     /**
-     * Set the common field model config properties.
+     * Set the common field layout config properties.
      * @param item Set the value of the named properties on this item.
      * @param config Get the value of the named properties from this config.
      */
@@ -171,10 +170,10 @@ export class PropertiesHelper {
         ...sources: ({ [x: string]: any; } | null | undefined)[]
     ) {
         if (target === undefined || target === null) {
-            throw new Error("Target provided to setProp was undefined or null.");
+            throw new Error("Target provided to setPropDefault was undefined or null.");
         }
         if (name === undefined || name === null) {
-            throw new Error("Property name provided to setProp was undefined or null.");
+            throw new Error("Property name provided to setPropDefault was undefined or null.");
         }
 
         const propValue = [target, ...sources].find(val => val?.[name] !== undefined)?.[name];
