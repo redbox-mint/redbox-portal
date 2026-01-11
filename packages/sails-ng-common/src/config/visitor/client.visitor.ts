@@ -121,6 +121,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     /**
      * Start the visitor.
+     *
+     * Note that `options.form` will be modified, and is the same as the return value.
+     * It is implemented this way because the class instance methods are needed and functions are not cloned.
+     *
      * @param options Configure the visitor.
      * @param options.form The constructed form.
      * @param options.formMode The currently active form mode.
