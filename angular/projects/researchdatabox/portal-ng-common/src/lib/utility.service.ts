@@ -22,6 +22,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 import { LoggerService } from './logger.service';
+import { guessType } from "@researchdatabox/sails-ng-common";
 /**
  * Utility service...
  *
@@ -435,7 +436,17 @@ export class UtilityService {
     url.searchParams.set('apiVersion', "2.0");
 
     Object.entries(params?? {}).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
+      // Remove any existing url param with matching key, set to the key value pair in params.
+      if (guessType(value) === "object") {
+        url.searchParams.set(key, JSON.stringify(value));
+      } else if (guessType(value) === "array") {
+        // Remove any existing param key, and append each array entry as a separate param.
+        url.searchParams.delete(key);
+        (value as Array<unknown>).forEach(val => url.searchParams.append(key, String(val)));
+      } else {
+        // For any other type, convert to string.
+        url.searchParams.set(key, String(value));
+      }
     });
 
     const module = await import(url.toString());
