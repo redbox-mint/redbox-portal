@@ -142,13 +142,16 @@ export module Services {
     }
 
     public getBrandFromReq(req): string {
-      var branding = req.params['branding'];
-      if (branding == null) {
+      var branding = null;
+      if (req && req.params) {
+        branding = req.params['branding'];
+      }
+      if (branding == null && req) {
         if (req.body != null) {
           branding = req.body.branding;
         }
       }
-      if (branding == null) {
+      if (branding == null && req) {
         if (req.session != null) {
           branding = req.session.branding;
         }
@@ -161,13 +164,16 @@ export module Services {
     }
 
     public getPortalFromReq(req) {
-      var portal = req.params['portal'];
-      if (portal == null) {
+      var portal = null;
+      if (req && req.params) {
+        portal = req.params['portal'];
+      }
+      if (portal == null && req) {
         if (req.body != null) {
           portal = req.body.portal;
         }
       }
-      if (portal == null) {
+      if (portal == null && req) {
         if (req.session != null) {
           portal = req.session.portal;
         }
