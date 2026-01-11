@@ -185,8 +185,10 @@ const { ${policyExportName} } = require('${hookModuleName}').Policies || require
 module.exports = ${policyExportName};
 `;
             promises.push(writeFileIfChanged(filePath, content).then(written => {
-                if (written) generated++;
-                fromHooks++;
+                if (written) {
+                    generated++;
+                    fromHooks++;
+                }
             }));
             continue;
         }
@@ -245,8 +247,10 @@ async function generateModelShims(modelsDir, hookModels) {
 module.exports = ${JSON.stringify({ ...modelDef, globalId: name }, null, 2)};
 `;
             promises.push(writeFileIfChanged(filePath, content).then(written => {
-                if (written) generated++;
-                fromHooks++;
+                if (written) {
+                    generated++;
+                    fromHooks++;
+                }
             }));
             continue;
         }
