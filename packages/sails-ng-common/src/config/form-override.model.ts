@@ -29,7 +29,10 @@ import {
 import {DefaultTransformsType, KnownTransformsType} from "./form-override.outline";
 import {cloneDeep as _cloneDeep, merge as _merge} from "lodash";
 
-import {DropdownInputComponentName,} from "./component/dropdown-input.outline";
+import {
+    DropdownInputComponentName,
+    DropdownInputFormComponentDefinitionOutline,
+} from "./component/dropdown-input.outline";
 
 import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "./component/reusable.outline";
 import {FormModesConfig} from "./shared.outline";
@@ -301,7 +304,7 @@ export class FormOverride {
     }
 
     private sourceDropdownInputComponentTargetContentComponent(
-        source: TextAreaFormComponentDefinitionOutline,
+        source: DropdownInputFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonContentComponent(source, formMode);
