@@ -118,7 +118,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       queryOrigSource: {},
       querySource: [],
       jsonPointerSource: {
-        'source-field': { name: 'source-field', key: 'source-field' }
+        '/source-field': { name: 'source-field', key: '/source-field' }
       }
     };
 
@@ -243,7 +243,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'new-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -273,7 +273,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'new-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -304,7 +304,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'same-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -341,7 +341,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'new-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -381,7 +381,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'test-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -424,7 +424,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'trigger-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -456,7 +456,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'trigger-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -488,7 +488,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'direct-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -520,7 +520,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'fallback-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -560,7 +560,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
         queryOrigSource: {},
         querySource: [],
         jsonPointerSource: {
-          'source-field': { name: 'source-field', key: 'source-field' }
+          '/source-field': { name: 'source-field', key: '/source-field' }
         }
       };
 
@@ -573,7 +573,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'fallback-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -607,7 +607,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       eventStream$.next(createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'first',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       }));
       tick();
 
@@ -615,7 +615,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       eventStream$.next(createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'second',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       }));
       tick();
 
@@ -656,7 +656,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       eventStream$.next(createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'test1',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       }));
       flush();
 
@@ -695,7 +695,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'error-trigger',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       // Should not throw
@@ -738,7 +738,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'rejection-test',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);
@@ -791,7 +791,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       eventStream$.next(createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 10,
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       }));
       tick();
 
@@ -837,7 +837,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       eventStream$.next(createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'trigger',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       }));
       tick();
 
@@ -869,7 +869,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       const event = createFieldValueChangedEvent({
         fieldId: 'source-field',
         value: 'test-value',
-        sourceId: 'source-field'
+        sourceId: '/source-field'
       });
 
       eventStream$.next(event);

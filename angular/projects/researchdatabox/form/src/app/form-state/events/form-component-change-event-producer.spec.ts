@@ -56,7 +56,7 @@ describe('FormComponentChangeEventProducer', () => {
     expect(eventArgs.fieldId).toBe('title');
     expect(eventArgs.value).toBe('updated');
     expect(eventArgs.previousValue).toBe('original');
-    expect(eventArgs.sourceId).toBe('title');
+    expect(eventArgs.sourceId).toBe('*');
 
     expect(scopedBus.publish).toHaveBeenCalledTimes(1);
     const scopedArgs = scopedBus.publish.calls.mostRecent()

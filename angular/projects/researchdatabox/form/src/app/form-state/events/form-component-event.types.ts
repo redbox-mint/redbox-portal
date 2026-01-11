@@ -14,15 +14,19 @@ export interface FormComponentEventBase {
   readonly type: string;
   readonly timestamp: number;
   readonly sourceId?: string;
+  readonly fieldId?: string;
+}
+
+interface FieldScopedEventBase extends FormComponentEventBase {
+  readonly fieldId: string;
 }
 
 /**
  * Field value changed event
  * Published when a field's value changes
  */
-export interface FieldValueChangedEvent extends FormComponentEventBase {
+export interface FieldValueChangedEvent extends FieldScopedEventBase {
   readonly type: 'field.value.changed';
-  readonly fieldId: string;
   readonly value: any;
   readonly previousValue?: any;
 }
@@ -45,9 +49,8 @@ export interface FormDefinitionReadyEvent extends FormComponentEventBase {
  * Field metadata changed event
  * Published when field metadata (visibility, enabled state, etc.) changes
  */
-export interface FieldMetaChangedEvent extends FormComponentEventBase {
+export interface FieldMetaChangedEvent extends FieldScopedEventBase {
   readonly type: 'field.meta.changed';
-  readonly fieldId: string;
   readonly meta: Record<string, any>;
 }
 
@@ -55,9 +58,8 @@ export interface FieldMetaChangedEvent extends FormComponentEventBase {
  * Field dependency trigger event
  * Published when a field change should trigger dependent field updates
  */
-export interface FieldDependencyTriggerEvent extends FormComponentEventBase {
+export interface FieldDependencyTriggerEvent extends FieldScopedEventBase {
   readonly type: 'field.dependency.trigger';
-  readonly fieldId: string;
   readonly dependentFields: string[];
   readonly reason: string;
 }
@@ -66,9 +68,8 @@ export interface FieldDependencyTriggerEvent extends FormComponentEventBase {
  * Field focus request event
  * Published to request focus on a specific field
  */
-export interface FieldFocusRequestEvent extends FormComponentEventBase {
+export interface FieldFocusRequestEvent extends FieldScopedEventBase {
   readonly type: 'field.request.focus';
-  readonly fieldId: string;
 }
 
 /**

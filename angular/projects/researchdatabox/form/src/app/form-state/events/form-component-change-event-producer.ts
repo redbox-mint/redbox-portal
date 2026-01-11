@@ -69,12 +69,13 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 			return;
 		}
 
+		// The general channel uses sourceId="*" to indicate broadcast
 		const previousValue = this.previousValue;
 		const baseEvent = createFieldValueChangedEvent({
 			fieldId: this.fieldId,
 			value,
 			previousValue,
-			sourceId: this.fieldId
+			sourceId: "*" 
 		});
 
 		this.eventBus.publish(baseEvent);
@@ -82,7 +83,8 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		const scopedEvent = createFieldValueChangedEvent({
 			fieldId: this.fieldId,
 			value,
-			previousValue
+			previousValue,
+			sourceId: this.fieldId
 		});
 
 		this.scopedBus?.publish(scopedEvent);

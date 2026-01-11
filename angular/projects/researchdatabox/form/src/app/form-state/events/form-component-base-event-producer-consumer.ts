@@ -8,7 +8,7 @@ import { FormComponentEvent, FormComponentEventBase, FormComponentEventType, For
 import { getObjectWithJsonPointer, JSONataQuerySource, ExpressionsConditionKindType, FormExpressionsConfigFrame, ExpressionsConditionKind } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../../form.component';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import _ from 'lodash';
+import _, { has } from 'lodash';
 
 /**
  * Options for binding event consumers/producers to components.
@@ -90,6 +90,7 @@ export abstract class FormComponentEventBaseProducerConsumer {
    */
 	protected resolveFieldId(options: FormComponentEventOptions): string | undefined {
 		return (
+			options.definition?.lineagePaths?.angularComponentsJsonPointer ||
 			options.definition?.compConfigJson?.name ||
 			options.definition?.name ||
 			options.component.formFieldConfigName()
@@ -121,16 +122,19 @@ export abstract class FormComponentEventBaseProducerConsumer {
 			return false;
 		}
 		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
-		// Check if the pointer has a match in the query source
+		// Check if the pointer has a match in the query source, broadcasts will fail this check
 		const ref = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
-		if (ref === undefined || ref.key != opts.event.sourceId) {
-			return false;
-		}
 		const targetEvent = pointerCondition.event;
-		if (targetEvent === '*' || targetEvent === opts.querySource.event.type) {
-			return true;
-		}
-		return false;
+		const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.querySource.event.type;
+		// Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:
+		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId
+		const hasScopedMatch = ref != undefined && pointerCondition.jsonPointer == opts.event.sourceId; 
+
+		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event
+		const eventFieldId = opts.event.fieldId || "";
+		let hasBroadcastMatch = (opts.event.sourceId === '*' && eventFieldId.indexOf(pointerCondition.jsonPointer) >= 0);
+		
+		return (hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch));
 	}
 	/**
 	 * 
