@@ -71,7 +71,7 @@ x-rbportal-service: &rbportal-service
     interval: '10s'
     timeout: '5s'
     retries: 10
-    start_period: '60s'
+    start_period: '600s'
   depends_on: *rbportal-depends
   expose:
     - "1500"
