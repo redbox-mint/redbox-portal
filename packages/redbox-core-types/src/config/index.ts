@@ -48,6 +48,10 @@ export * from './crontab.config';
 export * from './solr.config';
 export * from './form.config';
 export * from './webpack.config';
+// Security configs
+export * from './csp.config';
+export * from './dompurify.config';
+export * from './redboxSession.config';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -92,6 +96,10 @@ import { CrontabConfig } from './crontab.config';
 import { SolrSearchConfig } from './solr.config';
 import { FormConfig } from './form.config';
 import { WebpackConfig } from './webpack.config';
+// Security config imports
+import { csp, ContentSecurityPolicyConfig } from './csp.config';
+import { DomPurifyConfig } from './dompurify.config';
+import { RedboxSessionConfig } from './redboxSession.config';
 
 /**
  * Branding-aware config function type
@@ -169,6 +177,11 @@ export interface SailsConfig {
     form: FormConfig;
     webpack: WebpackConfig;
 
+    // Security configs
+    csp: ContentSecurityPolicyConfig;
+    dompurify: DomPurifyConfig;
+    redboxSession: RedboxSessionConfig;
+
     // Auth-related configs
     auth: AuthConfig;
     passport: PassportConfig;
@@ -221,6 +234,8 @@ export const Config = {
     mint,
     jsonld,
     emailnotification,
+    // Security configs with default values
+    csp,
 } as const;
 
 // Type for the Config object
