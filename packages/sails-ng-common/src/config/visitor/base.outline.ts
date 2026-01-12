@@ -62,7 +62,9 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 
-
+/**
+ * Interface for classes that can be visited by a visitor.
+ */
 export interface CanVisit {
     /**
      * Accept a visitor to this form field definition.
@@ -71,6 +73,9 @@ export interface CanVisit {
 }
 
 
+/**
+ * Visitors must implement this structure.
+ */
 export interface FormConfigVisitorOutline {
     visitFormConfig(item: CanVisit): void;
 
@@ -83,6 +88,8 @@ export interface FormConfigVisitorOutline {
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void;
 
     /* Content */
+
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
 
