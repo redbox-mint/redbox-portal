@@ -23,25 +23,23 @@ describe('ContentComponent', () => {
     });
     utilityService = TestBed.inject(UtilityService);
     spyOn(utilityService, 'getDynamicImport').and.callFake(
-      async function (brandingAndPortalUrl: string, urlPath: string[]) {
+      async function (brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
         const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
-        switch (urlKey) {
-          // For the simple test that only creates the component
-          case "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp":
-            return {
-              evaluate: function (key: string[], context: any, extra: any) {
-                // normalise the key the same way as the server
-                const keyStr = buildKeyString(key);
-                switch (keyStr) {
-                  case "componentDefinitions__0__component__config__template":
-                    return Handlebars.compile('<h3>{{content}}</h3>')(context);
-                  default:
-                    throw new Error(`Unknown key: ${keyStr}`);
-                }
+        if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
+          return {
+            evaluate: function (key: string[], context: any, extra: any) {
+              // normalise the key the same way as the server
+              const keyStr = buildKeyString(key);
+              switch (keyStr) {
+                case "componentDefinitions__0__component__config__template":
+                  return Handlebars.compile('<h3>{{content}}</h3>')(context);
+                default:
+                  throw new Error(`Unknown key: ${keyStr}`);
               }
-            };
-          default:
-            throw new Error(`Unknown url key: ${urlKey}`);
+            }
+          };
+        } else {
+          throw new Error(`Unknown url key: ${urlKey}`);
         }
       });
   });
@@ -78,11 +76,12 @@ describe('ContentComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
-    // Now run your expectations
-    const compiled = fixture.nativeElement as HTMLElement;
-    const inputElement = compiled.querySelector('h3');
+    // assert
     expect(utilityService.getDynamicImport).toHaveBeenCalled();
-    expect((inputElement as HTMLHeadingElement).textContent).toEqual('My first text block component!!!');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('h3');
+    expect((element as HTMLHeadingElement)?.textContent).toEqual('My first text block component!!!');
   });
 
 });

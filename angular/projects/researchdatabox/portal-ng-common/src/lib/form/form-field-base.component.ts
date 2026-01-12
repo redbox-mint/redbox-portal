@@ -12,7 +12,8 @@ import {
   FieldLayoutDefinitionFrame,
   FieldLayoutConfigFrame,
   FormFieldComponentStatus,
-  LineagePaths
+  LineagePaths,
+  JSONataQuerySourceProperty
 } from '@researchdatabox/sails-ng-common';
 import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
 
@@ -544,4 +545,10 @@ export interface FormFieldCompMapEntry {
   // optional control map to support 'container' like components that don't have a model themselves
   formControlMap?: { [key: string]: FormControl };
   lineagePaths?: LineagePaths;
+}
+
+
+/** Specialised interface for querying. */
+export interface JSONataClientQuerySourceProperty extends JSONataQuerySourceProperty {
+  // Placeholder for additional client-specific properties can be added here in the future 
 }
