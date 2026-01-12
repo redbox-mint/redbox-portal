@@ -52,6 +52,15 @@ export * from './webpack.config';
 export * from './csp.config';
 export * from './dompurify.config';
 export * from './redboxSession.config';
+// Complex/Large configs (interface-only)
+export * from './branding.config';
+export * from './brandingConfigurationDefaults.config';
+export * from './raid.config';
+export * from './report.config';
+export * from './figshareAPI.config';
+export * from './figshareRedboxFORMapping.config';
+export * from './recordtype.config';
+export * from './workflow.config';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -100,6 +109,15 @@ import { WebpackConfig } from './webpack.config';
 import { csp, ContentSecurityPolicyConfig } from './csp.config';
 import { DomPurifyConfig } from './dompurify.config';
 import { RedboxSessionConfig } from './redboxSession.config';
+// Complex/Large config imports (interface-only)
+import { BrandingConfig } from './branding.config';
+import { BrandingConfigurationDefaultsConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
+import { RaidConfig } from './raid.config';
+import { ReportsConfig } from './report.config';
+import { FigshareApiConfig } from './figshareAPI.config';
+import { FigshareReDBoxFORMappingConfig } from './figshareRedboxFORMapping.config';
+import { RecordTypeConfig } from './recordtype.config';
+import { WorkflowConfig } from './workflow.config';
 
 /**
  * Branding-aware config function type
@@ -181,6 +199,16 @@ export interface SailsConfig {
     csp: ContentSecurityPolicyConfig;
     dompurify: DomPurifyConfig;
     redboxSession: RedboxSessionConfig;
+
+    // Complex/Large configs
+    branding: BrandingConfig;
+    brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
+    raid: RaidConfig;
+    reports: ReportsConfig;
+    figshareAPI: FigshareApiConfig;
+    figshareReDBoxFORMapping: FigshareReDBoxFORMappingConfig;
+    recordtype: RecordTypeConfig;
+    workflow: WorkflowConfig;
 
     // Auth-related configs
     auth: AuthConfig;
