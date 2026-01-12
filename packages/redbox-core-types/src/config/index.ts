@@ -100,10 +100,10 @@ import { security, SecurityConfig } from './security.config';
 import { GlobalsConfig } from './globals.config';
 import { models, ModelsConfig } from './models.config';
 import { orm, OrmConfig } from './orm.config';
-import { PoliciesConfig } from './policies.config';
+import { policies, PoliciesConfig } from './policies.config';
 import { session, SessionConfigOrDisabled } from './session.config';
 import { views, ViewsConfig } from './views.config';
-import { RoutesConfig } from './routes.config';
+import { routes, RoutesConfig } from './routes.config';
 import { BootstrapFunction } from './bootstrap.config';
 // Feature config imports
 import { queue, QueueConfig } from './queue.config';
@@ -112,9 +112,9 @@ import { orcid, OrcidConfig } from './orcid.config';
 import { mint, MintConfig } from './mint.config';
 import { jsonld, JsonLdConfig } from './jsonld.config';
 import { emailnotification, EmailNotificationConfig } from './emailnotification.config';
-import { AgendaQueueConfig } from './agendaQueue.config';
+import { agendaQueue, AgendaQueueConfig } from './agendaQueue.config';
 import { CrontabConfig } from './crontab.config';
-import { SolrSearchConfig } from './solr.config';
+import { solr, SolrSearchConfig } from './solr.config';
 import { FormConfig } from './form.config';
 import { WebpackConfig } from './webpack.config';
 // Security config imports
@@ -134,8 +134,8 @@ import { WorkflowConfig } from './workflow.config';
 import { autoreload, AutoreloadConfig } from './autoreload.config';
 import { custom, CustomConfig } from './custom.config';
 import { dynamicconfig, DynamicConfigConfig } from './dynamicconfig.config';
-import { DashboardTypeConfig } from './dashboardtype.config';
-import { DataPubsConfig } from './datapubs.config';
+import { dashboardtype, DashboardTypeConfig } from './dashboardtype.config';
+import { datapubs, DataPubsConfig } from './datapubs.config';
 import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
 import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
 import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
@@ -292,6 +292,8 @@ export const Config = {
     orm,
     session,
     views,
+    routes,
+    policies,
     // Feature configs with default values
     queue,
     storage,
@@ -299,12 +301,16 @@ export const Config = {
     mint,
     jsonld,
     emailnotification,
+    agendaQueue,
+    solr,
     // Security configs with default values
     csp,
     // Miscellaneous configs with default values
     autoreload,
     custom,
     dynamicconfig,
+    dashboardtype,
+    datapubs,
     workspacetype,
     lognamespace,
     redboxToCkan,

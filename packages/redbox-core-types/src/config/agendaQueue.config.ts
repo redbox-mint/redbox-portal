@@ -51,5 +51,64 @@ export interface AgendaQueueConfig {
     jobs: AgendaJobDefinition[];
 }
 
-// Note: Default values contain complex job definitions.
-// The original config/agendaQueue.js file should be kept for runtime.
+export const agendaQueue: AgendaQueueConfig = {
+    jobs: [
+        {
+            name: 'SolrSearchService-CreateOrUpdateIndex',
+            fnName: 'solrsearchservice.solrAddOrUpdate',
+            options: {
+                lockLifetime: 3 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
+            name: 'SolrSearchService-DeleteFromIndex',
+            fnName: 'solrsearchservice.solrDelete',
+            options: {
+                lockLifetime: 3 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
+            name: 'RecordsService-StoreRecordAudit',
+            fnName: 'recordsservice.storeRecordAudit',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
+            name: 'RaidMintRetryJob',
+            fnName: 'raidservice.mintRetryJob'
+        },
+        {
+            name: 'MoveCompletedJobsToHistory',
+            fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '5 minutes'
+            }
+        },
+        {
+            name: 'Figshare-PublishAfterUpload-Service',
+            fnName: 'figshareservice.publishAfterUploadFilesJob',
+            options: {
+                lockLifetime: 120 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
+            name: 'Figshare-UploadedFilesCleanup-Service',
+            fnName: 'figshareservice.deleteFilesFromRedbox',
+            options: {
+                lockLifetime: 120 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        }
+    ]
+};

@@ -2,28 +2,71 @@
  * Policies Config Interface
  * (sails.config.policies)
  * 
- * Map policies to controller actions.
- * Note: This file contains JavaScript arrays and must stay as JS for runtime.
+ * Policy mapping configuration for controller actions.
  */
 
-export type PolicyName = string | boolean;
-export type PolicyList = PolicyName[];
+export type PolicyName = string;
+export type PolicyChain = PolicyName | PolicyName[] | boolean;
 
 export interface ControllerPolicies {
-    /** Default policy for all actions in controller */
-    '*'?: PolicyList | PolicyName;
-
-    /** Per-action policy overrides */
-    [actionName: string]: PolicyList | PolicyName | undefined;
+    '*'?: PolicyChain;
+    [actionName: string]: PolicyChain | undefined;
 }
 
 export interface PoliciesConfig {
-    /** Default policy for all controllers/actions */
-    '*'?: PolicyList | PolicyName;
-
-    /** Per-controller policy configuration */
-    [controllerName: string]: ControllerPolicies | PolicyList | PolicyName | undefined;
+    '*'?: PolicyChain;
+    [controllerName: string]: ControllerPolicies | PolicyChain | undefined;
 }
 
-// Note: Default values contain JavaScript arrays and variable references.
-// The original config/policies.js file must be kept for runtime.
+// Default policy chains
+const defaultPolicies: PolicyName[] = [
+    'brandingAndPortal',
+    'checkBrandingValid',
+    'setLang',
+    'prepWs',
+    'i18nLanguages',
+    'menuResolver',
+    'isWebServiceAuthenticated',
+    'checkAuth',
+    'contentSecurityPolicy',
+];
+
+const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
+
+const publicTranslationPolicies: PolicyName[] = [
+    'noCache',
+    'brandingAndPortal',
+    'checkBrandingValid',
+    'setLang',
+    'prepWs'
+];
+
+const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
+
+export const policies: PoliciesConfig = {
+    UserController: {
+        '*': noCachePlusDefaultPolicies,
+        'localLogin': noCachePlusCspNoncePolicy,
+        'aafLogin': noCachePlusCspNoncePolicy,
+        'openidConnectLogin': noCachePlusCspNoncePolicy,
+        'beginOidc': noCachePlusCspNoncePolicy,
+        'info': ['noCache', 'isAuthenticated', 'contentSecurityPolicy'],
+    },
+    RenderViewController: {
+        'render': noCachePlusDefaultPolicies
+    },
+    'webservice/RecordController': {
+        '*': noCachePlusDefaultPolicies
+    },
+    'webservice/BrandingController': {
+        '*': noCachePlusDefaultPolicies
+    },
+    'DynamicAssetController': {
+        '*': noCachePlusDefaultPolicies
+    },
+    'TranslationController': {
+        '*': noCachePlusDefaultPolicies,
+        'getNamespace': publicTranslationPolicies
+    },
+    '*': defaultPolicies
+};
