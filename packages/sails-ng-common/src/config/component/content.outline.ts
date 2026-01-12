@@ -7,7 +7,8 @@ import {
 } from "../field-component.outline";
 import {
     FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
-    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType, FormComponentDefinitionFrameKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FormComponentDefinitionFrameKindType,
     FormComponentDefinitionKindType
 } from "../shared.outline";
 
@@ -22,9 +23,10 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      */
     template?: string;
     /**
-     * The template that can be used for setting content in innerHtml.
+     * The value available to the template as `content`.
+     * Set 'content' to static content, with no template, to just show the static content.
      */
-    content?: string;
+    content?: unknown;
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -63,4 +65,3 @@ export type ContentTypes =
     | { kind: FieldComponentDefinitionKindType, class: ContentFieldComponentDefinitionOutline }
     | { kind: FormComponentDefinitionKindType, class: ContentFormComponentDefinitionOutline }
     ;
-
