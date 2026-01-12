@@ -1,5 +1,5 @@
-import {existsSync} from 'fs';
-import {ILogger} from './Logger';
+import { existsSync } from 'fs';
+import { ILogger } from './Logger';
 import {
   BuildResponseType,
   APIErrorResponse,
@@ -10,7 +10,7 @@ import {
 
 
 declare var _;
-declare var sails;
+declare var sails: Sails.Application;
 declare var TranslationService;
 
 
@@ -76,14 +76,15 @@ export module Controllers.Core {
     /**
      * Get a namespaced logger for this controller class.
      * Uses the class constructor name as the namespace.
-     * Falls back to this.logger if pino namespaced logging is not available.
+     * Falls back to sails.log if pino namespaced logging is not available.
      */
-    protected get logger() {
+    protected get logger(): ILogger {
       if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
         const controllerName = this.constructor.name + 'Controller';
         this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
       }
-      return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
+      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
+      return this._logger || (sails?.log as unknown as ILogger);
     }
 
     constructor() {
@@ -300,14 +301,14 @@ export module Controllers.Core {
 
     protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
       if (!data) {
-        data = {status: true, message: msg};
+        data = { status: true, message: msg };
       }
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
     protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
       if (!data) {
-        data = {status: false, message: msg};
+        data = { status: false, message: msg };
       }
       this.ajaxRespond(req, res, data, forceAjax);
     }
@@ -352,9 +353,9 @@ export module Controllers.Core {
 
     protected getNg2Apps(viewPath) {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
-        return {ng2_apps: sails.config.ng2.apps[viewPath]};
+        return { ng2_apps: sails.config.ng2.apps[viewPath] };
       } else {
-        return {ng2_apps: []};
+        return { ng2_apps: [] };
       }
     }
 
@@ -457,7 +458,7 @@ export module Controllers.Core {
 
       // If there are errors, but no display errors, add a generic display error.
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-        collectedDisplayErrors.push({code: 'server-error'});
+        collectedDisplayErrors.push({ code: 'server-error' });
       }
 
       // If there are any displayErrors:
@@ -519,7 +520,7 @@ export module Controllers.Core {
         switch (apiVersion) {
           case ApiVersion.VERSION_2_0:
             sails.log.verbose(`Send response status ${status} api version 2 format json.`);
-            return res.json({data: data, meta: meta});
+            return res.json({ data: data, meta: meta });
 
           case ApiVersion.VERSION_1_0:
           default:
@@ -567,14 +568,14 @@ export module Controllers.Core {
           return displayError;
         });
         sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
-        return res.json({errors: formattedErrors, meta: meta});
+        return res.json({ errors: formattedErrors, meta: meta });
       }
 
       // TODO: log unknown situations so they can be considered.
       sails.log.error(`Unknown situation in sendResp: ${JSON.stringify({
         format, data, status, headers, collectedErrors, collectedDisplayErrors, meta, v1,
       })}`);
-      return res.status(500).json({errors: [{detail: "Check server logs."}], meta: {}});
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
     }
 
     private setNoCacheHeaders(req, res) {

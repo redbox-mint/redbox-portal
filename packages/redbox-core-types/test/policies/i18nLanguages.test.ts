@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { i18nLanguages } from '../../src/policies/i18nLanguages';
 
 // Mock globals
-declare var sails: any;
+declare var sails: Sails.Application;
 declare var BrandingService: any;
 declare var I18nEntriesService: any;
 

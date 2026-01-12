@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { checkAuth } from '../../src/policies/checkAuth';
 
 // Mock globals
-declare var sails: any;
+declare var sails: Sails.Application;
 declare var BrandingService: any;
 declare var RolesService: any;
 declare var PathRulesService: any;

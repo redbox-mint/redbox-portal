@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { menuResolver } from '../../src/policies/menuResolver';
 
 // Mock globals
-declare var sails: any;
+declare var sails: Sails.Application;
 declare var NavigationService: any;
 
 (global as any).sails = {

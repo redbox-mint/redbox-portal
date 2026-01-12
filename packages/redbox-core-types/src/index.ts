@@ -76,3 +76,7 @@ export { Middleware };
 
 import * as Responses from './responses';
 export { Responses };
+
+// Config types and default values
+export * from './config';
+export { Config, SailsConfig } from './config';
