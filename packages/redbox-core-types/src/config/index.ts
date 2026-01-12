@@ -61,6 +61,18 @@ export * from './figshareAPI.config';
 export * from './figshareRedboxFORMapping.config';
 export * from './recordtype.config';
 export * from './workflow.config';
+// Miscellaneous configs
+export * from './autoreload.config';
+export * from './custom.config';
+export * from './dynamicconfig.config';
+export * from './dashboardtype.config';
+export * from './datapubs.config';
+export * from './workspacetype.config';
+export * from './lognamespace.config';
+export * from './redboxToCkan.config';
+export * from './figshareAPIEnv.config';
+export * from './typescript.config';
+export * from './custom_cache.config';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -118,6 +130,18 @@ import { FigshareApiConfig } from './figshareAPI.config';
 import { FigshareReDBoxFORMappingConfig } from './figshareRedboxFORMapping.config';
 import { RecordTypeConfig } from './recordtype.config';
 import { WorkflowConfig } from './workflow.config';
+// Miscellaneous config imports
+import { autoreload, AutoreloadConfig } from './autoreload.config';
+import { custom, CustomConfig } from './custom.config';
+import { dynamicconfig, DynamicConfigConfig } from './dynamicconfig.config';
+import { DashboardTypeConfig } from './dashboardtype.config';
+import { DataPubsConfig } from './datapubs.config';
+import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
+import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
+import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
+import { figshareAPIEnv, FigshareApiEnvConfig } from './figshareAPIEnv.config';
+import { typescript, TypeScriptHookConfig } from './typescript.config';
+import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 
 /**
  * Branding-aware config function type
@@ -210,6 +234,19 @@ export interface SailsConfig {
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
 
+    // Miscellaneous configs
+    autoreload: AutoreloadConfig;
+    custom: CustomConfig;
+    dynamicconfig: DynamicConfigConfig;
+    dashboardtype: DashboardTypeConfig;
+    datapubs: DataPubsConfig;
+    workspacetype: WorkspaceTypeConfig;
+    lognamespace: LogNamespaceConfig;
+    redboxToCkan: RedboxToCkanConfig;
+    figshareAPIEnv: FigshareApiEnvConfig;
+    typescript: TypeScriptHookConfig;
+    custom_cache: CustomCacheConfig;
+
     // Auth-related configs
     auth: AuthConfig;
     passport: PassportConfig;
@@ -264,6 +301,16 @@ export const Config = {
     emailnotification,
     // Security configs with default values
     csp,
+    // Miscellaneous configs with default values
+    autoreload,
+    custom,
+    dynamicconfig,
+    workspacetype,
+    lognamespace,
+    redboxToCkan,
+    figshareAPIEnv,
+    typescript,
+    custom_cache,
 } as const;
 
 // Type for the Config object
