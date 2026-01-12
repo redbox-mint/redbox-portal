@@ -24,6 +24,18 @@ export * from './peopleSearch.config';
 export * from './reusableFormDefinitions.config';
 export * from './log.config';
 export * from './ng2.config';
+// Sails core configs
+export * from './blueprints.config';
+export * from './cors.config';
+export * from './security.config';
+export * from './globals.config';
+export * from './models.config';
+export * from './orm.config';
+export * from './policies.config';
+export * from './session.config';
+export * from './views.config';
+export * from './routes.config';
+export * from './bootstrap.config';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -44,6 +56,18 @@ import { peopleSearch, PeopleSearchConfig } from './peopleSearch.config';
 import { reusableFormDefinitions, ReusableFormDefinitionsConfig } from './reusableFormDefinitions.config';
 import { LogConfig } from './log.config';
 import { ng2, Ng2Config } from './ng2.config';
+// Sails core config imports
+import { blueprints, BlueprintsConfig } from './blueprints.config';
+import { cors, CorsConfig } from './cors.config';
+import { security, SecurityConfig } from './security.config';
+import { GlobalsConfig } from './globals.config';
+import { models, ModelsConfig } from './models.config';
+import { orm, OrmConfig } from './orm.config';
+import { PoliciesConfig } from './policies.config';
+import { session, SessionConfigOrDisabled } from './session.config';
+import { views, ViewsConfig } from './views.config';
+import { RoutesConfig } from './routes.config';
+import { BootstrapFunction } from './bootstrap.config';
 
 /**
  * Branding-aware config function type
@@ -95,6 +119,19 @@ export interface SailsConfig {
     log: LogConfig;
     ng2: Ng2Config;
 
+    // Sails core configs
+    blueprints: BlueprintsConfig;
+    cors: CorsConfig;
+    security: SecurityConfig;
+    globals: GlobalsConfig;
+    models: ModelsConfig;
+    orm: OrmConfig;
+    policies: PoliciesConfig;
+    session: SessionConfigOrDisabled;
+    views: ViewsConfig;
+    routes: RoutesConfig;
+    bootstrap: BootstrapFunction;
+
     // Auth-related configs
     auth: AuthConfig;
     passport: PassportConfig;
@@ -132,6 +169,14 @@ export const Config = {
     peopleSearch,
     reusableFormDefinitions,
     ng2,
+    // Sails core configs with default values
+    blueprints,
+    cors,
+    security,
+    models,
+    orm,
+    session,
+    views,
 } as const;
 
 // Type for the Config object
