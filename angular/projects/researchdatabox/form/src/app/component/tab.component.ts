@@ -148,7 +148,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         componentClass: TabContentComponent,
         compConfigJson: tab,
         lineagePaths: this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
-          angularComponents: [],
+          angularComponents: [`${tab?.name}`],
           dataModel: [],
           formConfig: ['component', 'config', 'tabs', index],
         }),
