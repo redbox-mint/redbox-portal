@@ -36,6 +36,18 @@ export * from './session.config';
 export * from './views.config';
 export * from './routes.config';
 export * from './bootstrap.config';
+// Feature configs
+export * from './queue.config';
+export * from './storage.config';
+export * from './orcid.config';
+export * from './mint.config';
+export * from './jsonld.config';
+export * from './emailnotification.config';
+export * from './agendaQueue.config';
+export * from './crontab.config';
+export * from './solr.config';
+export * from './form.config';
+export * from './webpack.config';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -68,6 +80,18 @@ import { session, SessionConfigOrDisabled } from './session.config';
 import { views, ViewsConfig } from './views.config';
 import { RoutesConfig } from './routes.config';
 import { BootstrapFunction } from './bootstrap.config';
+// Feature config imports
+import { queue, QueueConfig } from './queue.config';
+import { storage, StorageConfig } from './storage.config';
+import { orcid, OrcidConfig } from './orcid.config';
+import { mint, MintConfig } from './mint.config';
+import { jsonld, JsonLdConfig } from './jsonld.config';
+import { emailnotification, EmailNotificationConfig } from './emailnotification.config';
+import { AgendaQueueConfig } from './agendaQueue.config';
+import { CrontabConfig } from './crontab.config';
+import { SolrSearchConfig } from './solr.config';
+import { FormConfig } from './form.config';
+import { WebpackConfig } from './webpack.config';
 
 /**
  * Branding-aware config function type
@@ -132,6 +156,19 @@ export interface SailsConfig {
     routes: RoutesConfig;
     bootstrap: BootstrapFunction;
 
+    // Feature configs
+    queue: QueueConfig;
+    storage: StorageConfig;
+    orcid: OrcidConfig;
+    mint: MintConfig;
+    jsonld: JsonLdConfig;
+    emailnotification: EmailNotificationConfig;
+    agendaQueue: AgendaQueueConfig;
+    crontab: CrontabConfig;
+    solr: SolrSearchConfig;
+    form: FormConfig;
+    webpack: WebpackConfig;
+
     // Auth-related configs
     auth: AuthConfig;
     passport: PassportConfig;
@@ -177,6 +214,13 @@ export const Config = {
     orm,
     session,
     views,
+    // Feature configs with default values
+    queue,
+    storage,
+    orcid,
+    mint,
+    jsonld,
+    emailnotification,
 } as const;
 
 // Type for the Config object
