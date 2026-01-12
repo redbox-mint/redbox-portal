@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { contentSecurityPolicy } from '../../src/policies/contentSecurityPolicy';
 
 // Mock globals
-declare var sails: Sails.Application;
+declare var sails: any;
 
 (global as any).sails = {
     config: {},

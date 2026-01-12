@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { noCache } from '../../src/policies/noCache';
 
 // Mock sails
-declare var sails: Sails.Application;
+declare var sails: any;
 (global as any).sails = {
     config: {
         views: {
