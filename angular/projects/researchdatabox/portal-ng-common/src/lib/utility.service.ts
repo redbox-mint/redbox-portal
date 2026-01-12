@@ -22,6 +22,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 import { LoggerService } from './logger.service';
+import { guessType } from "@researchdatabox/sails-ng-common";
 /**
  * Utility service...
  *
@@ -413,8 +414,9 @@ export class UtilityService {
    * Dynamically import the javascript file at the url build from the branding, portal, and path parts.
    * @param brandingAndPortalUrl The branding and portal url.
    * @param urlPath The path parts.
+   * @param params The query string parts.
    */
-  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[]) {
+  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
     if (!brandingAndPortalUrl) {
       throw new Error("Must provide brandingAndPortalUrl");
     }
@@ -431,6 +433,21 @@ export class UtilityService {
 
     const ts = new Date().getTime().toString();
     url.searchParams.set('ts', ts);
+    url.searchParams.set('apiVersion', "2.0");
+
+    Object.entries(params?? {}).forEach(([key, value]) => {
+      // Remove any existing url param with matching key, set to the key value pair in params.
+      if (guessType(value) === "object") {
+        url.searchParams.set(key, JSON.stringify(value));
+      } else if (guessType(value) === "array") {
+        // Remove any existing param key, and append each array entry as a separate param.
+        url.searchParams.delete(key);
+        (value as Array<unknown>).forEach(val => url.searchParams.append(key, String(val)));
+      } else {
+        // For any other type, convert to string.
+        url.searchParams.set(key, String(value));
+      }
+    });
 
     const module = await import(url.toString());
     this.dynamicImportCache.set(rawUrl, module);

@@ -820,5 +820,6 @@
 	"@validator-error-required-true": "This field must be completed.",
 	"@validator-error-email": "Please enter a valid email address.",
 	"@validator-error-pattern": "Value does not match the pattern: {{description}}.",
-	"@validator-error-different-values": "The {{controlCount}} field(s) must have different values."
+	"@validator-error-different-values": "The {{controlCount}} field(s) must have different values.",
+	"@validator-error-orcid": "Please enter a valid ORCID identifier in the format: 0000-0000-0000-0000."
 }

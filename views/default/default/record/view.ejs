@@ -1,5 +1,28 @@
-
-<div class="row" id="loading">
+<% if (sails.config.enableNewForm) { %>
+  <!-- Next Gen Form enabled -->
+  <!-- TODO: Restore use of `appSelector` -->
+  <% let appName = 'form' %>
+  <div class="row"></div>
+  <div class="row">
+    <div class="col-xs-2"></div>
+    <div class="col-xs-8">
+    <redbox-form oid="<%= req.param('oid') %>" editMode="false"
+                 branding="<%= typeof branding == 'undefined'? data.branding : branding %>"
+                 portal="<%= typeof portal == 'undefined'? data.portal : portal %>"
+                 <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    </redbox-form>
+    </div>
+    <div class="col-xs-2"></div>
+  </div>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
+    type="module"></script>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+    type="module"></script>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+<% } else { %>
+  <!-- Legacy Form  -->
+<div class="row" id="loading" alt="<%= TranslationService.t('loading-alt-text') %>">
   <div class="col-xs-1">
   </div>
   <div class="col-xs-10">
@@ -27,6 +50,7 @@ var currentMinute = sails.config.startupMinute;
   <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
 <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/dmp/styles.bundle.css?ts=<%= currentMinute %>">
+<% } %>
 <% } %>
 <!-- app js and css bundle -->
 <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
