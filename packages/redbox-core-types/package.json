@@ -27,7 +27,9 @@
     "mini-css-extract-plugin": "^2.9.4",
     "copy-webpack-plugin": "^13.0.1",
     "css-minimizer-webpack-plugin": "^7.0.2",
-    "webpack": "^5.104.0"
+    "webpack": "^5.104.0",
+    "passport": "^0.7.0",
+    "skipper": "^0.9.5"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.1",

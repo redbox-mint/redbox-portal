@@ -82,7 +82,7 @@ import { datacite, DataciteConfig } from './datacite.config';
 import { vocab, VocabConfig } from './vocab.config';
 import { sockets, SocketsConfig } from './sockets.config';
 import { static_assets, StaticAssetsConfig } from './static_assets.config';
-import { HttpConfig } from './http.config';
+import { http, HttpConfig } from './http.config';
 import { i18n, I18nConfig } from './i18n.config';
 import { search, SearchConfig } from './search.config';
 import { namedQuery, NamedQueryConfig } from './namedQuery.config';
@@ -278,6 +278,7 @@ export const Config = {
     vocab,
     sockets,
     static_assets,
+    http,
     i18n,
     search,
     namedQuery,
