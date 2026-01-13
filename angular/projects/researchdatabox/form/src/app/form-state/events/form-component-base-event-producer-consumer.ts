@@ -4,17 +4,18 @@ import { AbstractControl } from '@angular/forms';
 import { inject } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bus.service';
-import { FormComponentEvent, FormComponentEventBase, FormComponentEventType } from './form-component-event.types';
-import { getObjectWithJsonPointer, JSONataQuerySource, ExpressionsConditionKindType, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormComponentEventBase, FormComponentEventType } from './form-component-event.types';
+import { JSONataQuerySource, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../../form.component';
 import { isEmpty as _isEmpty } from 'lodash-es';
 /**
  * Options for binding event consumers/producers to components.
  */
-export interface FormComponentEventOptions {
-	component: FormFieldBaseComponent<unknown>;
+export interface FormComponentEventBindingOptions {
+	component?: FormFieldBaseComponent<unknown>;
 	definition?: FormFieldCompMapEntry;
 	formComponent?: FormComponent;
+	customHandlerFn?: (event: FormComponentEventBase) => Promise<void>;
 }
 /**
  * Extended JSONata query source that includes event information.
@@ -40,7 +41,7 @@ export abstract class FormComponentEventBaseProducerConsumer {
 	protected subscriptions: Map<string, Subscription> = new Map();
 	protected componentDefQuerySource?: JSONataQuerySource;
 	protected formComp?: FormComponent;
-	protected options?: FormComponentEventOptions;
+	protected options?: FormComponentEventBindingOptions;
 	protected control?: AbstractControl;
 	protected expressions?: FormExpressionsConfigFrame[];
 
@@ -48,7 +49,7 @@ export abstract class FormComponentEventBaseProducerConsumer {
 		this.eventBus = eventBus;
 	}
 
-	abstract bind(options: FormComponentEventOptions): void;
+	abstract bind(options: FormComponentEventBindingOptions): void;
 
 	public set componentQuerySource(source: JSONataQuerySource | undefined) {
 		this.componentDefQuerySource = source;
@@ -76,12 +77,12 @@ export abstract class FormComponentEventBaseProducerConsumer {
    * @param options 
    * @returns 
    */
-	protected resolveFieldId(options: FormComponentEventOptions): string | undefined {
+	protected resolveFieldId(options: FormComponentEventBindingOptions): string | undefined {
 		return (
 			options.definition?.lineagePaths?.angularComponentsJsonPointer ||
 			options.definition?.compConfigJson?.name ||
 			options.definition?.name ||
-			options.component.formFieldConfigName()
+			options.component?.formFieldConfigName()
 		);
 	}
 	/**

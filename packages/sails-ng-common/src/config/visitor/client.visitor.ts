@@ -70,7 +70,7 @@ import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
 import {get as _get, isPlainObject as _isPlainObject} from "lodash";
 import {FieldModelDefinition} from "../field-model.model";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
+import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
@@ -501,9 +501,15 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
                     // delete the template to reduce payload size
                     delete (expr.config as any).template;
                 }
+                if (expr.config.conditionKind == ExpressionsConditionKind.JSONata || expr.config.conditionKind == ExpressionsConditionKind.JSONataQuery) {
+                    // delete 
+                    delete (expr.config as any).condition;
+                }
                 return expr;
             });
-            // delete item['expressions'];
+            if (item.expressions.length === 0) {
+                delete item['expressions'];
+            }
         }
         this.removePropsUndefined(item);
     }

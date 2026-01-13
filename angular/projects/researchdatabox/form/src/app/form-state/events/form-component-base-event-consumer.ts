@@ -1,11 +1,10 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
-import { FormComponentEvent, FormComponentEventTypeValue, FormComponentEventType } from './form-component-event.types';
-import { FormComponentEventBaseProducerConsumer, FormComponentEventOptions, FormComponentEventQuerySource } from './form-component-base-event-producer-consumer';
+import { FormComponentEvent, FormComponentEventTypeValue } from './form-component-event.types';
+import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions, FormComponentEventQuerySource } from './form-component-base-event-producer-consumer';
 import { FormExpressionsConfigFrame, getObjectWithJsonPointer, getLastSegmentFromJSONPointer, ExpressionsConditionKind, ExpressionsConditionKindType } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { AbstractControl } from '@angular/forms';
-import { concatMap, firstValueFrom } from 'rxjs';
 /**
  * Options main bag for matching events against conditions
  */
@@ -48,7 +47,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	/**
 	 * Connect the consumer to a component instance. Replaces any existing subscription.
 	 */
-	bind(options: FormComponentEventOptions): void {
+	bind(options: FormComponentEventBindingOptions): void {
 		this.destroy();
 		try {
 			this.setupEventConsumption(options, this.consumedEventType);				
@@ -180,36 +179,34 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @param options 
    * @param eventType 
    */
-	protected setupEventConsumption(options: FormComponentEventOptions, eventType: FormComponentEventTypeValue) {
+	protected setupEventConsumption(options: FormComponentEventBindingOptions, eventType: FormComponentEventTypeValue) {
 		this.options = options;
 	
 		const expressions: FormExpressionsConfigFrame[] | undefined  = options.definition?.expressions;
 		if (expressions === undefined || _isEmpty(expressions)) {
-			const msg = `${this.constructor.name}: No expressions defined for component '${options.component.formFieldConfigName()}'. Change events will not be consumed.`;
+			const msg = `${this.constructor.name}: No expressions defined for component '${options.component?.formFieldConfigName()}'. Change events will not be consumed.`;
 			this.loggerService.debug(msg, options.definition);
 			throw new Error(msg);
 		}	
 		this.expressions = expressions;
 		// FormControl is optional for some components
-		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
+		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
 		if (!control) {
-			this.loggerService.debug(`${this.constructor.name}: No form control found for component '${options.component.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+			this.loggerService.debug(`${this.constructor.name}: No form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
 		} else {
 			this.control = control;
 		}
 
 		this.setupQuerySourceUpdateListener();
 
-		const sub = this.eventBus.select$(eventType).pipe(
-			concatMap(async (event: FormComponentEvent) => {
-				const hasConditionMatch = await this.getMatchedExpressions(event, this.expressions!);
-				if (hasConditionMatch) {
-					for (const expr of hasConditionMatch) {
-						await this.consumeEvent(event, expr);
-					}
+		const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
+			const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
+			if (hasConditionMatches) {
+				for (const expr of hasConditionMatches) {
+					await this.consumeEvent(event, expr);
 				}
-			})
-		).subscribe();
+			}
+		});
 		this.subscriptions.set(eventType, sub);
 	}
   /**
@@ -248,7 +245,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 					event: event
 				};
 				// The querySource must be updated each time before evaluating the condition. The querySource is updated via subscription to the event bus, set up in `setupQuerySourceUpdateListener()` emitted via FormComponentEventType.FORM_DEFINITION_CHANGED.
-				// The challenge is that this may or may not have happened at this point.
+				// The challenge is that this may or may not have happened at this point. There's another event that fires that root form listens and recalculates the query source, so at this point should mitigate this risk.
 
 				hasMatchedCondition = await this.hasMatchedJSONataQueryCondition(matchOpts, expr);
       }

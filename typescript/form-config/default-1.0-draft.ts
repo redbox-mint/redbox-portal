@@ -62,10 +62,11 @@ const formConfig: FormConfigFrame = {
     // expressions: [
     //     {
     //         name: "runSomeOperationThatNeedsTheEntireFormData",
+    //         description: '',
     //         config: {
-    //             // source is undefined
-    //             // target is undefined
-    //             // context could be the FormComponent instance and data, etc.
+    //             template: ``,
+    //             condition: ``,
+    //             // target: ``
     //         }
     //     }
     // ],
@@ -110,6 +111,32 @@ const formConfig: FormConfigFrame = {
                                                 }
                                             }
                                         },
+                                        // {
+                                        //     name: 'debug_checkbox',
+                                        //     layout: {
+                                        //         class: 'DefaultLayout',
+                                        //         config: {
+                                        //             label: 'Debug Checkbox',
+                                        //             helpText: 'Checkbox some help text - single selection mode',
+                                        //         }
+                                        //     },
+                                        //     model: {
+                                        //         class: 'CheckboxInputModel',
+                                        //         config: {
+                                        //             defaultValue: 'debugging',
+                                        //         }
+                                        //     },
+                                        //     component: {
+                                        //         class: 'CheckboxInputComponent',
+                                        //         config: {
+                                        //             options: [
+                                        //                 { label: 'Debug', value: 'debugging' }
+                                        //             ],
+                                        //             tooltip: 'Checkbox tooltip',
+                                        //             multipleValues: false
+                                        //         }
+                                        //     }
+                                        // },
                                         {
                                             name: 'textarea_1',
                                             layout: {
@@ -261,8 +288,8 @@ const formConfig: FormConfigFrame = {
                                     layout: {
                                         class: 'DefaultLayout',
                                         config: {
-                                            label: 'Date some label',
-                                            helpText: 'Date some help text',
+                                            label: 'Date1',
+                                            helpText: 'Date1 some help text',
                                         }
                                     },
                                     model: {
@@ -272,7 +299,18 @@ const formConfig: FormConfigFrame = {
                                     },
                                     component: {
                                         class: 'DateInputComponent'
-                                    }
+                                    },
+                                    expressions: [
+                                        {
+                                            name: "listenToRadio1Change",
+                                            config: {
+                                                template: `value = "option2"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/radio_1::field.value.changed`,
+                                                target: `layout.visible`
+                                            }
+                                        }
+                                    ]
                                 },
                                 {
                                     name: 'date_2',
@@ -297,42 +335,78 @@ const formConfig: FormConfigFrame = {
                                 },
                                 {
                                     name: 'text_1_event',
-                                            model: {
-                                                class: 'SimpleInputModel',
-                                                config: {
-                                                    defaultValue: 'hello world!',
-                                                    validators: [
-                                                        {class: 'required'},
-                                                    ]
-                                                }
-                                            },
-                                            component: {
-                                                class: 'SimpleInputComponent'
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'TextField1 emitting events',
+                                            helpText: 'This is a help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'SimpleInputModel',
+                                        config: {
+                                            defaultValue: 'hello world!',
+                                            validators: [
+                                                {class: 'required'},
+                                            ]
+                                        }
+                                    },
+                                    component: {
+                                        class: 'SimpleInputComponent'
+                                    }
+                                },
+                                {
+                                    name: 'text_2',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'TextField2 with expression listening to text_1_event',
+                                            helpText: 'This is a help text',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'SimpleInputModel',
+                                        config: {
+                                            defaultValue: 'hello world 2!',
+                                            validators: [
+                                                // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                                                // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
+                                            ]
+                                        }
+                                    },
+                                    component: {
+                                        class: 'SimpleInputComponent'
+                                    },
+                                     expressions: [
+                                        {
+                                            name: "listenToText1Event",
+                                            config: {
+                                                template: `value & "__suffix"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
+                                                target: `model.value`
                                             }
                                         },
                                         {
-                                            name: 'text_2',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'TextField with default wrapper defined',
-                                                    helpText: 'This is a help text',
-                                                }
-                                            },
-                                            model: {
-                                                class: 'SimpleInputModel',
-                                                config: {
-                                                    defaultValue: 'hello world 2!',
-                                                    validators: [
-                                                        // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
-                                                        // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
-                                                    ]
-                                                }
-                                            },
-                                            component: {
-                                                class: 'SimpleInputComponent'
+                                            name: "listenToText1Event2",
+                                            config: {
+                                                template: `formData.text_2 & "__hasJSONata"`,
+                                                conditionKind: 'jsonata',
+                                                condition: `$contains($lowercase(formData.text_1_event), "jsonata")`,
+                                                target: `model.value`
                                             }
                                         },
+                                        {
+                                            name: "listenToRepeatable1",
+                                            config: {
+                                                conditionKind: 'jsonata_query',
+                                                condition: `$count(**[name="repeatable_textfield_1"].children) >= 2`,
+                                                template: `formData.text_2 & "__repeatableMoreThan2"`,
+                                                target: `model.value`
+                                            }
+                                        }
+                                    ]
+                                },
                                         {
                                             name: 'text_7',
                                             layout: {
@@ -366,11 +440,11 @@ const formConfig: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            expressions: {
-                                                'model.value': {
-                                                    template: `<%= _.get(model,'text_1_event','') %>`
-                                                }
-                                            }
+                                            // expressions: {
+                                            //     'model.value': {
+                                            //         template: `<%= _.get(model,'text_1_event','') %>`
+                                            //     }
+                                            // }
                                         },
                                         {
                                             name: 'text_2_event',
@@ -451,15 +525,15 @@ const formConfig: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            expressions: {
-                                                'layout.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                                    return false;
-                                                } else {
-                                                    return true;
-                                                } %>`
-                                                }
-                                            }
+                                            // expressions: {
+                                            //     'layout.visible': {
+                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                                            //         return false;
+                                            //     } else {
+                                            //         return true;
+                                            //     } %>`
+                                            //     }
+                                            // }
                                         },
                                     ]
                                 }
@@ -575,15 +649,15 @@ const formConfig: FormConfigFrame = {
                                                     ]
                                                 }
                                             },
-                                            expressions: {
-                                                'layout.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                            return false;
-                          } else {
-                            return true;
-                          } %>`
-                                                }
-                                            }
+                        //                     expressions: {
+                        //                         'layout.visible': {
+                        //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                        //     return false;
+                        //   } else {
+                        //     return true;
+                        //   } %>`
+                        //                         }
+                        //                     }
                                         },
                                         {
                                             name: 'repeatable_textfield_1',
@@ -641,15 +715,15 @@ const formConfig: FormConfigFrame = {
                                                     helpText: 'Repeatable component help text',
                                                 }
                                             },
-                                            expressions: {
-                                                'layout.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                                    return false;
-                                                } else {
-                                                    return true;
-                                                } %>`
-                                                }
-                                            }
+                                            // expressions: {
+                                            //     'layout.visible': {
+                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                                            //         return false;
+                                            //     } else {
+                                            //         return true;
+                                            //     } %>`
+                                            //     }
+                                            // }
                                         },
 
                                     ]

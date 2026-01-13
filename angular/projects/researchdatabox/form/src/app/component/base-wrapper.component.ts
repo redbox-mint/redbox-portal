@@ -173,7 +173,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   ): boolean {
     return !!entry && entry.component === instance;
   }
-
+  /**
+   * 
+   * Returns true if is a component
+   * 
+   * @param entry 
+   * @param instance 
+   * @returns 
+   */
   private shouldAttachValueChangeConsumer(
     entry: FormFieldCompMapEntry | undefined,
     instance: FormFieldBaseComponent<ValueType>

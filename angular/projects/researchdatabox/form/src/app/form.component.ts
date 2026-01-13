@@ -38,10 +38,11 @@ import { FormStatus, FormConfigFrame, JSONataQuerySource } from '@researchdatabo
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent,  FormComponentEventBase, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
+import { FormComponentValueChangeEventConsumer } from './form-state/events/';
 
 
 /**
@@ -179,8 +180,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       isReady: false,
       children: []
   };
-
+  /**
+   * The JSONata query source for component definitions
+   */
   componentDefQuerySource?: JSONataQuerySource;
+  /**
+   * The value change event consumer
+   */
+  private valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -385,9 +392,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // set the initial signal values...
     this.formGroupStatus.set(this.dataStatus);
     this.debugFormComponents.set(this.getDebugInfo());
-
+    // TODO: Placeholder for form-level expressions handling
+    // Init the change event consumer
+    // if (this.formDefMap?.formConfig.expressions){
+    //   this.valueChangeEventConsumer.bind({
+    //     formComponent: this,
+    //     customHandlerFn: async (event: FormComponentEventBase) => {
+    //       this.loggerService.debug(`${this.logName}: Value change event received: `, event);
+    //     }
+    //   });
+    // }
   }
-
   /**
    * Create the form group based on the form definition map.
    */

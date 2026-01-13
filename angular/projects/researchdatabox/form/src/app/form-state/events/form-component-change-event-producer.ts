@@ -1,7 +1,7 @@
 import { AbstractControl } from '@angular/forms';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldValueChangedEvent, FormComponentEventType } from './form-component-event.types';
-import { FormComponentEventBaseProducerConsumer, FormComponentEventOptions } from './form-component-base-event-producer-consumer';
+import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 
 /**
  * Wires `FormFieldBaseComponent` instances to the `FormComponentEventBus`.
@@ -26,18 +26,18 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	/**
 	 * Connect the producer to a component instance. Replaces any existing subscription.
 	 */
-	bind(options: FormComponentEventOptions): void {
+	bind(options: FormComponentEventBindingOptions): void {
 		this.destroy();
 		this.options = options;
-		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component.model?.formControl;
+		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
 		if (!control) {
-			this.loggerService.debug(`FormComponentChangeEventProducer: No form control found for component '${options.component.formFieldConfigName()}'. Change events will not be published.`, options.definition);
+			this.loggerService.debug(`FormComponentChangeEventProducer: No form control found for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 
 		const fieldId = this.resolveFieldId(options);
 		if (!fieldId) {
-			this.loggerService.debug(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component.formFieldConfigName()}'. Change events will not be published.`, options.definition);
+			this.loggerService.debug(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 

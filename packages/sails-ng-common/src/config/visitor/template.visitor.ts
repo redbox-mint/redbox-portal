@@ -85,6 +85,7 @@ export class TemplateFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
 
     visitFormConfig(item: FormConfigOutline) {
+        this.extractExpressions(item.expressions);
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
             this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);

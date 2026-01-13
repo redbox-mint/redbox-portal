@@ -20,7 +20,7 @@ describe("Client Visitor", async () => {
         const actual = visitor.startNewRecord(constructed);
 
         const stringified = JSON.stringify(actual);
-        expect(stringified).to.not.contain("expressions");
+
         expect(stringified).to.not.contain("constraints");
         expect(stringified).to.not.contain("defaultValue");
 
