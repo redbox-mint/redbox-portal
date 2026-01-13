@@ -96,6 +96,7 @@ import { ng2, Ng2Config } from './ng2.config';
 import { blueprints, BlueprintsConfig } from './blueprints.config';
 import { datastores, DatastoresConfig } from './datastores.config';
 import { cors, CorsConfig } from './cors.config';
+import { redboxSession, RedboxSessionConfig } from './redboxSession.config';
 import { security, SecurityConfig } from './security.config';
 import { globals, GlobalsConfig } from './globals.config';
 import { models, ModelsConfig } from './models.config';
@@ -120,7 +121,7 @@ import { WebpackConfig } from './webpack.config';
 // Security config imports
 import { csp, ContentSecurityPolicyConfig } from './csp.config';
 import { DomPurifyConfig } from './dompurify.config';
-import { RedboxSessionConfig } from './redboxSession.config';
+
 // Complex/Large config imports (interface-only)
 import { BrandingConfig } from './branding.config';
 import { BrandingConfigurationDefaultsConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
@@ -196,6 +197,7 @@ export interface SailsConfig {
     // Sails core configs
     blueprints: BlueprintsConfig;
     cors: CorsConfig;
+    redboxSession: RedboxSessionConfig;
     security: SecurityConfig;
     globals: GlobalsConfig;
     models: ModelsConfig;
@@ -222,7 +224,7 @@ export interface SailsConfig {
     // Security configs
     csp: ContentSecurityPolicyConfig;
     dompurify: DomPurifyConfig;
-    redboxSession: RedboxSessionConfig;
+
 
     // Complex/Large configs
     branding: BrandingConfig;
@@ -319,6 +321,7 @@ export const Config = {
     figshareAPIEnv,
     typescript,
     custom_cache,
+    redboxSession,
 } as const;
 
 // Type for the Config object

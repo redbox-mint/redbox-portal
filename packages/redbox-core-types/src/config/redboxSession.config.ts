@@ -1,68 +1,35 @@
 /**
- * ReDBox Session Config Interface
+ * ReDBox Session Configuration
  * (sails.config.redboxSession)
- * 
- * Custom session configuration for ReDBox.
- * Note: Uses process.env values at runtime, must stay as JS.
  */
 
-export interface RedboxSessionCookie {
-    /** Cookie max age in milliseconds */
-    maxAge?: number;
-
-    /** Cookie secure flag */
-    secure?: boolean;
-
-    /** Cookie httpOnly flag */
-    httpOnly?: boolean;
-
-    /** Cookie same site setting */
-    sameSite?: boolean | 'lax' | 'strict' | 'none';
-}
-
 export interface RedboxSessionConfig {
-    /** Session cookie name */
     name: string;
-
-    /** Session secret for signing */
     secret: string;
-
-    /** Session cookie configuration */
-    cookie?: RedboxSessionCookie;
-
-    /** Session adapter ('mongo' | 'redis' | 'memory') */
-    adapter?: string;
-
-    /** MongoDB connection URL for mongo adapter */
-    mongoUrl?: string;
-
-    /** Redis host */
+    adapter: string;
+    mongoUrl: string;
+    // Optional fields from comments
+    cookie?: {
+        maxAge?: number;
+    };
     host?: string;
-
-    /** Redis port */
     port?: number;
-
-    /** Redis TTL in seconds */
     ttl?: number;
-
-    /** Redis database number */
     db?: number;
-
-    /** Redis password */
     pass?: string;
-
-    /** Redis key prefix */
     prefix?: string;
-
-    /** MongoDB collection name */
     collection?: string;
-
-    /** Stringify session data */
     stringify?: boolean;
-
-    /** MongoDB options */
-    mongoOptions?: Record<string, unknown>;
+    mongoOptions?: {
+        server?: {
+            ssl?: boolean;
+        };
+    };
 }
 
-// Note: Default values use process.env at runtime.
-// The original config/redboxSession.js file must be kept for runtime.
+export const redboxSession: RedboxSessionConfig = {
+    name: "redbox.sid",
+    secret: process.env['sails__redboxSession_secret'] ? process.env['sails__redboxSession_secret'] : 'a7f06b2584ca1b8e456874024e95ec73',
+    adapter: process.env['sails__redboxSession_adapter'] ? process.env['sails__redboxSession_adapter'] : 'mongo',
+    mongoUrl: process.env['sails__redboxSession_mongoUrl'] ? process.env['sails__redboxSession_mongoUrl'] : 'mongodb://mongodb:27017/sessions',
+};
