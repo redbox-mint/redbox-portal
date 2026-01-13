@@ -13,7 +13,7 @@ import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {DefaultLayoutComponent} from "./default-layout.component";
-import { createFormDefinitionChangedEvent, FormComponentEventBus } from '../form-state';
+import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '../form-state';
 
 /**
  * Repeatable Form Field Component
@@ -156,7 +156,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     // Every time the lineage paths are rebuilt, the form definition has essentially changed. Sending an event to notify listeners.
     this.eventBus.publish(
-      createFormDefinitionChangedEvent({
+      createFormDefinitionChangeRequestEvent({
         sourceId: this.formFieldConfigName() || undefined
       })
     );

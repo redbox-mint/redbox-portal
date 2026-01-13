@@ -32,6 +32,14 @@ export interface FieldValueChangedEvent extends FieldScopedEventBase {
 }
 
 /**
+ * Form definition change request event
+ * Published when a component requests a change to the form definition
+ */
+export interface FormDefinitionChangeRequestEvent extends FormComponentEventBase {
+  readonly type: 'form.definition.change.request';
+}
+
+/**
  * Form definition changed event - a specialized event for notifying changes to the form definition (e.g. repeatable elements, etc. ). It is primarily used to rebuild the query source.
  */
 export interface FormDefinitionChangedEvent extends FormComponentEventBase {
@@ -136,6 +144,7 @@ export type FormComponentEvent =
   | FormSaveExecuteEvent
   | FormSaveSuccessEvent
   | FormSaveFailureEvent
+  | FormDefinitionChangeRequestEvent
   | FormDefinitionChangedEvent
   | FormDefinitionReadyEvent;
 
@@ -145,6 +154,7 @@ export type FormComponentEvent =
 export const FormComponentEventType = {
   FIELD_VALUE_CHANGED: 'field.value.changed' as const,
   FIELD_META_CHANGED: 'field.meta.changed' as const,
+  FORM_DEFINITION_CHANGE_REQUEST: 'form.definition.change.request' as const,
   FORM_DEFINITION_CHANGED: 'form.definition.changed' as const,
   FORM_DEFINITION_READY: 'form.definition.ready' as const,
   FIELD_DEPENDENCY_TRIGGER: 'field.dependency.trigger' as const,
@@ -164,6 +174,7 @@ export type FormComponentEventTypeValue = typeof FormComponentEventType[keyof ty
 export interface FormComponentEventMap {
   'field.value.changed': FieldValueChangedEvent;
   'field.meta.changed': FieldMetaChangedEvent;
+  'form.definition.change.request': FormDefinitionChangeRequestEvent;
   'form.definition.changed': FormDefinitionChangedEvent;
   'form.definition.ready': FormDefinitionReadyEvent;
   'field.dependency.trigger': FieldDependencyTriggerEvent;
@@ -216,7 +227,19 @@ export function createFieldMetaChangedEvent(
   );
 }
 
+/** request events
+ */
+export function createFormDefinitionChangeRequestEvent(
+  options: FormComponentEventOptions<FormDefinitionChangeRequestEvent>
+): FormComponentEventResult<FormDefinitionChangeRequestEvent> {
+  return createEventResult<FormDefinitionChangeRequestEvent>(
+    FormComponentEventType.FORM_DEFINITION_CHANGE_REQUEST,
+    options
+  );
+}
+
 /**
+ * Helper factory for creating form definition change
  * Helper factory for creating form definition changed events
  */
 export function createFormDefinitionChangedEvent(

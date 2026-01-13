@@ -38,7 +38,7 @@ import { FormStatus, FormConfigFrame, JSONataQuerySource } from '@researchdatabo
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
@@ -349,12 +349,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         await this.saveForm(force, targetStep, enabledValidationGroups);
       });
     // Listen for any changes components have made to their own definitions and update the query source
-    this.subMaps['componentDefChangesSub'] = this.eventBus
-      .select$(FormComponentEventType.FORM_DEFINITION_CHANGED)
-      .subscribe(() => {
+    this.subMaps['componentDefChangesRequestSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DEFINITION_CHANGE_REQUEST)
+      .subscribe((evt: FormComponentEvent) => {
         // This will only fire if the Form has been initialized and components loaded successfully
         if (this.componentsLoaded()) {
           this.setupQuerySource();
+          this.eventBus.publish(createFormDefinitionChangedEvent({
+            sourceId: evt.sourceId
+          }));
         }
       });
     
