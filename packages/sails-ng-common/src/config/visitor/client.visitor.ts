@@ -68,14 +68,13 @@ import {
 import {FormConstraintConfig} from "../form-component.model";
 import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
-import {get as _get, isPlainObject as _isPlainObject} from "lodash";
+import {get as _get, isPlainObject as _isPlainObject, map as _map} from "lodash";
 import {FieldModelDefinition} from "../field-model.model";
 import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
-import { map as _map } from "lodash-es";
 /**
  * The details needed to evaluate the constraint config.
  */
