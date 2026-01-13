@@ -90,7 +90,7 @@ import { action, ActionConfig } from './action.config';
 import { dynamicasset, DynamicAssetConfig } from './dynamicasset.config';
 import { peopleSearch, PeopleSearchConfig } from './peopleSearch.config';
 import { reusableFormDefinitions, ReusableFormDefinitionsConfig } from './reusableFormDefinitions.config';
-import { LogConfig } from './log.config';
+import { log, LogConfig } from './log.config';
 import { ng2, Ng2Config } from './ng2.config';
 // Sails core config imports
 import { blueprints, BlueprintsConfig } from './blueprints.config';
