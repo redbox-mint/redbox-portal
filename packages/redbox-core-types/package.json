@@ -23,7 +23,11 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sails-mongo": "^2.1.2",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "mini-css-extract-plugin": "^2.9.4",
+    "copy-webpack-plugin": "^13.0.1",
+    "css-minimizer-webpack-plugin": "^7.0.2",
+    "webpack": "^5.104.0"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.1",

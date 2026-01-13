@@ -117,10 +117,10 @@ import { agendaQueue, AgendaQueueConfig } from './agendaQueue.config';
 import { CrontabConfig } from './crontab.config';
 import { solr, SolrSearchConfig } from './solr.config';
 import { FormConfig } from './form.config';
-import { WebpackConfig } from './webpack.config';
+import { webpack, WebpackConfig } from './webpack.config';
 // Security config imports
 import { csp, ContentSecurityPolicyConfig } from './csp.config';
-import { DomPurifyConfig } from './dompurify.config';
+import { dompurify, DomPurifyConfig } from './dompurify.config';
 
 // Complex/Large config imports (interface-only)
 import { BrandingConfig } from './branding.config';
@@ -309,6 +309,7 @@ export const Config = {
     solr,
     // Security configs with default values
     csp,
+    dompurify,
     // Miscellaneous configs with default values
     autoreload,
     custom,
