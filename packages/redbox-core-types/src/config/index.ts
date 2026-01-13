@@ -24,6 +24,8 @@ export * from './peopleSearch.config';
 export * from './reusableFormDefinitions.config';
 export * from './log.config';
 export * from './ng2.config';
+// Auth config
+export * from './auth.config';
 // Sails core configs
 export * from './blueprints.config';
 export * from './cors.config';
@@ -122,15 +124,17 @@ import { webpack, WebpackConfig } from './webpack.config';
 import { csp, ContentSecurityPolicyConfig } from './csp.config';
 import { dompurify, DomPurifyConfig } from './dompurify.config';
 
+// Auth config import
+import { auth } from './auth.config';
 // Complex/Large config imports (interface-only)
-import { BrandingConfig } from './branding.config';
-import { BrandingConfigurationDefaultsConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
-import { RaidConfig } from './raid.config';
-import { ReportsConfig } from './report.config';
-import { FigshareApiConfig } from './figshareAPI.config';
-import { FigshareReDBoxFORMappingConfig } from './figshareRedboxFORMapping.config';
-import { RecordTypeConfig } from './recordtype.config';
-import { WorkflowConfig } from './workflow.config';
+import { BrandingConfig, branding } from './branding.config';
+import { BrandingConfigurationDefaultsConfig, AuthBootstrapConfig, brandingConfigurationDefaults } from './brandingConfigurationDefaults.config';
+import { RaidConfig, raid } from './raid.config';
+import { ReportsConfig, reports } from './report.config';
+import { FigshareApiConfig, figshareAPI } from './figshareAPI.config';
+import { FigshareReDBoxFORMappingConfig, figshareReDBoxFORMapping } from './figshareRedboxFORMapping.config';
+import { RecordTypeConfig, recordtype } from './recordtype.config';
+import { WorkflowConfig, workflow } from './workflow.config';
 // Miscellaneous config imports
 import { autoreload, AutoreloadConfig } from './autoreload.config';
 import { custom, CustomConfig } from './custom.config';
@@ -286,7 +290,11 @@ export const Config = {
     dynamicasset,
     peopleSearch,
     reusableFormDefinitions,
+    log,
     ng2,
+    webpack,
+    // Auth config
+    auth,
     // Sails core configs with default values
     blueprints,
     cors,
@@ -324,6 +332,14 @@ export const Config = {
     typescript,
     custom_cache,
     redboxSession,
+    brandingConfigurationDefaults,
+    reports,
+    branding,
+    raid,
+    recordtype,
+    workflow,
+    figshareAPI,
+    figshareReDBoxFORMapping,
 } as const;
 
 // Type for the Config object
