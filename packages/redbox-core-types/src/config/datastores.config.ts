@@ -1,50 +1,35 @@
 /**
- * Datastores Config Interface
- * Auto-generated from config/datastores.js
+ * Datastores Config
+ * (sails.config.datastores)
  * 
- * Note: The actual datastores configuration requires the sails-mongo adapter.
- * This file only provides TypeScript interfaces for type checking.
+ * Database adapter configuration for Sails.
  */
 
-/**
- * MongoDB datastore configuration
- */
-export interface MongoDatastore {
-    /** The Waterline/Sails adapter (requires runtime require('sails-mongo')) */
-    adapter: any;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sailsMongo = require('sails-mongo');
 
-    /** MongoDB connection URL */
+export interface DatastoreAdapterConfig {
+    adapter: unknown;
     url: string;
-
-    /** Optional: MongoDB authentication username */
+    // Optional connection properties
     user?: string;
-
-    /** Optional: MongoDB authentication password */
     password?: string;
-
-    /** Optional: Database name (can also be in URL) */
-    database?: string;
-
-    /** Optional: MongoDB host */
     host?: string;
-
-    /** Optional: MongoDB port */
     port?: number;
+    database?: string;
 }
 
-/**
- * Datastores configuration interface for sails.config.datastores
- */
 export interface DatastoresConfig {
-    /** Primary MongoDB datastore */
-    mongodb: MongoDatastore;
-
-    /** ReDBox storage MongoDB datastore */
-    redboxStorage: MongoDatastore;
-
-    /** Allow additional named datastores */
-    [datastoreName: string]: MongoDatastore;
+    [datastoreName: string]: DatastoreAdapterConfig;
 }
 
-// Note: Default values are NOT exported as they require runtime require('sails-mongo').
-// The original config/datastores.js file must be kept for runtime functionality.
+export const datastores: DatastoresConfig = {
+    mongodb: {
+        adapter: sailsMongo,
+        url: 'mongodb://localhost:27017/redbox-portal'
+    },
+    redboxStorage: {
+        adapter: sailsMongo,
+        url: 'mongodb://mongodb:27017/redbox-storage'
+    }
+};

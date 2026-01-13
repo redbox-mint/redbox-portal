@@ -80,7 +80,6 @@ import { appmode, AppModeConfig } from './appmode.config';
 import { record, RecordConfig } from './record.config';
 import { datacite, DataciteConfig } from './datacite.config';
 import { vocab, VocabConfig } from './vocab.config';
-import { DatastoresConfig } from './datastores.config';
 import { sockets, SocketsConfig } from './sockets.config';
 import { static_assets, StaticAssetsConfig } from './static_assets.config';
 import { HttpConfig } from './http.config';
@@ -95,9 +94,10 @@ import { LogConfig } from './log.config';
 import { ng2, Ng2Config } from './ng2.config';
 // Sails core config imports
 import { blueprints, BlueprintsConfig } from './blueprints.config';
+import { datastores, DatastoresConfig } from './datastores.config';
 import { cors, CorsConfig } from './cors.config';
 import { security, SecurityConfig } from './security.config';
-import { GlobalsConfig } from './globals.config';
+import { globals, GlobalsConfig } from './globals.config';
 import { models, ModelsConfig } from './models.config';
 import { orm, OrmConfig } from './orm.config';
 import { policies, PoliciesConfig } from './policies.config';
@@ -288,6 +288,8 @@ export const Config = {
     blueprints,
     cors,
     security,
+    globals,
+    datastores,
     models,
     orm,
     session,

@@ -1,24 +1,28 @@
 /**
- * Globals Config Interface
+ * Globals Config
  * (sails.config.globals)
  * 
- * Configure which global variables Sails exposes.
- * Note: This file contains require() calls and must stay as JS for runtime.
+ * Sails globals configuration.
+ * Exports lodash and async as globals.
  */
 
+import * as _ from 'lodash';
+import * as async from 'async';
+
 export interface GlobalsConfig {
-    /** Expose lodash as global _ */
-    _: any | boolean;
-
-    /** Expose async library as global */
-    async: any | boolean;
-
-    /** Expose models globally */
+    /** Lodash library */
+    _: typeof _;
+    /** Async library */
+    async: typeof async;
+    /** Enable global models */
     models: boolean;
-
-    /** Expose sails globally */
+    /** Enable global sails object */
     sails: boolean;
 }
 
-// Note: Default values require runtime require() calls.
-// The original config/globals.js file must be kept.
+export const globals: GlobalsConfig = {
+    _: _,
+    async: async,
+    models: true,
+    sails: true
+};

@@ -14,11 +14,15 @@
     "@types/express": "^4.17.21",
     "@types/lodash": "^4.17.17",
     "@types/node": "^24.3.0",
+    "async": "^3.2.6",
     "glob": "^13.0.0",
     "lodash": "^4.17.21",
     "luxon": "^3.7.1",
+    "pino": "^10.1.0",
+    "pino-logfmt": "^1.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sails-mongo": "^2.1.2",
     "typescript": "^5.0.4"
   },
   "devDependencies": {
