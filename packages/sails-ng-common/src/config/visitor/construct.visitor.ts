@@ -150,7 +150,7 @@ import {
     isTypeFormConfig,
 } from "../form-types.outline";
 import {ReusableFormDefinitions} from "../dictionary.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {FormModesConfig} from "../shared.outline";
 import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
 import {FormOverride} from "../form-override.model";

@@ -66,7 +66,7 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {FormExpressionsConfigFrame} from "../form-component.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {FormConfigPathHelper} from "./common.model";
 
 

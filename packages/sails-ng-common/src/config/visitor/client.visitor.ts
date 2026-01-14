@@ -70,7 +70,7 @@ import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {FormConfig} from "../form-config.model";
 import {FormConfigVisitor} from "./base.model";
 import {FormModesConfig} from "../shared.outline";

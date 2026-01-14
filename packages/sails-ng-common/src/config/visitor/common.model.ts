@@ -1,5 +1,5 @@
 import {get as _get} from "lodash";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {FieldLayoutConfigFrame} from "../field-layout.outline";
 import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldModelConfigFrame} from "../field-model.outline";
