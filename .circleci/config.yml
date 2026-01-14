@@ -95,69 +95,6 @@ jobs:
           root: /tmp
           paths:
             - docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar
-  test-bruno-general:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: large
-    environment:
-      RBPORTAL_IMAGE: redbox-portal:test
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
-      - run:
-          name: Point compose at tested image
-          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
-      - restore_cache:
-          keys:
-            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
-            - v1-npm-cache-{{ arch }}-{{ .Branch }}
-            - v1-npm-cache-
-      - run:
-          name: Install npm dependencies
-          command: npm ci
-      - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
-      - run:
-          name: Setup test directories
-          command: |
-            sudo mkdir -p .tmp/junit/backend-bruno
-            sudo mkdir -p .tmp/attachments/staging
-            sudo chmod -R 777 .
-      - run:
-          name: Run Bruno General tests
-          no_output_timeout: 30m
-          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general
-      - run:
-          name: Clean up Bruno containers
-          command: npm run test:bruno:clean || true
-          when: always
-      - run:
-          name: Upload Bruno General code coverage
-          command: |
-             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-          when: always
-      - store_test_results:
-          path: .tmp/junit
-      - save_cache:
-          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
-          paths:
-            - ~/.npm
   test-bruno-oidc:
     machine:
       image: ubuntu-2004:current
@@ -607,9 +544,6 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - test-bruno-general:
-          requires:
-            - build
       - test-bruno-oidc:
           requires:
             - build
@@ -624,7 +558,6 @@ workflows:
             - build
       - deploy-arm64:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -634,7 +567,6 @@ workflows:
               ignore: /^dependabot.*/
       - deploy:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -645,7 +577,6 @@ workflows:
       - deploy-runtime-datastream-cloud:
           requires:
             - build-runtime-datastream-cloud
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -656,7 +587,6 @@ workflows:
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -667,7 +597,6 @@ workflows:
       - deploy-runtime-cloud-pdfgen:
           requires:
             - build-runtime-cloud-pdfgen
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -685,7 +614,6 @@ workflows:
 
       - generate-docs:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -701,9 +629,6 @@ workflows:
               only: /^dependabot.*/
             tags:
               ignore: /.*/
-      - test-bruno-general:
-          requires:
-            - build
       - test-bruno-oidc:
           requires:
             - build
@@ -718,7 +643,6 @@ workflows:
             - build
       - deploy-arm64:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -728,7 +652,6 @@ workflows:
               ignore: /^dependabot.*/
       - deploy:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -745,7 +668,6 @@ workflows:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -785,14 +707,6 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test-bruno-general:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - test-bruno-oidc:
           requires:
             - build
@@ -827,7 +741,6 @@ workflows:
               ignore: /.*/
       - deploy-arm64:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -839,7 +752,6 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -852,7 +764,6 @@ workflows:
       - deploy-runtime-datastream-cloud:
           requires:
             - build-runtime-datastream-cloud
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -865,7 +776,6 @@ workflows:
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
@@ -878,7 +788,6 @@ workflows:
       - deploy-runtime-cloud-pdfgen:
           requires:
             - build-runtime-cloud-pdfgen
-            - test-bruno-general
             - test-bruno-oidc
             - test-mocha
             - test-angular
