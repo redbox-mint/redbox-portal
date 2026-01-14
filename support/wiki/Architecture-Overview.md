@@ -1,0 +1,76 @@
+# Architecture Overview
+
+## High-Level Structure
+
+RedBox Portal is a hybrid application combining a **Sails.js** (Node.js) backend with an **Angular** frontend. It is designed to assist researchers and institutions in planning, creating, and publishing research data assets.
+
+### Core Technologies
+
+- **Backend**: [Sails.js](https://sailsjs.com/) (v1.5) framework.
+- **Frontend**: Angular (bundled via Webpack).
+- **Database**: MongoDB (via `sails-mongo`).
+- **Language**: TypeScript (Backend and Frontend).
+- **Package Management**: npm with local packages in `packages/`.
+- **Infrastructure**: Docker and Docker Compose for development and testing.
+
+## Directory Structure
+
+| Directory | Description |
+|---|---|
+| `api/` | Sails.js API definitions (Controllers, Models, Policies, Services). |
+| `config/` | Sails.js configuration files. |
+| `angular/` | Angular frontend application source code. |
+| `packages/` | Local npm packages used by the application (e.g., `redbox-core-types`, `sails-ng-common`). |
+| `typescript/` | Backend TypeScript source code. |
+| `support/` | Supporting scripts, documentation, and test configurations. |
+| `test/` | Frontend and specific package tests. Backend tests seem to be in `support/integration-testing` or `typescript/test`. |
+| `views/` | Server-side view templates (EJS). |
+
+## Key Packages (`packages/`)
+
+The application is modularized using local packages to share code between the backend and frontend, and to isolate specific functionality.
+
+| Package | Name | Description |
+|---|---|---|
+| `redbox-core-types` | `@researchdatabox/redbox-core-types` | Shared TypeScript type definitions and core business logic models used across the system. |
+| `sails-ng-common` | `@researchdatabox/sails-ng-common` | Common models and logic shared explicitly between the Sails.js API and the Angular frontend. |
+| `raido` | `@researchdatabox/raido-openapi-generated-node` | Auto-generated Node.js client for communicating with the external Raido API. Generated via OpenAPI tools. |
+| `redbox-hook-kit` | `redbox-hook-kit` | Utilities for creating and managing RedBox hooks. |
+
+## Frontend Architecture (`angular/`)
+
+The frontend is a modern Angular application located in the `angular/` directory.
+
+- **Workspace**: It is structured as an Angular CLI workspace.
+- **Projects**: Contains the main application and potential libraries in `angular/projects/`.
+- **State Management**: Uses **NgRx** (`@ngrx/store`, `@ngrx/effects`) for reactive state management.
+- **Forms**: Utilizes **Formly** (`@ngx-formly/core`) for dynamic form generation.
+- **UI Framework**: Built with **Bootstrap** and `ngx-bootstrap`.
+- **Dependencies**: Depends on local `sails-ng-common` for shared data models.
+
+## Root Project Role
+
+The root directory acts as the **Sails.js Application Host** and the **Monorepo Orchestrator**.
+
+- **Sails.js Host**: It contains the `api/` directory (Controllers, Policies) and `config/` that define the running server.
+- **Orchestrator**: The root `package.json` contains scripts to:
+    - Compile all local packages (`npm run compile:all`).
+    - Build the Angular frontend (`npm run compile:ng`).
+    - Run the development environment via Docker (`npm run dev:run`).
+    - Execute tests (`npm run test:*`).
+
+## Data Flow
+
+1. **Client Request**: Incoming HTTP requests are handled by Sails.js (Express-based).
+2. **Authentication**: Passport.js handles authentication (Local, JWT, OIDC).
+3. **Controllers**: `api/controllers` handle business logic.
+4. **Services**: Specialized logic (e.g., `AppConfigService`) is encapsulated in services.
+5. **Persistence**: Data is stored in MongoDB using Waterline ORM models defined in `api/models`.
+
+## Build System
+
+- **Backend**: TypeScript is compiled using `tsc`.
+- **Frontend**: Webpack builds the Angular application.
+- **Docker**: Dockerfiles define runtime and test environments.
+
+See `package.json` `scripts` for build commands (e.g., `npm run compile:all`).
