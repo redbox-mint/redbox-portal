@@ -574,6 +574,26 @@ jobs:
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
             gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
+      - run:
+          name: Publish wiki docs
+          command: |
+            git config user.email "ci-build@redboxresearchdata.com.au"
+            git config user.name "ci-build"
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            tmp_dir=$(mktemp -d)
+            git clone git@github.com:redbox-mint/redbox-portal.wiki.git "$tmp_dir"
+            git -C "$tmp_dir" rm -r --ignore-unmatch .
+            cp -a support/wiki/. "$tmp_dir"/
+            cd "$tmp_dir"
+            git add -A
+            if git diff --cached --quiet; then
+              echo "Wiki up to date; no changes to push."
+            else
+              git commit -m "[ci skip] Update wiki docs"
+              branch=$(git symbolic-ref --short HEAD)
+              git push origin "$branch"
+            fi
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -897,4 +917,3 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-
