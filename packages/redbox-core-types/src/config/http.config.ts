@@ -219,12 +219,12 @@ export const http: HttpConfig = {
             const originalRedirect = res.redirect;
 
             // Patch the redirect function so that it sets the no-cache headers
-            res.redirect = function (arg1: any, arg2?: any) {
+            res.redirect = function (...args: any[]) {
                 res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.set('Pragma', 'no-cache');
                 res.set('Expires', '0');
 
-                return originalRedirect.call(this, arg1, arg2);
+                return originalRedirect.apply(this, args);
             } as any;
 
             return next();
