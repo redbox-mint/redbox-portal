@@ -29,7 +29,8 @@
     "css-minimizer-webpack-plugin": "^7.0.2",
     "webpack": "^5.104.0",
     "passport": "^0.7.0",
-    "skipper": "^0.9.5"
+    "skipper": "^0.9.5",
+    "@researchdatabox/sails-ng-common": "file:../sails-ng-common"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.1",

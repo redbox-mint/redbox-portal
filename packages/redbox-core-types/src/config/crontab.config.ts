@@ -1,9 +1,8 @@
 /**
- * Crontab Config Interface
+ * Crontab Config Interface and Default Values
  * (sails.config.crontab)
  * 
  * Scheduled task configuration.
- * Note: This file contains a function and must stay as JS for runtime.
  */
 
 export interface CronJob {
@@ -22,5 +21,12 @@ export interface CrontabConfig {
     crons: () => CronJob[];
 }
 
-// Note: Default values contain a function.
-// The original config/crontab.js file must be kept for runtime.
+export const crontab: CrontabConfig = {
+    enabled: false, // enable this to register async checker at bootstrap
+    crons: function () {
+        return [
+            { interval: '1 * * * * * ', service: 'workspaceasyncservice', method: 'loop' }
+        ];
+    }
+};
+

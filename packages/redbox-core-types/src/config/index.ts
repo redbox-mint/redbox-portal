@@ -117,7 +117,7 @@ import { mint, MintConfig } from './mint.config';
 import { jsonld, JsonLdConfig } from './jsonld.config';
 import { emailnotification, EmailNotificationConfig } from './emailnotification.config';
 import { agendaQueue, AgendaQueueConfig } from './agendaQueue.config';
-import { CrontabConfig } from './crontab.config';
+import { crontab, CrontabConfig } from './crontab.config';
 import { solr, SolrSearchConfig } from './solr.config';
 import { FormConfig } from './form.config';
 import { webpack, WebpackConfig } from './webpack.config';
@@ -318,6 +318,7 @@ export const Config = {
     jsonld,
     emailnotification,
     agendaQueue,
+    crontab,
     solr,
     // Security configs with default values
     csp,
