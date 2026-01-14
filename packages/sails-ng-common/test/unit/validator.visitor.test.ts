@@ -5,7 +5,7 @@ import {
     formValidatorsSharedDefinitions,
     FormValidatorSummaryErrors
 } from "../../src";
-import {ValidatorFormConfigVisitor} from "../../src/config/visitor/validator.visitor";
+import {ValidatorFormConfigVisitor} from "../../src";
 import {logger} from "./helpers";
 import {formConfigExample1} from "./example-data";
 
@@ -85,10 +85,14 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(formConfig, "edit");
+        const constructed = constructor.start({data: formConfig, formMode: "edit"});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.startNewRecord(constructed, ["minimumCreate", "minimumUpdate"], formValidatorsSharedDefinitions);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["minimumCreate", "minimumUpdate"],
+            validatorDefinitions: formValidatorsSharedDefinitions
+        });
         expect(actual).to.eql(expected);
     });
     it(`should run only expected validators for initial membership all`, async function () {
@@ -169,10 +173,14 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(formConfig, "edit");
+        const constructed = constructor.start({data: formConfig, formMode: "edit"});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.startNewRecord(constructed, ["transitionDraftToSubmitted"], formValidatorsSharedDefinitions);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["transitionDraftToSubmitted"],
+            validatorDefinitions: formValidatorsSharedDefinitions
+        });
         expect(actual).to.eql(expected);
     });
     it(`should run expected validators for existing record`, async function () {
@@ -236,10 +244,14 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(formConfig, "edit");
+        const constructed = constructor.start({data: formConfig, formMode: "edit", record});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.startExistingRecord(constructed, ["all"], formValidatorsSharedDefinitions, record);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["all"],
+            validatorDefinitions: formValidatorsSharedDefinitions,
+        });
         expect(actual).to.eql(expected);
     });
     it(`should run all the validators in example form config with empty existing record`, async function () {
@@ -311,13 +323,17 @@ describe("Validator Visitor", async () => {
                 "message": null,
                 "parents": [],
             },
-    ];
+        ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(args, "edit");
+        const constructed = constructor.start({data: args, formMode: "edit", record});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.startExistingRecord(constructed, ["all"], formValidatorsSharedDefinitions, record);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["all"],
+            validatorDefinitions: formValidatorsSharedDefinitions,
+        });
         expect(actual).to.eql(expected);
     });
 });

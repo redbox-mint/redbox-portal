@@ -19,15 +19,16 @@
 
 import { Observable, from, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, last } from 'rxjs/operators';
-import { ListAPIResponse, ReportConfig, ReportModel, ReportFilterType, ReportSource, ReportResult, SearchService, Services as services } from '@researchdatabox/redbox-core-types';
+import { ListAPIResponse, ReportConfig, ReportModel, ReportFilterType, ReportSource, ReportResult, SearchService, Services as services, BrandingModel } from '@researchdatabox/redbox-core-types';
 import { DateTime } from 'luxon';
 import {
   Sails,
   Model
 } from "sails";
-import { ReportDto } from '@researchdatabox/sails-ng-common';
+import { ReportDto, TemplateCompileInput, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import { stringify } from 'csv-stringify/sync';
 import { NamedQueryResponseRecord } from './NamedQueryService'
+import Handlebars from "handlebars";
 
 declare var sails: Sails;
 declare var Report: Model;
@@ -46,6 +47,10 @@ export module Services {
   export class Reports extends services.Core.Service {
 
     searchService: SearchService;
+    // Cache for compiled Handlebars templates (keyed by template string)
+    private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
+    // Flag to track if helpers are registered
+    private helpersRegistered: boolean = false;
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -55,6 +60,7 @@ export module Services {
       'getResults',
       'getCSVResult',
       'getReportDto',
+      'extractReportTemplates',
       //exported only for unit testing
       'getDataRows',
       'getCSVHeaderRow'
@@ -358,19 +364,107 @@ export module Services {
       return null;
     }
 
-    runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
-      // TO-DO: deprecate numberFormat as it can be accessed via util
-      let imports = _.extend({ data: data, config: config, DateTime: DateTime, field: field, util: this, _: _ }, this);
-      imports = _.merge(imports, additionalImports);
-      const templateData = { imports: imports };
-      const template = _.template(config.template, templateData);
-      const templateRes = template();
-      // added ability to parse the string template result into JSON
-      // requirement: template must return a valid JSON string object
-      if (config.json == true && !_.isEmpty(templateRes)) {
-        return JSON.parse(templateRes);
+    /**
+     * Ensure shared Handlebars helpers are registered.
+     */
+    private ensureHelpersRegistered() {
+      if (!this.helpersRegistered) {
+        registerSharedHandlebarsHelpers(Handlebars);
+        this.helpersRegistered = true;
+        sails.log.verbose('ReportsService: Registered shared Handlebars helpers');
       }
-      return templateRes;
+    }
+
+    /**
+     * Get or compile a Handlebars template.
+     * Uses a cache to avoid recompiling the same template multiple times.
+     */
+    private getCompiledTemplate(templateString: string): HandlebarsTemplateDelegate {
+      this.ensureHelpersRegistered();
+      
+      if (!this.compiledTemplates.has(templateString)) {
+        const compiled = Handlebars.compile(templateString);
+        this.compiledTemplates.set(templateString, compiled);
+      }
+      return this.compiledTemplates.get(templateString)!;
+    }
+
+    /**
+     * Run a Handlebars template with the provided data context.
+     * This replaces the old lodash template execution.
+     * 
+     * @param data The data context for the template
+     * @param config Configuration object containing the template string
+     * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
+     * @param field Optional field data (deprecated, for backward compat)
+     */
+    runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
+      try {
+        const template = this.getCompiledTemplate(config.template);
+        // Build context compatible with the new Handlebars templates
+        // The data is provided as the root context
+        const context = _.merge({}, data, additionalImports);
+        const templateRes = template(context);
+        
+        // added ability to parse the string template result into JSON
+        // requirement: template must return a valid JSON string object
+        if (config.json == true && !_.isEmpty(templateRes)) {
+          return JSON.parse(templateRes);
+        }
+        return templateRes;
+      } catch (error) {
+        sails.log.error(`ReportsService: Error running template: ${error}`);
+        return '';
+      }
+    }
+
+    /**
+     * Extract templates from report configuration for pre-compilation.
+     * Converts report column templates to TemplateCompileInput format for Handlebars pre-compilation.
+     * 
+     * Key structure: [reportName, 'columns', columnIndex, templateKind]
+     * where templateKind is 'render' for UI display or 'export' for CSV export
+     * 
+     * @param brand The branding model
+     * @param reportName The name of the report
+     * @returns Array of templates ready for compilation
+     */
+    public async extractReportTemplates(brand: BrandingModel, reportName: string): Promise<TemplateCompileInput[]> {
+      const entries: TemplateCompileInput[] = [];
+
+      const report = await this.get(brand, reportName);
+      if (!report) {
+        sails.log.warn(`ReportsService: Report '${reportName}' not found for template extraction`);
+        return entries;
+      }
+
+      const columns = report.columns || [];
+      sails.log.verbose(`ReportsService: Extracting templates from ${columns.length} columns for report '${reportName}'`);
+
+      for (let i = 0; i < columns.length; i++) {
+        const col = columns[i];
+
+        // Extract render template (for UI display)
+        if (!_.isEmpty(col.template)) {
+          entries.push({
+            key: [reportName, 'columns', i.toString(), 'render'],
+            kind: 'handlebars',
+            value: col.template
+          });
+        }
+
+        // Extract export template (for CSV export) - only if different from render
+        if (!_.isEmpty(col.exportTemplate)) {
+          entries.push({
+            key: [reportName, 'columns', i.toString(), 'export'],
+            kind: 'handlebars',
+            value: col.exportTemplate
+          });
+        }
+      }
+
+      sails.log.verbose(`ReportsService: Extracted ${entries.length} templates for report '${reportName}'`);
+      return entries;
     }
 
     public getCSVHeaderRow(report: any): string[] {

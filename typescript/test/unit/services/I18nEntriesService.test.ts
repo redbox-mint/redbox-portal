@@ -33,17 +33,17 @@ describe('I18nEntriesService', function () {
 
   async function cleanup() {
     try {
-      if (branding && branding.id) {
+      if (branding?.id) {
         await I18nTranslation.destroy({ branding: branding.id }).fetch();
       }
     } catch (e) { /* ignore */ }
     try {
-      if (branding && branding.id) {
+      if (branding?.id) {
         await I18nBundle.destroy({ branding: branding.id }).fetch();
       }
     } catch (e) { /* ignore */ }
     try {
-      if (branding && branding.id) {
+      if (branding?.id) {
         await BrandingConfig.destroy({ id: branding.id }).fetch();
       }
     } catch (e) { /* ignore */ }
@@ -65,7 +65,7 @@ describe('I18nEntriesService', function () {
     const bundle = await I18nEntriesService.setBundle(branding, locale, ns, dataV1, undefined, { overwriteEntries: true });
   expect(bundle).to.be.ok;
   expect(bundle).to.have.property('data');
-  expect(bundle && bundle.data && bundle.data.section && bundle.data.section.title).to.equal('Hello');
+  expect(bundle?.data?.section?.title).to.equal('Hello');
 
     const got = await I18nEntriesService.getBundle(branding, locale, ns);
     expect(got).to.be.ok;
@@ -100,7 +100,7 @@ describe('I18nEntriesService', function () {
 
   const b = await I18nEntriesService.getBundle(branding, locale, ns);
   expect(b).to.be.ok;
-  expect(b && b.data && b.data.section && b.data.section.title).to.equal('World');
+  expect(b?.data?.section?.title).to.equal('World');
   });
 
   it('listEntries supports keyPrefix filtering', async function () {
@@ -143,6 +143,25 @@ describe('I18nEntriesService', function () {
     expect(note).to.have.property('category', 'General');
   });
 
+  it('syncEntriesFromBundle accepts bundle-like objects and defaults empty values', async function () {
+    const objectNs = `${ns}-object-sync`;
+    const data = { section: { title: 'FromObject', empty: '', nullish: null } };
+
+    await I18nEntriesService.syncEntriesFromBundle({ branding: branding.id, locale, namespace: objectNs, data }, true);
+
+    const title = await I18nEntriesService.getEntry(branding, locale, objectNs, 'section.title');
+    expect(title).to.have.property('value', 'FromObject');
+
+    const empty = await I18nEntriesService.getEntry({ _id: branding.id } as any, locale, objectNs, 'section.empty');
+    expect(empty).to.have.property('value', 'section.empty');
+
+    const nullish = await I18nEntriesService.getEntry(branding.id as any, locale, objectNs, 'section.nullish');
+    expect(nullish).to.have.property('value', 'section.nullish');
+
+    const bundle = await I18nEntriesService.getBundle(branding.id as any, locale, objectNs);
+    expect(bundle).to.be.ok;
+  });
+
   it('deleteEntry removes an entry', async function () {
   // Re-create the key (it may have been pruned during syncEntriesFromBundle overwrite phase)
   await I18nEntriesService.setEntry(branding, locale, ns, 'other.test', 'X');
@@ -160,8 +179,43 @@ describe('I18nEntriesService', function () {
     expect(b).to.have.property('branding', branding.id);
   });
 
-  it('bootstrap runs without throwing (skips if defaults missing)', async function () {
-    await I18nEntriesService.bootstrap();
+  it('bootstrap merges defaults into existing bundles', async function () {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const testLocale = `zz-i18n-${Date.now()}`;
+    const testNamespace = 'translation';
+    const localesDir = path.join(sails.config.appPath, 'language-defaults');
+    const localeDir = path.join(localesDir, testLocale);
+    const defaults = { section: { title: 'Default Title', extra: 'Added' } };
+    const filePath = path.join(localeDir, `${testNamespace}.json`);
+    const originalGetBrand = BrandingService.getBrand;
+
+    fs.mkdirSync(localeDir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(defaults));
+
+    try {
+      // Point bootstrap at the test branding so we can assert against the same DB rows.
+      BrandingService.getBrand = (name) => (name === 'default' ? branding : originalGetBrand?.call(BrandingService, name));
+
+      await I18nEntriesService.setBundle(
+        branding,
+        testLocale,
+        testNamespace,
+        { section: { title: 'Existing Title' } },
+        undefined,
+        { overwriteEntries: true }
+      );
+
+      await I18nEntriesService.bootstrap([testLocale]);
+
+      const merged = await I18nEntriesService.getBundle(branding, testLocale, testNamespace);
+      expect(merged).to.be.ok;
+      expect(merged?.data?.section?.title).to.equal('Existing Title');
+      expect(merged?.data?.section?.extra).to.equal('Added');
+    } finally {
+      BrandingService.getBrand = originalGetBrand;
+      try { fs.rmSync(localeDir, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+    }
   });
 
   it('updateBundleEnabled enables and disables bundles correctly', async function () {

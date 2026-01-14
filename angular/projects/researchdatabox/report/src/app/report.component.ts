@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
 import { RecordSource } from '@researchdatabox/portal-ng-common';
 import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
@@ -50,16 +50,20 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   paginationMaxSize: number = 10;
   // See https://moment.github.io/luxon/docs/manual/zones.html#specifying-a-zone
   dateParamTz: string = 'utc';
+  // Branding and portal for template loading
+  branding: string = '';
+  portal: string = '';
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(ReportService) protected reportService: ReportService,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
+    @Inject(HandlebarsTemplateService) private handlebarsTemplateService: HandlebarsTemplateService,
     @Inject(ElementRef) elementRef: ElementRef
   ) {
     super();
-    this.initDependencies = [this.translationService, this.reportService];
+    this.initDependencies = [this.translationService, this.reportService, this.handlebarsTemplateService];
     this.reportName = elementRef.nativeElement.getAttribute('reportName');
     this.loggerService.debug(`'${this.appName} - ${this.reportName}' waiting for deps to init...`);
   }
@@ -86,6 +90,19 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.recordsPerPage = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'recordsPerPage', this.recordsPerPage);
     this.dateParamTz = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'dateParamTz', this.dateParamTz);
     this.paginationMaxSize = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'paginationMaxSize', this.paginationMaxSize);
+    
+    // Extract branding and portal from the URL for template loading
+    this.branding = sysConfig.branding || '';
+    this.portal = sysConfig.portal || '';
+    
+    // Load pre-compiled Handlebars templates for this report
+    try {
+      await this.handlebarsTemplateService.loadReportTemplates(this.branding, this.portal, this.reportName);
+      this.loggerService.debug(`'${this.appName}': Loaded templates for report '${this.reportName}'`);
+    } catch (error) {
+      this.loggerService.error(`'${this.appName}': Failed to load templates for report '${this.reportName}':`, error);
+    }
+
     this.report = await this.reportService.getReportConfig(this.reportName);
     this.tableHeaders = this.report.columns;
     this.initTracker.reportLoaded = true;

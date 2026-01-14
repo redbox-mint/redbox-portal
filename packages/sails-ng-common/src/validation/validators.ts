@@ -311,6 +311,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionControlNamesKey = "controlNames";
       const optionControlNamesValue = formValidatorGetDefinitionArray(config, optionControlNamesKey);
       return (control) => {
+        // TODO: fix how control values are obtained - need to use full angular component path
         const controls = (optionControlNamesValue ?? [])
           ?.filter(i => i !== null && i !== undefined)
           ?.map(n => control?.get(n?.toString())) ?? [];
@@ -374,6 +375,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       };
     },
   },
+  // Validates an ORCID identifier. Details on the ORCID format and checksum can be found at https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier
   {
     class: "orcid",
     message: "@validator-error-orcid",
@@ -388,9 +390,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           return null; // don't validate empty values
         }
 
-        const value = control.value.toString().replace(/-/g, '');
+        let value = control.value.toString();
 
-        if (value.length !== 16 || !/^\d{15}[\dX]$/i.test(value)) {
+        // Validate format: either xxxx-xxxx-xxxx-xxxx or xxxxxxxxxxxxxxxx, last digit can be X or x
+        if (!/^(\d{4}-\d{4}-\d{4}-\d{3}[\dXx]|\d{15}[\dXx])$/.test(value)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
@@ -400,6 +403,20 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
             },
           };
         }
+
+        value = value.replace(/-/g, '');
+
+        if (value.length !== 16) {
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                actual: control.value,
+              },
+            },
+          };
+        }
+
 
         const baseDigits = value.substring(0, 15);
         const checkDigit = value.substring(15);
@@ -413,7 +430,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         const result = (12 - remainder) % 11;
         const calculatedCheckDigit = result === 10 ? "X" : result.toString();
 
-        if (checkDigit !== calculatedCheckDigit) {
+        if (checkDigit.toUpperCase() !== calculatedCheckDigit) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
