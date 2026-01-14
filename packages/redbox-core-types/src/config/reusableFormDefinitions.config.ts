@@ -1,38 +1,21 @@
 /**
- * Reusable Form Definitions Config Interface and Default Values
- * Auto-generated from config/reusableFormDefinitions.js
+ * Reusable Form Definitions Config
  * 
  * Re-usable, server-side only, component templates.
  * Used as defaults for properties not defined.
  * The 'name' property for these templates can be used as the value
  * in the 'templateName' property in form component definitions.
+ *
+ * Think about how this could work if clients are allowed to define templates and store in db...
  */
 
-export interface ReusableFormComponentConfig {
-    type?: string;
-    componentDefinitions?: ReusableFormDefinition[];
-    [key: string]: unknown;
-}
+import { ReusableFormDefinitions } from "@researchdatabox/sails-ng-common";
 
-export interface ReusableFormComponent {
-    class: string;
-    config: ReusableFormComponentConfig;
-}
+// Re-export the type for convenience
+export { ReusableFormDefinitions };
 
-export interface ReusableFormDefinition {
-    name: string;
-    component: ReusableFormComponent;
-    overrides?: {
-        reusableFormName?: string;
-        replaceName?: string;
-    };
-}
-
-export interface ReusableFormDefinitionsConfig {
-    [templateName: string]: ReusableFormDefinition[];
-}
-
-export const reusableFormDefinitions: ReusableFormDefinitionsConfig = {
+export const reusableFormDefinitions: ReusableFormDefinitions = {
+    // definition of a reusable form config - standard component definitions
     // The standard people field
     "standard-contributor-field": [
         {
@@ -58,24 +41,29 @@ export const reusableFormDefinitions: ReusableFormDefinitionsConfig = {
             }
         },
     ],
-    // Definition of a reusable form config that refers to another reusable form config
+    // TODO: The standard people fields - ci, data manager, supervisor, contributor.
+    // definition of a reusable form config that refers to another reusable form config
+    // the component definition can be either a standard component def or the 'reusableName' format
     "standard-people-fields": [
         {
-            // This element in the array is replaced by the 3 items in the "standard-contributor-field" array
+            // this element in the array is replaced by the 3 items in the "standard-contributor-field" array
             overrides: { reusableFormName: "standard-contributor-field" },
+            // Name does not matter, this array element will be replaced
             name: "",
             component: {
                 class: "ReusableComponent",
                 config: {
                     componentDefinitions: [
                         {
-                            // For the item in the array that matches the match name, change the name to replace
+                            // for the item in the array that matches the match name, change the name to replace
+                            // merge all other properties, preferring the definitions here
                             overrides: { replaceName: "contributor_ci_name" },
                             name: "name",
                             component: { class: "ContentComponent", config: {} },
                         },
                         {
-                            // Refer to the item without changing it
+                            // refer to the item without changing it
+                            // this is useful for referring to an item that has nested components that will be changed
                             name: "orcid",
                             component: {
                                 class: "GroupComponent",
@@ -101,6 +89,6 @@ export const reusableFormDefinitions: ReusableFormDefinitionsConfig = {
             component: { class: "SimpleInputComponent", config: { type: "text" } }
         }
     ],
-    // The standard project info fields
+    // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
     "standard-project-info-fields": [],
 };

@@ -75,6 +75,7 @@ export * from './redboxToCkan.config';
 export * from './figshareAPIEnv.config';
 export * from './typescript.config';
 export * from './custom_cache.config';
+export * from './validators.config';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -91,7 +92,7 @@ import { namedQuery, NamedQueryConfig } from './namedQuery.config';
 import { action, ActionConfig } from './action.config';
 import { dynamicasset, DynamicAssetConfig } from './dynamicasset.config';
 import { peopleSearch, PeopleSearchConfig } from './peopleSearch.config';
-import { reusableFormDefinitions, ReusableFormDefinitionsConfig } from './reusableFormDefinitions.config';
+import { reusableFormDefinitions, ReusableFormDefinitions } from './reusableFormDefinitions.config';
 import { log, LogConfig } from './log.config';
 import { ng2, Ng2Config } from './ng2.config';
 // Sails core config imports
@@ -147,6 +148,7 @@ import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
 import { figshareAPIEnv, FigshareApiEnvConfig } from './figshareAPIEnv.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
+import { validators, ValidatorsConfig } from './validators.config';
 
 /**
  * Branding-aware config function type
@@ -194,7 +196,7 @@ export interface SailsConfig {
     action: ActionConfig;
     dynamicasset: DynamicAssetConfig;
     peopleSearch: PeopleSearchConfig;
-    reusableFormDefinitions: ReusableFormDefinitionsConfig;
+    reusableFormDefinitions: ReusableFormDefinitions;
     log: LogConfig;
     ng2: Ng2Config;
 
@@ -252,6 +254,7 @@ export interface SailsConfig {
     figshareAPIEnv: FigshareApiEnvConfig;
     typescript: TypeScriptHookConfig;
     custom_cache: CustomCacheConfig;
+    validators: ValidatorsConfig;
 
     // Auth-related configs
     auth: AuthConfig;
@@ -340,6 +343,7 @@ export const Config = {
     workflow,
     figshareAPI,
     figshareReDBoxFORMapping,
+    validators,
 } as const;
 
 // Type for the Config object
