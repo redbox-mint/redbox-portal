@@ -1,5 +1,6 @@
 /**
- * Reusable Form Definitions Config
+ * Reusable Form Definitions Config Interface and Default Values
+ * 
  * 
  * Re-usable, server-side only, component templates.
  * Used as defaults for properties not defined.

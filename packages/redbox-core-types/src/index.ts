@@ -80,3 +80,6 @@ export { Responses };
 // Config types and default values
 export * from './config';
 export { Config, SailsConfig } from './config';
+
+// Bootstrap functions
+export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
