@@ -1,29 +1,46 @@
-<h1>
-<a href="http://www.redboxresearchdata.com.au"><img alt="ReDBox Logo" src="https://github.com/redbox-mint/redbox-portal/raw/master/assets/images/logo.png"/></a>
-</h1>
+# ReDBox Portal
 
 [![Build Status](https://circleci.com/gh/redbox-mint/redbox-portal.svg?style=svg)](https://circleci.com/gh/redbox-mint/redbox-portal)
 [![codecov](https://codecov.io/gh/redbox-mint/redbox-portal/branch/master/graph/badge.svg)](https://codecov.io/gh/redbox-mint/redbox-portal)
 
-ReDBox is an open source Research Data Management platform that assists researchers and institutions to plan, create and publish their research data assets.
+ReDBox (Research Data Box) is an open-source Research Data Management platform that assists researchers and institutions in planning, creating, and publishing research data assets.
+
 ReDBox is one of the most popular research data management tools in Australia. It is currently in use across 11 universities in Australia and New Zealand. ReDBox supports the Australian research community to describe and share information about research data collections. It assists data custodians in meeting institutional data management policies, applying the requirements of the [Australian Code for the Responsible Conduct of Research](https://www.nhmrc.gov.au/guidelines-publications/r39), and publishing to [Research Data Australia](http://researchdata.ands.org.au/) (RDA), the national research data discovery system maintained by the [Australian Research Data Commons](http://ardc.org.au/) (ARDC).
 
 The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) leads the ReDBox development initiative and provides several services including a support subscription service to institutions.
 
-## Getting Started
 
-For information on the prerequisites, installation, and configuration, please visit our [Redbox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki).
+## Documentation
 
-## Usage
+- **[Architecture](support/wiki/Architecture-Overview.md)**: High-level structure and design.
+- **[Coding Standards](support/wiki/Coding-Standards-and-Conventions.md)**: Conventions and style guides.
+- **[Testing](support/wiki/ReDBox-Automated-Tests.md)**: Strategies and commands for running tests.
+- **[Contributing](CONTRIBUTING.md)**: Guidelines for submitting changes.
 
-For detailed instructions on how to use the Redbox Portal, including features and functionalities, refer to our [User Guide](https://github.com/redbox-mint/redbox-portal/wiki/User-Guide) in the Redbox Portal Wiki.
+## Quick Start
 
-## Contributing
+### Prerequisites
+- Node.js (v24.x recommended)
+- Docker & Docker Compose
 
-We welcome contributions from the community! For guidelines on contributing to the Redbox Portal, please check out our [Contribution Guidelines](https://github.com/redbox-mint/redbox-portal/blob/master/CONTRIBUTING.md).
+### Development using Docker
+1.  **Install Dependencies**:
+    ```bash
+    npm ci
+    npm run compile:all
+    ```
+2.  **Start Dev Environment**:
+    ```bash
+    npm run dev:run
+    ```
+    This spins up the application and dependencies (MongoDB, etc.) using Docker Compose.
 
-## Development
+### Running Tests
+- **Backend Mocha Tests**: `npm run test:mocha`
+- **Bruno API Tests**: `npm run test:bruno`
+- **Angular Tests**: `npm run test:angular`
 
-For development documentation and guidelines, please refer to our [Development Guide](https://github.com/redbox-mint/redbox-portal/wiki/Development-Guide) in the Redbox Portal Wiki.
+For detailed testing instructions, see [support/wiki/ReDBox-Automated-Tests.md](support/wiki/ReDBox-Automated-Tests.md).
 
-For further assistance or to report issues, please visit our [Issues](https://github.com/redbox-mint/redbox-portal/issues) section.
+## Support
+For more information, visit the [Redbox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki).
