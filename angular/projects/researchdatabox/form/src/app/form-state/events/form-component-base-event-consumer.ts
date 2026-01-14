@@ -77,7 +77,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			return undefined;
 		}
 		try {
-			this.compiledItemsCache = await this.formComp.getCompiledItem();
+			this.compiledItemsCache = await this.formComp.getFormCompiledItems();
 			return this.compiledItemsCache;
 		} catch (error) {
 			this.loggerService.error(`${this.constructor.name}: Error getting compiled items.`, error);

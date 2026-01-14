@@ -1,6 +1,5 @@
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormModesConfig} from "../shared.outline";
+import {get as _get, cloneDeep as _cloneDeep, isPlainObject as _isPlainObject, map as _map} from 'lodash';
+import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -67,9 +66,6 @@ import {
 } from "../component/date-input.outline";
 import {FormConstraintConfig} from "../form-component.model";
 import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
-import {get as _get, isPlainObject as _isPlainObject, map as _map} from "lodash";
-import {FieldModelDefinition} from "../field-model.model";
 import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
@@ -92,62 +88,80 @@ export type NameConstraints = {
      */
     model: boolean,
 };
+import {FormConfig} from "../form-config.model";
+import {FormConfigVisitor} from "./base.model";
+import {FormModesConfig} from "../shared.outline";
+import {FormConfigPathHelper} from "./common.model";
+import {isTypeWithComponentDefinitions} from "../form-types.outline";
+import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
+import {guessType} from "../helpers";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
  *
- * This process does a few things:
- * - removes fields the user does not have permissions to access, or are not relevant to the client, or where the property value is 'undefined'
- * - generates client-side fields that are constructed from the server-side fields
- * - populate the value from the defaultValue properties if no record or the provided record metadata
+ * This visitor performs the tasks to make the form config suitable for the client:
+ * - remove fields with constraints that are not met by the provided formMode or userRoles
+ * - remove expressions, as these must be processed by the server and retrieved by the client separately
+ * - remove fields that have value 'undefined'
+ * - remove repeatable.model.config.value items that have no matching component
+ * - remove repeatable.elementTemplate.model.config.newEntryValue items that have no matching component
  *
- * TODO:
- * - use the field component config property 'defaultComponentCssClasses' to set the component css classes, then remove the property
- * - use the form config property 'defaultLayoutComponent' to set the default layout, then remove the property
- * - use the form config property 'defaultComponentConfig' to set the default component config, then remove the property
- * - use the various 'viewCssClasses' and 'editCssClasses' to set the css classes depending on the form mode, then remove these properties
- * - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
+ * TODO: future improvements to the client form config visitor:
+ *  - use the field component config property 'defaultComponentCssClasses' to set the component css classes, then remove the property
+ *  - use the form config property 'defaultLayoutComponent' to set the default layout, then remove the property
+ *  - use the form config property 'defaultComponentConfig' to set the default component config, then remove the property
+ *  - use the various 'viewCssClasses' and 'editCssClasses' to set the css classes depending on the form mode, then remove these properties
+ *  - use the various 'wrapperCssClasses' and 'hostCssClasses' to set the css classes in the relevant config, then remove these properties??
  */
-export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
+export class ClientFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "ClientFormConfigVisitor";
-    private formMode: FormModesConfig = "view";
-    private userRoles: string[] = [];
-    private recordValues: Record<string, unknown> | null = null;
 
-    private result: FormConfigFrame = {name: '', componentDefinitions: []};
-    private constraintPath: NameConstraints[] = [];
+    private clientFormConfig: FormConfigOutline;
+    private formMode: FormModesConfig;
+    private userRoles: string[];
+
+    private constraintPath: FormConstraintConfig[];
+
+    private formConfigPathHelper: FormConfigPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-    }
 
-    startExistingRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[], recordData?: Record<string, unknown>): FormConfigFrame {
-        // The current record data, default to null.
-        this.recordValues = recordData ?? null;
+        this.clientFormConfig = new FormConfig();
+        this.formMode = "view";
+        this.userRoles = [];
 
-        return this.start(form, formMode, userRoles);
-    }
-
-    startNewRecord(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]): FormConfigFrame {
-        // Use the defaultValues from the form config as the record values.
-        const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
-        this.recordValues = defaultValueVisitor.start(form);
-
-        return this.start(form, formMode, userRoles);
-    }
-
-    protected start(form: FormConfigOutline, formMode?: FormModesConfig, userRoles?: string[]) {
-        // The current context mode, default to no mode.
-        this.formMode = formMode ?? "view";
-
-        // The current user's roles, default to no roles.
-        this.userRoles = userRoles || [];
-
-        this.resetCurrentPath();
         this.constraintPath = [];
-        this.result = form;
-        form.accept(this);
-        return this.result;
+
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+    }
+
+    /**
+     * Start the visitor.
+     *
+     * Note that `options.form` will be modified, and is the same as the return value.
+     * It is implemented this way because the class instance methods are needed and functions are not cloned.
+     *
+     * @param options Configure the visitor.
+     * @param options.form The constructed form.
+     * @param options.formMode The currently active form mode.
+     * @param options.userRoles The current user's roles.
+     */
+    start(options: {
+        form: FormConfigOutline;
+        formMode?: FormModesConfig;
+        userRoles?: string[];
+    }) {
+        this.clientFormConfig = options.form;
+        this.formMode = options.formMode ?? "view";
+        this.userRoles = options.userRoles ?? [];
+
+        this.constraintPath = [];
+        this.formConfigPathHelper.reset();
+
+        this.clientFormConfig.accept(this);
+
+        return this.clientFormConfig;
     }
 
     visitFormConfig(item: FormConfigOutline): void {
@@ -156,7 +170,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const that = this;
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            that.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
         item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
 
@@ -178,13 +192,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -195,13 +203,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -211,7 +213,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         this.processFieldComponentDefinition(item);
 
         if (item.config?.elementTemplate) {
-            this.acceptCurrentPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+            this.formConfigPathHelper.acceptFormConfigPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
         }
     }
 
@@ -224,13 +226,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if the element template is empty, this is an invalid component
@@ -238,6 +234,12 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         if (!this.hasObjectProps(item.component?.config?.elementTemplate)) {
             this.removePropsAll(item);
         }
+
+        // Constraints may remove some components.
+        // The data model items in 'repeatable.model.config.value' and
+        // 'repeatable.elementTemplate.model.config.newEntryValue'
+        // need to be updated to reflect any changes in components.
+        this.updateRepeatableDataModels(item);
     }
 
     /* Validation Summary */
@@ -247,13 +249,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -266,7 +262,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const that = this;
         (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            that.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
         if (item.config) {
             item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
@@ -278,13 +274,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if there are no components, this is an invalid component
@@ -301,7 +291,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -310,13 +300,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if there are no tabs, this is an invalid component
@@ -333,7 +317,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -342,13 +326,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
 
         // if there are no components, this is an invalid component
@@ -365,13 +343,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -386,13 +358,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -413,13 +379,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -434,13 +394,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -455,13 +409,7 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
@@ -476,40 +424,31 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        const that = this;
-        this.acceptCheckConstraintsCurrentPath(
-            item,
-            () => {
-                that.acceptFormComponentDefinition(item);
-            }
-        )
+        this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }
 
     /* Shared */
 
     protected processFormComponentDefinition(item: FormComponentDefinitionOutline) {
+        // Constraint define the criteria for including a component.
+        // The client has no need for the constraints.
         if ('constraints' in item) {
             delete item['constraints'];
         }
+        // Expressions must be compiled on the server, then retrieved by the client.
+        // The raw expressions must not be available to the client.
         if ('expressions' in item) {
             // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
             item.expressions = _map(item.expressions, (expr) => {
                 expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
-                if (expr.config.hasTemplate) {
-                    // delete the template to reduce payload size
-                    delete (expr.config as any).template;
-                }
-                if (expr.config.conditionKind == ExpressionsConditionKind.JSONata || expr.config.conditionKind == ExpressionsConditionKind.JSONataQuery) {
-                    // delete 
-                    delete (expr.config as any).condition;
-                }
                 return expr;
             });
             if (item.expressions.length === 0) {
                 delete item['expressions'];
             }
         }
+        this.logger.info(`${this.logName}: Processed FormComponentDefinition '${item.name}'`, JSON.stringify(item.expressions, null, 2));
         this.removePropsUndefined(item);
     }
 
@@ -519,8 +458,6 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
     }
 
     protected processFieldModelDefinition(item: FieldModelDefinitionOutline<unknown>) {
-        this.setModelValue(item);
-
         this.removePropsUndefined(item);
         this.removePropsUndefined(item?.config ?? {});
     }
@@ -549,53 +486,35 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         const currentUserRoles = Array.from(new Set(this.userRoles.filter(i => !!i)));
         const constraints = this.constraintPath
         const requiredRoles = Array.from(new Set(constraints
-            ?.map(b => b?.constraints?.authorization?.allowRoles ?? [])
+            ?.map(b => b?.authorization?.allowRoles ?? [])
             ?.filter(i => i.length > 0) ?? []));
 
         // The current user must have at least one of the roles required by each component.
-        const isAllowed = requiredRoles?.every(i => {
+        return requiredRoles?.every(i => {
             const isArray = Array.isArray(i);
             const hasElements = i.length > 0;
             const hasAtLeastOneUserRole = hasElements && currentUserRoles.some(c => i.includes(c));
             return (isArray && hasElements && hasAtLeastOneUserRole) || !isArray || !hasElements;
         });
-
-        // for debugging:
-        // if (!isAllowed) {
-        //     const c = currentUserRoles.sort().join(', ');
-        //     const r = requiredRoles.sort().join(', ');
-        //     this.logger.debug(`ClientFormConfigVisitor - access denied for form component definition authorization, current: '${c}', required: '${r}'`);
-        // }
-
-        return isAllowed;
     }
 
     protected isAllowedByFormMode(): boolean {
         const currentContextMode = this.formMode;
         const constraints = this.constraintPath;
         const requiredModes = Array.from(new Set(constraints
-            ?.map(b => b?.constraints?.allowModes ?? [])
+            ?.map(b => b?.allowModes ?? [])
             ?.filter(i => i.length > 0) ?? []));
 
         // The allowed modes must include the form mode.
-        const isAllowed = requiredModes?.every(i => {
+        return requiredModes?.every(i => {
             const isArray = Array.isArray(i);
             const hasElements = i.length > 0;
             const hasMode = hasElements && currentContextMode && i.includes(currentContextMode);
             return (isArray && hasElements && hasMode) || !isArray || !hasElements;
         });
-
-        // for debugging:
-        // const r = requiredModes.sort().join(', ');
-        // this.logger.debug(`ClientFormConfigVisitor - access ${isAllowed ? 'allowed' : 'denied'} for form component definition mode, current: '${currentContextMode}', required: '${r}'`);
-
-        return isAllowed;
     }
 
-    protected acceptCheckConstraintsCurrentPath(
-        item: AvailableFormComponentDefinitionOutlines,
-        action: () => void,
-    ) {
+    protected acceptCheckConstraintsCurrentPath(item: AvailableFormComponentDefinitionOutlines) {
         const currentConstraintPath = [...this.constraintPath];
         try {
             // add constraints to constraintPath before and after processing components
@@ -604,20 +523,13 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
                 item.constraints !== undefined
                 && this.hasObjectProps(item.constraints)
             ) {
-                this.constraintPath = [
-                    ...currentConstraintPath,
-                    {
-                        name: item.name,
-                        constraints: item.constraints,
-                        model: this.hasObjectProps(item.model)
-                    },
-                ];
+                this.constraintPath = [...currentConstraintPath, item.constraints];
             }
 
             const allowedByUserRoles = this.isAllowedByUserRoles();
             const allowedByFormMode = this.isAllowedByFormMode();
             if (allowedByUserRoles && allowedByFormMode) {
-                action();
+                this.formConfigPathHelper.acceptFormComponentDefinition(item);
             } else {
                 this.removePropsAll(item)
             }
@@ -629,35 +541,109 @@ export class ClientFormConfigVisitor extends CurrentPathFormConfigVisitor {
         }
     }
 
-    protected setModelValue(item: FieldModelDefinition<unknown>) {
-        if (item?.config?.value !== undefined) {
-            throw new Error(`ClientFormConfigVisitor - in the field model config '{config:{value: "[some value]"}}', 'value' is for the client only, use 'defaultValue' on the server instead: ${JSON.stringify(item)}`);
-        }
-
-        // Set an empty config if the form config didn't include one.
-        if (item.config === null || item.config === undefined) {
-            item.config = {};
-        }
-
-        // Set the config value from the record values.
-        const recordValues = this.recordValues && _isPlainObject(this.recordValues) ? this.recordValues : {};
-        const path = this.constraintPath?.filter(i => !!i && i.model)?.map(i => i?.name) ?? [];
-        const value = _get(recordValues, path, undefined);
-        item.config.value = value;
-
-        // for debugging:
-        // this.logger.debug(`ClientFormConfigVisitor setModelValue path: '${path}' value: '${JSON.stringify(value)}' available: ${JSON.stringify(this.recordValues)}`);
-
-        // Remove the defaultValue property.
-        if (item?.config && 'defaultValue' in item.config) {
-            delete item.config.defaultValue;
-        }
-    }
-
-    protected hasObjectProps(item: any) {
-        if (item === null || item === undefined){
+    protected hasObjectProps(item: any): boolean {
+        if (item === null || item === undefined) {
             return false;
         }
         return Object.keys(item).length > 0;
+    }
+
+    /**
+     * The data model items in 'repeatable.model.value' and 'repeatable.elementTemplate.model.config.newEntryValue'
+     * need to reflect any components removed via constraints.
+     * The item's data models will be updated to match the components.
+     * @param item The repeatable form component.
+     * @protected
+     */
+    protected updateRepeatableDataModels(item: RepeatableFormComponentDefinitionOutline): void {
+        const elementTemplate = item.component?.config?.elementTemplate;
+        const elementTemplateCompConfig = elementTemplate?.component?.config;
+
+        if (!isTypeWithComponentDefinitions(elementTemplateCompConfig)) {
+            // The elementTemplate does not have nested components. Nothing to update.
+            return;
+        }
+
+        // Build the data model schema from the components.
+        // TODO: This depends on the repeatable model being set.
+        const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
+        const elementTemplateFormConfig = new FormConfig();
+        elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
+        const elementTemplateSchema = schemaVisitor.start({form: elementTemplateFormConfig});
+
+        // Remove any data model items that are not present in the schema.
+        const toProcess = [{path: [], schema: elementTemplateSchema}];
+
+        const itemValue = item.model?.config?.value;
+        (itemValue ?? []).forEach(value => this.updateRepeatableDataModel(toProcess, value));
+
+        const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
+        this.updateRepeatableDataModel(toProcess, newEntryValue);
+    }
+
+    /**
+     * Update a value using the array of path and schema items.
+     * @param toProcess The array of path and schema items.
+     * @param value The value to compare to the paths and schemas.
+     * @protected
+     */
+    protected updateRepeatableDataModel(
+        toProcess: { path: string[], schema: Record<string, unknown> }[],
+        value: unknown
+    ): void {
+        const processing = [...toProcess];
+        while (processing.length > 0) {
+            const current = processing.shift();
+
+            // Ignore empty item
+            if (current === undefined || current === null) {
+                continue;
+            }
+
+            const path = current.path;
+            const schema = current.schema;
+
+            const currentValue = path.length > 0 ? _get(value, path) : value;
+            const currentValueType = guessType(currentValue);
+
+            const errMsg1 = `Component and data model do not match. Component at '${JSON.stringify(path)}' expected`;
+            const errMsg2 = `but got '${currentValueType}':`;
+            for (const [schemaKey, schemaValue] of Object.entries(schema)) {
+                const schemaCurrent = schemaValue as Record<string, unknown>;
+                switch (schemaKey) {
+                    case "properties":
+                        if (currentValueType !== "object") {
+                            throw new Error(`${errMsg1} an object, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                        }
+                        // Remove names missing in the schema.
+                        // Add names in the schema to the to-process array.
+                        const schemaNames = Object.keys(schemaCurrent);
+                        Object.keys(currentValue).forEach(name => {
+                            if (!schemaNames.includes(name)) {
+                                delete currentValue[name];
+                            } else {
+                                processing.push({path: [...path, name], schema: schemaCurrent[name] as Record<string, unknown>})
+                            }
+                        });
+                        break;
+                    case "elements":
+                        if (currentValueType !== "array") {
+                            throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                        }
+                        // TODO: determine how elements will work
+                        throw new Error(`Not implemented updateRepeatableDataModel elements ${JSON.stringify({schemaKey, schemaValue, currentValue})}`);
+                        // break;
+                    case "type":
+                        // TODO: do the json type def type names match the guessType names?
+                        if (currentValueType !== schemaValue) {
+                            throw new Error(`${errMsg1} ${schemaValue}, ${errMsg2} ${JSON.stringify(currentValue)}`);
+                        }
+                        // Nothing else to do.
+                        break;
+                    default:
+                        throw new Error(`Unknown schema type '${schemaKey}'.`);
+                }
+            }
+        }
     }
 }

@@ -14,10 +14,10 @@ describe("Client Visitor", async () => {
         const args = formConfigExample1;
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(args, "edit");
+        const constructed = constructor.start({data: args, formMode: "edit"});
 
         const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.startNewRecord(constructed);
+        const actual = visitor.start({form: constructed});
 
         const stringified = JSON.stringify(actual);
 
@@ -339,7 +339,12 @@ describe("Client Visitor", async () => {
                         model: {
                             class: 'RepeatableModel',
                             config: {
-                                defaultValue: [{text_1: "hello world from repeating groups"}]
+                                defaultValue: [{
+                                    text_1: "hello world from repeating groups",
+                                    text_2: 'hello world 2!',
+                                    repeatable_for_admin: ['hello world from repeatable for admin'],
+                                    removed_group: {removed_group_text: 'hello world 1!'},
+                                }]
                             }
                         },
                         component: {
@@ -349,6 +354,12 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
+                                        config: {
+                                            newEntryValue: {
+                                                text_1: 'hello world 1!',
+                                                text_2: "repeatable_group_1 elementTemplate text_2 default"
+                                            }
+                                        },
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -360,7 +371,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_1',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {defaultValue: 'hello world 1!',}
+                                                        config: {}
                                                     },
                                                     component: {class: 'SimpleInputComponent'},
                                                     constraints: {allowModes: ['edit']},
@@ -369,7 +380,7 @@ describe("Client Visitor", async () => {
                                                     name: 'text_2',
                                                     model: {
                                                         class: 'SimpleInputModel',
-                                                        config: {defaultValue: 'hello world 2!'}
+                                                        config: {}
                                                     },
                                                     component: {class: 'SimpleInputComponent'},
                                                 },
@@ -384,7 +395,7 @@ describe("Client Visitor", async () => {
                                                                 name: "",
                                                                 model: {
                                                                     class: 'SimpleInputModel',
-                                                                    config: {defaultValue: 'hello world from repeatable for admin'}
+                                                                    config: {}
                                                                 },
                                                                 component: {class: 'SimpleInputComponent'},
                                                                 constraints: {authorization: {allowRoles: ['Admin']}},
@@ -396,7 +407,7 @@ describe("Client Visitor", async () => {
                                                     // all group components are removed, so group is removed
                                                     name: "removed_group",
                                                     model: {
-                                                        class: 'GroupModel', config: {defaultValue: {}}
+                                                        class: 'GroupModel', config: {}
                                                     },
                                                     component: {
                                                         class: 'GroupComponent',
@@ -408,7 +419,7 @@ describe("Client Visitor", async () => {
                                                                     name: 'removed_group_text',
                                                                     model: {
                                                                         class: 'SimpleInputModel',
-                                                                        config: {defaultValue: 'hello world 1!',}
+                                                                        config: {}
                                                                     },
                                                                     component: {class: 'SimpleInputComponent'},
                                                                     constraints: {allowModes: ['edit']},
@@ -459,7 +470,7 @@ describe("Client Visitor", async () => {
                         name: 'repeatable_group_1',
                         model: {
                             class: 'RepeatableModel',
-                            config: {value: [{text_1: "hello world from repeating groups"}]}
+                            config: {value: [{text_2: 'hello world 2!'}]}
                         },
                         component: {
                             class: 'RepeatableComponent',
@@ -473,9 +484,9 @@ describe("Client Visitor", async () => {
                                     name: "",
                                     model: {
                                         class: 'GroupModel',
-                                        config: {
-
-                                        }
+                                        config: {newEntryValue: {
+                                                text_2: "repeatable_group_1 elementTemplate text_2 default"
+                                            }}
                                     },
                                     component: {
                                         class: 'GroupComponent',
@@ -553,10 +564,10 @@ describe("Client Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start(args, "edit");
+            const constructed = constructor.start({data: args, formMode: "edit"});
 
             const visitor = new ClientFormConfigVisitor(logger);
-            const actual = visitor.startNewRecord(constructed);
+            const actual = visitor.start({form: constructed});
             expect(actual).to.eql(expected);
         });
     });
@@ -601,10 +612,18 @@ describe("Client Visitor", async () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start(formConfig, "edit");
+        const constructed = constructor.start({
+            data: formConfig,
+            formMode: "edit",
+            record: {text_2: "text_2_value"}
+        });
 
         const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.startExistingRecord(constructed, "view", ["Librarian"], {text_2: "text_2_value"});
+        const actual = visitor.start({
+            form: constructed,
+            formMode: "view",
+            userRoles: ["Librarian"],
+        });
         expect(actual).to.eql({});
     });
 });

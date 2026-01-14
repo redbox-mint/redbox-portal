@@ -122,7 +122,7 @@ export interface FormConstraintAuthorizationConfigOutline extends FormConstraint
 /**
  * The classes to transform to for each item that requires a class.
  */
-export type FormOverrideModeClassesConfigFrame = {
+export type FormOverrideModeClassesConfig = {
     component?: ComponentClassNamesType;
     model?: ModelClassNamesType;
     layout?: LayoutClassNamesType;
@@ -131,12 +131,12 @@ export type FormOverrideModeClassesConfigFrame = {
 /**
  * The form mode to class name mapping.
  */
-export type FormOverrideModesClassConfigFrame = Partial<{
+export type FormOverrideModesClassConfig = Partial<{
     /**
      * Optional entries where the key is a form mode,
      * and the value is the class to use for each item that requires a class.
      */
-    [key in FormModesConfig]: FormOverrideModeClassesConfigFrame;
+    [key in FormModesConfig]: FormOverrideModeClassesConfig;
 }>;
 
 /**
@@ -151,7 +151,7 @@ export interface FormOverrideConfigFrame {
     /**
      * When the form mode is the object key (one of the form modes), set the class as per the value object.
      */
-    formModeClasses?: FormOverrideModesClassConfigFrame;
+    formModeClasses?: FormOverrideModesClassConfig;
 
     /**
      * The name of the reusable form config to insert in place of this element.

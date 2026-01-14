@@ -107,9 +107,9 @@ const formConfig: FormConfigFrame = {
                                                 class: 'ContentComponent',
                                                 config: {
                                                     content: 'My first text block component!!!',
-                                                    template: '<h3>{{content}}</h3>'
+                                                    template: '<h3>content default value content: {{content}}</h3>'
                                                 }
-                                            }
+                                            },
                                         },
                                         // {
                                         //     name: 'debug_checkbox',
@@ -675,7 +675,7 @@ const formConfig: FormConfigFrame = {
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
-                                                                defaultValue: 'hello world from elementTemplate!',
+                                                                newEntryValue: 'hello world from elementTemplate!',
                                                                 validators: [
                                                                     {
                                                                         class: 'pattern',
@@ -751,7 +751,7 @@ const formConfig: FormConfigFrame = {
                         model: {
                             class: 'GroupModel',
                             config: {
-                                defaultValue: {},
+                                newEntryValue: {text_3: 'hello world 3!'},
                             }
                         },
                         component: {
@@ -764,7 +764,6 @@ const formConfig: FormConfigFrame = {
                                         model: {
                                             class: 'SimpleInputModel',
                                             config: {
-                                                defaultValue: 'hello world 3!',
                                                 validators: [
                                                     {
                                                         class: 'minLength',

@@ -258,6 +258,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
+      // Store the form recordType if the recordType was not provided by the page.
+      if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
+        this.recordType.set(this.formDefMap?.formConfig?.type);
+      }
     } else {
       this.loggerService.info(`${this.logName}: creating form definition from provided config`);
       const parentLineagePaths = this.formService.buildLineagePaths({
@@ -626,9 +630,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  public async getCompiledItem() {
+  /**
+   * Get the compiled items for the form with the default values.
+   */
+  public async getFormCompiledItems() {
     const recordType = this.trimmedParams.recordType();
-    const result = await this.formService.getDynamicImportFormCompiledItems(recordType);
+    const formMode = this.editMode() ? "edit" : "view";
+    const result = await this.formService.getDynamicImportFormCompiledItems(recordType, undefined, formMode);
+    // TODO: cache?
+    return result;
+  }
+
+  /**
+   * Get the compiled items for the form with the record's values.
+   */
+  public async getRecordCompiledItems() {
+    const recordType = this.trimmedParams.recordType();
+    const oid = this.trimmedParams.oid();
+    const formMode = this.editMode() ? "edit" : "view";
+    const result = await this.formService.getDynamicImportFormCompiledItems(recordType, oid, formMode);
+    // TODO: cache?
     return result;
   }
 
