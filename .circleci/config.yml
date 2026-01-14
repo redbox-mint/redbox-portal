@@ -260,7 +260,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:core && npm run compile:storage-mongo && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:core && npm run compile:storage-mongo && npm run compile:raido && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -301,7 +301,7 @@ jobs:
       - run:
           name: Compile shared Angular packages
           command: >-
-            npm run compile:core:prod && npm run compile:sails-ng-common:prod
+             npm run compile:sails-ng-common:prod && npm run compile:core:prod 
             && source support/build/compileProductionAngular.sh portal-ng-common
             && cd .. &&source support/build/compileProductionAngular.sh portal-ng-form-custom
       - run:
@@ -353,10 +353,6 @@ jobs:
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
-      - run:
-          name: Install required ReDBox dependencies
-          command: |
-            npm run compile:core:prod
       - run:
           name: Install packages
           command: |
