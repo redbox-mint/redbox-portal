@@ -153,13 +153,67 @@ Further transformations can be done using reusable form config or form mode over
 ## Expressions: modify the client form by triggering a function
 
 Expressions allow for modifying the client form by triggering a function attached to a component.
+The expression system is built on an event-driven architecture using a publish-subscribe pattern.
 
-An expressions has three parts:
+### Expression Architecture
 
-- object key: The path to the component property.
-- object value template: The template of the function to execute. This is compiled on the server and executed on the
-  client.
-- object value condition: ???
+The expression system consists of several key components:
+
+1. **Event Bus** (`FormComponentEventBus`): A centralized service that routes typed events between components
+2. **Event Producers** (`FormComponentValueChangeEventProducer`): Emit events when component state changes
+3. **Event Consumers** (`FormComponentValueChangeEventConsumer`): Listen for events and execute expressions
+4. **Expression Configuration**: Declarative configuration that defines conditions and transformations
+
+### Event Types
+
+The following event types are supported:
+
+- `field.value.changed` - Published when a field's value changes
+- `field.meta.changed` - Published when field metadata changes
+- `form.definition.ready` - Published when the form has fully loaded
+- `form.definition.changed` - Published when form structure changes (e.g., repeatable items)
+- `form.validation.broadcast` - Published on form-wide validation
+- `form.save.*` - Save lifecycle events
+
+### Expression Configuration Structure
+
+An expression has these parts:
+
+- `name`: A unique identifier for the expression within the component
+- `description`: Optional human-readable description
+- `config.condition`: The condition that must be satisfied (JSONPointer, JSONata, or JSONata Query)
+- `config.conditionKind`: The type of condition evaluation to use
+- `config.template`: A JSONata expression that produces the result
+- `config.target`: Where to store the result (`model.value`, `layout.*`, `component.*`)
+- `config.runOnFormReady`: Whether to evaluate on form initialization (default: true)
+
+### Condition Kinds
+
+**JSONPointer** (`jsonpointer`): Uses JSON Pointer syntax to reference source fields.
+Format: `/path/to/field::event.type`
+
+**JSONata** (`jsonata`): Uses JSONata expressions evaluated against form data.
+Context includes: `value`, `event`, `formData`
+
+**JSONata Query** (`jsonata_query`): Extends JSONata with access to the form's component tree.
+Enables queries like counting repeatable elements or checking form structure.
+
+### Expression Processing Flow
+
+1. **Server-side compilation**: The `TemplateFormConfigVisitor` extracts and pre-compiles JSONata expressions
+2. **Client-side binding**: `FormBaseWrapperComponent` creates producer/consumer instances for each component
+3. **Event emission**: When a field value changes, the producer publishes a `field.value.changed` event
+4. **Event matching**: Consumers evaluate their conditions against incoming events
+5. **Expression execution**: Matching expressions evaluate their templates and apply results to targets
+
+### Query Source
+
+For `jsonata_query` conditions, the `querySource` provides access to the form's component tree.
+This is automatically updated when the form structure changes (e.g., repeatable items added/removed).
+
+For user-facing configuration documentation, see [Configuring Form Expressions](Configuring-Form-Expressions).
+
+For detailed technical documentation of the event bus implementation, see [Form Event Bus Architecture](Form-Event-Bus-Architecture).
 
 ## Constraints: restrict when components are included in the form config
 
