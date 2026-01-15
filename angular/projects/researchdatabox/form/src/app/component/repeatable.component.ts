@@ -243,35 +243,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.rebuildLineagePaths();
     }
   }
-
-  public override checkUpdateExpressions() {
-    this.loggerService.debug('repeatable checkUpdateExpressions');
-    let comps:FormFieldCompMapEntry[] = this.formFieldCompMapEntries ?? [];
-    //Evaluate top level expressions
-    super.checkUpdateExpressions();
-    //Propagate top level expressions and evaluate in its children components
-    //this is required for the parent component to delegate responsibility of
-    //behaviour to the children i.e. each component will handle its visibility
-    //but has to be maintained in sync with the overarching state of the parent
-    for(let entry of comps) {
-      if(_isUndefined(entry.component?.formFieldCompMapEntry?.layout)) {
-        entry.component?.propagateExpressions(this.expressions, true);
-      } else {
-        entry.component?.propagateExpressions(this.expressions);
-      }
-      let components = entry.component?.formFieldBaseComponents;
-      if(!_isUndefined(components) && !_isNull(components) && !_isEmpty(components)) {
-        for(let comp of components) {
-          let temp:FormFieldBaseComponent<unknown> = comp as FormFieldBaseComponent<unknown>;
-          temp.propagateExpressions(this.expressions);
-        }
-      }
-    }
-    //Evaluate expressions in children components
-    for(let entry of comps) {
-      entry.component?.checkUpdateExpressions();
-    }
-  }
 }
 
 

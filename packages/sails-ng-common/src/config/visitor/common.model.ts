@@ -5,7 +5,7 @@ import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldModelConfigFrame} from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
+import {FormConstraintAuthorizationConfig, FormConstraintConfig } from "../form-component.model";
 import {
     ComponentClassDefMapType,
     FieldComponentDefinitionMap,

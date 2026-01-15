@@ -220,17 +220,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${ this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
-    // Expressions
-    // effect(() => {
-    //   if (this.componentsLoaded()) {
-    //     this.registerUpdateExpression();
-    //   }
-    // });
-
     this.initEffects();
-
-
-    
   }
 
   protected get getFormService(){
@@ -290,10 +280,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     
     // Build the initial query source for component definitions
     this.setupQuerySource();
-    // Publish the form definition ready event
-    this.eventBus.publish(createFormDefinitionReadyEvent({}));
     // Initialize subscriptions to event bus 
     this.initSubscriptions();
+    // Publish the form definition ready event
+    this.eventBus.publish(createFormDefinitionReadyEvent({}));
     // Finally set the flag indicating components are loaded
     this.componentsLoaded.set(true);
   }
@@ -303,7 +293,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   protected setupQuerySource() {
     this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr);
   }
-
+  /** 
+   * 
+   * Getter for component definition query source
+   * 
+   */
   public getQuerySource(): JSONataQuerySource | undefined {
     return this.componentDefQuerySource;
   }
@@ -389,6 +383,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
       });
       
+      this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
         this.debugFormComponents.set(this.getDebugInfo());
       });
@@ -443,24 +438,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   protected async getAndApplyUpdatedDataModel() {
     const dataModel = await this.formService.getModelData(this.trimmedParams.oid(), this.trimmedParams.recordType());
     this.form?.patchValue(dataModel);
-  }
-
-  protected registerUpdateExpression(){
-    if(this.componentsLoaded()) {
-      if(!_isUndefined(this.form)) {
-        this.form.valueChanges.subscribe((value) => {
-          for(let compEntry of this.componentDefArr) {
-            let compName = _get(compEntry,'name','');
-            // this.loggerService.info(`FormComponent: valueChanges: `, compName);
-            if(!_isNull(compEntry.component) && !_isUndefined(compEntry.component)) {
-              // this.loggerService.info('FormComponent: valueChanges ',_get(compEntry.component.componentDefinition,'class',''));
-              let component = compEntry.component;
-              component.checkUpdateExpressions();
-            }
-          }
-        });
-      }
-    }
   }
 
   @HostBinding('class.edit-mode') get isEditMode() {
