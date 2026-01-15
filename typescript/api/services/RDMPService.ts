@@ -23,13 +23,13 @@ import {
   QueueService,
   Services as services,
   RBValidationError,
-  StorageServiceResponse
+  StorageServiceResponse,
+  momentShim as moment
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
 } from "sails";
-import moment from '../shims/momentShim';
 import numeral from 'numeral';
 
 // removed duplicate isObservable import
@@ -277,7 +277,7 @@ export module Services {
               let interMessage = TranslationService.tInter(maxUploadSizeMessage, { maxUploadSize: maxSizeFormatted });
               throw new RBValidationError({
                 message: `Total size of files ${totalSizeOfFilesInRecord} was more then the max upload size ${maxUploadSize}`,
-                displayErrors: [{detail: interMessage, meta: {totalSizeOfFilesInRecord, maxUploadSize}}],
+                displayErrors: [{ detail: interMessage, meta: { totalSizeOfFilesInRecord, maxUploadSize } }],
               });
             }
           }
@@ -385,10 +385,10 @@ export module Services {
         let jobName = _.get(options, "jobName", null);
         let triggerConfiguration = _.get(options, "triggerConfiguration", null);
         let queueMessage = {
-         oid: oid,
-         record: record,
-         triggerConfiguration: triggerConfiguration,
-         user: user
+          oid: oid,
+          record: record,
+          triggerConfiguration: triggerConfiguration,
+          user: user
         };
         sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
         sails.log.verbose(queueMessage);
@@ -469,7 +469,7 @@ export module Services {
           viewContributorEmails, viewContributorObs
         );
       }
-  return of(record);
+      return of(record);
     }
 
     /**
@@ -505,8 +505,8 @@ export module Services {
           editContributorEmails, editContributorObs,
           viewContributorEmails, viewContributorObs
         );
-  }
-  return of(record);
+      }
+      return of(record);
     }
 
     /**
@@ -684,7 +684,7 @@ export module Services {
         return throwError(new Error(errLog));
       }
 
-  return of(record);
+      return of(record);
 
     }
 

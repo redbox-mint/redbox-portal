@@ -18,6 +18,7 @@
     "glob": "^13.0.0",
     "lodash": "^4.17.21",
     "luxon": "^3.7.1",
+    "@types/luxon": "^3.6.0",
     "pino": "^10.1.0",
     "pino-logfmt": "^1.0.1",
     "reflect-metadata": "^0.2.2",

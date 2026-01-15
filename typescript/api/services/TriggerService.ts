@@ -24,9 +24,9 @@ import {
   BrandingModel,
   Services as services,
   PopulateExportedMethods,
+  momentShim as moment,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import moment from '../shims/momentShim';
 import numeral from 'numeral';
 
 declare var sails: Sails;
@@ -121,7 +121,7 @@ export module Services {
           .pipe(concatMap(hookDef => {
             return hookDef.hookFn(oid, record, hookDef.hookOpt, user);
           })
-          ,last());
+            , last());
       } else {
         sails.log.debug(`runHooksSync, no observables to run`);
         return of(record);
@@ -177,7 +177,7 @@ export module Services {
       let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
 
       // default to true - is only false when set to bool false or string 'false'
-      let caseSensitive = _.get(options, 'caseSensitive',true)?.toString() !== 'false';
+      let caseSensitive = _.get(options, 'caseSensitive', true)?.toString() !== 'false';
       // default to true for backwards compatibility - is only false when set to bool false or string 'false'
       let allowNulls = _.get(options, 'allowNulls', true)?.toString() !== 'false';
 
@@ -192,21 +192,21 @@ export module Services {
       }
       const getError = function () {
         let displayErrorDetail = TranslationService.t(errorLanguageCode);
-        const displayErrorMeta: Record<string, unknown> = {errorLanguageCode:errorLanguageCode};
+        const displayErrorMeta: Record<string, unknown> = { errorLanguageCode: errorLanguageCode };
         if (fieldLanguageCode) {
           displayErrorDetail = `${TranslationService.t(fieldLanguageCode)} ${displayErrorDetail}`;
           displayErrorMeta.fieldLanguageCode = fieldLanguageCode;
         }
         return new RBValidationError({
           message: `Failed validating field using regex record ${record} options ${options}`,
-          displayErrors: [{detail: displayErrorDetail, meta: displayErrorMeta}],
+          displayErrors: [{ detail: displayErrorDetail, meta: displayErrorMeta }],
         });
       }
       const hasValue = function (data) {
         return data !== '' &&
-            data !== null &&
-            data !== undefined &&
-            (data?.length !== undefined && data.length > 0);
+          data !== null &&
+          data !== undefined &&
+          (data?.length !== undefined && data.length > 0);
       }
       const evaluate = function (element, fieldName) {
         let value = _.get(element, fieldName);
@@ -239,10 +239,10 @@ export module Services {
       }
       if (!hasValue(data) && allowNulls) {
         sails.log.debug(
-            'validateFieldUsingRegex',
-            'data value is null and value is allowed to be null',
-            record,
-            options);
+          'validateFieldUsingRegex',
+          'data value is null and value is allowed to be null',
+          record,
+          options);
         return record;
       }
       if (!_.isArray(data) && arrayObjFieldDBName) {
@@ -256,7 +256,7 @@ export module Services {
       if (_.isArray(data)) {
         for (const row of data) {
           if (!evaluate(row, arrayObjFieldDBName)) {
-            throw getError() ;
+            throw getError();
           }
         }
       } else {
@@ -265,10 +265,10 @@ export module Services {
         }
       }
       sails.log.debug(
-          'validateFieldUsingRegex',
-          'data value passed check',
-          record,
-          options);
+        'validateFieldUsingRegex',
+        'data value passed check',
+        record,
+        options);
       return record;
     }
 
@@ -301,46 +301,48 @@ export module Services {
         }
 
         const addError = function (errorFieldList, name, label, errorLabel) {
-          let errorField:any = {};
-            _.set(errorField,'name', name);
-            _.set(errorField,'label',getErrorMessage(label));
-            let error = getErrorMessage(errorLabel);
-            if(error != '') {
-              _.set(errorField,'error',error);
-            }
-            errorFieldList.push(errorField);
+          let errorField: any = {};
+          _.set(errorField, 'name', name);
+          _.set(errorField, 'label', getErrorMessage(label));
+          let error = getErrorMessage(errorLabel);
+          if (error != '') {
+            _.set(errorField, 'error', error);
+          }
+          errorFieldList.push(errorField);
         }
 
-        let template = _.get(options,'template',"<% return []; %>");
+        let template = _.get(options, 'template', "<% return []; %>");
 
         const imports = {
           moment: moment,
           numeral: numeral,
-          _ : _,
+          _: _,
           TranslationService: TranslationService
         }
 
-        let altErrorMessage = _.get(options,'altErrorMessage',[]);
+        let altErrorMessage = _.get(options, 'altErrorMessage', []);
 
-        if(_.isString(template)) {
+        if (_.isString(template)) {
           const compiledTemplate = _.template(template, imports);
           options.template = compiledTemplate;
           template = compiledTemplate;
         }
 
-        const errorFieldList = template({oid:oid, record: record, options: options, addError: addError,
-          getErrorMessage: getErrorMessage});
+        const errorFieldList = template({
+          oid: oid, record: record, options: options, addError: addError,
+          getErrorMessage: getErrorMessage
+        });
 
 
         const errorMap = {
-                         altErrorMessage: altErrorMessage,
-                         errorFieldList: errorFieldList
-                       };
+          altErrorMessage: altErrorMessage,
+          errorFieldList: errorFieldList
+        };
 
-        if(!_.isEmpty(errorMap.errorFieldList)) {
+        if (!_.isEmpty(errorMap.errorFieldList)) {
           throw new RBValidationError({
             message: `Field validation using template failed: errorMap ${JSON.stringify(errorMap)}`,
-            displayErrors: [{title: "Validation failed", meta: errorMap}]
+            displayErrors: [{ title: "Validation failed", meta: errorMap }]
           });
         }
 
@@ -357,7 +359,7 @@ export module Services {
 
         // re-usable functions
         const textRegex = function (value, regexPattern, caseSensitive) {
-          if(regexPattern == '') {
+          if (regexPattern == '') {
             return true;
           } else {
             let flags = '';
@@ -375,17 +377,17 @@ export module Services {
         }
         const hasValue = function (data) {
           return data !== '' &&
-              data !== null &&
-              data !== undefined &&
-              (data?.length !== undefined && data.length > 0);
+            data !== null &&
+            data !== undefined &&
+            (data?.length !== undefined && data.length > 0);
         }
         const evaluate = function (element, fieldName, trim, allowNulls, regexPattern, caseSensitive) {
           let value = '';
-          if(_.isString(element) && fieldName == ''){
+          if (_.isString(element) && fieldName == '') {
             value = element;
-          } else if(fieldName != '') {
+          } else if (fieldName != '') {
             value = _.get(element, fieldName);
-            sails.log.debug('validateFieldMapUsingRegex evaluate fieldName '+fieldName+' value '+value);
+            sails.log.debug('validateFieldMapUsingRegex evaluate fieldName ' + fieldName + ' value ' + value);
           }
 
           if (trim) {
@@ -407,35 +409,35 @@ export module Services {
           return true;
         }
 
-        let fieldObjectList = _.get(options,'fieldObjectList',[]);
-        let altErrorMessage = _.get(options,'altErrorMessage',[]);
+        let fieldObjectList = _.get(options, 'fieldObjectList', []);
+        let altErrorMessage = _.get(options, 'altErrorMessage', []);
         let errorMap = {
-                         altErrorMessage: altErrorMessage,
-                         errorFieldList: []
-                       };
+          altErrorMessage: altErrorMessage,
+          errorFieldList: []
+        };
 
-        sails.log.debug('validateFieldMapUsingRegex fieldObjectList '+JSON.stringify(fieldObjectList));
+        sails.log.debug('validateFieldMapUsingRegex fieldObjectList ' + JSON.stringify(fieldObjectList));
 
-        for(let field of fieldObjectList) {
+        for (let field of fieldObjectList) {
           // get the data
-          const data = _.get(record, 'metadata.'+field.name);
+          const data = _.get(record, 'metadata.' + field.name);
           // caseSensitive default is true - is only false when set to bool false or string 'false'
           let caseSensitive = _.get(field, 'caseSensitive', true)?.toString() !== 'false';
-          sails.log.debug('validateFieldMapUsingRegex field.allowNulls '+field.allowNulls);
-          let allowNulls = _.get(field,'allowNulls',true);
-          sails.log.debug('validateFieldMapUsingRegex allowNulls '+allowNulls);
-          let trim = _.get(field,'trim',true);
-          let regexPattern = _.get(field,'regexPattern','');
+          sails.log.debug('validateFieldMapUsingRegex field.allowNulls ' + field.allowNulls);
+          let allowNulls = _.get(field, 'allowNulls', true);
+          sails.log.debug('validateFieldMapUsingRegex allowNulls ' + allowNulls);
+          let trim = _.get(field, 'trim', true);
+          let regexPattern = _.get(field, 'regexPattern', '');
 
-          sails.log.debug('validateFieldMapUsingRegex '+field.name+' data '+JSON.stringify(data));
+          sails.log.debug('validateFieldMapUsingRegex ' + field.name + ' data ' + JSON.stringify(data));
           // early checks
           if (!hasValue(data) && !allowNulls) {
-            let errorField:any = {};
-            _.set(errorField,'name',field.name);
-            _.set(errorField,'label',getError(field.label));
+            let errorField: any = {};
+            _.set(errorField, 'name', field.name);
+            _.set(errorField, 'label', getError(field.label));
             let error = getError(field.errorLabel);
-            if(error != '') {
-              _.set(errorField,'error',error);
+            if (error != '') {
+              _.set(errorField, 'error', error);
             }
             errorMap.errorFieldList.push(errorField);
             sails.log.debug('validateFieldMapUsingRegex !hasValue(data) && !allowNulls');
@@ -445,28 +447,28 @@ export module Services {
           // evaluate the record field against the regex
           if (_.isArray(data)) {
             for (const row of data) {
-              let innerFieldName = _.get(field,'arrayObjFieldDBName','');
+              let innerFieldName = _.get(field, 'arrayObjFieldDBName', '');
               if (!evaluate(row, innerFieldName, trim, allowNulls, regexPattern, caseSensitive)) {
-                sails.log.debug('validateFieldMapUsingRegex evaluate arrayObjFieldDBName '+field.name);
-                let errorField:any = {};
-                _.set(errorField,'name',field.name);
-                _.set(errorField,'label',getError(field.label));
+                sails.log.debug('validateFieldMapUsingRegex evaluate arrayObjFieldDBName ' + field.name);
+                let errorField: any = {};
+                _.set(errorField, 'name', field.name);
+                _.set(errorField, 'label', getError(field.label));
                 let error = getError(field.errorLabel);
-                if(error != '') {
-                  _.set(errorField,'error',error);
+                if (error != '') {
+                  _.set(errorField, 'error', error);
                 }
                 errorMap.errorFieldList.push(errorField);
               }
             }
           } else {
             if (!evaluate(data, '', trim, allowNulls, regexPattern, caseSensitive)) {
-              sails.log.debug('validateFieldMapUsingRegex evaluate field.name '+field.name);
-              let errorField:any = {};
-              _.set(errorField,'name',field.name);
-              _.set(errorField,'label',getError(field.label));
+              sails.log.debug('validateFieldMapUsingRegex evaluate field.name ' + field.name);
+              let errorField: any = {};
+              _.set(errorField, 'name', field.name);
+              _.set(errorField, 'label', getError(field.label));
               let error = getError(field.errorLabel);
-              if(error != '') {
-                _.set(errorField,'error',error);
+              if (error != '') {
+                _.set(errorField, 'error', error);
               }
               errorMap.errorFieldList.push(errorField);
             }
@@ -474,12 +476,12 @@ export module Services {
 
         }
 
-        sails.log.debug('validateFieldMapUsingRegex errorMap '+JSON.stringify(errorMap));
+        sails.log.debug('validateFieldMapUsingRegex errorMap ' + JSON.stringify(errorMap));
 
-        if(!_.isEmpty(errorMap.errorFieldList)) {
+        if (!_.isEmpty(errorMap.errorFieldList)) {
           throw new RBValidationError({
             message: `Field map validation using regex failed: errorMap ${JSON.stringify(errorMap)}`,
-            displayErrors: [{title: "Validation failed", meta: errorMap}]
+            displayErrors: [{ title: "Validation failed", meta: errorMap }]
           });
         }
 
@@ -496,41 +498,41 @@ export module Services {
         sails.log.verbose(`runTemplatesOnRelatedRecord config: ${JSON.stringify(options.templates)}`);
         sails.log.verbose(`runTemplatesOnRelatedRecord to oid: ${relatedOid} with user: ${JSON.stringify(user)}`);
 
-        let pathToRelatedOid = _.get(options,'pathToRelatedOid');
-        let innerPathToRelatedOid = _.get(options,'innerPathToRelatedOid','');
-        let runPreSaveTriggers = _.get(options,'runPreSaveTriggers',false);
-        let runPostSaveTriggers = _.get(options,'runPostSaveTriggers',false);
+        let pathToRelatedOid = _.get(options, 'pathToRelatedOid');
+        let innerPathToRelatedOid = _.get(options, 'innerPathToRelatedOid', '');
+        let runPreSaveTriggers = _.get(options, 'runPreSaveTriggers', false);
+        let runPostSaveTriggers = _.get(options, 'runPostSaveTriggers', false);
         let parseObject = _.get(options, 'parseObject', false);
-        let oidStringOrArray = _.get(relatedRecord,pathToRelatedOid,'');
+        let oidStringOrArray = _.get(relatedRecord, pathToRelatedOid, '');
         let record = null;
         let oidList = [];
 
-        if(!_.isArray(oidStringOrArray) && _.isString(oidStringOrArray)) {
+        if (!_.isArray(oidStringOrArray) && _.isString(oidStringOrArray)) {
           oidList.push(oidStringOrArray);
         } else if (_.isArray(oidStringOrArray)) {
-          if(innerPathToRelatedOid != '') {
-            for(let oidObj of oidStringOrArray) {
-              let tmpOid = _.get(oidObj,innerPathToRelatedOid,'');
-              if(tmpOid != '' && _.isString(tmpOid)) {
+          if (innerPathToRelatedOid != '') {
+            for (let oidObj of oidStringOrArray) {
+              let tmpOid = _.get(oidObj, innerPathToRelatedOid, '');
+              if (tmpOid != '' && _.isString(tmpOid)) {
                 oidList.push(tmpOid);
               }
             }
           } else {
-            for(let oid of oidStringOrArray) {
-              if(_.isString(oid)) {
+            for (let oid of oidStringOrArray) {
+              if (_.isString(oid)) {
                 oidList.push(oid);
               }
             }
           }
         }
 
-        if(!_.isEmpty(oidList)) {
-          for(let oid of oidList) {
+        if (!_.isEmpty(oidList)) {
+          for (let oid of oidList) {
             sails.log.verbose(`runTemplatesOnRelatedRecord trying to find related record with oid: ${oid}`);
             let tmplConfig = null;
             try {
               record = await RecordsService.getMeta(oid);
-              if(_.isObject(record)) {
+              if (_.isObject(record)) {
                 sails.log.verbose(`runTemplatesOnRelatedRecord related record found and will run templates...`);
                 _.each(options.templates, (templateConfig) => {
                   tmplConfig = templateConfig;
@@ -560,8 +562,8 @@ export module Services {
                     _.set(record, templateConfig.field, data);
                   }
                 });
-                let brandId = _.get(record,'metaMetadata.brandId');
-                const brand:BrandingModel = BrandingService.getBrandById(brandId);
+                let brandId = _.get(record, 'metaMetadata.brandId');
+                const brand: BrandingModel = BrandingService.getBrandById(brandId);
                 sails.log.verbose(`runTemplatesOnRelatedRecord Brand: ${JSON.stringify(brand)}`);
                 await RecordsService.updateMeta(brand, oid, record, user, runPreSaveTriggers, runPostSaveTriggers);
               } else {
@@ -570,8 +572,8 @@ export module Services {
             } catch (e) {
               throw new RBValidationError({
                 message: `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}: ${JSON.stringify(tmplConfig)}`,
-                options: {cause: e},
-                displayErrors: [{title: "Processing failed", meta: {oid: oid, relatedOid: relatedOid}}]
+                options: { cause: e },
+                displayErrors: [{ title: "Processing failed", meta: { oid: oid, relatedOid: relatedOid } }]
               });
             }
           }

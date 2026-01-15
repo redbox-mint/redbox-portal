@@ -17,11 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {of} from 'rxjs';
-import {Services as services, RBValidationError, BrandingModel} from '@researchdatabox/redbox-core-types';
-import {Sails} from "sails";
-import {DateTime} from 'luxon';
-import moment from '../shims/momentShim';
+import { of } from 'rxjs';
+import { Services as services, RBValidationError, BrandingModel, momentShim as moment } from '@researchdatabox/redbox-core-types';
+import { Sails } from "sails";
+import { DateTime } from 'luxon';
 import axios from 'axios';
 
 declare var sails: Sails;
@@ -72,8 +71,8 @@ export module Services {
         const msg = TranslationService.t(`Error creating DOI`);
         throw new RBValidationError({
           message: `${this.msgPrefix()} ${msg}`,
-          options: {cause: err},
-          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+          options: { cause: err },
+          displayErrors: [{ title: this.msgPrefix(), detail: msg }]
         });
       }
     }
@@ -94,8 +93,8 @@ export module Services {
         const msg = TranslationService.t(`Error updating DOI`);
         throw new RBValidationError({
           message: `${this.msgPrefix()} ${msg}`,
-          options: {cause: err},
-          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+          options: { cause: err },
+          displayErrors: [{ title: this.msgPrefix(), detail: msg }]
         });
       }
     }
@@ -123,8 +122,8 @@ export module Services {
         const msg = TranslationService.t(`Error deleting DOI`);
         throw new RBValidationError({
           message: `${this.msgPrefix()} ${msg}`,
-          options: {cause: err},
-          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+          options: { cause: err },
+          displayErrors: [{ title: this.msgPrefix(), detail: msg }]
         });
       }
     }
@@ -160,8 +159,8 @@ export module Services {
         const msg = TranslationService.t(`Error deleting DOI`);
         throw new RBValidationError({
           message: `${this.msgPrefix()} ${msg}`,
-          options: {cause: err},
-          displayErrors: [{title: this.msgPrefix(), detail: msg}]
+          options: { cause: err },
+          displayErrors: [{ title: this.msgPrefix(), detail: msg }]
         });
       }
     }
@@ -187,7 +186,7 @@ export module Services {
       }
       return new RBValidationError({
         message: `${this.msgPrefix()} ${TranslationService.t(message)}`,
-        displayErrors: [{code: message, title: this.msgPrefix()}],
+        displayErrors: [{ code: message, title: this.msgPrefix() }],
       })
     }
 
@@ -447,7 +446,7 @@ export module Services {
         throw new RBValidationError({
           message: `Could not publish DOI oid ${oid} event ${event} action ${action} errors ${postBodyValidateError.join(', ')}`,
           displayErrors: postBodyValidateError.map(code => {
-            return {code: code, title: bodyValidateCode, meta: {oid, event, action}}
+            return { code: code, title: bodyValidateCode, meta: { oid, event, action } }
           }),
         })
       }
@@ -472,7 +471,7 @@ export module Services {
     public async publishDoiTrigger(oid, record, options): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        const brand:BrandingModel = BrandingService.getBrand('default');
+        const brand: BrandingModel = BrandingService.getBrand('default');
         let doi = await this.publishDoi(oid, record);
 
         if (doi != null) {
@@ -536,7 +535,7 @@ export module Services {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }
-      return _.get(variables,template);
+      return _.get(variables, template);
     }
   }
 }

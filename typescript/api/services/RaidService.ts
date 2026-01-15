@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {RBValidationError, Services as services} from '@researchdatabox/redbox-core-types';
-import {Sails} from "sails";
+import { RBValidationError, Services as services, momentShim as moment } from '@researchdatabox/redbox-core-types';
+import { Sails } from "sails";
 import {
   Access,
   AlternateUrl,
@@ -31,7 +31,6 @@ import {
   Title
 } from '@researchdatabox/raido-openapi-generated-node';
 
-import moment from '../shims/momentShim';
 import numeral from 'numeral';
 import axios from 'axios';
 
@@ -81,7 +80,7 @@ export module Services {
     /**
      * Light AgendaQueue wrapper for the main mint method.
     */
-    public async mintRetryJob(job:any) {
+    public async mintRetryJob(job: any) {
       const data = job.attrs.data;
       const record = await RecordsService.getMeta(data.oid);
       await this.mintRaid(data.oid, record, data.options, data.attemptCount);
@@ -97,7 +96,7 @@ export module Services {
       const attemptCount = _.get(record.metaMetadata, 'raid.attemptCount');
       if (!_.isEmpty(oid) && attemptCount > 0) {
         sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);
-        this.scheduleMintRetry({oid: oid, options: _.get(record.metaMetadata, 'raid.options'), attemptCount: attemptCount });
+        this.scheduleMintRetry({ oid: oid, options: _.get(record.metaMetadata, 'raid.options'), attemptCount: attemptCount });
       }
     }
     /**
@@ -127,7 +126,7 @@ export module Services {
       if (_.isEmpty(username) || _.isEmpty(password)) {
         throw new RBValidationError({
           message: "Username and/or Password not configured",
-          displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+          displayErrors: [{ code: 'raid-mint-transform-validation-error' }],
         });
       }
 
@@ -143,16 +142,16 @@ export module Services {
 
         const auth1 = await this.fetchAuthToken(oauthConfig);
         sails.log.verbose(`${this.logHeader} getToken() -> Got new token!`);
-        if(auth1) {
-         this.oauthTokenData.responseData = auth1;
+        if (auth1) {
+          this.oauthTokenData.responseData = auth1;
           this.oauthTokenData.accessTokenExpiryMillis = Date.now() + (auth1.expires_in * 1000);
           this.oauthTokenData.accessToken = auth1.access_token;
         }
       } catch (err) {
         throw new RBValidationError({
           message: "Failed to get token",
-          options: {cause: err},
-          displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+          options: { cause: err },
+          displayErrors: [{ code: 'raid-mint-transform-validation-error' }],
         });
       }
       return this.oauthTokenData.accessToken;
@@ -161,31 +160,31 @@ export module Services {
     private async fetchAuthToken(oauthConfig): Promise<any> {
 
       try {
-          const response = await axios.post(oauthConfig.url,
-              new URLSearchParams({
-                  'grant_type': oauthConfig.grantType,
-                  'client_id': oauthConfig.clientId,
-                  'username': oauthConfig.username,
-                  'password': oauthConfig.password
-              }), {
-              headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded'
-              }
-          });
+        const response = await axios.post(oauthConfig.url,
+          new URLSearchParams({
+            'grant_type': oauthConfig.grantType,
+            'client_id': oauthConfig.clientId,
+            'username': oauthConfig.username,
+            'password': oauthConfig.password
+          }), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
 
-          const tokenData = response.data;
-          return tokenData;
+        const tokenData = response.data;
+        return tokenData;
 
       } catch (error) {
         throw new RBValidationError({
           message: "Error fetching the token",
-          options: {cause: error},
-          displayErrors: [{code: 'raid-mint-server-error'}],
+          options: { cause: error },
+          displayErrors: [{ code: 'raid-mint-server-error' }],
         });
       }
-  }
+    }
 
-    private async mintRaid(oid, record, options, attemptCount:number = 0): Promise<any> {
+    private async mintRaid(oid, record, options, attemptCount: number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;
       const apiToken = await this.getToken();
       const api = new RaidApi(basePath, null, basePath);
@@ -198,22 +197,22 @@ export module Services {
           let srcRecVal = null;
           const srcRecOid = _.get(record, srcRecField);
           if (!_.isEmpty(srcRecOid)) {
-             srcRecVal = await RecordsService.getMeta(srcRecOid);
-             if (!_.isEmpty(srcRecVal)) {
-               srcRecord = srcRecVal;
-               // process any overrides to the source record
-               const recordOverrides = _.get(options, 'request.recordOverrides');
-               if (!_.isEmpty(recordOverrides) && _.isArray(recordOverrides)) {
-                 for (const recOverride of recordOverrides) {
-                   _.set(srcRecord, recOverride.field, _.get(record, recOverride.value));
-                 }
-               }
-             }
+            srcRecVal = await RecordsService.getMeta(srcRecOid);
+            if (!_.isEmpty(srcRecVal)) {
+              srcRecord = srcRecVal;
+              // process any overrides to the source record
+              const recordOverrides = _.get(options, 'request.recordOverrides');
+              if (!_.isEmpty(recordOverrides) && _.isArray(recordOverrides)) {
+                for (const recOverride of recordOverrides) {
+                  _.set(srcRecord, recOverride.field, _.get(record, recOverride.value));
+                }
+              }
+            }
           }
           if (_.isEmpty(srcRecVal)) {
             throw new RBValidationError({
               message: `Failed to retrieve the source record: ${srcRecOid}, using path: ${srcRecField}, please check your recordtype configuration.`,
-              displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+              displayErrors: [{ code: 'raid-mint-transform-validation-error' }],
             });
           }
         }
@@ -233,8 +232,8 @@ export module Services {
         request.subject = _.get(mappedData, 'subject');
       } catch (error) {
         throw new RBValidationError({
-          options: {cause: error},
-          displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+          options: { cause: error },
+          displayErrors: [{ code: 'raid-mint-transform-validation-error' }],
         });
       }
       let raid = undefined;
@@ -262,7 +261,7 @@ export module Services {
           // with the specific fields set to 'required' and not treat these as runtime errors
           throw new RBValidationError({
             message: `Failed to mint RAiD for oid ${oid} statusCode ${response?.statusCode} body ${JSON.stringify(response?.body)}`,
-            displayErrors: [{code: 'raid-mint-server-error', status: response?.statusCode}],
+            displayErrors: [{ code: 'raid-mint-server-error', status: response?.statusCode }],
           });
         }
       } catch (error) {
@@ -271,13 +270,13 @@ export module Services {
         let msgs = [];
         if (statusCode == 401 || statusCode == 403 || statusCode == 400) {
           msgs.push(`Authentication failed for oid ${oid}, check if the auth token is properly configured.`);
-          if (statusCode == 400 ) {
+          if (statusCode == 400) {
             msgs.push(`Possible validation issues for oid ${oid}!`);
           }
           throw new RBValidationError({
             message: msgs.join(' '),
-            options: {cause: error},
-            displayErrors: [{code: 'raid-mint-server-error', status: statusCode, meta: {oid}}],
+            options: { cause: error },
+            displayErrors: [{ code: 'raid-mint-server-error', status: statusCode, meta: { oid } }],
           });
         }
         // This is the generic handler for when the API call itself throws an exception, e.g. 404, 5xx status code that can possibly be resolved by retrying the request
@@ -286,7 +285,7 @@ export module Services {
         // set response as the error so it can be saved in the retry block
         response = error;
         // saving as much info by setting the body to either the actual return value or the entire error object
-        response.body = !_.isEmpty(response.body) ?  response.body : JSON.stringify(error);
+        response.body = !_.isEmpty(response.body) ? response.body : JSON.stringify(error);
         // swallow as this will be handled after this block
       }
       if (!_.isEmpty(raid)) {
@@ -303,7 +302,7 @@ export module Services {
             _.set(record.metaMetadata, 'raid.attemptResponse', { statusCode: response.statusCode, body: response.body })
             if (!_.isEmpty(oid)) {
               // same as above but directly schedule as we know the oid
-              this.scheduleMintRetry({oid: oid, options: options, attemptCount: attemptCount });
+              this.scheduleMintRetry({ oid: oid, options: options, attemptCount: attemptCount });
             }
             // we let the process proceed so the record is saved
           } else {
@@ -314,7 +313,7 @@ export module Services {
           // we fail fast if retries aren't supported
           throw new RBValidationError({
             message: "Retries not configured, please set 'sails.config.raid.retryJobName'",
-            displayErrors: [{code: 'raid-mint-server-error'}],
+            displayErrors: [{ code: 'raid-mint-server-error' }],
           });
         }
       }
@@ -325,7 +324,7 @@ export module Services {
       AgendaQueueService.schedule(sails.config.raid.retryJobName, sails.config.raid.retryJobSchedule, data);
     }
 
-    public getContributors(record, options, fieldConfig?:any, mappedData?:any) {
+    public getContributors(record, options, fieldConfig?: any, mappedData?: any) {
       // start with a map to simplify uniqueness guarantees
       const contributors = {};
       const contributorMapConfig = fieldConfig.contributorMap;
@@ -343,7 +342,7 @@ export module Services {
         }
       }
       // convert to array for the API
-      return _.map(contributors, (val)=> { return val });
+      return _.map(contributors, (val) => { return val });
     }
 
     public buildContribVal(contributors, contribVal, contribConfig, startDate, endDate) {
@@ -369,20 +368,20 @@ export module Services {
           contributors[id] = contrib;
         } else {
           const position = this.getContributorPosition(contribConfig.position, startDate, endDate);
-          if (!_.find(contributors[id].position, {id: position.id})) {
+          if (!_.find(contributors[id].position, { id: position.id })) {
             // as per https://metadata.raid.org/en/latest/core/contributors.html#contributor-position
             // contributors can only have one position for a certain time (unsupported by RB) period so only use the 'highest'
             const curPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl) => { return lbl == contribConfig.position });
-            const existPosLabel = _.findKey(sails.config.raid.types.contributor.position, {id: contributors[id].position[0]});
-            const existPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl)=> { return lbl == existPosLabel });
+            const existPosLabel = _.findKey(sails.config.raid.types.contributor.position, { id: contributors[id].position[0] });
+            const existPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl) => { return lbl == existPosLabel });
             if (curPosIdx < existPosIdx) {
               // the current position is higher, overwrite existing
-              contributors[id].position[0]= position;
+              contributors[id].position[0] = position;
             }
             // if the incoming incoming position is the same or lower hiearchy, ignore...
           }
           const role = this.getContributorRole(contribConfig.role);
-          if (!_.find(contributors[id].role, {id: role.id})) {
+          if (!_.find(contributors[id].role, { id: role.id })) {
             contributors[id].role.push(role);
           }
           this.setContributorFlags(contributors[id], contribConfig);
@@ -394,7 +393,7 @@ export module Services {
           // reject mint as we have a missing ORCID
           throw new RBValidationError({
             message: `Missing ORCID and requireOrcid is true for ${JSON.stringify(contribVal)}`,
-            displayErrors: [{code: 'raid-mint-transform-missing-contributorid-error', meta: {fullName: contribVal.text_full_name}}],
+            displayErrors: [{ code: 'raid-mint-transform-missing-contributorid-error', meta: { fullName: contribVal.text_full_name } }],
           });
         }
       }
@@ -435,7 +434,7 @@ export module Services {
       return id;
     }
 
-    private getContributorPosition(type: string, startDate: string, endDate?:string) {
+    private getContributorPosition(type: string, startDate: string, endDate?: string) {
       return {
         schemaUri: sails.config.raid.types.contributor.position[type].schemaUri,
         id: sails.config.raid.types.contributor.position[type].id,
@@ -489,15 +488,15 @@ export module Services {
         } catch (fieldErr) {
           throw new RBValidationError({
             message: `Failed to process field: ${fieldName}`,
-            options: {cause: fieldErr},
-            displayErrors: [{code: 'raid-mint-transform-validation-error'}],
+            options: { cause: fieldErr },
+            displayErrors: [{ code: 'raid-mint-transform-validation-error' }],
           });
         }
       }
       return mappedData;
     }
 
-    public getSubject(record, options, fieldConfig?:any, subjects?:any, subjectType?: string, subjectData?: any) {
+    public getSubject(record, options, fieldConfig?: any, subjects?: any, subjectType?: string, subjectData?: any) {
       if (_.isArray(subjectData) && !_.isEmpty(subjectData)) {
         for (let subject of subjectData) {
           subjects.push({
