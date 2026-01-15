@@ -44,7 +44,13 @@ import {
     // Bootstrap functions
     coreBootstrap,
     preLiftSetup,
-    BootstrapProvider
+    BootstrapProvider,
+
+    // Hooks
+    defineWebpackHook,
+
+    // Shims
+    momentShim
 } from '@researchdatabox/redbox-core-types';
 ```
 
@@ -110,6 +116,35 @@ export function preLiftSetup(): void;
 ```
 
 The generated `config/bootstrap.js` shim calls these functions in order.
+
+## Webpack Hook
+
+The package provides a custom Sails.js hook for compiling assets using Webpack:
+
+```typescript
+// Define the hook in a Sails app
+import { defineWebpackHook } from '@researchdatabox/redbox-core-types';
+
+export default function(sails) {
+    return defineWebpackHook(sails);
+}
+```
+
+This hook:
+- Compiles assets in `production` (Docker) environments.
+- Supports `WEBPACK_SKIP=true` to bypass compilation.
+- Supports `WEBPACK_CSS_MINI=true` for CSS minimization.
+
+## Shims
+
+Helper functions for backward compatibility are available in `src/shims/`:
+
+- **momentShim**: A Luxon-based shim that replicates Moment.js formatting for templates.
+
+```typescript
+import { momentShim } from '@researchdatabox/redbox-core-types';
+const formattedDate = momentShim(new Date()).format('YYYY-MM-DD');
+```
 
 ## Usage in Hooks
 

@@ -10,8 +10,6 @@ import { RequestHandler, Request, Response, NextFunction } from 'express';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const passport = require('passport');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const skipper = require('skipper');
 
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
@@ -21,6 +19,7 @@ import { redboxSession as redboxSessionConfigValue } from './redboxSession.confi
 declare const sails: {
     config: {
         appPath: string;
+        passport: any; // The passport instance configured by UsersService
         session: {
             cookie?: {
                 maxAge?: number;
@@ -113,8 +112,14 @@ export const http: HttpConfig = {
             return _lazyRedboxSessionMiddleware(req, res, next);
         },
 
-        passportInit: passport.initialize(),
-        passportSession: passport.session(),
+        // Lazy load passport middleware to use sails.config.passport
+        // This ensures we use the same passport instance that has deserializeUser configured
+        passportInit: function (req: Request, res: Response, next: NextFunction) {
+            return sails.config.passport.initialize()(req, res, next);
+        },
+        passportSession: function (req: Request, res: Response, next: NextFunction) {
+            return sails.config.passport.session()(req, res, next);
+        },
 
         brandingAndPortalAwareStaticRouter: function (req: Request, res: Response, next: NextFunction) {
             const extendedReq = req as ExtendedRequest;

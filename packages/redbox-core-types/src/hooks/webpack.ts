@@ -33,7 +33,7 @@ function logCompileInfo(err: Error | null, stats: WebpackStats): void {
     );
 }
 
-export function defineWebpackHook(sailsInstance: Sails.Application) {
+export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = webpack) {
     if (!sailsInstance.config.webpack) {
         sailsInstance.log.warn('sails-hook-webpack: No Webpack options have been defined.');
         return {};
@@ -68,7 +68,7 @@ export function defineWebpackHook(sailsInstance: Sails.Application) {
                 sailsInstance.log.info(`Webpack hook is configured for CSS minimization.`);
             }
 
-            const compiler = webpack(sailsInstance.config.webpack.config);
+            const compiler = _webpack(sailsInstance.config.webpack.config);
 
             // On first compilation, if it fails throw, else call done
             const triggerDoneOnce = once((err: Error | null, stats: WebpackStats) => {
