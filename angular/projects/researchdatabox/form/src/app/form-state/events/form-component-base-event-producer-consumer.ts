@@ -7,7 +7,7 @@ import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bu
 import { FormComponentEventBase, FormComponentEventType } from './form-component-event.types';
 import { JSONataQuerySource, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../../form.component';
-import { isEmpty as _isEmpty } from 'lodash-es';
+
 /**
  * Options for binding event consumers/producers to components.
  */
@@ -109,7 +109,6 @@ export abstract class FormComponentEventBaseProducerConsumer {
 		if (!this.componentDefQuerySource) {
 			return undefined;
 		}
-		// this.componentDefQuerySource = this.formComp?.getQuerySource();
 		return {
 			...this.componentDefQuerySource,
 			event
@@ -120,6 +119,10 @@ export abstract class FormComponentEventBaseProducerConsumer {
 	 */
 	protected setupQuerySourceUpdateListener(): void {
 		if (this.formComp) {
+			// Clean up existing subscriptions before creating new ones
+			this.subscriptions.get('componentQuerySourceReady')?.unsubscribe();
+			this.subscriptions.get('componentQuerySourceUpdated')?.unsubscribe();
+
 			this.subscriptions.set('componentQuerySourceReady', this.eventBus
 				.select$(FormComponentEventType.FORM_DEFINITION_READY)
 				.subscribe(() => {
@@ -132,5 +135,4 @@ export abstract class FormComponentEventBaseProducerConsumer {
 				}));
 		}
 	}
-
 }

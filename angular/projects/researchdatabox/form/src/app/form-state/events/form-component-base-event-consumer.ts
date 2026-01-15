@@ -53,6 +53,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		try {
 			this.setupEventConsumption(options, this.consumedEventType);				
 		} catch (error) {
+			this.loggerService.error(
+				`${this.constructor.name}: Error during setupEventConsumption for event type '${this.consumedEventType}'.`,
+				{ error, consumedEventType: this.consumedEventType, options }
+			);
 			return;
 		}
 	}
@@ -91,9 +95,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	 * The key format matches what TemplateFormConfigVisitor produces:
 	 * [...lineagePaths.formConfig, 'expressions', expressionIndex, 'config', <property name>]
 	 */
-	protected buildExpressionPropertyKey(expression: FormExpressionsConfigFrame, properyName: string): (string | number)[] | undefined {
+	protected buildExpressionPropertyKey(expression: FormExpressionsConfigFrame, propertyName: string): (string | number)[] | undefined {
 		if (!this.options?.definition?.lineagePaths?.formConfig) {
-			this.loggerService.warn(`${this.constructor.name}: No lineage paths available for building expression's ${properyName} key.`);
+			this.loggerService.warn(`${this.constructor.name}: No lineage paths available for building expression's ${propertyName} key.`);
 			return undefined;
 		}
 		const expressionIndex = this.expressions?.indexOf(expression);
@@ -106,7 +110,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			'expressions',
 			expressionIndex,
 			'config',
-      properyName
+      propertyName
 		];
 	}
 
@@ -134,7 +138,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			// Build the context for JSONata evaluation
 			// Include the event value and any additional data that may be useful
 			const context = {
-        value: this.formComp?.form?.value[dataFieldId],
+        value: dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined,
 				event: event,
 				// Include the current form data if available
 				formData: this.formComp?.form?.value ?? {},
@@ -171,7 +175,12 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event OR this is a form ready event and the expression is set to run on form ready
 		const eventFieldId = opts.event.fieldId || "";
 		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady !== false);
-		let hasBroadcastMatch = ((opts.event.sourceId === '*' || isRunOnFormReady) && eventFieldId.indexOf(pointerCondition.jsonPointer) >= 0);
+		// Precise JSON Pointer match: exact match OR path prefix followed by segment delimiter
+		const jsonPointer = pointerCondition.jsonPointer;
+		const hasPointerMatch = jsonPointer === "" 
+			|| eventFieldId === jsonPointer 
+			|| eventFieldId.startsWith(jsonPointer + "/");
+		let hasBroadcastMatch = ((opts.event.sourceId === '*' || isRunOnFormReady) && hasPointerMatch);
 		
 		return (hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch));
 	}

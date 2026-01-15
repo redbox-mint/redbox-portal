@@ -227,7 +227,8 @@ export function createFieldMetaChangedEvent(
   );
 }
 
-/** request events
+/**
+ * Helper factory for creating form definition change request events
  */
 export function createFormDefinitionChangeRequestEvent(
   options: FormComponentEventOptions<FormDefinitionChangeRequestEvent>
