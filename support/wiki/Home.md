@@ -19,6 +19,12 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.
 
+## Core Packages
+
+- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Core-Types)**: Core type definitions, Waterline models, policies, config defaults, and bootstrap functions.
+- **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types.
+- **[Redbox Hook Kit](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Hook-Kit)**: TypeScript development toolkit for creating ReDBox hooks.
+
 ## Contributing
 
 We welcome contributions from the community! Whether you're interested in fixing bugs, adding new features, or improving documentation, there's a place for you in the RedBox Portal project. Here's how you can get involved:

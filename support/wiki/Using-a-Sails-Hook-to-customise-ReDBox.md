@@ -4,6 +4,22 @@ To allow us to make customisations to a ReDBox instance, we take advantage of th
 This allows us to package our changes as an NPM package and using npm install, 
 have them applied to the instance during the lifting process.
 
+### Getting Started with TypeScript
+
+The recommended way to develop hooks is using the [Redbox Hook Kit](Redbox-Hook-Kit):
+
+```bash
+# Initialize a new hook project
+npx @researchdatabox/redbox-hook-kit init
+
+# Install dependencies
+npm install --save-dev @researchdatabox/redbox-hook-kit
+npm install @researchdatabox/redbox-core-types
+
+# Build TypeScript
+npm run build
+```
+
 ### Development
 
 A code project is setup in Bitbucket that contains the hook code.
@@ -26,6 +42,87 @@ services:
 
 To run the app use the `runForDev.sh` script or `docker-compose -f support/development/docker-compose.yml up`.
 
+### Hook Capabilities
+
+Hooks can provide various components to ReDBox by declaring capabilities in `package.json`. The [Redbox Loader](Redbox-Loader) discovers these flags and generates appropriate shims.
+
+#### package.json Configuration
+
+```json
+{
+    "name": "redbox-hook-myproject",
+    "sails": {
+        "hasModels": true,
+        "hasPolicies": true,
+        "hasBootstrap": true,
+        "hasConfig": true
+    }
+}
+```
+
+#### Required Export Functions
+
+Each capability flag requires a corresponding export function:
+
+| Flag | Export Function | Returns |
+|---|---|---|
+| `hasModels` | `registerRedboxModels()` | Object of Waterline model definitions |
+| `hasPolicies` | `registerRedboxPolicies()` | Object of policy functions |
+| `hasBootstrap` | `registerRedboxBootstrap()` | Async function to run at startup |
+| `hasConfig` | `registerRedboxConfig()` | Configuration object to merge |
+
+#### Example: Providing Models
+
+```javascript
+module.exports.registerRedboxModels = function() {
+    return {
+        MyCustomModel: {
+            attributes: {
+                name: { type: 'string', required: true },
+                value: { type: 'json' }
+            }
+        }
+    };
+};
+```
+
+#### Example: Providing Policies
+
+```javascript
+module.exports.registerRedboxPolicies = function() {
+    return {
+        myCustomPolicy: function(req, res, next) {
+            // Policy logic
+            return next();
+        }
+    };
+};
+```
+
+#### Example: Providing Bootstrap
+
+```javascript
+module.exports.registerRedboxBootstrap = function() {
+    return async function() {
+        // Bootstrap logic runs after coreBootstrap()
+        console.log('My hook bootstrap running...');
+    };
+};
+```
+
+#### Example: Providing Config
+
+```javascript
+module.exports.registerRedboxConfig = function() {
+    return {
+        record: {
+            customFeature: {
+                enabled: true
+            }
+        }
+    };
+};
+```
 
 ### Form Configuration changes
 
@@ -37,7 +134,15 @@ Files are loaded using require and merged using `lodash` merge to update the for
 Sails configuration changes are kept in the `config` directory.
 Files are loaded using require and merged using `lodash` merge to update the form configuration.
 
+For hooks using the new `hasConfig` capability, configuration can also be provided programmatically via `registerRedboxConfig()`.
+
 ### Asset and View Changes
 
 Assets and Views are kept in the `assets` and `views` directories.
 These files are copied into `/opt/redbox-portal/assets` and `/opt/redbox-portal/views` respectively as part of the startup.
+
+## See Also
+
+- [Redbox Hook Kit](Redbox-Hook-Kit) - TypeScript development toolkit
+- [Redbox Core Types](Redbox-Core-Types) - Core types and base classes
+- [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded
