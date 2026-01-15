@@ -49,6 +49,26 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 			this.publishValueChanged(value);
 		});
 		this.subscriptions.set(FormComponentEventType.FIELD_VALUE_CHANGED, sub);
+		this.subscriptions.set(FormComponentEventType.FORM_DEFINITION_READY, 
+			this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY).subscribe(() => {
+				this.previousValue = control.value;
+				// On form ready, publish the initial value
+				this.publishInitialValue(control.value);
+			})
+		)
+	}
+
+	private publishInitialValue(value: unknown): void {
+		if (!this.fieldId) {
+			return;
+		}
+		const baseEvent = createFieldValueChangedEvent({
+			fieldId: this.fieldId,
+			value,
+			sourceId: FormComponentEventType.FORM_DEFINITION_READY
+		});
+
+		this.eventBus.publish(baseEvent);
 	}
 	/**
 	 * Tear down active subscriptions.

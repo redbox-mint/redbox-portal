@@ -4,7 +4,6 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@r
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventConsumer } from './form-component-change-event-consumer';
 import {
-  createFieldValueChangedEvent,
   FormComponentEventType,
   FieldValueChangedEvent
 } from './form-component-event.types';
@@ -262,6 +261,39 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(() => consumer.bind({ component, definition })).not.toThrow();
     // Ensure no subscription was attempted
     expect(eventBus.select$).not.toHaveBeenCalled();
+  });
+
+  it('should return expression from getMatchedExpressions if condition is undefined or null', async () => {
+    const exprUndefined: FormExpressionsConfigFrame = {
+      name: 'undefined-condition',
+      config: {
+        target: 'model.value',
+        condition: undefined,
+        template: ''
+      }
+    };
+    const exprNull: FormExpressionsConfigFrame = {
+      name: 'null-condition',
+      config: {
+        target: 'model.value',
+        condition: null as any,
+        template: ''
+      }
+    };
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: 'val',
+      timestamp: Date.now()
+    };
+
+    const matched = await (consumer as any).getMatchedExpressions(event, [exprUndefined, exprNull]);
+    
+    expect(matched).toBeTruthy();
+    expect(matched.length).toBe(2);
+    expect(matched).toContain(exprUndefined);
+    expect(matched).toContain(exprNull);
   });
 
   it('should clean up subscriptions on destroy', () => {

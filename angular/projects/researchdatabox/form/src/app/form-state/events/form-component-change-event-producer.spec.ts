@@ -8,6 +8,7 @@ import {
   FormComponentEventResult,
   FormComponentEventType
 } from './form-component-event.types';
+import { EMPTY } from 'rxjs';
 
 describe('FormComponentChangeEventProducer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -19,9 +20,10 @@ describe('FormComponentChangeEventProducer', () => {
       providers: [LoggerService]
     });
 
-    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['publish', 'scoped']);
+    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['publish', 'scoped', 'select$']);
     scopedBus = jasmine.createSpyObj<ScopedEventBus>('ScopedEventBus', ['publish']);
     eventBus.scoped.and.returnValue(scopedBus);
+    eventBus.select$.and.returnValue(EMPTY);
 
     producer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventProducer(eventBus));
   });

@@ -1,5 +1,5 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
-import { FormComponentEvent, FormComponentEventTypeValue } from './form-component-event.types';
+import { FormComponentEvent, FormComponentEventType, FormComponentEventTypeValue } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions, FormComponentEventQuerySource } from './form-component-base-event-producer-consumer';
 import { FormExpressionsConfigFrame, getObjectWithJsonPointer, getLastSegmentFromJSONPointer, ExpressionsConditionKind, ExpressionsConditionKindType } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
@@ -12,6 +12,7 @@ export interface FormComponentEventMatchOptions {
 	condition: string;
 	conditionKind: ExpressionsConditionKindType;
 	event: FormComponentEvent;
+	expression: FormExpressionsConfigFrame;
 }
 
 export interface FormComponentEventJSONPointerMatchOptions extends FormComponentEventMatchOptions {
@@ -167,9 +168,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		// Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:
 		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId
 		const hasScopedMatch = ref != undefined && pointerCondition.jsonPointer == opts.event.sourceId; 
-		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event
+		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event OR this is a form ready event and the expression is set to run on form ready
 		const eventFieldId = opts.event.fieldId || "";
-		let hasBroadcastMatch = (opts.event.sourceId === '*' && eventFieldId.indexOf(pointerCondition.jsonPointer) >= 0);
+		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady !== false);
+		let hasBroadcastMatch = ((opts.event.sourceId === '*' || isRunOnFormReady) && eventFieldId.indexOf(pointerCondition.jsonPointer) >= 0);
 		
 		return (hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch));
 	}
@@ -219,6 +221,20 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	protected async getMatchedExpressions(event: FormComponentEvent, expressions: FormExpressionsConfigFrame[]): Promise<FormExpressionsConfigFrame[] | null> {
 		const matchedExpressions: FormExpressionsConfigFrame[] = [];
 		for (const expr of expressions) {
+			// Will match if condition is undefined
+			if (expr.config.condition === undefined || expr.config.condition === null) {
+				matchedExpressions.push(expr);
+				continue;
+			}
+			// Will skip if the event is FORM_DEFINITION_READY and the expression is not set to run on form ready
+			if (event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expr.config.runOnFormReady === false) {
+				continue;
+			} 
+			if (event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && !this.componentDefQuerySource) {
+				// Ensure the query source is available since this is the first event after form ready
+				this.componentDefQuerySource = this.formComp?.getQuerySource();
+			}
+
 			const conditionKind = expr.config.conditionKind || ExpressionsConditionKind.JSONPointer;
 			let hasMatchedCondition = false;
 			
@@ -227,14 +243,16 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 					condition: expr.config.condition || '',
 					conditionKind: ExpressionsConditionKind.JSONPointer,
 					querySource: this.getEventQuerySource(event)!,
-					event: event
+					event: event,
+					expression: expr
 				};
 				hasMatchedCondition = this.hasMatchedJSONPointerCondition(matchOpts);
 			} else if (conditionKind === ExpressionsConditionKind.JSONata) {
 				const matchOpts: FormComponentEventJSONataMatchOptions = {
 					condition: expr.config.condition || '',
 					conditionKind: ExpressionsConditionKind.JSONata,
-					event: event
+					event: event,
+					expression: expr
 				};
 				hasMatchedCondition = await this.hasMatchedJSONataCondition(matchOpts, expr);
 			} else if (conditionKind === ExpressionsConditionKind.JSONataQuery) {
@@ -242,7 +260,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 					condition: expr.config.condition || '',
 					conditionKind: ExpressionsConditionKind.JSONataQuery,
 					querySource: this.getEventQuerySource(event)!,
-					event: event
+					event: event,
+					expression: expr
 				};
 				// The querySource must be updated each time before evaluating the condition. The querySource is updated via subscription to the event bus, set up in `setupQuerySourceUpdateListener()` emitted via FormComponentEventType.FORM_DEFINITION_CHANGED.
 				// The challenge is that this may or may not have happened at this point. There's another event that fires that root form listens and recalculates the query source, so at this point should mitigate this risk.
@@ -258,8 +277,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	}
 
 	protected async hasMatchedJSONataCondition(opts: FormComponentEventJSONataMatchOptions, expression: FormExpressionsConfigFrame): Promise<boolean> {
-    // JSONata will only match on broadcast events, not on scoped 
-    if (opts.event.sourceId !== '*') {
+    // JSONata will only match on broadcast events, not on scoped, or the form ready event is not set to run on form ready
+		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expression.config.runOnFormReady !== false);
+    if (opts.event.sourceId !== '*' && !isRunOnFormReady) {
       return false;
     }
 		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition');
@@ -268,7 +288,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
 	protected async hasMatchedJSONataQueryCondition(opts: FormComponentEventJSONataQueryMatchOptions, expression: FormExpressionsConfigFrame): Promise<boolean> {
     // JSONataQuery will only match on broadcast events, not on scoped
-    if (opts.event.sourceId !== '*') {
+		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expression.config.runOnFormReady !== false);
+    if (opts.event.sourceId !== '*' && !isRunOnFormReady) {
       return false;
     }
 		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', opts.querySource?.querySource);

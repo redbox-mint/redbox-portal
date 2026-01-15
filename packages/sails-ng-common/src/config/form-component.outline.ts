@@ -28,7 +28,7 @@ export type ExpressionsConditionKindType = typeof ExpressionsConditionKind[keyof
 
 export interface FormExpressionsBaseConfigFrame {
     /**
-     * The JSONata template that resolves to a boolean indicating whether to execute the expression. If unspecified, the expression always executes.
+     * The JSONata template or customised JSONPointer string that resolves to a boolean indicating whether to execute the expression. If unspecified, the expression always executes.
      */
     condition?: string;
     /**
@@ -43,6 +43,10 @@ export interface FormExpressionsBaseConfigFrame {
      * Indicates whether the expression has a template defined. Set when template is stripped prior to sending to client.
      */
     hasTemplate?: boolean;
+    /**
+     * Optional flag to indicate whether the expression will run when the form is ready. Defaults to true.
+     */
+    runOnFormReady?: boolean;
 }
 
 interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame {
