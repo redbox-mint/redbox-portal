@@ -18,7 +18,11 @@ headers {
   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
   Cache-Control: no-cache
   Connection: keep-alive
-  Cookie: {{cookie}}
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
 }
 
 tests {
