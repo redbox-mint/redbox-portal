@@ -61,7 +61,8 @@ export module Services {
       'jobs',
       'sampleFunctionToDemonstrateHowToDefineAJobFunction',
       'defineJob',
-      'moveCompletedJobsToHistory'
+      'moveCompletedJobsToHistory',
+      'init'
     ];
 
     protected agenda: Agenda;
