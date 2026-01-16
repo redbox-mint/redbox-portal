@@ -79,7 +79,7 @@
     "systemjs": "6.15.1",
     "ts-node": "^10.9.2",
     "tus-node-server": "^0.9.0",
-    "typescript": "5.8",
+    "typescript": "5.9",
     "typescript-json-schema": "^0.67.1",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
