@@ -3,13 +3,11 @@
  * Endpoints consumed by the Angular admin UI (session / cookie auth, CSRF enabled by default)
  */
 import type { Request, Response } from 'sails';
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
-import type { Services as BrandingServices } from '../services/BrandingService';
-import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
+import { Controllers as controllers, BrandingService as BrandingServiceModule, BrandingLogoService as BrandingLogoServiceModule } from '@researchdatabox/redbox-core-types';
 
 declare const sails: any;
-declare const BrandingService: BrandingServices.Branding;
-declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
+declare const BrandingService: BrandingServiceModule.Services.Branding;
+declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 declare const BrandingConfig: any;
 
 function mapError(e: Error): { status: number; body: any } {

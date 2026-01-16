@@ -2,18 +2,18 @@ declare var module;
 declare var sails;
 
 import {
-  BrandingModel
+  BrandingModel,
+  AppConfigService as AppConfigServiceModule,
+  BrandingService as BrandingServiceModule
 } from '@researchdatabox/redbox-core-types';
 declare var _;
-import { Services as AppConfigServiceType } from '../services/AppConfigService';
-import { Services as BrandingServiceType } from '../services/BrandingService';
 
 /**
  * Package that contains all Controllers.
  */
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 import { ConfigModels } from '@researchdatabox/redbox-core-types';
-declare var AppConfigService: AppConfigServiceType.AppConfigs, BrandingService: BrandingServiceType.Branding;
+declare var AppConfigService: AppConfigServiceModule.Services.AppConfigs, BrandingService: BrandingServiceModule.Services.Branding;
 
 export module Controllers {
   /**

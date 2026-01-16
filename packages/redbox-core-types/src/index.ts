@@ -89,3 +89,7 @@ export * from './shims';
 
 // Sails hooks
 export * from './hooks';
+
+// Services
+export { ServiceExports } from './services';
+export * from './services';

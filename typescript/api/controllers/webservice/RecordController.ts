@@ -97,7 +97,7 @@ export module Controllers {
     constructor() {
       super();
       let that = this;
-      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
+      this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {

@@ -20,17 +20,15 @@
 //<reference path='./../../typings/loader.d.ts'/>
 import {Sails, Model} from 'sails';
 
-import {Services as recordTypesService} from '../../services/RecordTypesService';
-import {Services as brandingService} from '../../services/BrandingService';
+import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService, RecordTypesService as RecordTypesServiceModule, BrandingService as BrandingServiceModule} from '@researchdatabox/redbox-core-types';
 declare var sails:Sails;
 
-declare var RecordTypesService:recordTypesService.RecordTypes;
-declare var BrandingService:brandingService.Branding;
+declare var RecordTypesService:RecordTypesServiceModule.Services.RecordTypes;
+declare var BrandingService:BrandingServiceModule.Services.Branding;
 declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
  import { firstValueFrom } from 'rxjs';
 
 export module Controllers {

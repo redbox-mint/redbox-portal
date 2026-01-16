@@ -73,3 +73,11 @@ export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): 
 	// Documentation has the order of the parameters reversed compared to the type definition.
 	return findByPointer(pointer, obj);
 }
+
+/** 
+ * Retrieve the last segment of a JSONPointer string
+ */
+export function getLastSegmentFromJSONPointer(pointer: string): string {
+	const segments = pointer.split('/');
+	return segments[segments.length - 1];
+}

@@ -22,14 +22,12 @@
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types'; 
-import { BrandingModel } from '@researchdatabox/redbox-core-types';
-import { Services as vocabService } from '../services/VocabService';
+import { Controllers as controllers, BrandingModel, VocabService as VocabServiceModule } from '@researchdatabox/redbox-core-types'; 
 
 declare var module;
 declare var sails;
 declare var _;
-declare var VocabService: vocabService.Vocab;
+declare var VocabService: VocabServiceModule.Services.Vocab;
 declare var BrandingService;
 let flat;
 

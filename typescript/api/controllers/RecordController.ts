@@ -42,10 +42,10 @@ import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
-import {Services as recordTypeService} from '../services/RecordTypesService';
+import {RecordTypesService as RecordTypesServiceModule} from '@researchdatabox/redbox-core-types';
 
 declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService,
-    RecordTypesService:recordTypeService.RecordTypes, TranslationService, UsersService,
+    RecordTypesService:RecordTypesServiceModule.Services.RecordTypes, TranslationService, UsersService,
     RolesService, FormRecordConsistencyService, DashboardTypesService;
 
 /**
@@ -67,7 +67,7 @@ export module Controllers {
     constructor() {
       super();
       let that = this;
-      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
+      this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {

@@ -3,13 +3,11 @@
  * Machine-to-machine endpoints for managing branding draft, preview, publish, rollback, logo.
  */
 import type { Request, Response } from 'sails';
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
-import type { Services as BrandingServices } from '../../services/BrandingService';
-import type { Services as BrandingLogoServices } from '../../services/BrandingLogoService';
+import { Controllers as controllers, BrandingService as BrandingServiceModule, BrandingLogoService as BrandingLogoServiceModule } from '@researchdatabox/redbox-core-types';
 
 declare const sails: any;
-declare const BrandingService: BrandingServices.Branding;
-declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
+declare const BrandingService: BrandingServiceModule.Services.Branding;
+declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
 declare const BrandingVersion: any;

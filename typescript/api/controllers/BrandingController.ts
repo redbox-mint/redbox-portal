@@ -1,4 +1,4 @@
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, BrandingService as BrandingServiceModule, BrandingLogoService as BrandingLogoServiceModule } from '@researchdatabox/redbox-core-types';
 import skipperGridFs from "skipper-gridfs";
 import { Model } from "sails";
 import { Sails } from "sails";
@@ -7,11 +7,9 @@ import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import type { Services as BrandingServices } from '../services/BrandingService';
-import type { Services as BrandingLogoServices } from '../services/BrandingLogoService';
 
-declare const BrandingService: BrandingServices.Branding;
-declare const BrandingLogoService: BrandingLogoServices.BrandingLogo;
+declare const BrandingService: BrandingServiceModule.Services.Branding;
+declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 
 
 declare var sails: Sails;

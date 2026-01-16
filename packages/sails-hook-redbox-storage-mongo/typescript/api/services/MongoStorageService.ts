@@ -68,7 +68,7 @@ export module Services {
       super();
       this.logHeader = 'MongoStorageService::';
       let that = this;
-      sails.on('ready', function () {
+      this.registerSailsHook('on', 'ready', function () {
         that.init();
         sails.emit('hook:redbox:storage:ready');
         sails.emit('hook:redbox:datastream:ready');

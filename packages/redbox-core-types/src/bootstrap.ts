@@ -100,6 +100,9 @@ export async function coreBootstrap(): Promise<void> {
 
     sails.log.verbose("Cron service, bootstrapped.");
 
+    await sails.services.agendaqueueservice.init();
+    sails.log.verbose("Agenda Queue service, bootstrapped.");
+
     // After last, because it was being triggered twice
     await lastValueFrom(sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()));
     sails.log.verbose("WorkspaceTypes service, bootstrapped.");
@@ -134,6 +137,11 @@ export async function coreBootstrap(): Promise<void> {
     };
 
     sails.log.verbose("Waiting for ReDBox Storage to start...");
+
+    if (sails.services.recordsservice && typeof sails.services.recordsservice.init === 'function') {
+        sails.services.recordsservice.init();
+        sails.log.verbose("Records service, initialized.");
+    }
 
     const response = await sails.services.recordsservice.checkRedboxRunning();
     if (response === true) {

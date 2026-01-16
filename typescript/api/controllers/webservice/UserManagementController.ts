@@ -18,10 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel} from '@researchdatabox/redbox-core-types';
-import {Services as userService} from '../../services/UsersService';
-import {Services as rolesService} from '../../services/RolesService';
-import {Services as brandingService} from '../../services/BrandingService';
+import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel, UsersService as UsersServiceModule, RolesService as RolesServiceModule, BrandingService as BrandingServiceModule} from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,9 +26,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 declare var sails: Sails;
 
-declare var BrandingService: brandingService.Branding;
-declare var RolesService: rolesService.Roles;
-declare var UsersService: userService.Users;
+declare var BrandingService: BrandingServiceModule.Services.Branding;
+declare var RolesService: RolesServiceModule.Services.Roles;
+declare var UsersService: UsersServiceModule.Services.Users;
 declare var User: Model;
 declare var _;
 /**

@@ -18,8 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary } from '@researchdatabox/redbox-core-types';
-import {Services as formsService} from '../../services/FormsService';
+import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsService as FormsServiceModule } from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
 
@@ -29,7 +28,7 @@ import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import { firstValueFrom } from 'rxjs';
 
 declare var sails: Sails;
-declare var FormsService:formsService.Forms;
+declare var FormsService:FormsServiceModule.Services.Forms;
 
 export module Controllers {
   /**

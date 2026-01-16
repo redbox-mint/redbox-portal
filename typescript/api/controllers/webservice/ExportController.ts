@@ -19,19 +19,16 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 import { Sails } from 'sails';
-import { APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
+import { APIErrorResponse, BrandingModel, RecordsService, BrandingService as BrandingServiceModule, TranslationService as TranslationServiceModule } from '@researchdatabox/redbox-core-types';
 import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 import { default as util } from 'util';
 import { default as stream } from 'stream';
 import { default as _ } from 'lodash';
-import { Services as recordsService } from '../../services/RecordsService';
-import { Services as brandingService } from '../../services/BrandingService';
-import { Services as translationService } from '../../services/TranslationService';
 
 declare var sails: Sails;
 
 
-declare var RecordsService: recordsService.Records, BrandingService: brandingService.Branding, TranslationService: translationService.Translation;
+declare var RecordsService: RecordsService, BrandingService: BrandingServiceModule.Services.Branding, TranslationService: TranslationServiceModule.Services.Translation;
 
 
 const pipeline = util.promisify(stream.pipeline);

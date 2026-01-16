@@ -9,12 +9,17 @@ export function evaluate(key, context, extra) {
         Handlebars = extra?.libraries?.Handlebars;
     }
 
+    let jsonata = null;
+    if (extra?.libraries?.jsonata) {
+        jsonata = extra?.libraries?.jsonata;
+    }
+
     // TODO: more validation / normalisation of key or context?
 
     switch (key) {
     <% for (const entry of entries) { %>
         case "<%= entry.key?.toString() %>":
-            return <%- entry.value?.toString() %>;
+            return <%- entry.value %>;
     <% } %>
         default:
             throw new Error("Unknown key: " + key);
