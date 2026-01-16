@@ -396,7 +396,7 @@ jobs:
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
-       - run:
+      - run:
           name: Install required ReDBox dependencies
           command: |
             npm run compile:sails-ng-common && npm run compile:raido
