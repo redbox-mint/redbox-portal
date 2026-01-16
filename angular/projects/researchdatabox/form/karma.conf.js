@@ -38,6 +38,10 @@ module.exports = function (config) {
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
+    browserNoActivityTimeout: 120000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 2,
+    captureTimeout: 120000,
     autoWatch: true,
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
