@@ -35,10 +35,12 @@
     "pino-logfmt": "^1.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sails": "^1.5.15",
     "sails-mongo": "^2.1.2",
     "sass": "^1.96.0",
     "skipper": "^0.9.5",
     "typescript": "^5.0.4",
+    "typescript-json-schema": "^0.67.1",
     "webpack": "^5.104.0"
   },
   "devDependencies": {
