@@ -260,7 +260,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common &&npm run compile:raido && npm run compile:core && npm run compile:storage-mongo && npm run compile:raido && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -396,6 +396,10 @@ jobs:
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
+       - run:
+          name: Install required ReDBox dependencies
+          command: |
+            npm run compile:sails-ng-common && npm run compile:raido
       - run:
           name: Install packages
           command: |
