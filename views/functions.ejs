@@ -1,40 +1,33 @@
-<%
-/**
-*  A set of functions to help with rendering pages
-**/
+<% /** * A set of functions to help with rendering pages **/ /** * Function that will attempt to find the best fit
+  partial based on the branding and portal. * Note: that paths are not relative here like they are with standard EJS
+  partials **/ superPartial=function(value, branding,portal,fromTemplate=false) { var partialLocation=value; <!--
+  Resolve the actual location of the partial -->
+  partialLocation = ViewUtilsService.resolvePartialPath(value,branding,portal,templateDirectoryLocation,fromTemplate);
 
-/**
-*  Function that will attempt to find the best fit partial based on the branding and portal.
-*  Note: that paths are not relative here like they are with standard EJS partials
-**/
-superPartial = function(value, branding,portal,fromTemplate=false) {
-    var partialLocation = value;
-    <!-- Resolve the actual location of the partial -->
-    partialLocation = ViewUtils.resolvePartialPath(value,branding,portal,templateDirectoryLocation,fromTemplate);
+  return partial(partialLocation);
+  }
 
-    return partial(partialLocation);
-}
+  /**
+  * Display a value from req.options.locals or return a default value. Default value is empty string by default
+  *
+  **/
+  displayValue = function(value,defaultValue="") {
+  return ViewUtilsService.displayValue(value,req,defaultValue);
+  }
 
-/**
-*  Display a value from req.options.locals or return a default value. Default value is empty string by default
-*
-**/
-displayValue = function(value,defaultValue="") {
-  return ViewUtils.displayValue(value,req,defaultValue);
-}
-
-/**
- *  Returns true if the user is an admin
- */
-hasAdminRole = function(req) {
+  /**
+  * Returns true if the user is an admin
+  */
+  hasAdminRole = function(req) {
   return UsersService.hasRole(req.user, RolesService.getAdmin(BrandingService.getBrand(req.session.branding)));
-}
+  }
 
-/**
- *  Returns true if the user has the given role
- */
-hasRole = function(req, role) {
-  return UsersService.hasRole(req.user, RolesService.getRoleByName(BrandingService.getBrand(req.session.branding), role));
-}
+  /**
+  * Returns true if the user has the given role
+  */
+  hasRole = function(req, role) {
+  return UsersService.hasRole(req.user, RolesService.getRoleByName(BrandingService.getBrand(req.session.branding),
+  role));
+  }
 
-%>
+  %>

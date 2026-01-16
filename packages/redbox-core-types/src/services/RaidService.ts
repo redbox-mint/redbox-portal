@@ -24,6 +24,7 @@ import { Sails } from "sails";
 import {
   Access,
   AlternateUrl,
+  Configuration,
   Contributor,
   Description,
   ModelDate,
@@ -189,9 +190,12 @@ export module Services {
     private async mintRaid(oid, record, options, attemptCount: number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;
       const apiToken = await this.getToken();
-      const api = new RaidApi(basePath, null, basePath);
-      api.accessToken = apiToken;
-      const request = new RaidCreateRequest();
+      const configuration = new Configuration({
+        basePath: basePath,
+        accessToken: apiToken
+      });
+      const api = new RaidApi(configuration);
+      const request: RaidCreateRequest = {} as RaidCreateRequest;
       try {
         let srcRecord = record;
         const srcRecField = _.get(options, 'request.sourceOidField');
@@ -242,18 +246,17 @@ export module Services {
       let metaMetadataInfo = undefined;
       let response = undefined;
       let body = undefined;
-      let apiResp = undefined
       try {
         sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Sending data::`);
         sails.log.verbose(JSON.stringify(request));
-        const apiResp = await api.mintRaid(request);
-        _.set(apiResp, 'request.headers.Authorization', '-redacted-');
-        response = apiResp.response;
-        body = apiResp.body;
-        sails.log.verbose(JSON.stringify(response));
+        const axiosResponse = await api.mintRaid(request);
+        _.set(axiosResponse, 'config.headers.Authorization', '-redacted-');
+        response = axiosResponse;
+        body = axiosResponse.data;
+        sails.log.verbose(JSON.stringify(response.status));
         sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Body::`);
         sails.log.verbose(JSON.stringify(body));
-        if (response.statusCode == 201) {
+        if (response.status == 201) {
           raid = _.get(body, 'identifier');
           if (sails.config.raid.saveBodyInMeta) {
             metaMetadataInfo = body;
@@ -262,8 +265,8 @@ export module Services {
           // Note: if there's any 'notSet' validation errors, these will have to be hashed out during development,
           // with the specific fields set to 'required' and not treat these as runtime errors
           throw new RBValidationError({
-            message: `Failed to mint RAiD for oid ${oid} statusCode ${response?.statusCode} body ${JSON.stringify(response?.body)}`,
-            displayErrors: [{ code: 'raid-mint-server-error', status: response?.statusCode }],
+            message: `Failed to mint RAiD for oid ${oid} statusCode ${response?.status} body ${JSON.stringify(body)}`,
+            displayErrors: [{ code: 'raid-mint-server-error', status: response?.status }],
           });
         }
       } catch (error) {
