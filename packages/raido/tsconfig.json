@@ -15,6 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "outDir": "./dist",
+    "declaration": true,
     "types": ["node"]
   },
   "include": [
