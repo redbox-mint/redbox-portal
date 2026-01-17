@@ -62,12 +62,24 @@ export function createQueryObject(result: any, error: any = null): any {
         callback(null, result);
       }
     },
+    // Make it Thenable so await works
+    then: function(onFulfilled: any, onRejected: any) {
+      if (error) {
+        if (onRejected) onRejected(error);
+        return Promise.reject(error);
+      } else {
+        if (onFulfilled) onFulfilled(result);
+        return Promise.resolve(result);
+      }
+    },
     // Support chaining methods
     populate: sinon.stub().returnsThis(),
     where: sinon.stub().returnsThis(),
     sort: sinon.stub().returnsThis(),
     limit: sinon.stub().returnsThis(),
-    skip: sinon.stub().returnsThis()
+    skip: sinon.stub().returnsThis(),
+    set: sinon.stub().returnsThis(),
+    meta: sinon.stub().returnsThis()
   };
   return queryObj;
 }

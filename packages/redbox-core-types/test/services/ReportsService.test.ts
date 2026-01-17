@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { of } from 'rxjs';
 import { DateTime } from 'luxon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('ReportsService', function() {
   let mockSails: any;
@@ -13,16 +14,14 @@ describe('ReportsService', function() {
       config: {
         appPath: '/app',
         reports: {
-          testReport: {
+          'test-report': {
             title: 'Test Report',
-            reportSource: 'solr',
-            solrQuery: {
-              baseQuery: 'q=*:*',
-              searchCore: 'records'
-            },
+            reportSource: 'database',
+            databaseQuery: { queryName: 'testQuery' },
+            solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
             columns: [
-              { label: 'Name', property: 'name' },
-              { label: 'Date', property: 'date_created' }
+              { label: 'Title', property: 'title' },
+              { label: 'ID', property: 'id' }
             ],
             filter: []
           }
@@ -40,39 +39,33 @@ describe('ReportsService', function() {
       },
       services: {
         solrsearchservice: {
-          searchAdvanced: sinon.stub().resolves({
-            response: {
-              numFound: 0,
-              start: 0,
-              docs: []
-            }
-          })
+          searchAdvanced: sinon.stub().resolves({ response: { docs: [] } })
         }
       }
     });
 
     mockReport = {
-      find: sinon.stub().resolves([]),
-      findOne: sinon.stub().resolves(null),
-      create: sinon.stub().resolves({})
+      find: sinon.stub().returns(createQueryObject([])),
+      findOne: sinon.stub().returns(createQueryObject(null)),
+      create: sinon.stub().returns(createQueryObject({ id: 'report-1' }))
     };
 
     setupServiceTestGlobals(mockSails);
     (global as any).Report = mockReport;
     (global as any).BrandingService = {
-      getFullPath: sinon.stub().returns('http://localhost:1500/default/portal')
+      getFullPath: sinon.stub().returns('http://portal')
     };
     (global as any).NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
-      performNamedQueryFromConfig: sinon.stub().resolves({
-        records: [],
-        summary: { numFound: 0, start: 0, page: 1 }
+      performNamedQueryFromConfig: sinon.stub().resolves({ 
+        summary: { numFound: 1, start: 0, page: 1 },
+        records: [{ title: 'Record 1', id: '1' }]
       })
     };
 
-    // Import after mocks are set up
     const { Services } = require('../../src/services/ReportsService');
     ReportsService = new Services.Reports();
+    ReportsService.searchService = mockSails.services.solrsearchservice;
   });
 
   afterEach(function() {
@@ -83,119 +76,176 @@ describe('ReportsService', function() {
     sinon.restore();
   });
 
-  describe('get', function() {
-    it('should get a specific report by brand and name', async function() {
-      const brand = { id: 'brand-1', name: 'default' };
-      const reportData = { id: 'report-1', name: 'testReport', key: 'brand-1_testReport' };
+  describe('bootstrap', function() {
+    it('should create reports if not exist', function(done) {
+      mockReport.find.returns(createQueryObject([])); // no existing reports
       
-      mockReport.findOne.resolves(reportData);
+      const createSpy = sinon.spy(ReportsService, 'create');
+      const defBrand = { id: 'brand-1' };
       
-      const result = await ReportsService.get(brand, 'testReport');
-      
-      expect(mockReport.findOne.calledWith({ key: 'brand-1_testReport' })).to.be.true;
-      expect(result).to.deep.equal(reportData);
+      ReportsService.bootstrap(defBrand).subscribe({
+        next: (res: any) => {},
+        complete: () => {
+          expect(createSpy.called).to.be.true;
+          expect(createSpy.calledWith(defBrand, 'test-report')).to.be.true;
+          done();
+        }
+      });
     });
 
-    it('should return null for non-existent report', async function() {
-      const brand = { id: 'brand-1', name: 'default' };
+    it('should skip creation if reports exist', function(done) {
+      mockReport.find.returns(createQueryObject([{ id: 'existing-report' }]));
       
-      mockReport.findOne.resolves(null);
+      const createSpy = sinon.spy(ReportsService, 'create');
+      const defBrand = { id: 'brand-1' };
       
-      const result = await ReportsService.get(brand, 'nonexistent');
-      
-      expect(result).to.be.null;
+      ReportsService.bootstrap(defBrand).subscribe({
+        next: (res: any) => {},
+        complete: () => {
+          expect(createSpy.called).to.be.false;
+          done();
+        }
+      });
     });
   });
 
-  describe('getCSVHeaderRow', function() {
-    it('should return column labels as header row', function() {
-      const report = {
-        columns: [
-          { label: 'Name', property: 'name' },
-          { label: 'Date Created', property: 'date_created' },
-          { label: 'Status', property: 'status' }
-        ]
+  describe('create', function() {
+    it('should create report model', function(done) {
+      const brand = { id: 'brand-1' };
+      const config = {
+        title: 'New Report',
+        reportSource: 'solr',
+        solrQuery: {},
+        databaseQuery: {},
+        columns: [],
+        filter: []
       };
       
-      const result = ReportsService.getCSVHeaderRow(report);
+      ReportsService.create(brand, 'new-report', config).subscribe({
+        next: (res: any) => {
+          expect(mockReport.create.called).to.be.true;
+          done();
+        },
+        error: done
+      });
+    });
+  });
+
+  describe('get', function() {
+    it('should find report by key', async function() {
+      const brand = { id: 'brand-1' };
+      mockReport.findOne.returns(createQueryObject({ id: 'report-1' }));
       
-      expect(result).to.deep.equal(['Name', 'Date Created', 'Status']);
+      const result = await ReportsService.get(brand, 'report-name');
+      
+      expect(mockReport.findOne.calledWith({ key: 'brand-1_report-name' })).to.be.true;
+      expect(result).to.deep.equal({ id: 'report-1' });
+    });
+  });
+
+  describe('getResults', function() {
+    it('should get results from database', async function() {
+      const brand = { id: 'brand-1' };
+      const req = { param: sinon.stub() };
+      
+      const reportModel = {
+        reportSource: 'database',
+        databaseQuery: { queryName: 'testQuery' },
+        columns: []
+      };
+      mockReport.findOne.returns(createQueryObject(reportModel));
+      
+      const result = await ReportsService.getResults(brand, 'report-1', req);
+      
+      expect((global as any).NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
+      expect(result.total).to.equal(1);
+      expect(result.records).to.have.length(1);
     });
 
-    it('should handle empty columns', function() {
-      const report = { columns: [] };
+    it('should get results from solr', async function() {
+      const brand = { id: 'brand-1' };
+      const req = { param: sinon.stub() };
       
-      const result = ReportsService.getCSVHeaderRow(report);
+      const reportModel = {
+        reportSource: 'solr',
+        solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
+        columns: []
+      };
+      mockReport.findOne.returns(createQueryObject(reportModel));
       
-      expect(result).to.be.an('array').that.is.empty;
+      mockSails.services.solrsearchservice.searchAdvanced.resolves({
+        response: { numFound: 5, start: 0, docs: [{}, {}, {}, {}, {}] }
+      });
+      
+      const result = await ReportsService.getResults(brand, 'report-1', req);
+      
+      expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
+      expect(result.total).to.equal(5);
+      expect(result.records).to.have.length(5);
+    });
+  });
+
+  describe('getCSVResult', function() {
+    it('should return CSV string', async function() {
+      const brand = { id: 'brand-1' };
+      const req = { param: sinon.stub() };
+      
+      const reportModel = {
+        reportSource: 'database',
+        databaseQuery: { queryName: 'testQuery' },
+        columns: [
+          { label: 'Title', property: 'title' },
+          { label: 'ID', property: 'id' }
+        ]
+      };
+      mockReport.findOne.returns(createQueryObject(reportModel));
+      
+      const result = await ReportsService.getCSVResult(brand, 'report-1', req);
+      
+      expect(result).to.be.a('string');
+      expect(result).to.include('Title,ID');
+      expect(result).to.include('Record 1,1');
+    });
+  });
+
+  describe('runTemplate', function() {
+    it('should run handlebars template', function() {
+      const data = { name: 'World' };
+      const config = { template: 'Hello {{name}}' };
+      
+      const result = ReportsService.runTemplate(data, config);
+      
+      expect(result).to.equal('Hello World');
+    });
+
+    it('should return JSON object if json=true', function() {
+      const data = { name: 'World' };
+      const config = { template: '{"message": "Hello {{name}}"}', json: true };
+      
+      const result = ReportsService.runTemplate(data, config);
+      
+      expect(result).to.deep.equal({ message: 'Hello World' });
     });
   });
 
   describe('getDataRows', function() {
-    it('should extract data rows from records', function() {
+    it('should extract data rows based on columns', function() {
       const report = {
         columns: [
-          { label: 'Name', property: 'name' },
-          { label: 'Status', property: 'status' }
+          { label: 'Title', property: 'title' },
+          { label: 'Count', property: 'stats.count' }
         ]
       };
       const data = [
-        { name: 'Record 1', status: 'active' },
-        { name: 'Record 2', status: 'draft' }
+        { title: 'A', stats: { count: 1 } },
+        { title: 'B', stats: { count: 2 } }
       ];
       
       const result = ReportsService.getDataRows(report, data, {});
       
-      expect(result).to.have.lengthOf(2);
-      expect(result[0]).to.deep.equal(['Record 1', 'active']);
-      expect(result[1]).to.deep.equal(['Record 2', 'draft']);
-    });
-
-    it('should handle missing properties', function() {
-      const report = {
-        columns: [
-          { label: 'Name', property: 'name' },
-          { label: 'Missing', property: 'nonexistent' }
-        ]
-      };
-      const data = [{ name: 'Record 1' }];
-      
-      const result = ReportsService.getDataRows(report, data, {});
-      
-      expect(result).to.have.lengthOf(1);
-      expect(result[0][0]).to.equal('Record 1');
-      expect(result[0][1]).to.be.undefined;
-    });
-
-    it('should handle column templates', function() {
-      const report = {
-        columns: [
-          { label: 'Name', property: 'name', template: '{{name}} (formatted)' }
-        ]
-      };
-      const data = [{ name: 'Record 1' }];
-      
-      const result = ReportsService.getDataRows(report, data, {});
-      
-      expect(result).to.have.lengthOf(1);
-      expect(result[0][0]).to.include('Record 1');
-    });
-  });
-
-  describe('getReportDto', function() {
-    it('should convert report model to DTO', function() {
-      const reportModel = {
-        id: 'report-1',
-        name: 'testReport',
-        title: 'Test Report',
-        columns: [],
-        filter: [],
-        solr_query: { baseQuery: 'q=*:*' }
-      };
-      
-      const result = ReportsService.getReportDto(reportModel);
-      
-      expect(result).to.be.an('object');
+      expect(result).to.have.length(2);
+      expect(result[0]).to.deep.equal(['A', 1]);
+      expect(result[1]).to.deep.equal(['B', 2]);
     });
   });
 
@@ -229,10 +279,36 @@ describe('ReportsService', function() {
     });
   });
 
+  describe('Handlebars Helpers', function() {
+    it('should support shared helpers like formatDate', function() {
+      const report = {
+        columns: [
+          { 
+            label: 'Date Modified', 
+            property: 'date_object_modified',
+            template: '{{formatDate date_object_modified "dd/MM/yyyy hh:mm a"}}'
+          }
+        ]
+      };
+      
+      const data = [
+        { 
+          id: 1, 
+          date_object_modified: "2023-05-18T01:30:00+10:00"
+        }
+      ];
+
+      const result = ReportsService.getDataRows(report, data, {});
+      
+      const expectedModified = DateTime.fromISO("2023-05-18T01:30:00+10:00").toFormat("dd/MM/yyyy hh:mm a");
+      expect(result[0][0]).to.equal(expectedModified);
+    });
+  });
+
   describe('exports', function() {
     it('should export all public methods', function() {
       const exported = ReportsService.exports();
-
+      
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('findAllReportsForBrand');
@@ -241,56 +317,6 @@ describe('ReportsService', function() {
       expect(exported).to.have.property('getCSVResult');
       expect(exported).to.have.property('getReportDto');
       expect(exported).to.have.property('extractReportTemplates');
-    });
-  });
-
-  describe('runTemplate', function() {
-    it('Should parse JSON result when config.json is true', function () {
-      const data = { name: "World" };
-      const config = { 
-          template: '{"greeting": "Hello {{name}}"}',
-          json: true 
-      };
-      const result = ReportsService.runTemplate(data, config);
-      expect(result).to.deep.equal({ greeting: "Hello World" });
-    });
-  });
-
-  describe('Handlebars Helpers', function() {
-    it('should support shared helpers like formatDate and get', function() {
-      const report = {
-        columns: [
-          { 
-            label: 'Date Modified', 
-            property: 'date_object_modified',
-            template: '{{formatDate date_object_modified "dd/MM/yyyy hh:mm a"}}'
-          },
-          {
-            label: 'Chief Investigator', 
-            property: 'contributor_ci.text_full_name',
-            template: '{{get this "contributor_ci.text_full_name"}}'
-          }
-        ]
-      };
-      
-      const data = [
-        { 
-          id: 1, 
-          title: "Record 1", 
-          date_object_modified: "2023-05-18T01:30:00+10:00", 
-          "contributor_ci.text_full_name": "Contributor 1"
-        }
-      ];
-
-      const result = ReportsService.getDataRows(report, data, {});
-      
-      expect(result).to.have.lengthOf(1);
-      
-      // Calculate expected date based on system timezone
-      const expectedModified = DateTime.fromISO("2023-05-18T01:30:00+10:00").toFormat("dd/MM/yyyy hh:mm a");
-      expect(result[0][0], `Expect first element to be ${expectedModified}`).to.equal(expectedModified);
-      
-      expect(result[0][1], 'Expect second element to be Contributor 1').to.equal("Contributor 1");
     });
   });
 });

@@ -1,52 +1,46 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('RolesService', function() {
   let mockSails: any;
+  let RolesService: any;
   let mockRole: any;
   let mockBrandingConfig: any;
 
   beforeEach(function() {
     mockSails = createMockSails({
       config: {
+        appPath: '/app',
         auth: {
-          defaultBrand: 'default',
           roles: [
             { name: 'Admin' },
             { name: 'Maintainer' },
             { name: 'Researcher' },
             { name: 'Guest' }
-          ],
-          aaf: {
-            defaultRole: 'Researcher'
-          },
-          defaultRole: 'Guest'
+          ]
         }
       },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
+        warn: sinon.stub(),
         error: sinon.stub()
-      },
-      services: {
-        brandingservice: {
-          getDefault: () => ({ id: '1', name: 'default' }),
-          loadAvailableBrands: () => of({})
-        }
       }
     });
 
     mockRole = {
-      find: sinon.stub(),
-      create: sinon.stub(),
-      addToCollection: sinon.stub().returns({ members: sinon.stub() })
+      find: sinon.stub().returns(createQueryObject([])),
+      create: sinon.stub().returns(createQueryObject({ id: 'new-role' })),
+      findOne: sinon.stub().returns(createQueryObject(null))
     };
 
     mockBrandingConfig = {
-      addToCollection: sinon.stub().returns({ members: sinon.stub() })
+      addToCollection: sinon.stub().returns({
+        members: sinon.stub().returns(createQueryObject({}))
+      })
     };
 
     setupServiceTestGlobals(mockSails);
@@ -58,6 +52,16 @@ describe('RolesService', function() {
         defaultRole: 'Guest'
       })
     };
+    (global as any).BrandingService = {
+      getDefault: sinon.stub().returns({ id: 'brand-1' }),
+      loadAvailableBrands: sinon.stub().returns(of([]))
+    };
+
+    const { Services } = require('../../src/services/RolesService');
+    RolesService = new Services.Roles();
+    
+    // Inject brandingservice into sails.services for bootstrap
+    mockSails.services.brandingservice = (global as any).BrandingService;
   });
 
   afterEach(function() {
@@ -65,179 +69,170 @@ describe('RolesService', function() {
     delete (global as any).Role;
     delete (global as any).BrandingConfig;
     delete (global as any).ConfigService;
+    delete (global as any).BrandingService;
     sinon.restore();
   });
 
   describe('getRoleWithName', function() {
-    it('should find role by name in array', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const roles = [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Researcher' }
-      ];
-
-      const result = rolesService.getRoleWithName(roles, 'Researcher');
-      
-      expect(result).to.deep.equal({ id: '2', name: 'Researcher' });
-    });
-
-    it('should return undefined when role not found', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const roles = [
-        { id: '1', name: 'Admin' }
-      ];
-
-      const result = rolesService.getRoleWithName(roles, 'NonExistent');
-      
-      expect(result).to.be.undefined;
+    it('should find role by name', function() {
+      const roles = [{ name: 'Admin' }, { name: 'Guest' }];
+      const result = RolesService.getRoleWithName(roles, 'Admin');
+      expect(result).to.deep.equal({ name: 'Admin' });
     });
   });
 
   describe('getRole', function() {
-    it('should get role from brand by name', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const brand = {
-        roles: [
-          { id: '1', name: 'Admin' },
-          { id: '2', name: 'Researcher' }
-        ]
-      };
+    it('should find role from brand', function() {
+      const brand = { roles: [{ name: 'Admin' }] };
+      const result = RolesService.getRole(brand, 'Admin');
+      expect(result).to.deep.equal({ name: 'Admin' });
+    });
+  });
 
-      const result = rolesService.getRole(brand, 'Admin');
-      
-      expect(result).to.deep.equal({ id: '1', name: 'Admin' });
+  describe('getRoleByName', function() {
+    it('should find role by name using config', function() {
+      const brand = { roles: [{ name: 'Admin' }] };
+      const result = RolesService.getRoleByName(brand, 'Admin');
+      expect(result).to.deep.equal({ name: 'Admin' });
     });
   });
 
   describe('getAdmin', function() {
-    it('should return admin role from brand', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const brand = {
-        roles: [
-          { id: '1', name: 'Admin' },
-          { id: '2', name: 'Researcher' }
-        ]
-      };
-
-      const result = rolesService.getAdmin(brand);
-      
-      expect(result).to.deep.equal({ id: '1', name: 'Admin' });
+    it('should return admin role', function() {
+      const brand = { roles: [{ name: 'Admin' }] };
+      const result = RolesService.getAdmin(brand);
+      expect(result).to.deep.equal({ name: 'Admin' });
     });
   });
 
   describe('getAdminFromRoles', function() {
-    it('should return admin role from roles array', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const roles = [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Researcher' }
-      ];
+    it('should return admin from roles array', function() {
+      const roles = [{ name: 'Admin' }];
+      const result = RolesService.getAdminFromRoles(roles);
+      expect(result).to.deep.equal({ name: 'Admin' });
+    });
+  });
 
-      const result = rolesService.getAdminFromRoles(roles);
+  describe('getDefAuthenticatedRole', function() {
+    it('should return default authenticated role', function() {
+      const brand = { id: 'brand-1', name: 'default', roles: [{ name: 'Researcher' }] };
+      const result = RolesService.getDefAuthenticatedRole(brand);
+      expect(result.name).to.equal('Researcher');
+    });
+  });
+
+  describe('getDefUnathenticatedRole', function() {
+    it('should return default unauthenticated role', function() {
+      const brand = { id: 'brand-1', name: 'default', roles: [{ name: 'Guest' }] };
+      const result = RolesService.getDefUnathenticatedRole(brand);
+      expect(result.name).to.equal('Guest');
+    });
+  });
+
+  describe('getNestedRoles', function() {
+    it('should return nested roles for Admin', function() {
+      const brandRoles = [{ name: 'Admin' }, { name: 'Maintainer' }, { name: 'Researcher' }, { name: 'Guest' }];
+      const result = RolesService.getNestedRoles('Admin', brandRoles);
+      // Should include all 4
+      expect(result).to.have.length(4);
+    });
+
+    it('should return nested roles for Researcher', function() {
+      const brandRoles = [{ name: 'Admin' }, { name: 'Maintainer' }, { name: 'Researcher' }, { name: 'Guest' }];
+      const result = RolesService.getNestedRoles('Researcher', brandRoles);
+      // Researcher + Guest
+      expect(result).to.have.length(2);
+    });
+  });
+
+  describe('getRolesWithBrand', function() {
+    it('should return observable of roles', async function() {
+      const brand = { id: 'brand-1' };
+      mockRole.find.returns(createQueryObject([{ id: 'role-1' }]));
       
-      expect(result).to.deep.equal({ id: '1', name: 'Admin' });
+      const result = await RolesService.getRolesWithBrand(brand).toPromise();
+      
+      expect(mockRole.find.calledWith({ branding: 'brand-1' })).to.be.true;
+      expect(result).to.have.length(1);
     });
   });
 
   describe('getRoleIds', function() {
     it('should return ids of matching roles', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
+      const fromRoles = [{ id: '1', name: 'Admin' }, { id: '2', name: 'Guest' }];
+      const roleNames = ['Admin'];
       
-      const roles = [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Researcher' },
-        { id: '3', name: 'Guest' }
-      ];
-
-      const result = rolesService.getRoleIds(roles, ['Admin', 'Guest']);
+      const result = RolesService.getRoleIds(fromRoles, roleNames);
       
-      expect(result).to.deep.equal(['1', '3']);
-    });
-
-    it('should return empty array when no matches', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const roles = [
-        { id: '1', name: 'Admin' }
-      ];
-
-      const result = rolesService.getRoleIds(roles, ['NonExistent']);
-      
-      expect(result).to.deep.equal([]);
+      expect(result).to.deep.equal(['1']);
     });
   });
 
-  describe('getNestedRoles', function() {
-    it('should return all roles from Admin down', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
+  describe('createRoleWithBrand', function() {
+    it('should create role if not exists', async function() {
+      const brand = { id: 'brand-1' };
       
-      const brandRoles = [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Maintainer' },
-        { id: '3', name: 'Researcher' },
-        { id: '4', name: 'Guest' }
-      ];
+      // getRolesWithBrand returns empty
+      sinon.stub(RolesService, 'getRolesWithBrand').returns(of([]));
+      
+      mockRole.create.returns(createQueryObject({ id: 'new-role' }));
+      mockBrandingConfig.addToCollection.returns({ members: sinon.stub().returns(createQueryObject({})) });
+      
+      await RolesService.createRoleWithBrand(brand, 'NewRole');
+      
+      expect(mockRole.create.called).to.be.true;
+      expect(mockBrandingConfig.addToCollection.called).to.be.true;
+    });
 
-      const result = rolesService.getNestedRoles('Admin', brandRoles);
+    it('should skip creation if role exists', async function() {
+      const brand = { id: 'brand-1' };
       
+      sinon.stub(RolesService, 'getRolesWithBrand').returns(of([{ name: 'ExistingRole' }]));
+      
+      await RolesService.createRoleWithBrand(brand, 'ExistingRole');
+      
+      expect(mockRole.create.called).to.be.false;
+    });
+  });
+
+  describe('getConfigRoles', function() {
+    it('should return config roles', function() {
+      const result = (RolesService as any).getConfigRoles();
       expect(result).to.have.length(4);
-      expect(result.map((r: any) => r.name)).to.include.members(['Admin', 'Maintainer', 'Researcher', 'Guest']);
     });
 
-    it('should return Maintainer and below for Maintainer role', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const brandRoles = [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Maintainer' },
-        { id: '3', name: 'Researcher' },
-        { id: '4', name: 'Guest' }
-      ];
-
-      const result = rolesService.getNestedRoles('Maintainer', brandRoles);
-      
-      expect(result).to.have.length(3);
-      expect(result.map((r: any) => r.name)).to.include.members(['Maintainer', 'Researcher', 'Guest']);
-    });
-
-    it('should return only Guest for Guest role', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      
-      const brandRoles = [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Maintainer' },
-        { id: '3', name: 'Researcher' },
-        { id: '4', name: 'Guest' }
-      ];
-
-      const result = rolesService.getNestedRoles('Guest', brandRoles);
-      
-      expect(result).to.have.length(1);
-      expect(result[0].name).to.equal('Guest');
+    it('should format roles with prop', function() {
+      const result = (RolesService as any).getConfigRoles('role');
+      expect(result[0]).to.have.property('role');
     });
   });
 
+  describe('bootstrap', function() {
+    it('should bootstrap roles if admin missing', async function() {
+      const defBrand = { id: 'brand-1', roles: [] };
+      sinon.stub(RolesService, 'getAdmin').returns(null);
+      sinon.stub(RolesService, 'getConfigRoles').returns([{ name: 'Admin' }]);
+      mockRole.create.returns(createQueryObject({ id: 'role-admin' }));
+      
+      await RolesService.bootstrap(defBrand).toPromise();
+      
+      expect(mockRole.create.called).to.be.true;
+    });
+
+    it('should skip bootstrap if admin exists', async function() {
+      const defBrand = { id: 'brand-1', roles: [{ name: 'Admin' }] };
+      sinon.stub(RolesService, 'getAdmin').returns({ name: 'Admin' });
+      
+      await RolesService.bootstrap(defBrand).toPromise();
+      
+      expect(mockRole.create.called).to.be.false;
+    });
+  });
+  
   describe('exports', function() {
     it('should export all public methods', function() {
-      const { Services } = require('../../src/services/RolesService');
-      const rolesService = new Services.Roles();
-      const exported = rolesService.exports();
-
+      const exported = RolesService.exports();
+      
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('getRole');
       expect(exported).to.have.property('getAdmin');

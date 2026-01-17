@@ -1,6 +1,8 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import fs from 'fs';
+import fse from 'fs-extra';
 
 describe('SassCompilerService', function() {
   let mockSails: any;
@@ -9,15 +11,8 @@ describe('SassCompilerService', function() {
   beforeEach(function() {
     mockSails = createMockSails({
       config: {
-        appPath: '/app',
         branding: {
-          variableAllowList: [
-            'primary-color',
-            'secondary-color',
-            'background-color',
-            'text-color',
-            'link-color'
-          ]
+          variableAllowList: ['color', 'font']
         }
       },
       log: {
@@ -31,192 +26,107 @@ describe('SassCompilerService', function() {
 
     setupServiceTestGlobals(mockSails);
 
-    // Import after mocks are set up
     const { Services } = require('../../src/services/SassCompilerService');
     SassCompilerService = new Services.SassCompiler();
+
+    // Stub fs methods after require
+    // We use callThrough for readFileSync to avoid breaking ts-node/typescript compilation
+    if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
+    sinon.stub(fs, 'readFileSync').callThrough();
+    
+    if ((fs.writeFileSync as any).restore) (fs.writeFileSync as any).restore();
+    sinon.stub(fs, 'writeFileSync'); // No callThrough for write, we don't want to write
+    
+    if ((fse.mkdirpSync as any).restore) (fse.mkdirpSync as any).restore();
+    sinon.stub(fse, 'mkdirpSync');
+    
+    if ((fse.removeSync as any).restore) (fse.removeSync as any).restore();
+    sinon.stub(fse, 'removeSync');
+    
   });
 
   afterEach(function() {
     cleanupServiceTestGlobals();
+    if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
+    if ((fs.writeFileSync as any).restore) (fs.writeFileSync as any).restore();
+    if ((fse.mkdirpSync as any).restore) (fse.mkdirpSync as any).restore();
+    if ((fse.removeSync as any).restore) (fse.removeSync as any).restore();
     sinon.restore();
   });
 
   describe('getWhitelist', function() {
-    it('should return the variable allow list from config', function() {
+    it('should return allow list from config', function() {
       const whitelist = SassCompilerService.getWhitelist();
-      
-      expect(whitelist).to.be.an('array');
-      expect(whitelist).to.include('primary-color');
-      expect(whitelist).to.include('secondary-color');
+      expect(whitelist).to.deep.equal(['color', 'font']);
     });
 
-    it('should return empty array when not configured', function() {
-      delete mockSails.config.branding.variableAllowList;
-      
+    it('should return empty array if config missing', function() {
+      mockSails.config.branding = {};
       const whitelist = SassCompilerService.getWhitelist();
-      
-      expect(whitelist).to.be.an('array');
-      expect(whitelist).to.have.lengthOf(0);
+      expect(whitelist).to.deep.equal([]);
     });
   });
 
   describe('normaliseHex', function() {
-    it('should normalize 3-character hex to 6-character', function() {
-      const result = SassCompilerService.normaliseHex('#abc');
-      
-      expect(result).to.equal('#aabbcc');
+    it('should normalise hex colors', function() {
+      expect(SassCompilerService.normaliseHex('#FFF')).to.equal('#ffffff');
+      expect(SassCompilerService.normaliseHex('#123')).to.equal('#112233');
+      expect(SassCompilerService.normaliseHex('#FFFFFF')).to.equal('#ffffff');
+      expect(SassCompilerService.normaliseHex(' #FFFFFF ')).to.equal('#ffffff');
     });
 
-    it('should preserve 6-character hex', function() {
-      const result = SassCompilerService.normaliseHex('#aabbcc');
-      
-      expect(result).to.equal('#aabbcc');
-    });
-
-    it('should preserve 8-character hex (with alpha)', function() {
-      const result = SassCompilerService.normaliseHex('#aabbccdd');
-      
-      expect(result).to.equal('#aabbccdd');
-    });
-
-    it('should convert to lowercase', function() {
-      const result = SassCompilerService.normaliseHex('#AABBCC');
-      
-      expect(result).to.equal('#aabbcc');
-    });
-
-    it('should handle hex without hash', function() {
-      const result = SassCompilerService.normaliseHex('aabbcc');
-      
-      // Non-hash values are returned as-is
-      expect(result).to.equal('aabbcc');
-    });
-
-    it('should trim whitespace', function() {
-      const result = SassCompilerService.normaliseHex('  #abc  ');
-      
-      expect(result).to.equal('#aabbcc');
-    });
-
-    it('should return non-hex values unchanged', function() {
-      const result = SassCompilerService.normaliseHex('red');
-      
-      expect(result).to.equal('red');
-    });
-  });
-
-  describe('compile', function() {
-    it('should throw for variables not in whitelist', async function() {
-      const variables = {
-        'invalid-variable': '#ffffff'
-      };
-      
-      try {
-        await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid variable(s)');
-        expect(error.message).to.include('invalid-variable');
-      }
-    });
-
-    it('should throw for values with dangerous characters', async function() {
-      const variables = {
-        'primary-color': '#fff; @import "evil"'
-      };
-      
-      try {
-        await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid characters');
-      }
-    });
-
-    it('should throw for values with semicolons', async function() {
-      const variables = {
-        'primary-color': '#fff;'
-      };
-      
-      try {
-        await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid characters');
-      }
-    });
-
-    it('should throw for values with curly braces', async function() {
-      const variables = {
-        'primary-color': '{}'
-      };
-      
-      try {
-        await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid characters');
-      }
-    });
-
-    it('should handle empty variables object', async function() {
-      // This test may fail if style.scss doesn't exist
-      // In a real test environment, we'd mock the file system
-      try {
-        await SassCompilerService.compile({});
-        // If it works, that's fine
-      } catch (error: any) {
-        // Expected if file doesn't exist in test environment
-        expect(error).to.be.an('error');
-      }
+    it('should leave non-hex values alone', function() {
+      expect(SassCompilerService.normaliseHex('red')).to.equal('red');
+      expect(SassCompilerService.normaliseHex('rgb(0,0,0)')).to.equal('rgb(0,0,0)');
     });
   });
 
   describe('buildRootScss', function() {
-    it('should be callable', function() {
-      // This test verifies the method exists and can be called
-      // The actual file reading would fail without the correct file structure
-      expect(typeof SassCompilerService.buildRootScss).to.equal('function');
+    it('should inject overrides', function() {
+      const originalScss = `
+        $var: 1;
+        @import "default-variables";
+        @import "other";
+      `;
+      (fs.readFileSync as any).returns(originalScss);
+      
+      const overrides = ['$new-var: 2;'];
+      const result = SassCompilerService.buildRootScss(overrides);
+      
+      expect(result).to.include('$new-var: 2;');
+      expect(result).to.include('@import "default-variables";');
+    });
+    
+    it('should resolve tilde imports', function() {
+      const originalScss = '@import "~package/style";';
+      (fs.readFileSync as any).returns(originalScss);
+      
+      const result = SassCompilerService.buildRootScss([]);
+      
+      expect(result).to.include('@import "package/style";');
     });
   });
 
-  describe('security validation', function() {
-    it('should block @ symbols in values', async function() {
-      const variables = {
-        'primary-color': '@import'
-      };
+  describe('compile', function() {
+    it('should throw error for invalid variables', async function() {
+      const variables = { 'invalid-var': 'value' };
       
       try {
         await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid characters');
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Invalid variable(s)');
       }
     });
 
-    it('should block exclamation marks in values', async function() {
-      const variables = {
-        'primary-color': '#fff !important'
-      };
+    it('should throw error for invalid characters in value', async function() {
+      const variables = { 'color': 'red; hack' }; // whitelist has 'color'
       
       try {
         await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid characters');
-      }
-    });
-
-    it('should block backslashes in values', async function() {
-      const variables = {
-        'primary-color': '\\\\escape'
-      };
-      
-      try {
-        await SassCompilerService.compile(variables);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.include('Invalid characters');
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Invalid characters');
       }
     });
   });

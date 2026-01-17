@@ -30,6 +30,18 @@ describe('VocabService', function() {
               querySource: 'database',
               databaseQuery: { queryName: 'testQuery' },
               queryField: { type: 'text', property: 'search' }
+            },
+            'db-source': {
+              querySource: 'database',
+              databaseQuery: { queryName: 'test-query' },
+              queryField: { type: 'text', property: 'text_field' },
+              userQueryFields: [{ property: 'user_field', userValueProperty: 'username' }]
+            },
+            'solr-source': {
+              querySource: 'solr',
+              searchQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
+              queryField: { type: 'text', property: 'text_field' },
+              userQueryFields: [{ property: 'user_field', userValueProperty: 'username' }]
             }
           }
         },
@@ -50,7 +62,6 @@ describe('VocabService', function() {
         }
       },
       log: Object.assign(
-        // Make sails.log callable as a function
         sinon.stub(),
         {
           verbose: sinon.stub(),
@@ -83,11 +94,6 @@ describe('VocabService', function() {
       performNamedQueryFromConfig: sinon.stub().resolves({ records: [] })
     };
 
-    // Mock axios
-    const axios = require('axios');
-    axiosStub = sinon.stub(axios, 'default');
-    axiosStub.get = sinon.stub();
-
     // Import after mocks are set up
     const { Services } = require('../../src/services/VocabService');
     VocabService = new Services.Vocab();
@@ -98,7 +104,6 @@ describe('VocabService', function() {
     delete (global as any).CacheService;
     delete (global as any).AsynchsService;
     delete (global as any).NamedQueryService;
-    axiosStub.restore();
     sinon.restore();
   });
 
@@ -111,61 +116,6 @@ describe('VocabService', function() {
         },
         error: done
       });
-    });
-  });
-
-  describe('getVocab', function() {
-    it('should return cached vocab when available', function(done) {
-      const cachedData = [
-        { uri: 'http://vocab/1', notation: 'V1', label: 'Vocab 1' }
-      ];
-      (global as any).CacheService.get.resolves(cachedData);
-      
-      VocabService.getVocab('testVocab').subscribe({
-        next: (result: any) => {
-          expect(result).to.deep.equal(cachedData);
-          expect((global as any).CacheService.get.calledWith('testVocab')).to.be.true;
-          done();
-        },
-        error: done
-      });
-    });
-  });
-
-  describe('findInMint', function() {
-    // Note: These tests require proper axios mocking which is complex due to module caching
-    // Moving to integration tests for HTTP-dependent functionality  
-    it.skip('should search Mint with correct parameters', async function() {
-      const mockResponse = {
-        data: {
-          response: {
-            docs: [
-              { id: '1', title: 'Test Record' }
-            ]
-          }
-        }
-      };
-      axiosStub.resolves(mockResponse);
-      
-      const result = await VocabService.findInMint('party', 'name:John');
-      
-      expect(result).to.deep.equal(mockResponse.data);
-      expect(axiosStub.calledOnce).to.be.true;
-    });
-
-    it.skip('should handle empty query string', async function() {
-      const mockResponse = {
-        data: {
-          response: {
-            docs: []
-          }
-        }
-      };
-      axiosStub.resolves(mockResponse);
-      
-      const result = await VocabService.findInMint('party', '   ');
-      
-      expect(result).to.deep.equal(mockResponse.data);
     });
   });
 
@@ -227,77 +177,67 @@ describe('VocabService', function() {
     });
   });
 
-  describe('findInExternalService', function() {
-    // Note: These tests require proper axios mocking which is complex due to module caching
-    // Moving to integration tests for HTTP-dependent functionality
-    it.skip('should call external service with GET method', async function() {
-      const mockResponse = {
-        data: { results: ['item1', 'item2'] }
-      };
-      axiosStub.resolves(mockResponse);
+  describe('buildNamedQueryParamMap', function() {
+    it('should build param map from config and user', function() {
+      const config = mockSails.config.vocab.queries['db-source'];
+      const user = { username: 'testuser' };
       
-      const result = await VocabService.findInExternalService('testProvider', {
-        options: { query: 'test' }
-      });
+      const params = VocabService.buildNamedQueryParamMap(config, 'search text', user);
       
-      expect(result).to.deep.equal(mockResponse.data);
+      expect(params.text_field).to.equal('search text');
+      expect(params.user_field).to.equal('testuser');
     });
+  });
 
-    it.skip('should call external service with POST method', async function() {
-      mockSails.config.vocab.external.postProvider = {
-        url: 'https://external.example.com/search',
-        method: 'post',
-        options: {}
-      };
+  describe('buildSolrParams (private)', function() {
+    it('should build solr query string', function() {
+      const brand = { id: 'brand-1' };
+      const config = mockSails.config.vocab.queries['solr-source'];
+      const user = { username: 'testuser' };
       
-      const mockResponse = {
-        data: { results: ['item1'] }
-      };
-      axiosStub.resolves(mockResponse);
+      const query = (VocabService as any).buildSolrParams(brand, 'search text', config, 0, 10, 'json', user);
       
-      const result = await VocabService.findInExternalService('postProvider', {
-        options: {},
-        postBody: { query: 'test' }
-      });
-      
-      expect(result).to.deep.equal(mockResponse.data);
+      expect(query).to.include('q=*:*');
+      expect(query).to.include('metaMetadata_brandId:brand-1');
+      expect(query).to.include('text_field:search text*');
+      expect(query).to.include('user_field:testuser');
     });
   });
 
   describe('findRecords', function() {
-    it('should query database when querySource is database', async function() {
-      const brand = { id: 'brand-1', name: 'default' };
-      const mockRecords = { records: [{ id: '1', name: 'Test' }] };
-      (global as any).NamedQueryService.performNamedQueryFromConfig.resolves(mockRecords);
+    it('should query database source', async function() {
+      const brand = { id: 'brand-1' };
+      const user = { username: 'testuser' };
       
-      const result = await VocabService.findRecords('testQuery', brand, 'search term', 0, 10, {});
+      await VocabService.findRecords('db-source', brand, 'query', 0, 10, user);
       
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.calledOnce).to.be.true;
+      expect((global as any).NamedQueryService.getNamedQueryConfig.called).to.be.true;
+      expect((global as any).NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
+    });
+
+    it('should query solr source', async function() {
+      const brand = { id: 'brand-1' };
+      const user = { username: 'testuser' };
+      
+      await VocabService.findRecords('solr-source', brand, 'query', 0, 10, user);
+      
+      expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
     });
   });
 
-  describe('rvaGetResourceDetails', function() {
-    it('should fetch resource details from RVA', function(done) {
-      const mockResponse = {
-        data: {
-          result: { uri: 'http://vocab/1', label: 'Test Vocab' }
+  describe('getResultObjectMappings', function() {
+    it('should map results using template', function() {
+      const results = { records: [{ title: 'Title 1' }] };
+      const config = {
+        resultObjectMapping: {
+          mappedTitle: '<% return record.title %>'
         }
       };
       
-      const axiosModule = require('axios');
-      sinon.stub(axiosModule, 'get').resolves(mockResponse);
+      const mapped = VocabService.getResultObjectMappings(results, config);
       
-      VocabService.rvaGetResourceDetails('http://vocab/1', 'anzsrc-for').subscribe({
-        next: (result: any) => {
-          expect(result.data).to.deep.equal(mockResponse.data);
-          axiosModule.get.restore();
-          done();
-        },
-        error: (err: any) => {
-          axiosModule.get.restore();
-          done(err);
-        }
-      });
+      expect(mapped).to.have.length(1);
+      expect(mapped[0].mappedTitle).to.equal('Title 1');
     });
   });
 

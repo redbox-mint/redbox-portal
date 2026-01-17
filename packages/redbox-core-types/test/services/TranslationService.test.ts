@@ -6,6 +6,7 @@ describe('TranslationService', function() {
   let mockSails: any;
   let TranslationService: any;
   let mockI18nBundle: any;
+  let mockI18nextInstance: any;
 
   beforeEach(function() {
     mockSails = createMockSails({
@@ -36,6 +37,17 @@ describe('TranslationService', function() {
       find: sinon.stub().resolves([])
     };
 
+    mockI18nextInstance = {
+      init: sinon.stub().resolves(),
+      changeLanguage: sinon.stub().resolves(),
+      getFixedT: sinon.stub().returns((key) => key),
+      languages: ['en'],
+      options: {
+        supportedLngs: ['en'],
+        preload: ['en']
+      }
+    };
+
     setupServiceTestGlobals(mockSails);
     (global as any).I18nBundle = mockI18nBundle;
     (global as any).BrandingService = {
@@ -43,6 +55,13 @@ describe('TranslationService', function() {
       getBrandFromReq: sinon.stub().returns('default'),
       getAvailable: sinon.stub().returns(['default'])
     };
+
+    // Mock i18next module
+    const i18next = require('i18next');
+    if (i18next.createInstance.restore) {
+      i18next.createInstance.restore();
+    }
+    sinon.stub(i18next, 'createInstance').returns(mockI18nextInstance);
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/TranslationService');
@@ -53,7 +72,35 @@ describe('TranslationService', function() {
     cleanupServiceTestGlobals();
     delete (global as any).I18nBundle;
     delete (global as any).BrandingService;
+    const i18next = require('i18next');
+    if (i18next.createInstance.restore) {
+      i18next.createInstance.restore();
+    }
     sinon.restore();
+  });
+
+  describe('initialization', function() {
+    it('should initialize i18next when not cached', async function() {
+      // Ensure no cached instance
+      TranslationService.i18nextInstances = {};
+      
+      const branding = { id: 'brand-new', name: 'new' };
+      (global as any).BrandingService.getBrand.returns(branding);
+      (global as any).BrandingService.getBrandFromReq.returns('new');
+      
+      const req = {
+        param: sinon.stub().returns(null),
+        session: {},
+        options: { locals: {} },
+        params: { branding: 'new' }
+      };
+      const res = { cookie: sinon.stub() };
+      const next = sinon.stub();
+      
+      await TranslationService.handle(req, res, next);
+      
+      expect(mockI18nextInstance.init.called).to.be.true;
+    });
   });
 
   describe('t', function() {

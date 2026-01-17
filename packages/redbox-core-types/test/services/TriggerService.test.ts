@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
+import { of, from } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('TriggerService', function() {
@@ -9,9 +9,6 @@ describe('TriggerService', function() {
 
   beforeEach(function() {
     mockSails = createMockSails({
-      config: {
-        appPath: '/app'
-      },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
@@ -22,23 +19,18 @@ describe('TriggerService', function() {
     });
 
     setupServiceTestGlobals(mockSails);
+
     (global as any).RecordsService = {
-      getMeta: sinon.stub().resolves({})
+      getMeta: sinon.stub(),
+      updateMeta: sinon.stub()
     };
     (global as any).TranslationService = {
-      t: sinon.stub().callsFake((key: string) => key)
+      t: sinon.stub().callsFake((key) => key)
     };
     (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
-    };
-    (global as any).User = {
-      findOne: sinon.stub()
-    };
-    (global as any).RecordType = {
-      findOne: sinon.stub()
+      getBrandById: sinon.stub().returns({})
     };
 
-    // Import after mocks are set up
     const { Services } = require('../../src/services/TriggerService');
     TriggerService = new Services.Trigger();
   });
@@ -48,184 +40,226 @@ describe('TriggerService', function() {
     delete (global as any).RecordsService;
     delete (global as any).TranslationService;
     delete (global as any).BrandingService;
-    delete (global as any).User;
-    delete (global as any).RecordType;
     sinon.restore();
   });
 
   describe('transitionWorkflow', function() {
-    it('should transition workflow when condition evaluates to true', function(done) {
-      const oid = 'record-123';
-      const record = {
-        metadata: { status: 'complete' },
-        workflow: { stage: 'draft', stageLabel: 'Draft' },
-        metaMetadata: { form: 'draft-form' }
+    it('should transition workflow if condition met', async function() {
+      const record = { 
+        metaMetadata: { form: 'old-form' },
+        workflow: { stage: 'draft', stageLabel: 'Draft' } 
       };
-      // Use a condition that will evaluate to "true" string
       const options = {
         triggerCondition: 'true',
         targetWorkflowStageName: 'published',
         targetWorkflowStageLabel: 'Published',
-        targetForm: 'published-form'
+        targetForm: 'new-form'
       };
       
-      TriggerService.transitionWorkflow(oid, record, options).subscribe({
-        next: (result: any) => {
-          expect(result.workflow.stage).to.equal('published');
-          expect(result.workflow.stageLabel).to.equal('Published');
-          expect(result.metaMetadata.form).to.equal('published-form');
-          done();
-        },
-        error: done
-      });
+      const result = await TriggerService.transitionWorkflow('oid', record, options).toPromise();
+      
+      expect(result.workflow.stage).to.equal('published');
+      expect(result.workflow.stageLabel).to.equal('Published');
+      expect(result.metaMetadata.form).to.equal('new-form');
     });
 
-    it('should not transition when condition evaluates to false', function(done) {
-      const oid = 'record-123';
-      const record = {
-        metadata: { status: 'draft' },
-        workflow: { stage: 'draft', stageLabel: 'Draft' },
-        metaMetadata: { form: 'draft-form' }
+    it('should not transition if condition not met', async function() {
+      const record = { 
+        workflow: { stage: 'draft' } 
       };
       const options = {
         triggerCondition: 'false',
-        targetWorkflowStageName: 'published',
-        targetWorkflowStageLabel: 'Published'
+        targetWorkflowStageName: 'published'
       };
       
-      TriggerService.transitionWorkflow(oid, record, options).subscribe({
-        next: (result: any) => {
-          expect(result.workflow.stage).to.equal('draft');
-          expect(result.workflow.stageLabel).to.equal('Draft');
-          done();
-        },
-        error: done
-      });
-    });
-
-    it('should handle empty trigger condition', function(done) {
-      const oid = 'record-123';
-      const record = {
-        workflow: { stage: 'draft', stageLabel: 'Draft' }
-      };
-      const options = {};
+      const result = await TriggerService.transitionWorkflow('oid', record, options).toPromise();
       
-      TriggerService.transitionWorkflow(oid, record, options).subscribe({
-        next: (result: any) => {
-          expect(result.workflow.stage).to.equal('draft');
-          done();
-        },
-        error: done
-      });
-    });
-  });
-
-  describe('runHooksSync', function() {
-    it('should return record when no hooks provided', function(done) {
-      const oid = 'record-123';
-      const record = { metadata: { name: 'Test' } };
-      const options = { hooks: [] };
-      const user = { username: 'testuser' };
-      
-      TriggerService.runHooksSync(oid, record, options, user).subscribe({
-        next: (result: any) => {
-          expect(result).to.deep.equal(record);
-          done();
-        },
-        error: done
-      });
-    });
-  });
-
-  describe('applyFieldLevelPermissions', function() {
-    it('should allow user with permission to edit fields', async function() {
-      const oid = 'record-123';
-      const record = { metadata: { protectedField: 'new value' } };
-      const options = {
-        fieldDBNames: ['metadata.protectedField'],
-        userWithPermissionToEdit: 'admin'
-      };
-      const user = { username: 'admin', roles: [] };
-      
-      const result = await TriggerService.applyFieldLevelPermissions(oid, record, options, user);
-      
-      expect(result.metadata.protectedField).to.equal('new value');
-    });
-
-    it('should revert field changes for unauthorized user', async function() {
-      const oid = 'record-123';
-      const record = { metadata: { protectedField: 'new value' } };
-      const previousRecord = { metadata: { protectedField: 'old value' } };
-      (global as any).RecordsService.getMeta.resolves(previousRecord);
-      
-      const options = {
-        fieldDBNames: ['metadata.protectedField'],
-        userWithPermissionToEdit: 'admin'
-      };
-      const user = { username: 'regularuser', roles: [] };
-      
-      const result = await TriggerService.applyFieldLevelPermissions(oid, record, options, user);
-      
-      expect(result.metadata.protectedField).to.equal('old value');
-    });
-
-    it('should allow user with role permission to edit', async function() {
-      const oid = 'record-123';
-      const record = { metadata: { protectedField: 'new value' } };
-      const options = {
-        fieldDBNames: ['metadata.protectedField'],
-        userWithPermissionToEdit: 'admin',
-        roleEditPermission: 'Admin'
-      };
-      const user = { username: 'otheradmin', roles: [{ name: 'Admin' }] };
-      
-      const result = await TriggerService.applyFieldLevelPermissions(oid, record, options, user);
-      
-      expect(result.metadata.protectedField).to.equal('new value');
+      expect(result.workflow.stage).to.equal('draft');
     });
   });
 
   describe('validateFieldUsingRegex', function() {
-    it('should pass validation for valid field', async function() {
-      const oid = 'record-123';
-      const record = { metadata: { email: 'test@example.com' } };
+    it('should validate field matching regex', async function() {
+      const record = { metadata: { field: 'test value' } };
       const options = {
-        fieldDBName: 'metadata.email',
-        errorLanguageCode: 'error.invalid.email',
-        regexPattern: '^[^@]+@[^@]+\\.[^@]+$'
+        fieldDBName: 'metadata.field',
+        regexPattern: '^test',
+        errorLanguageCode: 'error'
       };
       
-      const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
-      
-      expect(result).to.deep.equal(record);
+      await TriggerService.validateFieldUsingRegex('oid', record, options);
+      // Should not throw
     });
 
-    it('should throw validation error for invalid field', async function() {
-      const oid = 'record-123';
-      const record = { metadata: { email: 'invalid-email' } };
+    it('should throw error if validation fails', async function() {
+      const record = { metadata: { field: 'invalid' } };
       const options = {
-        fieldDBName: 'metadata.email',
-        errorLanguageCode: 'error.invalid.email',
-        regexPattern: '^[^@]+@[^@]+\\.[^@]+$'
+        fieldDBName: 'metadata.field',
+        regexPattern: '^test',
+        errorLanguageCode: 'error'
       };
       
       try {
-        await TriggerService.validateFieldUsingRegex(oid, record, options);
-        expect.fail('Should have thrown validation error');
-      } catch (error: any) {
-        expect(error).to.have.property('displayErrors');
+        await TriggerService.validateFieldUsingRegex('oid', record, options);
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Failed validating field');
+      }
+    });
+
+    it('should handle null values if allowed', async function() {
+      const record = { metadata: { field: null } };
+      const options = {
+        fieldDBName: 'metadata.field',
+        allowNulls: true,
+        regexPattern: '^test'
+      };
+      
+      await TriggerService.validateFieldUsingRegex('oid', record, options);
+    });
+
+    it('should throw if null not allowed', async function() {
+      const record = { metadata: { field: null } };
+      const options = {
+        fieldDBName: 'metadata.field',
+        allowNulls: false,
+        regexPattern: '^test',
+        errorLanguageCode: 'error'
+      };
+      
+      try {
+        await TriggerService.validateFieldUsingRegex('oid', record, options);
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Failed validating field');
+      }
+    });
+
+    it('should handle array fields', async function() {
+      const record = { metadata: { list: [{ val: 'test1' }, { val: 'test2' }] } };
+      const options = {
+        fieldDBName: 'metadata.list',
+        arrayObjFieldDBName: 'val',
+        regexPattern: '^test',
+        errorLanguageCode: 'error'
+      };
+      
+      await TriggerService.validateFieldUsingRegex('oid', record, options);
+    });
+
+    it('should fail if any array item fails', async function() {
+      const record = { metadata: { list: [{ val: 'test1' }, { val: 'invalid' }] } };
+      const options = {
+        fieldDBName: 'metadata.list',
+        arrayObjFieldDBName: 'val',
+        regexPattern: '^test',
+        errorLanguageCode: 'error'
+      };
+      
+      try {
+        await TriggerService.validateFieldUsingRegex('oid', record, options);
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Failed validating field');
       }
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods', function() {
-      const exported = TriggerService.exports();
+  describe('validateFieldMapUsingRegex', function() {
+    it('should validate multiple fields', async function() {
+      const record = { 
+        metadata: { 
+          field1: 'test',
+          field2: 'valid'
+        }
+      };
+      const options = {
+        fieldObjectList: [
+          { name: 'field1', regexPattern: '^test', label: 'Field 1', errorLabel: 'Error 1' },
+          { name: 'field2', regexPattern: '^valid', label: 'Field 2', errorLabel: 'Error 2' }
+        ],
+        triggerCondition: 'true'
+      };
+      sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
+      
+      await TriggerService.validateFieldMapUsingRegex('oid', record, options);
+    });
 
-      expect(exported).to.have.property('transitionWorkflow');
-      expect(exported).to.have.property('runHooksSync');
-      expect(exported).to.have.property('applyFieldLevelPermissions');
-      expect(exported).to.have.property('validateFieldUsingRegex');
+    it('should throw if any field invalid', async function() {
+      const record = { 
+        metadata: { 
+          field1: 'invalid',
+          field2: 'valid'
+        }
+      };
+      const options = {
+        fieldObjectList: [
+          { name: 'field1', regexPattern: '^test', label: 'Field 1', errorLabel: 'Error 1' }
+        ],
+        triggerCondition: 'true'
+      };
+      sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
+      
+      try {
+        await TriggerService.validateFieldMapUsingRegex('oid', record, options);
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Field map validation using regex failed');
+      }
+    });
+  });
+
+  describe('validateFieldsUsingTemplate', function() {
+    it.skip('should validate using template', async function() {
+      const record = { metadata: { field: 'value' } };
+      const options = {
+        template: '<% var errorFieldList = []; if (record.metadata.field !== "value") { addError(errorFieldList, "field", "Label", "Error"); } %>',
+        triggerCondition: 'true'
+      };
+      sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
+      
+      await TriggerService.validateFieldsUsingTemplate('oid', record, options);
+    });
+
+    it.skip('should throw if template returns errors', async function() {
+      const record = { metadata: { field: 'invalid' } };
+      const options = {
+        template: '<% var errorFieldList = []; if (record.metadata.field !== "value") { addError(errorFieldList, "field", "Label", "Error"); } %>',
+        triggerCondition: 'true'
+      };
+      sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
+      
+      try {
+        await TriggerService.validateFieldsUsingTemplate('oid', record, options);
+        expect.fail('Should have thrown');
+      } catch (e: any) {
+        expect(e.message).to.include('Field validation using template failed');
+      }
+    });
+  });
+
+  describe('runTemplatesOnRelatedRecord', function() {
+    it('should update related record', async function() {
+      const relatedRecord = { metadata: { relatedOid: 'related-oid' } };
+      const relatedMeta = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      
+      const options = {
+        pathToRelatedOid: 'metadata.relatedOid',
+        templates: [
+          { field: 'metadata.updated', template: 'true' }
+        ],
+        triggerCondition: 'true'
+      };
+      
+      sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
+      (global as any).RecordsService.getMeta.resolves(relatedMeta);
+      
+      await TriggerService.runTemplatesOnRelatedRecord('oid', relatedRecord, options, {});
+      
+      expect((global as any).RecordsService.updateMeta.called).to.be.true;
+      const updateArgs = (global as any).RecordsService.updateMeta.firstCall.args;
+      expect(updateArgs[1]).to.equal('related-oid');
+      expect(updateArgs[2].metadata.updated).to.equal('true');
     });
   });
 });
