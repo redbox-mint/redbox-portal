@@ -138,11 +138,6 @@ export async function coreBootstrap(): Promise<void> {
 
     sails.log.verbose("Waiting for ReDBox Storage to start...");
 
-    if (sails.services.recordsservice && typeof sails.services.recordsservice.init === 'function') {
-        sails.services.recordsservice.init();
-        sails.log.verbose("Records service, initialized.");
-    }
-
     const response = await sails.services.recordsservice.checkRedboxRunning();
     if (response === true) {
         sails.log.verbose("Bootstrap complete!");
@@ -173,4 +168,15 @@ export function preLiftSetup(): void {
     sails.config.log.customLogger.level = sails.config.log.level;
 
     sails.log.debug("Starting bootstrap process with bootstrapAlways set to: " + sails.config.appmode.bootstrapAlways);
+
+    // Initialize all services that have an init() method
+    // This allows services registered via redbox-loader shims to perform
+    // setup after Sails is fully available (e.g., registering hooks)
+    for (const serviceName of Object.keys(sails.services)) {
+        const service = sails.services[serviceName];
+        if (service && typeof service.init === 'function') {
+            service.init();
+            sails.log.verbose(`${serviceName} service, initialized.`);
+        }
+    }
 }

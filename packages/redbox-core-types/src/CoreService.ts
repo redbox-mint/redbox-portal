@@ -125,6 +125,16 @@ export module Services.Core {
     protected onDynamicImportsCompleted() {
       // Override in sub class as needed
     }
+
+    /**
+     * Initialization method called during bootstrap for services that need to register
+     * hooks or perform other setup after Sails is available.
+     * Override in subclass to implement custom initialization logic.
+     * Called by coreBootstrap() for all services loaded via redbox-loader shims.
+     */
+    public init(): void {
+      // Override in sub class as needed
+    }
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
