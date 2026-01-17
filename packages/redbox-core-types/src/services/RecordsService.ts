@@ -80,32 +80,33 @@ export module Services {
     constructor() {
       super();
       this.logHeader = "RecordsService::";
+
     }
 
     public init() {
-      let that = this;
+      const that = this;
       this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
-        that.getStorageService();
-        that.getDatastreamService();
+        that.getStorageService(that);
+        that.getDatastreamService(that);
         that.searchService = sails.services[sails.config.search.serviceName];
         that.queueService = sails.services[sails.config.queue.serviceName];
       });
     }
 
-    getStorageService() {
+    getStorageService(ref: Records = this) {
       if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.storage.serviceName)) {
-        this.storageService = RedboxJavaStorageService;
+        ref.storageService = RedboxJavaStorageService;
       } else {
-        this.storageService = sails.services[sails.config.storage.serviceName];
+        ref.storageService = sails.services[sails.config.storage.serviceName];
       }
     }
 
-    getDatastreamService() {
+    getDatastreamService(ref: Records = this) {
       if (_.isEmpty(sails.config.record) || _.isEmpty(sails.config.record.datastreamService)) {
-        this.datastreamService = RedboxJavaStorageService;
+        ref.datastreamService = RedboxJavaStorageService;
       } else {
-        this.datastreamService = sails.services[sails.config.record.datastreamService];
-        sails.log.verbose(`${this.logHeader} Using datastreamService: ${sails.config.record.datastreamService}`);
+        ref.datastreamService = sails.services[sails.config.record.datastreamService];
+        sails.log.verbose(`${ref.logHeader} Using datastreamService: ${sails.config.record.datastreamService}`);
       }
     }
 
@@ -152,7 +153,8 @@ export module Services {
       'triggerPreSaveTransitionWorkflowTriggers',
       'triggerPostSaveTransitionWorkflowTriggers',
       // 'updateDataStream',
-      'handleUpdateDataStream'
+      'handleUpdateDataStream',
+      'init'
     ];
 
     protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {

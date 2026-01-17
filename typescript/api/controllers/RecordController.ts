@@ -42,11 +42,11 @@ import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
-import {RecordTypesService as RecordTypesServiceModule} from '@researchdatabox/redbox-core-types';
 
-declare var _, FormsService, WorkflowStepsService, BrandingService, RecordsService,
-    RecordTypesService:RecordTypesServiceModule.Services.RecordTypes, TranslationService, UsersService,
-    RolesService, FormRecordConsistencyService, DashboardTypesService;
+declare const TranslationService: any;
+declare const RecordTypesService: any;
+declare const DashboardTypesService: any;
+
 
 /**
  * Package that contains all Controllers.
@@ -60,9 +60,9 @@ export module Controllers {
    */
   export class Record extends controllers.Core.Controller {
 
-    recordsService: RecordsService = RecordsService;
+    recordsService: RecordsService = sails.services.recordsservice;
     searchService: SearchService;
-    datastreamService: DatastreamService = RecordsService;
+    datastreamService: DatastreamService = sails.services.recordsservice;
 
     constructor() {
       super();
@@ -1512,7 +1512,7 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var results = await RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode, secondarySort);
+      var results = await this.recordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode, secondarySort);
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve records!`);
         return null;
@@ -1539,7 +1539,7 @@ export module Controllers {
         item["metadata"] = this.getDocMetadata(doc);
         item["dateCreated"] = doc["dateCreated"];
         item["dateModified"] = doc["lastSaveDate"];
-        item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+        item["hasEditAccess"] = this.recordsService.hasEditAccess(brand, user, roles, doc);
         items.push(item);
       }
 
@@ -1555,7 +1555,7 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var results = await RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
+      var results = await this.recordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve deleted records!`);
         return null;
