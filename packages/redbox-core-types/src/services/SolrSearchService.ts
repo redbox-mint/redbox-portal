@@ -122,12 +122,15 @@ export module Services {
 
     constructor() {
       super();
-      let that = this;
       this.logHeader = "SolrIndexer::";
+    }
+
+    public init() {
+      const that = this;
       this.registerSailsHook('on', 'ready', async function () {
         that.queueService = sails.services[sails.config.queue.serviceName];
         that.initClient();
-        await that.buildSchema();
+        await that.buildSchema(that);
       });
     }
 
@@ -135,22 +138,22 @@ export module Services {
       flat = await import("flat");
     }
 
-    protected initClient() {
+    protected initClient(ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       let coreIds: string[] = Object.keys(solrConfig.cores);
       for (let coreId of coreIds) {
         let solrOpts: SolrOptions = solrConfig.cores[coreId].options;
         let client: SolrClient = Solr.createClient(solrOpts);
-        this.clients[coreId] = client;
+        ref.clients[coreId] = client;
       }
     }
 
-    protected async buildSchema() {
+    protected async buildSchema(ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       let coreNameKeys: string[] = Object.keys(solrConfig.cores);
 
       // wait for SOLR deafult core to start up
-      await this.waitForSolr('default');
+      await ref.waitForSolr('default');
 
       for (let coreId of coreNameKeys) {
 
@@ -158,26 +161,26 @@ export module Services {
         const coreName = core.options.core;
 
         if (coreId != 'default') {
-          await this.waitForSolr(coreId);
+          await ref.waitForSolr(coreId, ref);
         }
 
         // check if the schema is built....
-        try {
+        try { 
           const flagName: string = core.initSchemaFlag.name;
-          const schemaInitFlag = await this.getSchemaEntry(coreId, 'fields', flagName);
+          const schemaInitFlag = await ref.getSchemaEntry(coreId, 'fields', flagName, ref);
           if (!_.isEmpty(schemaInitFlag)) {
-            sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
+            sails.log.verbose(`${ref.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
             continue;
           }
         } catch (err) {
           sails.log.verbose(JSON.stringify(err));
         }
-        sails.log.verbose(`${this.logHeader} Schema not initialised, building schema...`)
-        const schemaUrl = `${this.getBaseUrl(core.options)}${coreName}/schema`;
+        sails.log.verbose(`${ref.logHeader} Schema not initialised, building schema...`)
+        const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
         try {
           const schemaDef = _.get(sails.config.solr.cores, coreId + '.schema');
           if (_.isEmpty(schemaDef)) {
-            sails.log.verbose(`${this.logHeader} Schema definition empty, skipping build.`);
+            sails.log.verbose(`${ref.logHeader} Schema definition empty, skipping build.`);
             continue;
           }
           // append the init flag
@@ -185,58 +188,58 @@ export module Services {
             schemaDef['add-field'] = [];
           }
           schemaDef['add-field'].push(_.get(sails.config.solr.cores, coreId + '.initSchemaFlag'));
-          sails.log.verbose(`${this.logHeader} sending schema definition:`);
+          sails.log.verbose(`${ref.logHeader} sending schema definition:`);
           sails.log.verbose(JSON.stringify(schemaDef));
           const response = await axios.post(schemaUrl, schemaDef).then(response => response.data);
-          sails.log.verbose(`${this.logHeader} Schema build successful, response: `);
+          sails.log.verbose(`${ref.logHeader} Schema build successful, response: `);
           sails.log.verbose(JSON.stringify(response));
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to build SOLR schema:`);
+          sails.log.error(`${ref.logHeader} Failed to build SOLR schema:`);
           sails.log.error(JSON.stringify(err));
         }
       }
     }
 
-    private async getSchemaEntry(coreId: string, fieldName: string, name: string) {
-      const schemaResp = await this.getSchema(coreId);
+    private async getSchemaEntry(coreId: string, fieldName: string, name: string, ref: SolrSearchService = this) {
+      const schemaResp = await ref.getSchema(coreId);
       return _.find(_.get(schemaResp.schema, fieldName), (schemaDef) => { return schemaDef.name == name });
     }
 
-    private async getSchema(coreId: string) {
+    private async getSchema(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
-      const schemaUrl = `${this.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
+      const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
       return await axios.get(schemaUrl).then(response => response.data);
     }
 
-    private async waitForSolr(coreId: string) {
+    private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       let coreName: string = core.options.core;
       let solrUp = false;
       let tryCtr = 0;
-      const urlCheck = `${this.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
+      const urlCheck = `${ref.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
       while (!solrUp && tryCtr <= sails.config.solr.maxWaitTries) {
         try {
           tryCtr++;
-          sails.log.verbose(`${this.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
+          sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
           const solrStat = await axios.get(urlCheck).then(response => response.data);
-          sails.log.verbose(`${this.logHeader} Response is:`);
+          sails.log.verbose(`${ref.logHeader} Response is:`);
           sails.log.verbose(JSON.stringify(solrStat));
           if (solrStat.status[coreName].instanceDir) {
-            sails.log.info(`${this.logHeader} SOLR core is available: ${coreName}`);
+            sails.log.info(`${ref.logHeader} SOLR core is available: ${coreName}`);
             solrUp = true;
           } else {
             throw new Error(`SOLR core: ${coreName} is still loading.`);
           }
         } catch (err) {
-          sails.log.info(`${this.logHeader} SOLR core: ${coreName} is still down, waiting.`);
+          sails.log.info(`${ref.logHeader} SOLR core: ${coreName} is still down, waiting.`);
           sails.log.info(JSON.stringify(err));
           if (tryCtr == sails.config.solr.maxWaitTries) {
-            sails.log.error(`${this.logHeader} SOLR seemed to have failed startup, giving up on waiting.`);
+            sails.log.error(`${ref.logHeader} SOLR seemed to have failed startup, giving up on waiting.`);
             break;
           }
-          await this.sleep(sails.config.solr.waitTime);
+          await ref.sleep(sails.config.solr.waitTime);
         }
       }
     }

@@ -82,7 +82,7 @@ export module Services {
       return uuidv1().replace(/-/g, '');
     }
 
-    private async init() {
+    public async init() {
       this.db = Record.getDatastore().manager;
       // check if the collection exists ...
       try {
