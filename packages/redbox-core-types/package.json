@@ -31,7 +31,7 @@
     "glob": "^13.0.0",
     "graceful-fs": "^4.2.11",
     "i18next": "^25.7.3",
-    "isomorphic-dompurify": "^2.34.0",
+    "dompurify": "^3.0.8",
     "jsdom": "^26.1.0",
     "jsonata": "^2.1.0",
     "language-data-commons-vocabs": "^1.0.1",

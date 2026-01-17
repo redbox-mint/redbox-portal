@@ -1,6 +1,6 @@
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as coreServices } from '../CoreService';
-import createDOMPurify = require('isomorphic-dompurify');
+
 import domPurify = require('dompurify');
 import { Buffer } from 'buffer';
 import { JSDOM } from 'jsdom';
@@ -82,11 +82,6 @@ const instantiateDomPurify = (factoryModule: any): DomPurifyInstance | null => {
 };
 
 const initialiseDOMPurify = (): DomPurifyInstance => {
-  const instanceFromIso = instantiateDomPurify(createDOMPurify);
-  if (instanceFromIso) {
-    return instanceFromIso;
-  }
-
   const instanceFromDomPurify = instantiateDomPurify(domPurify);
   if (instanceFromDomPurify) {
     return instanceFromDomPurify;
