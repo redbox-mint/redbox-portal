@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { DateTime } from 'luxon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('ReportsService', function() {
@@ -240,6 +241,56 @@ describe('ReportsService', function() {
       expect(exported).to.have.property('getCSVResult');
       expect(exported).to.have.property('getReportDto');
       expect(exported).to.have.property('extractReportTemplates');
+    });
+  });
+
+  describe('runTemplate', function() {
+    it('Should parse JSON result when config.json is true', function () {
+      const data = { name: "World" };
+      const config = { 
+          template: '{"greeting": "Hello {{name}}"}',
+          json: true 
+      };
+      const result = ReportsService.runTemplate(data, config);
+      expect(result).to.deep.equal({ greeting: "Hello World" });
+    });
+  });
+
+  describe('Handlebars Helpers', function() {
+    it('should support shared helpers like formatDate and get', function() {
+      const report = {
+        columns: [
+          { 
+            label: 'Date Modified', 
+            property: 'date_object_modified',
+            template: '{{formatDate date_object_modified "dd/MM/yyyy hh:mm a"}}'
+          },
+          {
+            label: 'Chief Investigator', 
+            property: 'contributor_ci.text_full_name',
+            template: '{{get this "contributor_ci.text_full_name"}}'
+          }
+        ]
+      };
+      
+      const data = [
+        { 
+          id: 1, 
+          title: "Record 1", 
+          date_object_modified: "2023-05-18T01:30:00+10:00", 
+          "contributor_ci.text_full_name": "Contributor 1"
+        }
+      ];
+
+      const result = ReportsService.getDataRows(report, data, {});
+      
+      expect(result).to.have.lengthOf(1);
+      
+      // Calculate expected date based on system timezone
+      const expectedModified = DateTime.fromISO("2023-05-18T01:30:00+10:00").toFormat("dd/MM/yyyy hh:mm a");
+      expect(result[0][0], `Expect first element to be ${expectedModified}`).to.equal(expectedModified);
+      
+      expect(result[0][1], 'Expect second element to be Contributor 1').to.equal("Contributor 1");
     });
   });
 });
