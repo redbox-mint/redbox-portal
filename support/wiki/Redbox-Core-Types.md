@@ -6,6 +6,7 @@ The `@researchdatabox/redbox-core-types` package provides shared TypeScript type
 
 This package centralizes:
 - **Type definitions** for models, services, and configuration
+- **Business logic services** - All core services for records, workflows, users, etc.
 - **Waterline model definitions** for database entities
 - **Policy functions** for authorization and request handling
 - **Configuration defaults** for all Sails.js config keys
@@ -15,6 +16,7 @@ This package centralizes:
 
 | Directory | Description |
 |---|---|
+| `src/services/` | Core business logic services - records, workflows, users, email, etc. |
 | `src/config/` | Configuration defaults for all sails.config keys (65+ config modules) |
 | `src/configmodels/` | Configuration models for menus, panels, sidebars, system messages |
 | `src/policies/` | Authorization policies (isAuthenticated, checkAuth, etc.) |
@@ -38,6 +40,9 @@ import {
     // Waterline model definitions
     WaterlineModels,
 
+    // Service exports for shim generation
+    ServiceExports,
+
     // Configuration defaults
     Config,
 
@@ -53,6 +58,114 @@ import {
     momentShim
 } from '@researchdatabox/redbox-core-types';
 ```
+
+## Core Services
+
+All core ReDBox business logic services are defined in `src/services/`. These services handle records, workflows, users, email, integrations, and more.
+
+### Service Architecture
+
+Services extend the `Services.Core.Service` base class and follow a consistent pattern:
+
+```typescript
+import { Services as services } from '../CoreService';
+
+export module Services {
+    export class MyService extends services.Core.Service {
+        // Methods to export to Sails.js
+        protected _exportedMethods: any = [
+            'bootstrap',
+            'myMethod',
+            'anotherMethod'
+        ];
+
+        public async bootstrap() {
+            // Initialization logic
+        }
+
+        public myMethod(param: string): Observable<any> {
+            // Business logic
+        }
+    }
+}
+```
+
+### Service Categories
+
+| Category | Services | Description |
+|---|---|---|
+| **Records & Data** | `RecordsService`, `RecordTypesService`, `FormsService`, `FormRecordConsistencyService` | Record CRUD, metadata, form handling |
+| **Workflows** | `WorkflowStepsService`, `TriggerService` | Workflow transitions and triggers |
+| **Users & Auth** | `UsersService`, `RolesService` | User management and authorization |
+| **Search & Cache** | `SolrSearchService`, `CacheService`, `NamedQueryService` | Search indexing and caching |
+| **Integrations** | `OrcidService`, `DoiService`, `FigshareService`, `RaidService`, `OniService` | External API integrations |
+| **Workspaces** | `WorkspaceService`, `WorkspaceTypesService`, `WorkspaceAsyncService` | Research workspace management |
+| **Email & Notifications** | `EmailService` | Email delivery |
+| **Configuration** | `ConfigService`, `AppConfigService`, `BrandingService`, `BrandingLogoService` | Runtime configuration |
+| **Templates & I18n** | `TemplateService`, `TranslationService`, `I18nEntriesService` | Templating and internationalization |
+| **Reports** | `ReportsService`, `DashboardTypesService` | Reporting and dashboards |
+| **Utilities** | `ViewUtilsService`, `PathRulesService`, `SvgSanitizerService`, `ContrastService`, `SassCompilerService` | Helper utilities |
+| **Background Jobs** | `AgendaQueueService`, `AsynchsService` | Job queue and async processing |
+| **Navigation** | `NavigationService` | Menu and navigation |
+| **Vocabularies** | `VocabService` | Controlled vocabularies |
+| **Data Plans** | `RDMPService` | Research Data Management Plans |
+
+### ServiceExports Object
+
+The `ServiceExports` object provides lazy-instantiated services for the [Redbox Loader](Redbox-Loader) to generate shims:
+
+```typescript
+import { ServiceExports } from '@researchdatabox/redbox-core-types';
+
+// Access a service (lazy instantiation)
+const recordsService = ServiceExports['RecordsService'];
+```
+
+Services are instantiated via `new ServiceClass().exports()` which provides method binding and filtering appropriate for Sails.js services.
+
+### Service List
+
+| Service | Description |
+|---|---|
+| `AgendaQueueService` | Background job queue using Agenda |
+| `AppConfigService` | Application-level configuration |
+| `AsynchsService` | Asynchronous operation handling |
+| `BrandingLogoService` | Brand logo management |
+| `BrandingService` | Multi-tenancy branding |
+| `CacheService` | In-memory and database caching |
+| `ConfigService` | Runtime configuration access |
+| `ContrastService` | Color contrast calculations |
+| `DashboardTypesService` | Dashboard type definitions |
+| `DoiService` | DataCite DOI registration |
+| `EmailService` | Email delivery via nodemailer |
+| `FigshareService` | Figshare repository integration |
+| `FormRecordConsistencyService` | Form-record validation |
+| `FormsService` | Dynamic form management |
+| `I18nEntriesService` | Translation entry management |
+| `NamedQueryService` | Saved query execution |
+| `NavigationService` | Menu and navigation building |
+| `OniService` | Oni (OCFL) integration |
+| `OrcidService` | ORCID integration |
+| `PathRulesService` | URL path rule resolution |
+| `RaidService` | RAiD identifier integration |
+| `RDMPService` | Research Data Management Plans |
+| `RecordsService` | Core record operations |
+| `RecordTypesService` | Record type configuration |
+| `ReportsService` | Report generation |
+| `RolesService` | User role management |
+| `SassCompilerService` | SASS/SCSS compilation |
+| `SolrSearchService` | Solr search integration |
+| `SvgSanitizerService` | SVG sanitization |
+| `TemplateService` | EJS template rendering |
+| `TranslationService` | Multi-language support |
+| `TriggerService` | Workflow trigger execution |
+| `UsersService` | User account management |
+| `ViewUtilsService` | View helper utilities |
+| `VocabService` | Vocabulary/controlled list lookups |
+| `WorkflowStepsService` | Workflow step management |
+| `WorkspaceAsyncService` | Async workspace operations |
+| `WorkspaceService` | Workspace management |
+| `WorkspaceTypesService` | Workspace type definitions |
 
 ## Configuration System
 

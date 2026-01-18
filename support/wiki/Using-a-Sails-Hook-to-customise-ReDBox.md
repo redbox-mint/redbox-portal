@@ -54,6 +54,7 @@ Hooks can provide various components to ReDBox by declaring capabilities in `pac
     "sails": {
         "hasModels": true,
         "hasPolicies": true,
+        "hasServices": true,
         "hasBootstrap": true,
         "hasConfig": true
     }
@@ -68,6 +69,7 @@ Each capability flag requires a corresponding export function:
 |---|---|---|
 | `hasModels` | `registerRedboxModels()` | Object of Waterline model definitions |
 | `hasPolicies` | `registerRedboxPolicies()` | Object of policy functions |
+| `hasServices` | `registerRedboxServices()` | Object of service exports (can override core services) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Async function to run at startup |
 | `hasConfig` | `registerRedboxConfig()` | Configuration object to merge |
 
@@ -95,6 +97,65 @@ module.exports.registerRedboxPolicies = function() {
             // Policy logic
             return next();
         }
+    };
+};
+```
+
+#### Example: Providing Services
+
+Hooks can provide custom services or override core services. Hook services take precedence over core services with the same name.
+
+**TypeScript Example (Recommended):**
+
+```typescript
+import { Services as services } from '@researchdatabox/redbox-core-types';
+
+export module Services {
+    export class MyCustomService extends services.Core.Service {
+        protected _exportedMethods: any = ['doSomething', 'doSomethingElse'];
+
+        public doSomething(param: string): Observable<any> {
+            // Custom business logic
+            return of({ result: param });
+        }
+
+        public doSomethingElse(): void {
+            sails.log.info('Custom service method called');
+        }
+    }
+}
+
+// In your hook's index.ts or main export file:
+module.exports.registerRedboxServices = function() {
+    return {
+        MyCustomService: new Services.MyCustomService().exports()
+    };
+};
+```
+
+**Overriding a Core Service:**
+
+```typescript
+// Override RecordsService to add custom behavior
+import { RecordsService } from '@researchdatabox/redbox-core-types';
+
+export module Services {
+    export class CustomRecordsService extends RecordsService.Services.Records {
+        protected _exportedMethods: any = [
+            ...super._exportedMethods,
+            'myCustomMethod'
+        ];
+
+        public myCustomMethod(oid: string): Observable<any> {
+            // Custom record handling
+            return this.getMeta(oid);
+        }
+    }
+}
+
+module.exports.registerRedboxServices = function() {
+    return {
+        RecordsService: new Services.CustomRecordsService().exports()
     };
 };
 ```

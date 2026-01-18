@@ -1,13 +1,13 @@
 # Redbox Loader
 
-The `redbox-loader.js` module generates shim files for models, policies, middleware, responses, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
+The `redbox-loader.js` module generates shim files for models, services, policies, middleware, responses, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
 
 ## Overview
 
 When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 1. Scan dependencies for registered hooks
 2. Generate shim files that bridge Sails.js to `@researchdatabox/redbox-core-types`
-3. Ensure all components are in place before the ORM and policies load
+3. Ensure all components are in place before the ORM, services, and policies load
 
 ## How It Works
 
@@ -18,6 +18,7 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 │  1. redbox-loader.generateAllShims()                        │
 │     ├── Scan package.json dependencies for hooks            │
 │     ├── Generate api/models/*.js shims                      │
+│     ├── Generate api/services/*.js shims                    │
 │     ├── Generate api/policies/*.js shims                    │
 │     ├── Generate api/middleware/*.js shims                  │
 │     ├── Generate api/responses/*.js shims                   │
@@ -27,6 +28,7 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 │  2. sails.lift()                                            │
 │     ├── Sails loads generated shim files                    │
 │     ├── ORM initializes with model definitions              │
+│     ├── Services become available as global sails services  │
 │     └── Bootstrap executes coreBootstrap()                  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -62,6 +64,33 @@ const { Policies } = require('@researchdatabox/redbox-core-types');
 module.exports = Policies['isAuthenticated'];
 ```
 
+### Service Shims (`api/services/`)
+
+Service shims expose the core services from `@researchdatabox/redbox-core-types` to Sails.js. These include business logic for records, workflows, users, integrations, and more.
+
+```javascript
+// Example: api/services/RecordsService.js
+const { ServiceExports } = require('@researchdatabox/redbox-core-types');
+module.exports = ServiceExports['RecordsService'];
+```
+
+Services are lazy-instantiated when first accessed, ensuring proper initialization order.
+
+**Generated Services:**
+
+| Service | Description |
+|---|---|
+| `RecordsService` | Core record CRUD operations |
+| `UsersService` | User account management |
+| `FormsService` | Dynamic form handling |
+| `WorkflowStepsService` | Workflow state transitions |
+| `SolrSearchService` | Search indexing |
+| `EmailService` | Email delivery |
+| `CacheService` | In-memory and database caching |
+| ... | 32 additional services |
+
+See [Redbox Core Types - Services](Redbox-Core-Types#core-services) for the complete service list.
+
 ### Config Shims (`config/`)
 
 ```javascript
@@ -86,6 +115,7 @@ The loader scans `package.json` dependencies for hooks that declare capabilities
     "sails": {
         "hasModels": true,
         "hasPolicies": true,
+        "hasServices": true,
         "hasBootstrap": true,
         "hasConfig": true
     }
@@ -94,12 +124,28 @@ The loader scans `package.json` dependencies for hooks that declare capabilities
 
 Hooks must export registration functions:
 
-| Flag | Required Export |
-|---|---|
-| `hasModels` | `registerRedboxModels()` → returns model definitions object |
-| `hasPolicies` | `registerRedboxPolicies()` → returns policies object |
-| `hasBootstrap` | `registerRedboxBootstrap()` → returns async bootstrap function |
-| `hasConfig` | `registerRedboxConfig()` → returns config object to merge |
+| Flag | Required Export | Description |
+|---|---|---|
+| `hasModels` | `registerRedboxModels()` | Returns model definitions object |
+| `hasPolicies` | `registerRedboxPolicies()` | Returns policies object |
+| `hasServices` | `registerRedboxServices()` | Returns services object (hook services take precedence over core) |
+| `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
+| `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
+
+### Service Override Precedence
+
+When a hook provides a service with the same name as a core service, the **hook service takes precedence**. This allows hooks to override or extend core functionality:
+
+```javascript
+// Hook providing a custom RecordsService
+module.exports.registerRedboxServices = function() {
+    return {
+        RecordsService: new MyCustomRecordsService().exports()
+    };
+};
+```
+
+The generated shim will point to the hook's implementation instead of core-types.
 
 ## Debugging
 
