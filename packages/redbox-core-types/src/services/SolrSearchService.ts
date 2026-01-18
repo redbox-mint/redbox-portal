@@ -112,7 +112,8 @@ export module Services {
       'solrAddOrUpdate',
       'solrDelete',
       'searchAdvanced',
-      'preIndex'
+      'preIndex',
+      'init'
     ]
 
     protected queueService: QueueService;
