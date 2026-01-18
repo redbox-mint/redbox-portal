@@ -1,3 +1,5 @@
+import '../src/sails';
+
 /**
  * Test setup file that runs before all tests.
  * Sets up minimal global mocks required for service module loading.

@@ -1,0 +1,70 @@
+import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsService as FormsServiceModule, Controllers as controllers } from '../../index';
+import { firstValueFrom } from 'rxjs';
+
+declare var sails: any;
+declare var FormsService: FormsServiceModule.Services.Forms;
+declare var _: any;
+
+export module Controllers {
+  /**
+   * Responsible for all things related to the Dashboard
+   *
+   * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
+   */
+  export class FormManagement extends controllers.Core.Controller {
+
+    /**
+     * Exported methods, accessible from internet.
+     */
+    protected _exportedMethods: any = [
+      'getForm',
+      'listForms'
+    ];
+
+    /**
+     **************************************************************************************************
+     **************************************** Add custom methods **************************************
+     **************************************************************************************************
+     */
+
+    public bootstrap() {
+
+    }
+
+    public async getForm(req, res) {
+      try {
+        let name: string = req.param('name');
+        let editable: boolean = req.param('editable');
+        if (editable == null) {
+          editable = true;
+        }
+        let form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
+
+        return this.apiRespond(req, res, form, 200)
+      } catch (error) {
+        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      }
+    }
+
+    public async listForms(req, res) {
+      try {
+        let forms: FormModel[] = await firstValueFrom(FormsService.listForms());
+        let response: ListAPIResponse<any> = new ListAPIResponse();
+        let summary: ListAPISummary = new ListAPISummary();
+        summary.numFound = forms.length;
+        response.summary = summary;
+        response.records = forms;
+        this.apiRespond(req, res, response);
+      } catch (error) {
+        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      }
+    }
+
+
+    /**
+     **************************************************************************************************
+     **************************************** Override magic methods **********************************
+     **************************************************************************************************
+     */
+  }
+}
