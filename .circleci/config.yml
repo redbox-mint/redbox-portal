@@ -399,7 +399,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            nvm install && npm run compile:sails-ng-common && npm run compile:raido
+            npm run compile:sails-ng-common && npm run compile:raido
       - run:
           name: Install packages
           command: |
@@ -410,7 +410,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd ./packages/redbox-core-types
-            npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
+            nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
               npx mocha 'test/**/*.test.ts'
       - run:
           name: Upload redbox-core-types code coverage
