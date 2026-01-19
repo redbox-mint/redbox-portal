@@ -448,7 +448,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                 delete item['expressions'];
             }
         }
-        this.logger.info(`${this.logName}: Processed FormComponentDefinition '${item.name}'`, JSON.stringify(item.expressions, null, 2));
         this.removePropsUndefined(item);
     }
 
