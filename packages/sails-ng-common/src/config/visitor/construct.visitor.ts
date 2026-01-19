@@ -46,7 +46,7 @@ import {
     DefaultLayoutName
 } from "../component/default-layout.outline";
 import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
+import {FormExpressionsConfig} from "../form-component.model";
 import {
     FormComponentDefinitionFrame,
     FormComponentDefinitionOutline,
@@ -253,8 +253,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.formConfig = new FormConfig();
         this.formConfig.accept(this);
-        this.logger.info(`Completed ConstructFormConfigVisitor for form '${this.formConfig.name}'.`);
-        this.logger.info(JSON.stringify(this.formConfig, null, 2));
         return this.formConfig;
     }
 

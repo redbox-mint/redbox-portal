@@ -66,7 +66,7 @@ import {
 } from "../component/date-input.outline";
 import {FormConstraintConfig} from "../form-component.model";
 import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-component.outline";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
