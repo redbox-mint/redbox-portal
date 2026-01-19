@@ -1,5 +1,5 @@
-import { get as _get, cloneDeep as _cloneDeep, isPlainObject as _isPlainObject, map as _map } from 'lodash';
-import { FormConfigOutline } from "../form-config.outline";
+import {get as _get, cloneDeep as _cloneDeep, isPlainObject as _isPlainObject, map as _map} from 'lodash';
+import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -64,13 +64,13 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import { FormConstraintConfig } from "../form-component.model";
-import { AvailableFormComponentDefinitionOutlines } from "../dictionary.outline";
-import { ExpressionsConditionKind, FormComponentDefinitionOutline } from "../form-component.outline";
-import { FieldComponentDefinitionOutline } from "../field-component.outline";
-import { FieldModelDefinitionOutline } from "../field-model.outline";
-import { FieldLayoutDefinitionOutline } from "../field-layout.outline";
-import { ILogger } from "../../logger.interface";
+import {FormConstraintConfig} from "../form-component.model";
+import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-component.outline";
+import {FieldComponentDefinitionOutline} from "../field-component.outline";
+import {FieldModelDefinitionOutline} from "../field-model.outline";
+import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
+import {ILogger} from "../../logger.interface";
 /**
  * The details needed to evaluate the constraint config.
  */
@@ -88,13 +88,13 @@ export type NameConstraints = {
      */
     model: boolean,
 };
-import { FormConfig } from "../form-config.model";
-import { FormConfigVisitor } from "./base.model";
-import { FormModesConfig } from "../shared.outline";
-import { FormConfigPathHelper } from "./common.model";
-import { isTypeWithComponentDefinitions } from "../form-types.outline";
-import { JsonTypeDefSchemaFormConfigVisitor } from "./json-type-def.visitor";
-import { guessType } from "../helpers";
+import {FormConfig} from "../form-config.model";
+import {FormConfigVisitor} from "./base.model";
+import {FormModesConfig} from "../shared.outline";
+import {FormConfigPathHelper} from "./common.model";
+import {isTypeWithComponentDefinitions} from "../form-types.outline";
+import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
+import {guessType} from "../helpers";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
