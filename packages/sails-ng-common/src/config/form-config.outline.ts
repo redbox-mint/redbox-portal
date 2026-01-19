@@ -2,7 +2,7 @@ import {FormValidatorConfig, FormValidationGroups} from "../validation/form.mode
 import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
 import {CanVisit} from "./visitor/base.outline";
 import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
-import {FormExpressionsConfigFrame, FormExpressionsConfigOutline} from "./form-component.outline";
+import {FormExpressionsConfigOutline} from "./form-component.outline";
 
 
 /**
