@@ -170,6 +170,9 @@ export type FormComponentEventTypeValue = typeof FormComponentEventType[keyof ty
 
 /**
  * Event type map for type-safe select operations
+ * 
+ * TODO: Could the readonly type and FormComponentEventMap keys be replaced by FormComponentEventType.[key] for strings or typeof FormComponentEventType.[key] for types?
+This would ensure that only known names can be used and enforce this at compile time.
  */
 export interface FormComponentEventMap {
   'field.value.changed': FieldValueChangedEvent;

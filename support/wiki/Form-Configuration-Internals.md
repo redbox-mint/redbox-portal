@@ -166,14 +166,7 @@ The expression system consists of several key components:
 
 ### Event Types
 
-The following event types are supported:
-
-- `field.value.changed` - Published when a field's value changes
-- `field.meta.changed` - Published when field metadata changes
-- `form.definition.ready` - Published when the form has fully loaded
-- `form.definition.changed` - Published when form structure changes (e.g., repeatable items)
-- `form.validation.broadcast` - Published on form-wide validation
-- `form.save.*` - Save lifecycle events
+For supported events, see [Form Event Bus Architecture](Form-Event-Bus-Architecture.md)
 
 ### Expression Configuration Structure
 
