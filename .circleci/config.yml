@@ -411,7 +411,7 @@ jobs:
           command: |
             cd ./packages/redbox-core-types
             npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
-              npx mocha --config test/.mocharc.js 'test/**/*.test.ts'
+              npx mocha 'test/**/*.test.ts'
       - run:
           name: Upload redbox-core-types code coverage
           command: |
