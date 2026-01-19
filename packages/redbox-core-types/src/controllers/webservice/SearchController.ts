@@ -18,9 +18,10 @@ export module Controllers {
     RecordsService: RecordsService;
 
     public init(): void {
-      this.RecordsService = sails.services.recordsservice;
+      const that = this;
       this.registerSailsHook('on', 'ready', () => {
-        this.searchService = sails.services[sails.config.search.serviceName];
+        that.RecordsService = sails.services.recordsservice;
+        that.searchService = sails.services[sails.config.search.serviceName];
       });
     }
 
