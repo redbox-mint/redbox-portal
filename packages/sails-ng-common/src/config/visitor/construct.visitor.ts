@@ -233,8 +233,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
               record?: Record<string, unknown> | null;
           }
     ): FormConfigOutline {
-        this.logger.info(`Starting ConstructFormConfigVisitor for form `);
-        this.logger.info()
         this.data = _cloneDeep(options.data);
         this.reusableFormDefs = options.reusableFormDefs ?? {};
         this.formMode = options.formMode ?? "view";
@@ -920,6 +918,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             exprItem.name = exprData.name;
             exprItem.description = exprData.description;
             const config = exprData.config;
+            if (!config) {
+                throw new Error(`Missing config for expression: ${exprData.name}`);
+            }
             if ('operation' in config) {
                 const opConfig = config as FormExpressionsOperationConfigFrame;
                 exprItem.config = {
