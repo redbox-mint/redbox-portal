@@ -607,7 +607,7 @@ const formConfig: FormConfigFrame = {
                                                             // second group component, nested in first group component
                                                             name: 'group_2_component',
                                                             layout: {
-                                                                            class: 'DefaultLayout',
+                                                                class: 'DefaultLayout',
                                                                 config: {
                                                                     label: 'Group2 label',
                                                                     helpText: 'Group 2 help',

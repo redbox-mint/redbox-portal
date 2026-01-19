@@ -110,7 +110,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			'expressions',
 			expressionIndex,
 			'config',
-      propertyName
+			propertyName
 		];
 	}
 
