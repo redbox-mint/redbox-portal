@@ -41,7 +41,7 @@ describe('Webservice SearchController', () => {
         controller = new Controllers.Search();
         controller.init();
         // Trigger the hook ready event handler
-        const readyHandler = mockSails.on.firstCall.args[1];
+        const readyHandler = mockSails.after.firstCall.args[1];
         readyHandler();
     });
 
