@@ -56,7 +56,16 @@ function summarizeForCI(data: any, maxDepth: number = 2): any {
 
   // For arrays, show length and first item summary
   if (Array.isArray(data)) {
-    return `[Array(${data.length})]`;
+    if (maxDepth <= 0) {
+      return `[Array(${data.length})]`;
+    }
+    // Show summarized items up to a limit
+    const maxItems = 3;
+    const items = data.slice(0, maxItems).map(item => summarizeForCI(item, maxDepth - 1));
+    if (data.length > maxItems) {
+      return `[Array(${data.length}): ${JSON.stringify(items).slice(1, -1)}, ... +${data.length - maxItems} more]`;
+    }
+    return items;
   }
 
   // For objects, show key names and types at top level only
@@ -77,12 +86,12 @@ function summarizeForCI(data: any, maxDepth: number = 2): any {
         // For signal-like getters, try to get the value
         try {
           const result = val();
-          summary[prop] = typeof result === 'object' ? `[${result?.constructor?.name || 'Object'}]` : result;
+          summary[prop] = summarizeForCI(result, maxDepth - 1);
         } catch {
           summary[prop] = '[Function]';
         }
       } else if (typeof val === 'object') {
-        summary[prop] = `[${val?.constructor?.name || 'Object'}]`;
+        summary[prop] = summarizeForCI(val, maxDepth - 1);
       } else {
         summary[prop] = val;
       }

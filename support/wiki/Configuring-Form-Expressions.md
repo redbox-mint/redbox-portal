@@ -20,18 +20,7 @@ The expression system is built on a publish-subscribe (pub/sub) architecture:
 
 ### Event Types
 
-The following events are supported:
-
-| Event Type | Description |
-|------------|-------------|
-| `field.value.changed` | Published when a field's value changes |
-| `field.meta.changed` | Published when field metadata (visibility, enabled state) changes |
-| `form.definition.ready` | Published when the form has fully loaded and initialized |
-| `form.definition.changed` | Published when the form structure changes (e.g., repeatable items added/removed) |
-| `form.validation.broadcast` | Published when form-wide validation occurs |
-| `form.save.requested` | Published when a save operation is requested |
-| `form.save.success` | Published when a save operation succeeds |
-| `form.save.failure` | Published when a save operation fails |
+For supported events, see [Form Event Bus Architecture](Form-Event-Bus-Architecture.md)
 
 ## Configuring Expressions
 

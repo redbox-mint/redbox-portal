@@ -163,6 +163,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
    * 
    * Returns true if this isn't a layout. 
    * 
+   * TODO: Improve to have more explicit control over when to attach the producer.
+   * 
    * @param entry 
    * @param instance 
    * @returns 
@@ -175,7 +177,9 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
   /**
    * 
-   * Returns true if is a component
+   * Returns true if is a component.
+   * 
+   * TODO: Improve to have more explicit control over when to attach the consumer.
    * 
    * @param entry 
    * @param instance 
