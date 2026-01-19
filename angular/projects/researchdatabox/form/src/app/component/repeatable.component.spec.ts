@@ -134,7 +134,7 @@ describe('RepeatableComponent', () => {
     };
 
     // act - create the form
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const {fixture} = await createFormAndWaitForReady(formConfig);
 
     // Get the event bus and subscribe to FORM_DEFINITION_CHANGED events
     const eventBus = TestBed.inject(FormComponentEventBus);
