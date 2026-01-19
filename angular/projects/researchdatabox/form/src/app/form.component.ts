@@ -38,7 +38,7 @@ import { FormStatus, FormConfigFrame, JSONataQuerySource } from '@researchdatabo
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent,  FormComponentEventBase, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';

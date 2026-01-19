@@ -899,7 +899,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     protected populateFormComponent(item: FormComponentDefinitionOutline, requireModel?: boolean) {
         const currentData = this.getData();
-
+        if (!isTypeFormComponentDefinition(currentData)) { 
+            throw new Error(`Invalid FormComponentDefinition at '${this.formConfigPathHelper.formConfigPath}': ${JSON.stringify(currentData)}`);
+        }
         this.sharedProps.sharedPopulateFormComponent(item, currentData);
         
         // NOTE: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
