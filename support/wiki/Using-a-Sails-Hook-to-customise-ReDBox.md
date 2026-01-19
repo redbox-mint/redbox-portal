@@ -55,6 +55,7 @@ Hooks can provide various components to ReDBox by declaring capabilities in `pac
         "hasModels": true,
         "hasPolicies": true,
         "hasServices": true,
+        "hasControllers": true,
         "hasBootstrap": true,
         "hasConfig": true
     }
@@ -70,6 +71,7 @@ Each capability flag requires a corresponding export function:
 | `hasModels` | `registerRedboxModels()` | Object of Waterline model definitions |
 | `hasPolicies` | `registerRedboxPolicies()` | Object of policy functions |
 | `hasServices` | `registerRedboxServices()` | Object of service exports (can override core services) |
+| `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Object of controller exports (can override core controllers) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Async function to run at startup |
 | `hasConfig` | `registerRedboxConfig()` | Configuration object to merge |
 
@@ -156,6 +158,38 @@ export module Services {
 module.exports.registerRedboxServices = function() {
     return {
         RecordsService: new Services.CustomRecordsService().exports()
+    };
+};
+```
+
+#### Example: Providing Controllers
+
+Hooks can provide API controllers or webservice controllers. Hook controllers take precedence over core controllers with the same name.
+
+```typescript
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+
+export module Controllers {
+    export class MyController extends controllers.Core.Controller {
+        protected _exportedMethods: any = ['index'];
+
+        public index(req: any, res: any) {
+            return res.json({ ok: true });
+        }
+    }
+}
+
+module.exports.registerRedboxControllers = function() {
+    return {
+        MyController: new Controllers.MyController().exports()
+    };
+};
+```
+
+```typescript
+module.exports.registerRedboxWebserviceControllers = function() {
+    return {
+        MyWebserviceController: new Controllers.MyWebserviceController().exports()
     };
 };
 ```

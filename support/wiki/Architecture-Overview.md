@@ -77,7 +77,7 @@ The frontend is a modern Angular application located in the `angular/` directory
 
 The root directory acts as the **Sails.js Application Host** and the **Monorepo Orchestrator**.
 
-- **Sails.js Host**: It contains the `api/` directory (Controllers, Policies) and `config/` that define the running server.
+- **Sails.js Host**: It contains the `api/` directory (generated shims for controllers/services/policies) and `config/` that define the running server.
 - **Orchestrator**: The root `package.json` contains scripts to:
     - Compile all local packages (`npm run compile:all`).
     - Build the Angular frontend (`npm run compile:ng`).
@@ -88,7 +88,7 @@ The root directory acts as the **Sails.js Application Host** and the **Monorepo 
 
 1. **Client Request**: Incoming HTTP requests are handled by Sails.js (Express-based).
 2. **Authentication**: Passport.js handles authentication (Local, JWT, OIDC).
-3. **Controllers**: `api/controllers` handle request routing and response formatting.
+3. **Controllers**: `api/controllers` contains generated shims that route requests to controller implementations in `@researchdatabox/redbox-core-types` (or hook overrides).
 4. **Services**: Business logic is encapsulated in core services (e.g., `RecordsService`, `UsersService`, `FormsService`). Services are loaded via shims from `@researchdatabox/redbox-core-types`.
 5. **Persistence**: Data is stored in MongoDB using Waterline ORM models defined in `api/models`.
 
@@ -121,4 +121,3 @@ See [Redbox Core Types - Services](Redbox-Core-Types#core-services) for complete
 - **Docker**: Dockerfiles define runtime and test environments.
 
 See `package.json` `scripts` for build commands (e.g., `npm run compile:all`).
-

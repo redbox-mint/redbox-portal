@@ -1,6 +1,6 @@
 # Redbox Loader
 
-The `redbox-loader.js` module generates shim files for models, services, policies, middleware, responses, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
+The `redbox-loader.js` module generates shim files for models, services, policies, middleware, responses, controllers, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
 
 ## Overview
 
@@ -22,6 +22,7 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 │     ├── Generate api/policies/*.js shims                    │
 │     ├── Generate api/middleware/*.js shims                  │
 │     ├── Generate api/responses/*.js shims                   │
+│     ├── Generate api/controllers/*.js shims                 │
 │     ├── Generate config/*.js shims                          │
 │     └── Generate config/bootstrap.js shim                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -91,6 +92,24 @@ Services are lazy-instantiated when first accessed, ensuring proper initializati
 
 See [Redbox Core Types - Services](Redbox-Core-Types#core-services) for the complete service list.
 
+### Controller Shims (`api/controllers/`)
+
+Controller shims expose controllers from `@researchdatabox/redbox-core-types` to Sails.js. Webservice controllers are generated under `api/controllers/webservice/`.
+
+```javascript
+// Example: api/controllers/RecordController.js
+const { ControllerExports } = require('@researchdatabox/redbox-core-types');
+module.exports = ControllerExports['RecordController'];
+```
+
+```javascript
+// Example: api/controllers/webservice/RecordController.js
+const { WebserviceControllerExports } = require('@researchdatabox/redbox-core-types');
+module.exports = WebserviceControllerExports['RecordController'];
+```
+
+Controller shim generation uses `ControllerNames` and `WebserviceControllerNames` to avoid instantiating controllers during shim creation.
+
 ### Config Shims (`config/`)
 
 ```javascript
@@ -116,6 +135,7 @@ The loader scans `package.json` dependencies for hooks that declare capabilities
         "hasModels": true,
         "hasPolicies": true,
         "hasServices": true,
+        "hasControllers": true,
         "hasBootstrap": true,
         "hasConfig": true
     }
@@ -129,6 +149,7 @@ Hooks must export registration functions:
 | `hasModels` | `registerRedboxModels()` | Returns model definitions object |
 | `hasPolicies` | `registerRedboxPolicies()` | Returns policies object |
 | `hasServices` | `registerRedboxServices()` | Returns services object (hook services take precedence over core) |
+| `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
 | `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
 
@@ -146,6 +167,10 @@ module.exports.registerRedboxServices = function() {
 ```
 
 The generated shim will point to the hook's implementation instead of core-types.
+
+### Controller Override Precedence
+
+When a hook provides a controller with the same name as a core controller, the hook controller takes precedence. This applies independently to API and webservice controllers.
 
 ## Debugging
 
@@ -188,4 +213,5 @@ const redboxLoader = require('./redbox-loader');
 ## See Also
 
 - [Redbox Core Types](Redbox-Core-Types) - Source of models, policies, and config
+- [Controllers Architecture](Controllers-Architecture) - Controller exports, shims, and lifecycle
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Creating hooks

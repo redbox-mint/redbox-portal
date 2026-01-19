@@ -216,6 +216,8 @@ export module Controllers {
 }
 ```
 
+See [Controllers Architecture](Controllers-Architecture) for controller locations, shim generation, and `init()` usage.
+
 ## Overriding Services in Hooks
 
 Hooks can provide custom services that override core services. Hook services take precedence.

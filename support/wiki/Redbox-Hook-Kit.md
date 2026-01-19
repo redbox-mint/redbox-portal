@@ -26,9 +26,9 @@ npx @researchdatabox/redbox-hook-kit init
 ```
 
 This creates:
-- `typescript/api/controllers/` directory structure
+- `typescript/api/controllers/` directory structure (recommended location for hook controllers)
 - `tsconfig.json` extending the shared base configuration
-- A sample controller to get started
+- A sample controller and registration boilerplate to get started
 
 ## TypeScript Configuration
 
@@ -89,8 +89,16 @@ export module Controllers {
     }
 }
 
-module.exports = new Controllers.MyController().exports();
+module.exports.registerRedboxControllers = function() {
+    return {
+        MyController: new Controllers.MyController().exports()
+    };
+};
 ```
+
+Add `"sails": { "hasControllers": true }` to your hook `package.json` so the loader discovers your controller registration.
+
+For webservice controllers, export `registerRedboxWebserviceControllers()` instead of `registerRedboxControllers()`.
 
 ## Included Dependencies
 
