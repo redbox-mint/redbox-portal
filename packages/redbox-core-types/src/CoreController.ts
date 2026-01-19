@@ -61,10 +61,6 @@ export module Controllers.Core {
      */
     protected _layoutRelativePath: string = '../_layouts/';
 
-    protected init(..._args: any[]): void {
-      // Optional init hook for controllers
-    }
-
     /**
      * Default exported methods.
      * These methods will be accessible.
@@ -73,22 +69,6 @@ export module Controllers.Core {
       // Sails controller custom config.
       '_config',
     ];
-
-    private _isInitialized = false;
-    private _isInitializing = false;
-
-    private ensureInitialized(): void {
-      if (this._isInitialized || this._isInitializing) {
-        return;
-      }
-      this._isInitializing = true;
-      try {
-        this.init();
-      } finally {
-        this._isInitialized = true;
-        this._isInitializing = false;
-      }
-    }
 
     // Namespaced logger for controllers
     private _logger: ILogger;
@@ -172,34 +152,21 @@ export module Controllers.Core {
 
       for (var i = 0; i < methods.length; i++) {
         // Check if the method exists.
-          if (typeof this[methods[i]] !== 'undefined') {
-            // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-            if (methods[i][0] !== '_' || methods[i] === '_config') {
+        if (typeof this[methods[i]] !== 'undefined') {
+          // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
+          if (methods[i][0] !== '_' || methods[i] === '_config') {
 
-              if (_.isFunction(this[methods[i]])) {
-                if (methods[i] === 'init') {
-                  const controller = this;
-                  exportedMethods[methods[i]] = () => {
-                    controller.ensureInitialized();
-                  };
-                } else {
-                  const methodName = methods[i];
-                  const controller = this;
-                  exportedMethods[methodName] = (...args: any[]) => {
-                    controller.ensureInitialized();
-                    return controller[methodName](...args);
-                  };
-                }
-              } else {
-                exportedMethods[methods[i]] = this[methods[i]];
-              }
+            if (_.isFunction(this[methods[i]])) {
+              exportedMethods[methods[i]] = this[methods[i]].bind(this);
             } else {
-              this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+              exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
           }
-
+        } else {
+          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+        }
       }
 
       return exportedMethods;

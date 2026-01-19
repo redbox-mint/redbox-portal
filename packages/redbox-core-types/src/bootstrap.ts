@@ -179,4 +179,13 @@ export function preLiftSetup(): void {
             sails.log.verbose(`${serviceName} service, initialized.`);
         }
     }
+
+    // Initialize all controllers that have an init action
+    // Controllers register their init as sails actions (e.g., 'webservice/search/init')
+    for (const actionKey of Object.keys(sails._actions)) {
+        if (actionKey.endsWith('/init')) {
+            sails._actions[actionKey]();
+            sails.log.verbose(`${actionKey} controller action, initialized.`);
+        }
+    }
 }
