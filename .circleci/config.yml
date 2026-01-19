@@ -399,7 +399,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido
+            nvm install && npm run compile:sails-ng-common && npm run compile:raido
       - run:
           name: Install packages
           command: |
