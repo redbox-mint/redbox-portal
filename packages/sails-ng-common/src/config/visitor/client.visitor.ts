@@ -66,7 +66,7 @@ import {
 } from "../component/date-input.outline";
 import {FormConstraintConfig} from "../form-component.model";
 import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-component.outline";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
@@ -448,7 +448,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                 delete item['expressions'];
             }
         }
-        this.logger.info(`${this.logName}: Processed FormComponentDefinition '${item.name}'`, JSON.stringify(item.expressions, null, 2));
         this.removePropsUndefined(item);
     }
 

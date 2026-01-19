@@ -46,7 +46,7 @@ import {
     DefaultLayoutName
 } from "../component/default-layout.outline";
 import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
+import {FormExpressionsConfig} from "../form-component.model";
 import {
     FormComponentDefinitionFrame,
     FormComponentDefinitionOutline,
@@ -233,8 +233,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
               record?: Record<string, unknown> | null;
           }
     ): FormConfigOutline {
-        this.logger.info(`Starting ConstructFormConfigVisitor for form `);
-        this.logger.info()
         this.data = _cloneDeep(options.data);
         this.reusableFormDefs = options.reusableFormDefs ?? {};
         this.formMode = options.formMode ?? "view";
@@ -255,8 +253,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.formConfig = new FormConfig();
         this.formConfig.accept(this);
-        this.logger.info(`Completed ConstructFormConfigVisitor for form '${this.formConfig.name}'.`);
-        this.logger.info(JSON.stringify(this.formConfig, null, 2));
         return this.formConfig;
     }
 
@@ -920,6 +916,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             exprItem.name = exprData.name;
             exprItem.description = exprData.description;
             const config = exprData.config;
+            if (!config) {
+                throw new Error(`Missing config for expression: ${exprData.name}`);
+            }
             if ('operation' in config) {
                 const opConfig = config as FormExpressionsOperationConfigFrame;
                 exprItem.config = {
