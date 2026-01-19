@@ -55,7 +55,7 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 				// On form ready, publish the initial value
 				this.publishInitialValue(control.value);
 			})
-		)
+		);
 	}
 
 	private publishInitialValue(value: unknown): void {
