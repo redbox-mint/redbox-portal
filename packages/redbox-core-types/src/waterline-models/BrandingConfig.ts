@@ -19,12 +19,7 @@ const handleBeforeCreate = (values: Record<string, any>, proceed: (err?: Error) 
   if (typeof values.variables !== 'object' || Array.isArray(values.variables)) {
     return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
   }
-  const allowList =
-    (typeof sails !== 'undefined' &&
-      sails.config &&
-      sails.config.branding &&
-      sails.config.branding.variableAllowList) ||
-    [];
+  const allowList = sails?.config?.branding?.variableAllowList ?? [];
   const isValid = Object.keys(values.variables as Record<string, unknown>).every(key => {
     const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
     return allowList.includes(normalizedKey);
@@ -50,12 +45,7 @@ const handleBeforeUpdate = (values: Record<string, any>, proceed: (err?: Error) 
   if (typeof values.variables !== 'object' || Array.isArray(values.variables)) {
     return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
   }
-  const allowList =
-    (typeof sails !== 'undefined' &&
-      sails.config &&
-      sails.config.branding &&
-      sails.config.branding.variableAllowList) ||
-    [];
+  const allowList = sails?.config?.branding?.variableAllowList ?? [];
   const isValid = Object.keys(values.variables as Record<string, unknown>).every(key => {
     const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
     return allowList.includes(normalizedKey);
@@ -85,12 +75,7 @@ export class BrandingConfigClass {
       if (typeof value !== 'object' || Array.isArray(value)) {
         return false;
       }
-      const allowList =
-        (typeof sails !== 'undefined' &&
-          sails.config &&
-          sails.config.branding &&
-          sails.config.branding.variableAllowList) ||
-        [];
+      const allowList = sails?.config?.branding?.variableAllowList ?? [];
       return Object.keys(value as Record<string, unknown>).every(key => {
         const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
         return allowList.includes(normalizedKey);
