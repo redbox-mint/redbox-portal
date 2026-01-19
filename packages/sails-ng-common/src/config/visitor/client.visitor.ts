@@ -70,7 +70,7 @@ import {ExpressionsConditionKind, FormComponentDefinitionOutline} from "../form-
 import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 /**
  * The details needed to evaluate the constraint config.
  */
