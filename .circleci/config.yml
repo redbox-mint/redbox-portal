@@ -456,11 +456,13 @@ jobs:
             npm ci --strict-peer-deps --ignore-scripts
             node_modules/.bin/tsc
       - run:
+          # TODO: chmod 777 isn't great, but the permission errors were getting too complicated
           name: Run Mocha tests
           no_output_timeout: 30m
           command: |
             cd ./packages/sails-hook-redbox-storage-mongo
             mkdir -p support/junit
+            sudo chmod -R 'u=rwx,g=rwx,o=rwx' .
             npm run test:clean
             npm test
       - run:
