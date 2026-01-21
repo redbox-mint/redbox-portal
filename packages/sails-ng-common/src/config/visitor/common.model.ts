@@ -5,7 +5,7 @@ import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldModelConfigFrame} from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
+import {FormConstraintAuthorizationConfig, FormConstraintConfig } from "../form-component.model";
 import {
     ComponentClassDefMapType,
     FieldComponentDefinitionMap,
@@ -75,11 +75,12 @@ export class PropertiesHelper {
         item.constraints.authorization = new FormConstraintAuthorizationConfig();
         item.constraints.authorization.allowRoles = currentData?.constraints?.authorization?.allowRoles ?? [];
 
+        // TODO: Commented out below while we decide on how to handle 'form-level' expressions
         // Set the expressions
-        item.expressions = new FormExpressionsConfig();
-        for (const [key, value] of Object.entries(currentData.expressions ?? {})) {
-            item.expressions[key] = value;
-        }
+        // item.expressions = new FormExpressionsConfig();
+        // for (const [key, value] of Object.entries(currentData.expressions ?? {})) {
+        //     item.expressions[key] = value;
+        // }
 
         // Set the overrides, as they might be used to transform this component into other components.
         item.overrides = currentData.overrides;

@@ -11,6 +11,14 @@ export class SimpleInputModel extends FormFieldModel<string> {
   protected override logName = SimpleInputModelName;
 }
 
+/**
+ * The Simple Input Component.
+ * 
+ * Notes:
+ * - The disabled property binding in the template has been removed to allow form control state management (still unimplemented). This also applies to other components recently edited.
+ * 
+ * TODO: Implement and/or integrate form control state management for the disabled state and review the removal of the `[disabled]` binding (and related changes in similar components).
+ */
 @Component({
     selector: 'redbox-simpleinput',
     template: `
@@ -21,7 +29,6 @@ export class SimpleInputModel extends FormFieldModel<string> {
             [class.is-valid]="isValid"
             [class.is-invalid]="!isValid"
             [required]="isRequired"
-            [disabled]="isDisabled"
             [readonly]="isReadonly"
             [title]="tooltip" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />

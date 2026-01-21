@@ -1,4 +1,4 @@
-import {get as _get, cloneDeep as _cloneDeep} from 'lodash';
+import {get as _get, cloneDeep as _cloneDeep, isPlainObject as _isPlainObject, map as _map} from 'lodash';
 import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -71,6 +71,23 @@ import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "@researchdatabox/redbox-core-types";
+/**
+ * The details needed to evaluate the constraint config.
+ */
+export type NameConstraints = {
+    /**
+     * The form component name.
+     */
+    name: string,
+    /**
+     * The form component constraints.
+     */
+    constraints: FormConstraintConfig,
+    /**
+     * Whether the form component has a model definition or not.
+     */
+    model: boolean,
+};
 import {FormConfig} from "../form-config.model";
 import {FormConfigVisitor} from "./base.model";
 import {FormModesConfig} from "../shared.outline";
@@ -422,7 +439,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         // Expressions must be compiled on the server, then retrieved by the client.
         // The raw expressions must not be available to the client.
         if ('expressions' in item) {
-            delete item['expressions'];
+            // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
+            item.expressions = _map(item.expressions, (expr) => {
+                expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
+                return expr;
+            });
+            if (item.expressions.length === 0) {
+                delete item['expressions'];
+            }
         }
         this.removePropsUndefined(item);
     }

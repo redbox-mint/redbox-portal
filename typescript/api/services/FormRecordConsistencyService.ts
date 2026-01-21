@@ -513,7 +513,6 @@ export module Services {
           reusableFormDefs?: ReusableFormDefinitions
         ): TemplateCompileInput[] {
           const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
-
           const visitor = new TemplateFormConfigVisitor(this.logger);
           return visitor.start({form});
         }

@@ -7,3 +7,6 @@
 
 export * from './form-component-event.types';
 export * from './form-component-event-bus.service';
+export * from './form-component-base-event-producer-consumer';
+export * from './form-component-base-event-consumer';
+export * from './form-component-change-event-consumer';

@@ -528,11 +528,9 @@ export module Services {
     ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({data: item, reusableFormDefs, formMode, record: recordMetadata});
-
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({form: constructed, formMode, userRoles});
-
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, ` +
           `the form config must have at least one field the current user can view: ${JSON.stringify({

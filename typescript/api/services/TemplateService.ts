@@ -67,10 +67,13 @@ export module Services {
                 // to ensure uniqueness across the composite keys.
                 switch (input.kind) {
                     case "jsonata":
-                        result.push({
-                            key: input.key,
-                            value: `${this.buildClientJsonata(input.value)?.toString()}.evaluate(context)`,
-                        })
+                        const jsonataExpr = this.buildClientJsonata(input.value);
+                        if (jsonataExpr) {
+                            result.push({
+                                key: input.key,
+                                value: `jsonata(${JSON.stringify(jsonataExpr)}).evaluate(context)`,
+                            });
+                        }
                         break;
                     case "handlebars":
                         result.push({
@@ -95,15 +98,12 @@ export module Services {
         public buildClientJsonata(expression: string): string | null {
             try {
                 expression = this.normalise(expression);
+                // Validate the expression by compiling it
                 const compiled = this.buildSharedJsonata(expression);
-                const result = JSON.stringify(compiled ?? "", function (key, value) {
-                    if (typeof value === 'function') {
-                        return value.toString();
-                    }
-                    return value
-                }, 0);
-                sails.log.verbose(`Compiled client JSONata expression '${expression}'`);
-                return result;
+                sails.log.verbose(`Validated client JSONata expression '${expression}'`, compiled);
+                // Return the expression string for client-side compilation
+                // The client will call jsonata(expression).evaluate(context)
+                return expression;
             } catch (error) {
                 sails.log.error(`Could not compile client JSONata expression '${expression}'`, error);
                 return null;

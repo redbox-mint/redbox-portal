@@ -20,10 +20,109 @@
 import { Injectable } from '@angular/core';
 
 /**
+ * Check if running in CI environment.
+ * This checks for a global variable that can be set in test setup (e.g., karma config)
+ * or via environment detection.
+ */
+function isCI(): boolean {
+  // Check for global CI flag (can be set directly on globalThis)
+  if (typeof (globalThis as any).__REDBOX_CI_MODE__ !== 'undefined') {
+    return (globalThis as any).__REDBOX_CI_MODE__;
+  }
+  // In browser context during tests, check karma client config
+  if (typeof window !== 'undefined' && (window as any).__karma__) {
+    const karmaConfig = (window as any).__karma__?.config;
+    if (karmaConfig?.__REDBOX_CI_MODE__) {
+      return true;
+    }
+    // Fallback: if running in Karma at all, assume CI mode
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summarize a complex object for CI logging.
+ * Returns a simplified representation that gives enough context without the full dump.
+ */
+function summarizeForCI(data: any, maxDepth: number = 2): any {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (typeof data !== 'object') {
+    return data;
+  }
+
+  // For arrays, show length and first item summary
+  if (Array.isArray(data)) {
+    if (maxDepth <= 0) {
+      return `[Array(${data.length})]`;
+    }
+    // Show summarized items up to a limit
+    const maxItems = 3;
+    const items = data.slice(0, maxItems).map(item => summarizeForCI(item, maxDepth - 1));
+    if (data.length > maxItems) {
+      return `[Array(${data.length}): ${JSON.stringify(items).slice(1, -1)}, ... +${data.length - maxItems} more]`;
+    }
+    return items;
+  }
+
+  // For objects, show key names and types at top level only
+  if (maxDepth <= 0) {
+    return '{...}';
+  }
+
+  // Extract useful identifying information from common object types
+  const summary: Record<string, any> = {};
+  
+  // Common identifying properties to preserve
+  const identifyingProps = ['name', 'logName', 'className', 'type', 'class', 'status', 'id'];
+  
+  for (const prop of identifyingProps) {
+    if (prop in data && data[prop] !== undefined) {
+      const val = data[prop];
+      if (typeof val === 'function') {
+        // For signal-like getters, try to get the value
+        try {
+          const result = val();
+          summary[prop] = summarizeForCI(result, maxDepth - 1);
+        } catch {
+          summary[prop] = '[Function]';
+        }
+      } else if (typeof val === 'object') {
+        summary[prop] = summarizeForCI(val, maxDepth - 1);
+      } else {
+        summary[prop] = val;
+      }
+    }
+  }
+
+  // Add object type hint
+  if (data.constructor && data.constructor.name !== 'Object') {
+    summary['_type'] = data.constructor.name;
+  }
+
+  // Show available keys for context
+  const otherKeys = Object.keys(data).filter(k => !identifyingProps.includes(k));
+  if (otherKeys.length > 0) {
+    summary['_keys'] = otherKeys.length > 5 
+      ? `[${otherKeys.slice(0, 5).join(', ')}, ... +${otherKeys.length - 5} more]`
+      : `[${otherKeys.join(', ')}]`;
+  }
+
+  return summary;
+}
+
+/**
  *
  * LoggerService
  * 
  * Note: The implementation is bare-boned and serves as a sort of placeholder. This will likely require a refactor as more use-cases and candidate remote backend solutions are identified.
+ * 
+ * In CI environments, debug logging automatically reduces verbosity to prevent massive console output
+ * that can cause browser disconnects. Set globalThis.__REDBOX_CI_MODE__ = true to force CI mode,
+ * or it will auto-detect when running in Karma.
  * 
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
@@ -32,47 +131,59 @@ import { Injectable } from '@angular/core';
 @Injectable()
 export class LoggerService {
 
-  constructor() {
+  private ciMode: boolean;
 
+  constructor() {
+    this.ciMode = isCI();
+  }
+
+  /**
+   * Process data for logging - in CI mode, summarize complex objects
+   */
+  private processData(data: any): any {
+    if (!this.ciMode || data === undefined) {
+      return data;
+    }
+    return summarizeForCI(data);
   }
 
   log(textOrData: string | any, data?: any): void {
     if (typeof textOrData === 'string' && data !== undefined) {
-      console.log(textOrData, data);
+      console.log(textOrData, this.processData(data));
     } else {
-      console.log(textOrData);
+      console.log(this.processData(textOrData));
     }
   }
 
   debug(textOrData: string | any, data?: any): void {
     if (typeof textOrData === 'string' && data !== undefined) {
-      console.debug(textOrData, data);
+      console.debug(textOrData, this.processData(data));
     } else {
-      console.debug(textOrData);
+      console.debug(this.processData(textOrData));
     }
   }
 
   info(textOrData: string | any, data?: any): void {
     if (typeof textOrData === 'string' && data !== undefined) {
-      console.info(textOrData, data);
+      console.info(textOrData, this.processData(data));
     } else {
-      console.info(textOrData);
+      console.info(this.processData(textOrData));
     }
   }
 
   warn(textOrData: string | any, data?: any): void {
     if (typeof textOrData === 'string' && data !== undefined) {
-      console.warn(textOrData, data);
+      console.warn(textOrData, this.processData(data));
     } else {
-      console.warn(textOrData);
+      console.warn(this.processData(textOrData));
     }
   }
 
   error(textOrData: string | any, data?: any): void {
     if (typeof textOrData === 'string' && data !== undefined) {
-      console.error(textOrData, data);
+      console.error(textOrData, this.processData(data));
     } else {
-      console.error(textOrData);
+      console.error(this.processData(textOrData));
     }
   }
 
