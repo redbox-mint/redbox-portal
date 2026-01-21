@@ -423,6 +423,59 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core-types/support/junit
+  test-sails-hook-redbox-storage-mongo:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    environment:
+      BUILDKIT_PROGRESS: 'plain'
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install required ReDBox dependencies
+          command: |
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:core
+      - run:
+          name: Install packages
+          command: |
+            cd ./packages/sails-hook-redbox-storage-mongo
+            npm ci --strict-peer-deps --ignore-scripts
+            node_modules/.bin/tsc
+      - run:
+          name: Run Mocha tests
+          no_output_timeout: 30m
+          command: |
+            cd ./packages/sails-hook-redbox-storage-mongo
+            mkdir -p support/junit
+            npm run test:clean
+            npm test
+      - run:
+          name: Upload Mocha code coverage
+          command: |
+            cd ./packages/sails-hook-redbox-storage-mongo
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+            --token "${CODECOV_TOKEN}" \
+            --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+            --flag "backend-sails-hook-redbox-storage-mongo" \
+            --file "./coverage/mocha/lcov.info" \
+            --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: packages/sails-hook-redbox-storage-mongo/support/junit
   deploy:
     docker:
       - image: 'cimg/node:24.11.1'
