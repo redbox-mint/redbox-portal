@@ -32,9 +32,15 @@ describe('ConfigModels', function() {
     });
 
     it('should override existing model if preventOverride is false', function() {
-      ConfigModels.register('menu', { modelName: 'Overridden', class: {} });
-      const info = ConfigModels.getModelInfo('menu');
-      expect(info).to.have.property('modelName', 'Overridden');
+        const original = ConfigModels.getModelInfo('menu');
+        try {
+            ConfigModels.register('menu', {modelName: 'Overridden', class: {}});
+            const info = ConfigModels.getModelInfo('menu');
+            expect(info).to.have.property('modelName', 'Overridden');
+        } finally {
+            // Restore the original model so other tests can access it.
+            ConfigModels.register('menu', original);
+        }
     });
 
     it('should not override if preventOverride is true', function() {
