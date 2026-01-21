@@ -410,8 +410,9 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd ./packages/redbox-core-types
+            mkdir -p support/junit
             nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
-              npx mocha 'test/**/*.test.ts'
+              npx mocha --config .mocharc.js --exit test/**/*.test.ts
       - run:
           name: Upload redbox-core-types code coverage
           command: |
@@ -420,6 +421,8 @@ jobs:
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-redbox-core-types" --file "./coverage/redbox-core-types/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
+      - store_test_results:
+          path: packages/redbox-core-types/support/junit
   deploy:
     docker:
       - image: 'cimg/node:24.11.1'
