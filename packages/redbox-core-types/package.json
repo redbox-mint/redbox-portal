@@ -97,6 +97,7 @@
     "express-session": "^1.17.3",
     "handlebars": "^4.7.8",
     "mocha": "^10.2.0",
+    "mocha-junit-reporter": "2.2.1",
     "nyc": "^17.1.0",
     "sinon": "^17.0.1",
     "ts-node": "^10.9.2"
