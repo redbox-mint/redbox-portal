@@ -14,6 +14,7 @@ declare const CacheService: any;
 
 declare const ContrastService: any;
 declare const CoreService: any;
+declare const ConfigService: any;
 
 declare const DOIService: any;
 

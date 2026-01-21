@@ -1,4 +1,9 @@
-import {ErrorResponseItemV2} from "./api";
+import { ErrorResponseItemV2 } from "./api";
+
+// Define ErrorOptions locally for ES6 target compatibility
+interface RBErrorOptions {
+  cause?: unknown;
+}
 
 /**
  * ReDBox Validation Error for containing validation errors
@@ -14,8 +19,8 @@ export class RBValidationError extends Error {
    * @param build.options The error options. This is only used internally and not sent to the end user.
    * @param build.displayErrors The display errors. These are sent to the end user.
    */
-  constructor(build: { message?: string, options?: ErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
-    super(build.message ?? "", build.options ?? {});
+  constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
+    super(build.message ?? "", build.options as any ?? {});
     this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
   }
@@ -68,7 +73,7 @@ export class RBValidationError extends Error {
       }
     }
 
-    return {errors: collectedErrors, displayErrors: collectedDisplayErrors};
+    return { errors: collectedErrors, displayErrors: collectedDisplayErrors };
   }
 
   /**
@@ -88,8 +93,8 @@ export class RBValidationError extends Error {
     if (!t) {
       throw new Error("Must provide TranslationService as 't' to RBValidationError.displayMessage.");
     }
-    const {displayErrors: collectedDisplayErrors} = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
-    const displayMessages = (collectedDisplayErrors ?? [{title: options?.defaultMessage ?? t("An error occurred")}])
+    const { displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
+    const displayMessages = (collectedDisplayErrors ?? [{ title: options?.defaultMessage ?? t("An error occurred") }])
       ?.map(displayError => {
         const code = displayError.code?.toString()?.trim() ?? "";
         const title = displayError.title?.toString()?.trim() || code;

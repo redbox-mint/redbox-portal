@@ -184,9 +184,7 @@ assets/angular
 api/core/**/*.js
 dev
 .dev
-api/models/Record.js
-api/models/RecordAudit.js
-api/models/DeletedRecord.js
+api/models/
 packages/raido/dist
 packages/raido/*.tgz
 angular/.angular/cache/
