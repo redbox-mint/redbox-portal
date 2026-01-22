@@ -65,8 +65,7 @@ declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinit
 
 /**
  *
- * FormService
- * - retrieves form configuration
+ * Responsible for retrieving form configuration and building form components.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
@@ -296,6 +295,10 @@ export class FormService extends HttpClientService {
         this.logNotAvailable(componentClassName, "component class", this.compClassMap);
         // Don't add to the array if the component class is not available
         fieldDef = {};
+      }
+
+      if (componentConfig?.expressions) {
+        _set(fieldDef, 'expressions', componentConfig.expressions);
       }
 
       // Add the field definition to the list if it has the minimum requirements.

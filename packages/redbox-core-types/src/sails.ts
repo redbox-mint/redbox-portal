@@ -42,6 +42,8 @@ declare global {
 			};
 			// Action lookup method
 			getActions(): { [actionName: string]: any };
+            on(event: string, cb: (...args: any[]) => void): void;
+            emit(event: string, ...args: any[]): void;
 		}		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
@@ -136,6 +138,7 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+            getDatastore(): { manager: any };
 		}
 
 		export interface WaterlineAttributes {

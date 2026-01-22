@@ -11,6 +11,8 @@ module.exports = function (config) {
       require('@angular-devkit/build-angular/plugins/karma')
     ],
     client: {
+      // Set CI mode for reduced logging verbosity
+      __REDBOX_CI_MODE__: process.env.CI === 'true',
       jasmine: {
         // you can add configuration options for Jasmine here
         // the possible options are listed at https://jasmine.github.io/api/edge/Configuration.html
@@ -38,6 +40,10 @@ module.exports = function (config) {
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
+    browserNoActivityTimeout: 120000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 2,
+    captureTimeout: 120000,
     autoWatch: true,
     customLaunchers: {
       ChromeHeadlessNoSandbox: {

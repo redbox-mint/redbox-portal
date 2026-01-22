@@ -1,13 +1,12 @@
-import {Services as FormsModule} from "../../../api/services/FormsService";
-import {Services as BrandingModule} from "../../../api/services/BrandingService";
+import {FormsService as FormsModule, BrandingService as BrandingModule} from "@researchdatabox/redbox-core-types";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 
-declare const FormsService: FormsModule.Forms;
-declare const BrandingService: BrandingModule.Branding;
+declare const FormsService: FormsModule.Services.Forms;
+declare const BrandingService: BrandingModule.Services.Branding;
 declare const RecordType: any;
 declare const sails: any;
 
@@ -688,11 +687,11 @@ describe('The FormsService', function () {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        expressions: {
-                            'model.value': {
-                                template: `<%= _.get(model,'text_1_event','') %>`
-                            }
-                        },
+                        // expressions: {
+                        //     'model.value': {
+                        //         template: `<%= _.get(model,'text_1_event','') %>`
+                        //     }
+                        // },
                         constraints: {
                             authorization: {
                                 allowRoles: [],

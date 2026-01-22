@@ -225,3 +225,5 @@ test/unit/.mocharc.js
 packages/redbox-core-types/.nyc_output/*
 packages/redbox-core-types/coverage/*
 
+packages/**/coverage
+packages/**/dist

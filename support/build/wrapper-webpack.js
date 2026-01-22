@@ -1,5 +1,4 @@
-const { Config } = require("@researchdatabox/redbox-core-types");
-const apiHook = require("../../api/hooks/webpack/index");
+const { Config, defineWebpackHook } = require("@researchdatabox/redbox-core-types");
 sails = {
   config: {
     webpack: {
@@ -19,7 +18,7 @@ sails = {
   }
 };
 async function main() {
-  await apiHook(sails).initialize(() => { console.log("Webpack wrapper done!") });
+  await defineWebpackHook(sails).initialize(() => { console.log("Webpack wrapper done!") });
 }
 
 main();

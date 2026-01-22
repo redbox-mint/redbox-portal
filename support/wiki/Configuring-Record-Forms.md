@@ -236,49 +236,77 @@ Use `TabOrAccordionContainer` classes for sections requiring tabs:
 
 Each tab can host a distinct set of fields.
 
-## Publish-Subscribe Mechanism
+## Event-Driven Form Expressions
 
-This pattern enables dynamic form interactions, allowing parts of the form to communicate based on user actions or data entry.
+ReDBox provides a powerful expression system that enables dynamic form behavior based on field value changes and form state. This is implemented using an event bus architecture where components publish and consume events.
 
-### Understanding `publish` and `subscribe`
+### Overview
 
-- **publish**: Used by fields to broadcast data or state changes.
-- **subscribe**: Enables fields to listen for updates from other fields and react accordingly.
+The expression system allows:
+- Updating a field's value when another field changes
+- Showing or hiding fields based on conditions
+- Complex cross-field interactions using JSONata queries
+- Reacting to form structure changes (e.g., repeatable items added/removed)
 
-### Configuring the `publish` Property
-
-Defines events a field will broadcast, typically residing within the field's `definition`:
+### Quick Example
 
 ```javascript
+{
+    name: 'target_field',
+    model: { class: 'SimpleInputModel' },
+    component: { class: 'SimpleInputComponent' },
+    expressions: [
+        {
+            name: "listenToSourceField",
+            config: {
+                condition: "/form_tab/source_field::field.value.changed",
+                conditionKind: "jsonpointer",
+                template: `value & "_suffix"`,
+                target: "model.value"
+            }
+        }
+    ]
+}
+```
+
+This expression listens for value changes on `source_field` and updates `target_field` with the source value plus a suffix.
+
+### Condition Types
+
+| Type | Use Case |
+|------|----------|
+| `jsonpointer` | Simple field-to-field event wiring using JSON Pointer paths |
+| `jsonata` | Complex conditions using JSONata expressions against form data |
+| `jsonata_query` | Conditions that need to query the form's component structure |
+
+For comprehensive documentation on configuring expressions, including all condition types, template syntax, and best practices, see **[Configuring Form Expressions](Configuring-Form-Expressions)**.
+
+### Legacy Publish-Subscribe
+
+> **Note**: The legacy `publish` and `subscribe` properties are still supported for backward compatibility but the new `expressions` system is recommended for new implementations.
+
+The legacy pattern used `publish` to broadcast events and `subscribe` to listen:
+
+```javascript
+// Legacy publish configuration
 definition: {
   name: 'startDate',
-  label: 'Start Date',
   publish: {
     onValueUpdate: {
       modelEventSource: 'valueChanges'
     }
   }
 }
-```
 
-### Configuring the `subscribe` Property
-
-Specifies how a field reacts to updates from other fields:
-
-```javascript
+// Legacy subscribe configuration
 subscribe: {
   'startDate': {
     onValueUpdate: [
-      {
-        action: 'updateValue',
-        actionParams: { minDate: '@startDate' }
-      }
+      { action: 'updateValue', actionParams: { minDate: '@startDate' } }
     ]
   }
 }
 ```
-
-Link `publish` and `subscribe` to create responsive forms that adapt to user input and maintain data consistency.
 
 ## Language Configuration
 
