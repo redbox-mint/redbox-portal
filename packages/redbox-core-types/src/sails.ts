@@ -1,25 +1,27 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
 import { NextFunction } from "express";
 import express = require("express");
+import type { SailsConfig } from "./config";
 
 declare global {
 	namespace Sails {
 
-		// Recursive type for nested config objects - using any for maximum flexibility
-		export interface ConfigObject {
-			[key: string]: any;
-		}
+		// Re-export SailsConfig for use in config typing
+		export { SailsConfig };
+
+		// ConfigObject now extends SailsConfig for typed access
+		export interface ConfigObject extends SailsConfig { }
 
 		// Log interface based on https://github.com/balderdashy/captains-log
 		export interface Log {
-			crit: (message: string, ...args: any[]) => void;
-			error: (message: string, ...args: any[]) => void;
-			warn: (message: string, ...args: any[]) => void;
-			debug: (message: string, ...args: any[]) => void;
-			info: (message: string, ...args: any[]) => void;
-			verbose: (message: string, ...args: any[]) => void;
-			silly: (message: string, ...args: any[]) => void;
-			blank: (message: string, ...args: any[]) => void;
+			crit: (...args: any[]) => void;
+			error: (...args: any[]) => void;
+			warn: (...args: any[]) => void;
+			debug: (...args: any[]) => void;
+			info: (...args: any[]) => void;
+			verbose: (...args: any[]) => void;
+			silly: (...args: any[]) => void;
+			blank: (...args: any[]) => void;
 		}
 
 		export interface Application {
@@ -29,6 +31,19 @@ declare global {
 				[key: string]: any;
 			};
 			after(events: string | string[], cb: () => void): void;
+			// Socket.io sockets interface
+			sockets: {
+				join(req: any, room: string, cb?: (err?: Error) => void): void;
+				leave(req: any, room: string, cb?: (err?: Error) => void): void;
+				broadcast(room: string, event: string, data?: any, socketToOmit?: any): void;
+				blast(event: string, data?: any): void;
+				getId(req: any): string;
+				[key: string]: any;
+			};
+			// Action lookup method
+			getActions(): { [actionName: string]: any };
+            on(event: string, cb: (...args: any[]) => void): void;
+            emit(event: string, ...args: any[]): void;
 		}		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
@@ -123,6 +138,7 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+            getDatastore(): { manager: any };
 		}
 
 		export interface WaterlineAttributes {
@@ -191,5 +207,10 @@ declare global {
 		export interface Controller { }
 	}
 }
+
+// Export type alias for use in TypeScript files
+// Use: import type { Sails } from '@researchdatabox/redbox-core-types';
+// Or:  declare var sails: Sails.Application;
+export type SailsApplication = Sails.Application;
 
 export { }; // Ensure the file is treated as a module

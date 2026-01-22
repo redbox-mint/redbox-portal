@@ -1,19 +1,18 @@
 import {Observable, of} from "rxjs";
-import {Services, Services as FormRecordConsistencyModule} from "../../../api/services/FormRecordConsistencyService";
-import {Services as FormsModule} from "../../../api/services/FormsService";
+import {FormRecordConsistencyService as FormRecordConsistencyModule, FormsService as FormsModule} from "@researchdatabox/redbox-core-types";
 import {
     AvailableFormComponentDefinitionFrames,
     FormConfigFrame, FormValidatorSummaryErrors,
 } from "@researchdatabox/sails-ng-common";
-import BasicRedboxRecord = Services.BasicRedboxRecord;
+import BasicRedboxRecord = FormRecordConsistencyModule.Services.BasicRedboxRecord;
 import {FormModel} from "@researchdatabox/redbox-core-types";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
-declare const FormRecordConsistencyService: FormRecordConsistencyModule.FormRecordConsistency;
-type FormRecordConsistencyChange = FormRecordConsistencyModule.FormRecordConsistencyChange;
-declare const FormsService: FormsModule.Forms;
+declare const FormRecordConsistencyService: FormRecordConsistencyModule.Services.FormRecordConsistency;
+type FormRecordConsistencyChange = FormRecordConsistencyModule.Services.FormRecordConsistencyChange;
+declare const FormsService: FormsModule.Services.Forms;
 
 
 describe('The FormRecordConsistencyService', function () {

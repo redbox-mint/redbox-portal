@@ -67,7 +67,7 @@ import {
 } from "../component/date-input.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {LineagePath} from "../names/naming-helpers";
 import {FormConfig} from "../form-config.model";
 import {FormConfigPathHelper} from "./common.model";
