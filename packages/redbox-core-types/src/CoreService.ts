@@ -1,7 +1,7 @@
-import { from,bindNodeCallback, bindCallback, Observable } from 'rxjs';
+import { from, bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
 
-declare var sails;
+declare var sails: Sails.Application;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as  _ from 'lodash';
@@ -33,17 +33,63 @@ export module Services.Core {
      * Uses the class constructor name as the namespace.
      * Falls back to sails.log if pino namespaced logging is not available.
      */
-    protected get logger() {
-      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+    protected get logger(): ILogger {
+      if (typeof sails !== 'undefined' && !this._logger && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
         const serviceName = this.constructor.name + 'Service';
         this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
       }
-      return this._logger || sails.log || console; // Fallback to sails.log or console if pino not available
+      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
+      if (this._logger) {
+        return this._logger;
+      }
+      
+      if (typeof sails !== 'undefined' && sails.log) {
+        return sails.log as unknown as ILogger;
+      }
+
+      // Fallback logger for when sails is not defined (e.g. during shim generation)
+      return {
+        crit: console.error,
+        error: console.error,
+        warn: console.warn,
+        debug: console.debug,
+        info: console.info,
+        verbose: console.log,
+        silly: console.log,
+        blank: console.log,
+        trace: console.trace,
+        log: console.log,
+        fatal: console.error,
+        silent: () => {}
+      };
+    }
+
+    /**
+     * Registers a Sails hook handler if Sails is available.
+     */
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+      if (typeof sails === 'undefined') {
+        return false;
+      }
+      if (action === 'on') {
+        if (typeof sails.on !== 'function') {
+          return false;
+        }
+        sails.on(eventName as string, handler);
+        return true;
+      }
+      if (typeof sails.after !== 'function') {
+        return false;
+      }
+      sails.after(eventName, handler);
+      return true;
     }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
     */
-    protected getObservable(q, method='exec', type='node'): Observable<any> {
+    protected getObservable(q, method = 'exec', type = 'node'): Observable<any> {
       if (type == 'node')
         return bindNodeCallback(q[method].bind(q))();
       else
@@ -79,6 +125,16 @@ export module Services.Core {
     protected onDynamicImportsCompleted() {
       // Override in sub class as needed
     }
+
+    /**
+     * Initialization method called during bootstrap for services that need to register
+     * hooks or perform other setup after Sails is available.
+     * Override in subclass to implement custom initialization logic.
+     * Called by coreBootstrap() for all services loaded via redbox-loader shims.
+     */
+    public init(): void {
+      // Override in sub class as needed
+    }
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
@@ -87,7 +143,7 @@ export module Services.Core {
      */
     public exports(): any {
       let exportedMethods: any = {};
-      if(process.env["sails_redbox__mochaTesting"] === "true") {
+      if (process.env["sails_redbox__mochaTesting"] === "true") {
         const allProperties = [
           ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
           ...Object.getOwnPropertyNames(this), // Instance properties
@@ -106,28 +162,28 @@ export module Services.Core {
         });
         this.logger.error("Exported Methods for Mocha Testing: ", exportedMethods);
       } else {
-      // Merge default array and custom array from child.
-      let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
+        // Merge default array and custom array from child.
+        let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
 
 
-      for (let i = 0; i < methods.length; i++) {
-        // Check if the method exists.
-        if (typeof this[methods[i]] !== 'undefined') {
-          // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-          if (methods[i][0] !== '_' || methods[i] === '_config') {
+        for (let i = 0; i < methods.length; i++) {
+          // Check if the method exists.
+          if (typeof this[methods[i]] !== 'undefined') {
+            // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
+            if (methods[i][0] !== '_' || methods[i] === '_config') {
 
-            if (_.isFunction(this[methods[i]])) {
-              exportedMethods[methods[i]] = this[methods[i]].bind(this);
+              if (_.isFunction(this[methods[i]])) {
+                exportedMethods[methods[i]] = this[methods[i]].bind(this);
+              } else {
+                exportedMethods[methods[i]] = this[methods[i]];
+              }
             } else {
-              exportedMethods[methods[i]] = this[methods[i]];
+              this.logger.error(`The service method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
             }
           } else {
-            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error(`The service method "${methods[i]}" does not exist on ${this.constructor?.name}`);
           }
-        } else {
-          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
         }
-      }
       }
       return exportedMethods;
     }
@@ -185,7 +241,7 @@ export module Services.Core {
      * @param appendMappingToSource
      * @returns
      */
-    public convertToType<Type>(source:any, dest:any, mapping:{[key: string]: string} | undefined, appendMappingToSource: boolean = false): Type {
+    public convertToType<Type>(source: any, dest: any, mapping: { [key: string]: string } | undefined, appendMappingToSource: boolean = false): Type {
       let fields = _.mapValues(dest, (val, key) => {
         return key;
       });

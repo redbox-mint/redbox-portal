@@ -68,7 +68,7 @@ import {
 import {guessType} from "../helpers";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {CanVisit} from "./base.outline";
 import {FormConfigPathHelper} from "./common.model";
 

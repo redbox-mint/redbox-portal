@@ -6,11 +6,43 @@ describe('appConfigService', function () {
 
   beforeEach(() => {
     appConfigService = sails.services.appconfigservice;
-    ConfigModels = sails.config.configmodels || require('../../../api/configmodels/ConfigModels').ConfigModels;
+    ConfigModels = sails.config.configmodels || require('@researchdatabox/redbox-core-types').ConfigModels;
     // Save original state
     originalBrandingAppConfigMap = appConfigService.brandingAppConfigMap;
     // Generate unique suffix for test models to avoid conflicts
     testStartTime = Date.now();
+
+    // Cleanup Polluted Keys from previous runs (Fix for split-brain ConfigModels)
+    // We register safe dummies with schemas to prevent initAllConfigFormSchemas from crashing
+    // when accessing these keys on the internal ConfigModels instance.
+    const polluters = [
+      'testConfigWithGlob',
+      'testConfigWithMultipleGlobs',
+      'testSafeConfig',
+      'testNonOverrideConfig',
+      'testFilterGlobs',
+      'testNullMap',
+      'testSingleGlob'
+    ];
+    const safeSchema = { type: 'object', properties: {} };
+    class SafeDummy {
+      [key: string]: any;
+      static getFieldOrder() { return []; }
+    }
+
+    polluters.forEach(key => {
+      appConfigService.registerConfigModel({
+        key,
+        modelName: 'SafeDummy' + key,
+        class: SafeDummy,
+        schema: safeSchema
+      });
+    });
+
+    // Clear extraTsGlobs to prevent TJS from looking for non-existent globs
+    if (appConfigService.extraTsGlobs) {
+      appConfigService.extraTsGlobs.clear();
+    }
   });
 
   afterEach(() => {
@@ -40,7 +72,7 @@ describe('appConfigService', function () {
     const branding = BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const message = 'test message';
-        const enabled =  true;
+    const enabled = true;
 
     let configData: any = {};
     configData.message = message;
@@ -78,12 +110,12 @@ describe('appConfigService', function () {
     try {
       const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
       expect.fail("Should have thrown error");
-    } catch(err) {
+    } catch (err) {
       expect(err).to.be.an('error');
     }
   });
 
-  
+
 
   it('should create a configuration', async () => {
     const brandName = 'default';
@@ -91,10 +123,10 @@ describe('appConfigService', function () {
     const configKey = 'exampleConfigKey';
     const configData = { example: 'data' };
     const createdConfigData = await appConfigService.createConfig(brandName, configKey, configData);
-    
-    expect(createdConfigData.example).to.eq(configData.example);  
+
+    expect(createdConfigData.example).to.eq(configData.example);
     const updatedConfig = appConfigService.getAppConfigurationForBrand(brandName);
-    expect(updatedConfig[configKey].example).to.eq(configData.example);  
+    expect(updatedConfig[configKey].example).to.eq(configData.example);
 
   });
 
@@ -216,7 +248,7 @@ describe('appConfigService', function () {
 
     // Should work without throwing an error
     expect(() => appConfigService.registerConfigModel(configInfo)).to.not.throw();
-    
+
     // Restore original warn function
     sails.log.warn = originalWarn;
   });
@@ -275,7 +307,7 @@ describe('appConfigService', function () {
     // Create a mock to avoid processing models from other tests
     const originalGetConfigKeys = ConfigModels.getConfigKeys;
     const originalGetModelInfo = ConfigModels.getModelInfo;
-    
+
     const mockClass = class TestModelWithPrebuiltSchema {
       [key: string]: any;
       constructor() {
@@ -351,7 +383,7 @@ describe('appConfigService', function () {
 
     const branding = BrandingService.getBrand('default');
     const appConfigForm = await appConfigService.getAppConfigForm(branding, 'testFormWithSchema');
-    
+
     expect(appConfigForm).to.not.be.null;
     expect(appConfigForm.schema).to.deep.equal(formSchema);
     expect(appConfigForm.model).to.be.instanceOf(mockClass);
@@ -398,7 +430,7 @@ describe('appConfigService', function () {
 
     const configInfo = {
       key: 'testSingleGlob',
-      modelName: 'TestModelSingleGlob', 
+      modelName: 'TestModelSingleGlob',
       class: mockClass,
       tsGlob: '/single/path/*.ts'
     };
