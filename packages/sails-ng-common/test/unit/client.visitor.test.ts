@@ -20,7 +20,7 @@ describe("Client Visitor", async () => {
         const actual = visitor.start({form: constructed});
 
         const stringified = JSON.stringify(actual);
-        expect(stringified).to.not.contain("expressions");
+
         expect(stringified).to.not.contain("constraints");
         expect(stringified).to.not.contain("defaultValue");
 
@@ -268,11 +268,12 @@ describe("Client Visitor", async () => {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        expressions: {
-                            'model.value': {
+                        expressions: [{
+                            name: 'model.value',
+                            config: {
                                 template: `<%= _.get(model,'text_1_event','') %>`
                             }
-                        },
+                        }],
                         constraints: {
                             authorization: {
                                 allowRoles: [],

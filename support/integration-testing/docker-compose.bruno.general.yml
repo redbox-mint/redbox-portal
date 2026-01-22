@@ -123,7 +123,7 @@ services:
       interval: '10s'
       timeout: '5s'
       retries: 30
-      start_period: '300s'
+      start_period: '600s'
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'

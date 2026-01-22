@@ -7,7 +7,7 @@ import {
     SimpleServerFormValidatorControl
 } from "../../validation/form.model";
 import {FormConfigOutline} from "../form-config.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,

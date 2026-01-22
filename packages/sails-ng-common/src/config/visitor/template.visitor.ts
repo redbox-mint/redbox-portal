@@ -66,7 +66,7 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {FormExpressionsConfigFrame} from "../form-component.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {FormConfigPathHelper} from "./common.model";
 
 
@@ -105,6 +105,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
 
     visitFormConfig(item: FormConfigOutline) {
+        this.extractExpressions(item.expressions);
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
             this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
@@ -300,13 +301,23 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
         this.formConfigPathHelper.acceptFormComponentDefinition(item);
     }
 
-    protected extractExpressions(expressions?: FormExpressionsConfigFrame): void {
-        for (const [name, value] of Object.entries(expressions ?? {})) {
-            this.templates?.push({
-                key: [...(this.formConfigPathHelper.formConfigPath ?? []), 'expressions', name, 'template'],
-                value: value?.template,
-                kind: "jsonata"
-            });
-        }
-    }
-}
+    protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
+        this.logger.info(`TemplateFormConfigVisitor: Extracting expressions...`);
+        (expressions ?? []).forEach((expression, index) => {
+            for (const prop of ['template', 'condition'] as const) {
+                const value = (expression.config as any)?.[prop];
+                const kind = (expression.config as any)?.['conditionKind'];
+                if (kind == 'jsonpointer' && prop == 'condition') {
+                    // Ignore JSONPointer conditions, no need to compile these
+                    continue;
+                }
+                if (value) {
+                    this.templates?.push({
+                        key: [...(this.formConfigPathHelper.formConfigPath ?? []), 'expressions', index.toString(), 'config', prop],
+                        value: value,
+                        kind: "jsonata"
+                    });
+                }
+            }
+        });
+    }}

@@ -60,3 +60,40 @@ export * from './decorators';
 
 export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
+
+export * from './configmodels/ConfigModels';
+export * from './configmodels/MenuConfig';
+export * from './configmodels/HomePanelConfig';
+export * from './configmodels/AdminSidebarConfig';
+export * from './configmodels/AppConfig.interface';
+export * from './configmodels/AuthorizedDomainsEmails';
+export * from './configmodels/SystemMessage';
+
+export { Policies } from './policies';
+
+import * as Middleware from './middleware/redboxSession';
+export { Middleware };
+
+import * as Responses from './responses';
+export { Responses };
+
+// Config types and default values
+export * from './config';
+export { Config, SailsConfig } from './config';
+
+// Bootstrap functions
+export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
+
+// Shims for backward compatibility
+export * from './shims';
+
+// Sails hooks
+export * from './hooks';
+
+// Services
+export { ServiceExports } from './services';
+export * from './services';
+
+// Controllers
+export { ControllerExports, WebserviceControllerExports, ControllerNames, WebserviceControllerNames } from './controllers';
+export * from './controllers';
