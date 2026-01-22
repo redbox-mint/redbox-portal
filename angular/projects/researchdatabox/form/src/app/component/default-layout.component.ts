@@ -118,8 +118,6 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
     this.tooltip = this.getStringProperty('tooltip');
-    //normalise componentDefinition that is used to track property changes given these may not be present
-    this.buildPropertyCache(true);
     if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }

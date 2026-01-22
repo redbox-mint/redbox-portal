@@ -17,10 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Injectable} from '@angular/core';
+import { Injectable } from '@angular/core';
 import * as _ from "lodash";
 import * as moment from 'moment';
-import numeral from 'numeral';
+import * as numeral from 'numeral';
 /**
  * Utility service...
  *
@@ -74,10 +74,10 @@ export class UtilityService {
     let dataOk = true;
     for (let fieldToMatch of fieldsToMatch) {
       let emittedValueToMatch = _.get(valueObject, fieldToMatch);
-      if(emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)){
+      if (emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)) {
         dataOk = false;
-      } else if(fieldsToMatchMustNotBeEmpty) {
-        if(emittedValueToMatch == '' || _.isEmpty(emittedValueToMatch)) {
+      } else if (fieldsToMatchMustNotBeEmpty) {
+        if (emittedValueToMatch == '' || _.isEmpty(emittedValueToMatch)) {
           dataOk = false;
         }
       }
@@ -98,9 +98,9 @@ export class UtilityService {
     let concatReq = true;
     for (let fieldValue of fieldValues) {
       for (let fieldToMatch of fieldsToMatch) {
-        let fieldValueToMatch = _.get(fieldValue, fieldToMatch); 
+        let fieldValueToMatch = _.get(fieldValue, fieldToMatch);
         let emittedValueToMatch = _.get(valueObject, fieldToMatch);
-        if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
+        if (_.isEqual(fieldValueToMatch, emittedValueToMatch)) {
           concatReq = false;
         }
       }
@@ -123,19 +123,19 @@ export class UtilityService {
     const templateObject = config.templateObject;
     let fieldValues = _.clone(field.formModel.value);
     const fieldsToMatchMustNotBeEmpty = _.get(config, 'fieldsToMatchMustNotBeEmpty', false);
-    fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty);
+    fieldValues = this.mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty);
 
     return fieldValues;
   }
 
 
   public logSubscribeDebugToConsole(data: any, config: any, field: any) {
-    console.log("Logging subscription information" )
-    console.log("The data is:" )
+    console.log("Logging subscription information")
+    console.log("The data is:")
     console.log(JSON.stringify(data))
-    console.log("Config is:" )
+    console.log("Config is:")
     console.log(JSON.stringify(config))
-    console.log("Field is:" )
+    console.log("Field is:")
     console.log(JSON.stringify(field))
     return data;
   }
@@ -148,45 +148,45 @@ export class UtilityService {
    * @param  {any} field
    * @return {array}
    */
-   public getMergedObjectArrayAsArray(data: any, config: any, field: any) {
+  public getMergedObjectArrayAsArray(data: any, config: any, field: any) {
     const fieldsToMatch = config.fieldsToMatch;
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
     const fieldsToMatchMustNotBeEmpty = _.get(config, 'fieldsToMatchMustNotBeEmpty', false);
     let fieldValues = _.clone(field.formModel.value);
 
-    for(let dataObject of data) {
+    for (let dataObject of data) {
       fieldValues = this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty);
     }
     return fieldValues;
   }
 
-  private mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty){
+  private mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty) {
     let wrappedData = data;
-    if(!_.isArray(data)) {
+    if (!_.isArray(data)) {
       wrappedData = [data];
     }
-    
+
     for (let emittedDataValue of wrappedData) {
       //There are cases where the emitter may send null values just after the field  
       //gets cleared therefore need to checkDataOk if any of the fields to match are  
       //undefined not enter the if block and the same value will be sent back to the 
       //subscriber field 
-      let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch, fieldsToMatchMustNotBeEmpty);
-      if(checkDataOk){
-        let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
-        if(concatReq) {
+      let checkDataOk = this.checkData(emittedDataValue, fieldsToMatch, fieldsToMatchMustNotBeEmpty);
+      if (checkDataOk) {
+        let concatReq = this.checkConcatReq(emittedDataValue, fieldsToMatch, fieldValues);
+        if (concatReq) {
           let value = _.clone(templateObject);
           for (let fieldToSet of fieldsToSet) {
-              let val = _.get(emittedDataValue, fieldToSet); 
-              _.set(value, fieldToSet, val);
+            let val = _.get(emittedDataValue, fieldToSet);
+            _.set(value, fieldToSet, val);
           }
           //If there is only one item in fieldValues array it may be empty and must be re-used 
           //if there is more than one item in the array it's too cumbersome to manage all  
           //scenarios and edge cases therefore it's better to add a new item to the array 
-          if(fieldValues.length == 1) {
-            let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch, fieldsToMatchMustNotBeEmpty);
-            if(checkFieldValuesDataOk) {
+          if (fieldValues.length == 1) {
+            let checkFieldValuesDataOk = this.checkData(fieldValues[0], fieldsToMatch, fieldsToMatchMustNotBeEmpty);
+            if (checkFieldValuesDataOk) {
               fieldValues.push(value);
             } else {
               fieldValues = [value];
@@ -344,14 +344,14 @@ export class UtilityService {
    * @param  {any} config - field, formatOrigin, formatTarget
    * @return {array}
    */
-  public convertToDateFormat(data:any, config:any) {
+  public convertToDateFormat(data: any, config: any) {
     let field = config.field;
     let formatOrigin = config.formatOrigin || 'DD-MMM-YY';
     let formatTarget = config.formatTarget || 'YYYY-MM-DD';
     let value = data;
 
-    if(field) {
-      value = _.get(data,field);
+    if (field) {
+      value = _.get(data, field);
     }
     const converted = moment(value, formatOrigin).format(formatTarget);
     console.log(`convertToDateFormat ${converted}`);
@@ -363,10 +363,10 @@ export class UtilityService {
   }
 
   public runTemplate(data: any, config: any, field: any = undefined) {
-    const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
+    const imports = _.extend({ data: data, config: config, moment: moment, numeral: numeral, field: field }, this);
     const templateData = imports;
     let template = this.compiledTemplateMap[config.template]
-    if(template === undefined) {
+    if (template === undefined) {
       template = _.template(config.template);
       this.compiledTemplateMap[config.template] = template;
     }

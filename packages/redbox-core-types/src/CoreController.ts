@@ -87,6 +87,29 @@ export module Controllers.Core {
       return this._logger || (sails?.log as unknown as ILogger);
     }
 
+    /**
+     * Registers a Sails hook handler if Sails is available.
+     */
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+      if (typeof sails === 'undefined') {
+        return false;
+      }
+      if (action === 'on') {
+        if (typeof sails.on !== 'function') {
+          return false;
+        }
+        sails.on(eventName as string, handler);
+        return true;
+      }
+      if (typeof sails.after !== 'function') {
+        return false;
+      }
+      sails.after(eventName, handler);
+      return true;
+    }
+
     constructor() {
       this.processDynamicImports().then(result => {
         this.logger.verbose("Dynamic imports imported");
@@ -139,10 +162,10 @@ export module Controllers.Core {
               exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error(`The controller method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
           }
         } else {
-          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+          this.logger.error(`The controller method "${methods[i]}" does not exist on ${this.constructor?.name}`);
         }
       }
 

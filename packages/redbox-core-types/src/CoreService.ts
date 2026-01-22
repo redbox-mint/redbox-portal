@@ -34,12 +34,57 @@ export module Services.Core {
      * Falls back to sails.log if pino namespaced logging is not available.
      */
     protected get logger(): ILogger {
-      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+      if (typeof sails !== 'undefined' && !this._logger && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
         const serviceName = this.constructor.name + 'Service';
         this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
       }
       // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this._logger || (sails?.log as unknown as ILogger);
+      if (this._logger) {
+        return this._logger;
+      }
+      
+      if (typeof sails !== 'undefined' && sails.log) {
+        return sails.log as unknown as ILogger;
+      }
+
+      // Fallback logger for when sails is not defined (e.g. during shim generation)
+      return {
+        crit: console.error,
+        error: console.error,
+        warn: console.warn,
+        debug: console.debug,
+        info: console.info,
+        verbose: console.log,
+        silly: console.log,
+        blank: console.log,
+        trace: console.trace,
+        log: console.log,
+        fatal: console.error,
+        silent: () => {}
+      };
+    }
+
+    /**
+     * Registers a Sails hook handler if Sails is available.
+     */
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+      if (typeof sails === 'undefined') {
+        return false;
+      }
+      if (action === 'on') {
+        if (typeof sails.on !== 'function') {
+          return false;
+        }
+        sails.on(eventName as string, handler);
+        return true;
+      }
+      if (typeof sails.after !== 'function') {
+        return false;
+      }
+      sails.after(eventName, handler);
+      return true;
     }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
@@ -78,6 +123,16 @@ export module Services.Core {
      * Intended to be overridden in the sub class
      */
     protected onDynamicImportsCompleted() {
+      // Override in sub class as needed
+    }
+
+    /**
+     * Initialization method called during bootstrap for services that need to register
+     * hooks or perform other setup after Sails is available.
+     * Override in subclass to implement custom initialization logic.
+     * Called by coreBootstrap() for all services loaded via redbox-loader shims.
+     */
+    public init(): void {
       // Override in sub class as needed
     }
     /**
@@ -123,10 +178,10 @@ export module Services.Core {
                 exportedMethods[methods[i]] = this[methods[i]];
               }
             } else {
-              this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+              this.logger.error(`The service method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
             }
           } else {
-            this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+            this.logger.error(`The service method "${methods[i]}" does not exist on ${this.constructor?.name}`);
           }
         }
       }

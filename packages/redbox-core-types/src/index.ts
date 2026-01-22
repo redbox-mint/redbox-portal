@@ -89,3 +89,11 @@ export * from './shims';
 
 // Sails hooks
 export * from './hooks';
+
+// Services
+export { ServiceExports } from './services';
+export * from './services';
+
+// Controllers
+export { ControllerExports, WebserviceControllerExports, ControllerNames, WebserviceControllerNames } from './controllers';
+export * from './controllers';

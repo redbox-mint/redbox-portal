@@ -100,6 +100,9 @@ export async function coreBootstrap(): Promise<void> {
 
     sails.log.verbose("Cron service, bootstrapped.");
 
+    await sails.services.agendaqueueservice.init();
+    sails.log.verbose("Agenda Queue service, bootstrapped.");
+
     // After last, because it was being triggered twice
     await lastValueFrom(sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()));
     sails.log.verbose("WorkspaceTypes service, bootstrapped.");
@@ -165,4 +168,24 @@ export function preLiftSetup(): void {
     sails.config.log.customLogger.level = sails.config.log.level;
 
     sails.log.debug("Starting bootstrap process with bootstrapAlways set to: " + sails.config.appmode.bootstrapAlways);
+
+    // Initialize all services that have an init() method
+    // This allows services registered via redbox-loader shims to perform
+    // setup after Sails is fully available (e.g., registering hooks)
+    for (const serviceName of Object.keys(sails.services)) {
+        const service = sails.services[serviceName];
+        if (service && typeof service.init === 'function') {
+            service.init();
+            sails.log.verbose(`${serviceName} service, initialized.`);
+        }
+    }
+
+    // Initialize all controllers that have an init action
+    // Controllers register their init as sails actions (e.g., 'webservice/search/init')
+    for (const actionKey of Object.keys(sails._actions)) {
+        if (actionKey.endsWith('/init')) {
+            sails._actions[actionKey]();
+            sails.log.verbose(`${actionKey} controller action, initialized.`);
+        }
+    }
 }
