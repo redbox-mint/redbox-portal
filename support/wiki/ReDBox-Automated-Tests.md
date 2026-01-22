@@ -12,6 +12,7 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:bruno:oidc` | API / Auth | Specialized Bruno tests for OIDC flows. |
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
+| `cd packages/redbox-core-types && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
 
 ## Running Tests
 
@@ -64,6 +65,13 @@ Runs standard Angular unit tests (Jasmine/Karma).
 ### 5. Package-Specific Tests
 
 Some packages have their own independent test suites.
+
+- **Redbox Core Types**:
+  ```bash
+  cd packages/redbox-core-types
+  npm test
+  ```
+  Runs unit tests for controllers and services in the core-types package.
 
 - **Sails-NG-Common**:
   ```bash

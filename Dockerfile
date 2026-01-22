@@ -30,15 +30,15 @@ FROM base AS builder
 COPY . .
 
 RUN npm ci \
- && npm --prefix packages/redbox-core-types ci \
- && npm --prefix packages/sails-ng-common ci \
- && npm --prefix packages/raido ci \
- && npm --prefix packages/sails-hook-redbox-storage-mongo ci
+ && (cd packages/redbox-core-types && npm ci) \
+ && (cd packages/sails-ng-common && npm ci) \
+ && (cd packages/raido && npm ci) \
+ && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
+RUN cd packages/raido && npm run build
+RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
-RUN cd packages/sails-ng-common && npm run compile
-RUN cd packages/raido && npm run build
 RUN npx tsc --project tsconfig.json
 
 RUN chmod +x support/build/compileProductionAngular.sh \

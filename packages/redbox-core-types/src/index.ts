@@ -76,3 +76,24 @@ export { Middleware };
 
 import * as Responses from './responses';
 export { Responses };
+
+// Config types and default values
+export * from './config';
+export { Config, SailsConfig } from './config';
+
+// Bootstrap functions
+export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
+
+// Shims for backward compatibility
+export * from './shims';
+
+// Sails hooks
+export * from './hooks';
+
+// Services
+export { ServiceExports } from './services';
+export * from './services';
+
+// Controllers
+export { ControllerExports, WebserviceControllerExports, ControllerNames, WebserviceControllerNames } from './controllers';
+export * from './controllers';

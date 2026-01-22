@@ -17,7 +17,6 @@ export class TextAreaModel extends FormFieldModel<string> {
         [class.is-valid]="isValid"
         [class.is-invalid]="!isValid"
         [required]="isRequired"
-        [disabled]="isDisabled"
         [readonly]="isReadonly"
         [title]="tooltip"
         [rows]="rows"

@@ -15,7 +15,8 @@
     "preserveConstEnums": true,
     "sourceMap": false,
     "outDir": "./",
-    "rootDir": "./typescript"
+    "rootDir": "./typescript",
+    "esModuleInterop": true
   },
   "exclude": [
     "node_modules/**",

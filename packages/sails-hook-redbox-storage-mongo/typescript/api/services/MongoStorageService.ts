@@ -68,7 +68,7 @@ export module Services {
       super();
       this.logHeader = 'MongoStorageService::';
       let that = this;
-      sails.on('ready', function () {
+      this.registerSailsHook('on', 'ready', function () {
         that.init();
         sails.emit('hook:redbox:storage:ready');
         sails.emit('hook:redbox:datastream:ready');
@@ -82,7 +82,7 @@ export module Services {
       return uuidv1().replace(/-/g, '');
     }
 
-    private async init() {
+    public async init() {
       this.db = Record.getDatastore().manager;
       // check if the collection exists ...
       try {
