@@ -2,7 +2,8 @@ import {FormConfigVisitorOutline} from "./visitor/base.outline";
 import {
     FormComponentDefinitionOutline, FormConstraintAuthorizationConfigOutline,
     FormConstraintConfigOutline,
-    FormExpressionsConfigOutline
+    FormExpressionsConfigOutline,
+    ExpressionsConditionKindType
 } from "./form-component.outline";
 import {FieldComponentDefinitionOutline} from "./field-component.outline";
 import {FieldModelDefinitionOutline} from "./field-model.outline";
@@ -10,7 +11,9 @@ import {FieldLayoutDefinitionOutline} from "./field-layout.outline";
 import {FormModesConfig} from "./shared.outline";
 
 export class FormExpressionsConfig implements FormExpressionsConfigOutline {
-    [key: string]: { template: string; condition?: unknown; };
+    name: string = '';
+    description?: string;
+    config: FormExpressionsConfigOutline['config'] = { template: '' };
 }
 
 /**
@@ -37,7 +40,7 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     public abstract component: FieldComponentDefinitionOutline;
     public abstract model?: FieldModelDefinitionOutline<unknown>;
     public abstract layout?: FieldLayoutDefinitionOutline;
-    public expressions?: FormExpressionsConfigOutline;
+    public expressions?: FormExpressionsConfigOutline[];
     public module?: string;
     public constraints?: FormConstraintConfigOutline;
 

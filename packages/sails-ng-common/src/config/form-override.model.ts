@@ -41,7 +41,7 @@ import {
     isTypeReusableComponent
 } from "./form-types.outline";
 import {PropertiesHelper} from "./visitor/common.model";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../logger.interface";
 import {ContentFieldComponentConfig} from "./component/content.model";
 
 

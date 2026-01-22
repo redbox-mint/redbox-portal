@@ -1,17 +1,17 @@
-const _ = require('lodash');
-
 // Import the compiled model definitions
 const { MongoModels } = require('./api/models');
 
 module.exports = function (sails) {
   return {
     initialize: function (cb) {
-      // Use ConfigService from sails.services (available at runtime)
-      // The ConfigService will be loaded by Sails before hooks initialize
+      // Configuration is now loaded by redbox-loader at pre-lift time via registerRedboxConfig()
+      // However, services (api/services/) still need to be loaded via mergeHookConfig until
+      // that functionality is migrated to redbox-loader in a future PR.
       if (sails.services && sails.services.configservice) {
+        // Only merge services/controllers, config is handled by registerRedboxConfig()
         sails.services.configservice.mergeHookConfig('@researchdatabox/sails-hook-redbox-storage-mongo', sails.config);
       } else {
-        sails.log.warn('sails-hook-redbox-storage-mongo: ConfigService not available, skipping hook config merge');
+        sails.log.warn('sails-hook-redbox-storage-mongo: ConfigService not available, skipping service loading');
       }
       return cb();
     },
@@ -21,19 +21,23 @@ module.exports = function (sails) {
       after: {}
     },
     configure: function () {
-      // Register MongoDB storage models via sails.config
-      // The core-loader hook will pick these up when generating shims
-      if (!sails.config.redboxHookModels) {
-        sails.config.redboxHookModels = {};
-      }
-      Object.assign(sails.config.redboxHookModels, MongoModels);
-      sails.log.verbose('sails-hook-redbox-storage-mongo: Registered', Object.keys(MongoModels).length, 'models via sails.config.redboxHookModels');
     },
     defaults: {
     }
   }
 };
 
-module.exports.registerRedboxModels = function() {
+module.exports.registerRedboxModels = function () {
   return MongoModels;
+};
+
+/**
+ * Register hook configuration for redbox-loader.
+ * This is called at pre-lift time to merge config with core config.
+ */
+module.exports.registerRedboxConfig = function () {
+  return {
+    storage: require('./config/storage').storage,
+    record: require('./config/record').record
+  };
 };

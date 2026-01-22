@@ -24,6 +24,7 @@ export interface RecordsService {
   restoreRecord(oid,user): Promise<any>;
   getRecordAudit(params): Promise<any>;
   getRelatedRecords(oid, brand): Promise<any>;
+  exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): any;
   // Probably to be retired or reimplemented in a different service
   checkRedboxRunning(): Promise<any>;
   handleUpdateDataStream(oid, emptyDatastreamRecord, metadata);
