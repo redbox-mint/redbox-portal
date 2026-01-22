@@ -19,7 +19,12 @@ export class SystemMessage extends AppConfig {
      */
     message: string;
 
+    /**
+     * @title Dismissal Duration (hours)
+     */
+    dismissalDurationHours: number = 8;
+
     public static getFieldOrder(): string[] {
-        return ["enabled", "title", "message"]
+        return ["enabled", "title", "message", "dismissalDurationHours"]
     }
 }
