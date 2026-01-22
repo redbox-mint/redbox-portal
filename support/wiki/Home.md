@@ -27,6 +27,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
 - **[Redbox Hook Kit](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Hook-Kit)**: TypeScript development toolkit for creating ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
+- **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Controller locations, lifecycle (`init()`), shim generation, and hook overrides.
 
 ## Contributing
 

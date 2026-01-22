@@ -16,6 +16,8 @@ export class SimpleInputModel extends FormFieldModel<string> {
  * 
  * Notes:
  * - The disabled property binding in the template has been removed to allow form control state management (still unimplemented). This also applies to other components recently edited.
+ * 
+ * TODO: Implement and/or integrate form control state management for the disabled state and review the removal of the `[disabled]` binding (and related changes in similar components).
  */
 @Component({
     selector: 'redbox-simpleinput',

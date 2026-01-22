@@ -24,10 +24,25 @@ const path = require('path');
 const { performance } = require('perf_hooks');
 
 // Lazy-loaded to avoid circular dependency issues at startup
-let WaterlineModels, Policies, Middleware, Responses, Config, ServiceExports;
+let WaterlineModels, Policies, Middleware, Responses, Config, ServiceExports, ControllerExports, WebserviceControllerExports, ControllerNames, WebserviceControllerNames;
 
 function loadCoreTypes() {
     if (!WaterlineModels) {
+        // Setup minimal globals required for class instantiation during shim generation
+        if (typeof global._ === 'undefined') {
+            global._ = require('lodash');
+        }
+        if (typeof global.sails === 'undefined') {
+            global.sails = {
+                log: log,
+                config: {
+                    log: {
+                        level: 'info'
+                    }
+                }
+            };
+        }
+
         const coreTypes = require('@researchdatabox/redbox-core-types');
         WaterlineModels = coreTypes.WaterlineModels || {};
         Policies = coreTypes.Policies || {};
@@ -35,6 +50,10 @@ function loadCoreTypes() {
         Responses = coreTypes.Responses || {};
         Config = coreTypes.Config || {};
         ServiceExports = coreTypes.ServiceExports || {};
+        ControllerExports = coreTypes.ControllerExports || {};
+        WebserviceControllerExports = coreTypes.WebserviceControllerExports || {};
+        ControllerNames = coreTypes.ControllerNames || [];
+        WebserviceControllerNames = coreTypes.WebserviceControllerNames || [];
     }
 }
 
@@ -88,6 +107,8 @@ async function findAndRegisterHooks(appPath) {
     const hookPolicies = {};
     const hookBootstraps = [];
     const hookServices = {};
+    const hookControllers = {};
+    const hookWebserviceControllers = {};
 
     let packageJson;
     try {
@@ -184,13 +205,40 @@ async function findAndRegisterHooks(appPath) {
                 }
             }
 
+            // Check for controllers
+            if (depPackageJson.sails && depPackageJson.sails.hasControllers === true) {
+                log.verbose(`Found hook with controllers: ${depName}`);
+                const hookModule = require(depName);
+                if (typeof hookModule.registerRedboxControllers === 'function') {
+                    const controllers = hookModule.registerRedboxControllers();
+                    for (const controllerName of Object.keys(controllers)) {
+                        hookControllers[controllerName] = {
+                            module: depName,
+                            controller: controllers[controllerName]
+                        };
+                    }
+                    log.verbose(`Registered ${Object.keys(controllers).length} controllers from ${depName}`);
+                }
+                // Webservice controllers
+                if (typeof hookModule.registerRedboxWebserviceControllers === 'function') {
+                    const wsControllers = hookModule.registerRedboxWebserviceControllers();
+                    for (const controllerName of Object.keys(wsControllers)) {
+                        hookWebserviceControllers[controllerName] = {
+                            module: depName,
+                            controller: wsControllers[controllerName]
+                        };
+                    }
+                    log.verbose(`Registered ${Object.keys(wsControllers).length} webservice controllers from ${depName}`);
+                }
+            }
+
         } catch (err) {
             // Ignore dependencies that can't be resolved or loaded
             log.verbose(`Could not process dependency ${depName}: ${err.message}`);
         }
     }));
 
-    return { hookModels, hookPolicies, hookBootstraps, hookServices };
+    return { hookModels, hookPolicies, hookBootstraps, hookServices, hookControllers, hookWebserviceControllers };
 }
 
 /**
@@ -441,6 +489,97 @@ module.exports = ServiceExports['${name}'];
     await Promise.all(promises);
 
     return { generated, fromHooks, total: allServiceNames.size };
+}
+
+/**
+ * Generates controller shim files in api/controllers/
+ * @param {string} controllersDir - Path to api/controllers directory
+ * @param {Object} hookControllers - Controllers registered by hooks
+ * @param {Object} hookWebserviceControllers - Webservice controllers registered by hooks
+ */
+async function generateControllerShims(controllersDir, hookControllers, hookWebserviceControllers) {
+    loadCoreTypes();
+
+    // API Controllers
+    const coreControllerNames = ControllerNames;
+    const allApiControllers = new Set([...coreControllerNames, ...Object.keys(hookControllers)]);
+
+    // Webservice Controllers  
+    const coreWSControllerNames = WebserviceControllerNames;
+    const allWSControllers = new Set([...coreWSControllerNames, ...Object.keys(hookWebserviceControllers)]);
+
+    let generated = 0;
+    let fromHooks = 0;
+    const promises = [];
+
+    // Generate API controller shims
+    for (const name of allApiControllers) {
+        if (hookControllers[name]) {
+            // Hook takes precedence (registerRedboxControllers())
+            const filePath = path.join(controllersDir, `${name}.js`);
+            const content = `'use strict';
+/**
+ * ${name} controller shim - from hook
+ * Auto-generated by redbox-loader.js
+ * Provided by: ${hookControllers[name].module}
+ * Do not edit manually - regenerated when .regenerate-shims marker exists
+ */
+const { registerRedboxControllers } = require('${hookControllers[name].module}');
+module.exports = registerRedboxControllers()['${name}'];
+`;
+            promises.push(writeFileIfChanged(filePath, content).then(w => { if(w) {generated++; fromHooks++;} }));
+            continue;
+        }
+        if (ControllerExports[name]) {
+            const filePath = path.join(controllersDir, `${name}.js`);
+            const content = `'use strict';
+/**
+ * ${name} controller shim
+ * Auto-generated by redbox-loader.js
+ */
+const { ControllerExports } = require('@researchdatabox/redbox-core-types');
+module.exports = ControllerExports['${name}'];
+`;
+            promises.push(writeFileIfChanged(filePath, content).then(w => { if(w) generated++; }));
+        }
+    }
+
+    // Generate webservice controller shims
+    const wsDir = path.join(controllersDir, 'webservice');
+    await fs.mkdir(wsDir, { recursive: true });
+
+    for (const name of allWSControllers) {
+        if (hookWebserviceControllers[name]) {
+            const filePath = path.join(wsDir, `${name}.js`);
+            const content = `'use strict';
+/**
+ * ${name} webservice controller shim - from hook
+ * Auto-generated by redbox-loader.js
+ * Provided by: ${hookWebserviceControllers[name].module}
+ * Do not edit manually - regenerated when .regenerate-shims marker exists
+ */
+const { registerRedboxWebserviceControllers } = require('${hookWebserviceControllers[name].module}');
+module.exports = registerRedboxWebserviceControllers()['${name}'];
+`;
+            promises.push(writeFileIfChanged(filePath, content).then(w => { if(w) {generated++; fromHooks++;} }));
+            continue;
+        }
+        if (WebserviceControllerExports[name]) {
+            const filePath = path.join(wsDir, `${name}.js`);
+            const content = `'use strict';
+/**
+ * ${name} webservice controller shim
+ * Auto-generated by redbox-loader.js
+ */
+const { WebserviceControllerExports } = require('@researchdatabox/redbox-core-types');
+module.exports = WebserviceControllerExports['${name}'];
+`;
+            promises.push(writeFileIfChanged(filePath, content).then(w => { if(w) generated++; }));
+        }
+    }
+
+    await Promise.all(promises);
+    return { generated, fromHooks, total: allApiControllers.size + allWSControllers.size };
 }
 
 /**
@@ -770,7 +909,7 @@ async function shouldRegenerateShims(appPath, forceRegenerate) {
 
     // Check if any shim directory is empty
     const apiPath = path.join(appPath, 'api');
-    const dirs = ['models', 'policies', 'middleware', 'responses', 'services'];
+    const dirs = ['models', 'policies', 'middleware', 'responses', 'services', 'controllers'];
 
     for (const dir of dirs) {
         const dirPath = path.join(apiPath, dir);
@@ -809,7 +948,7 @@ async function generateAllShims(appPath, options = {}) {
     try {
         // Scan dependencies for hook registrations (models, policies, bootstraps, services)
         const depScanStart = performance.now();
-        const { hookModels, hookPolicies, hookBootstraps, hookServices } = await findAndRegisterHooks(appPath);
+        const { hookModels, hookPolicies, hookBootstraps, hookServices, hookControllers, hookWebserviceControllers } = await findAndRegisterHooks(appPath);
 
         // Scan for hook configs
         const { hookConfigs } = await findAndRegisterHookConfigs(appPath);
@@ -822,13 +961,15 @@ async function generateAllShims(appPath, options = {}) {
         const middlewareDir = path.join(appPath, 'api', 'middleware');
         const responsesDir = path.join(appPath, 'api', 'responses');
         const servicesDir = path.join(appPath, 'api', 'services');
+        const controllersDir = path.join(appPath, 'api', 'controllers');
 
         await Promise.all([
             fs.mkdir(modelsDir, { recursive: true }),
             fs.mkdir(policiesDir, { recursive: true }),
             fs.mkdir(middlewareDir, { recursive: true }),
             fs.mkdir(responsesDir, { recursive: true }),
-            fs.mkdir(servicesDir, { recursive: true })
+            fs.mkdir(servicesDir, { recursive: true }),
+            fs.mkdir(controllersDir, { recursive: true })
         ]);
 
         // Prepare config directory
@@ -836,12 +977,13 @@ async function generateAllShims(appPath, options = {}) {
 
         // Generate shims in parallel
         const genStart = performance.now();
-        const [modelStats, policyStats, middlewareStats, responseStats, serviceStats, configShimStats, bootstrapStats] = await Promise.all([
+        const [modelStats, policyStats, middlewareStats, responseStats, serviceStats, controllerStats, configShimStats, bootstrapStats] = await Promise.all([
             generateModelShims(modelsDir, hookModels),
             generatePolicyShims(policiesDir, hookPolicies),
             generateMiddlewareShims(middlewareDir),
             generateResponseShims(responsesDir),
             generateServiceShims(servicesDir, hookServices),
+            generateControllerShims(controllersDir, hookControllers, hookWebserviceControllers),
             generateConfigShims(configDir, hookConfigs),
             generateBootstrapShim(configDir, hookBootstraps)
         ]);
@@ -852,6 +994,7 @@ async function generateAllShims(appPath, options = {}) {
         log.verbose(`Middleware: ${middlewareStats.generated}/${middlewareStats.total} written`);
         log.verbose(`Responses: ${responseStats.generated}/${responseStats.total} written`);
         log.verbose(`Services: ${serviceStats.generated}/${serviceStats.total} written (${serviceStats.fromHooks} from hooks)`);
+        log.verbose(`Controllers: ${controllerStats.generated}/${controllerStats.total} written (${controllerStats.fromHooks} from hooks)`);
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
         log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
 
@@ -875,7 +1018,7 @@ async function generateAllShims(appPath, options = {}) {
         return {
             skipped: false,
             reason,
-            stats: { modelStats, policyStats, middlewareStats, responseStats, serviceStats, configShimStats, bootstrapStats },
+            stats: { modelStats, policyStats, middlewareStats, responseStats, serviceStats, controllerStats, configShimStats, bootstrapStats },
             totalTimeMs: parseFloat(totalTime)
         };
 
@@ -895,6 +1038,7 @@ module.exports = {
     generateMiddlewareShims,
     generateResponseShims,
     generateServiceShims,
+    generateControllerShims,
     generateConfigShims,
     generateBootstrapShim,
     generatePreLiftSnapshot,

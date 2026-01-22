@@ -162,10 +162,10 @@ export module Controllers.Core {
               exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error(`The controller method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
           }
         } else {
-          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+          this.logger.error(`The controller method "${methods[i]}" does not exist on ${this.constructor?.name}`);
         }
       }
 

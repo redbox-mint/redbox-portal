@@ -85,7 +85,6 @@ describe('SaveButtonComponent', () => {
 
   it('should enable save button when form status is READY and valid/dirty', async () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
-    const eventBus = TestBed.inject(FormComponentEventBus);
     // Status should already be READY after form loads successfully
     // Simulate valid and dirty
     const textField = fixture.nativeElement.querySelector('input');

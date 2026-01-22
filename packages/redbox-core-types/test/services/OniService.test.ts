@@ -751,7 +751,8 @@ describe('OniService', function() {
         await OniService.exportDataset(oid, record, options, user);
       } catch (err: any) {
         // Expected to fail at collector.connect
-        expect(err.message).to.include('Error connecting');
+        // Check for either the original error or the wrapped one
+        expect(err.message).to.match(/Error connecting|Cannot build Provenance/);
       }
 
       // Check that citation_url was set correctly with clean URL

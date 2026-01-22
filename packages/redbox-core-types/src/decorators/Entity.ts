@@ -16,9 +16,8 @@ export function Entity(
     if (resolvedIdentity) {
       meta.entity.identity = resolvedIdentity;
       const shouldResetTableName =
-        rest.tableName !== undefined
-          ? false
-          : !meta.entity.tableName || meta.entity.tableName === defaultTableName;
+        rest.tableName === undefined &&
+        (!meta.entity.tableName || meta.entity.tableName === defaultTableName);
       if (shouldResetTableName) {
         meta.entity.tableName = resolvedIdentity;
       }
