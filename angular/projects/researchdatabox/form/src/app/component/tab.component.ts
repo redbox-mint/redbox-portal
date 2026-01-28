@@ -43,7 +43,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
   `,
   standalone: false
 })
-export class TabComponentLayout extends DefaultLayoutComponent<undefined> implements AfterViewChecked {
+export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   protected override logName = TabLayoutName;
   public override componentDefinition?: TabFieldLayoutDefinitionFrame;
 
@@ -96,22 +96,13 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> implem
     if (this.wrapperComponentRef) {
       this.wrapperComponentRef.location.nativeElement.style.flexGrow = '1';
     }
-  }
-
-    ngAfterViewChecked() {
-    // This is a workaround to ensure that the initial tab selection is applied
-    // after the view has been checked. Without this, the tabs are all shown
-    // initially because the classes are not applied correctly.
     if (!this.initialSelectionDone && 
         this.tabInstance && 
         this.tabInstance.tabs.length > 0 &&
         this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
         this.tabInstance.selectedTabId) {
-
       const tabId = this.tabInstance.selectedTabId;
-      setTimeout(() => {
-        this.selectTab(tabId);
-      });
+      this.selectTab(tabId);
       this.initialSelectionDone = true;
     }
   }
