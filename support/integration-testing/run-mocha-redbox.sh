@@ -19,6 +19,10 @@ export TS_NODE_PROJECT=/opt/redbox-portal/tsconfig.json
 export TS_NODE_TRANSPILE_ONLY=true
 export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
 
+# Ensure coverage output is writable in CI containers
+export RBPORTAL_COVERAGE_DIR=${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/mocha}
+mkdir -p "$RBPORTAL_COVERAGE_DIR"
+
 # Ensure nyc writes to a writable directory in CI containers
 export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
 mkdir -p "$NYC_OUTPUT"
@@ -57,6 +61,17 @@ if [[ ${#test_args[@]} -eq 0 ]]; then
   test_args=(test/integration/**/*.test.ts)
 fi
 
+# Resolve mocha command (prefer local, fall back to npx)
+mocha_cmd=()
+if [[ -x node_modules/.bin/mocha ]]; then
+  mocha_cmd=(node_modules/.bin/mocha)
+elif command -v npx >/dev/null 2>&1; then
+  mocha_cmd=(npx mocha)
+else
+  echo "mocha not found: install mocha locally or ensure npx is available" >&2
+  exit 127
+fi
+
 nyc_cmd=()
 # Prefer local nyc, fall back to global nyc, then npx nyc
 if [[ -x node_modules/.bin/nyc ]]; then
@@ -72,9 +87,9 @@ fi
 
 exec "${nyc_cmd[@]}" --no-clean \
   --temp-dir "$NYC_OUTPUT" \
-  --report-dir /opt/redbox-portal/coverage/mocha \
+  --report-dir "$RBPORTAL_COVERAGE_DIR" \
   --reporter=lcov --exclude-after-remap=false \
-  "${node_cmd[@]}" node_modules/.bin/mocha \
+  "${node_cmd[@]}" "${mocha_cmd[@]}" \
   \
   $(
     # Mocha options: require ts-node/register and chai, support ts/js extensions

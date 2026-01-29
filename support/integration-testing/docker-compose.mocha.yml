@@ -16,6 +16,7 @@ x-rbportal-env: &rbportal-env
   - datacite_password=${datacite_password:-}
   - datacite_doiPrefix=${datacite_doiPrefix:-}
   - CI=${CI:-false}
+  - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -37,7 +38,7 @@ x-rbportal-service: &rbportal-service
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
-    - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
+    - "../../coverage/mocha:/tmp/coverage/mocha"
     - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
     - "../../.tmp/attachments:/attachments"
     - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
