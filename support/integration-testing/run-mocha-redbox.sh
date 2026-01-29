@@ -37,11 +37,6 @@ if [[ -d typescript/test/integration ]]; then
   fi
 fi
 
-# Ensure bootstrap test is available at test/bootstrap.test.ts (symlink if necessary)
-if [[ -f typescript/test/bootstrap.test.ts ]] && [[ ! -e test/bootstrap.test.ts ]]; then
-  ln -s "${PWD}/typescript/test/bootstrap.test.ts" test/bootstrap.test.ts
-fi
-
 bootstrap_test=test/bootstrap.test.ts
 
 test_args=()
