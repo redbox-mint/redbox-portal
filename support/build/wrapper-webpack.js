@@ -1,3 +1,4 @@
+// This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core-types webpack.ts for how the hook runs webpack
 const redboxCore = require("@researchdatabox/redbox-core-types");
 
 const ensureTsNode = () => {
