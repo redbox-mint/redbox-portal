@@ -477,11 +477,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   public getValidationErrors(): FormValidatorSummaryErrors[] {
     const result: FormValidatorSummaryErrors[] = [];
-    const nameMapEntries = this.formDefMap?.completeGroupMap ?? {};
-    const nameFormControls = this.formDefMap?.withFormControl ?? {};
-    for (const [key, mapEntry] of Object.entries(nameMapEntries)) {
-      const formControl = nameFormControls[key];
-      const errors = this.formService.getFormValidatorSummaryErrors(mapEntry, formControl);
+    const mapEntries = this.formDefMap?.components ?? [];
+    for (const mapEntry of mapEntries) {
+      const errors = this.formService.getFormValidatorSummaryErrors(mapEntry);
       result.push(...errors);
     }
     return result;
