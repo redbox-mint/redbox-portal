@@ -56,6 +56,13 @@ describe('Responses', function() {
       expect(res.view.calledWith('myView')).to.be.true;
     });
 
+    it('should send 200 status', function() {
+      const context = { req, res };
+      ok.call(context);
+
+      expect(res.status.calledWith(200)).to.be.true;
+    });
+
     it('should guess view when no view provided', function() {
       req.wantsJSON = false;
       const context = { req, res };
