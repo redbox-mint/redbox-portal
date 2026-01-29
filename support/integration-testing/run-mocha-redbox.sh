@@ -53,7 +53,20 @@ if [[ ${#test_args[@]} -eq 0 ]]; then
   test_args=(test/integration/**/*.test.ts)
 fi
 
-exec node_modules/.bin/nyc --no-clean \
+nyc_cmd=()
+# Prefer local nyc, fall back to global nyc, then npx nyc
+if [[ -x node_modules/.bin/nyc ]]; then
+  nyc_cmd=(node_modules/.bin/nyc)
+elif command -v nyc >/dev/null 2>&1; then
+  nyc_cmd=(nyc)
+elif command -v npx >/dev/null 2>&1; then
+  nyc_cmd=(npx nyc)
+else
+  echo "nyc not found: install nyc locally or globally, or ensure npx is available" >&2
+  exit 127
+fi
+
+exec "${nyc_cmd[@]}" --no-clean \
   --report-dir /opt/redbox-portal/coverage/mocha \
   --reporter=lcov --exclude-after-remap=false \
   "${node_cmd[@]}" node_modules/.bin/mocha \
