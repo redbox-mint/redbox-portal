@@ -15,10 +15,12 @@ if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then
   node_cmd+=(--inspect=0.0.0.0:9876)
 fi
 
-bootstrap_test=test/bootstrap.test.js
-if [[ -f test/bootstrap.test.ts ]]; then
-  bootstrap_test=test/bootstrap.test.ts
-fi
+export TS_NODE_PROJECT=/opt/redbox-portal/tsconfig.json
+export TS_NODE_TRANSPILE_ONLY=true
+export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
+
+bootstrap_test=typescript/test/bootstrap.test.ts
+
 
 test_args=()
 if [[ -n "${RBPORTAL_MOCHA_TEST_PATHS:-}" ]]; then
@@ -31,7 +33,7 @@ if [[ ${#@} -gt 0 ]]; then
 fi
 
 if [[ ${#test_args[@]} -eq 0 ]]; then
-  test_args=(test/integration/**/*.test.js)
+  test_args=(typescript/test/integration/**/*.test.ts)
 fi
 
 exec node_modules/.bin/nyc --no-clean \

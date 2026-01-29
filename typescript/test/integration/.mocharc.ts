@@ -1,7 +1,8 @@
 "use strict";
 
 module.exports = {
-    require: "chai",
+    require: ["chai", "ts-node/register"],
+    extension: ["ts", "js"],
     recursive: true,
     slow: 2000,
     timeout: "30s",
