@@ -20,7 +20,7 @@
     "include": [
       "typescript/**/*.ts",
       "typescript/**/*.d.ts",
-      "typescript/test/integration/.mocharc.ts"
+      "test/integration/.mocharc.ts"
     ],
     "compileOnSave": true,
     "buildOnSave": false,

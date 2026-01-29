@@ -1,0 +1,1 @@
+/opt/redbox-portal/typescript/test/bootstrap.test.ts
