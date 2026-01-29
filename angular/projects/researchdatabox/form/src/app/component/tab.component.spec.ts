@@ -252,7 +252,7 @@ describe('TabComponent', () => {
     expect(tabButtons.length).toBe(tabConfig.tabs?.length || 0);
 
     // Verify each button has correct attributes
-    tabConfig.tabs?.forEach((tab, index) => {
+    tabConfig.tabs?.forEach((tab) => {
       const button = compiled.querySelector(`#${tab.name}-tab-button`);
       expect(button).toBeTruthy();
       expect(button?.getAttribute('role')).toBe('tab');

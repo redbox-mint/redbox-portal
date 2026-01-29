@@ -96,14 +96,18 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
     if (this.wrapperComponentRef) {
       this.wrapperComponentRef.location.nativeElement.style.flexGrow = '1';
     }
-    if (!this.initialSelectionDone && 
-        this.tabInstance && 
-        this.tabInstance.tabs.length > 0 &&
-        this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
-        this.tabInstance.selectedTabId) {
-      const tabId = this.tabInstance.selectedTabId;
-      this.selectTab(tabId);
-      this.initialSelectionDone = true;
+    try {
+      if (!this.initialSelectionDone && 
+          this.tabInstance && 
+          this.tabInstance.tabs.length > 0 &&
+          this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
+          this.tabInstance.selectedTabId) {
+        const tabId = this.tabInstance.selectedTabId;
+        this.selectTab(tabId);
+        this.initialSelectionDone = true;
+      }
+    } catch (error) {
+      this.loggerService.error(`${this.logName}: Error during initial tab selection`, error);
     }
   }
 
