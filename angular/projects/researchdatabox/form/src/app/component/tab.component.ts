@@ -159,6 +159,14 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     this.tabs = this.tabConfig?.tabs || [];
   }
 
+  /**
+   * Initializes all tab wrappers, merges their form controls into the parent map, and selects an initial tab.
+   *
+   * - Defers tab selection until every tab is created and initialized to avoid flashes of content.
+   * - If multiple tabs are configured with `selected: true`, the last one encountered wins; this behavior is intentional
+   *   but may be reconsidered if a warning or first-selected preference is desired.
+   * - Falls back to selecting the first tab when none are explicitly marked as selected.
+   */
   protected override async setComponentReady(): Promise<void> {
     await this.untilViewIsInitialised();
     this.loggerService.debug(`${this.logName}: Initializing TabComponent with ${this.tabs.length} tabs.`);
@@ -199,15 +207,14 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         }
         _merge(this.formFieldCompMapEntry.formControlMap, fieldMapDefEntry.formControlMap);
       }
+      // Note: the last tab with `selected` true will take precedence
       if (tab.component?.config?.selected) {
         selectedTabName = tab.name;
       }
     }
-    if (selectedTabName !== null) {
-      this.selectTab(selectedTabName);
-    } else if (this.tabs.length > 0) {
-      this.selectTab(this.tabs[0].name!);
-    }
+    // Note: selection is deferred to the layout component to avoid flashes and incorrect display of content. For now, we just set the selectedTabId here for the layout to pick up.
+    // This will select the first tab if none are marked as selected.
+    this.selectedTabId = selectedTabName ?? this.tabs[0]?.name ?? '0';
     await super.setComponentReady();
   }
 

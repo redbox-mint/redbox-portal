@@ -5,6 +5,7 @@ import {TestBed} from "@angular/core/testing";
 import { TabComponent, TabSelectionErrorType } from './tab.component';
 
 let formConfig: FormConfigFrame;
+let formConfigNoSelectedTab: FormConfigFrame;
 
 describe('TabComponent', () => {
   beforeEach(async () => {
@@ -104,6 +105,96 @@ describe('TabComponent', () => {
         }
       ]
     };
+    formConfigNoSelectedTab = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'main_tab',
+          layout: {
+            class: 'TabLayout',
+            config: {
+                // layout-specific config goes here
+                hostCssClasses: 'd-flex align-items-start',
+                buttonSectionCssClass: 'nav flex-column nav-pills me-5',
+                tabPaneCssClass: 'tab-pane fade',
+                tabPaneActiveCssClass: 'active show',
+            }
+          },
+          component: {
+            class: 'TabComponent',
+            config: {
+              hostCssClasses: 'tab-content',
+              tabs: [
+                {
+                  name: 'tab1',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 1',
+                    }
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_1',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Hello from Tab 1!',
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  name: 'tab2',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 2',
+                    }
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_2',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Hello from Tab 2!',
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
   });
 
   it('should create component', () => {
@@ -114,7 +205,7 @@ describe('TabComponent', () => {
 
   it('should render the tab with a text field component', async () => {
     // act
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {fixture} = await createFormAndWaitForReady(formConfig);
     // assert text field component is rendered with name 'textfield_1'
     const compiled = fixture.nativeElement as HTMLElement;
     let inputElements = compiled.querySelectorAll('input[type="text"]');
@@ -195,7 +286,7 @@ describe('TabComponent', () => {
   });
 
   it('should have selectedTabId correctly set on initial load', async () => {
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
     if (!componentDefinitions?.component) {
       throw new Error("Component definition is not defined");
     }
@@ -214,7 +305,7 @@ describe('TabComponent', () => {
   });
 
   it('should mark non-selected tabs as inactive on initial load', async () => {
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfig);
     if (!componentDefinitions?.component) {
       throw new Error("Component definition is not defined");
     }
@@ -239,7 +330,7 @@ describe('TabComponent', () => {
   });
 
   it('should have all tab buttons rendered on initial load', async () => {
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfig);
     if (!componentDefinitions?.component) {
       throw new Error("Component definition is not defined");
     }
@@ -260,8 +351,28 @@ describe('TabComponent', () => {
     });
   });
 
+  it('should have exactly one tab selected despite no "selected" property on initial load', async () => {
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfigNoSelectedTab);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    // Count active tab buttons
+    const activeTabButtons = compiled.querySelectorAll('[role="tab"].active');
+    expect(activeTabButtons.length).toBe(1);
+
+    // Count tabs with aria-selected="true"
+    const selectedTabs = compiled.querySelectorAll('[role="tab"][aria-selected="true"]');
+    expect(selectedTabs.length).toBe(1);
+
+    // Verify it's the correct tab
+    expect(activeTabButtons[0].getAttribute('id')).toBe('tab1-tab-button');
+  });
+
   it('should have exactly one tab selected on initial load', async () => {
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfig);
     if (!componentDefinitions?.component) {
       throw new Error("Component definition is not defined");
     }
