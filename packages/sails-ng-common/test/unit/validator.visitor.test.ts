@@ -80,7 +80,7 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                parents: [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             }
         ];
 
@@ -168,7 +168,7 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                parents: [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             }
         ];
 
@@ -239,7 +239,7 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                parents: [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             }
         ];
 
@@ -268,7 +268,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_1_event",
                 "message": null,
-                "parents": [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             },
             {
                 "errors": [
@@ -280,7 +280,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_2_event",
                 "message": null,
-                "parents": [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             },
             {
                 "errors": [
@@ -292,7 +292,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_3_event",
                 "message": null,
-                "parents": [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             },
             {
                 "errors": [
@@ -304,7 +304,10 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_5",
                 "message": "TextField with default wrapper defined",
-                "parents": ["group_1_component", "group_2_component"]
+                lineagePaths: {formConfig: [],
+                    dataModel: ["group_1_component", "group_2_component"],
+                    angularComponents: ["group_1_component", "group_2_component"]
+                },
             },
             {
                 "errors": [
@@ -321,7 +324,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "default-1.0-draft",
                 "message": null,
-                "parents": [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
             },
         ];
 

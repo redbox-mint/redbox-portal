@@ -884,7 +884,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_1",
                     "message": null,
-                    "parents": [],
+                    lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
                     "errors": [
                         {
                             "class": "minLength",
@@ -907,7 +907,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_2",
                     "message": "@text_2_custom_label",
-                    "parents": [],
+                    lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
                     "errors": [
                         {
                             "class": "requiredTrue",
@@ -922,9 +922,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_5",
                     "message": null,
-                    "parents": [
-                        "group_2"
-                    ],
+                    lineagePaths: {formConfig: [], dataModel: ["group_2"], angularComponents: ["group_2"]},
                     "errors": [
                         {
                             "message": "@validator-error-required",
@@ -939,9 +937,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_3",
                     "message": null,
-                    "parents": [
-                        "group_2"
-                    ],
+                    lineagePaths: {formConfig: [], dataModel: ["group_2"], angularComponents: ["group_2"]},
                     "errors": [
                         {
                             "class": "pattern",
@@ -965,7 +961,7 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "default-1.0-draft",
                     "message": null,
-                    "parents": [],
+                    lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
                     "errors": [
                         {
                             "class": "different-values",

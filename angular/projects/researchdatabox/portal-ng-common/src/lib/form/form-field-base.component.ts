@@ -343,10 +343,16 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     });
   }
 
+  /**
+   * Get the child form field components.
+   */
   public get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return [];
   }
 
+  /**
+   * Get the child form field component map entries.
+   */
   public get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
     return [];
   }
@@ -383,5 +389,5 @@ export interface FormFieldCompMapEntry {
 
 /** Specialised interface for querying. */
 export interface JSONataClientQuerySourceProperty extends JSONataQuerySourceProperty {
-  // Placeholder for additional client-specific properties can be added here in the future 
+  // Placeholder for additional client-specific properties can be added here in the future
 }

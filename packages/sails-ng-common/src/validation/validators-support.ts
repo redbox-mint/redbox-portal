@@ -1,7 +1,7 @@
 import {
-    FormValidationGroups,
+    FormValidationGroups, FormValidatorComponentErrors,
     FormValidatorConfig,
-    FormValidatorDefinition,
+    FormValidatorDefinition, FormValidatorErrors,
     FormValidatorFn
 } from "./form.model";
 import {isTypeFormValidatorDefinition} from "../config/form-types.model";
@@ -67,6 +67,18 @@ export class ValidatorsSupport {
     ): FormValidatorFn[] {
         const defMap = this.createValidatorDefinitionMapping(definition);
         return this.createFormValidatorInstancesFromMapping(defMap, config);
+    }
+
+    /**
+     * Get the form validator errors for a component's control.
+     * @param errors The control's errors.
+     */
+    public getFormValidatorComponentErrors(errors: FormValidatorErrors | null): FormValidatorComponentErrors[] {
+        return Object.entries(errors ?? {}).map(([key, item]) => ({
+                class: key,
+                message: item.message ?? null,
+                params: {...item.params},
+            })) ?? [];
     }
 
     /**

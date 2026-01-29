@@ -1,5 +1,5 @@
 import { get as _get } from 'lodash';
-import {LineagePath} from "../config/names/naming-helpers";
+import {LineagePath, LineagePaths} from "../config/names/naming-helpers";
 
 /**
  * The parameters for a validator error.
@@ -196,12 +196,11 @@ export interface FormValidatorSummaryErrors {
    */
   errors: FormValidatorComponentErrors[];
   /**
-   * Parent form or form control names that contain this form or form control.
+   * The lineage paths to this form control.
    *
    * This enables revealing the parents, to be able to navigate to the form control.
-   * The parent names are in order from top-most to direct parent of this form control.
    */
-  parents: string[];
+  lineagePaths: LineagePaths;
 }
 
 /**

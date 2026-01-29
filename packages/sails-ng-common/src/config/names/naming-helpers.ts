@@ -21,16 +21,34 @@ import { find, findByPointer, formatJsonPointer } from '@jsonjoy.com/json-pointe
 
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
-// A lineage path is an ordered list of keys (string|number) describing a path lineage for
-// different domains of form configuration (form config JSON, data model, angular components).
 
+/**
+ * A lineage path is an ordered list of keys (string|number) describing a path lineage for
+ * different domains of form configuration.
+ * A string key is a property name, a number key is an array index.
+ */
 export type LineagePath = (string | number)[];
 
+/**
+ * A collection of lineage paths that describe different relationships.
+ */
 export interface LineagePaths {
-	formConfig: LineagePath;
-	dataModel: LineagePath;
-	angularComponents: LineagePath;
-	angularComponentsJsonPointer?: string;
+    /**
+     * The path to the item in the form config.
+     */
+    formConfig: LineagePath;
+    /**
+     * The path to the item in the form data model.
+     */
+    dataModel: LineagePath;
+    /**
+     * The path to the item in the angular control hierarchy.
+     */
+    angularComponents: LineagePath;
+    /**
+     * The JSONPointer to the angular control.
+     */
+    angularComponentsJsonPointer?: string;
 }
 
 /**
@@ -50,8 +68,8 @@ export function buildLineagePaths(base?: LineagePaths, more?: LineagePaths): Lin
 
 /**
  * Get a JSON Pointer string from an array of path segments.
- * 
- * @param paths 
+ *
+ * @param paths
  * @returns JSON Pointer string
  */
 
@@ -61,9 +79,9 @@ export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
 
 /**
  * Retrieve any object property using a JSON Pointer or an array of path segments.
- * 
- * @param obj 
- * @param pointer 
+ *
+ * @param obj
+ * @param pointer
  * @returns JSON Pointer reference: {key: 'key', val: 'object value at key', obj: 'context object, 1 level up from key'}
  */
 export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): any {
@@ -74,7 +92,7 @@ export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): 
 	return findByPointer(pointer, obj);
 }
 
-/** 
+/**
  * Retrieve the last segment of a JSONPointer string
  */
 export function getLastSegmentFromJSONPointer(pointer: string): string {

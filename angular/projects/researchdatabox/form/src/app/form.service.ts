@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
-import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
+import {AbstractControl, FormArray, FormControl, FormGroup} from '@angular/forms';
 import {isEmpty as _isEmpty,  merge as _merge, set as _set, isUndefined as _isUndefined, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
 import {
   StaticComponentClassMap,
@@ -392,55 +392,58 @@ export class FormService extends HttpClientService {
   }
 
   /**
-   * Get the validation errors for the given control and all child controls.
-   * @param componentDefs Gather the validation errors using these component definitions.
-   * @param name The optional name of the control.
+   * Get the flat array of validation errors for the given control and all child controls.
+   * @param mapEntry Gather the validation errors for this component.
    * @param control The Angular control instance.
-   * @param parents The names of the parent controls.
-   * @param results The accumulated results.
    * @return An array of validation errors.
    */
-  public getFormValidatorSummaryErrors(
-    componentDefs: FormComponentDefinitionFrame[] | null | undefined,
-    name: string | null | undefined = null,
-    control: AbstractControl | null | undefined = null,
-    parents: string[] | null = null,
-    results: FormValidatorSummaryErrors[] | null = null,
-  ): FormValidatorSummaryErrors[] {
-    // Build a flattened array of control errors.
-    // Include the names of the parent controls for each control.
-    if (!parents) {
-      parents = [];
-    }
-    if (!results) {
-      results = [];
+  public getFormValidatorSummaryErrors(mapEntry: FormFieldCompMapEntry | null, control: AbstractControl | null): FormValidatorSummaryErrors[] {
+    const result: FormValidatorSummaryErrors[] = [];
+
+    if (!mapEntry || !control) {
+      this.loggerService.warn(`Cannot get form validator summary errors due to missing mapEntry or control.`);
+      return result;
     }
 
-    // control
-    name = name || null;
+    // Get form component id and label.
+    const {id, labelMessage} = this.componentIdLabel(mapEntry.compConfigJson);
 
-    // TODO: Find the component definition that matches the angular form control using the path instead of only name.
-    //  Using name only might find the wrong form component definition, as names are only unique at the same level of nesting.
-    const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
-    const {id, labelMessage} = this.componentIdLabel(componentDef);
+    // Get the validation errors from the form control.
     const errors = this.getFormValidatorComponentErrors(control);
-
-    // Only add the result if there are errors.
     if (errors.length > 0) {
-      results.push({id: id, message: labelMessage, errors: errors, parents: parents});
+      const lineagePaths = mapEntry.lineagePaths ?? this.buildLineagePaths();
+      result.push({id, message: labelMessage, errors, lineagePaths});
     }
 
-    // child controls
-    if ("controls" in (control ?? {})) {
-      for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
-        // Create a new array for the parents, so that the existing array of parent names is not modified.
-        const newParents = !!name ? [...parents, name] : [...parents];
-        this.getFormValidatorSummaryErrors(componentDefs, name, childControl, newParents, results);
+    // Get the validation errors from any child controls.
+    if ("controls" in control) {
+      const childMapEntries = mapEntry?.component?.formFieldCompMapEntries ?? [];
+
+      // Cater for both FormArray and FormGroup.
+      if (Array.isArray(control.controls)) {
+        const formArray = control as FormArray;
+        // The form controls and form field component map entries are expected to be in the same order in the arrays.
+        formArray.controls.forEach((childControl, index) => {
+          const childMapEntry = childMapEntries[index];
+          const errors = this.getFormValidatorSummaryErrors(childMapEntry, childControl);
+          result.push(...errors);
+        });
+      } else {
+        const formGroup = control as FormGroup;
+        // The form control property keys match the names in the form field component map entries.
+        Object.entries(formGroup.controls).forEach(([childName, childControl]) => {
+          const childMapEntry = childMapEntries.find(childMapEntry => childMapEntry.name === childName);
+          if (!childMapEntry) {
+            this.loggerService.warn(`Cannot get form validator summary errors for '${childName}' due to missing mapEntry.`);
+          } else {
+            const errors = this.getFormValidatorSummaryErrors(childMapEntry, childControl);
+            result.push(...errors);
+          }
+        });
       }
     }
 
-    // output
-    return results;
+    return result;
   }
 
   /**
@@ -448,15 +451,7 @@ export class FormService extends HttpClientService {
    * @param control
    */
   public getFormValidatorComponentErrors(control: AbstractControl | null | undefined): FormValidatorComponentErrors[] {
-    return Object.entries(control?.errors ?? {})
-        .map(([key, item]) => {
-          return {
-            class: key,
-            message: item.message ?? null,
-            params: {...item.params},
-          }
-        })
-      ?? [];
+    return this.validatorsSupport.getFormValidatorComponentErrors(control?.errors ?? {});
   }
 
   /**
@@ -820,6 +815,9 @@ export class FormComponentsMap {
    * The form configuration from the server.
    */
   formConfig: FormConfigFrame;
+  /**
+   * Map of item name to form field component map entry.
+   */
   completeGroupMap: { [key: string]: FormFieldCompMapEntry } | undefined;
   /**
    * Mapping of name to angular FormControl. Used to create angular form.
