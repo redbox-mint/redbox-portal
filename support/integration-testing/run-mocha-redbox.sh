@@ -71,6 +71,7 @@ else
 fi
 
 exec "${nyc_cmd[@]}" --no-clean \
+  --temp-dir "$NYC_OUTPUT" \
   --report-dir /opt/redbox-portal/coverage/mocha \
   --reporter=lcov --exclude-after-remap=false \
   "${node_cmd[@]}" node_modules/.bin/mocha \
