@@ -1,4 +1,4 @@
-import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding, AfterViewChecked } from '@angular/core';
+import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame, guessType, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
