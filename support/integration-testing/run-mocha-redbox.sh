@@ -19,6 +19,10 @@ export TS_NODE_PROJECT=/opt/redbox-portal/tsconfig.json
 export TS_NODE_TRANSPILE_ONLY=true
 export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
 
+# Ensure nyc writes to a writable directory in CI containers
+export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
+mkdir -p "$NYC_OUTPUT"
+
 # Ensure tests are accessible at test/integration for tools and project references
 # If the project already has a `test/integration` folder (e.g. our mocha config),
 # create per-file symlinks for `.test.ts` files so they are discoverable by Mocha.
