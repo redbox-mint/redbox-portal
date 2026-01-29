@@ -15,6 +15,7 @@
       "typings/browser/**",
       "typings/browser.d.ts",
       "test/integration/**/*.ts",
+      "typescript/test/**",
       "angular/**"
     ],
     "include": [
