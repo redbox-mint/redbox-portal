@@ -5,6 +5,7 @@ import {TestBed} from "@angular/core/testing";
 import { TabComponent, TabSelectionErrorType } from './tab.component';
 
 let formConfig: FormConfigFrame;
+let formConfigNoSelectedTab: FormConfigFrame;
 
 describe('TabComponent', () => {
   beforeEach(async () => {
@@ -104,6 +105,96 @@ describe('TabComponent', () => {
         }
       ]
     };
+    formConfigNoSelectedTab = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'main_tab',
+          layout: {
+            class: 'TabLayout',
+            config: {
+                // layout-specific config goes here
+                hostCssClasses: 'd-flex align-items-start',
+                buttonSectionCssClass: 'nav flex-column nav-pills me-5',
+                tabPaneCssClass: 'tab-pane fade',
+                tabPaneActiveCssClass: 'active show',
+            }
+          },
+          component: {
+            class: 'TabComponent',
+            config: {
+              hostCssClasses: 'tab-content',
+              tabs: [
+                {
+                  name: 'tab1',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 1',
+                    }
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_1',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Hello from Tab 1!',
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  name: 'tab2',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 2',
+                    }
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_2',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Hello from Tab 2!',
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
   });
 
   it('should create component', () => {
@@ -114,7 +205,7 @@ describe('TabComponent', () => {
 
   it('should render the tab with a text field component', async () => {
     // act
-    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {fixture} = await createFormAndWaitForReady(formConfig);
     // assert text field component is rendered with name 'textfield_1'
     const compiled = fixture.nativeElement as HTMLElement;
     let inputElements = compiled.querySelectorAll('input[type="text"]');
@@ -192,6 +283,112 @@ describe('TabComponent', () => {
     // check if aria-selected is set to true
     expect(secondTabButton?.getAttribute('aria-selected')).toBe('true');
 
+  });
+
+  it('should have selectedTabId correctly set on initial load', async () => {
+    const {formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const mainTabDef = formComponent.getComponentDefByName('main_tab');
+    expect(mainTabDef).toBeDefined();
+    if (mainTabDef === undefined) {
+      throw new Error("Main tab component is not defined");
+    }
+
+    const mainTab = (mainTabDef.component as TabComponent);
+
+    // Verify that selectedTabId is set correctly after initialization
+    expect(mainTab.selectedTabId).toBe('tab2');
+    expect(mainTab.activeTabId).toBe('tab2');
+  });
+
+  it('should mark non-selected tabs as inactive on initial load', async () => {
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    // Check that the first tab button does NOT have the 'active' class
+    const firstTabButton = compiled.querySelector(`#tab1-tab-button`);
+    expect(firstTabButton).toBeTruthy();
+    const classList = firstTabButton?.className.split(' ') || [];
+    expect(classList).not.toContain('active');
+
+    // Check that aria-selected is set to false for non-selected tab
+    expect(firstTabButton?.getAttribute('aria-selected')).toBe('false');
+
+    // Check that the second tab IS active
+    const secondTabButton = compiled.querySelector(`#tab2-tab-button`);
+    expect(secondTabButton).toBeTruthy();
+    const secondClassList = secondTabButton?.className.split(' ') || [];
+    expect(secondClassList).toContain('active');
+    expect(secondTabButton?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('should have all tab buttons rendered on initial load', async () => {
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tabConfig = componentDefinitions?.component?.config as TabFieldComponentConfigFrame;
+
+    // Verify all tab buttons are rendered
+    const tabButtons = compiled.querySelectorAll('[role="tab"]');
+    expect(tabButtons.length).toBe(tabConfig.tabs?.length || 0);
+
+    // Verify each button has correct attributes
+    tabConfig.tabs?.forEach((tab) => {
+      const button = compiled.querySelector(`#${tab.name}-tab-button`);
+      expect(button).toBeTruthy();
+      expect(button?.getAttribute('role')).toBe('tab');
+      expect(button?.getAttribute('aria-controls')).toBe(`${tab.name}-tab-content`);
+    });
+  });
+
+  it('should have exactly one tab selected despite no "selected" property on initial load', async () => {
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfigNoSelectedTab);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    // Count active tab buttons
+    const activeTabButtons = compiled.querySelectorAll('[role="tab"].active');
+    expect(activeTabButtons.length).toBe(1);
+
+    // Count tabs with aria-selected="true"
+    const selectedTabs = compiled.querySelectorAll('[role="tab"][aria-selected="true"]');
+    expect(selectedTabs.length).toBe(1);
+
+    // Verify it's the correct tab
+    expect(activeTabButtons[0].getAttribute('id')).toBe('tab1-tab-button');
+  });
+
+  it('should have exactly one tab selected on initial load', async () => {
+    const {fixture, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error("Component definition is not defined");
+    }
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    // Count active tab buttons
+    const activeTabButtons = compiled.querySelectorAll('[role="tab"].active');
+    expect(activeTabButtons.length).toBe(1);
+
+    // Count tabs with aria-selected="true"
+    const selectedTabs = compiled.querySelectorAll('[role="tab"][aria-selected="true"]');
+    expect(selectedTabs.length).toBe(1);
+
+    // Verify it's the correct tab
+    expect(activeTabButtons[0].getAttribute('id')).toBe('tab2-tab-button');
   });
 
   it('should allow tab switching', async () => {
