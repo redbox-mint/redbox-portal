@@ -22,10 +22,12 @@ export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node",
 # Ensure coverage output is writable in CI containers
 export RBPORTAL_COVERAGE_DIR=${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/mocha}
 mkdir -p "$RBPORTAL_COVERAGE_DIR"
+chmod 777 "$RBPORTAL_COVERAGE_DIR" || true
 
 # Ensure nyc writes to a writable directory in CI containers
 export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
 mkdir -p "$NYC_OUTPUT"
+chmod 777 "$NYC_OUTPUT" || true
 
 # Ensure tests are accessible at test/integration for tools and project references
 # If the project already has a `test/integration` folder (e.g. our mocha config),
@@ -61,37 +63,16 @@ if [[ ${#test_args[@]} -eq 0 ]]; then
   test_args=(test/integration/**/*.test.ts)
 fi
 
-# Resolve mocha command (prefer local, fall back to npx)
-mocha_cmd=()
-use_node_prefix=true
-if [[ -x node_modules/.bin/mocha ]]; then
-  mocha_cmd=(node_modules/.bin/mocha)
-elif command -v npx >/dev/null 2>&1; then
-  mocha_cmd=(npx mocha)
-  use_node_prefix=false
-else
-  echo "mocha not found: install mocha locally or ensure npx is available" >&2
-  exit 127
+# Ensure dependencies are available (install if missing)
+if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
+  echo "Test dependencies not found. Running npm install..."
+  npm install
 fi
 
-nyc_cmd=()
-# Prefer local nyc, fall back to global nyc, then npx nyc
-if [[ -x node_modules/.bin/nyc ]]; then
-  nyc_cmd=(node_modules/.bin/nyc)
-elif command -v nyc >/dev/null 2>&1; then
-  nyc_cmd=(nyc)
-elif command -v npx >/dev/null 2>&1; then
-  nyc_cmd=(npx nyc)
-else
-  echo "nyc not found: install nyc locally or globally, or ensure npx is available" >&2
-  exit 127
-fi
+mocha_cmd=(node_modules/.bin/mocha)
+nyc_cmd=(node_modules/.bin/nyc)
 
-final_args=()
-if [[ "$use_node_prefix" == "true" ]]; then
-  final_args+=("${node_cmd[@]}")
-fi
-final_args+=("${mocha_cmd[@]}")
+final_args=("${node_cmd[@]}" "${mocha_cmd[@]}")
 
 exec "${nyc_cmd[@]}" --no-clean \
   --temp-dir "$NYC_OUTPUT" \
