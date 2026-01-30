@@ -63,10 +63,12 @@ fi
 
 # Resolve mocha command (prefer local, fall back to npx)
 mocha_cmd=()
+use_node_prefix=true
 if [[ -x node_modules/.bin/mocha ]]; then
   mocha_cmd=(node_modules/.bin/mocha)
 elif command -v npx >/dev/null 2>&1; then
   mocha_cmd=(npx mocha)
+  use_node_prefix=false
 else
   echo "mocha not found: install mocha locally or ensure npx is available" >&2
   exit 127
@@ -85,11 +87,17 @@ else
   exit 127
 fi
 
+final_args=()
+if [[ "$use_node_prefix" == "true" ]]; then
+  final_args+=("${node_cmd[@]}")
+fi
+final_args+=("${mocha_cmd[@]}")
+
 exec "${nyc_cmd[@]}" --no-clean \
   --temp-dir "$NYC_OUTPUT" \
   --report-dir "$RBPORTAL_COVERAGE_DIR" \
   --reporter=lcov --exclude-after-remap=false \
-  "${node_cmd[@]}" "${mocha_cmd[@]}" \
+  "${final_args[@]}" \
   \
   $(
     # Mocha options: require ts-node/register and chai, support ts/js extensions
