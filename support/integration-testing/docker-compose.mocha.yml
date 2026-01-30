@@ -62,6 +62,7 @@ services:
   redboxportal:
     <<: *rbportal-service
     profiles: [portal]
+    user: "${UID:-1000}:${GID:-1000}"
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
