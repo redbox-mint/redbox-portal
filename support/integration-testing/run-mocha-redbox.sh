@@ -47,7 +47,27 @@ if [[ -d typescript/test/integration ]]; then
   fi
 fi
 
+# Run redbox-loader to generate shims before tests start
+# This is crucial because test files require services/models at top-level
+echo "Generating shims via redbox-loader..."
+node -e "
+  const redboxLoader = require('./redbox-loader');
+  redboxLoader.generateAllShims(process.cwd(), {
+    forceRegenerate: true,
+    verbose: true
+  }).catch(err => {
+    console.error('Shim generation failed:', err);
+    process.exit(1);
+  });
+"
+
 bootstrap_test=test/bootstrap.test.ts
+
+# Fallback to js bootstrap if ts is missing (e.g. broken symlink)
+if [[ ! -f "$bootstrap_test" ]] && [[ -f "test/bootstrap.test.js" ]]; then
+  echo "Warning: $bootstrap_test not found, using test/bootstrap.test.js"
+  bootstrap_test="test/bootstrap.test.js"
+fi
 
 test_args=()
 if [[ -n "${RBPORTAL_MOCHA_TEST_PATHS:-}" ]]; then
