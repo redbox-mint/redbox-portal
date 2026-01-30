@@ -499,7 +499,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const componentEntry = formFieldCompMapEntry;
     this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
-    const name = formFieldCompMapEntry?.compConfigJson?.name || formFieldCompMapEntry?.name || "(not set)";
+    const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
 
     const componentResult: DebugInfo = {
       name: name,

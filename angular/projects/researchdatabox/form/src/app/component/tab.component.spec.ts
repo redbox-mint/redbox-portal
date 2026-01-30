@@ -1,8 +1,12 @@
-import {FormConfigFrame, KeyValueStringNested, KeyValueStringProperty, TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame } from '@researchdatabox/sails-ng-common';
+import {
+  FormConfigFrame, KeyValueStringNested, KeyValueStringProperty,
+  makeLineagePaths, TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
+} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { TabComponent, TabSelectionErrorType } from './tab.component';
+import { TabComponent, TabContentComponent, TabSelectionErrorType } from './tab.component';
+
 
 let formConfig: FormConfigFrame;
 
@@ -119,6 +123,17 @@ describe('TabComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     let inputElements = compiled.querySelectorAll('input[type="text"]');
     expect(inputElements).toHaveSize(2);
+
+    // Ensure lineage paths are as expected.
+    const tab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
+    expect(tab.formFieldCompMapEntries.length).toBe(2);
+    expect(tab.formFieldCompMapEntries[0].lineagePaths).toEqual(makeLineagePaths());
+
+    const tabContent1 = tab.formFieldCompMapEntries[0].component as TabContentComponent;
+    expect(tabContent1.formFieldCompMapEntries).toEqual([]);
+
+    const tabContent2 = tab.formFieldCompMapEntries[1].component as TabContentComponent;
+    expect(tabContent2.formFieldCompMapEntries).toEqual([]);
   });
 
   // check if the tab component's css classes are applied correctly

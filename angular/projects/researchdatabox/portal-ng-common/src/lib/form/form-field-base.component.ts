@@ -113,7 +113,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType>;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentOrLayoutDefinition;
     this.expressions = this.formFieldCompMapEntry.compConfigJson?.expressions;
-    if(!_isUndefined(this.formFieldCompMapEntry.compConfigJson.name)) {
+    if(this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
     }
   }
@@ -358,7 +358,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   public formFieldConfigName(defaultName?: string){
-    return this.formFieldCompMapEntry?.compConfigJson?.name || this.formFieldCompMapEntry?.name || defaultName || '(not set)';
+    return this.utilityService.formFieldConfigName(this.formFieldCompMapEntry, defaultName);
   }
 }
 

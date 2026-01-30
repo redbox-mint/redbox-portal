@@ -124,11 +124,14 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // assert
 
-    // TODO: get .allValidationErrorsDisplay from the validation
-
+    // Ensure expected validation failures show as links.
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
     expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
+
+    // Ensure the expected failures have the expected lineage paths.
+    const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
+    expect(validationSummary.allValidationErrorsDisplay).toEqual([]);
   });
 });

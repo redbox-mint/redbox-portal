@@ -176,7 +176,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     // The component and layout names are set from the repeatable component name or a default name,
     // with localUniqueId appended to ensure uniqueness.
-    const baseName = this.formFieldConfigName('repeatable') || 'repeatable-element';
+    const baseName = this.formFieldConfigName('repeatable');
 
     if (elemEntry.compConfigJson) {
       elemEntry.compConfigJson.name = `${baseName}-${localUniqueId}`;
