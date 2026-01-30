@@ -148,7 +148,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         componentClass: TabContentComponent,
         compConfigJson: tab,
         lineagePaths: this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
-          angularComponents: [`${tab?.name}`],
+          angularComponents: [tab?.name],
           dataModel: [],
           formConfig: ['component', 'config', 'tabs', index],
         }),
@@ -278,8 +278,9 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       throw new Error(`${this.logName}: componentsDefinitionsContainer is not defined.`);
     }
     const formConfig = this.formComponentRef.formDefMap?.formConfig;
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
     const compFormConfig: FormConfigFrame = {
-      name: `form-config-generated-tab-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
+      name: `form-config-generated-tab-${formComponentName}`,
       componentDefinitions: this.tab?.component?.config?.componentDefinitions || [],
       defaultComponentConfig: formConfig?.defaultComponentConfig,
     };
@@ -287,7 +288,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [],
+        angularComponents: [formComponentName],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });

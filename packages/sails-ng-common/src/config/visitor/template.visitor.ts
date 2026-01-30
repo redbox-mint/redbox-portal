@@ -67,7 +67,7 @@ import {
 } from "../component/date-input.outline";
 import {FormExpressionsConfigFrame} from "../form-component.outline";
 import {ILogger} from "../../logger.interface";
-import {FormConfigPathHelper} from "./common.model";
+import {FormPathHelper} from "./common.model";
 
 
 /**
@@ -80,13 +80,13 @@ import {FormConfigPathHelper} from "./common.model";
 export class TemplateFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "TemplateFormConfigVisitor";
 
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formConfigPathHelper: FormPathHelper;
 
     private templates: TemplateCompileInput[];
 
     constructor(logger: ILogger) {
         super(logger);
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formConfigPathHelper = new FormPathHelper(logger, this);
         this.templates = [];
     }
 
@@ -108,7 +108,10 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
         this.extractExpressions(item.expressions);
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -131,7 +134,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
         const template = (item.config?.template ?? "").trim();
         if (template) {
             this.templates?.push({
-                key: [...(this.formConfigPathHelper.formConfigPath ?? []), "config", "template"],
+                key: [...(this.formConfigPathHelper.formPath.formConfig ?? []), "config", "template"],
                 value: template,
                 kind: "handlebars"
             });
@@ -175,7 +178,10 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -192,7 +198,10 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "tabs", index.toString()]}
+            );
         });
     }
 
@@ -209,7 +218,10 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -313,11 +325,12 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
                 }
                 if (value) {
                     this.templates?.push({
-                        key: [...(this.formConfigPathHelper.formConfigPath ?? []), 'expressions', index.toString(), 'config', prop],
+                        key: [...(this.formConfigPathHelper.formPath.formConfig ?? []), 'expressions', index.toString(), 'config', prop],
                         value: value,
                         kind: "jsonata"
                     });
                 }
             }
         });
-    }}
+    }
+}

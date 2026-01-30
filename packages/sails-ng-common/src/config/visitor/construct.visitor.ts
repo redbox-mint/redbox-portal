@@ -160,7 +160,8 @@ import {ILogger} from "../../logger.interface";
 import {FormModesConfig} from "../shared.outline";
 import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
 import {FormOverride} from "../form-override.model";
-import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
+import {FormPathHelper, PropertiesHelper} from "./common.model";
+import {LineagePath} from "../names/naming-helpers";
 
 
 /**
@@ -181,10 +182,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     private recordValues: Record<string, unknown> | null;
     private extractedDefaultValues: Record<string, unknown>;
 
-    private dataModelPath: string[];
+    private dataModelPath: LineagePath;
 
 
-    private mostRecentRepeatableElementTemplatePath: string[] | null;
+    private mostRecentRepeatableElementTemplatePath: LineagePath | null;
 
     private data: FormConfigFrame;
 
@@ -193,7 +194,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     private formConfig: FormConfigOutline;
 
     private formOverride: FormOverride;
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formConfigPathHelper: FormPathHelper;
     private sharedProps: PropertiesHelper;
 
     constructor(logger: ILogger) {
@@ -214,7 +215,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.formConfig = new FormConfig();
 
         this.formOverride = new FormOverride(this.logger);
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formConfigPathHelper = new FormPathHelper(logger, this);
         this.sharedProps = new PropertiesHelper();
     }
 
@@ -302,7 +303,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
-            this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                formComponent,
+                {formConfig: ["componentDefinitions", index.toString()]}
+            );
 
             // After the construction is done, apply any transforms
             const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
@@ -388,7 +392,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
 
-        const currentFormConfigPath = this.formConfigPathHelper.formConfigPath;
+        const currentFormConfigPath = this.formConfigPathHelper.formPath.formConfig;
 
         if (!isTypeFormComponentDefinition(frame?.elementTemplate)) {
             throw new Error(`Invalid elementTemplate for repeatable at '${currentFormConfigPath}'.`);
@@ -416,7 +420,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const formComponent = this.constructFormComponent(frame.elementTemplate);
 
         // Continue the construction
-        this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "elementTemplate"]);
+        this.formConfigPathHelper.acceptFormConfigPath(
+            formComponent,
+            {formConfig: ["config", "elementTemplate"]}
+        );
 
         // After the construction is done, apply any transforms
         const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
@@ -501,7 +508,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
-            this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                formComponent,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
 
             // After the construction is done, apply any transforms
             const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
@@ -561,7 +571,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
                 const formComponent = this.constructFormComponent(componentDefinition)
 
                 // Continue the construction
-                this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "tabs", index.toString()]);
+                this.formConfigPathHelper.acceptFormConfigPath(
+                    formComponent,
+                    {formConfig: ["config", "tabs", index.toString()]}
+                );
 
                 // After the construction is done, apply any transforms
                 // TODO: Use type assert for now.
@@ -622,7 +635,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
-            this.formConfigPathHelper.acceptFormConfigPath(formComponent, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                formComponent,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
 
             // After the construction is done, apply any transforms
             const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
@@ -892,18 +908,18 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     protected constructFormComponent(item: FormComponentDefinitionFrame) {
         const constructed = this.sharedProps.sharedConstructFormComponent(item);
         if (!constructed) {
-            throw new Error(`Could not find class for form component class name '${item?.component?.class}' at path '${this.formConfigPathHelper.formConfigPath}'.`)
+            throw new Error(`Could not find class for form component class name '${item?.component?.class}' at path '${this.formConfigPathHelper.formPath}'.`)
         }
         return constructed;
     }
 
     protected populateFormComponent(item: FormComponentDefinitionOutline, requireModel?: boolean) {
         const currentData = this.getData();
-        if (!isTypeFormComponentDefinition(currentData)) { 
-            throw new Error(`Invalid FormComponentDefinition at '${this.formConfigPathHelper.formConfigPath}': ${JSON.stringify(currentData)}`);
+        if (!isTypeFormComponentDefinition(currentData)) {
+            throw new Error(`Invalid FormComponentDefinition at '${this.formConfigPathHelper.formPath}': ${JSON.stringify(currentData)}`);
         }
         this.sharedProps.sharedPopulateFormComponent(item, currentData);
-        
+
         // NOTE: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
         // Set the expressions
         item.expressions = [];
@@ -1047,13 +1063,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      */
     protected isMostRecentRepeatableElementTemplate(): boolean {
         const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const array2 = this.formConfigPathHelper.formConfigPath;
+        const array2 = this.formConfigPathHelper.formPath.formConfig;
         if (!array1 || array1.length === 0 || !array2 || array2.length === 0) {
             return false;
         }
         // Either array can have 'component', 'model', 'layout' at the end and
         // still match if the other array is one item shorter.
-        const allowedExtras = ["component", "model", "layout"];
+        const allowedExtras: LineagePath = ["component", "model", "layout"];
         if (array1.length === array2.length) {
             return array1.every((value, index) => value === array2[index]);
         } else if (array1.length === array2.length - 1) {
@@ -1073,7 +1089,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      */
     protected isRepeatableElementTemplateDescendant(): boolean {
         const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const array2 = this.formConfigPathHelper.formConfigPath;
+        const array2 = this.formConfigPathHelper.formPath.formConfig;
         if (!array1 || array1.length === 0 || !array2 || array2.length === 0 || array2.length + 2 <= array1.length) {
             return false;
         }
@@ -1160,6 +1176,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected getData() {
-        return this.sharedProps.getDataPath(this.data, this.formConfigPathHelper.formConfigPath);
+        return this.sharedProps.getDataPath(this.data, this.formConfigPathHelper.formPath.formConfig);
     }
 }

@@ -70,7 +70,8 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "../../logger.interface";
 import {CanVisit} from "./base.outline";
-import {FormConfigPathHelper} from "./common.model";
+import {FormPathHelper} from "./common.model";
+import {LineagePath} from "../names/naming-helpers";
 
 
 /**
@@ -81,11 +82,11 @@ import {FormConfigPathHelper} from "./common.model";
 export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "JsonTypeDefSchemaFormConfigVisitor";
 
-    private jsonTypeDefPath: string[];
+    private jsonTypeDefPath: LineagePath;
 
     private jsonTypeDef: Record<string, unknown>;
 
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formConfigPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
@@ -93,7 +94,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
         this.jsonTypeDef = {};
 
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formConfigPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -196,7 +197,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig:["config", "tabs", index.toString()]}
+            );
         });
     }
 
@@ -212,7 +216,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig:["config", "componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -342,13 +349,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
-    protected acceptJsonTypeDefPath(item: CanVisit, formConfigPathKeys: string[], jsonTypeDefPathKeys: string[]): void {
+    protected acceptJsonTypeDefPath(item: CanVisit, formConfigPathKeys: LineagePath, jsonTypeDefPathKeys: LineagePath): void {
         const originalPath = [...this.jsonTypeDefPath];
         try {
             this.jsonTypeDefPath = [...originalPath, ...jsonTypeDefPathKeys];
             // TODO: is this needed?
             // _set(this.result, this.resultPath, {});
-            this.formConfigPathHelper.acceptFormConfigPath(item, formConfigPathKeys);
+            this.formConfigPathHelper.acceptFormConfigPath(item, {formConfig: formConfigPathKeys});
         } catch (error) {
             // rethrow error - the finally block will ensure the currentPath is correct
             throw error;

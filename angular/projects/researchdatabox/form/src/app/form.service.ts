@@ -359,15 +359,20 @@ export class FormService extends HttpClientService {
     const groupWithFormControl: any = {};
     for (let compEntry of compMap.components) {
       const fieldName = compEntry.compConfigJson.name ?? "";
+
       if (_isEmpty(fieldName)) {
         this.loggerService.info(`Field name is empty for component. If you need this component to be part of the form or participate in events, please provide a name.`, compEntry);
         continue;
       }
+
+      // Populate the map of name to compEntry.
       if (groupMap[fieldName]) {
         throw new Error(`${this.logName}: Field name '${fieldName}' is already used. Names must be unique, please change the names to be unique. ` +
           `The existing grouped component names are: ${Object.keys(groupMap).join(',')}`);
       }
       groupMap[fieldName] = compEntry;
+
+      // Populate the map of name to form control.
       if (compEntry.model) {
         const model = compEntry.model;
         const formControl = model.formControl;
@@ -375,9 +380,11 @@ export class FormService extends HttpClientService {
           groupWithFormControl[fieldName] = formControl;
         }
       } else {
-        // Some components may not have a model themselves, but can 'contain' other components
+        // Some components may not have a model themselves, but can 'contain' other components.
         if (compEntry.formControlMap && !_isEmpty(compEntry.formControlMap)) {
-          // traverse the model map and add the models to the group map
+          // Traverse the model map and add the models to the group map.
+          // The form controls added here are child form controls.
+          // We made the design choice to add them to the parent level to make them available.
           for (const [name, formControl] of Object.entries(compEntry.formControlMap)) {
             if (formControl && name) {
               groupWithFormControl[name] = formControl;
@@ -782,7 +789,7 @@ export class FormService extends HttpClientService {
 }
 
 /**
- *  This client-side, Angular specific data model of the downloaded form configuration.
+ *  This is a client-side, Angular specific data model of the downloaded form configuration.
  *  This includes Angular's FormControl instances for binding UI components to the form.
  */
 export class FormComponentsMap {
@@ -797,11 +804,11 @@ export class FormComponentsMap {
   /**
    * Map of item name to form field component map entry.
    */
-  completeGroupMap: { [key: string]: FormFieldCompMapEntry } | undefined;
+  completeGroupMap?: { [key: string]: FormFieldCompMapEntry };
   /**
    * Mapping of name to angular FormControl. Used to create angular form.
    */
-  withFormControl: { [key: string]: FormControl } | undefined;
+  withFormControl?: { [key: string]: FormControl };
 
   constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame) {
     this.components = components;

@@ -1,4 +1,4 @@
-import {get as _get, cloneDeep as _cloneDeep, isPlainObject as _isPlainObject, map as _map} from 'lodash';
+import {get as _get, cloneDeep as _cloneDeep, map as _map} from 'lodash';
 import {FormConfigOutline} from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
@@ -43,7 +43,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
+import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -71,27 +71,10 @@ import {FieldComponentDefinitionOutline} from "../field-component.outline";
 import {FieldModelDefinitionOutline} from "../field-model.outline";
 import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
 import {ILogger} from "../../logger.interface";
-/**
- * The details needed to evaluate the constraint config.
- */
-export type NameConstraints = {
-    /**
-     * The form component name.
-     */
-    name: string,
-    /**
-     * The form component constraints.
-     */
-    constraints: FormConstraintConfig,
-    /**
-     * Whether the form component has a model definition or not.
-     */
-    model: boolean,
-};
 import {FormConfig} from "../form-config.model";
 import {FormConfigVisitor} from "./base.model";
 import {FormModesConfig} from "../shared.outline";
-import {FormConfigPathHelper} from "./common.model";
+import {FormPathHelper} from "./common.model";
 import {isTypeWithComponentDefinitions} from "../form-types.outline";
 import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
 import {guessType} from "../helpers";
@@ -122,7 +105,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     private constraintPath: FormConstraintConfig[];
 
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formConfigPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
@@ -133,7 +116,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         this.constraintPath = [];
 
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formConfigPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -170,7 +153,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const that = this;
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            that.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["componentDefinitions", index.toString()]}
+            );
         });
         item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
 
@@ -213,7 +199,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         this.processFieldComponentDefinition(item);
 
         if (item.config?.elementTemplate) {
-            this.formConfigPathHelper.acceptFormConfigPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                item.config?.elementTemplate,
+                {formConfig: ["config", "elementTemplate"]}
+            );
         }
     }
 
@@ -262,7 +251,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const that = this;
         (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            that.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
         });
         if (item.config) {
             item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
@@ -291,7 +283,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig:["config", "tabs", index.toString()]}
+            );
         });
     }
 
@@ -317,7 +312,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig:["config", "componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -568,10 +566,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
         const elementTemplateFormConfig = new FormConfig();
         elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
-        const elementTemplateSchema = schemaVisitor.start({ form: elementTemplateFormConfig });
+        const elementTemplateSchema = schemaVisitor.start({form: elementTemplateFormConfig});
 
         // Remove any data model items that are not present in the schema.
-        const toProcess = [{ path: [], schema: elementTemplateSchema }];
+        const toProcess = [{path: [], schema: elementTemplateSchema}];
 
         const itemValue = item.model?.config?.value;
         (itemValue ?? []).forEach(value => this.updateRepeatableDataModel(toProcess, value));
@@ -621,7 +619,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                             if (!schemaNames.includes(name)) {
                                 delete currentValue[name];
                             } else {
-                                processing.push({ path: [...path, name], schema: schemaCurrent[name] as Record<string, unknown> })
+                                processing.push({
+                                    path: [...path, name],
+                                    schema: schemaCurrent[name] as Record<string, unknown>
+                                })
                             }
                         });
                         break;
@@ -630,7 +631,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                             throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
                         }
                         // TODO: determine how elements will work
-                        throw new Error(`Not implemented updateRepeatableDataModel elements ${JSON.stringify({ schemaKey, schemaValue, currentValue })}`);
+                        throw new Error(`Not implemented updateRepeatableDataModel elements ${JSON.stringify({
+                            schemaKey,
+                            schemaValue,
+                            currentValue
+                        })}`);
                     // break;
                     case "type":
                         // TODO: do the json type def type names match the guessType names?

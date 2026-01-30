@@ -5,7 +5,7 @@ import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldModelConfigFrame} from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig } from "../form-component.model";
+import {FormConstraintAuthorizationConfig, FormConstraintConfig} from "../form-component.model";
 import {
     ComponentClassDefMapType,
     FieldComponentDefinitionMap,
@@ -16,6 +16,13 @@ import {
     LayoutClassDefMapType,
     ModelClassDefMapType,
 } from "../dictionary.model";
+import {
+    buildLineagePaths,
+    LineagePath,
+    LineagePaths,
+    LineagePathsPartial,
+    makeLineagePaths
+} from "../names/naming-helpers";
 
 export class PropertiesHelper {
     private fieldComponentMap: ComponentClassDefMapType;
@@ -30,9 +37,9 @@ export class PropertiesHelper {
         this.formComponentMap = FormComponentDefinitionMap;
     }
 
-    public getDataPath(data?: unknown, path?: string[]) {
+    public getDataPath(data?: unknown, path?: LineagePath) {
         // TODO: fix 'data' typing
-        const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
+        const result = path && path.length > 0 ? _get(data, path.map(i => i.toString())) : data;
         return result;
     }
 
@@ -209,45 +216,46 @@ export class PropertiesHelper {
     }
 }
 
-export class FormConfigPathHelper {
-    protected logName = "FormConfigPathHelper";
+export class FormPathHelper {
+    protected logName = "FormPathHelper";
 
     protected logger: ILogger;
     private visitor: FormConfigVisitorOutline;
 
-    private _formConfigPath: string[];
+    private _formPath: LineagePaths;
 
     constructor(logger: ILogger, visitor: FormConfigVisitorOutline) {
         this.logger = logger;
         this.visitor = visitor;
 
-        this._formConfigPath = [];
+        this._formPath = buildLineagePaths();
     }
 
-    get formConfigPath(): string[] {
-        return this._formConfigPath;
+    get formPath(): LineagePaths {
+        return this._formPath;
     }
 
     public reset() {
-        this._formConfigPath = [];
+        this._formPath = buildLineagePaths();
     }
 
     /**
      * Call accept on the provided item and set the current path with the given suffix.
      * Set the current path to the previous value after the accept method is done.
      * @param item The item to visit.
-     * @param more The path to add to the end of the current path.
+     * @param more The lineage paths to add to the end of the current paths.
      */
-    public acceptFormConfigPath(item: CanVisit, more: string[]): void {
-        const original = [...(this._formConfigPath ?? [])];
+    public acceptFormConfigPath(item: CanVisit, more?: LineagePathsPartial): void {
+        // Copy the original lineage paths so they can be restored.
+        const original = buildLineagePaths(this._formPath);
         try {
-            this._formConfigPath = [...original, ...(more ?? [])];
+            this._formPath = buildLineagePaths(original, more);
             item.accept(this.visitor);
         } catch (error) {
             // rethrow error - the finally block will ensure the formConfigPath is correct
             throw error;
         } finally {
-            this._formConfigPath = original;
+            this._formPath = original;
         }
     }
 
@@ -256,12 +264,12 @@ export class FormConfigPathHelper {
      * @param item The form component definition outline.
      */
     public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptFormConfigPath(item.component, ['component']);
+        this.acceptFormConfigPath(item.component, makeLineagePaths({formConfig: ['component']}));
         if (item.model) {
-            this.acceptFormConfigPath(item.model, ['model']);
+            this.acceptFormConfigPath(item.model, makeLineagePaths({formConfig: ['model']}));
         }
         if (item.layout) {
-            this.acceptFormConfigPath(item.layout, ['layout']);
+            this.acceptFormConfigPath(item.layout, makeLineagePaths({formConfig: ['layout']}));
         }
     }
 }

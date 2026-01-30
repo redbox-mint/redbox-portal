@@ -70,7 +70,7 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {ILogger} from "../../logger.interface";
 import {LineagePath} from "../names/naming-helpers";
 import {FormConfig} from "../form-config.model";
-import {FormConfigPathHelper} from "./common.model";
+import {FormPathHelper} from "./common.model";
 
 /**
  * Visit each form config component and extract the value for each field.
@@ -88,7 +88,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
 
     private formConfig: FormConfigOutline;
 
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formConfigPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
@@ -98,7 +98,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
 
         this.formConfig = new FormConfig();
 
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formConfigPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -123,7 +123,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -185,7 +188,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
         });
     }
 
@@ -202,7 +208,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "tabs", index.toString()]}
+            );
         });
     }
 
@@ -218,7 +227,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(
+                componentDefinition,
+                {formConfig: ["config", "componentDefinitions", index.toString()]}
+            );
         });
     }
 

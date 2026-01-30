@@ -70,7 +70,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.untilViewIsInitialised();
     // Prepare the element template
     const elementTemplate = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate;
-    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
     if (!elementTemplate) {
       throw new Error(`${this.logName}: elementTemplate is not defined in the component definition for '${formComponentName}'.`);
     }
@@ -86,7 +86,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [],
+        angularComponents: [formComponentName],
         dataModel: [],
         formConfig: ['component', 'config', 'elementTemplate'],
       }
@@ -145,11 +145,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected rebuildLineagePaths() {
     for (let index = 0; index < this.compDefMapEntries.length; index++) {
+      const indexStr = index.toString();
       const lineagePath = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [`${index}`],
-        dataModel: [],
+        angularComponents: [indexStr],
+        dataModel: [indexStr],
         formConfig: [],
       });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
