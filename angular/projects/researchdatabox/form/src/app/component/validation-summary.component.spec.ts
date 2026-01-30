@@ -39,6 +39,7 @@ describe('ValidationSummaryFieldComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
+    // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
     const el = nativeEl.querySelector('div.alert-info')!;
     expect(el.textContent).toContain('The form is valid.');
@@ -61,7 +62,7 @@ describe('ValidationSummaryFieldComponent', () => {
             config: {
               value: '',
               validators: [
-                { class: 'required' },
+                {class: 'required'},
               ]
             }
           },
@@ -78,6 +79,52 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+
+    // assert
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    console.log(nativeEl);
+    const el = nativeEl.querySelector('div.alert-danger');
+    expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
+  });
+  it('should have the expected lineage paths', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                {class: 'required'},
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: {class: "ValidationSummaryComponent"}
+        },
+      ]
+    };
+
+    // act
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+
+    // assert
+
+    // TODO: get .allValidationErrorsDisplay from the validation
 
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);

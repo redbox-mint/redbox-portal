@@ -80,7 +80,12 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {
+                    formConfig: ["componentDefinitions", "0"],
+                    dataModel: ["text_7"],
+                    angularComponents: ["text_7"],
+                    angularComponentsJsonPointer: "/text_7",
+                },
             }
         ];
 
@@ -168,7 +173,12 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {
+                    formConfig: ["componentDefinitions", "0"],
+                    dataModel: ["text_7"],
+                    angularComponents: ["text_7"],
+                    angularComponentsJsonPointer: "/text_7",
+                },
             }
         ];
 
@@ -239,7 +249,12 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {
+                    formConfig: ["componentDefinitions", "0"],
+                    dataModel: ["text_7"],
+                    angularComponents: ["text_7"],
+                    angularComponentsJsonPointer: "/text_7",
+                },
             }
         ];
 
@@ -268,7 +283,23 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_1_event",
                 "message": null,
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {
+                    "formConfig": [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "8",
+                    ],
+                    "dataModel": ["text_1_event"],
+                    "angularComponents": ["text_1_event"],
+                    "angularComponentsJsonPointer": "/text_1_event",
+                },
             },
             {
                 "errors": [
@@ -280,7 +311,23 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_2_event",
                 "message": null,
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {
+                    formConfig: [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "11",
+                    ],
+                    dataModel: ["text_2_event"],
+                    angularComponents: ["text_2_event"],
+                    angularComponentsJsonPointer: "/text_2_event",
+                },
             },
             {
                 "errors": [
@@ -292,7 +339,23 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_3_event",
                 "message": null,
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {
+                    formConfig: [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "13",
+                    ],
+                    dataModel: ["text_3_event"],
+                    angularComponents: ["text_3_event"],
+                    angularComponentsJsonPointer: "/text_3_event",
+                },
             },
             {
                 "errors": [
@@ -304,9 +367,29 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_5",
                 "message": "TextField with default wrapper defined",
-                lineagePaths: {formConfig: [],
-                    dataModel: ["group_1_component", "group_2_component"],
-                    angularComponents: ["group_1_component", "group_2_component"]
+                lineagePaths: {
+                    formConfig: [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "1",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "2",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "0",
+                    ],
+                    dataModel: ["group_1_component", "group_2_component", "text_5"],
+                    angularComponents: ["group_1_component", "group_2_component", "text_5"]
                 },
             },
             {
@@ -324,7 +407,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "default-1.0-draft",
                 "message": null,
-                lineagePaths: {formConfig: [], dataModel: [], angularComponents: []},
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: [], angularComponentsJsonPointer: ""},
             },
         ];
 
