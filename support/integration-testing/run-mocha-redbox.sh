@@ -11,9 +11,6 @@ rm /opt/redbox-portal/.tmp/junit/backend-mocha/backend-mocha.xml || true
 
 # Start redbox with code coverage
 node_cmd=(node)
-if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then
-  node_cmd+=(--inspect=0.0.0.0:9876)
-fi
 
 export TS_NODE_PROJECT=/opt/redbox-portal/tsconfig.json
 export TS_NODE_TRANSPILE_ONLY=true
@@ -33,6 +30,10 @@ chmod 777 "$NYC_OUTPUT" || true
 # If the project already has a `test/integration` folder (e.g. our mocha config),
 # create per-file symlinks for `.test.ts` files so they are discoverable by Mocha.
 if [[ -d typescript/test/integration ]]; then
+  if [[ -e test/integration ]] && [[ ! -d test/integration ]]; then
+    echo "Error: test/integration exists but is not a directory. Remove or rename it to proceed." >&2
+    exit 1
+  fi
   if [[ ! -e test/integration ]]; then
     ln -s "${PWD}/typescript/test/integration" test/integration
   else
@@ -71,7 +72,7 @@ fi
 
 test_args=()
 if [[ -n "${RBPORTAL_MOCHA_TEST_PATHS:-}" ]]; then
-  read -r -a env_test_args <<< "${RBPORTAL_MOCHA_TEST_PATHS}"
+  mapfile -t env_test_args <<< "${RBPORTAL_MOCHA_TEST_PATHS}"
   test_args+=("${env_test_args[@]}")
 fi
 
@@ -91,6 +92,9 @@ fi
 
 mocha_cmd=(node_modules/.bin/mocha)
 nyc_cmd=(node_modules/.bin/nyc)
+if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then
+  nyc_cmd+=(--inspect="${RBPORTAL_REMOTE_DEBUG}")
+fi
 
 final_args=("${node_cmd[@]}" "${mocha_cmd[@]}")
 
