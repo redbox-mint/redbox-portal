@@ -90,8 +90,6 @@ import {buildLineagePaths} from "../names/naming-helpers";
  * Specify which validators are run by providing enabledValidationGroups.
  */
 export class ValidatorFormConfigVisitor extends FormConfigVisitor {
-    private resultPath: string[];
-
     private validatorSupport: ValidatorsSupport;
 
     private form: FormConfigOutline;
@@ -100,12 +98,10 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     private validationErrors: FormValidatorSummaryErrors[];
 
-    private formConfigPathHelper: FormPathHelper;
+    private formPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-
-        this.resultPath = [];
 
         this.validatorSupport = new ValidatorsSupport();
 
@@ -115,7 +111,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
         this.validationErrors = [];
 
-        this.formConfigPathHelper = new FormPathHelper(logger, this);
+        this.formPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -131,8 +127,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
               validatorDefinitions?: FormValidatorDefinition[];
           }
     ): FormValidatorSummaryErrors[] {
-        this.formConfigPathHelper.reset();
-        this.resultPath = [];
+        this.formPathHelper.reset();
 
         this.form = options.form;
 
@@ -152,9 +147,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(
+            this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig: ["componentDefinitions", index.toString()]}
+                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
             );
         });
 
@@ -175,7 +170,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Content */
@@ -184,7 +179,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Repeatable  */
@@ -199,7 +194,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Validation Summary */
@@ -208,7 +203,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Group */
@@ -216,9 +211,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(
+            this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig: ["config", "componentDefinitions", index.toString()]}
+                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
             );
         });
     }
@@ -227,7 +222,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Tab  */
@@ -235,9 +230,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(
+            this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig: ["config", "tabs", index.toString()]}
+                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
             );
         });
     }
@@ -246,7 +241,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /*  Tab Content */
@@ -254,9 +249,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(
+            this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig: ["config", "componentDefinitions", index.toString()]}
+                this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index),
             );
         });
     }
@@ -265,7 +260,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Save Button  */
@@ -274,7 +269,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Text Area */
@@ -286,7 +281,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Default Layout  */
@@ -303,7 +298,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Dropdown Input */
@@ -315,7 +310,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
@@ -327,7 +322,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Date Input */
@@ -339,7 +334,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Shared */
@@ -364,23 +359,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         return result;
     }
 
-    protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
-        const itemResultPath = [...this.resultPath];
-        const itemName = item?.name ?? "";
-
-        if (item.model && itemName) {
-            this.resultPath = [...itemResultPath, itemName];
-        }
-
-        this.validationErrors.push(...this.validateFormComponent(
+    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+        const validationErrors = this.validateFormComponent(
             item?.name,
             item?.model?.config?.value,
             item?.model?.config?.validators,
             item?.layout?.config?.label,
-        ));
-
-        this.formConfigPathHelper.acceptFormComponentDefinition(item);
-        this.resultPath = [...itemResultPath];
+        );
+        this.validationErrors.push(...validationErrors);
+        this.formPathHelper.acceptFormComponentDefinition(item);
     }
 
     protected validateFormComponent(itemName: string, value: any, validators?: FormValidatorConfig[], message?: string): FormValidatorSummaryErrors[] {
@@ -396,12 +383,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
                 id: itemName,
                 message: message || null,
                 errors: [],
-                lineagePaths: buildLineagePaths({
-                    formConfig: [...this.formConfigPathHelper.formPath.formConfig],
-                    dataModel: [...this.resultPath],
-                    // TODO: how to build the angular component path?
-                    angularComponents: []
-                })
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
             }
             for (const formValidatorFn of formValidatorFns) {
                 const funcResult = formValidatorFn(recordFormControl);

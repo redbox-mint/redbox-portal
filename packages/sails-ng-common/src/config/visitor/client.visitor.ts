@@ -105,7 +105,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     private constraintPath: FormConstraintConfig[];
 
-    private formConfigPathHelper: FormPathHelper;
+    private formPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
@@ -116,7 +116,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         this.constraintPath = [];
 
-        this.formConfigPathHelper = new FormPathHelper(logger, this);
+        this.formPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -140,7 +140,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         this.userRoles = options.userRoles ?? [];
 
         this.constraintPath = [];
-        this.formConfigPathHelper.reset();
+        this.formPathHelper.reset();
 
         this.clientFormConfig.accept(this);
 
@@ -153,9 +153,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const that = this;
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.formConfigPathHelper.acceptFormConfigPath(
+            // Visit children
+            that.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig: ["componentDefinitions", index.toString()]}
+            that.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
             );
         });
         item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
@@ -198,10 +199,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
         this.processFieldComponentDefinition(item);
 
-        if (item.config?.elementTemplate) {
-            this.formConfigPathHelper.acceptFormConfigPath(
-                item.config?.elementTemplate,
-                {formConfig: ["config", "elementTemplate"]}
+        const componentDefinition = item?.config?.elementTemplate;
+        if (componentDefinition) {
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition),
             );
         }
     }
@@ -251,9 +253,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const that = this;
         (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             items.push(componentDefinition);
-            that.formConfigPathHelper.acceptFormConfigPath(
+            that.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig: ["config", "componentDefinitions", index.toString()]}
+                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
             );
         });
         if (item.config) {
@@ -283,9 +285,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(
+            this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig:["config", "tabs", index.toString()]}
+                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
             );
         });
     }
@@ -312,9 +314,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(
+            this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                {formConfig:["config", "componentDefinitions", index.toString()]}
+                this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index),
             );
         });
     }
@@ -526,7 +528,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             const allowedByUserRoles = this.isAllowedByUserRoles();
             const allowedByFormMode = this.isAllowedByFormMode();
             if (allowedByUserRoles && allowedByFormMode) {
-                this.formConfigPathHelper.acceptFormComponentDefinition(item);
+                this.formPathHelper.acceptFormComponentDefinition(item);
             } else {
                 this.removePropsAll(item)
             }

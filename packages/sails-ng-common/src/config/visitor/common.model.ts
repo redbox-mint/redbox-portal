@@ -23,6 +23,7 @@ import {
     LineagePathsPartial,
     makeLineagePaths
 } from "../names/naming-helpers";
+import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
 
 export class PropertiesHelper {
     private fieldComponentMap: ComponentClassDefMapType;
@@ -245,18 +246,35 @@ export class FormPathHelper {
      * @param item The item to visit.
      * @param more The lineage paths to add to the end of the current paths.
      */
-    public acceptFormConfigPath(item: CanVisit, more?: LineagePathsPartial): void {
+    public acceptFormPath(item: CanVisit, more?: LineagePathsPartial): void {
         // Copy the original lineage paths so they can be restored.
         const original = buildLineagePaths(this._formPath);
         try {
             this._formPath = buildLineagePaths(original, more);
             item.accept(this.visitor);
         } catch (error) {
-            // rethrow error - the finally block will ensure the formConfigPath is correct
+            // Rethrow error - the finally block will ensure the original is restored.
             throw error;
         } finally {
             this._formPath = original;
         }
+    }
+
+    public makeLineagePaths(item: FormComponentDefinitionOutline, formConfig: LineagePath): LineagePaths {
+        const itemName = item?.name ?? "";
+
+        // NOTE: The repeatable elementTemplate should not be part of the data model path.
+        // This is done by also checking the name - it has a model, but it must have a 'falsy' name.
+
+        // TODO: does this need to cater for components that have no model but need the model data, like content component?
+
+        const addDataModelPath = itemName && item.model !== undefined && item.model !== null;
+        const dataModel = addDataModelPath ? [itemName] : [];
+
+        // TODO: build angular component path
+        const angularComponents: LineagePath = [];
+
+        return makeLineagePaths({formConfig: formConfig, dataModel, angularComponents});
     }
 
     /**
@@ -264,12 +282,52 @@ export class FormPathHelper {
      * @param item The form component definition outline.
      */
     public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptFormConfigPath(item.component, makeLineagePaths({formConfig: ['component']}));
+        this.acceptFormPath(item.component, this.makeLineagePaths(item, ['component']));
         if (item.model) {
-            this.acceptFormConfigPath(item.model, makeLineagePaths({formConfig: ['model']}));
+            this.acceptFormPath(item.model, this.makeLineagePaths(item,  ['model']));
         }
         if (item.layout) {
-            this.acceptFormConfigPath(item.layout, makeLineagePaths({formConfig: ['layout']}));
+            this.acceptFormPath(item.layout, this.makeLineagePaths(item,  ['layout']));
         }
+    }
+
+    public lineagePathsForFormConfigComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
+        return {
+            formConfig: ["componentDefinitions", index.toString()],
+            dataModel: [],
+            angularComponents: [],
+        }
+    }
+
+    public lineagePathsForGroupFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            dataModel: [],
+            angularComponents: [],
+        };
+    }
+
+    public lineagePathsForTabFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
+        return {
+            formConfig: ["config", "tabs", index.toString()],
+            dataModel: [],
+            angularComponents: [],
+        };
+    }
+
+    public lineagePathsForTabContentFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            dataModel: [],
+            angularComponents: [],
+        }
+    }
+
+    lineagePathsForRepeatableFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines): LineagePaths {
+        return {
+            formConfig: ["config", "elementTemplate"],
+            dataModel: [],
+            angularComponents: [],
+        };
     }
 }
