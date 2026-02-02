@@ -97,17 +97,17 @@ Notes:
 
 ## 3. Services Layer (Business Logic)
 - **Service responsibilities**:
-    - **`VocabularyService`**: CRUD for vocabularies and entries. Handling hierarchy (tree retrieval), normalization, validation (same-vocab parent, cycle detection), and delete cascade for entries.
+    - **`VocabularyManagementService`**: CRUD for vocabularies and entries. Handling hierarchy (tree retrieval), normalization, validation (same-vocab parent, cycle detection), and delete cascade for entries.
     - **`RvaImportService`**: Fetch vocabularies from RVA, map to local models, create/update (idempotent sync).
 - **Public methods**:
-    - `VocabularyService.create(data)`, `update(id, data)`, `delete(id)`, `getTree(vocabId)`.
-    - `VocabularyService.normalizeEntry(entry)` (lowercases `label/value` for uniqueness checks).
-    - `VocabularyService.validateParent(entry)` (same vocab, no cycles).
+    - `VocabularyManagementService.create(data)`, `update(id, data)`, `delete(id)`, `getTree(vocabId)`.
+    - `VocabularyManagementService.normalizeEntry(entry)` (lowercases `label/value` for uniqueness checks).
+    - `VocabularyManagementService.validateParent(entry)` (same vocab, no cycles).
     - `RvaImportService.searchRva(query)`, `importRvaVocabulary(rvaId, versionId)`, `syncRvaVocabulary(rvaId, versionId)`.
 - **Dependencies**: 
-    - `RvaImportService` depends on `rva-registry` client and `VocabularyService`.
+    - `RvaImportService` depends on `rva-registry` client and `VocabularyManagementService`.
 - **File locations**: 
-    - `packages/redbox-core-types/src/services/VocabularyService.ts`
+    - `packages/redbox-core-types/src/services/VocabularyManagementService.ts`
     - `packages/redbox-core-types/src/services/RvaImportService.ts`
 - **Service conventions**: Extend `Services.Core.Service`, use `_exportedMethods`, `init()`, RxJS, model globals.
 
@@ -198,7 +198,7 @@ Notes:
         "message": "Duplicate label/value within vocabulary (case-insensitive)."
       }
       ```
-- **File locations**: `packages/redbox-core-types/src/controllers/webservice/VocabularyController.ts`
+- **File locations**: `packages/redbox-core-types/src/controllers/webservice/VocabularyManagementController.ts`
 - **Controller conventions**: Extend `Controllers.Core.Controller`.
 
 ## 5. Ajax Controllers (Controllers)
@@ -213,7 +213,7 @@ Notes:
         - `POST /admin/vocabulary/import` (trigger RVA import)
         - `POST /admin/vocabulary/:id/sync` (trigger RVA update/sync for an imported vocab)
 - **File locations**: 
-    - `packages/redbox-core-types/src/controllers/VocabularyController.ts`
+    - `packages/redbox-core-types/src/controllers/VocabularyManagementController.ts`
 - **Conventions**: Render the container view for the Angular app.
 
 ## 6. Angular App(s)
@@ -228,6 +228,8 @@ Notes:
 - **Data flow**: Uses `HttpClientService` (or new `VocabularyApiService`) to talk to `/api/vocabulary`.
 - **File locations**: `packages/redbox-portal/src/app/admin-vocabulary/`
 
+[View mockup of the app](https://htmlpreview.github.io/?https://github.com/redbox-mint/redbox-portal/blob/feature/vocabulary-management/support/specs/vocabulary-management/wireframe.html)
+
 ## 7. Additional Views
 - **View templates**: `packages/redbox-portal/views/admin/vocabulary.ejs`
 - **Wiring**: `VocabularyAjaxController` returns this view.
@@ -237,7 +239,7 @@ Notes:
 - **File locations**: `packages/redbox-core-types/src/config/brandingConfigurationDefaults.config.ts`.
 
 # Consistency Analysis
-- **Flow**: User clicks Admin > Vocabularies -> `VocabularyController` (Ajax) -> renders `admin/vocabulary.ejs` -> loads `admin-vocabulary` Angular app -> App fetches list from `VocabularyController` (REST) -> Service loads from DB.
+- **Flow**: User clicks Admin > Vocabularies -> `VocabularyManagementController` (Ajax) -> renders `admin/vocabulary.ejs` -> loads `admin-vocabulary` Angular app -> App fetches list from `VocabularyManagementController` (REST) -> Service loads from DB.
 - **Checks**: 
     - RVA Client is ready (`rva-registry` package).
     - Models need to support arbitrary hierarchy -> `parent` field is sufficient, plus cycle checks in service.
