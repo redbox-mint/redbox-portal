@@ -72,8 +72,8 @@ fi
 final_args=("${node_cmd[@]}" "${mocha_cmd[@]}")
 
 mocha_config_args=()
-if [[ -f test/integration/.mocharc.ts ]]; then
-  mocha_config_args+=(--config test/integration/.mocharc.ts)
+if [[ -f test/integration/.mocharc.js ]]; then
+  mocha_config_args+=(--config test/integration/.mocharc.js)
 else
   mocha_config_args+=(
     --require ts-node/register
