@@ -7,6 +7,7 @@ module.exports = {
     slow: 2000,
     timeout: "30s",
     ui: "bdd",
+    exit: true,
     global: ["sails", "luxon", "moment", "_"],
 };
 
