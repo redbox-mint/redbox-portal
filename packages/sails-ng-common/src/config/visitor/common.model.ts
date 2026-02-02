@@ -1,4 +1,3 @@
-import {get as _get} from "lodash";
 import {ILogger} from "../../logger.interface";
 import {FieldLayoutConfigFrame} from "../field-layout.outline";
 import {FieldComponentConfigFrame} from "../field-component.outline";
@@ -21,9 +20,8 @@ import {
     LineagePath,
     LineagePaths,
     LineagePathsPartial,
-    makeLineagePaths
 } from "../names/naming-helpers";
-import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 
 export class PropertiesHelper {
     private fieldComponentMap: ComponentClassDefMapType;
@@ -38,40 +36,26 @@ export class PropertiesHelper {
         this.formComponentMap = FormComponentDefinitionMap;
     }
 
-    public getDataPath(data?: unknown, path?: LineagePath) {
-        // TODO: fix 'data' typing
-        const result = path && path.length > 0 ? _get(data, path.map(i => i.toString())) : data;
-        return result;
-    }
-
     /**
      * Create a new instance of a form component.
-     * @param item The form component definition.
+     * Populate the common form component properties.
+     * @param currentData The form component definition.
      */
-    public sharedConstructFormComponent(item: FormComponentDefinitionFrame) {
+    public sharedConstructFormComponent(currentData: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
         // The class to use is identified by the class property string values in the field definitions.
-        const componentClassString = item?.component?.class;
+        const formComponentClassString = currentData?.component?.class;
 
         // The class to use is identified by the class property string values in the field definitions.
         // The form component is identifier the component field class string
-        const formComponentClass = this.formComponentMap?.get(componentClassString);
+        const formComponentClass = this.formComponentMap?.get(formComponentClassString);
 
         // Create new instance
-        if (formComponentClass) {
-            return new formComponentClass();
-        } else {
-            return null;
+        if (!formComponentClass) {
+            throw new Error(`Could not find class for form component class name '${currentData?.component?.class}': : ${JSON.stringify(currentData)}`)
         }
-    }
 
-    /**
-     * Populate the common form component properties.
-     *
-     * @param item The form component instance.
-     * @param currentData
-     * @protected
-     */
-    public sharedPopulateFormComponent(item: FormComponentDefinitionOutline, currentData: FormComponentDefinitionFrame): void {
+        const item = new formComponentClass();
+
         // Set the simple properties
         item.name = currentData.name;
         item.module = currentData.module;
@@ -115,8 +99,9 @@ export class PropertiesHelper {
         item.component = component;
         item.model = model || undefined;
         item.layout = layout || undefined;
-    }
 
+        return item;
+    }
 
     /**
      * Set the common field component config properties.
@@ -260,7 +245,61 @@ export class FormPathHelper {
         }
     }
 
-    public makeLineagePaths(item: FormComponentDefinitionOutline, formConfig: LineagePath): LineagePaths {
+    /**
+     * Call accept on the properties of the form component definition outline that can be visited.
+     * @param item The form component definition outline.
+     */
+    public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
+        this.acceptFormPath(item.component, {formConfig: ['component']});
+        if (item.model) {
+            this.acceptFormPath(item.model, {formConfig: ['model']});
+        }
+        if (item.layout) {
+            this.acceptFormPath(item.layout, {formConfig: ['layout']});
+        }
+    }
+
+    public lineagePathsForFormConfigComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["componentDefinitions", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        }
+    }
+
+    public lineagePathsForGroupFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    public lineagePathsForTabFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "tabs", index.toString()],
+            // tab component does not participate in data model
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    public lineagePathsForTabContentFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            // tab content component does not participate in data model
+            angularComponents: this.getFormPathAngularComponents(item),
+        }
+    }
+
+    public lineagePathsForRepeatableFieldComponentDefinition(item: FormComponentDefinitionOutline): LineagePathsPartial {
+        return {
+            formConfig: ["config", "elementTemplate"],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    private getFormPathDataModel(item: FormComponentDefinitionOutline): string[] {
         const itemName = item?.name ?? "";
 
         // NOTE: The repeatable elementTemplate should not be part of the data model path.
@@ -268,66 +307,22 @@ export class FormPathHelper {
 
         // TODO: does this need to cater for components that have no model but need the model data, like content component?
 
-        const addDataModelPath = itemName && item.model !== undefined && item.model !== null;
-        const dataModel = addDataModelPath ? [itemName] : [];
+        const dataModel = [];
+        if (itemName && item.model !== undefined && item.model !== null){
+            dataModel.push(itemName);
+        }
+        this.logger.error(`getFormPathDataModel dataModel ${JSON.stringify(dataModel)} item ${JSON.stringify(item)}`);
+        return dataModel;
+    }
 
-        // TODO: build angular component path
+    private getFormPathAngularComponents(item: FormComponentDefinitionOutline) {
+        const itemName = item?.name ?? "";
         const angularComponents: LineagePath = [];
-
-        return makeLineagePaths({formConfig: formConfig, dataModel, angularComponents});
-    }
-
-    /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
-     */
-    public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptFormPath(item.component, this.makeLineagePaths(item, ['component']));
-        if (item.model) {
-            this.acceptFormPath(item.model, this.makeLineagePaths(item,  ['model']));
+        // TODO: don't include the top-level form config name
+        if (itemName) {
+            angularComponents.push(itemName)
         }
-        if (item.layout) {
-            this.acceptFormPath(item.layout, this.makeLineagePaths(item,  ['layout']));
-        }
-    }
-
-    public lineagePathsForFormConfigComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
-        return {
-            formConfig: ["componentDefinitions", index.toString()],
-            dataModel: [],
-            angularComponents: [],
-        }
-    }
-
-    public lineagePathsForGroupFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
-        return {
-            formConfig: ["config", "componentDefinitions", index.toString()],
-            dataModel: [],
-            angularComponents: [],
-        };
-    }
-
-    public lineagePathsForTabFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
-        return {
-            formConfig: ["config", "tabs", index.toString()],
-            dataModel: [],
-            angularComponents: [],
-        };
-    }
-
-    public lineagePathsForTabContentFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines, index: number): LineagePaths {
-        return {
-            formConfig: ["config", "componentDefinitions", index.toString()],
-            dataModel: [],
-            angularComponents: [],
-        }
-    }
-
-    lineagePathsForRepeatableFieldComponentDefinition(item: AvailableFormComponentDefinitionOutlines): LineagePaths {
-        return {
-            formConfig: ["config", "elementTemplate"],
-            dataModel: [],
-            angularComponents: [],
-        };
+        this.logger.error(`getFormPathAngularComponents angularComponents ${JSON.stringify(angularComponents)} item ${JSON.stringify(item)}`);
+        return angularComponents;
     }
 }

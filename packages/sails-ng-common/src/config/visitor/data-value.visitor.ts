@@ -120,7 +120,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
             // Visit children
             this.formPathHelper.acceptFormPath(
                 componentDefinition,
-                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
+                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
             );
         });
     }
@@ -326,8 +326,9 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
+        const dataModelPath = this.formPathHelper.formPath.dataModel;
+        this.logger.info(`setFromModelDefinition item.config ${JSON.stringify(item?.config)} dataModelPath ${JSON.stringify(dataModelPath)}`);
         if (item?.config?.value !== undefined) {
-            const dataModelPath = this.formPathHelper.formPath.dataModel;
             _set(this.dataValues, dataModelPath, item?.config?.value);
         }
     }

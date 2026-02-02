@@ -1,5 +1,5 @@
 
-import {FormConfigFrame, makeLineagePaths} from '@researchdatabox/sails-ng-common';
+import {buildLineagePaths, FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {GroupFieldComponent} from "./group.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -152,7 +152,7 @@ describe('GroupFieldComponent', () => {
     // Ensure lineage paths are as expected.
     const group = fixture.componentInstance.componentDefArr[0].component as GroupFieldComponent;
     expect(group.formFieldCompMapEntries.length).toBe(3);
-    expect(group.formFieldCompMapEntries[0].lineagePaths).toEqual(makeLineagePaths());
+    expect(group.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
   });
 
 });

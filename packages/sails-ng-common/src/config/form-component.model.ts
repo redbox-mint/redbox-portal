@@ -3,7 +3,7 @@ import {
     FormComponentDefinitionOutline, FormConstraintAuthorizationConfigOutline,
     FormConstraintConfigOutline,
     FormExpressionsConfigOutline,
-    ExpressionsConditionKindType
+    ExpressionsConditionKindType, FormOverrideConfigFrame
 } from "./form-component.outline";
 import {FieldComponentDefinitionOutline} from "./field-component.outline";
 import {FieldModelDefinitionOutline} from "./field-model.outline";
@@ -43,6 +43,7 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     public expressions?: FormExpressionsConfigOutline[];
     public module?: string;
     public constraints?: FormConstraintConfigOutline;
+    public overrides?: FormOverrideConfigFrame;
 
     abstract accept(visitor: FormConfigVisitorOutline): void;
 }

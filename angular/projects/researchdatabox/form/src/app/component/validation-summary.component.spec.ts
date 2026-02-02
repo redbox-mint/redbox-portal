@@ -132,6 +132,18 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // Ensure the expected failures have the expected lineage paths.
     const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
-    expect(validationSummary.allValidationErrorsDisplay).toEqual([]);
+    expect(validationSummary.allValidationErrorsDisplay).toEqual([
+      {
+        id: 'form-item-id-text-1-event',
+        message: null,
+        errors: [{class: 'required', message: "@validator-error-required", params: {}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['text_1_event'],
+          angularComponents: ['text_1_event'],
+          angularComponentsJsonPointer: '/text_1_event'
+        }
+      }
+    ])    ;
   });
 });

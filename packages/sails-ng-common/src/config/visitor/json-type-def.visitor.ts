@@ -348,12 +348,12 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
         const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
 
-        this.acceptJsonTypeDefPath(item.component, this.formPathHelper.makeLineagePaths(item, ['component']), jsonTypeDefPathKeys);
+        this.acceptJsonTypeDefPath(item.component, {formConfig: ['component']}, jsonTypeDefPathKeys);
         if (item.model) {
-            this.acceptJsonTypeDefPath(item.model, this.formPathHelper.makeLineagePaths(item, ['model']), jsonTypeDefPathKeys);
+            this.acceptJsonTypeDefPath(item.model, {formConfig: ['model']}, jsonTypeDefPathKeys);
         }
         if (item.layout) {
-            this.acceptJsonTypeDefPath(item.layout, this.formPathHelper.makeLineagePaths(item, ['layout']), jsonTypeDefPathKeys);
+            this.acceptJsonTypeDefPath(item.layout, {formConfig: ['layout']}, jsonTypeDefPathKeys);
         }
     }
 

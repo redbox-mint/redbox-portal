@@ -155,7 +155,7 @@ import {
     isTypeFormComponentDefinitionName,
     isTypeFormConfig,
 } from "../form-types.outline";
-import {ReusableFormDefinitions} from "../dictionary.outline";
+import {AllFormComponentDefinitionOutlines, ReusableFormDefinitions} from "../dictionary.outline";
 import {ILogger} from "../../logger.interface";
 import {FormModesConfig} from "../shared.outline";
 import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
@@ -209,7 +209,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.formConfig = new FormConfig();
 
-        this.formOverride = new FormOverride(this.logger);
+        this.formOverride = new FormOverride(logger);
         this.formPathHelper = new FormPathHelper(logger, this);
         this.sharedProps = new PropertiesHelper();
     }
@@ -298,7 +298,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             // Visit children
             this.formPathHelper.acceptFormPath(
                 formComponent,
-                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index),
+                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index),
             );
 
             // After the construction is done, apply any transforms
@@ -898,20 +898,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     /* Shared */
 
-    protected constructFormComponent(item: FormComponentDefinitionFrame) {
-        const constructed = this.sharedProps.sharedConstructFormComponent(item);
-        if (!constructed) {
-            throw new Error(`Could not find class for form component class name '${item?.component?.class}' at path '${this.formPathHelper.formPath}'.`)
-        }
-        return constructed;
+    protected constructFormComponent(item: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
+        return this.sharedProps.sharedConstructFormComponent(item);
     }
 
     protected populateFormComponent(item: FormComponentDefinitionOutline) {
         const currentData = this.getData();
         if (!isTypeFormComponentDefinition(currentData)) {
-            throw new Error(`Invalid FormComponentDefinition at '${this.formPathHelper.formPath}': ${JSON.stringify(currentData)}`);
+            throw new Error(`Invalid FormComponentDefinition at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        this.sharedProps.sharedPopulateFormComponent(item, currentData);
 
         // NOTE: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
         // Set the expressions
@@ -1035,12 +1030,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Use the collected default value if form config default values are being used, otherwise, use the record values.
         const useFormConfigDefaultValues = this.recordValues === null;
 
-        // For debugging:
-        // const defaultValue = this.currentDefaultValue(itemDefaultValue);
-        // const recordValue = this.currentRecordValue();
-        // this.logger.error(`currentModelValue itemDefaultValue ${JSON.stringify(defaultValue)} defaultValue ${JSON.stringify(defaultValue)} recordValue ${JSON.stringify(recordValue)}`);
+        const defaultValue = this.currentDefaultValue(itemDefaultValue);
+        const recordValue = this.currentRecordValue();
 
-        return useFormConfigDefaultValues ? this.currentDefaultValue(itemDefaultValue) : this.currentRecordValue();
+        // For debugging:
+        this.logger.error(`currentModelValue itemDefaultValue ${JSON.stringify(itemDefaultValue)} defaultValue ${JSON.stringify(defaultValue)} recordValue ${JSON.stringify(recordValue)} formPath ${JSON.stringify(this.formPathHelper.formPath)}`);
+
+        return useFormConfigDefaultValues ? defaultValue : recordValue;
     }
 
     /**
@@ -1147,6 +1143,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected getData() {
-        return this.sharedProps.getDataPath(this.data, this.formPathHelper.formPath.formConfig);
+        const formConfigData = this.data;
+        const formConfigPath = this.formPathHelper.formPath.formConfig;
+
+        if (!formConfigPath || formConfigPath.length < 1) {
+            return formConfigData;
+        }
+
+        return _get(formConfigData, formConfigPath.map(i => i.toString()))
     }
 }

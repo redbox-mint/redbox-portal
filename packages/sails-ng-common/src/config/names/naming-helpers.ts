@@ -145,19 +145,6 @@ export function searchLineagePaths(lineagePaths: LineagePaths, search: LineagePa
 }
 
 /**
- * Helper to build partial a lineage path object.
- * @param lineagePaths The properties to include.
- * @return A valid lineage path object.
- */
-export function makeLineagePaths(lineagePaths?: LineagePathsPartial): LineagePaths {
-    return {
-        formConfig: lineagePaths?.formConfig ?? [],
-        dataModel: lineagePaths?.dataModel ?? [],
-        angularComponents: lineagePaths?.angularComponents ?? [],
-    };
-}
-
-/**
  * Get a JSON Pointer string from an array of path segments.
  *
  * @param paths

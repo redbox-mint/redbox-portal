@@ -297,8 +297,8 @@ describe("Validator Visitor", async () => {
                         "8",
                     ],
                     "dataModel": ["text_1_event"],
-                    "angularComponents": ["text_1_event"],
-                    "angularComponentsJsonPointer": "/text_1_event",
+                    "angularComponents": ["main_tab", "tab_1", "text_1_event"],
+                    "angularComponentsJsonPointer": "/main_tab/tab_1/text_1_event",
                 },
             },
             {
@@ -325,8 +325,8 @@ describe("Validator Visitor", async () => {
                         "11",
                     ],
                     dataModel: ["text_2_event"],
-                    angularComponents: ["text_2_event"],
-                    angularComponentsJsonPointer: "/text_2_event",
+                    angularComponents: ["main_tab", "tab_1", "text_2_event"],
+                    angularComponentsJsonPointer: "/main_tab/tab_1/text_2_event",
                 },
             },
             {
@@ -353,8 +353,8 @@ describe("Validator Visitor", async () => {
                         "13",
                     ],
                     dataModel: ["text_3_event"],
-                    angularComponents: ["text_3_event"],
-                    angularComponentsJsonPointer: "/text_3_event",
+                    angularComponents: ["main_tab", "tab_1", "text_3_event"],
+                    angularComponentsJsonPointer: "/main_tab/tab_1/text_3_event",
                 },
             },
             {
@@ -389,7 +389,8 @@ describe("Validator Visitor", async () => {
                         "0",
                     ],
                     dataModel: ["group_1_component", "group_2_component", "text_5"],
-                    angularComponents: ["group_1_component", "group_2_component", "text_5"]
+                    angularComponents: ["main_tab", "tab_2", "group_1_component", "group_2_component", "text_5"],
+                    angularComponentsJsonPointer: "/main_tab/tab_2/group_1_component/group_2_component/text_5"
                 },
             },
             {

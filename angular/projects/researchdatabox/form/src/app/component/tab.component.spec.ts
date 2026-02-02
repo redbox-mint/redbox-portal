@@ -1,6 +1,7 @@
 import {
+  buildLineagePaths,
   FormConfigFrame, KeyValueStringNested, KeyValueStringProperty,
-  makeLineagePaths, TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
+  TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
 } from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -127,11 +128,12 @@ describe('TabComponent', () => {
     // Ensure lineage paths are as expected.
     const tab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(tab.formFieldCompMapEntries.length).toBe(2);
-    expect(tab.formFieldCompMapEntries[0].lineagePaths).toEqual(makeLineagePaths());
 
+    expect(tab.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
     const tabContent1 = tab.formFieldCompMapEntries[0].component as TabContentComponent;
     expect(tabContent1.formFieldCompMapEntries).toEqual([]);
 
+    expect(tab.formFieldCompMapEntries[1].lineagePaths).toEqual(buildLineagePaths());
     const tabContent2 = tab.formFieldCompMapEntries[1].component as TabContentComponent;
     expect(tabContent2.formFieldCompMapEntries).toEqual([]);
   });
