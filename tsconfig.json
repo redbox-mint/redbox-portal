@@ -15,12 +15,13 @@
       "typings/browser/**",
       "typings/browser.d.ts",
       "test/integration/**/*.ts",
+      "typescript/test/**",
       "angular/**"
     ],
     "include": [
       "typescript/**/*.ts",
       "typescript/**/*.d.ts",
-      "typescript/test/unit/.mocharc.ts"
+      "test/integration/.mocharc.ts"
     ],
     "compileOnSave": true,
     "buildOnSave": false,

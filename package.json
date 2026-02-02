@@ -40,8 +40,8 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "test:mocha": "docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal redboxportal",
-    "test:mocha:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal-mount redboxportal-mount",
+    "test:mocha": "mkdir -p coverage/mocha .tmp/junit/backend-mocha && chmod -R 777 coverage/mocha .tmp/junit/backend-mocha || true && bash -c 'docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal redboxportal; status=$?; docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180; exit $status'",
+    "test:mocha:mount": "bash -c 'docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal-mount redboxportal-mount; status=$?; docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180; exit $status'",
     "test:mocha:clean": "docker compose --profile portal --profile mount -f ./support/integration-testing/docker-compose.mocha.yml down",
     "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:oidc": "docker compose --profile ci -f ./support/integration-testing/docker-compose.bruno.oidc.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
