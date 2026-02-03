@@ -359,20 +359,11 @@ export module Controllers.Core {
       return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
-      const that = this;
-      const ajaxMsg = "Got ajax request, don't know what do...";
-      this.respond(req, res,
-        (req, res) => {
-          that.logger.verbose(ajaxMsg);
-          that.setNoCacheHeaders(req, res);
-          res.badRequest(ajaxMsg);
-        },
-        (req, res) => {
-          that.setNoCacheHeaders(req, res);
-          res.status(statusCode)
-          return res.json(jsonObj);
-        });
+      return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
     /**
