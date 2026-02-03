@@ -42,7 +42,7 @@ export module Controllers {
     public async get(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const report: any = await ReportsService.get(brand, req.param('name'));
-      return this.ajaxOk(req, res, null, ReportsService.getReportDto(report));
+      return this.sendResp(req, res, { data: ReportsService.getReportDto(report), headers: this.getNoCacheHeaders() });
     }
 
     public getResults(req, res) {
@@ -52,14 +52,15 @@ export module Controllers {
         if (responseObject) {
           let response: any = responseObject;
           response.success = true;
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
         } else {
-          this.ajaxFail(req, res, null, responseObject);
+          const payload = responseObject ?? { status: false, message: null };
+          this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         }
       }, error => {
         sails.log.error("Error updating meta:");
         sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
       });;
     }
 
@@ -76,7 +77,7 @@ export module Controllers {
         return res
       } catch (error) {
         sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
       }
     }
 

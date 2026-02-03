@@ -97,7 +97,11 @@ export module Controllers {
       User.findOne(queryObject).exec(function (err, user: UserModel) {
         if (err != null) {
           sails.log.error(err)
-          return that.apiFail(req, res, 500)
+          return that.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ detail: err?.message ?? 'An error has occurred' }],
+            headers: that.getNoCacheHeaders()
+          });
         }
         if (user != null) {
           delete user["token"];
@@ -105,7 +109,12 @@ export module Controllers {
           return that.apiRespond(req, res, user);
         }
 
-        return that.apiFail(req, res, 404, new APIErrorResponse("No user found with given criteria", `Searchby: ${searchField} and Query: ${query}`))
+        const errorResponse = new APIErrorResponse("No user found with given criteria", `Searchby: ${searchField} and Query: ${query}`);
+        return that.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: that.getNoCacheHeaders()
+        });
       });
     }
 
@@ -133,7 +142,12 @@ export module Controllers {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
             //TODO: Find more appropriate status code
-            this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+            const errorResponse = new APIErrorResponse(error.message);
+            this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+              headers: this.getNoCacheHeaders()
+            });
           });
         } else {
           let userResponse = new CreateUserAPIResponse();
@@ -147,7 +161,11 @@ export module Controllers {
         }
       }, error => {
         sails.log.error(error);
-        return this.apiFail(req, res, 500)
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
       });
 
     }
@@ -188,7 +206,12 @@ export module Controllers {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
             //TODO: Find more appropriate status code
-            this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+            const errorResponse = new APIErrorResponse(error.message);
+            this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+              headers: this.getNoCacheHeaders()
+            });
           });
         } else {
           let userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
@@ -204,9 +227,18 @@ export module Controllers {
       }, error => {
         sails.log.error(error);
         if (error.message.indexOf('No such user with id:') != -1) {
-          return this.apiFail(req, res, 404, new APIErrorResponse(error.message))
+          const errorResponse = new APIErrorResponse(error.message);
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
         } else {
-          return this.apiFail(req, res, 500)
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+            headers: this.getNoCacheHeaders()
+          });
         }
       });
 
@@ -227,10 +259,20 @@ export module Controllers {
         }, error => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+          const errorResponse = new APIErrorResponse(error.message);
+          this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
         });
       } else {
-        return this.apiFail(req, res, 400, new APIErrorResponse("unable to get user ID."));
+        const errorResponse = new APIErrorResponse("unable to get user ID.");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -251,10 +293,20 @@ export module Controllers {
         }, error => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+          const errorResponse = new APIErrorResponse(error.message);
+          this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
         });
       } else {
-        return this.apiFail(req, res, 400, new APIErrorResponse("unable to get user ID."));
+        const errorResponse = new APIErrorResponse("unable to get user ID.");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -281,7 +333,12 @@ export module Controllers {
         let response: APIActionResponse = new APIActionResponse(roleName + ' create call success', roleName + ' create call success');
         return this.apiRespond(req, res, response);
       } else {
-        return this.apiFail(req, res, 400, new APIErrorResponse("Role name has to be passed in as url param or in the body { roleName: nameOfRole }"));
+        const errorResponse = new APIErrorResponse("Role name has to be passed in as url param or in the body { roleName: nameOfRole }");
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 

@@ -162,16 +162,16 @@ export module Controllers {
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
-        this.ajaxFail(req, res, "No current user session. Please login.");
+        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
 
       if (!userid) {
-        this.ajaxFail(req, res, "Error: unable to get user ID.");
+        this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
 
       var details = req.body.details;
       if (!details) {
-        this.ajaxFail(req, res, "Error: user details not specified");
+        this.sendResp(req, res, { data: { status: false, message: "Error: user details not specified" }, headers: this.getNoCacheHeaders() });
       }
 
       var name;
@@ -180,14 +180,14 @@ export module Controllers {
       };
       if (name) {
         UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
-          this.ajaxOk(req, res, "Profile updated successfully.");
+          this.sendResp(req, res, { data: { status: true, message: "Profile updated successfully." }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to update user profile:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Error: name must not be null");
+        this.sendResp(req, res, { data: { status: false, message: "Error: name must not be null" }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -196,20 +196,20 @@ export module Controllers {
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
-        this.ajaxFail(req, res, "No current user session. Please login.");
+        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
 
       if (userid) {
         var uuid = uuidv4();
         UsersService.setUserKey(userid, uuid).subscribe(user => {
-          this.ajaxOk(req, res, uuid)
+          this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        return this.ajaxFail(req, res, "Error: unable to get user ID.");
+        return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -218,24 +218,25 @@ export module Controllers {
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
-        this.ajaxFail(req, res, "No current user session. Please login.");
+        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
 
       if (userid) {
         var uuid = null;
         UsersService.setUserKey(userid, uuid).subscribe(user => {
-          this.ajaxOk(req, res, "UUID revoked successfully")
+          this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to revoke UUID:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        return this.ajaxFail(req, res, "Error: unable to get user ID.");
+        return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
     }
 
     public localLogin(req, res) {
+      const that = this;
       sails.config.passport.authenticate('local', function (err, user, info) {
         if ((err) || (!user)) {
           return res.send({
@@ -252,19 +253,22 @@ export module Controllers {
           sails.log.error(`User login audit event created for local login failed`)
           sails.log.error(err)
         });
+        const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
         req.logIn(user, function (err) {
           if (err) res.send(err);
           // login success
           // redir if api header call is not found
-          return sails.getActions()['user/respond'](req, res, (req, res) => {
-            return res.json({
-              user: user,
-              message: 'Login OK',
-              url: sails.getActions()['user/getpostloginurl'](req, res)
+          if (isAjax) {
+            return that.sendResp(req, res, {
+              data: {
+                user: user,
+                message: 'Login OK',
+                url: sails.getActions()['user/getpostloginurl'](req, res)
+              },
+              headers: that.getNoCacheHeaders()
             });
-          }, (req, res) => {
-            return sails.getActions()['user/redirpostlogin'](req, res);
-          });
+          }
+          return sails.getActions()['user/redirpostlogin'](req, res);
         });
       })(req, res);
     }
@@ -541,9 +545,9 @@ export module Controllers {
             username: user.username
           };
         });
-        this.ajaxOk(req, res, null, userArr, true);
+        this.sendResp(req, res, { data: userArr, headers: this.getNoCacheHeaders() });
       }, error => {
-        this.ajaxFail(req, res, null, error, true);
+        this.sendResp(req, res, { data: error, headers: this.getNoCacheHeaders() });
       });
     }
     /**

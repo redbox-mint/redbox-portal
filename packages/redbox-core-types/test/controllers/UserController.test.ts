@@ -92,14 +92,16 @@ describe('UserController', () => {
                 { id: '1', name: 'User 1', username: 'user1', email: 'u1@test.com' }
             ];
             (global as any).UsersService.findUsersWithName.returns(of(mockUsers));
-            const ajaxOkStub = sinon.stub(controller as any, 'ajaxOk');
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             controller.find(req, res);
 
             expect((global as any).UsersService.findUsersWithName.calledWith('test', 'brand-1', 'local')).to.be.true;
-            expect(ajaxOkStub.calledWith(req, res, null, [
-                { id: '1', name: 'User 1', username: 'user1' }
-            ], true)).to.be.true;
+            expect(sendRespStub.calledWith(req, res, sinon.match({
+                data: [
+                    { id: '1', name: 'User 1', username: 'user1' }
+                ]
+            }))).to.be.true;
         });
     });
 });

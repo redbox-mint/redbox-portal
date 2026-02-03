@@ -33,7 +33,12 @@ export module Controllers {
         // Ensure metadata fields are included in the response
         return this.apiRespond(req, res, entries, 200);
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -46,10 +51,22 @@ export module Controllers {
         const key = req.param('key');
 
         const entry = await I18nEntriesService.getEntry(branding, locale, namespace, key);
-        if (!entry) return this.apiFail(req, res, 404, new APIErrorResponse('Entry not found'));
+        if (!entry) {
+          const errorResponse = new APIErrorResponse('Entry not found');
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         return this.apiRespond(req, res, entry, 200);
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -69,7 +86,12 @@ export module Controllers {
         try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setEntry] reload failed', e?.message || e); }
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -82,12 +104,24 @@ export module Controllers {
         const key = req.param('key');
 
         const ok = await I18nEntriesService.deleteEntry(branding, locale, namespace, key);
-        if (!ok) return this.apiFail(req, res, 404, new APIErrorResponse('Entry not found'));
+        if (!ok) {
+          const errorResponse = new APIErrorResponse('Entry not found');
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         // Refresh i18n cache after deletion
         try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.deleteEntry] reload failed', e?.message || e); }
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -99,10 +133,22 @@ export module Controllers {
         const namespace = req.param('namespace') || 'translation';
 
         const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
-        if (!bundle) return this.apiFail(req, res, 404, new APIErrorResponse('Bundle not found'));
+        if (!bundle) {
+          const errorResponse = new APIErrorResponse('Bundle not found');
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -121,7 +167,12 @@ export module Controllers {
         try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setBundle] reload failed', e?.message || e); }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -136,9 +187,13 @@ export module Controllers {
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
         try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', e?.message || e); }
-        return this.ajaxRespond(req, res, bundle, 200);
+        return this.sendResp(req, res, { data: bundle, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.ajaxFail(req, res, error.message, null, false);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: error.message }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
   }

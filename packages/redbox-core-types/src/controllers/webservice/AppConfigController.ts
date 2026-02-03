@@ -53,7 +53,12 @@ export module Controllers {
         return this.apiRespond(req, res, appConfig, 200);
       } catch (error) {
         sails.log.error(error);
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 

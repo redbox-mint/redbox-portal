@@ -42,7 +42,7 @@ export module Controllers {
       const progressObj = this.createProgressObjFromRequest(req);
       AsynchsService.start(progressObj).subscribe(progress => {
         this.broadcast(req, 'start', progress);
-        this.ajaxOk(req, res, null, progress, true);
+        this.sendResp(req, res, { data: progress, headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -50,7 +50,7 @@ export module Controllers {
       const id = req.param('id');
       AsynchsService.finish(id).subscribe(progress => {
         this.broadcast(req, 'stop', progress[0]);
-        this.ajaxOk(req, res, null, progress[0], true);
+        this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -59,7 +59,7 @@ export module Controllers {
       const progressObj = this.createProgressObjFromRequest(req);
       AsynchsService.update({id: id}, progressObj).subscribe(progress => {
         this.broadcast(req, 'update', progress[0]);
-        this.ajaxOk(req, res, null, progress[0], true);
+        this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -93,12 +93,12 @@ export module Controllers {
     public progress(req, res) {
       const fq = this.getQuery(req.param('fq'));
       if (_.isEmpty(fq)) {
-        return this.ajaxFail(req, res, 'Empty queries are not allowed.');
+        return this.sendResp(req, res, { data: { status: false, message: 'Empty queries are not allowed.' }, headers: this.getNoCacheHeaders() });
       }
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       fq.where.branding = brand.id;
       AsynchsService.get(fq).subscribe(progress => {
-        this.ajaxOk(req, res, null, progress, true);
+        this.sendResp(req, res, { data: progress, headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -122,14 +122,13 @@ export module Controllers {
       sails.sockets.join(req, roomId, (err) => {
         if (err) {
           console.log(`Failed to join room`);
-          return this.ajaxFail(req, res, `Failed to join room: ${roomId}`, err, true);
+          return this.sendResp(req, res, { data: err ?? { status: false, message: `Failed to join room: ${roomId}` }, headers: this.getNoCacheHeaders() });
         }
         console.log(`Joined room: ${roomId}`);
-        return this.ajaxOk(req, res, null, {
+        return this.sendResp(req, res, { data: {
           status: true,
           message: `Successfully joined: ${roomId}`
-        },
-        true);
+        }, headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -140,13 +139,12 @@ export module Controllers {
       const roomId = req.param('roomId')
       sails.sockets.leave(req, roomId, (err) => {
         if (err) {
-          return this.ajaxFail(req, res, `Failed to leave room: ${roomId}`, err, true);
+          return this.sendResp(req, res, { data: err ?? { status: false, message: `Failed to leave room: ${roomId}` }, headers: this.getNoCacheHeaders() });
         }
-        return this.ajaxOk(req, res, null, {
+        return this.sendResp(req, res, { data: {
           status: true,
           message: `Successfully left: ${roomId}`
-        },
-        true);
+        }, headers: this.getNoCacheHeaders() });
       });
     }
 
