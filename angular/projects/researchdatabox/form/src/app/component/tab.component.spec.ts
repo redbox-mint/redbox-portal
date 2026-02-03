@@ -1,5 +1,4 @@
 import {
-  buildLineagePaths,
   FormConfigFrame, KeyValueStringNested, KeyValueStringProperty,
   TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
 } from '@researchdatabox/sails-ng-common';
@@ -216,23 +215,23 @@ describe('TabComponent', () => {
     let inputElements = compiled.querySelectorAll('input[type="text"]');
     expect(inputElements).toHaveSize(2);
 
-    // Ensure lineage paths are as expected.
+    // Check a sample lineage path
     const tab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(tab.formFieldCompMapEntries.length).toBe(2);
 
-    // tab1
-    expect(tab.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
-
+    // tab1 content
     const tabContent1 = tab.formFieldCompMapEntries[0].component as TabContentComponent;
     expect(tabContent1.formFieldCompMapEntries.length).toBe(1);
-    expect(tabContent1.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
 
-    // tab2
-    expect(tab.formFieldCompMapEntries[1].lineagePaths).toEqual(buildLineagePaths());
-
+    // tab2 content textfield_2
     const tabContent2 = tab.formFieldCompMapEntries[1].component as TabContentComponent;
     expect(tabContent2.formFieldCompMapEntries.length).toBe(1);
-    expect(tabContent2.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
+    expect(tabContent2?.formFieldCompMapEntries[0]?.lineagePaths).toEqual({
+      angularComponents: ["main_tab", "tab2", "textfield_2"],
+      angularComponentsJsonPointer: "/main_tab/tab2/textfield_2",
+      dataModel: ["textfield_2"],
+      formConfig: ["componentDefinitions", 0, "component", "config", "tabs", 1, "component", "config", "componentDefinitions", 0],
+    });
   });
 
   // check if the tab component's css classes are applied correctly

@@ -86,7 +86,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [formComponentName],
+        angularComponents: [],
         dataModel: [],
         formConfig: ['component', 'config', 'elementTemplate'],
       }
@@ -151,7 +151,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       {
         angularComponents: [indexStr],
         dataModel: [indexStr],
-        formConfig: [],
+        formConfig: ['component', 'config', 'elementTemplate'],
       });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }

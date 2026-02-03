@@ -110,7 +110,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [formComponentName],
+        angularComponents: [],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });

@@ -84,51 +84,8 @@ describe('ValidationSummaryFieldComponent', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
-  });
-  it('should have the expected lineage paths', async () => {
-    // arrange
-    const formConfig: FormConfigFrame = {
-      name: 'testing',
-      debugValue: true,
-      domElementType: 'form',
-      defaultComponentConfig: {
-        defaultComponentCssClasses: 'row',
-      },
-      editCssClasses: "redbox-form form",
-      componentDefinitions: [
-        {
-          name: 'text_1_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: '',
-              validators: [
-                {class: 'required'},
-              ]
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        },
-        {
-          name: 'validation_summary_1',
-          component: {class: "ValidationSummaryComponent"}
-        },
-      ]
-    };
-
-    // act
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
-
-    // assert
-
-    // Ensure expected validation failures show as links.
-    const nativeEl: HTMLElement = fixture.nativeElement;
-    console.log(nativeEl);
-    const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
+    expect(el?.innerHTML).toContain('<a data-validation-summary-id="form-item-id-text-1-event" href="#form-item-id-text-1-event">form-item-id-text-1-event</a>:');
+    expect(el?.innerHTML).toContain('<span data-validation-error-class="required" data-validation-error-message="@validator-error-required"> 1)  </span>');
 
     // Ensure the expected failures have the expected lineage paths.
     const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
@@ -136,7 +93,7 @@ describe('ValidationSummaryFieldComponent', () => {
       {
         id: 'form-item-id-text-1-event',
         message: null,
-        errors: [{class: 'required', message: "@validator-error-required", params: {}}],
+        errors: [{class: 'required', message: "@validator-error-required", params: {required: true, actual: ''}}],
         lineagePaths: {
           formConfig: ['componentDefinitions', 0],
           dataModel: ['text_1_event'],
@@ -144,6 +101,7 @@ describe('ValidationSummaryFieldComponent', () => {
           angularComponentsJsonPointer: '/text_1_event'
         }
       }
-    ])    ;
+    ]);
   });
+
 });

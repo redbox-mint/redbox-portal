@@ -1,5 +1,5 @@
 
-import {buildLineagePaths, FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {GroupFieldComponent} from "./group.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -149,10 +149,18 @@ describe('GroupFieldComponent', () => {
     const inputElements = compiled.querySelectorAll('input[type="text"]');
     expect(inputElements).toHaveSize(3);
 
-    // Ensure lineage paths are as expected.
+    // Check a sample lineage path
     const group = fixture.componentInstance.componentDefArr[0].component as GroupFieldComponent;
     expect(group.formFieldCompMapEntries.length).toBe(3);
-    expect(group.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
+
+    const group2 = group.formFieldCompMapEntries[2].component;
+    expect(group2?.formFieldCompMapEntries?.length).toBe(1);
+    expect(group2?.formFieldCompMapEntries[0]?.lineagePaths).toEqual({
+      angularComponents: ["group_1_component", "group_2_component", "text_5"],
+      angularComponentsJsonPointer: "/group_1_component/group_2_component/text_5",
+      dataModel: ["group_1_component", "group_2_component", "text_5"],
+      formConfig: ["componentDefinitions", 0, "component", "config", "componentDefinitions", 2],
+    });
   });
 
 });

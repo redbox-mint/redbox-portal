@@ -1,4 +1,4 @@
-import {buildLineagePaths, FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -88,7 +88,12 @@ describe('RepeatableComponent', () => {
 
     // Ensure lineage paths are as expected.
     expect(repeatable.formFieldCompMapEntries.length).toBe(2);
-    expect(repeatable.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
+    expect(repeatable.formFieldCompMapEntries[0].lineagePaths).toEqual({
+      angularComponents: ["repeatable_1", "0"],
+      angularComponentsJsonPointer: "/repeatable_1/0",
+      dataModel: ["repeatable_1", '0'],
+      formConfig: ["componentDefinitions", 0, "component", "config", "elementTemplate"],
+    });
   });
 
   it('should emit FORM_DEFINITION_CHANGED event when an element is appended', async () => {

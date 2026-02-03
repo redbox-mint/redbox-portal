@@ -88,7 +88,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   @HostBinding('id') get hostId(): string {
     return this.formFieldCompMapEntry?.compConfigJson?.name || '';
   }
-  
+
   protected initialSelectionDone = false;
 
   protected override async setComponentReady(): Promise<void> {
@@ -97,8 +97,8 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
       this.wrapperComponentRef.location.nativeElement.style.flexGrow = '1';
     }
     try {
-      if (!this.initialSelectionDone && 
-          this.tabInstance && 
+      if (!this.initialSelectionDone &&
+          this.tabInstance &&
           this.tabInstance.tabs.length > 0 &&
           this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
           this.tabInstance.selectedTabId) {
@@ -328,7 +328,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [formComponentName],
+        angularComponents: [],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
