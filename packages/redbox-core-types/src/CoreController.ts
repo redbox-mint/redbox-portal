@@ -310,6 +310,9 @@ export module Controllers.Core {
       res.view(resolvedView, mergedLocal);
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     public respond(req, res, ajaxCb, normalCb, forceAjax = false) {
       if (this.isAjax(req) || forceAjax == true) {
         return ajaxCb(req, res);
@@ -322,24 +325,38 @@ export module Controllers.Core {
       return req.headers['x-source'] == 'jsclient';
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
-      if (!data) {
-        data = { status: true, message: msg };
-      }
-      this.ajaxRespond(req, res, data, forceAjax);
+      const payload = data ?? { status: true, message: msg };
+      return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
-      if (!data) {
-        data = { status: false, message: msg };
-      }
-      this.ajaxRespond(req, res, data, forceAjax);
+      const payload = data ?? { status: false, message: msg };
+      return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected apiFail(req, res, statusCode = 500, errorResponse?: APIErrorResponse) {
-      this.setNoCacheHeaders(req, res);
-      res.status(statusCode);
-      return res.json(errorResponse ?? new APIErrorResponse());
+      const displayErrors = [{
+        title: errorResponse?.message ?? 'An error has occurred',
+        detail: errorResponse?.details
+      }];
+      return this.sendResp(req, res, { status: statusCode, displayErrors, headers: this.getNoCacheHeaders() });
+    }
+
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected apiSuccess(req, res, jsonObj = null, statusCode = 200) {
+      return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
     protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
@@ -358,20 +375,11 @@ export module Controllers.Core {
         });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected ajaxRespond(req, res, jsonObj = null, forceAjax) {
-      const that = this;
-      const notAjaxMsg = "Got non-ajax request, don't know what do...";
-      this.respond(req, res,
-        (req, res) => {
-          that.setNoCacheHeaders(req, res);
-          return res.json(jsonObj);
-        },
-        (req, res) => {
-          that.logger.verbose(notAjaxMsg);
-          that.setNoCacheHeaders(req, res);
-          res.badRequest(notAjaxMsg);
-        },
-        forceAjax);
+      return this.sendResp(req, res, { data: jsonObj, headers: this.getNoCacheHeaders() });
     }
 
     protected getNg2Apps(viewPath) {
@@ -555,10 +563,27 @@ export module Controllers.Core {
       // If there are any display errors and API is version 1, send the conventional error response format.
       if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
         const errorResponse = new APIErrorResponse();
-        errorResponse.message = RBValidationError.displayMessage({
-          t: TranslationService,
-          displayErrors: collectedDisplayErrors
-        });
+        if (collectedDisplayErrors.length === 1) {
+          const displayError = collectedDisplayErrors[0] ?? {};
+          const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || "";
+          const detail = displayError.detail?.toString()?.trim() || "";
+          if (title || detail) {
+            errorResponse.message = title || detail || "An error occurred";
+            if (title && detail) {
+              errorResponse.details = detail;
+            }
+          } else {
+            errorResponse.message = RBValidationError.displayMessage({
+              t: TranslationService,
+              displayErrors: collectedDisplayErrors
+            });
+          }
+        } else {
+          errorResponse.message = RBValidationError.displayMessage({
+            t: TranslationService,
+            displayErrors: collectedDisplayErrors
+          });
+        }
         sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
         return res.json(errorResponse);
       }
@@ -601,10 +626,16 @@ export module Controllers.Core {
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
     }
 
+    protected getNoCacheHeaders(): Record<string, string> {
+      return {
+        'Cache-control': 'no-cache, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      };
+    }
+
     private setNoCacheHeaders(req, res) {
-      res.set('Cache-control', 'no-cache, private');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', 0);
+      res.set(this.getNoCacheHeaders());
     }
   }
 }

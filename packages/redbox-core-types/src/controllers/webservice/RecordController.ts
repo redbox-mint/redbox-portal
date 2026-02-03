@@ -368,7 +368,7 @@ export module Controllers {
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: `Failed to update meta, cannot find existing record with oid: ${oid}`, meta: { oid } }]
+            displayErrors: [{ detail: `Failed to update meta, cannot find existing record with oid: ${oid}.`, meta: { oid } }]
           });
         }
         if (shouldMerge) {

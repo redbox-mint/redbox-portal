@@ -34,7 +34,7 @@ export module Controllers {
       const response = serviceFunction(req, res, options);
       if (!res.writableEnded) {
         return response.subscribe( result => {
-          return this.ajaxOk(req, res, null, result);
+          return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
         });
       }
     }
