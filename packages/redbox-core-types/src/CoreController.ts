@@ -684,7 +684,20 @@ export module Controllers.Core {
         return res.json(v1);
       }
 
-      sails.log.error(`Unknown v1 situation in sendResp.`);
+      const unknownSituation = {
+        response: {
+          format,
+          status,
+          data,
+          meta,
+          v1,
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error("Unknown v1 situation in sendResp", unknownSituation);
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
     }
 
@@ -710,7 +723,19 @@ export module Controllers.Core {
         return res.json({ errors: formattedErrors, meta: meta });
       }
 
-      sails.log.error(`Unknown v2 situation in sendResp.`);
+      const unknownSituation = {
+        response: {
+          format,
+          status,
+          data,
+          meta
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error(`Unknown v2 situation in sendResp`, unknownSituation);
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
     }
 
