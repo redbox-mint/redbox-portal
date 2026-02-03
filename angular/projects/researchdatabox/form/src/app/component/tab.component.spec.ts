@@ -220,13 +220,19 @@ describe('TabComponent', () => {
     const tab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(tab.formFieldCompMapEntries.length).toBe(2);
 
+    // tab1
     expect(tab.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
-    const tabContent1 = tab.formFieldCompMapEntries[0].component as TabContentComponent;
-    expect(tabContent1.formFieldCompMapEntries).toEqual([]);
 
+    const tabContent1 = tab.formFieldCompMapEntries[0].component as TabContentComponent;
+    expect(tabContent1.formFieldCompMapEntries.length).toBe(1);
+    expect(tabContent1.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
+
+    // tab2
     expect(tab.formFieldCompMapEntries[1].lineagePaths).toEqual(buildLineagePaths());
+
     const tabContent2 = tab.formFieldCompMapEntries[1].component as TabContentComponent;
-    expect(tabContent2.formFieldCompMapEntries).toEqual([]);
+    expect(tabContent2.formFieldCompMapEntries.length).toBe(1);
+    expect(tabContent2.formFieldCompMapEntries[0].lineagePaths).toEqual(buildLineagePaths());
   });
 
   // check if the tab component's css classes are applied correctly

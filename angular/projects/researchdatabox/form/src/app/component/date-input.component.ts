@@ -47,7 +47,6 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           [formControl]="formControl"
           [class.is-valid]="isValid"
           [class.is-invalid]="!isValid"
-          [required]="isRequired"
           [readonly]="isReadonly"
           [title]="tooltip"
           [placeholder]="placeholder"

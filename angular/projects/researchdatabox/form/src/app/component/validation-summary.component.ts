@@ -4,7 +4,7 @@ import {FormComponent} from "../form.component";
 import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@researchdatabox/sails-ng-common";
 
 
-// TODO: use item.parents to reveal the parent components on click
+// TODO: use summary.lineagePaths to reveal the parent components and focus on the element on click/tap
 @Component({
   selector: 'redbox-validation-summary-field',
   template: `
@@ -16,29 +16,35 @@ import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@resea
     }
     @if (validationList.length > 0) {
       <div class="alert alert-danger mt-3" role="alert">
-        <ul>
-          @for (summary of validationList; track summary.id ?? summary.message ?? $index) {
-            @if (summary.errors.length > 0) {
-              <li>
-                @if (summary.id && summary.message) {
-                  <a [attr.href]="'#' + summary.id">{{ summary.message | i18next }}</a>
-                } @else if (summary.id && !summary.message) {
-                  <a [attr.href]="'#' + summary.id ">{{ summary.id }}</a>
-                } @else if (!summary.id && summary.message) {
-                  {{ summary.message | i18next }}
-                } @else {
-                  {{ "@validator-label-default" | i18next }}
-                }
-                <ul>
-                  @for (error of summary.errors; track error.class ?? $index) {
-                    <li>{{ error.message | i18next: error.params }}
-                    </li>
-                  }
-                </ul>
-              </li>
+        <span>{{ '@dmpt-form-validation-fail-prefix' | i18next }}</span>
+        @for (summary of validationList; track summary.id ?? summary.message ?? $index) {
+          @if (summary.errors.length > 0) {
+            @if (summary.id && summary.message) {
+              <a [attr.data-validation-summary-id]="summary.id"
+                 [attr.data-validation-summary-message]="summary.message"
+                 [attr.href]="'#' + summary.id">{{ summary.message | i18next }}</a>:
+            } @else if (summary.id && !summary.message) {
+              <a [attr.data-validation-summary-id]="summary.id"
+                 [attr.data-validation-summary-message]="summary.message"
+                 [attr.href]="'#' + summary.id ">{{ summary.id }}</a>:
+            } @else if (!summary.id && summary.message) {
+              <span [attr.data-validation-summary-id]="summary.id"
+                    [attr.data-validation-summary-message]="summary.message">{{ summary.message | i18next }}:
+              </span>
+            } @else {
+              <span [attr.data-validation-summary-id]="summary.id"
+                    [attr.data-validation-summary-message]="summary.message">
+                {{ "@validator-label-default" | i18next }}:
+              </span>
+            }
+            @for (error of summary.errors; track error.class ?? $index) {
+              <span [attr.data-validation-error-class]="error.class"
+                    [attr.data-validation-error-message]="error.message">
+                {{ $index + 1 }}) {{ error.message | i18next: error.params }}
+              </span>
             }
           }
-        </ul>
+        }
       </div>
     }
   `,
