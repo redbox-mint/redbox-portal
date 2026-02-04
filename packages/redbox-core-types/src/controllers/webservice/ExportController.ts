@@ -47,10 +47,20 @@ export module Controllers {
             res
           );
         } else {
-          return this.apiFail(req, res, 500, new APIErrorResponse('Unsupported export format'));
+          const errorResponse = new APIErrorResponse('Unsupported export format');
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
         }
       } catch (error) {
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
   }

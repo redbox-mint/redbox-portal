@@ -1,6 +1,6 @@
 /*
  Integration tests for I18nEntriesService covering its public API.
- Follows the style of existing tests in test/unit/services.
+ Follows the style of existing tests in test/integration/services.
 */
 
 /* global sails, I18nEntriesService, I18nTranslation, I18nBundle, BrandingService, expect */

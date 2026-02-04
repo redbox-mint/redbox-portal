@@ -1,16 +1,12 @@
 {
-  "extends": "@tsconfig/node24/tsconfig.json",
+  "extends": "../../typescript/tsconfig.base.json",
   "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "strict": false,
-    "inlineSourceMap": true,
-    "lib": [
-      "es2023"
-    ],
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "strict": false
   },
   "include": [
     "src/**/*"

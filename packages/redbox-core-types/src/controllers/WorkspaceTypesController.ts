@@ -44,10 +44,11 @@ export module Controllers {
         if (response) {
           workspaceTypes = response.slice();
         }
-        this.ajaxOk(req, res, null, { status: true, workspaceTypes: workspaceTypes });
+        this.sendResp(req, res, { data: { status: true, workspaceTypes: workspaceTypes }, headers: this.getNoCacheHeaders() });
       }, error => {
         const errorMessage = 'Cannot get workspace types';
-        this.ajaxFail(req, res, error, errorMessage);
+        const payload = errorMessage ?? { status: false, message: error };
+        this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -60,10 +61,11 @@ export module Controllers {
           if (response) {
             workspaceType = response;
           }
-          this.ajaxOk(req, res, null, { status: true, workspaceType: workspaceType });
+          this.sendResp(req, res, { data: { status: true, workspaceType: workspaceType }, headers: this.getNoCacheHeaders() });
         }, error => {
           const errorMessage = 'Cannot get workspace types';
-          this.ajaxFail(req, res, error, errorMessage);
+          const payload = errorMessage ?? { status: false, message: error };
+          this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         });
     }
 
@@ -73,8 +75,11 @@ export module Controllers {
       req.file('logo').upload({
         adapter: this.blobAdapter
       }, function (err, filesUploaded) {
-        if (err) return that.ajaxFail(req, res, err);
-        return that.ajaxOk(req, res, null, { status: true });
+        if (err) {
+          const payload = err ?? { status: false, message: err };
+          return that.sendResp(req, res, { data: payload, headers: that.getNoCacheHeaders() });
+        }
+        return that.sendResp(req, res, { data: { status: true }, headers: that.getNoCacheHeaders() });
       });
     }
 

@@ -110,7 +110,7 @@ export module Controllers {
         return of(pageData);
       }))
         .subscribe(pageData => {
-          this.ajaxOk(req, res, null, pageData.users);
+          this.sendResp(req, res, { data: pageData.users, headers: this.getNoCacheHeaders() });
         });
     }
 
@@ -131,7 +131,7 @@ export module Controllers {
         return of(pageData);
       }))
         .subscribe(pageData => {
-          this.ajaxOk(req, res, null, pageData.roles);
+          this.sendResp(req, res, { data: pageData.roles, headers: this.getNoCacheHeaders() });
         });
     }
 
@@ -140,15 +140,15 @@ export module Controllers {
       if (userid) {
         var uuid = uuidv4();
         UsersService.setUserKey(userid, uuid).subscribe(user => {
-          this.ajaxOk(req, res, uuid)
+          this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       }
       else {
-        return this.ajaxFail(req, res, "Please provide userid");
+        return this.sendResp(req, res, { data: { status: false, message: "Please provide userid" }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -157,15 +157,15 @@ export module Controllers {
       if (userid) {
         var uuid = '';
         UsersService.setUserKey(userid, uuid).subscribe(user => {
-          this.ajaxOk(req, res, "UUID revoked successfully")
+          this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to revoke UUID:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       }
       else {
-        return this.ajaxFail(req, res, "Please provide userid");
+        return this.sendResp(req, res, { data: { status: false, message: "Please provide userid" }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -181,22 +181,22 @@ export module Controllers {
             var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
-              this.ajaxOk(req, res, "User created successfully");
+              this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
             }, error => {
               sails.log.error("Failed to update user roles:");
               sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
+              this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
             });
           } else {
-            this.ajaxOk(req, res, "User created successfully");
+            this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
           }
         }, error => {
           sails.log.error("Failed to create user:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Please provide minimum of username, name and password");
+        this.sendResp(req, res, { data: { status: false, message: "Please provide minimum of username, name and password" }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -211,22 +211,22 @@ export module Controllers {
             var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
-              this.ajaxOk(req, res, "User updated successfully");
+              this.sendResp(req, res, { data: { status: true, message: "User updated successfully" }, headers: this.getNoCacheHeaders() });
             }, error => {
               sails.log.error("Failed to update user roles:");
               sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
+              this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
             });
           } else {
-            this.ajaxOk(req, res, "Save OK.");
+            this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
           }
         }, error => {
           sails.log.error("Failed to update user details:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Please provide minimum of userid and name");
+        this.sendResp(req, res, { data: { status: false, message: "Please provide minimum of userid and name" }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -241,14 +241,14 @@ export module Controllers {
         var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         var roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
         UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
-          this.ajaxOk(req, res, "Save OK.");
+          this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to update user roles:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Please provide userid and/or roles names.");
+        this.sendResp(req, res, { data: { status: false, message: "Please provide userid and/or roles names." }, headers: this.getNoCacheHeaders() });
       }
     }
 

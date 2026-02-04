@@ -37,7 +37,12 @@ export module Controllers {
         let queryName = req.param('queryName');
         let namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
         if (_.isEmpty(namedQuery)) {
-          return this.apiFail(req, res, 400, new APIErrorResponse("Named query not found"));
+          const errorResponse = new APIErrorResponse("Named query not found");
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
         }
 
         let start = 0;
@@ -49,7 +54,12 @@ export module Controllers {
           rows = _.toNumber(req.param('rows'))
         }
         if (rows > 100) {
-          return this.apiFail(req, res, 400, new APIErrorResponse("Rows must not be greater than 100"));
+          const errorResponse = new APIErrorResponse("Rows must not be greater than 100");
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders()
+          });
         }
         let namedQueryConfig = sails.config.namedQuery[queryName];
         let paramMap = _.clone(req.query);
@@ -58,7 +68,12 @@ export module Controllers {
         return this.apiRespond(req, res, response, 200)
       } catch (error) {
         sails.log.error(`executeNamedQuery error: ${error}`);
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
