@@ -1,8 +1,10 @@
+import {LineagePath} from "./config/names/naming-helpers";
+
 export const templateCompileKind = ["jsonata", "handlebars"] as const;
 
 export type TemplateCompileKind = typeof templateCompileKind[number];
 
-export type TemplateCompileKey = string[];
+export type TemplateCompileKey = LineagePath;
 export type TemplateCompileKeyFormatted = string;
 export type TemplateCompileValue = string;
 

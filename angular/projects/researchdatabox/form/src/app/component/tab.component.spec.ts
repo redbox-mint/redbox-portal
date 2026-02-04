@@ -1,8 +1,12 @@
-import {FormConfigFrame, KeyValueStringNested, KeyValueStringProperty, TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame } from '@researchdatabox/sails-ng-common';
+import {
+  FormConfigFrame, KeyValueStringNested, KeyValueStringProperty,
+  TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
+} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { TabComponent, TabSelectionErrorType } from './tab.component';
+import { TabComponent, TabContentComponent, TabSelectionErrorType } from './tab.component';
+
 
 let formConfig: FormConfigFrame;
 let formConfigNoSelectedTab: FormConfigFrame;
@@ -210,6 +214,24 @@ describe('TabComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     let inputElements = compiled.querySelectorAll('input[type="text"]');
     expect(inputElements).toHaveSize(2);
+
+    // Check a sample lineage path
+    const tab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
+    expect(tab.formFieldCompMapEntries.length).toBe(2);
+
+    // tab1 content
+    const tabContent1 = tab.formFieldCompMapEntries[0].component as TabContentComponent;
+    expect(tabContent1.formFieldCompMapEntries.length).toBe(1);
+
+    // tab2 content textfield_2
+    const tabContent2 = tab.formFieldCompMapEntries[1].component as TabContentComponent;
+    expect(tabContent2.formFieldCompMapEntries.length).toBe(1);
+    expect(tabContent2?.formFieldCompMapEntries[0]?.lineagePaths).toEqual({
+      angularComponents: ["main_tab", "tab2", "textfield_2"],
+      angularComponentsJsonPointer: "/main_tab/tab2/textfield_2",
+      dataModel: ["textfield_2"],
+      formConfig: ["componentDefinitions", 0, "component", "config", "tabs", 1, "component", "config", "componentDefinitions", 0],
+    });
   });
 
   // check if the tab component's css classes are applied correctly

@@ -35,3 +35,4 @@ export const DefaultLayoutMap = [
     {kind: FieldLayoutConfigKind, def: DefaultFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: DefaultFieldLayoutDefinition, class: DefaultLayoutName},
 ];
+export const DefaultLayoutDefaults = {};

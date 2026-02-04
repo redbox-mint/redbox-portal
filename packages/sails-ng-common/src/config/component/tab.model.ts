@@ -92,3 +92,11 @@ export const TabMap = [
     {kind: FieldLayoutDefinitionKind, def: TabFieldLayoutDefinition, class: TabLayoutName},
     {kind: FormComponentDefinitionKind, def: TabFormComponentDefinition, class:TabComponentName},
 ];
+export const TabDefaults = {
+    [FormComponentDefinitionKind]: {
+        [TabComponentName]: {
+            [FieldComponentDefinitionKind]: TabComponentName,
+            [FieldLayoutDefinitionKind]: TabLayoutName,
+        },
+    },
+};

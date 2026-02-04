@@ -34,7 +34,12 @@ import { Location, LocationStrategy, PathLocationStrategy } from '@angular/commo
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
-import { FormStatus, FormConfigFrame, JSONataQuerySource } from '@researchdatabox/sails-ng-common';
+import {
+  FormStatus,
+  FormConfigFrame,
+  JSONataQuerySource,
+  FormValidatorSummaryErrors
+} from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
@@ -163,12 +168,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Save response after save operations, also used to track in-flight saves (null)
    */
   saveResponse = signal<RecordActionResult | null | undefined>(undefined);
-  
+
   /**
    * Map of subscriptions for various component events
    */
   subMaps: Record<string, Subscription> = {};
-  
+
   /**
    * Debug info structure
    */
@@ -277,10 +282,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     await this.createFormGroup();
     // Dispatch load success action (R16.2, AC53)
     this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
-    
+
     // Build the initial query source for component definitions
     this.setupQuerySource();
-    // Initialize subscriptions to event bus 
+    // Initialize subscriptions to event bus
     this.initSubscriptions();
     // Publish the form definition ready event
     this.eventBus.publish(createFormDefinitionReadyEvent({}));
@@ -293,16 +298,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   protected setupQuerySource() {
     this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr);
   }
-  /** 
-   * 
+  /**
+   *
    * Getter for component definition query source
-   * 
+   *
    */
   public getQuerySource(): JSONataQuerySource | undefined {
     return this.componentDefQuerySource;
   }
   /**
-   * Initialize reactive effects 
+   * Initialize reactive effects
    */
   protected initEffects() {
     // This is needed to update the debugging info when form status changes.
@@ -342,7 +347,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Initialize subscriptions to event bus
    */
-  protected initSubscriptions() {  
+  protected initSubscriptions() {
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
@@ -365,7 +370,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }));
         }
       });
-    
+
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
       // At the moment, the code will only emit StatusChange and PristineChange events to the EventBus.
@@ -382,7 +387,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           );
         }
       });
-      
+
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
         this.debugFormComponents.set(this.getDebugInfo());
@@ -467,9 +472,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .join(' ');
   }
 
-  public getValidationErrors(){
-    const components = this.formDefMap?.formConfig.componentDefinitions;
-    return this.formService.getFormValidatorSummaryErrors(components, null, this.form);
+  /**
+   * Get the validation errors from all the controls in this form, and recurse into the control's child controls.
+   */
+  public getValidationErrors(): FormValidatorSummaryErrors[] {
+    const result: FormValidatorSummaryErrors[] = [];
+    const mapEntries = this.formDefMap?.components ?? [];
+    for (const mapEntry of mapEntries) {
+      const errors = this.formService.getFormValidatorSummaryErrors(mapEntry);
+      result.push(...errors);
+    }
+    return result;
   }
 
   public getDebugInfo() {
@@ -481,11 +494,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formDebugInfo;
   }
 
+
   private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
     this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
-    const name = formFieldCompMapEntry?.compConfigJson?.name || formFieldCompMapEntry?.name || "(not set)";
+    const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
 
     const componentResult: DebugInfo = {
       name: name,

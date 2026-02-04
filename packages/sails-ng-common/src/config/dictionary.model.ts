@@ -5,21 +5,21 @@ import {
     FormComponentDefinitionKind,
 } from "./shared.outline";
 
-import {DefaultLayoutMap} from "./component/default-layout.model";
-import {RepeatableMap} from "./component/repeatable.model";
-import {GroupMap,} from "./component/group.model";
-import {SaveButtonMap} from "./component/save-button.model";
-import {TextAreaMap} from "./component/text-area.model";
-import {ContentMap} from "./component/content.model";
-import {SimpleInputMap} from "./component/simple-input.model";
-import {ValidationSummaryMap} from "./component/validation-summary.model";
-import {TabContentMap} from "./component/tab-content.model";
-import {TabMap} from "./component/tab.model";
-import {CheckboxInputMap} from "./component/checkbox-input.model";
-import {DropdownInputMap} from "./component/dropdown-input.model";
-import {RadioInputMap} from "./component/radio-input.model";
-import {DateInputMap} from "./component/date-input.model";
-import {ReusableMap} from "./component/reusable.model";
+import {DefaultLayoutDefaults, DefaultLayoutMap} from "./component/default-layout.model";
+import {RepeatableDefaults, RepeatableMap} from "./component/repeatable.model";
+import {GroupDefaults, GroupMap,} from "./component/group.model";
+import {SaveButtonDefaults, SaveButtonMap} from "./component/save-button.model";
+import {TextAreaDefaults, TextAreaMap} from "./component/text-area.model";
+import {ContentDefaults, ContentMap} from "./component/content.model";
+import {SimpleInputDefaults, SimpleInputMap} from "./component/simple-input.model";
+import {ValidationSummaryDefaults, ValidationSummaryMap} from "./component/validation-summary.model";
+import {TabContentDefaults, TabContentMap} from "./component/tab-content.model";
+import {TabDefaults, TabMap} from "./component/tab.model";
+import {CheckboxInputDefaults, CheckboxInputMap} from "./component/checkbox-input.model";
+import {DropdownInputDefaults, DropdownInputMap} from "./component/dropdown-input.model";
+import {RadioInputDefaults, RadioInputMap} from "./component/radio-input.model";
+import {DateInputDefaults, DateInputMap} from "./component/date-input.model";
+import {ReusableDefaults, ReusableMap} from "./component/reusable.model";
 
 
 /**
@@ -43,6 +43,56 @@ export const AllDefs = [
     ...DateInputMap,
     ...ReusableMap,
 ] as const;
+
+/**
+ * The static array of all default mappings from kind to class names.
+ * Mapping: source kind -> source name -> target kind -> target name.
+ */
+const RawDefaults = [
+    // DefaultLayoutDefaults,
+    RepeatableDefaults,
+    GroupDefaults,
+    SaveButtonDefaults,
+    TextAreaDefaults,
+    ContentDefaults,
+    SimpleInputDefaults,
+    ValidationSummaryDefaults,
+    TabContentDefaults,
+    TabDefaults,
+    CheckboxInputDefaults,
+    DropdownInputDefaults,
+    RadioInputDefaults,
+    DateInputDefaults,
+    // ReusableDefaults,
+]
+
+export type KindNameDefaultsMapType = Map<string, Map<string, Map<string, string>>>;
+export const KindNameDefaultsMap: KindNameDefaultsMapType = new Map<string, Map<string, Map<string, string>>>();
+for (const rawDefault of RawDefaults) {
+    for (const [sourceKind, sourceNameObj] of Object.entries(rawDefault)) {
+        if (!KindNameDefaultsMap.has(sourceKind)) {
+            KindNameDefaultsMap.set(sourceKind, new Map<string, Map<string, string>>());
+        }
+        const sourceNameMap = KindNameDefaultsMap.get(sourceKind);
+        if (sourceNameMap) {
+            for (const [sourceName, targetObj] of Object.entries(sourceNameObj)) {
+                if (!sourceNameMap.has(sourceName)) {
+                    sourceNameMap.set(sourceName, new Map<string, string>());
+                }
+                const targetMap = sourceNameMap.get(sourceName);
+                if (targetMap) {
+                    for (const [targetKind, targetName] of Object.entries(targetObj ?? {})) {
+                        if (targetMap.has(targetKind)) {
+                            throw new Error(`Name defaults map already has an entry for source kind '${sourceKind}' name '${sourceName}', cannot add another one.`);
+                        } else {
+                            targetMap.set(targetKind, targetName?.toString() ?? "");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 /*
  * Define types for the class names of the components, models, layouts.

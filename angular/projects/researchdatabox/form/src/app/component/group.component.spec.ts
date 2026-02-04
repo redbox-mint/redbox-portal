@@ -144,9 +144,23 @@ describe('GroupFieldComponent', () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
     // assert
+    // Ensure all expected html elements were created.
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElements = compiled.querySelectorAll('input[type="text"]');
     expect(inputElements).toHaveSize(3);
+
+    // Check a sample lineage path
+    const group = fixture.componentInstance.componentDefArr[0].component as GroupFieldComponent;
+    expect(group.formFieldCompMapEntries.length).toBe(3);
+
+    const group2 = group.formFieldCompMapEntries[2].component;
+    expect(group2?.formFieldCompMapEntries?.length).toBe(1);
+    expect(group2?.formFieldCompMapEntries[0]?.lineagePaths).toEqual({
+      angularComponents: ["group_1_component", "group_2_component", "text_5"],
+      angularComponentsJsonPointer: "/group_1_component/group_2_component/text_5",
+      dataModel: ["group_1_component", "group_2_component", "text_5"],
+      formConfig: ["componentDefinitions", 0, "component", "config", "componentDefinitions", 2],
+    });
   });
 
 });

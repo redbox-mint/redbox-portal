@@ -1,5 +1,8 @@
 import {Observable, of} from "rxjs";
-import {FormRecordConsistencyService as FormRecordConsistencyModule, FormsService as FormsModule} from "@researchdatabox/redbox-core-types";
+import {
+    FormRecordConsistencyService as FormRecordConsistencyModule,
+    FormsService as FormsModule
+} from "@researchdatabox/redbox-core-types";
 import {
     AvailableFormComponentDefinitionFrames,
     FormConfigFrame, FormValidatorSummaryErrors,
@@ -133,7 +136,10 @@ describe('The FormRecordConsistencyService', function () {
                                 config: {
                                     elementTemplate: {
                                         name: null,
-                                        model: {class: 'GroupModel', config: {newEntryValue: {text_2: 'hello world 2!'}}},
+                                        model: {
+                                            class: 'GroupModel',
+                                            config: {newEntryValue: {text_2: 'hello world 2!'}}
+                                        },
                                         component: {
                                             class: 'GroupComponent',
                                             config: {
@@ -453,9 +459,13 @@ describe('The FormRecordConsistencyService', function () {
                                                             config: {
                                                                 elementTemplate: {
                                                                     name: null,
-                                                                    model: {class: 'GroupModel', config: {newEntryValue: {
-                                                                        text_group_repeatable_3:"text_group_repeatable_3 default"
-                                                                    }}},
+                                                                    model: {
+                                                                        class: 'GroupModel', config: {
+                                                                            newEntryValue: {
+                                                                                text_group_repeatable_3: "text_group_repeatable_3 default"
+                                                                            }
+                                                                        }
+                                                                    },
                                                                     component: {
                                                                         class: 'GroupComponent',
                                                                         config: {
@@ -665,7 +675,10 @@ describe('The FormRecordConsistencyService', function () {
                                             config: {
                                                 elementTemplate: {
                                                     name: null,
-                                                    model: {class: 'GroupModel', config: {newEntryValue: {repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"]}}},
+                                                    model: {
+                                                        class: 'GroupModel',
+                                                        config: {newEntryValue: {repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"]}}
+                                                    },
                                                     component: {
                                                         class: 'GroupComponent',
                                                         config: {
@@ -884,7 +897,12 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_1",
                     "message": null,
-                    "parents": [],
+                    lineagePaths: {
+                        formConfig: ["componentDefinitions", "0"],
+                        dataModel: ["text_1"],
+                        angularComponents: ["text_1"],
+                        angularComponentsJsonPointer: "/text_1",
+                    },
                     "errors": [
                         {
                             "class": "minLength",
@@ -907,7 +925,12 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_2",
                     "message": "@text_2_custom_label",
-                    "parents": [],
+                    lineagePaths: {
+                        formConfig: ["componentDefinitions", "1"],
+                        dataModel: ["text_2"],
+                        angularComponents: ["text_2"],
+                        angularComponentsJsonPointer: "/text_2",
+                    },
                     "errors": [
                         {
                             "class": "requiredTrue",
@@ -922,9 +945,18 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_5",
                     "message": null,
-                    "parents": [
-                        "group_2"
-                    ],
+                    lineagePaths: {
+                        formConfig: [
+                            "componentDefinitions",
+                            "2",
+                            "component",
+                            "config",
+                            "componentDefinitions",
+                            "1"
+                        ], dataModel: ["group_2", "text_5"],
+                        angularComponents: ["group_2", "text_5"],
+                        angularComponentsJsonPointer: "/group_2/text_5",
+                    },
                     "errors": [
                         {
                             "message": "@validator-error-required",
@@ -939,9 +971,18 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "text_3",
                     "message": null,
-                    "parents": [
-                        "group_2"
-                    ],
+                    lineagePaths: {
+                        formConfig: [
+                            "componentDefinitions",
+                            "2",
+                            "component",
+                            "config",
+                            "componentDefinitions",
+                            "2"
+                        ], dataModel: ["group_2", "text_3"],
+                        angularComponents: ["group_2", "text_3"],
+                        angularComponentsJsonPointer: "/group_2/text_3",
+                    },
                     "errors": [
                         {
                             "class": "pattern",
@@ -965,7 +1006,12 @@ describe('The FormRecordConsistencyService', function () {
                 {
                     "id": "default-1.0-draft",
                     "message": null,
-                    "parents": [],
+                    lineagePaths: {
+                        formConfig: [],
+                        dataModel: [],
+                        angularComponents: [],
+                        angularComponentsJsonPointer: "",
+                    },
                     "errors": [
                         {
                             "class": "different-values",
@@ -1123,16 +1169,20 @@ describe('The FormRecordConsistencyService', function () {
                                             config: {
                                                 elementTemplate: {
                                                     name: null,
-                                                    model: {class: 'GroupModel', config: {newEntryValue:{
-                                                        repeatable_4:["repeatable_4 default 1", "repeatable_4 default 2"]
-                                                    }}},
+                                                    model: {
+                                                        class: 'GroupModel', config: {
+                                                            newEntryValue: {
+                                                                repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"]
+                                                            }
+                                                        }
+                                                    },
                                                     component: {
                                                         class: 'GroupComponent',
                                                         config: {
                                                             componentDefinitions: [
                                                                 {
                                                                     name: 'repeatable_4',
-                                                                    model: {class: 'RepeatableModel',config: {}},
+                                                                    model: {class: 'RepeatableModel', config: {}},
                                                                     component: {
                                                                         class: 'RepeatableComponent',
                                                                         config: {

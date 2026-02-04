@@ -1,69 +1,64 @@
-import {get as _get} from "lodash";
 import {ILogger} from "../../logger.interface";
 import {FieldLayoutConfigFrame} from "../field-layout.outline";
 import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldModelConfigFrame} from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
-import {FormConstraintAuthorizationConfig, FormConstraintConfig } from "../form-component.model";
+import {FormConstraintAuthorizationConfig, FormConstraintConfig} from "../form-component.model";
 import {
     ComponentClassDefMapType,
     FieldComponentDefinitionMap,
     FieldLayoutDefinitionMap,
     FieldModelDefinitionMap,
     FormComponentClassDefMapType,
-    FormComponentDefinitionMap,
+    FormComponentDefinitionMap, KindNameDefaultsMap, KindNameDefaultsMapType,
     LayoutClassDefMapType,
     ModelClassDefMapType,
 } from "../dictionary.model";
+import {
+    buildLineagePaths,
+    LineagePath,
+    LineagePaths,
+    LineagePathsPartial,
+} from "../names/naming-helpers";
+import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {FieldLayoutDefinitionKind, FieldModelDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
 
 export class PropertiesHelper {
     private fieldComponentMap: ComponentClassDefMapType;
     private fieldModelMap: ModelClassDefMapType;
     private fieldLayoutMap: LayoutClassDefMapType;
     private formComponentMap: FormComponentClassDefMapType;
+    private kindNameDefaultsMap: KindNameDefaultsMapType;
 
     constructor() {
         this.fieldComponentMap = FieldComponentDefinitionMap;
         this.fieldModelMap = FieldModelDefinitionMap;
         this.fieldLayoutMap = FieldLayoutDefinitionMap;
         this.formComponentMap = FormComponentDefinitionMap;
-    }
-
-    public getDataPath(data?: unknown, path?: string[]) {
-        // TODO: fix 'data' typing
-        const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
-        return result;
+        this.kindNameDefaultsMap = KindNameDefaultsMap;
     }
 
     /**
      * Create a new instance of a form component.
-     * @param item The form component definition.
+     * Populate the common form component properties.
+     * @param currentData The form component definition.
      */
-    public sharedConstructFormComponent(item: FormComponentDefinitionFrame) {
+    public sharedConstructFormComponent(currentData: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
         // The class to use is identified by the class property string values in the field definitions.
-        const componentClassString = item?.component?.class;
+        const formComponentClassString = currentData?.component?.class;
 
         // The class to use is identified by the class property string values in the field definitions.
         // The form component is identifier the component field class string
-        const formComponentClass = this.formComponentMap?.get(componentClassString);
+        const formComponentClass = this.formComponentMap?.get(formComponentClassString);
 
         // Create new instance
-        if (formComponentClass) {
-            return new formComponentClass();
-        } else {
-            return null;
+        if (!formComponentClass) {
+            throw new Error(`Could not find class for form component class name '${currentData?.component?.class}': : ${JSON.stringify(currentData)}`)
         }
-    }
 
-    /**
-     * Populate the common form component properties.
-     *
-     * @param item The form component instance.
-     * @param currentData
-     * @protected
-     */
-    public sharedPopulateFormComponent(item: FormComponentDefinitionOutline, currentData: FormComponentDefinitionFrame): void {
+        const item = new formComponentClass();
+
         // Set the simple properties
         item.name = currentData.name;
         item.module = currentData.module;
@@ -85,30 +80,42 @@ export class PropertiesHelper {
         // Set the overrides, as they might be used to transform this component into other components.
         item.overrides = currentData.overrides;
 
-        // Get the class string names.
+        // Create the field component class instance.
         const componentClassString = currentData?.component?.class;
-        const modelClassString = currentData?.model?.class;
-        const layoutClassString = currentData?.layout?.class;
-
-        // Get the classes
         const componentClass = this.fieldComponentMap?.get(componentClassString);
-        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
-        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
-
-        // Create new instances
         if (!componentClass) {
             throw new Error(`Could not find class for field component class string '${componentClassString}'.`)
         }
         const component = new componentClass();
-        const model = modelClass ? new modelClass() : null;
-        const layout = layoutClass ? new layoutClass() : null;
-
-        // Set the instances
         item.component = component;
-        item.model = model || undefined;
-        item.layout = layout || undefined;
-    }
 
+        const sourceDefaultsMap = this.kindNameDefaultsMap.get(FormComponentDefinitionKind);
+        const targetDefaultsMap = sourceDefaultsMap?.get(componentClassString);
+
+        // Create the model class instance.
+        // If there is no model class, use the default if there is one.
+        const modelClassDefaultName = targetDefaultsMap?.get(FieldModelDefinitionKind);
+        const modelClassString = currentData?.model?.class ?? modelClassDefaultName;
+        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
+        const model = modelClass ? new modelClass() : undefined;
+        item.model = model;
+        if (model) {
+            this.setFieldClassName(currentData, "model", modelClassString);
+        }
+
+        // Create the layout class instance.
+        // If there is no layout class, use the default if there is one.
+        const layoutClassDefaultName = targetDefaultsMap?.get(FieldLayoutDefinitionKind);
+        const layoutClassString = currentData?.layout?.class ?? layoutClassDefaultName;
+        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
+        const layout = layoutClass ? new layoutClass() : undefined;
+        item.layout = layout;
+        if (layout) {
+            this.setFieldClassName(currentData, "layout", layoutClassString);
+        }
+
+        return item;
+    }
 
     /**
      * Set the common field component config properties.
@@ -207,47 +214,60 @@ export class PropertiesHelper {
             target[name] = propValue;
         }
     }
+
+    private setFieldClassName(currentData: FormComponentDefinitionFrame, fieldTypeName: "model" | "layout", className: string | null | undefined) {
+        if (currentData === undefined || currentData === null || className === undefined || className === null) {
+            return;
+        }
+        if (currentData[fieldTypeName] === undefined || currentData[fieldTypeName] === null) {
+            currentData[fieldTypeName] = {class: className};
+            return;
+        } else if (currentData[fieldTypeName]?.class === undefined || currentData[fieldTypeName]?.class === null) {
+            currentData[fieldTypeName].class = className;
+        }
+    }
 }
 
-export class FormConfigPathHelper {
-    protected logName = "FormConfigPathHelper";
+export class FormPathHelper {
+    protected logName = "FormPathHelper";
 
     protected logger: ILogger;
     private visitor: FormConfigVisitorOutline;
 
-    private _formConfigPath: string[];
+    private _formPath: LineagePaths;
 
     constructor(logger: ILogger, visitor: FormConfigVisitorOutline) {
         this.logger = logger;
         this.visitor = visitor;
 
-        this._formConfigPath = [];
+        this._formPath = buildLineagePaths();
     }
 
-    get formConfigPath(): string[] {
-        return this._formConfigPath;
+    get formPath(): LineagePaths {
+        return this._formPath;
     }
 
     public reset() {
-        this._formConfigPath = [];
+        this._formPath = buildLineagePaths();
     }
 
     /**
      * Call accept on the provided item and set the current path with the given suffix.
      * Set the current path to the previous value after the accept method is done.
      * @param item The item to visit.
-     * @param more The path to add to the end of the current path.
+     * @param more The lineage paths to add to the end of the current paths.
      */
-    public acceptFormConfigPath(item: CanVisit, more: string[]): void {
-        const original = [...(this._formConfigPath ?? [])];
+    public acceptFormPath(item: CanVisit, more?: LineagePathsPartial): void {
+        // Copy the original lineage paths so they can be restored.
+        const original = buildLineagePaths(this._formPath);
         try {
-            this._formConfigPath = [...original, ...(more ?? [])];
+            this._formPath = buildLineagePaths(original, more);
             item.accept(this.visitor);
         } catch (error) {
-            // rethrow error - the finally block will ensure the formConfigPath is correct
+            // Rethrow error - the finally block will ensure the original is restored.
             throw error;
         } finally {
-            this._formConfigPath = original;
+            this._formPath = original;
         }
     }
 
@@ -256,12 +276,78 @@ export class FormConfigPathHelper {
      * @param item The form component definition outline.
      */
     public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptFormConfigPath(item.component, ['component']);
+        this.acceptFormPath(item.component, {formConfig: ['component']});
         if (item.model) {
-            this.acceptFormConfigPath(item.model, ['model']);
+            this.acceptFormPath(item.model, {formConfig: ['model']});
         }
         if (item.layout) {
-            this.acceptFormConfigPath(item.layout, ['layout']);
+            this.acceptFormPath(item.layout, {formConfig: ['layout']});
         }
+    }
+
+    public lineagePathsForFormConfigComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["componentDefinitions", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        }
+    }
+
+    public lineagePathsForGroupFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    public lineagePathsForTabFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "tabs", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    public lineagePathsForTabContentFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        }
+    }
+
+    public lineagePathsForRepeatableFieldComponentDefinition(item: FormComponentDefinitionOutline): LineagePathsPartial {
+        return {
+            formConfig: ["config", "elementTemplate"],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    private getFormPathDataModel(item: FormComponentDefinitionOutline): string[] {
+        const itemName = item?.name ?? "";
+
+        // NOTE: The repeatable elementTemplate should not be part of the data model path.
+        // This is done by also checking the name - it has a model, but it must have a 'falsy' name.
+
+        // TODO: does this need to cater for components that have no model but need the model data, like content component?
+
+        const dataModel = [];
+        if (itemName && item.model !== undefined && item.model !== null) {
+            dataModel.push(itemName);
+        }
+
+        return dataModel;
+    }
+
+    private getFormPathAngularComponents(item: FormComponentDefinitionOutline) {
+        const itemName = item?.name ?? "";
+        const angularComponents: LineagePath = [];
+        // TODO: don't include the top-level form config name
+        if (itemName) {
+            angularComponents.push(itemName)
+        }
+        return angularComponents;
     }
 }

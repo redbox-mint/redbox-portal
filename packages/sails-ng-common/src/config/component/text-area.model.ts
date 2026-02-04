@@ -99,4 +99,11 @@ export const TextAreaMap = [
     {kind: FieldModelDefinitionKind, def: TextAreaFieldModelDefinition, class: TextAreaModelName},
     {kind: FormComponentDefinitionKind, def: TextAreaFormComponentDefinition, class:TextAreaComponentName},
 ];
-
+export const TextAreaDefaults = {
+    [FormComponentDefinitionKind]: {
+        [TextAreaComponentName]: {
+            [FieldComponentDefinitionKind]: TextAreaComponentName,
+            [FieldModelDefinitionKind]: TextAreaModelName,
+        },
+    },
+};

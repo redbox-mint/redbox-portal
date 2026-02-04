@@ -1,6 +1,6 @@
 <ng-container #componentsContainer></ng-container>
 @if (componentDefArr.length > 0 && formDefMap?.formConfig?.debugValue) {
-  <div class="alert alert-info" role="alert">
+  <div class="alert alert-secondary" role="alert">
     <h4>Form Values Debug</h4>
     <pre [innerHtml]="form?.value | json"></pre>
   </div>
