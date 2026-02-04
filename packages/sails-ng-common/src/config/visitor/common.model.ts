@@ -84,10 +84,9 @@ export class PropertiesHelper {
         const componentClassString = currentData?.component?.class;
         const componentClass = this.fieldComponentMap?.get(componentClassString);
         if (!componentClass) {
-            throw new Error(`Could not find class for field component class string '${componentClassString}'.`)
+            throw new Error(`Could not find class for field component class string '${componentClassString}'.`);
         }
-        const component = new componentClass();
-        item.component = component;
+        item.component = new componentClass();
 
         const sourceDefaultsMap = this.kindNameDefaultsMap.get(FormComponentDefinitionKind);
         const targetDefaultsMap = sourceDefaultsMap?.get(componentClassString);
@@ -97,6 +96,9 @@ export class PropertiesHelper {
         const modelClassDefaultName = targetDefaultsMap?.get(FieldModelDefinitionKind);
         const modelClassString = currentData?.model?.class ?? modelClassDefaultName;
         const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
+        if (modelClassString && !modelClass) {
+            throw new Error(`Could not find class for field model class string '${modelClassString}'.`);
+        }
         const model = modelClass ? new modelClass() : undefined;
         item.model = model;
         if (model) {
@@ -108,6 +110,9 @@ export class PropertiesHelper {
         const layoutClassDefaultName = targetDefaultsMap?.get(FieldLayoutDefinitionKind);
         const layoutClassString = currentData?.layout?.class ?? layoutClassDefaultName;
         const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
+        if (layoutClassString && !layoutClass) {
+            throw new Error(`Could not find class for field layout class string '${layoutClassString}'.`);
+        }
         const layout = layoutClass ? new layoutClass() : undefined;
         item.layout = layout;
         if (layout) {
