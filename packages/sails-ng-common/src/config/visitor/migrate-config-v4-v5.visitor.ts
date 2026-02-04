@@ -1,25 +1,16 @@
-import {cloneDeep as _cloneDeep, mergeWith as _mergeWith} from "lodash";
+import {cloneDeep as _cloneDeep} from "lodash";
 import {FormConfig} from "../form-config.model";
+import {FormConfigOutline} from "../form-config.outline";
 import {
-    ComponentClassDefMapType,
-    FieldComponentDefinitionMap,
-    FieldLayoutDefinitionMap,
-    FieldModelDefinitionMap, FormComponentClassDefMapType,
-    FormComponentDefinitionMap, LayoutClassDefMapType, ModelClassDefMapType,
-} from "../dictionary.model";
-import {CurrentPathFormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {
-    GroupFieldComponentDefinitionFrame,
-    GroupFieldComponentDefinitionOutline, GroupFieldComponentName, GroupFieldModelDefinitionFrame,
-    GroupFieldModelDefinitionOutline, GroupFieldModelName,
+    GroupFieldComponentDefinitionOutline,
+    GroupFieldComponentName,
+    GroupFieldModelDefinitionOutline,
+    GroupFieldModelName,
     GroupFormComponentDefinitionOutline
 } from "../component/group.outline";
 import {
-    RepeatableComponentName, RepeatableElementFieldLayoutDefinitionFrame,
-    RepeatableElementFieldLayoutDefinitionOutline, RepeatableElementLayoutName, RepeatableFieldComponentDefinitionFrame,
-    RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionFrame, RepeatableFieldModelDefinitionOutline,
+    RepeatableComponentName, RepeatableElementFieldLayoutDefinitionOutline, RepeatableFieldComponentDefinitionOutline,
+    RepeatableFieldModelDefinitionOutline,
     RepeatableFormComponentDefinitionOutline, RepeatableModelName
 } from "../component/repeatable.outline";
 import {
@@ -33,36 +24,31 @@ import {
 } from "../component/group.model";
 import {
     SimpleInputComponentName,
-    SimpleInputFieldComponentDefinitionFrame,
-    SimpleInputFieldComponentDefinitionOutline, SimpleInputFieldModelDefinitionFrame,
-    SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline, SimpleInputModelName
+    SimpleInputFieldComponentDefinitionOutline,
+    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFormComponentDefinitionOutline,
+    SimpleInputModelName
 } from "../component/simple-input.outline";
 import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simple-input.model";
 import {
-    DefaultFieldLayoutDefinitionFrame,
     DefaultFieldLayoutDefinitionOutline, DefaultLayoutName
 } from "../component/default-layout.outline";
 import {DefaultFieldLayoutConfig, DefaultFieldLayoutDefinition} from "../component/default-layout.model";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig, FormExpressionsConfig} from "../form-component.model";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {
-    ContentComponentName, ContentFieldComponentDefinitionFrame,
-    ContentFieldComponentDefinitionOutline,
+    ContentComponentName, ContentFieldComponentDefinitionOutline,
     ContentFormComponentDefinitionOutline
 } from "../component/content.outline";
 import {
-    TabComponentName, TabFieldComponentDefinitionFrame,
-    TabFieldComponentDefinitionOutline, TabFieldLayoutDefinitionFrame,
-    TabFieldLayoutDefinitionOutline,
+    TabComponentName, TabFieldComponentDefinitionOutline, TabFieldLayoutDefinitionOutline,
     TabFormComponentDefinitionOutline, TabLayoutName
 } from "../component/tab.outline";
 import {TabFieldComponentConfig, TabFieldLayoutConfig} from "../component/tab.model";
 import {
     TabContentComponentName,
-    TabContentFieldComponentDefinitionFrame,
-    TabContentFieldComponentDefinitionOutline, TabContentFieldLayoutDefinitionFrame,
-    TabContentFieldLayoutDefinitionOutline,
-    TabContentFormComponentDefinitionFrame, TabContentFormComponentDefinitionOutline, TabContentLayoutName
+    TabContentFieldComponentDefinitionOutline, TabContentFieldLayoutDefinitionOutline,
+    TabContentFormComponentDefinitionOutline, TabContentLayoutName
 } from "../component/tab-content.outline";
 import {
     TabContentFieldComponentConfig,
@@ -71,9 +57,10 @@ import {
 } from "../component/tab-content.model";
 import {
     TextAreaComponentName,
-    TextAreaFieldComponentDefinitionFrame,
-    TextAreaFieldComponentDefinitionOutline, TextAreaFieldModelDefinitionFrame,
-    TextAreaFieldModelDefinitionOutline, TextAreaFormComponentDefinitionOutline, TextAreaModelName
+    TextAreaFieldComponentDefinitionOutline,
+    TextAreaFieldModelDefinitionOutline,
+    TextAreaFormComponentDefinitionOutline,
+    TextAreaModelName
 } from "../component/text-area.outline";
 import {TextAreaFieldComponentConfig, TextAreaFieldModelConfig} from "../component/text-area.model";
 import {
@@ -83,89 +70,97 @@ import {
 } from "../component/content.model";
 import {
     DropdownInputComponentName,
-    DropdownInputFieldComponentDefinitionFrame,
-    DropdownInputFieldComponentDefinitionOutline, DropdownInputFieldModelDefinitionFrame,
-    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline, DropdownInputModelName
+    DropdownInputFieldComponentDefinitionOutline,
+    DropdownInputFieldModelDefinitionOutline,
+    DropdownInputFormComponentDefinitionOutline,
+    DropdownInputModelName
 } from "../component/dropdown-input.outline";
 import {DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig} from "../component/dropdown-input.model";
 import {
-    CheckboxInputComponentName,
-    CheckboxInputFieldComponentDefinitionFrame,
-    CheckboxInputFieldComponentDefinitionOutline, CheckboxInputFieldModelDefinitionFrame,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline, CheckboxInputModelName
+    CheckboxInputFieldComponentDefinitionOutline,
+    CheckboxInputFieldModelDefinitionOutline,
+    CheckboxInputFormComponentDefinitionOutline
 } from "../component/checkbox-input.outline";
 import {CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig} from "../component/checkbox-input.model";
 import {
-    RadioInputComponentName, RadioInputFieldComponentDefinitionFrame,
-    RadioInputFieldComponentDefinitionOutline, RadioInputFieldModelDefinitionFrame,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline, RadioInputModelName
+    RadioInputFieldComponentDefinitionOutline,
+    RadioInputFieldModelDefinitionOutline,
+    RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
 import {RadioInputFieldComponentConfig, RadioInputFieldModelConfig} from "../component/radio-input.model";
 import {
     DateInputComponentName,
-    DateInputFieldComponentDefinitionFrame,
-    DateInputFieldComponentDefinitionOutline, DateInputFieldModelDefinitionFrame,
-    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline, DateInputModelName
+    DateInputFieldComponentDefinitionOutline,
+    DateInputFieldModelDefinitionOutline,
+    DateInputFormComponentDefinitionOutline,
+    DateInputModelName
 } from "../component/date-input.outline";
 import {DateInputFieldComponentConfig, DateInputFieldModelConfig} from "../component/date-input.model";
 import {
     SaveButtonComponentName,
-    SaveButtonFieldComponentDefinitionFrame,
     SaveButtonFieldComponentDefinitionOutline,
     SaveButtonFormComponentDefinitionOutline
 } from "../component/save-button.outline";
 import {SaveButtonFieldComponentConfig} from "../component/save-button.model";
 import {
-    ValidationSummaryComponentName,
-    ValidationSummaryFieldComponentDefinitionFrame,
     ValidationSummaryFieldComponentDefinitionOutline,
     ValidationSummaryFormComponentDefinitionOutline
 } from "../component/validation-summary.outline";
 import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
-import {
-    isTypeFieldDefinitionName,
-    isTypeFormComponentDefinition, isTypeFormComponentDefinitionName,
-    isTypeFormConfig,
-} from "../helpers";
-import {AvailableFormComponentDefinitionFrames, ReusableFormDefinitions} from "../dictionary.outline";
-import {FormModesConfig} from "../shared.outline";
-import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "../component/reusable.outline";
+
 import {FormModel, ILogger} from "@researchdatabox/redbox-core-types";
-import {ConstructOverrides} from "./construct.overrides";
 import {FieldModelConfigFrame} from "../field-model.outline";
 import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldLayoutConfigFrame} from "../field-layout.outline";
+import {FormConfigVisitor} from "./base.model";
+import {FormConfigPathHelper, PropertiesHelper} from "./common.model";
 
 
-export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisitor {
-    private original?: FormModel;
-    private result?: FormConfigOutline;
+export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
+    protected override logName = "MigrationV4ToV5FormConfigVisitor";
 
-    private fieldComponentMap?: ComponentClassDefMapType;
-    private fieldModelMap?: ModelClassDefMapType;
-    private fieldLayoutMap?: LayoutClassDefMapType;
-    private formComponentMap?: FormComponentClassDefMapType;
+    private data: FormModel;
+    private formConfig: FormConfigOutline;
+
+    protected formConfigPathHelper: FormConfigPathHelper;
+    protected sharedProps: PropertiesHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-        this.fieldComponentMap = FieldComponentDefinitionMap;
-        this.fieldModelMap = FieldModelDefinitionMap;
-        this.fieldLayoutMap = FieldLayoutDefinitionMap;
-        this.formComponentMap = FormComponentDefinitionMap;
+
+        this.data = {
+            attachmentFields: undefined,
+            customAngularApp: {appName: "", appSelector: ""},
+            editCssClasses: "",
+            fields: [],
+            messages: {},
+            name: "",
+            requiredFieldIndicator: "",
+            skipValidationOnSave: false,
+            type: "",
+            viewCssClasses: "",
+            workflowStep: "",
+        };
+        this.formConfig = new FormConfig();
+
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.sharedProps = new PropertiesHelper();
     }
 
-    start(original: FormModel): FormConfigFrame {
-        this.original = _cloneDeep(original) ?? {};
-        this.result = new FormConfig();
-        this.resetCurrentPath();
-        this.result.accept(this);
-        return this.result;
+    start(options: { data: FormModel }): FormConfigOutline {
+        this.data = _cloneDeep(options.data);
+
+        this.formConfigPathHelper.reset();
+
+        this.formConfig = new FormConfig();
+        this.formConfig.accept(this);
+        return this.formConfig;
     }
 
     /* Form Config */
 
     visitFormConfig(item: FormConfigOutline): void {
-        const currentData = this.getDataPath(this.original, this.currentPath);
+        const currentData = this.getData();
 
         // Set properties that are the same in v4 and v5.
         this.sharedProps.setPropOverride('name', item, currentData);
@@ -181,18 +176,18 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         // TODO: form.attachmentFields?
 
         // TODO: enabledValidationGroups
-        // // Convert properties from v4 to v5.
-        // if (Object.hasOwn(currentData, 'skipValidationOnSave')) {
-        //     switch (currentData.skipValidationOnSave) {
-        //         case true:
-        //             item.enabledValidationGroups = ["none"];
-        //             break;
-        //         default:
-        //         case false:
-        //             item.enabledValidationGroups = ["all"];
-        //             break;
-        //     }
-        // }
+        // Convert properties from v4 to v5.
+        if (Object.hasOwn(currentData, 'skipValidationOnSave')) {
+            switch (currentData.skipValidationOnSave) {
+                case true:
+                    item.enabledValidationGroups = ["none"];
+                    break;
+                default:
+                case false:
+                    item.enabledValidationGroups = ["all"];
+                    break;
+            }
+        }
 
         // Convert components.
         const fields: Record<string, unknown>[] = currentData.fields ?? [];
@@ -696,7 +691,9 @@ export class MigrationV4ToV5FormConfigVisitor extends CurrentPathFormConfigVisit
         // this.sharedProps.setPropOverride('helpTextVisible', item, config);
     }
 
-
+    protected getData(): unknown {
+        return this.sharedProps.getDataPath(this.data, this.formConfigPathHelper.formConfigPath);
+    }
 }
 
 interface MappedClasses {
