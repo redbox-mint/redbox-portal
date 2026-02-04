@@ -356,6 +356,7 @@ jobs:
       - run:
           name: Install packages
           command: |
+            npm install --no-save --ignore-scripts
             cd ./packages/sails-ng-common
             npm ci --include=dev
       - run:
@@ -399,7 +400,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido
       - run:
           name: Install packages
           command: |
