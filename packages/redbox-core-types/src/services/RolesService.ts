@@ -29,6 +29,11 @@ declare var _: any;
 
 
 export module Services {
+  interface AuthBrandConfig {
+    aaf?: { defaultRole?: string };
+    defaultRole?: string;
+  }
+
   /**
    * Roles services
    *
@@ -74,8 +79,10 @@ export module Services {
     }
 
     public getDefAuthenticatedRole = (brand: any): any => {
-      sails.log.verbose(this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name));
-      return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name);
+      const authConfig = (ConfigService.getBrand(brand.name, 'auth') as AuthBrandConfig) ?? {};
+      const defaultRole = authConfig.aaf?.defaultRole ?? 'Researcher';
+      sails.log.verbose(this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name));
+      return this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name);
     }
 
     public getNestedRoles = (role: string, brandRoles: any[]) => {
@@ -88,7 +95,9 @@ export module Services {
     }
 
     public getDefUnathenticatedRole = (brand: any): any => {
-      return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').defaultRole).name);
+      const authConfig = (ConfigService.getBrand(brand.name, 'auth') as AuthBrandConfig) ?? {};
+      const defaultRole = authConfig.defaultRole ?? 'Guest';
+      return this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name);
     }
 
     public getRolesWithBrand = (brand: any): Observable<any> => {

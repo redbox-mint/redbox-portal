@@ -33,7 +33,7 @@ import { Services as services } from '../CoreService';
 import * as crypto from 'crypto';
 
 
-declare var sails: Sails.Application;
+declare var sails: any;
 declare var User: Sails.Model<any>;
 declare var Role: Sails.Model<any>;
 declare var UserAudit: Sails.Model<any>;
@@ -42,6 +42,39 @@ declare const Buffer: typeof globalThis.Buffer;
 declare var _: any;
 
 export module Services {
+  interface AuthBrandConfig {
+    active?: string[];
+    local?: {
+      usernameField?: string;
+      passwordField?: string;
+      default?: {
+        adminUser?: string;
+        adminPw?: string;
+        email?: string;
+        token?: string;
+      };
+    };
+    aaf?: {
+      defaultRole?: string;
+      usernameField?: string;
+      attributesField?: string;
+      opts?: Record<string, unknown>;
+    };
+    oidc?: OidcAuthConfig | OidcAuthConfig[];
+  }
+
+  interface OidcAuthConfig {
+    identifier?: string;
+    opts: {
+      issuer: unknown;
+      client: unknown;
+      params?: Record<string, unknown>;
+    };
+    discoverAttemptsMax: number;
+    discoverFailureSleep?: number;
+    userInfoSource?: string;
+  }
+
   /**
    * Use services...
    *
@@ -72,12 +105,16 @@ export module Services {
 
     searchService!: SearchService;
 
+    private getAuthConfig(brandName: string): AuthBrandConfig {
+      return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
+    }
+
     protected localAuthInit () {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = defAuthConfig.local.usernameField,
-        passwordField = defAuthConfig.local.passwordField;
+      const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
+      const usernameField = defAuthConfig.local?.usernameField ?? 'username';
+      const passwordField = defAuthConfig.local?.passwordField ?? 'password';
       //
       // --------- Passport --------------
       //
@@ -395,7 +432,7 @@ export module Services {
     protected aafAuthInit = () => {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+      const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
       //
       // JWT/AAF Strategy
       //
@@ -404,19 +441,19 @@ export module Services {
       if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
         var JwtStrategy = require('passport-jwt').Strategy,
           ExtractJwt = require('passport-jwt').ExtractJwt;
-        const aafOpts = defAuthConfig.aaf.opts;
+        const aafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
         aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
         sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req: any, jwt_payload: any, done: any) {
           const brandName:string = BrandingService.getBrandFromReq(req);
 
           const brand:BrandingModel = BrandingService.getBrand(brandName);
           
-          const authConfig = ConfigService.getBrand(brand.name, 'auth');
-          var aafAttributes = authConfig.aaf.attributesField;
+          const authConfig = that.getAuthConfig(brand.name);
+          const aafAttributes = authConfig.aaf?.attributesField ?? 'attributes';
           sails.log.verbose("Configured roles: ")
           sails.log.verbose(sails.config.auth.roles);
           sails.log.verbose("AAF default roles ")
-          sails.log.verbose(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole)
+          sails.log.verbose(authConfig.aaf?.defaultRole)
           sails.log.verbose("Brand roles ")
           sails.log.verbose(brand.roles)
           sails.log.verbose("Brand")
@@ -426,7 +463,7 @@ export module Services {
           if (defaultAuthRole != undefined) {
             aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
           }
-          var aafUsernameField = authConfig.aaf.usernameField;
+          const aafUsernameField = authConfig.aaf?.usernameField ?? 'username';
           const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
           User.findOne({
             username: userName
@@ -616,15 +653,16 @@ export module Services {
 
     protected openIdConnectAuth = () => {
       this.registerSailsHook('on', 'ready', async () => {
-        const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+        const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
         sails.log.verbose(`OIDC, checking if within active array: ${defAuthConfig.active}`);
         if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
           const that = this;
           sails.log.verbose(`OIDC is active, configuring....`);
-          let oidcConfigArray = defAuthConfig.oidc;
-          if (_.isObject(oidcConfigArray)) {
-            let singleOidcConfig = oidcConfigArray;
-            oidcConfigArray = [singleOidcConfig];
+          let oidcConfigArray: OidcAuthConfig[] = [];
+          if (Array.isArray(defAuthConfig.oidc)) {
+            oidcConfigArray = defAuthConfig.oidc;
+          } else if (_.isObject(defAuthConfig.oidc) && !_.isEmpty(defAuthConfig.oidc)) {
+            oidcConfigArray = [defAuthConfig.oidc as OidcAuthConfig];
           }
           for (let oidcConfig of oidcConfigArray) {
             const oidcOpts = oidcConfig.opts;
@@ -675,7 +713,7 @@ export module Services {
               } catch (e) {
                 sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
                 sails.log.error(e);
-                await this.sleep(oidcConfig.discoverFailureSleep);
+                await this.sleep(oidcConfig.discoverFailureSleep ?? 1000);
               }
             }
           }
@@ -956,11 +994,11 @@ export module Services {
     }
 
     protected initDefAdmin = (defRoles: any[], defAdminRole: any) => {
-      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = authConfig.local.usernameField,
-        passwordField = authConfig.local.passwordField;
+      const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
+      const usernameField = authConfig.local?.usernameField ?? 'username';
+      const passwordField = authConfig.local?.passwordField ?? 'password';
       var defaultUser = _.find(defAdminRole.users, (o: any) => {
-        return o[usernameField] == authConfig.local.default.adminUser
+        return o[usernameField] == authConfig.local?.default?.adminUser
       });
 
       if (defaultUser == null) {
@@ -968,10 +1006,10 @@ export module Services {
           type: 'local',
           name: 'Local Admin'
         };
-        defaultUser[usernameField] = authConfig.local.default.adminUser;
-        defaultUser[passwordField] = authConfig.local.default.adminPw;
-        defaultUser["email"] = authConfig.local.default.email;
-        if (authConfig.local.default.token) {
+        defaultUser[usernameField] = authConfig.local?.default?.adminUser;
+        defaultUser[passwordField] = authConfig.local?.default?.adminPw;
+        defaultUser["email"] = authConfig.local?.default?.email;
+        if (authConfig.local?.default?.token) {
           defaultUser["token"] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
         }
         sails.log.verbose("Default user missing, creating...");
@@ -1057,9 +1095,9 @@ export module Services {
      *
      */
     public addLocalUser = (username: string, name: string, email: string, password: string): Observable<UserModel> => {
-      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = authConfig.local.usernameField,
-        passwordField = authConfig.local.passwordField;
+      const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
+      const usernameField = authConfig.local?.usernameField ?? 'username';
+      const passwordField = authConfig.local?.passwordField ?? 'password';
 
       return this.getUserWithUsername(username).pipe(flatMap(user => {
         if (user) {
@@ -1098,11 +1136,11 @@ export module Services {
     */
     public bootstrap = (defRoles: any) => {
       let that = this;
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+      const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
       sails.log.verbose("Bootstrapping users....");
 
-      var usernameField = defAuthConfig.local.usernameField,
-        passwordField = defAuthConfig.local.passwordField;
+      const usernameField = defAuthConfig.local?.usernameField ?? 'username';
+      const passwordField = defAuthConfig.local?.passwordField ?? 'password';
       var defAdminRole = RolesService.getAdminFromRoles(defRoles);
       return of(defAdminRole)
         .pipe(flatMap(defAdminRole => {
@@ -1168,8 +1206,8 @@ export module Services {
     }
 
     public updateUserDetails = (userid: string | number, name: string, email: string, password: string): Observable<UserModel[]> => {
-      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var passwordField = authConfig.local.passwordField;
+      const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
+      const passwordField = authConfig.local?.passwordField ?? 'password';
       return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           const update: Record<string, any> = {

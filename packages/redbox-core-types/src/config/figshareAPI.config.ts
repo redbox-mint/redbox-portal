@@ -766,7 +766,7 @@ export const figshareAPI: FigshareApiConfig = {
                             message: '@dataPublication-relatedResources-title-empty'
                         },
                         {
-                            regexValidation: '^10.\\d{4,9}\/[-._;()\/:A-Z0-9]+$',
+                            regexValidation: '^10.\\d{4,9}/[-._;()/:A-Z0-9]+$',
                             caseSensitive: false,
                             message: '@dataPublication-relatedResources-validationMessage',
                             addPrefix: true

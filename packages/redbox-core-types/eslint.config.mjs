@@ -28,6 +28,22 @@ export default tseslint.config(
     },
   },
   {
+    files: [
+      'src/Logger.ts',
+      'src/bootstrap.ts',
+      'src/config/**/*.ts',
+      'src/configmodels/**/*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
+    },
+  },
+  {
     ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.mjs'],
   }
 );

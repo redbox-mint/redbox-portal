@@ -156,7 +156,7 @@ declare global {
 			user?: any;
 			query: { [key: string]: any };
 			param(name: string, defaultValue?: any): any;
-			isAuthenticated(): boolean;
+			isAuthenticated(): this is Express.AuthenticatedRequest;
 			[key: string]: any;
 		}
 

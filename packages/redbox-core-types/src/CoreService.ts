@@ -1,4 +1,4 @@
-import { from, bindNodeCallback, bindCallback, Observable } from 'rxjs';
+import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
 
 declare var sails: Sails.Application;
@@ -71,9 +71,9 @@ export module Services.Core {
     /**
      * Registers a Sails hook handler if Sails is available.
      */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
       if (typeof sails === 'undefined') {
         return false;
       }
@@ -149,7 +149,7 @@ export module Services.Core {
      *
      * @returns {*}
      */
-    public exports(): any {
+    public exports(): Record<string, unknown> {
       const exportedMethods: Record<string, unknown> = {};
       if (process.env["sails_redbox__mochaTesting"] === "true") {
         const allProperties = [

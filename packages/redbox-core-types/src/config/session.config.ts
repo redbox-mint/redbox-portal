@@ -4,6 +4,7 @@
  * 
  * Session management configuration.
  */
+import type { Request } from 'express';
 
 export interface SessionCookieConfig {
     /** Cookie max age in milliseconds */
@@ -42,7 +43,7 @@ export interface SessionConfig {
     name?: string;
 
     /** Allow certain requests to skip session */
-    isSessionDisabled?: (req: any) => boolean;
+    isSessionDisabled?: (req: Request) => boolean;
 }
 
 // Session can be disabled entirely by setting to false

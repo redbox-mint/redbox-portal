@@ -55,7 +55,7 @@ import {
 
 const util = require('util');
 
-declare var sails: Sails.Application;
+declare var sails: any;
 declare var _: any;
 declare var _this: any;
 declare var RedboxJavaStorageService: StorageService & DatastreamService;

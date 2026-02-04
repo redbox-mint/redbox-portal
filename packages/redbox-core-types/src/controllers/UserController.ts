@@ -112,7 +112,9 @@ export module Controllers {
       } else if (req.query.redirUrl) {
         postLoginUrl = req.query.redirUrl;
       } else {
-        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${ConfigService.getBrand(branding, 'auth').local.postLoginRedir}`;
+        const authConfig = ConfigService.getBrand(branding, 'auth');
+        const postLoginRedir = _.get(authConfig, 'local.postLoginRedir', 'home');
+        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${postLoginRedir}`;
       }
       sails.log.debug(`post login url: ${postLoginUrl}`);
       return postLoginUrl;

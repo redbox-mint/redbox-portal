@@ -7,7 +7,6 @@
  */
 
 import * as _ from 'lodash';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pino = require('pino');
 import type { Logger, LoggerOptions, DestinationStream } from 'pino';
 import { ILogger } from '../Logger';

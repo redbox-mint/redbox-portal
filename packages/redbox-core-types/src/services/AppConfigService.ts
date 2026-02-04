@@ -110,7 +110,11 @@ export module Services {
       let appConfiguration = {};
       const modelNames = ConfigModels.getConfigKeys();
       for (let modelName of modelNames) {
-        const modelClass = ConfigModels.getModelInfo(modelName).class;
+        const modelInfo = ConfigModels.getModelInfo(modelName);
+        if (!modelInfo) {
+          continue;
+        }
+        const modelClass = modelInfo.class;
         let defaultModel = new modelClass();
         _.set(appConfiguration, modelName, defaultModel);
       }

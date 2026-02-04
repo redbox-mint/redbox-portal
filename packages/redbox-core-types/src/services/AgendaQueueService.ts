@@ -43,7 +43,7 @@ import { QueueService } from '../QueueService';
 import { Agenda } from 'agenda';
 
 
-declare var sails: Sails.Application;
+declare var sails: any;
 declare var User: Sails.Model<any>;
 declare var _: any;
 

@@ -10,10 +10,11 @@
  */
 
 import { lastValueFrom } from 'rxjs';
+import type { LoDashStatic } from 'lodash';
 
-declare const sails: any;
-declare const _: any;
-declare const AppConfigService: any;
+declare const sails: Sails.Application;
+declare const _: LoDashStatic;
+
 
 /**
  * Interface for hook-provided bootstrap functions
@@ -35,13 +36,13 @@ export async function coreBootstrap(): Promise<void> {
     const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap());
     sails.log.verbose("Branding service, bootstrapped.");
 
-    const rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand));
+    const _rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand));
     sails.log.verbose("Roles service, bootstrapped.");
 
-    const reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()));
+    const _reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()));
     sails.log.verbose("Reports service, bootstrapped.");
 
-    const namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
+    const _namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
     sails.log.verbose("Named Query service, bootstrapped.");
 
     // sails doesn't support 'populating' of nested associations
@@ -53,13 +54,13 @@ export async function coreBootstrap(): Promise<void> {
     const defUserAndDefRoles: { defUser: unknown; defRoles: unknown } = await lastValueFrom(sails.services.usersservice.bootstrap(defRoles));
     sails.log.verbose("Pathrules service, bootstrapped.");
 
-    const pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles));
+    const _pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles));
     sails.log.verbose("Record types service, bootstrapped.");
 
     const recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
     sails.log.verbose("Workflowsteps service, bootstrapped.");
 
-    const dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault());
+    const _dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault());
     sails.log.verbose("DashboardTypes service, bootstrapped.");
 
     const workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
@@ -96,7 +97,7 @@ export async function coreBootstrap(): Promise<void> {
     // Initialise the applicationConfig for all the brands
     await sails.services.appconfigservice.bootstrap();
     // bind convenience function to sails.config so that configuration access syntax is consistent
-    sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand;
+    sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand as (brandName?: string) => Record<string, unknown>;
 
     sails.log.verbose("Cron service, bootstrapped.");
 
@@ -111,7 +112,8 @@ export async function coreBootstrap(): Promise<void> {
     sails.log.verbose("Cache service, bootstrapped.");
 
     // ReDBox ASCII art banner
-    sails.log.ship = function () {
+    const logWithShip = sails.log as typeof sails.log & { ship?: () => void };
+    logWithShip.ship = function () {
         sails.log.info(".----------------. .----------------. .----------------. ");
         sails.log.info("| .--------------. | .--------------. | .--------------. |");
         sails.log.info("| |  _______     | | |  _________   | | |  ________    | |");
@@ -153,7 +155,8 @@ export async function coreBootstrap(): Promise<void> {
  * that need to be in place before services bootstrap.
  */
 export function preLiftSetup(): void {
-    if (sails.config.security.csrf === "false") {
+    const csrfSetting = sails.config.security.csrf as boolean | string;
+    if (csrfSetting === "false") {
         sails.config.security.csrf = false;
     }
 
@@ -182,9 +185,15 @@ export function preLiftSetup(): void {
 
     // Initialize all controllers that have an init action
     // Controllers register their init as sails actions (e.g., 'webservice/search/init')
-    for (const actionKey of Object.keys(sails._actions)) {
+    const sailsWithActions = sails as Sails.Application & { _actions?: Record<string, () => void> };
+    const actions = sailsWithActions._actions;
+    if (!actions) {
+        return;
+    }
+
+    for (const actionKey of Object.keys(actions)) {
         if (actionKey.endsWith('/init')) {
-            sails._actions[actionKey]();
+            actions[actionKey]();
             sails.log.verbose(`${actionKey} controller action, initialized.`);
         }
     }

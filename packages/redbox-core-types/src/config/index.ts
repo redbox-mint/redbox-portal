@@ -127,9 +127,10 @@ import { dompurify, DomPurifyConfig } from './dompurify.config';
 
 // Auth config import
 import { auth } from './auth.config';
+import type { NextFunction, Request, Response } from 'express';
 // Complex/Large config imports (interface-only)
 import { BrandingConfig, branding } from './branding.config';
-import { BrandingConfigurationDefaultsConfig, AuthBootstrapConfig, brandingConfigurationDefaults } from './brandingConfigurationDefaults.config';
+import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults } from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
 import { ReportsConfig, reports } from './report.config';
 import { FigshareApiConfig, figshareAPI } from './figshareAPI.config';
@@ -171,7 +172,10 @@ export interface AuthConfig {
  * Passport strategy config with authenticate method
  */
 export interface PassportConfig {
-    authenticate: (strategy: string, options?: any) => (req: any, res: any, next?: any) => void;
+    authenticate: (
+        strategy: string,
+        options?: Record<string, unknown>
+    ) => (req: Request, res: Response, next?: NextFunction) => void;
     [strategyName: string]: unknown;
 }
 
