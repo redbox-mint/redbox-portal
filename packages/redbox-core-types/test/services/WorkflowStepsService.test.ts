@@ -23,7 +23,7 @@ describe('WorkflowStepsService', function() {
     
     setupServiceTestGlobals(mockSails);
     
-    const mockDeferred = (result) => ({
+    const mockDeferred = (result: unknown) => ({
       exec: sinon.stub().yields(null, result)
     });
 
@@ -62,10 +62,10 @@ describe('WorkflowStepsService', function() {
       const findStub = sinon.stub().resolves([]);
       (global as any).WorkflowStep.find = findStub;
       
-      const createDeferred = (data) => ({
+      const createDeferred = (data: unknown) => ({
         exec: sinon.stub().yields(null, data)
       });
-      (global as any).WorkflowStep.create.callsFake((data) => createDeferred(data));
+      (global as any).WorkflowStep.create.callsFake((data: unknown) => createDeferred(data));
       
       const result = await service.bootstrap(recordTypes);
       

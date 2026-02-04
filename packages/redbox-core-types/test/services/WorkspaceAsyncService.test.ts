@@ -12,7 +12,7 @@ describe('WorkspaceAsyncService', function() {
     mockSails = createMockSails();
     setupServiceTestGlobals(mockSails);
     
-    const mockDeferred = (result) => ({
+    const mockDeferred = (result: unknown) => ({
       exec: sinon.stub().yields(null, result)
     });
 
@@ -61,7 +61,7 @@ describe('WorkspaceAsyncService', function() {
 
   describe('update', function() {
     it('should update record', async function() {
-      const id = 1;
+      const id = '1';
       const obj = { status: 'running' };
       const expected = [{ id: 1, status: 'running' }];
       
@@ -76,7 +76,7 @@ describe('WorkspaceAsyncService', function() {
     });
 
     it('should set date_completed if finished', async function() {
-      const id = 1;
+      const id = '1';
       const obj = { status: 'finished' };
       const expected = [{ id: 1, status: 'finished' }];
       
@@ -88,7 +88,7 @@ describe('WorkspaceAsyncService', function() {
       });
       
       expect((global as any).WorkspaceAsync.update.calledWith(
-        sinon.match({ id: 1 }),
+        sinon.match({ id: '1' }),
         sinon.match({ status: 'finished', date_completed: sinon.match.string })
       )).to.be.true;
     });
@@ -120,7 +120,7 @@ describe('WorkspaceAsyncService', function() {
       (global as any).WorkspaceAsync.find.returns({ exec: execStub });
       
       const result = await new Promise((resolve, reject) => {
-        service.status(status, recordType).subscribe(resolve, reject);
+        service.status({ status, recordType }).subscribe(resolve, reject);
       });
       
       expect(result).to.deep.equal(expected);

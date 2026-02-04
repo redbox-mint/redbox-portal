@@ -87,9 +87,10 @@ describe('Webpack Hook', () => {
         it('should skip if isSailsScriptEnv global is true', async () => {
             (global as any).isSailsScriptEnv = true;
             const hook = defineWebpackHook(sailsMock, webpackMock);
+            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
             const done = sinon.spy();
 
-            await hook.initialize(done);
+            await initialize(done);
 
             expect(done.calledOnce).to.be.true;
             expect(webpackMock.called).to.be.false;
@@ -98,6 +99,7 @@ describe('Webpack Hook', () => {
         it('should enable CSS minimization if WEBPACK_CSS_MINI is true', async () => {
             process.env.WEBPACK_CSS_MINI = 'true';
             const hook = defineWebpackHook(sailsMock, webpackMock);
+            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
 
             // Mock compiler run to call callback immediately with success
             webpackCompilerMock.run.yields(null, {
@@ -105,7 +107,7 @@ describe('Webpack Hook', () => {
                 toString: () => 'stats'
             });
 
-            await hook.initialize(noop);
+            await initialize(noop);
 
             expect(sailsMock.config.webpack.config[0].optimization.minimize).to.be.true;
             expect(sailsMock.log.info.calledWithMatch(/CSS minimization/)).to.be.true;
@@ -113,6 +115,7 @@ describe('Webpack Hook', () => {
 
         it('should compile successfully', async () => {
             const hook = defineWebpackHook(sailsMock, webpackMock);
+            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
             const done = sinon.spy();
 
             const statsMock = {
@@ -121,7 +124,7 @@ describe('Webpack Hook', () => {
             };
             webpackCompilerMock.run.yields(null, statsMock);
 
-            await hook.initialize(done);
+            await initialize(done);
 
             expect(webpackMock.calledOnce).to.be.true;
             expect(webpackCompilerMock.run.calledOnce).to.be.true;
@@ -131,6 +134,7 @@ describe('Webpack Hook', () => {
 
         it('should handle compilation errors', async () => {
             const hook = defineWebpackHook(sailsMock, webpackMock);
+            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
             const done = sinon.spy();
 
             const error = new Error('Build failed');
@@ -143,7 +147,7 @@ describe('Webpack Hook', () => {
             webpackCompilerMock.run.yields(error, statsMock);
 
             try {
-                await hook.initialize(done);
+                await initialize(done);
                 expect.fail('Should have thrown error');
             } catch (e: any) {
                 expect(e.message).to.equal('sails-hook-webpack failed');
@@ -154,6 +158,7 @@ describe('Webpack Hook', () => {
 
         it('should handle compilation stats errors', async () => {
             const hook = defineWebpackHook(sailsMock, webpackMock);
+            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
             const done = sinon.spy();
 
             const statsMock = {
@@ -164,7 +169,7 @@ describe('Webpack Hook', () => {
             webpackCompilerMock.run.yields(null, statsMock);
 
             try {
-                await hook.initialize(done);
+                await initialize(done);
                 expect.fail('Should have thrown error');
             } catch (e: any) {
                 expect(e.message).to.equal('sails-hook-webpack failed');

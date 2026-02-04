@@ -35,7 +35,11 @@ import { RBValidationError } from '../model/RBValidationError';
 import { ErrorResponseItemV2 } from '../model/api/APIResponseVersion2';
 
 import axios from 'axios';
-import luceneEscapeQuery = require("lucene-escape-query");
+const luceneEscapeQueryModule: any = require("lucene-escape-query");
+const luceneEscapeQuery: (value: string) => string =
+  typeof luceneEscapeQueryModule === 'function'
+    ? luceneEscapeQueryModule
+    : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default);
 import * as fs from 'fs';
 import { DateTime } from 'luxon';
 

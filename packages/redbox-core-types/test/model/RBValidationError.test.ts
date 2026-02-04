@@ -63,7 +63,7 @@ describe('RBValidationError', function() {
 
   describe('displayMessage', function() {
     it('should format display message', function() {
-      const tStub = { t: (key) => key };
+      const tStub = { t: (key: string) => key };
       const displayErrors = [{ title: 'Error Title', detail: 'Error Detail' }];
       
       const result = RBValidationError.displayMessage({
@@ -75,7 +75,7 @@ describe('RBValidationError', function() {
     });
 
     it('should return empty string if no errors and empty default logic', function() {
-      const tStub = { t: (key) => key };
+      const tStub = { t: (key: string) => key };
       
       const result = RBValidationError.displayMessage({
         t: tStub as any,

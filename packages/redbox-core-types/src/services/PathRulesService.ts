@@ -109,7 +109,7 @@ export module Services {
     * Check path using cached rules...
     @return PathRule[]
     */
-    public getRulesFromPath = (path: string, brand: BrandingModel): PathRuleModel[] | null => {
+    public getRulesFromPath = (path: string, brand: any): any[] | null => {
       var matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
         var pattern = rulePattern.pattern;
         // matching by path and brand, meaning only brand-specific rules apply
@@ -122,10 +122,10 @@ export module Services {
       }
     }
 
-    public canRead = (rules: PathRuleModel[], roles: Array<{ id: string }>, brandName: string): boolean => {
-      var matchRule = _.filter(rules, (rule: PathRuleModel) => {
+    public canRead = (rules: any[], roles: any[], brandName: string): boolean => {
+      var matchRule = _.filter(rules, (rule: any) => {
         // user must have this role, and at least can_read
-        var userRole = _.find(roles, (role: { id: string }) => {
+        var userRole = _.find(roles, (role: any) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -134,9 +134,9 @@ export module Services {
       return matchRule.length > 0;
     }
 
-    public canWrite = (rules: PathRuleModel[], roles: Array<{ id: string }>, brandName: string): boolean => {
-      return _.filter(rules, (rule: PathRuleModel) => {
-        var userRole = _.find(roles, (role: { id: string }) => {
+    public canWrite = (rules: any[], roles: any[], brandName: string): boolean => {
+      return _.filter(rules, (rule: any) => {
+        var userRole = _.find(roles, (role: any) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });

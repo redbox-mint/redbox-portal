@@ -53,8 +53,8 @@ describe('Webservice SearchController', () => {
 
     describe('index', () => {
         it('should fetch record meta and index it', async () => {
-            const req = { param: sinon.stub().withArgs('oid').returns('123') };
-            const res = {};
+            const req = { param: sinon.stub().withArgs('oid').returns('123') } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
             const mockRecord = { id: '123', metadata: { title: 'Test' } };
             mockSails.services.recordsservice.getMeta.resolves(mockRecord);
             mockSails.services.solrsearchservice.index.resolves();
@@ -70,8 +70,8 @@ describe('Webservice SearchController', () => {
 
     describe('removeAll', () => {
         it('should call remove with wildcard', async () => {
-            const req = { session: { branding: 'default' } };
-            const res = {};
+            const req = { session: { branding: 'default' } } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
             mockSails.services.solrsearchservice.remove.resolves();
             const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
 

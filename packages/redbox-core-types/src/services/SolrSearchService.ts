@@ -36,7 +36,11 @@ declare var sails: any;
 declare var _: any;
 declare var _this: any;
 let flat: any;
-import luceneEscapeQuery = require("lucene-escape-query");
+const luceneEscapeQueryModule: any = require("lucene-escape-query");
+const luceneEscapeQuery: (value: string) => string =
+  typeof luceneEscapeQueryModule === 'function'
+    ? luceneEscapeQueryModule
+    : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default);
 
 
 

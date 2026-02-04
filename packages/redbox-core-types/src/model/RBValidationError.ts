@@ -1,3 +1,5 @@
+import { TranslationService } from "../services";
+import { Services } from "../services/TranslationService";
 import { ErrorResponseItemV2 } from "./api";
 
 // Define ErrorOptions locally for ES6 target compatibility
@@ -85,7 +87,7 @@ export class RBValidationError extends Error {
    *       This approach is reasonable for API v1 in controllers.
    */
   public static displayMessage(options: {
-    t?: { t: any },
+    t?: Services.Translation,
     errors?: Error[],
     displayErrors?: ErrorResponseItemV2[],
     defaultMessage?: string
