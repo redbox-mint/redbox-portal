@@ -398,11 +398,11 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            expressions: {
-                                                'model.value': {
-                                                    template: `<%= _.get(model,'text_1_event','') %>`
-                                                }
-                                            }
+                                            // expressions: {
+                                            //     'model.value': {
+                                            //         template: `<%= _.get(model,'text_1_event','') %>`
+                                            //     }
+                                            // }
                                         },
                                         {
                                             name: 'text_2_event',
@@ -446,15 +446,15 @@ export const formConfigExample1: FormConfigFrame = {
                                                     type: 'text'
                                                 }
                                             },
-                                            expressions: {
-                                                'component.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
-                            return false;
-                          } else {
-                            return true;
-                          } %>`
-                                                }
-                                            }
+                        //                     expressions: {
+                        //                         'component.visible': {
+                        //                             template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
+                        //     return false;
+                        //   } else {
+                        //     return true;
+                        //   } %>`
+                        //                         }
+                        //                     }
                                         },
                                         {
                                             name: 'text_3_event',
@@ -489,15 +489,15 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            expressions: {
-                                                'layout.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                                    return false;
-                                                } else {
-                                                    return true;
-                                                } %>`
-                                                }
-                                            }
+                                            // expressions: {
+                                            //     'layout.visible': {
+                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                                            //         return false;
+                                            //     } else {
+                                            //         return true;
+                                            //     } %>`
+                                            //     }
+                                            // }
                                         },
                                     ]
                                 }
@@ -623,15 +623,15 @@ export const formConfigExample1: FormConfigFrame = {
                                                     ]
                                                 }
                                             },
-                                            expressions: {
-                                                'layout.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                            return false;
-                          } else {
-                            return true;
-                          } %>`
-                                                }
-                                            }
+                        //                     expressions: {
+                        //                         'layout.visible': {
+                        //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                        //     return false;
+                        //   } else {
+                        //     return true;
+                        //   } %>`
+                        //                         }
+                        //                     }
                                         },
                                         {
                                             name: 'repeatable_textfield_1',
@@ -649,7 +649,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
-                                                                defaultValue: 'hello world from elementTemplate!',
+                                                                newEntryValue: 'hello world from elementTemplate!',
                                                                 validators: [
                                                                     {
                                                                         class: 'pattern',
@@ -689,15 +689,15 @@ export const formConfigExample1: FormConfigFrame = {
                                                     helpText: 'Repeatable component help text',
                                                 }
                                             },
-                                            expressions: {
-                                                'layout.visible': {
-                                                    template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                                    return false;
-                                                } else {
-                                                    return true;
-                                                } %>`
-                                                }
-                                            }
+                                            // expressions: {
+                                            //     'layout.visible': {
+                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                                            //         return false;
+                                            //     } else {
+                                            //         return true;
+                                            //     } %>`
+                                            //     }
+                                            // }
                                         },
 
                                     ]
@@ -725,7 +725,7 @@ export const formConfigExample1: FormConfigFrame = {
                         model: {
                             class: 'GroupModel',
                             config: {
-                                defaultValue: {},
+                                newEntryValue: {text_3: 'hello world 3!'},
                             }
                         },
                         component: {
@@ -738,7 +738,6 @@ export const formConfigExample1: FormConfigFrame = {
                                         model: {
                                             class: 'SimpleInputModel',
                                             config: {
-                                                defaultValue: 'hello world 3!',
                                                 validators: [
                                                     {
                                                         class: 'minLength',

@@ -8,6 +8,7 @@ import {FieldModelConfigOutline, FieldModelDefinitionOutline} from "./field-mode
  */
 export abstract class FieldModelConfig<ValueType> implements FieldModelConfigOutline<ValueType> {
     defaultValue?: ValueType;
+    newEntryValue?: ValueType;
     disableFormBinding?: boolean;
     editCssClasses?: string;
     validators?: FormValidatorConfig[];

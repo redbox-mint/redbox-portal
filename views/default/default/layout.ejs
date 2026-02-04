@@ -16,9 +16,9 @@
   </title>
 
   <!-- Google Fonts -->
-  <link href='//fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
-  <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
-  <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
 
 
   <!-- Custom CSS -->
@@ -32,6 +32,7 @@
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
   <!-- Current latest Bootstrap JS  -->
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
 
 
     <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>" ></angular-bootstrap>
@@ -59,10 +60,10 @@
         <div class="col-md-4">
           <div class="mt-3" >
             <div class="dropdown pull-right">
-                <% 
+                <%
                   // Use available languages from the i18nLanguages policy
                   const languages = (typeof availableLanguages !== 'undefined' && availableLanguages) ? availableLanguages : [{ code: 'en', displayName: 'English' }];
-                  if (languages.length > 1) { 
+                  if (languages.length > 1) {
                     // Find current language display name
                     const currentLang = languages.find(l => l.code === lang) || languages[0];
                   %>
@@ -81,10 +82,10 @@
                         <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= language.displayName %></a></li>
                         <%
                       }
-                    } 
+                    }
                   %>
                   </ul>
-                    <% 
+                    <%
                   }
                 %>
             </div>
@@ -118,12 +119,35 @@
   <!-- End mainmenu area -->
 <% if (typeof title!== 'undefined') { %>
 <% } %>
- 
-<% if (sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.enabled === true) { %>
-  <div id="system-message-area" class="container">
+
+<%
+  var brandingName = BrandingService.getBrandFromReq(req);
+  var portalName = BrandingService.getPortalFromReq(req);
+  var systemMessageConfig = sails.config.brandingAware(brandingName).systemMessage || {};
+  // We use FNV-1a hash to generate a short, value-based identifier for the system message content.
+  // This is used to track changes in the system message content and only re-render the message when it changes as it's light and fast and collisions aren't a huge concern.
+  function fnv1aHash(str) {
+    var hash = 2166136261;
+    for (var i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return ('0000000' + (hash >>> 0).toString(16)).slice(-8);
+  }
+  var rawSystemMessageKey = JSON.stringify({
+    title: systemMessageConfig.title || '',
+    message: systemMessageConfig.message || ''
+  });
+  var systemMessageKey = fnv1aHash(rawSystemMessageKey);
+  var systemMessageScope = brandingName + ':' + portalName;
+%>
+<% if (systemMessageConfig.enabled === true) { %>
+  <div id="system-message-area" class="container"
+    data-system-message-key="<%= systemMessageKey %>"
+    data-system-message-scope="<%= systemMessageScope %>">
   <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
-    <h4><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.title %></h4>
-    <div><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.message %></div>
+    <h4><%- systemMessageConfig.title || '' %></h4>
+    <div><%- systemMessageConfig.message || '' %></div>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 </div>
@@ -144,84 +168,7 @@
 
   </div>
 
-  
-  <script <% if (contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Remove any pre-existing active classes from nav items
-    document.querySelectorAll('li.active').forEach(function (li) {
-      li.classList.remove('active');
-    });
 
-    // Helper to find the first anchor matching an exact path
-    function findLinkByPath(path) {
-      // Escape quotes and backslashes for safe selector usage
-      var escapedPath = path.replace(/["\\]/g, '\\$&');
-      return document.querySelector('a[href="' + escapedPath + '"]');
-    }
 
-    // Try to find and highlight the active navigation item
-    var curHref = findLinkByPath(location.pathname);
-    if (!curHref) {
-      // Try progressively shorter paths if exact match fails
-      var segments = location.pathname.split('/');
-      for (var i = segments.length - 1; i > 0; i--) {
-        var candidate = segments.slice(0, i).join('/');
-        curHref = findLinkByPath(candidate);
-        if (curHref) {
-          break;
-        }
-      }
-    }
-
-    if (curHref) {
-      var dropdown = curHref.closest('.dropdown');
-      var li = curHref.closest('li');
-      if (!dropdown) {
-        if (li) {
-          li.classList.add('nav-active-item');
-        }
-      } else {
-        if (li) {
-          li.classList.add('active');
-        }
-        dropdown.classList.add('nav-active-item');
-      }
-    }
-
-    // System message show/hide and dismissal persistence
-    var storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
-    var systemMessageArea = document.getElementById('system-message-area');
-
-    if (systemMessageArea) {
-      if (storedsystemMessageDismissalTime) {
-        var currentsystemMessageDismissalTime = Date.now();
-        var eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-        if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
-          // Show it (mirror jQuery .show())
-          systemMessageArea.style.display = 'block';
-        } else {
-          // Remove the system message area as it takes up space even when hidden
-          systemMessageArea.remove();
-        }
-      } else {
-        // Ensure visible on first load
-        systemMessageArea.style.display = 'block';
-      }
-    }
-
-    var systemMessage = document.getElementById('system-message');
-    if (systemMessage) {
-      systemMessage.addEventListener('closed.bs.alert', function () {
-        var currentEpochMillis = Date.now();
-        localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
-        // Remove the system message area as it takes up space even when hidden
-        var area = document.getElementById('system-message-area');
-        if (area) {
-          area.remove();
-        }
-      });
-    }
-  });
-  </script>
 </body>
 </html>

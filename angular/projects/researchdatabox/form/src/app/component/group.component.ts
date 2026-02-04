@@ -37,13 +37,8 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     // Don't call the super method, as this model needs a FormGroup, and needs to populate it differently.
     // super.postCreate();
 
-    // Init with empty object if no default value.
-    if (!this.fieldConfig.config?.defaultValue) {
-      _set(this.fieldConfig, 'config.defaultValue', {});
-    }
-
     // Store the init value. Use the default value if the value is not set.
-    this.initValue = _get(this.fieldConfig, 'config.value') ?? this.fieldConfig.config?.defaultValue;
+    this.initValue = _get(this.fieldConfig, 'config.value');
 
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
@@ -102,8 +97,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
     const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
     this.elementFormConfig = {
-      name: `form-config-generated-group-${this.formFieldCompMapEntry?.compConfigJson?.name}`,
+      name: `form-config-generated-group-${formComponentName}`,
       // Store the child component definitions.
       componentDefinitions: groupComponentDefinitions,
       // Get the default config.
@@ -147,37 +143,17 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // TODO: is this necessary?
       if (elemFieldEntry) {
+        elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
+          this.formFieldCompMapEntry?.lineagePaths,
+          {
+            angularComponents: [key],
+            dataModel: [],
+            formConfig: [],
+          }
+        )
         elemFieldEntry.componentRef = wrapperRef;
       }
     }
   }
 
-  public override checkUpdateExpressions() {
-    this.loggerService.debug('group component checkUpdateExpressions');
-    let comps:FormFieldCompMapEntry[] = this.formFieldCompMapEntries ?? [];
-    //Evaluate top level expressions
-    super.checkUpdateExpressions();
-    //Propagate top level expressions and evaluate in its children components
-    //this is required for the parent component to delegate responsibility of
-    //behaviour to the children i.e. each component will handle its visibility
-    //but has to be maintained in sync with the overarching state of the parent
-    for(let entry of comps) {
-      if(_isUndefined(entry.component?.formFieldCompMapEntry?.layout)) {
-        entry.component?.propagateExpressions(this.expressions, true);
-      } else {
-        entry.component?.propagateExpressions(this.expressions);
-      }
-      let components = entry.component?.formFieldBaseComponents;
-      if(!_isUndefined(components) && !_isNull(components) && !_isEmpty(components)) {
-        for(let comp of components) {
-          let temp:FormFieldBaseComponent<unknown> = comp as FormFieldBaseComponent<unknown>;
-          temp.propagateExpressions(this.expressions);
-        }
-      }
-    }
-    //Evaluate expressions in children components
-    for(let entry of comps) {
-      entry.component?.checkUpdateExpressions();
-    }
-  }
 }

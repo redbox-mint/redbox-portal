@@ -7,13 +7,85 @@ import {ComponentClassNamesType, LayoutClassNamesType, ModelClassNamesType} from
 
 
 /**
+ * 
+ * The kinds of conditions available for expressions.
+ * 
+ * JSONPointer - Uses JSON Pointer syntax to point to a value in the form data. For wiring events between fields, this is often sufficient. This is simple and fast to evaluate.
+ * 
+ * JSONata - Uses the JSONata query and transformation language to evaluate more complex conditions based on data supplied at evaluation time. Template must resolve to a truthy value. This is more powerful but may be slower to evaluate.
+ * 
+ * JSONataQuery - Similar to JSONata, but uses the FormComponent.componentDefQuerySource in addition to those supplied at evaluation time. This is useful for conditions that depend on multiple fields or the structure of the form itself.
+ * 
+ * @see FormExpressionsConfigFrame.conditionKind
+ */
+export const ExpressionsConditionKind = {
+    JSONPointer: "jsonpointer",
+    JSONata: "jsonata",
+    JSONataQuery: "jsonata_query",
+} as const;
+
+export type ExpressionsConditionKindType = typeof ExpressionsConditionKind[keyof typeof ExpressionsConditionKind];
+
+export interface FormExpressionsBaseConfigFrame {
+    /**
+     * The JSONata template or customised JSONPointer string that resolves to a boolean indicating whether to execute the expression. If unspecified, the expression always executes.
+     */
+    condition?: string;
+    /**
+     * The kind of condition to use.
+     */
+    conditionKind?: ExpressionsConditionKindType;
+    /**
+     * Optional property name that will receive the result of the expression. If unspecified, the result is not stored. Note that the template or operation might set values directly.
+     */
+    target?: "model.value" | `layout.${string}` | `component.${string}`;
+    /**
+     * Indicates whether the expression has a template defined. Set when template is stripped prior to sending to client.
+     */
+    hasTemplate?: boolean;
+    /**
+     * Optional flag to indicate whether the expression will run when the form is ready. Defaults to true.
+     */
+    runOnFormReady?: boolean;
+}
+
+interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame {
+    /**
+     * The name of the entry in the `operations` dictionary to execute.
+     */
+    operation?: string;
+    /**
+     * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
+     */
+    template?: string;
+}
+
+export type FormExpressionsOperationConfigFrame = Omit<FormExpressionsMixedConfigFrame, 'template'> & {
+    operation: string;
+    template?: never;
+};
+
+export type FormExpressionsTemplateConfigFrame = Omit<FormExpressionsMixedConfigFrame, 'operation'> & {
+    template: string;
+    operation?: never;
+};
+
+/**
  * The expressions for a component.
  */
 export interface FormExpressionsConfigFrame {
-    [key: string]: {
-        template: string;
-        condition?: unknown;
-    }
+    /**
+     * The unique short name of the expression. 
+     */
+    name: string;
+    /**
+     * A description of the expression.
+     */
+    description?: string;
+    /**
+     * The configuration for the expression.
+     */
+    config: FormExpressionsOperationConfigFrame | FormExpressionsTemplateConfigFrame;
 }
 
 export interface FormExpressionsConfigOutline extends FormExpressionsConfigFrame {
@@ -54,7 +126,7 @@ export interface FormConstraintAuthorizationConfigOutline extends FormConstraint
 /**
  * The classes to transform to for each item that requires a class.
  */
-export type FormOverrideModeClassesConfigFrame = {
+export type FormOverrideModeClassesConfig = {
     component?: ComponentClassNamesType;
     model?: ModelClassNamesType;
     layout?: LayoutClassNamesType;
@@ -63,12 +135,12 @@ export type FormOverrideModeClassesConfigFrame = {
 /**
  * The form mode to class name mapping.
  */
-export type FormOverrideModesClassConfigFrame = Partial<{
+export type FormOverrideModesClassConfig = Partial<{
     /**
      * Optional entries where the key is a form mode,
      * and the value is the class to use for each item that requires a class.
      */
-    [key in FormModesConfig]: FormOverrideModeClassesConfigFrame;
+    [key in FormModesConfig]: FormOverrideModeClassesConfig;
 }>;
 
 /**
@@ -83,7 +155,7 @@ export interface FormOverrideConfigFrame {
     /**
      * When the form mode is the object key (one of the form modes), set the class as per the value object.
      */
-    formModeClasses?: FormOverrideModesClassConfigFrame;
+    formModeClasses?: FormOverrideModesClassConfig;
 
     /**
      * The name of the reusable form config to insert in place of this element.
@@ -121,7 +193,7 @@ export interface FormComponentDefinitionFrame {
      * TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
      *   Expression functions will participate in a similar process as the validation functions to get to the client.
      */
-    expressions?: FormExpressionsConfigFrame;
+    expressions?: FormExpressionsConfigFrame[];
     /**
      * For a custom form component definition, module defines where to find the definition.
      */
@@ -140,7 +212,7 @@ export interface FormComponentDefinitionOutline extends FormComponentDefinitionF
     model?: FieldModelDefinitionOutline<unknown>;
     component: FieldComponentDefinitionOutline;
     layout?: FieldLayoutDefinitionOutline;
-    expressions?: FormExpressionsConfigOutline;
+    expressions?: FormExpressionsConfigOutline[];
     constraints?: FormConstraintConfigOutline;
     overrides?: FormOverrideConfigOutline;
 }

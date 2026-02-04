@@ -1,5 +1,5 @@
 <div class="row">
-  <local-auth <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+  <local-auth <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
     <div class="col-xs-1">
     </div>
     <div class="col-xs-10">

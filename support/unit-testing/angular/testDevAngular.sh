@@ -8,7 +8,12 @@ function testAngular() {
   echo "-------------------------------------------"
   echo "Testing ${1} (${2})"
   echo "-------------------------------------------"
-  node_modules/.bin/ng t --browsers=ChromeHeadless "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
+  # Some test runs happen inside containers (e.g. Codex Web) as root and need the no-sandbox launcher.
+  if [ "$(id -u)" -eq 0 ]; then
+    node_modules/.bin/ng t --browsers=ChromeHeadlessNoSandbox "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
+  else
+    node_modules/.bin/ng t --browsers=ChromeHeadless "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
+  fi
 }
 
 export NVM_DIR="$HOME/.nvm"

@@ -1,17 +1,17 @@
 <% let appName = 'app-config'; %>
 
-<div class="main container clearfix">
-  <h2><%= formTitle %></h2>
-  
-  <app-config configKey="<%= configKey %>" <% if (contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-    </div>
-    <div class="col-xs-1">
-    </div>
-  </app-config>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('layout/sidebar.ejs') %>
+  </div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <h2><%= formTitle %></h2>
+    <app-config configKey="<%= configKey %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <div class="col-xs-12">
+        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      </div>
+    </app-config>
+  </div>
 </div>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
    type="module"></script>

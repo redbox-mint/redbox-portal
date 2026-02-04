@@ -1,7 +1,7 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
-  FormConfigFrame, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
+  FormConfigFrame, guessType, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
   TabComponentName,
   TabContentComponentName, TabContentFieldComponentDefinitionFrame,
   TabContentFormComponentDefinitionFrame,
@@ -25,16 +25,18 @@ import { DefaultLayoutComponent } from './default-layout.component';
     <!-- Button Section -->
     <div [class]="getStringProperty('buttonSectionCssClass')" role="tablist" [attr.aria-orientation]="getStringProperty('buttonSectionAriaOrientation')">
       <!-- Loop through tabs and create buttons -->
-      @for (tab of tabConfig.tabs; track $index) {
-        <button class="nav-link"
-                [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
-                [attr.id]="tab.name + '-tab-button'"
-                type="button"
-                role="tab"
-                [attr.aria-selected]="tabInstance && tab.name == tabInstance.selectedTabId"
-                [attr.aria-controls]="tab.name + '-tab-content'"
-                [innerHTML]="tab.layout?.config?.buttonLabel" (click)="selectTab(tab.name)">
-        </button>
+      @if (initialSelectionDone) {
+        @for (tab of tabConfig.tabs; track $index) {
+          <button class="nav-link"
+                  [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
+                  [attr.id]="tab.name + '-tab-button'"
+                  type="button"
+                  role="tab"
+                  [attr.aria-selected]="tabInstance && tab.name == tabInstance.selectedTabId"
+                  [attr.aria-controls]="tab.name + '-tab-content'"
+                  [innerHTML]="tab.layout?.config?.buttonLabel" (click)="selectTab(tab.name)">
+          </button>
+        }
       }
     </div>
     <ng-container #componentContainer ></ng-container>
@@ -54,22 +56,64 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   }
 
   protected get tabInstance(): TabComponent | null {
-    // The tab component layout is created before the tab component, so the component ref can be undefined.
     const instance = this.formFieldCompMapEntry?.componentRef?.instance;
-    if (instance && instance instanceof TabComponent) {
+
+    // The tab component layout is created before the tab component,
+    // so the component ref instance can be undefined.
+    if (this.isTabComponent(instance)) {
       return instance;
+    } else if (instance !== undefined) {
+      // Warn if there is an instance, but it is not the expected instance.
+      this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent, but instance was:`, instance);
     }
-    this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent in TabComponentLayout, but instance was '${instance?.constructor?.name}'.`);
     return null;
+  }
+
+  private isTabComponent(item: unknown): item is TabComponent {
+    if (item === undefined || item === null) {
+      return false;
+    }
+
+    const i = item as TabComponent;
+
+    // Check for presence of the expected properties.
+    // This used to use instanceof, but that was unreliable.
+    const hasTabs = guessType(i.tabs) === 'array';
+    const hasSelectedTabId = ["null", "string"].includes(guessType(i.selectedTabId));
+    const hasSelectTab = guessType(i.selectTab) === 'function';
+
+    return hasTabs && hasSelectedTabId && hasSelectTab;
   }
 
   @HostBinding('id') get hostId(): string {
     return this.formFieldCompMapEntry?.compConfigJson?.name || '';
   }
+  
+  protected initialSelectionDone = false;
+
+  protected override async setComponentReady(): Promise<void> {
+    await super.setComponentReady();
+    if (this.wrapperComponentRef) {
+      this.wrapperComponentRef.location.nativeElement.style.flexGrow = '1';
+    }
+    try {
+      if (!this.initialSelectionDone && 
+          this.tabInstance && 
+          this.tabInstance.tabs.length > 0 &&
+          this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
+          this.tabInstance.selectedTabId) {
+        const tabId = this.tabInstance.selectedTabId;
+        this.selectTab(tabId);
+        this.initialSelectionDone = true;
+      }
+    } catch (error) {
+      this.loggerService.error(`${this.logName}: Error during initial tab selection`, error);
+    }
+  }
 
   public selectTab(tabId: string) {
     const selectionResult = this.tabInstance?.selectTab(tabId);
-    if (selectionResult && selectionResult.changed) {
+    if (selectionResult && (selectionResult.changed || selectionResult.errorType === TabSelectionErrorType.ALREADY_SELECTED)) {
       this.loggerService.debug(`${this.logName}: Tab selection changed`, selectionResult);
       // remove the 'show active' classes from all tabs
       selectionResult.wrappers?.forEach((instance: FormBaseWrapperComponent<unknown>) => {
@@ -115,20 +159,32 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     this.tabs = this.tabConfig?.tabs || [];
   }
 
+  /**
+   * Initializes all tab wrappers, merges their form controls into the parent map, and selects an initial tab.
+   *
+   * - Defers tab selection until every tab is created and initialized to avoid flashes of content.
+   * - If multiple tabs are configured with `selected: true`, the last one encountered wins; this behavior is intentional
+   *   but may be reconsidered if a warning or first-selected preference is desired.
+   * - Falls back to selecting the first tab when none are explicitly marked as selected.
+   */
   protected override async setComponentReady(): Promise<void> {
     await this.untilViewIsInitialised();
     this.loggerService.debug(`${this.logName}: Initializing TabComponent with ${this.tabs.length} tabs.`);
     this.tabsContainer.clear();
-
+    let selectedTabName = null;
     for (let index = 0; index < this.tabs.length; index++) {
       const tab = this.tabs[index];
       const tabWrapperRef = this.tabsContainer.createComponent(FormBaseWrapperComponent<null>);
       tab.name = `${tab.name || index}`;
+      // Ensure tab is hidden immediately upon creation to prevent flash of content
+      tabWrapperRef.instance.hostBindingCssClasses = 'd-none';
+      tabWrapperRef.changeDetectorRef.detectChanges();
+
       const fieldMapDefEntry: FormFieldCompMapEntry = {
         componentClass: TabContentComponent,
         compConfigJson: tab,
         lineagePaths: this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
-          angularComponents: [],
+          angularComponents: [`${tab?.name}`],
           dataModel: [],
           formConfig: ['component', 'config', 'tabs', index],
         }),
@@ -151,10 +207,14 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         }
         _merge(this.formFieldCompMapEntry.formControlMap, fieldMapDefEntry.formControlMap);
       }
+      // Note: the last tab with `selected` true will take precedence
       if (tab.component?.config?.selected) {
-        this.selectTab(tab.name);
+        selectedTabName = tab.name;
       }
     }
+    // Note: selection is deferred to the layout component to avoid flashes and incorrect display of content. For now, we just set the selectedTabId here for the layout to pick up.
+    // This will select the first tab if none are marked as selected.
+    this.selectedTabId = selectedTabName ?? this.tabs[0]?.name ?? '0';
     await super.setComponentReady();
   }
 

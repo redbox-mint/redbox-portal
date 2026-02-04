@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24.11.1-bullseye AS base
+FROM node:24.12.0-bullseye AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -30,13 +30,15 @@ FROM base AS builder
 COPY . .
 
 RUN npm ci \
- && npm --prefix packages/redbox-core-types ci \
- && npm --prefix packages/sails-ng-common ci \
- && npm --prefix packages/raido ci
+ && (cd packages/redbox-core-types && npm ci) \
+ && (cd packages/sails-ng-common && npm ci) \
+ && (cd packages/raido && npm ci) \
+ && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
-RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
-RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/raido && npm run build
+RUN cd packages/sails-ng-common && npm run compile
+RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
+RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 RUN npx tsc --project tsconfig.json
 
 RUN chmod +x support/build/compileProductionAngular.sh \
@@ -60,7 +62,7 @@ RUN npm prune --omit=dev \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
 
-FROM node:24.11.1-bullseye-slim AS runtime
+FROM node:24.12.0-bullseye-slim AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
@@ -78,8 +80,8 @@ RUN apt-get update \
 
 COPY --from=builder --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=builder --chown=node:node /opt/redbox-portal/redbox-loader.js ./redbox-loader.js
 COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
-COPY --from=builder --chown=node:node /opt/redbox-portal/typescript/api/configmodels ./typescript/api/configmodels
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config

@@ -1,6 +1,6 @@
 import {ConstructFormConfigVisitor, FormConfigFrame, JsonTypeDefSchemaFormConfigVisitor} from "../../src";
 
-import {formConfigExample1, reusableDefinitionsExample1} from "./example-data";
+import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;
@@ -141,7 +141,7 @@ describe("JSON Type Def Schema Visitor", async () => {
                                             config: {
                                                 elementTemplate: {
                                                     name: "",
-                                                    model: {class: 'GroupModel', config: {}},
+                                                    model: {class: 'GroupModel', config: {newEntryValue:{repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"]}}},
                                                     component: {
                                                         class: 'GroupComponent',
                                                         config: {
@@ -150,7 +150,7 @@ describe("JSON Type Def Schema Visitor", async () => {
                                                                     name: 'repeatable_4',
                                                                     model: {
                                                                         class: 'RepeatableModel',
-                                                                        config: {defaultValue: ["repeatable_4 default 1", "repeatable_4 default 2"]}
+                                                                        config: {}
                                                                     },
                                                                     component: {
                                                                         class: 'RepeatableComponent',
@@ -298,10 +298,10 @@ describe("JSON Type Def Schema Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start(args, "edit");
+            const constructed = constructor.start({data: args, formMode: "edit"});
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(logger);
-            const actual = visitor.start(constructed);
+            const actual = visitor.start({form: constructed});
             expect(actual).to.eql(expected);
         });
     });

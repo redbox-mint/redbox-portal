@@ -1,4 +1,4 @@
-import {CurrentPathFormConfigVisitor} from "./base.model";
+import {FormConfigVisitor} from "./base.model";
 import {
     FormValidatorConfig,
     FormValidatorControl,
@@ -7,11 +7,11 @@ import {
     SimpleServerFormValidatorControl
 } from "../../validation/form.model";
 import {FormConfigOutline} from "../form-config.outline";
-import {DefaultValueFormConfigVisitor} from "./default-value.visitor";
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import {ILogger} from "../../logger.interface";
 import {
     SimpleInputFieldComponentDefinitionOutline,
-    SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionOutline
+    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFormComponentDefinitionOutline
 } from "../component/simple-input.outline";
 import {guessType} from "../helpers";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
@@ -23,7 +23,8 @@ import {
 import {
     RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline, RepeatableFormComponentDefinitionOutline
+    RepeatableFieldModelDefinitionOutline,
+    RepeatableFormComponentDefinitionOutline
 } from "../component/repeatable.outline";
 import {
     ValidationSummaryFieldComponentDefinitionOutline,
@@ -41,7 +42,8 @@ import {
 } from "../component/tab.outline";
 import {
     TabContentFieldComponentDefinitionOutline,
-    TabContentFieldLayoutDefinitionOutline, TabContentFormComponentDefinitionOutline
+    TabContentFieldLayoutDefinitionOutline,
+    TabContentFormComponentDefinitionOutline
 } from "../component/tab-content.outline";
 import {
     SaveButtonFieldComponentDefinitionOutline,
@@ -49,26 +51,33 @@ import {
 } from "../component/save-button.outline";
 import {
     TextAreaFieldComponentDefinitionOutline,
-    TextAreaFieldModelDefinitionOutline, TextAreaFormComponentDefinitionOutline
+    TextAreaFieldModelDefinitionOutline,
+    TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
 import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline
+    CheckboxInputFieldModelDefinitionOutline,
+    CheckboxInputFormComponentDefinitionOutline
 } from "../component/checkbox-input.outline";
 import {
     DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline
+    DropdownInputFieldModelDefinitionOutline,
+    DropdownInputFormComponentDefinitionOutline
 } from "../component/dropdown-input.outline";
 import {
     RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
+    RadioInputFieldModelDefinitionOutline,
+    RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
 import {
     DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
+    DateInputFieldModelDefinitionOutline,
+    DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {get as _get} from "lodash";
+import {FormConfig} from "../form-config.model";
+import {FormConfigPathHelper} from "./common.model";
+import {DataValueFormConfigVisitor} from "./data-value.visitor";
 
 /**
  * Visit each form config component and run its validators.
@@ -79,72 +88,62 @@ import {get as _get} from "lodash";
  * By default, all validators are run: ['all'].
  * Specify which validators are run by providing enabledValidationGroups.
  */
-export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
-    private formConfig: FormConfigOutline | undefined = undefined;
-    /**
-     * The validation group names to enable.
-     */
-    private enabledValidationGroups: string[] = [];
-    /**
-     * The record values to validate.
-     */
-    private recordValues: Record<string, unknown> | undefined = undefined;
-    /**
-     * A map of the validator keys to validation functions.
-     */
-    private validatorDefinitionsMap: Map<string, FormValidatorDefinition>;
-    /**
-     * The 'lineage path' from the form to the current component.
-     * This is updated as processing progresses to reflect the nesting to the current component.
-     */
-    private resultPath: string[] = [];
-    /**
-     * Any validation errors, including the identifier of form field control for each.
-     */
-    private result: FormValidatorSummaryErrors[] = [];
+export class ValidatorFormConfigVisitor extends FormConfigVisitor {
+    private resultPath: string[];
+
     private validatorSupport: ValidatorsSupport;
+
+    private form: FormConfigOutline;
+    private enabledValidationGroups: string[];
+    private validatorDefinitionsMap: Map<string, FormValidatorDefinition>;
+
+    private validationErrors: FormValidatorSummaryErrors[];
+
+    private formConfigPathHelper: FormConfigPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-        this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
-        this.validatorSupport = new ValidatorsSupport();
-    }
 
-    startExistingRecord(
-        form: FormConfigOutline,
-        enabledValidationGroups?: string[],
-        validatorDefinitions?: FormValidatorDefinition[],
-        recordData?: Record<string, unknown>
-    ): FormValidatorSummaryErrors[] {
-        this.recordValues = recordData ?? undefined;
-        return this.start(form, enabledValidationGroups, validatorDefinitions);
-    }
-
-    startNewRecord(
-        form: FormConfigOutline,
-        enabledValidationGroups?: string[],
-        validatorDefinitions?: FormValidatorDefinition[]
-    ): FormValidatorSummaryErrors[] {
-        // Use the defaultValues from the form config as the record values.
-        const defaultValueVisitor = new DefaultValueFormConfigVisitor(this.logger);
-        this.recordValues = defaultValueVisitor.start(form);
-        return this.start(form, enabledValidationGroups, validatorDefinitions);
-    }
-
-    protected start(
-        formConfig: FormConfigOutline,
-        enabledValidationGroups?: string[],
-        validatorDefinitions?: FormValidatorDefinition[]
-    ): FormValidatorSummaryErrors[] {
-        this.formConfig = formConfig;
-        this.enabledValidationGroups = enabledValidationGroups || this.formConfig.enabledValidationGroups || ['all'];
-        this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(validatorDefinitions || []);
-
-        this.resetCurrentPath();
-        this.result = [];
         this.resultPath = [];
-        this.formConfig.accept(this);
-        return this.result;
+
+        this.validatorSupport = new ValidatorsSupport();
+
+        this.form = new FormConfig();
+        this.enabledValidationGroups = [];
+        this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
+
+        this.validationErrors = [];
+
+        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+    }
+
+    /**
+     * Start the visitor.
+     * @param options Configure the visitor.
+     * @param options.form The constructed form.
+     * @param options.enabledValidationGroups The validation groups to enable.
+     * @param options.validatorDefinitions The validation definitions to make available.
+     */
+    start(options: {
+              form: FormConfigOutline;
+              enabledValidationGroups?: string[];
+              validatorDefinitions?: FormValidatorDefinition[];
+          }
+    ): FormValidatorSummaryErrors[] {
+        this.formConfigPathHelper.reset();
+        this.resultPath = [];
+
+        this.form = options.form;
+
+        // use the first non-null, non-undefined value - empty array is a valid value
+        this.enabledValidationGroups = options.enabledValidationGroups ?? this.form.enabledValidationGroups ?? ['all'];
+        this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(options.validatorDefinitions || []);
+
+        this.validationErrors = [];
+
+        this.form.accept(this);
+
+        return this.validationErrors;
     }
 
     /* Form Config */
@@ -152,12 +151,15 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
         });
 
-        // Run form-level validators, usually because they involve more than one field.
+        // Run form-level validators using the full form data model.
+        // There are various reasons a validator is at form level, e.g. they involve more than one field.
+        const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
+        const value = dataValueVisitor.start({form: item});
         const itemName = item?.name ?? "";
-        this.result = [...this.result, ...this.validateFormComponent(itemName, item?.validators)];
+        this.validationErrors = [...this.validationErrors, ...this.validateFormComponent(itemName, value, item?.validators)];
     }
 
     /* SimpleInput */
@@ -171,7 +173,6 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinitionWithModel(item);
     }
-
 
     /* Content */
 
@@ -211,7 +212,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -227,7 +228,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
         });
     }
 
@@ -243,7 +244,7 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptCurrentPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
         });
     }
 
@@ -358,28 +359,24 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
             this.resultPath = [...itemResultPath, itemName];
         }
 
-        this.result = [...this.result, ...this.validateFormComponent(
+        this.validationErrors = [...this.validationErrors, ...this.validateFormComponent(
             item?.name,
+            item?.model?.config?.value,
             item?.model?.config?.validators,
             item?.layout?.config?.label,
         )];
 
-        this.acceptFormComponentDefinition(item);
+        this.formConfigPathHelper.acceptFormComponentDefinition(item);
         this.resultPath = [...itemResultPath];
     }
 
-    protected validateFormComponent(itemName: string, validators?: FormValidatorConfig[], message?: string) {
+    protected validateFormComponent(itemName: string, value: any, validators?: FormValidatorConfig[], message?: string) {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
-        // Use the result path to get the value for this component.
-        const value = this.resultPath.length > 0 ? _get(this.recordValues, this.resultPath, undefined) : this.recordValues;
-
-        // for debugging:
-        // this.logger.verbose(`validateFormComponent resultPath: ${JSON.stringify(this.resultPath)} value: ${JSON.stringify(value)}`);
 
         // Use the result path to get the parents of the form control.
         const parents: string[] = this.resultPath.length > 1 ? this.resultPath.slice(0, this.resultPath.length - 1) : [];
 
-        const availableValidatorGroups = this.formConfig?.validationGroups ?? {};
+        const availableValidatorGroups = this.form?.validationGroups ?? {};
         const result: FormValidatorSummaryErrors[] = [];
         if (Array.isArray(validators) && validators.length > 0) {
             const filteredValidators = validators.filter(validator =>
@@ -387,10 +384,6 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
             );
             const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
             const recordFormControl = this.createFormControlFromRecordValue(value);
-
-            // For debugging:
-            // this.logger.verbose(`validateFormComponent createFormControlFromRecordValue: ${JSON.stringify(recordFormControl)}`)
-
             const summaryErrors: FormValidatorSummaryErrors = {
                 id: itemName,
                 message: message || null,
@@ -415,6 +408,4 @@ export class ValidatorFormConfigVisitor extends CurrentPathFormConfigVisitor {
 
         return result;
     }
-
-
 }

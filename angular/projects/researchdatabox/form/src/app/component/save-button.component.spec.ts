@@ -4,7 +4,7 @@ import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
-import {FormStatus, FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events';
 
 let formConfig: FormConfigFrame;
@@ -32,7 +32,7 @@ describe('SaveButtonComponent', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              defaultValue: 'hello world default!'
+              value: 'hello world default!'
             }
           },
           component: {
@@ -90,8 +90,8 @@ describe('SaveButtonComponent', () => {
     const textField = fixture.nativeElement.querySelector('input');
     textField.value = 'new value';
     textField.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
     await fixture.whenStable();
+
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeFalse();
   });
@@ -126,12 +126,13 @@ describe('SaveButtonComponent', () => {
       const textField = fixture.nativeElement.querySelector('input');
       textField.value = 'new value';
       textField.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
+
       await fixture.whenStable();
+
       // Simulate the save button click
       const saveButton = fixture.nativeElement.querySelector('button');
       saveButton.click();
-      fixture.detectChanges();
+
       await fixture.whenStable();
       // Assert the event payload
       expect(events.length).toBe(1);

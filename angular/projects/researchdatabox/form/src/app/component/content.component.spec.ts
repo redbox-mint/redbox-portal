@@ -1,40 +1,45 @@
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { UtilityService } from "@researchdatabox/portal-ng-common";
-import * as Handlebars from "handlebars";
+import { UtilityService, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
+import Handlebars from "handlebars";
 
 
 
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
+  const mockHandlebarsTemplateService = {
+    getLibraries: () => ({ Handlebars })
+  };
+
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {"ContentComponent": ContentComponent},
-      providers: {"UtilityService": null}
+      providers: {
+        "UtilityService": null,
+        "HandlebarsTemplateService": { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService }
+      }
     });
     utilityService = TestBed.inject(UtilityService);
     spyOn(utilityService, 'getDynamicImport').and.callFake(
-      async function (brandingAndPortalUrl: string, urlPath: string[]) {
+      async function (brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
         const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
-        switch (urlKey) {
-          // For the simple test that only creates the component
-          case "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp":
-            return {
-              evaluate: function (key: string[], context: any, extra: any) {
-                // normalise the key the same way as the server
-                const keyStr = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
-                switch (keyStr) {
-                  case "componentDefinitions__0__component__config__template":
-                    return Handlebars.compile('<h3>{{content}}</h3>')(context);
-                  default:
-                    throw new Error(`Unknown key: ${keyStr}`);
-                }
+        if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
+          return {
+            evaluate: function (key: string[], context: any, extra: any) {
+              // normalise the key the same way as the server
+              const keyStr = buildKeyString(key);
+              switch (keyStr) {
+                case "componentDefinitions__0__component__config__template":
+                  return Handlebars.compile('<h3>{{content}}</h3>')(context);
+                default:
+                  throw new Error(`Unknown key: ${keyStr}`);
               }
-            };
-          default:
-            throw new Error(`Unknown url key: ${urlKey}`);
+            }
+          };
+        } else {
+          throw new Error(`Unknown url key: ${urlKey}`);
         }
       });
   });
@@ -71,11 +76,12 @@ describe('ContentComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
-    // Now run your expectations
-    const compiled = fixture.nativeElement as HTMLElement;
-    const inputElement = compiled.querySelector('h3');
+    // assert
     expect(utilityService.getDynamicImport).toHaveBeenCalled();
-    expect((inputElement as HTMLHeadingElement).textContent).toEqual('My first text block component!!!');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('h3');
+    expect((element as HTMLHeadingElement)?.textContent).toEqual('My first text block component!!!');
   });
 
 });

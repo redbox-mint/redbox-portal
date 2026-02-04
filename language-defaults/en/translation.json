@@ -130,6 +130,7 @@
 	"menu-home": "Home",
 	"menu-analyze": "Analyze",
 	"menu-syssettings": "System settings",
+	"menu-navigation": "Navigation",
 	"menu-admin": "Admin",
 	"menu-plan": "Plan a Research Project",
 	"menu-manage": "Manage data",
@@ -784,7 +785,14 @@
 	"system-lookup-records": "Lookup records",
 	"system-lookup-record-item1": "Parties",
 	"menu-authorizeddomainsemails": "Authorized Domains and Emails",
+	"menu-menuconfiguration": "Menu Configuration",
+	"menu-homepanelsconfiguration": "Home Panels Configuration",
+	"menu-adminsidebarconfiguration": "Admin Sidebar Configuration",
 	"authorized-email-denied": "Email is not authorized to login.",
+	"admin-welcome-heading": "Administration",
+	"admin-welcome-message": "Welcome to the administration area. Use the navigation links on the left to access various administrative features and settings.",
+	"admin-configure-branding": "Configure site branding",
+	"admin-configure-translation": "Configure site translations",
 	"record-table-results-table-header-actions": "Actions",
 	"deleted-records-results-returned_one": "{{count}} deleted record returned",
 	"deleted-records-results-returned_other": "{{count}} deleted records returned",
@@ -812,5 +820,6 @@
 	"@validator-error-required-true": "This field must be completed.",
 	"@validator-error-email": "Please enter a valid email address.",
 	"@validator-error-pattern": "Value does not match the pattern: {{description}}.",
-	"@validator-error-different-values": "The {{controlCount}} field(s) must have different values."
+	"@validator-error-different-values": "The {{controlCount}} field(s) must have different values.",
+	"@validator-error-orcid": "Please enter a valid ORCID identifier in the format: 0000-0000-0000-0000."
 }

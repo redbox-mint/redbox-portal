@@ -1,0 +1,65 @@
+{
+  "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+  "version": "1.5.3",
+  "description": "A MongoDB storage plugin for ReDBox.",
+  "main": "index.js",
+  "sails": {
+    "isHook": true,
+    "hasModels": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/redbox-mint/sails-hook-redbox-storage-mongo.git"
+  },
+  "scripts": {
+    "compile": "./node_modules/typescript/bin/tsc -p tsconfig.json",
+    "dev:run": "docker compose -f ./support/docker-compose.yml -f ./support/docker-compose.dev.yml up --menu=false --remove-orphans --abort-on-container-exit --exit-code-from rbportal",
+    "predev:run": "npm install --ignore-scripts && npm run compile",
+    "dev:clean": "docker compose -f ./support/docker-compose.yml -f ./support/docker-compose.dev.yml down",
+    "dev:logs": "docker compose -f ./support/docker-compose.yml -f ./support/docker-compose.dev.yml logs",
+    "dev:removedata": "docker compose -f ./support/docker-compose.yml -f ./support/docker-compose.dev.yml down -v",
+    "test": "docker compose -f ./support/docker-compose.yml -f ./support/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal",
+    "pretest": "npm install --ignore-scripts && npm run compile",
+    "posttest": "npm run test:clean",
+    "test:clean": "docker compose -f ./support/docker-compose.yml -f ./support/docker-compose.mocha.yml down -v"
+  },
+  "keywords": [
+    "sails",
+    "hook",
+    "redbox",
+    "redbox research",
+    "redbox storage",
+    "redbox mongodb"
+  ],
+  "author": "QCIF Engineering dev@redboxresearchdata.com.au",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "@types/chai": "5.2.2",
+    "@types/lodash": "4.17.17",
+    "@types/mocha": "10.0.10",
+    "@types/node": "20.17.51",
+    "chai": "5.2.0",
+    "fs": "0.0.1-security",
+    "luxon": "^3.7.1",
+    "mocha": "11.7.1",
+    "mocha-junit-reporter": "2.2.1",
+    "mongodb": "6.16.0",
+    "sails": "1.5.14",
+    "stream": "0.0.3",
+    "typescript": "5.9.2",
+    "util": "0.12.5"
+  },
+  "dependencies": {
+    "@researchdatabox/redbox-core-types": "file:../redbox-core-types",
+    "json2csv": "^5.0.3",
+    "lodash": "^4.17.21",
+    "uuid": "11.1.0"
+  },
+  "peerDependencies": {
+    "luxon": ">=3.0.0",
+    "rxjs": ">=7.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
