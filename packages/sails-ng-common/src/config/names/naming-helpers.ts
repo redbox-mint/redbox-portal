@@ -61,10 +61,6 @@ export interface LineagePathsPartial {
     angularComponents?: LineagePath;
 }
 
-export const lineagePathTypes = ["formConfig", "dataModel", "angularComponents"] as const;
-export type LineagePathTypes = typeof lineagePathTypes[number];
-
-
 /**
  * Build the lineage paths from a base item, and add the entries in `more` as relative
  * parts at the end of each lineage path. Undefined inputs default to empty arrays.
@@ -78,70 +74,6 @@ export function buildLineagePaths(base?: LineagePaths, more?: LineagePathsPartia
     };
     lineagePaths.angularComponentsJsonPointer = getJSONPointerByArrayPaths(lineagePaths.angularComponents);
     return lineagePaths;
-}
-
-export const lineagePathMatchTypes = ["prefix", "suffix", "contains"] as const;
-export type LineagePathMatchTypes = typeof lineagePathMatchTypes[number];
-
-/**
- * The specification for searching lineage paths for a match.
- */
-export interface LineagePathSearch {
-    type: LineagePathTypes;
-    path: LineagePath;
-    match: LineagePathMatchTypes;
-}
-
-/**
- * Search lineage paths for a match.
- * @param lineagePaths The lineage paths to search.
- * @param search The search approach.
- * @return The type of lineage path that matched, otherwise null for no match.
- */
-export function searchLineagePaths(lineagePaths: LineagePaths, search: LineagePathSearch): LineagePathTypes | null {
-    if (!lineagePaths || !search) {
-        return null;
-    }
-
-    // Ensure the search type is valid.
-    const path = lineagePaths[search.type];
-    if (path === null || path === undefined) {
-        return null;
-    }
-
-    // If both arrays are empty, that's a match.
-    if (search.path.length === 0 && path.length === 0) {
-        return search.type;
-    }
-
-    const lengthsOk = search.path.length > 0 && search.path.length <= path.length;
-    if (!lengthsOk) {
-        return null;
-    }
-
-    // Find search.path in path.
-    let startIndex = 0;
-    switch (search.match) {
-        case "prefix":
-            startIndex = 0;
-            break;
-        case "suffix":
-            startIndex = path.length - search.path.length;
-            break;
-        case "contains":
-            const containsStartIndex = path.indexOf(search.path[0]);
-            if (containsStartIndex === -1) {
-                return null;
-            }
-            break;
-        default:
-            return null;
-    }
-
-    // The lineage path must have the same values starting at startIndex.
-    return search.path
-        .every((value, index) => path.length < index + startIndex && path[index + startIndex] === value)
-        ? search.type : null;
 }
 
 /**
