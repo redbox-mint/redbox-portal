@@ -356,8 +356,9 @@ jobs:
       - run:
           name: Install packages
           command: |
+            npm install --no-save --ignore-scripts
             cd ./packages/sails-ng-common
-            npm ci
+            npm ci --include=dev
       - run:
           name: Run Mocha tests
           no_output_timeout: 30m
@@ -399,12 +400,12 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido
       - run:
           name: Install packages
           command: |
             cd ./packages/redbox-core-types
-            npm ci
+            npm ci --include=dev
       - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m

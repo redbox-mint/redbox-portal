@@ -23,7 +23,7 @@ RedBox Portal is a hybrid application combining a **Sails.js** (Node.js) backend
 | `packages/` | Local npm packages used by the application (e.g., `redbox-core-types`, `sails-ng-common`). |
 | `typescript/` | Backend TypeScript source code. |
 | `support/` | Supporting scripts, documentation, and test configurations. |
-| `test/` | Frontend and specific package tests. Backend tests seem to be in `support/integration-testing` or `typescript/test`. |
+| `test/` | Frontend and specific package tests. Backend integration tests live in `test/integration` (run via `ts-node`). |
 | `views/` | Server-side view templates (EJS). |
 
 ## Key Packages (`packages/`)
