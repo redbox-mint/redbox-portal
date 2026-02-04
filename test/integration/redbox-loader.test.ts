@@ -6,8 +6,8 @@ const fsPromises = fs.promises;
 import * as os from 'os';
 
 // Resolve redbox-loader path dynamically to support running from:
-// 1. TypeScript source: typescript/test/unit/redbox-loader.test.ts (needs ../../../)
-// 2. Compiled JavaScript: test/unit/redbox-loader.test.js (needs ../../)
+// 1. TypeScript source: typescript/test/integration/redbox-loader.test.ts (needs ../../../)
+// 2. Compiled JavaScript: test/integration/redbox-loader.test.js (needs ../../)
 const possiblePaths = [
     path.resolve(__dirname, '../../../redbox-loader.js'),
     path.resolve(__dirname, '../../redbox-loader.js')

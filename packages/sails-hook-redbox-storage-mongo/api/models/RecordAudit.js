@@ -13,6 +13,10 @@ exports.RecordAuditWLDef = exports.RecordAuditClass = void 0;
 require("reflect-metadata");
 const redbox_core_types_1 = require("@researchdatabox/redbox-core-types");
 let RecordAuditClass = class RecordAuditClass {
+    user;
+    record;
+    dateCreated;
+    action;
 };
 exports.RecordAuditClass = RecordAuditClass;
 __decorate([
@@ -34,4 +38,6 @@ __decorate([
 exports.RecordAuditClass = RecordAuditClass = __decorate([
     (0, redbox_core_types_1.Entity)('recordaudit', { datastore: 'redboxStorage' })
 ], RecordAuditClass);
+// Export the Waterline model definition for runtime use
 exports.RecordAuditWLDef = (0, redbox_core_types_1.toWaterlineModelDef)(RecordAuditClass);
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiUmVjb3JkQXVkaXQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi90eXBlc2NyaXB0L2FwaS9tb2RlbHMvUmVjb3JkQXVkaXQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7O0FBQUEsNEJBQTBCO0FBQzFCLDBFQUF1RjtBQUdoRixJQUFNLGdCQUFnQixHQUF0QixNQUFNLGdCQUFnQjtJQUVsQixJQUFJLENBQTJCO0lBRy9CLE1BQU0sQ0FBMkI7SUFHakMsV0FBVyxDQUFVO0lBR3JCLE1BQU0sQ0FBVTtDQUMxQixDQUFBO0FBWlksNENBQWdCO0FBRWxCO0lBRE4sSUFBQSx3QkFBSSxFQUFDLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxDQUFDOzs4Q0FDZTtBQUcvQjtJQUROLElBQUEsd0JBQUksRUFBQyxFQUFFLElBQUksRUFBRSxNQUFNLEVBQUUsQ0FBQzs7Z0RBQ2lCO0FBR2pDO0lBRE4sSUFBQSx3QkFBSSxFQUFDLEVBQUUsSUFBSSxFQUFFLFFBQVEsRUFBRSxhQUFhLEVBQUUsSUFBSSxFQUFFLENBQUM7O3FEQUNsQjtBQUdyQjtJQUROLElBQUEsd0JBQUksRUFBQyxFQUFFLElBQUksRUFBRSxRQUFRLEVBQUUsQ0FBQzs7Z0RBQ0Y7MkJBWGQsZ0JBQWdCO0lBRDVCLElBQUEsMEJBQU0sRUFBQyxhQUFhLEVBQUUsRUFBRSxTQUFTLEVBQUUsZUFBZSxFQUFFLENBQUM7R0FDekMsZ0JBQWdCLENBWTVCO0FBRUQsd0RBQXdEO0FBQzNDLFFBQUEsZ0JBQWdCLEdBQUcsSUFBQSx1Q0FBbUIsRUFBQyxnQkFBZ0IsQ0FBQyxDQUFDIn0=

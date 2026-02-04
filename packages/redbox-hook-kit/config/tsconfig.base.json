@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "lib": [
-      "es2024",
+      "ES2024",
       "ESNext.Array",
       "ESNext.Collection",
       "ESNext.Iterator",
@@ -17,9 +17,9 @@
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "target": "es6",
-    "module": "commonjs",
+    "moduleResolution": "nodenext",
+    "target": "ES2024",
+    "module": "nodenext",
     "jsx": "react",
     "declaration": false,
     "noImplicitAny": false,
@@ -66,7 +66,7 @@
         "../../node_modules/@researchdatabox/redbox-core-types/node_modules/lodash",
         "../../../node_modules/lodash",
         "../../../node_modules/@researchdatabox/redbox-core-types/node_modules/lodash"
-      ],
+      ]
     }
   },
   "exclude": [

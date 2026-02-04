@@ -66,12 +66,12 @@ describe('ActionController', () => {
             };
             mockSails.config.action.testAction.service.testMethod.returns(mockObservable);
 
-            const ajaxOkStub = sinon.stub(controller as any, 'ajaxOk');
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             controller.callService(req, res);
 
             expect(mockObservable.subscribe.calledOnce).to.be.true;
-            expect(ajaxOkStub.calledWith(req, res, null, mockResult)).to.be.true;
+            expect(sendRespStub.calledWith(req, res, sinon.match({ data: mockResult }))).to.be.true;
         });
     });
 });

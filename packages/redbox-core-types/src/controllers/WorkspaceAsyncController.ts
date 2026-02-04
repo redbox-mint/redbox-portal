@@ -29,10 +29,11 @@ export module Controllers {
       const args = req.param('args');
       return WorkspaceAsyncService.start({ name, recordType, username, service, method, args })
         .subscribe(response => {
-          this.ajaxOk(req, res, null, {});
+          this.sendResp(req, res, { data: {}, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error(error);
-          this.ajaxFail(req, res, 'Error registering async workspace', error);
+          const payload = error ?? { status: false, message: 'Error registering async workspace' };
+          this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         });
     }
 
@@ -41,10 +42,11 @@ export module Controllers {
       const recordType = req.param('recordType');
       return WorkspaceAsyncService.status({ status, recordType })
         .subscribe(response => {
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error(error);
-          this.ajaxFail(req, res, 'Error checking status async workspace', error);
+          const payload = error ?? { status: false, message: 'Error checking status async workspace' };
+          this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         })
     }
 

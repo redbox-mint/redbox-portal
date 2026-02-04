@@ -126,7 +126,12 @@ export module Controllers {
         const searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
         this.apiRespond(req, res, searchRes);
       } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 

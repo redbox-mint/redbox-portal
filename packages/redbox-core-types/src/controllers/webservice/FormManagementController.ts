@@ -42,7 +42,12 @@ export module Controllers {
 
         return this.apiRespond(req, res, form, 200)
       } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
@@ -56,7 +61,12 @@ export module Controllers {
         response.records = forms;
         this.apiRespond(req, res, response);
       } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(error.message);
+        this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
