@@ -22,12 +22,11 @@ import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { momentShim as moment } from '../shims/momentShim';
-import { Sails } from "sails";
 import { DateTime } from 'luxon';
 import axios from 'axios';
 
-declare var sails: Sails;
-declare var _;
+declare var sails: any;
+declare var _: any;
 
 export module Services {
   /**
@@ -55,7 +54,7 @@ export module Services {
       return this._msgPrefix;
     }
 
-    private async makeCreateDoiCall(instance, postBody, record, oid) {
+    private async makeCreateDoiCall(instance: any, postBody: any, record: any, oid: string) {
       try {
         let response = await instance.post('/dois', postBody);
 
@@ -77,7 +76,7 @@ export module Services {
       }
     }
 
-    private async makeUpdateDoiCall(instance, postBody, doi) {
+    private async makeUpdateDoiCall(instance: any, postBody: any, doi: string) {
       try {
         let response = await instance.patch(`/dois/${doi}`, postBody)
 
@@ -205,7 +204,7 @@ export module Services {
       return doiForCodeList;
     }
 
-    public async publishDoi(oid, record, event = 'publish', action = 'create') {
+    public async publishDoi(oid: string, record: any, event = 'publish', action = 'create') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
@@ -232,7 +231,7 @@ export module Services {
       let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
       let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
 
-      let postBody = {
+      let postBody: any = {
         "data": {
           "type": "dois",
           "attributes": {
@@ -450,7 +449,7 @@ export module Services {
           }),
         })
       }
-      let doi;
+      let doi: string | null;
       if (action == 'update') {
         doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
       }
@@ -468,7 +467,7 @@ export module Services {
       return buff.toString('base64');
     }
 
-    public async publishDoiTrigger(oid, record, options): Promise<any> {
+    public async publishDoiTrigger(oid: string, record: any, options: any): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         const brand: BrandingModel = BrandingService.getBrand('default');
@@ -483,7 +482,7 @@ export module Services {
       return of(null);
     }
 
-    public async publishDoiTriggerSync(oid, record, options): Promise<any> {
+    public async publishDoiTriggerSync(oid: string, record: any, options: any): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         let doi = await this.publishDoi(oid, record, options["event"]);
@@ -496,16 +495,16 @@ export module Services {
       return record;
     }
 
-    public async updateDoiTriggerSync(oid, record, options): Promise<any> {
+    public async updateDoiTriggerSync(oid: string, record: any, options: any): Promise<any> {
 
-      let doi = null
+      let doi: string | null = null
       if (this.metTriggerCondition(oid, record, options) === "true") {
         doi = await this.publishDoi(oid, record, options["event"], 'update');
       }
       return record
     }
 
-    addDoiDataToRecord(oid: any, record: any, doi: any) {
+    addDoiDataToRecord(oid: string, record: any, doi: string) {
       let lodashTemplateContext = {
         record: record,
         oid: oid,
@@ -531,7 +530,7 @@ export module Services {
 
     //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in
     //      which will allow to standardise config structure in all places were object mappings are needed
-    protected runTemplate(template: string, variables) {
+    protected runTemplate(template: string, variables: any) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }
@@ -543,4 +542,3 @@ export module Services {
 declare global {
   let DoiService: Services.Doi;
 }
-

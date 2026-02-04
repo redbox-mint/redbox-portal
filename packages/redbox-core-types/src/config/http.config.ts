@@ -224,12 +224,19 @@ export const http: HttpConfig = {
             const originalRedirect = res.redirect;
 
             // Patch the redirect function so that it sets the no-cache headers
-            res.redirect = function (...args: any[]) {
+            res.redirect = function (this: Response, urlOrStatus: string | number, statusOrUrl?: number | string) {
                 res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.set('Pragma', 'no-cache');
                 res.set('Expires', '0');
 
-                return originalRedirect.apply(this, args);
+                const redirect = originalRedirect as any;
+                if (typeof urlOrStatus === 'number') {
+                    return redirect.call(this, urlOrStatus, statusOrUrl as string | undefined);
+                }
+                if (typeof statusOrUrl === 'number') {
+                    return redirect.call(this, statusOrUrl, urlOrStatus);
+                }
+                return redirect.call(this, urlOrStatus);
             } as any;
 
             return next();

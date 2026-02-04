@@ -19,11 +19,10 @@
 
 import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
-import {Sails, Model} from "sails";
 
-declare var sails: Sails;
-declare var _;
-declare var AsynchProgress: Model;
+declare var sails: any;
+declare var _: any;
+declare var AsynchProgress: any;
 import { DateTime } from 'luxon';
 
 export module Services {
@@ -41,7 +40,7 @@ export module Services {
       'get'
     ];
 
-    public start(progressObj) {
+    public start(progressObj: Record<string, unknown>) {
       if (_.isEmpty(progressObj.date_started) || _.isUndefined(progressObj.date_completed)) {
   // Using ISO-like local timestamp without timezone
   progressObj.date_started = DateTime.local().toFormat("yyyy-LL-dd'T'HH:mm:ss");
@@ -49,11 +48,11 @@ export module Services {
       return super.getObservable(AsynchProgress.create(progressObj));
     }
 
-    public update(criteria, progressObj) {
+    public update(criteria: Record<string, unknown>, progressObj: Record<string, unknown>) {
       return super.getObservable(AsynchProgress.update(criteria, progressObj));
     }
 
-    public finish(progressId, progressObj=null) {
+    public finish(progressId: string, progressObj: Record<string, unknown> | null = null) {
       if (progressObj) {
           progressObj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
       } else {
@@ -63,7 +62,7 @@ export module Services {
       return super.getObservable(AsynchProgress.update({id:progressId}, progressObj));
     }
 
-    public get(criteria) {
+    public get(criteria: Record<string, unknown>) {
       return super.getObservable(AsynchProgress.find(criteria));
     }
 
@@ -74,4 +73,3 @@ export module Services {
 declare global {
   let AsynchsService: Services.Asynchs;
 }
-

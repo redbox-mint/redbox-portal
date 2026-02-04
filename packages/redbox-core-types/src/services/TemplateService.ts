@@ -19,13 +19,12 @@
 
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
-import { Sails } from "sails";
 import jsonata, { Expression } from "jsonata";
 import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from "handlebars";
 import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
 
 
-declare var sails: Sails;
+declare var sails: any;
 
 export module Services {
 

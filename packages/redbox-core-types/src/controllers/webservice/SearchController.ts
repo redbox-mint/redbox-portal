@@ -43,7 +43,7 @@ export module Controllers {
 
     }
 
-    public override async index(req, res) {
+    public override async index(req: Sails.Req, res: Sails.Res) {
       let oid = req.param('oid');
       let record: RecordModel = await this.RecordsService.getMeta(oid);
       await this.searchService.index(oid, record);
@@ -51,7 +51,7 @@ export module Controllers {
       return this.apiRespond(req, res, new APIObjectActionResponse(oid, "Index request added to message queue for processing"), 200)
     }
 
-    public async indexAll(req, res) {
+    public async indexAll(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
       let itemsPerPage = 100;
@@ -79,7 +79,7 @@ export module Controllers {
       return this.apiRespond(req, res, new APIObjectActionResponse("", "Index all records request added to message queue for processing"), 200);
     }
 
-    public async removeAll(req, res) {
+    public async removeAll(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
 
@@ -90,16 +90,16 @@ export module Controllers {
       return this.apiRespond(req, res, new APIObjectActionResponse("", "Remove all records request added to message queue for processing"), 200);
     }
 
-    public async search(req, res) {
+    public async search(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const type = req.query.type;
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
       let core = req.query.core;
       const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
-      const exactSearches = [];
+      const exactSearches: Array<{ name: string; value: unknown }> = [];
       const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');
-      const facetSearches = [];
+      const facetSearches: Array<{ name: string; value: unknown }> = [];
 
       // If a record type is set, fetch from the configuration what core it's being sent from
       if (type != null) {
@@ -107,13 +107,13 @@ export module Controllers {
         core = recordType.searchCore;
       }
 
-      _.forEach(exactSearchNames, (exactSearch) => {
+      _.forEach(exactSearchNames, (exactSearch: string) => {
         exactSearches.push({
           name: exactSearch,
           value: req.query[`exact_${exactSearch}`]
         });
       });
-      _.forEach(facetSearchNames, (facetSearch) => {
+      _.forEach(facetSearchNames, (facetSearch: string) => {
         facetSearches.push({
           name: facetSearch,
           value: req.query[`facet_${facetSearch}`]
@@ -123,8 +123,9 @@ export module Controllers {
       try {
         const searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
         this.apiRespond(req, res, searchRes);
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorResponse = new APIErrorResponse(errorMessage);
         this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],

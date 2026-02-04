@@ -21,14 +21,13 @@ import { Observable, of, throwError } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { Sails } from "sails";
 import * as crypto from 'crypto';
 
-declare var sails: Sails;
-declare var _;
-declare var BrandingConfig;
-declare var BrandingConfigHistory;
-declare var CacheEntry;
+declare var sails: any;
+declare var _: any;
+declare var BrandingConfig: any;
+declare var BrandingConfigHistory: any;
+declare var CacheEntry: any;
 
 export module Services {
   /**
@@ -77,7 +76,7 @@ export module Services {
           , flatMap(this.loadAvailableBrands));
     }
 
-    public loadAvailableBrands = (defBrand): Observable<any> => {
+    public loadAvailableBrands = (_defBrand: unknown): Observable<any> => {
       sails.log.verbose("Loading available brands......");
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
@@ -95,15 +94,15 @@ export module Services {
     }
 
     public getDefault = (): BrandingModel => {
-      return _.find(this.brandings, (o) => { return o.name == this.dBrand.name });
+      return _.find(this.brandings, (o: BrandingModel) => { return o.name == this.dBrand.name });
     }
 
-    public getBrand = (name): BrandingModel => {
-      return _.find(this.brandings, (o) => { return o.name == name });
+    public getBrand = (name: string): BrandingModel => {
+      return _.find(this.brandings, (o: BrandingModel) => { return o.name == name });
     }
 
-    public getBrandById = (id): BrandingModel => {
-      return _.find(this.brandings, (o) => { return o.id == id });
+    public getBrandById = (id: string): BrandingModel => {
+      return _.find(this.brandings, (o: BrandingModel) => { return o.id == id });
     }
 
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
@@ -114,7 +113,7 @@ export module Services {
       return this.availableBrandings;
     }
 
-    public getBrandAndPortalPath(req): string {
+    public getBrandAndPortalPath(req: any): string {
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
       const rootContext = this.getRootContext();
@@ -136,11 +135,11 @@ export module Services {
     }
 
 
-    public getFullPath(req): string {
+    public getFullPath(req: any): string {
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
-    public getBrandFromReq(req): string {
+    public getBrandFromReq(req: any): string {
       var branding = null;
       if (req && req.params) {
         branding = req.params['branding'];
@@ -162,7 +161,7 @@ export module Services {
       return branding;
     }
 
-    public getPortalFromReq(req) {
+    public getPortalFromReq(req: any): string {
       var portal = null;
       if (req && req.params) {
         portal = req.params['portal'];
@@ -196,7 +195,7 @@ export module Services {
         normalized[norm] = v;
       }
       // Contrast validation: only enforce on pairs where both fg/bg provided in this input.
-      const colorKeysInInput = new Set(Object.keys(normalized));
+      const colorKeysInInput = new Set<string>(Object.keys(normalized));
       const contrastPairKeyMap: Record<string, [string, string]> = {
         'primary-text-on-primary-bg': ['primary-text-color', 'primary-color'],
         'secondary-text-on-secondary-bg': ['secondary-text-color', 'secondary-color'],
@@ -296,7 +295,7 @@ export module Services {
     public async refreshBrandingCache(id: any) {
       const updated = await BrandingConfig.findOne({ id }).populate('roles');
       if (updated) {
-        const idx = this.brandings.findIndex(b => b.id === id);
+        const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);
         if (idx >= 0) {
           this.brandings[idx] = updated;
         } else {
@@ -314,4 +313,3 @@ export module Services {
 declare global {
   let BrandingService: Services.Branding;
 }
-

@@ -76,15 +76,15 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public login(req, res) {
+    public login(req: Sails.Req, res: Sails.Res) {
       this.sendView(req, res, sails.config.auth.loginPath);
     }
 
-    public profile(req, res) {
+    public profile(req: Sails.Req, res: Sails.Res) {
       this.sendView(req, res, "user/profile");
     }
 
-    public redirLogin(req, res) {
+    public redirLogin(req: Sails.Req, res: Sails.Res) {
       if (req.path.indexOf(sails.config.auth.loginPath) == -1) {
 
         let url = req.url;
@@ -100,11 +100,11 @@ export module Controllers {
       return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`);
     }
 
-    public redirPostLogin(req, res) {
+    public redirPostLogin(req: Sails.Req, res: Sails.Res) {
       res.redirect(this.getPostLoginUrl(req, res));
     }
 
-    protected getPostLoginUrl(req, res) {
+    protected getPostLoginUrl(req: Sails.Req, res: Sails.Res) {
       const branding = BrandingService.getBrandFromReq(req);
       let postLoginUrl = null;
       if (req.session.redirUrl) {
@@ -118,7 +118,7 @@ export module Controllers {
       return postLoginUrl;
     }
 
-    public logout(req, res) {
+    public logout(req: Sails.Req, res: Sails.Res) {
       let requestDetails = new RequestDetails(req);
       let redirUrl = sails.config.auth.postLogoutRedir;
       if (req.session.user && req.session.user.type == 'oidc') {
@@ -131,8 +131,8 @@ export module Controllers {
       }
 
       let user = req.session.user ? req.session.user : req.user;
-      req.logout(function (err) {
-        if (err) { res.send(500, 'Logout failed'); }
+      req.logout(function (err: unknown) {
+        if (err) { return res.status(500).send('Logout failed'); }
         UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
           sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`);
         }).catch(err => {
@@ -141,11 +141,11 @@ export module Controllers {
         });
         // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
         _.unset(req.session, 'user');
-        res.redirect(redirUrl);
+        return res.redirect(redirUrl);
       });
     }
 
-    public info(req, res) {
+    public info(req: Sails.Req, res: Sails.Res) {
       let user = req.user;
       delete user.token;
       return res.json({
@@ -153,21 +153,21 @@ export module Controllers {
       });
     }
 
-    public update(req, res) {
+    public update(req: Sails.Req, res: Sails.Res) {
       var userid;
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
-        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
 
       if (!userid) {
-        this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
 
       var details = req.body.details;
       if (!details) {
-        this.sendResp(req, res, { data: { status: false, message: "Error: user details not specified" }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { status: false, message: "Error: user details not specified" }, headers: this.getNoCacheHeaders() });
       }
 
       var name;
@@ -183,11 +183,12 @@ export module Controllers {
           this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.sendResp(req, res, { data: { status: false, message: "Error: name must not be null" }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { status: false, message: "Error: name must not be null" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public generateUserKey(req, res) {
+    public generateUserKey(req: Sails.Req, res: Sails.Res) {
       var userid;
       if (req.isAuthenticated()) {
         userid = req.user.id;
@@ -207,9 +208,10 @@ export module Controllers {
       } else {
         return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public revokeUserKey(req, res) {
+    public revokeUserKey(req: Sails.Req, res: Sails.Res) {
       var userid;
       if (req.isAuthenticated()) {
         userid = req.user.id;
@@ -229,11 +231,12 @@ export module Controllers {
       } else {
         return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public localLogin(req, res) {
+    public localLogin(req: Sails.Req, res: Sails.Res) {
       const that = this;
-      sails.config.passport.authenticate('local', function (err, user, info) {
+      sails.config.passport.authenticate('local', function (err: any, user: any, info: any) {
         if ((err) || (!user)) {
           return res.send({
             message: info.message,
@@ -250,7 +253,7 @@ export module Controllers {
           sails.log.error(err)
         });
         const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
-        req.logIn(user, function (err) {
+        return req.logIn(user, function (err: unknown) {
           if (err) res.send(err);
           // login success
           // redir if api header call is not found
@@ -270,13 +273,13 @@ export module Controllers {
     }
 
 
-    public openidConnectLogin(req, res) {
+    public openidConnectLogin(req: Sails.Req, res: Sails.Res) {
       let passportIdentifier = 'oidc'
       if (!_.isEmpty(req.param('id'))) {
         passportIdentifier = `oidc-${req.param('id')}`
       }
       let that = this;
-      sails.config.passport.authenticate(passportIdentifier, function (err, user, info) {
+      sails.config.passport.authenticate(passportIdentifier, function (err: any, user: any, info: any) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
         sails.log.verbose("Error:");
         sails.log.verbose(err);
@@ -350,7 +353,7 @@ export module Controllers {
           sails.log.error(err)
         });
 
-        req.logIn(user, function (err) {
+        req.logIn(user, function (err: unknown) {
           if (err) res.send(err);
           sails.log.debug("OpenId Connect Login OK, redirecting...");
           return sails.getActions()['user/redirpostlogin'](req, res);
@@ -358,7 +361,7 @@ export module Controllers {
       })(req, res);
     }
 
-    public beginOidc(req, res) {
+    public beginOidc(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose(`At OIDC begin flow, redirecting...`);
       let passportIdentifier = 'oidc'
       if (!_.isEmpty(req.param('id'))) {
@@ -367,7 +370,7 @@ export module Controllers {
       sails.config.passport.authenticate(passportIdentifier)(req, res);
     }
 
-    private decodeErrorMappings(options, errorMessage) {
+    private decodeErrorMappings(options: any, errorMessage: string) {
 
       sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
@@ -453,7 +456,7 @@ export module Controllers {
       }
     }
 
-    private validateRegex(errorMessage, regexPattern) {
+    private validateRegex(errorMessage: string, regexPattern: string | RegExp) {
       if (_.isRegExp(regexPattern)) {
         let re = new RegExp(regexPattern);
         sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
@@ -465,7 +468,7 @@ export module Controllers {
       }
     }
 
-    private validateRegexWithGroups(errorMessage, regexPattern) {
+    private validateRegexWithGroups(errorMessage: string, regexPattern: string | RegExp) {
       // let decodedGroups = _.clone(groups);
       let re = new RegExp(regexPattern);
       const matches = re.exec(errorMessage);
@@ -479,8 +482,8 @@ export module Controllers {
       return interpolationMap;
     }
 
-    public aafLogin(req, res) {
-      sails.config.passport.authenticate('aaf-jwt', function (err, user, info) {
+	    public aafLogin(req: Sails.Req, res: Sails.Res) {
+	      sails.config.passport.authenticate('aaf-jwt', function (err: any, user: any, info: any) {
         sails.log.verbose("At AAF Controller, verify...");
         sails.log.verbose("Error:");
         sails.log.verbose(err);
@@ -521,7 +524,7 @@ export module Controllers {
           sails.log.error(err)
         });
 
-        req.logIn(user, function (err) {
+	        req.logIn(user, function (err: unknown) {
           if (err) res.send(err);
           sails.log.debug("AAF Login OK, redirecting...");
           return sails.getActions()['user/redirpostlogin'](req, res);
@@ -529,12 +532,12 @@ export module Controllers {
       })(req, res);
     }
 
-    public find(req, res) {
+    public find(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const searchSource = req.query.source;
       const searchName = req.query.name;
       UsersService.findUsersWithName(searchName, brand.id, searchSource).subscribe(users => {
-        const userArr = _.map(users, user => {
+        const userArr = _.map(users, (user: any) => {
           return {
             name: user.name,
             id: user.id,

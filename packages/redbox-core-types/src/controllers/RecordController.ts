@@ -117,7 +117,18 @@ export module Controllers {
 
     public bootstrap() { }
 
-    public async getMeta(req, res) {
+    private getErrorMessage(error: unknown): string {
+      if (error instanceof Error) {
+        return error.message;
+      }
+      return String(error);
+    }
+
+    private asError(error: unknown): Error {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
+    public async getMeta(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
       if (oid == '') {
@@ -142,14 +153,14 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{detail: "Error retrieving metadata"}],
           meta: {oid: oid},
         });
       }
     }
 
-    public async getMetaDefault(req, res) {
+    public async getMetaDefault(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('name') ?? '';
       const editMode = req.query.edit == "true";
@@ -174,7 +185,7 @@ export module Controllers {
       });
     }
 
-    public edit(req, res) {
+    public edit(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
       let recordType = req.param('recordType') ? req.param('recordType') : '';
@@ -219,7 +230,7 @@ export module Controllers {
           });
         }, error => {
           return this.sendResp(req, res, {
-            errors: [error],
+            errors: [this.asError(error)],
             displayErrors: [{detail: "Failed to load form"}],
           });
         });
@@ -258,19 +269,19 @@ export module Controllers {
       }
     }
 
-    protected hasEditAccess(brand, user, currentRec): Observable<boolean> {
+    protected hasEditAccess(brand: BrandingModel, user: any, currentRec: any): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
       return of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
     }
 
-    protected hasViewAccess(brand, user, currentRec) {
+    protected hasViewAccess(brand: BrandingModel, user: any, currentRec: any): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
       return of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
     }
 
-    public async getForm(req, res) {
+    public async getForm(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('name');
       const oid = req.param('oid')?.toString()?.trim() || null;
@@ -339,7 +350,7 @@ export module Controllers {
 
         // process the form config to provide only the fields accessible by the current user
         const formMode = editMode ? "edit" : "view";
-        const userRoles = (req.user?.roles ?? []).map(role => role?.name).filter(name => !!name);
+        const userRoles = (req.user?.roles ?? []).map((role: any) => role?.name).filter((name: string) => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
         const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData?.metadata, reusableFormDefs);
@@ -362,26 +373,27 @@ export module Controllers {
       } catch(error) {
         let displayError: ErrorResponseItemV2 = {title: "Error getting form definition"};
         let msg;
-        if (error.error && error.error.code == 500) {
+        const typedError = error as { error?: { code?: number }; message?: string };
+        if (typedError.error && typedError.error.code == 500) {
           displayError.code = 'missing-record';
           msg = TranslationService.t('missing-record');
         } else {
-          displayError.detail = error.message;
-          msg = error.message;
+          displayError.detail = typedError.message;
+          msg = typedError.message;
         }
         return this.sendResp(req, res, {
-          errors: [error],
+          errors: [this.asError(error)],
           displayErrors: [displayError],
           v1: msg,
         });
       }
     }
 
-    public create(req, res) {
+    public create(req: Sails.Req, res: Sails.Res) {
       this.createInternal(req, res).then(() => { });
     }
 
-    private async createInternal(req, res) {
+    private async createInternal(req: Sails.Req, res: Sails.Res) {
       try {
         const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const metadata = req.body;
@@ -418,13 +430,13 @@ export module Controllers {
 
       } catch (error) {
         return this.sendResp(req, res, {
-          errors: [error],
+          errors: [this.asError(error)],
           displayErrors: [{detail: 'Failed to save record'}],
         });
       }
     }
 
-    public async delete(req, res) {
+    public async delete(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const user = req.user;
@@ -468,7 +480,7 @@ export module Controllers {
       }
     }
 
-    public async restoreRecord(req, res) {
+    public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const msgFailed = TranslationService.t('failed-restore');
@@ -512,7 +524,7 @@ export module Controllers {
       }
     }
 
-    public async destroyDeletedRecord(req, res) {
+    public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
@@ -550,11 +562,11 @@ export module Controllers {
       }
     }
 
-    public update(req, res) {
+    public update(req: Sails.Req, res: Sails.Res) {
       this.updateInternal(req, res).then(result => { });
     }
 
-    private async updateInternal(req, res) {
+    private async updateInternal(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
@@ -588,35 +600,36 @@ export module Controllers {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
           return this.sendResp(req, res, {
             data:  await this.recordsService.getMeta(oid),
-            meta: response,
+            meta: response ? { ...response } : undefined,
             v1: response,
           });
         } else {
           return this.sendResp(req, res, {
             status: 500,
             displayErrors: [{detail: "Failed to get record data"}],
-            meta: response,
+            meta: response ? { ...response } : undefined,
             v1: response,
           });
         }
       } catch (error) {
+        const errorMessage = this.getErrorMessage(error);
         sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
         return this.sendResp(req, res, {
-          errors: [error],
-          displayErrors: [{detail: error.message}],
-          meta: response,
-          v1: error.message,
+          errors: [this.asError(error)],
+          displayErrors: [{detail: errorMessage}],
+          meta: response ? { ...response } : undefined,
+          v1: errorMessage,
         });
       }
     }
 
     //TODO: check if this deprecated?
-    protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
+    protected saveMetadata(brand: BrandingModel, oid: string, currentRec: any, metadata: any, user: any): Observable<any> {
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
     }
 
-    protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
+    protected saveAuthorization(brand: BrandingModel, oid: string, currentRec: any, authorization: any, user: any): Observable<any> {
       let editAccessResp: Observable<boolean> = this.hasEditAccess(brand, user, currentRec);
       return editAccessResp
         .pipe(map(hasEditAccess => {
@@ -632,7 +645,7 @@ export module Controllers {
         }));
     }
 
-    protected getRecord(oid) {
+    protected getRecord(oid: string): Observable<any> {
       return from(this.recordsService.getMeta(oid)).pipe(flatMap(currentRec => {
         if (_.isEmpty(currentRec)) {
           return throwError(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
@@ -642,7 +655,7 @@ export module Controllers {
     }
 
     //TODO: check if this is deprecated?
-    protected updateMetadata(brand, oid, currentRec, user) {
+    protected updateMetadata(brand: BrandingModel, oid: string, currentRec: any, user: any): Observable<any> {
       if (currentRec.metaMetadata.brandId != brand.id) {
         return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
@@ -653,19 +666,19 @@ export module Controllers {
       return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
-    protected updateAuthorization(brand, oid, currentRec, user) {
+    protected updateAuthorization(brand: BrandingModel, oid: string, currentRec: any, user: any): Observable<any> {
       if (currentRec.metaMetadata.brandId != brand.id) {
         return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
       return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
-    public stepTo(req, res) {
+    public stepTo(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
-      let origRecord = null;
+      let origRecord: any = null;
       return this.getRecord(oid).pipe(flatMap(currentRec => {
         origRecord = _.cloneDeep(currentRec);
         return this.hasEditAccess(brand, req.user, currentRec)
@@ -688,9 +701,9 @@ export module Controllers {
               }));
           }))
       }))
-        .subscribe(response => {
+        .subscribe((response: any) => {
           let responseValue: any= response;
-          return responseValue.subscribe(response => {
+          return responseValue.subscribe((response: any) => {
             sails.log.error(response);
             if (response && response.isSuccessful()) {
               response.success = true;
@@ -702,9 +715,9 @@ export module Controllers {
                 v1: response
               });
             }
-          }, error => {
+          }, (error: Error) => {
             this.sendResp(req, res, {
-              errors: [error],
+              errors: [this.asError(error)],
               displayErrors: [{title: "Error updating meta", detail: error.message}],
               v1: error.message
             });
@@ -712,7 +725,7 @@ export module Controllers {
         });
     }
 
-    public async search(req, res) {
+    public async search(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
       let rows = req.param('rows');
@@ -743,18 +756,20 @@ export module Controllers {
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
 
-      const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
-      const exactSearches = [];
-      const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');
-      const facetSearches = [];
+      const exactNamesParam = req.query.exactNames;
+      const exactSearchNames = _.isEmpty(exactNamesParam) ? [] : String(exactNamesParam).split(',');
+      const exactSearches: Array<{name: string; value: unknown}> = [];
+      const facetNamesParam = req.query.facetNames;
+      const facetSearchNames = _.isEmpty(facetNamesParam) ? [] : String(facetNamesParam).split(',');
+      const facetSearches: Array<{name: string; value: unknown}> = [];
 
-      _.forEach(exactSearchNames, (exactSearch) => {
+      _.forEach(exactSearchNames, (exactSearch: string) => {
         exactSearches.push({
           name: exactSearch,
           value: req.query[`exact_${exactSearch}`]
         });
       });
-      _.forEach(facetSearchNames, (facetSearch) => {
+      _.forEach(facetSearchNames, (facetSearch: string) => {
         facetSearches.push({
           name: facetSearch,
           value: req.query[`facet_${facetSearch}`]
@@ -766,9 +781,10 @@ export module Controllers {
         searchRes['page'] = page
         this.sendResp(req, res, {data: searchRes});
       } catch (error) {
+        const errorMessage = this.getErrorMessage(error);
         this.sendResp(req, res, {
-          errors: [error],
-          v1: error.message,
+          errors: [this.asError(error)],
+          v1: errorMessage,
         });
       }
     }
@@ -776,7 +792,7 @@ export module Controllers {
      * Returns the RecordType configuration based of the response model that is intentionally restricting
      * the object schema and information that is allowed to be sent back in this endpoint
      */
-    public getType(req, res) {
+    public getType(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType');
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
@@ -784,7 +800,7 @@ export module Controllers {
         this.sendResp(req, res, {data: recordTypeModel});
       }, error => {
         this.sendResp(req, res, {
-          errors: [error],
+          errors: [this.asError(error)],
           v1: error.message,
         })
       });
@@ -794,7 +810,7 @@ export module Controllers {
      * Returns all RecordTypes configuration based of the response model that is intentionally restricting
      * the object schema and information that is allowed to be sent back in this endpoint
      */
-    public getAllTypes(req, res) {
+    public getAllTypes(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         let recordTypeModels = [];
@@ -804,22 +820,22 @@ export module Controllers {
         }
         this.sendResp(req, res, {data: recordTypeModels});
       }, error => {
-        this.sendResp(req, res, {errors: [error], v1: error.message});
+        this.sendResp(req, res, {errors: [this.asError(error)], v1: error.message});
       });
     }
 
-    public getDashboardType(req, res) {
+    public getDashboardType(req: Sails.Req, res: Sails.Res) {
       const dashboardTypeParam = req.param('dashboardType');
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
         let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
         this.sendResp(req, res, {data: dashboardTypeModel});
       }, error => {
-        this.sendResp(req, res, {errors: [error], v1:error.message});
+        this.sendResp(req, res, {errors: [this.asError(error)], v1:error.message});
       });
     }
 
-    public getAllDashboardTypes(req, res) {
+    public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
         let dashboardTypesModel = { dashboardTypes: [] };
@@ -831,7 +847,7 @@ export module Controllers {
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
         this.sendResp(req, res, {data: dashboardTypesModel});
       }, error => {
-        this.sendResp(req, res, {errors: [error], v1: error.message});
+        this.sendResp(req, res, {errors: [this.asError(error)], v1: error.message});
       });
     }
 
@@ -852,27 +868,27 @@ export module Controllers {
         this.tusServer.datastore = new tus.FileStore({
           directory: targetDir
         });
-        this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event) => {
+        this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event: unknown) => {
           sails.log.verbose(`::: File uploaded to staging:`);
           sails.log.verbose(JSON.stringify(event));
         });
-        this.tusServer.on(tus.EVENTS.EVENT_FILE_CREATED, (event) => {
+        this.tusServer.on(tus.EVENTS.EVENT_FILE_CREATED, (event: unknown) => {
           sails.log.verbose(`::: File created:`);
           sails.log.verbose(JSON.stringify(event));
         });
       }
     }
 
-    protected getTusMetadata(req, field: string): string {
-      const entries = {};
-      _.each(req.headers['upload-metadata'].split(','), (entry) => {
+    protected getTusMetadata(req: Sails.Req, field: string): string {
+      const entries: { [key: string]: string } = {};
+      _.each(String(req.headers['upload-metadata']).split(','), (entry: string) => {
         const elems = entry.split(' ');
         entries[elems[0]] = elems[1];
       });
       return Buffer.from(entries[field], 'base64').toString('ascii');
     }
 
-    public async doAttachment(req, res) {
+    public async doAttachment(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const attachId = req.param('attachId');
@@ -899,17 +915,18 @@ export module Controllers {
           return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         // check if this attachId exists in the record
-        let found = null;
-        _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
+        let found: any = null;
+        _.each(currentRec.metaMetadata.attachmentFields, (attField: string) => {
           if (!found) {
             const attFieldVal = currentRec.metadata[attField];
-            found = _.find(attFieldVal, (attVal) => {
+            found = _.find(attFieldVal, (attVal: any) => {
               return attVal.fileId == attachId
             });
             if (found) {
               return false;
             }
           }
+          return undefined;
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
@@ -939,14 +956,15 @@ export module Controllers {
           }
           return of(oid);
         } catch (error) {
+          const errorMessage = this.getErrorMessage(error);
           if (this.isAjax(req)) {
-            this.sendResp(req, res, {errors: [error], v1: error.message});
-          } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            this.sendResp(req, res, {status: 403, errors: [error], displayErrors: [{code: 'edit-error-no-permissions'}]});
-          } else if (error.message == TranslationService.t('attachment-not-found')) {
-            this.sendResp(req, res, {status: 404, errors: [error], displayErrors: [{code: 'attachment-not-found'}]});
+            return this.sendResp(req, res, {errors: [this.asError(error)], v1: errorMessage});
+          } else if (errorMessage == TranslationService.t('edit-error-no-permissions')) {
+            return this.sendResp(req, res, {status: 403, errors: [this.asError(error)], displayErrors: [{code: 'edit-error-no-permissions'}]});
+          } else if (errorMessage == TranslationService.t('attachment-not-found')) {
+            return this.sendResp(req, res, {status: 404, errors: [this.asError(error)], displayErrors: [{code: 'attachment-not-found'}]});
           } else {
-            this.sendResp(req, res, {status: 500, errors: [error]});
+            return this.sendResp(req, res, {status: 500, errors: [this.asError(error)]});
           }
         }
       } else {
@@ -975,7 +993,7 @@ export module Controllers {
       }
     }
 
-    public getWorkflowSteps(req, res) {
+    public getWorkflowSteps(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType');
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       return RecordTypesService.get(brand, recordType).subscribe(recordType => {
@@ -985,13 +1003,13 @@ export module Controllers {
       });
     }
 
-    public getRelatedRecords(req, res) {
+    public getRelatedRecords(req: Sails.Req, res: Sails.Res) {
       return this.getRelatedRecordsInternal(req, res).then(response => {
         return this.sendResp(req, res, {data: response});
       });
     }
 
-    public async getRelatedRecordsInternal(req, res) {
+    public async getRelatedRecordsInternal(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
@@ -1003,7 +1021,7 @@ export module Controllers {
       return relatedRecords;
     }
 
-    public async getPermissionsInternal(req, res) {
+    public async getPermissionsInternal(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
   let record = await firstValueFrom(this.getRecord(oid));
 
@@ -1052,14 +1070,14 @@ export module Controllers {
       };
     }
 
-    public getPermissions(req, res) {
+    public getPermissions(req: Sails.Req, res: Sails.Res) {
       return this.getPermissionsInternal(req, res).then(response => {
         return this.sendResp(req, res, {data: response});
       });
     }
 
 
-    public getAttachments(req, res) {
+    public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
       from(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
@@ -1067,7 +1085,7 @@ export module Controllers {
       });
     }
 
-    public async getDataStream(req, res) {
+    public async getDataStream(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
@@ -1091,14 +1109,15 @@ export module Controllers {
           }
           return of(oid);
         } catch (error) {
+          const errorMessage = this.getErrorMessage(error);
           if (this.isAjax(req)) {
-            this.sendResp(req, res, {errors: [error], v1: error.message});
-          } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            this.sendResp(req, res, {status: 403, errors: [error], displayErrors: [{code: 'edit-error-no-permissions'}]});
-          } else if (error.message == TranslationService.t('attachment-not-found')) {
-            this.sendResp(req, res, {status: 404, errors: [error], displayErrors: [{code: 'attachment-not-found'}]});
+            return this.sendResp(req, res, {errors: [this.asError(error)], v1: errorMessage});
+          } else if (errorMessage == TranslationService.t('edit-error-no-permissions')) {
+            return this.sendResp(req, res, {status: 403, errors: [this.asError(error)], displayErrors: [{code: 'edit-error-no-permissions'}]});
+          } else if (errorMessage == TranslationService.t('attachment-not-found')) {
+            return this.sendResp(req, res, {status: 404, errors: [this.asError(error)], displayErrors: [{code: 'attachment-not-found'}]});
           } else {
-            this.sendResp(req, res, {status: 500, errors: [error]});
+            return this.sendResp(req, res, {status: 500, errors: [this.asError(error)]});
           }
         }
       }
@@ -1113,12 +1132,12 @@ export module Controllers {
 
     /** Dashboard Controller functions */
 
-    public listWorkspaces(req, res) {
+    public listWorkspaces(req: Sails.Req, res: Sails.Res) {
       const url = `${BrandingService.getFullPath(req)}/dashboard/workspace?packageType=workspace&titleLabel=workspaces`;
       return res.redirect(url);
     }
 
-    public async render(req, res) {
+    public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
@@ -1154,7 +1173,7 @@ export module Controllers {
     }
 
 
-    public async getRecordList(req, res) {
+    public async getRecordList(req: Sails.Req, res: Sails.Res) {
 
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 
@@ -1213,18 +1232,19 @@ export module Controllers {
         if (response) {
           this.sendResp(req, res, {data: response});
         } else {
-          this.sendResp(req, res, {status: 500, meta: response, v1: response});
+          this.sendResp(req, res, {status: 500, meta: {}, v1: response});
         }
       } catch (error) {
+        const errorMessage = this.getErrorMessage(error);
         this.sendResp(req, res, {
-          errors: [error],
-          displayErrors: [{title: "Error updating meta", detail: error.message}],
-          v1: error.message
+          errors: [this.asError(error)],
+          displayErrors: [{title: "Error updating meta", detail: errorMessage}],
+          v1: errorMessage
         });
       }
     }
 
-    public async getDeletedRecordList(req, res){
+    public async getDeletedRecordList(req: Sails.Req, res: Sails.Res){
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
@@ -1276,24 +1296,25 @@ export module Controllers {
         if (response) {
           this.sendResp(req, res, {data: response});
         } else {
-          this.sendResp(req, res, {status: 500, meta: response, v1: response});
+          this.sendResp(req, res, {status: 500, meta: {}, v1: response});
         }
       } catch (error) {
+        const errorMessage = this.getErrorMessage(error);
         this.sendResp(req, res, {
-          errors: [error],
-          displayErrors: [{title: "Error updating meta", detail: error.message}],
-          v1: error.message
+          errors: [this.asError(error)],
+          displayErrors: [{title: "Error updating meta", detail: errorMessage}],
+          v1: errorMessage
         });
       }
     }
 
-    public renderDeletedRecords(req, res) {
+    public renderDeletedRecords(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/deletedRecords');
     }
 
 
-    private getDocMetadata(doc) {
-      var metadata = {};
+    private getDocMetadata(doc: { [key: string]: unknown }): { [key: string]: unknown } {
+      const metadata: { [key: string]: unknown } = {};
       for (var key in doc) {
         if (key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
           metadata[key] = doc[key];
@@ -1305,7 +1326,7 @@ export module Controllers {
       return metadata;
     }
 
-    protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode = undefined, secondarySort = undefined) {
+    protected async getRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: BrandingModel, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, filterFields: any = undefined, filterString: any = undefined, filterMode: any = undefined, secondarySort: any = undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -1324,7 +1345,7 @@ export module Controllers {
       var noItems = rows;
       var pageNumber = (startIndex / noItems) + 1;
 
-      var response = {};
+      const response: { [key: string]: unknown } = {};
       response["totalItems"] = totalItems;
       response["currentPage"] = pageNumber;
       response["noItems"] = noItems;
@@ -1334,7 +1355,7 @@ export module Controllers {
 
       for (var i = 0; i < docs.length; i++) {
         var doc = docs[i];
-        var item = {};
+        const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
         item["title"] = doc["metadata"]["title"];
         item["metadata"] = this.getDocMetadata(doc);
@@ -1348,7 +1369,7 @@ export module Controllers {
       return response;
     }
 
-    protected async getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode = undefined) {
+    protected async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: BrandingModel, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, filterFields: any = undefined, filterString: any = undefined, filterMode: any = undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -1367,7 +1388,7 @@ export module Controllers {
       var noItems = rows;
       var pageNumber = (startIndex / noItems) + 1;
 
-      var response = {};
+      const response: { [key: string]: unknown } = {};
       response["totalItems"] = totalItems;
       response["currentPage"] = pageNumber;
       response["noItems"] = noItems;
@@ -1377,7 +1398,7 @@ export module Controllers {
 
       for (var i = 0; i < docs.length; i++) {
         var doc = docs[i];
-        var item = {};
+        const item: { [key: string]: unknown } = {};
         const delRecordMeta= doc["deletedRecordMetadata"]
         item["oid"] = doc["redboxOid"];
         item["title"] = delRecordMeta["metadata"]["title"];
@@ -1393,13 +1414,14 @@ export module Controllers {
 
     private mergeRecordMetadata(currentMetadata: { [key: string]: unknown }, newMetadata: { [key: string]: unknown }): { [key: string]: unknown } {
       // Merge the current and new metadata into a new object, replacing the current metadata property values with the new property values.
-      return _.mergeWith({}, currentMetadata, newMetadata, (objValue, srcValue) => {
+      return _.mergeWith({}, currentMetadata, newMetadata, (objValue: unknown, srcValue: unknown) => {
         if (Array.isArray(objValue)) {
           // Merge behavior for arrays is to replace the existing array with the new array.
           // This has the implicit assumption that arrays are complete, not partial.
           // This makes more sense than concatenating because usually an array will contain all items, not a subset of the items.
           return srcValue;
         }
+        return undefined;
       });
     }
   }

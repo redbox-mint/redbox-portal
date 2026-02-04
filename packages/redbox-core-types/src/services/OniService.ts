@@ -20,22 +20,21 @@
 import { Services as services } from '../CoreService';
 import { DatastreamService } from '../DatastreamService';
 import { RBValidationError } from '../model/RBValidationError';
-import { Sails } from "sails";
 import { firstValueFrom } from 'rxjs';
 import { promises as fs } from 'fs';
 import path from 'node:path';
-import {Collector, generateArcpId} from "oni-ocfl";
 import { createWriteStream } from 'fs';
 import { promisify } from 'util';
 import * as stream from 'stream';
 const finished = promisify(stream.finished);
-import {languageProfileURI} from "language-data-commons-vocabs";
 import * as mime from 'mime-types';
-import {ROCrate} from "ro-crate";
+const { Collector, generateArcpId } = require('oni-ocfl');
+const { languageProfileURI } = require('language-data-commons-vocabs');
+const { ROCrate } = require('ro-crate');
 
-let wktParserHelper;
-declare var sails: Sails;
-declare var _;
+let wktParserHelper: any = null;
+declare var sails: any;
+declare var _: any;
 
 const URL_PLACEHOLDER = '{ID_WILL_BE_HERE}'; // config
 const DEFAULT_IDENTIFIER_NAMESPACE = 'redbox';
@@ -49,12 +48,15 @@ export module Services {
 	 *
 	 */
 	export class OniService extends services.Core.Service {
+    private asError(err: unknown): Error {
+      return err instanceof Error ? err : new Error(String(err));
+    }
 
 		protected override _exportedMethods: any = [
 			'exportDataset'
 		];
 
-		datastreamService: DatastreamService = null;
+		datastreamService: DatastreamService | null = null;
 
 		constructor() {
 			super();
@@ -82,7 +84,7 @@ export module Services {
 		 * @param user
 		 */
 
-		public async exportDataset(oid, record, options, user) {
+		public async exportDataset(oid: string, record: any, options: any, user: any) {
 			if( this.metTriggerCondition(oid, record, options) === "true") {
 				const rootColConfig = sails.config.datapubs.rootCollection;
 				const site = sails.config.datapubs.sites[options['site']];
@@ -188,7 +190,7 @@ export module Services {
 				try {
 					await RecordsService.updateMeta(sails.config.auth.defaultBrand, oid, record, null, true, false);
 				} catch (err) {
-					this.recordPublicationError(oid, record, err);
+					this.recordPublicationError(oid, record, this.asError(err));
           const msg = `Error updating record metadata`;
           throw new RBValidationError({
             message: `${msg}: site ${options['site']} oid ${oid} `,
@@ -211,17 +213,20 @@ export module Services {
 		 * @param record
 		 * @param tempDir
 		 */
-		private async writeDatasetObject(creator: Object, approver: Object, oid: string, drid: string, targetCollector: Collector, rootCollection: any, record: Object, tempDir:string): Promise<any> {
-			const metadata = record['metadata'];
+			private async writeDatasetObject(creator: any, approver: any, oid: string, drid: string, targetCollector: any, rootCollection: any, record: any, tempDir:string): Promise<any> {
+      if (!this.datastreamService) {
+        throw new Error('Datastream service is not initialized');
+      }
+				const metadata = record['metadata'];
 			const metaMetadata = record['metaMetadata'];
 			const mdOnly = metadata['accessRightsToggle'];
-			const attachments = metadata['dataLocations'].filter(
-				(a) => ( !mdOnly && a['type'] === 'attachment' && a['selected'] )
-			);
+				const attachments = metadata['dataLocations'].filter(
+					(a: any) => ( !mdOnly && a['type'] === 'attachment' && a['selected'] )
+				);
 			// write all valid attachments to temp directory
 			const oidTempDir = path.join(tempDir, oid);
 			try {
-				attachments.map((a) => {
+				attachments.map((a: any) => {
 					// a['fileId'] necessary to avoid file name clashes within the dataset
 					a['parentDir'] = path.join(oidTempDir, a['fileId']);
 					a['path'] = path.join(a['parentDir'] , a['name']);
@@ -266,7 +271,7 @@ export module Services {
 					await fs.rm(tempDir, { recursive: true });
 				}
 			} catch (err) {
-				sails.log.warn(`${this.logHeader} writeDatasetObject() -> Error removing temp directory ${tempDir}: ${err}`);
+				sails.log.warn(`${this.logHeader} writeDatasetObject() -> Error removing temp directory ${tempDir}: ${this.asError(err).message}`);
 			}
 		}
 		/**
@@ -281,7 +286,7 @@ export module Services {
 		 * @param targetCollector
 		 * @param rootCollection
 		 */
-		private async writeDatasetROCrate(creator: Object, approver: Object, oid:string, attachments: any[], record: Object, targetCollector: Collector, rootCollection: any) {
+		private async writeDatasetROCrate(creator: any, approver: any, oid:string, attachments: any[], record: any, targetCollector: any, rootCollection: any) {
 			const metadata = record['metadata'];
 			const metaMetadata = record['metaMetadata'];
 			// Create Dataset/Repository Object
@@ -316,7 +321,7 @@ export module Services {
 			if (contactPoint) {
 				contactPoint['contactType'] = "Data Manager";
 				contactPoint['identifier'] = contactPoint['id'];
-				const author = _.find(targetRepoObj.rootDataset.author, (a) => a['@id'] === contactPoint['@id']);
+			const author = _.find(targetRepoObj.rootDataset.author, (a: any) => a['@id'] === contactPoint['@id']);
 				contactPoint['@id'] = `mailto:${contactPoint['email']}`
 				if (author) {
 					author['contactPoint'] = contactPoint;
@@ -351,12 +356,12 @@ export module Services {
 			await targetRepoObj.addToRepo();
 		}
 
-		private addHistory(targetRepoObj: any, metadata: Object, creator: Object, approver: Object) {
+		private addHistory(targetRepoObj: any, metadata: any, creator: any, approver: any) {
 			// check if the creator and approver are in the author list, if not add them
 			sails.log.verbose(`${this.logHeader} addHistory() -> adding creator and approver to the author list`);
 			const people = _.concat(targetRepoObj.rootDataset.author, targetRepoObj.rootDataset.contributor);
-			let creatorPerson =  _.find(people, (a) => a && a['email'] == creator['email']);
-			let approverPerson = _.find(people, (a) => a && a['email'] == approver['email']);
+			let creatorPerson =  _.find(people, (a: any) => a && a['email'] == creator['email']);
+			let approverPerson = _.find(people, (a: any) => a && a['email'] == approver['email']);
 
 			if (!creatorPerson) {
 				creatorPerson = this.getPerson(creator, "Person");
@@ -387,7 +392,7 @@ export module Services {
 			});
 		}
 
-		private addSubjects(targetRepoObj: any, metadata: Object, extraContext: Object) {
+		private addSubjects(targetRepoObj: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addSubjects() -> adding subjects to the dataset`);
 			const subjects = [];
 			for (let subjectField of sails.config.datapubs.metadata.subjects) {
@@ -412,7 +417,7 @@ export module Services {
 			targetRepoObj.rootDataset['about'] = subjects;
 		}
 
-		private addFunders(targetRepoObj: any, metadata: Object, extraContext: Object) {
+		private addFunders(targetRepoObj: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addFunders() -> adding funders to the dataset`);
 			let funders = [];
 			for (let fundingField of sails.config.datapubs.metadata.funders) {
@@ -435,7 +440,7 @@ export module Services {
 			targetRepoObj.rootDataset['funder'] = funders;
 		}
 
-		private addTemporalCoverage(targetRepoObj: any, metadata: Object, extraContext: Object) {
+		private addTemporalCoverage(targetRepoObj: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addTemporalCoverage() -> adding temporal coverage to the dataset`);
 			var tc = '';
 			if( metadata['startDate'] ) {
@@ -458,7 +463,7 @@ export module Services {
 			}
 		}
 
-		private addSpatialCoverage(targetRepoOjb: any, metadata: Object, extraContext: Object) {
+		private addSpatialCoverage(targetRepoOjb: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addSpatialCoverage() -> adding spatial coverage to the dataset`);
 			if (!_.isEmpty(metadata['geospatial'])) {
 				if (_.isEmpty(extraContext['Geometry'])) {
@@ -471,7 +476,7 @@ export module Services {
 					geospatial = [geospatial];
 				}
 				// COmmenting out the "proper way" of GEOMETRYCOLLECTION as it doesn't show up in the UI!
-				const convertedGeoJson = _.map(geospatial, (geoJson, idx) => {
+				const convertedGeoJson = _.map(geospatial, (geoJson: any, idx: number) => {
 					return {
 						"@id": `_:place-${idx}`,
 						"@type": "Place",
@@ -518,7 +523,7 @@ export module Services {
 			};
 		}
 
-		private addRelatedWorks(targetRepoObj: any, metadata: Object) {
+		private addRelatedWorks(targetRepoObj: any, metadata: any) {
 			for (let relatedFieldConf of sails.config.datapubs.metadata.related_works) {
 				let relatedWorks = [];
 				const fieldVals = _.isArray(metadata[`related_${relatedFieldConf.field}`]) ? metadata[`related_${relatedFieldConf.field}`] : [metadata[`related_${relatedFieldConf.field}`]];
@@ -526,7 +531,7 @@ export module Services {
 
 				for (let fieldVal of fieldVals) {
 					if (!_.isEmpty(fieldVal) && !_.isEmpty(fieldVal['related_url'])) {
-						const relatedWork = {
+							const relatedWork: any = {
 							'@id': fieldVal['related_url'],
 							'@type': relatedFieldConf.type,
 							'name': fieldVal['related_title'],
@@ -542,7 +547,7 @@ export module Services {
 			}
 		}
 
-		private async addFiles(targetRepoObj: any, record: Object, attachments: any[]) {
+		private async addFiles(targetRepoObj: any, record: any, attachments: any[]) {
 			for (let a of attachments) {
 				const fileAttMetaPart = {
 					"name": a['name'],
@@ -554,7 +559,7 @@ export module Services {
 			}
 		}
 
-		private getLicense(metadata: Object): Object {
+		private getLicense(metadata: any): any {
 			const licenses = [];
 			if (!_.isEmpty(metadata['license_other_url']) || !_.isEmpty(metadata['license_notes'])) {
 				if(metadata['license_other_url'] ) {
@@ -596,21 +601,22 @@ export module Services {
 			return licenses;
 		}
 
-		private getCreators(metadata: Object, organization: Object): Object[] {
+		private getCreators(metadata: any, organization: any): any[] {
 			let creators = [];
 			if (metadata['creators']) {
-				creators = _.compact(metadata['creators'].map((creator) => {
+				creators = _.compact(metadata['creators'].map((creator: any) => {
 					 const person = this.getPerson(creator, "Person");
 					 if (person) {
 						 person['affiliation'] = organization;
 						 return person;
 					 }
+           return undefined;
 				}));
 			}
 			return creators;
 		}
 
-		private getPerson(rbPerson: Object, type:string): Object {
+		private getPerson(rbPerson: any, type:string): any {
 			// ORCID prioritised as per https://www.researchobject.org/ro-crate/specification/1.1/contextual-entities.html#identifiers-for-contextual-entities
 			const id = rbPerson['orcid'] || rbPerson['email'] || rbPerson['text_full_name'];
 			if (!id) {
@@ -626,7 +632,7 @@ export module Services {
 			};
 		}
 
-		private getYearFromDate(dateString):string {
+		private getYearFromDate(dateString: string):string {
 			const date = new Date(dateString);
 			const year = date.getFullYear();
 			return year.toString();
@@ -664,7 +670,7 @@ export module Services {
 			await this.writeToFileUsingStream(path.join(dir, fn), stream);
 		}
 
-		private async recordPublicationError(oid: string, record: Object, err: Error): Promise<any> {
+		private async recordPublicationError(oid: string, record: any, err: Error): Promise<any> {
 			const branding = sails.config.auth.defaultBrand;
 			// turn off postsave triggers
 			sails.log.verbose(`${this.logHeader} recordPublicationError() -> recording publication error in record metadata`);

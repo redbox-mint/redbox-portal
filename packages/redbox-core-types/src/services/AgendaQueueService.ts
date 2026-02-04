@@ -45,8 +45,7 @@ import { Agenda } from 'agenda';
 
 declare var sails: Sails.Application;
 declare var User: Sails.Model<any>;
-declare var _;
-declare var _this;
+declare var _: any;
 
 export module Services {
   /**
@@ -82,7 +81,7 @@ export module Services {
       this.registerSailsHook('on', 'ready', async function () {
 
         // set the options for Agenda, see: https://github.com/agenda/agenda#configuring-an-agenda
-        const agendaOpts = {};
+        const agendaOpts: Record<string, unknown> = {};
         _.forOwn(sails.config.agendaQueue.options, (optionVal: any, optionName: string) => {
           that.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
@@ -100,10 +99,10 @@ export module Services {
           sails.log.error(`AgendaQueue:: Error:`);
           sails.log.error(JSON.stringify(err));
         });
-        that.agenda.on('start', job => {
+        that.agenda.on('start', (job: any) => {
           sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} starting`,);
         });
-        that.agenda.on('complete', job => {
+        that.agenda.on('complete', (job: any) => {
           sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} finished`);
         });
         that.agenda.on('fail', (err, job) => {
@@ -118,7 +117,7 @@ export module Services {
         await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
 
         // check for in-line job schedule
-        _.each(sails.config.agendaQueue.jobs, (job) => {
+        _.each(sails.config.agendaQueue.jobs, (job: any) => {
           if (!_.isEmpty(job.schedule)) {
             const method = job.schedule.method;
             const intervalOrSchedule = job.schedule.intervalOrSchedule;
@@ -157,7 +156,7 @@ export module Services {
      ]
      */
     public defineJobs(jobs: any[], ref: AgendaQueue = this): void {
-      _.each(jobs, (job) => {
+      _.each(jobs, (job: any) => {
         const serviceFn = _.get(sails.services, job.fnName);
         if (_.isUndefined(serviceFn)) {
           sails.log.error(`AgendaQueue:: Job name: ${job.name}'s service function not found: ${job.fnName}`);
@@ -174,7 +173,7 @@ export module Services {
       });
     }
 
-    public defineJob(name, options, serviceFn) {
+    public defineJob(name: string, options: unknown, serviceFn: any) {
       if (!this.agenda) {
         sails.log.error(`AgendaQueue:: defineJob called before init for job: ${name}`);
         return;
@@ -182,7 +181,7 @@ export module Services {
       if (_.isEmpty(options)) {
         this.agenda.define(name, serviceFn);
       } else {
-        this.agenda.define(name, options, serviceFn);
+        this.agenda.define(name, serviceFn, options as any);
       }
       sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
     }
@@ -196,7 +195,7 @@ export module Services {
     public async moveCompletedJobsToHistory(job: any) {
       const dbManager = User.getDatastore().manager;
       const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
-      await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc) => {
+      await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: any) => {
         await dbManager.collection(`${collectionName}History`).insertOne(doc);
         await dbManager.collection(collectionName).deleteOne({ _id: doc._id });
       });
@@ -205,13 +204,13 @@ export module Services {
     }
 
 
-    private setOptionIfDefined(agendaOpts, optionName, optionVal) {
+    private setOptionIfDefined(agendaOpts: Record<string, unknown>, optionName: string, optionVal: unknown) {
       if (!_.isEmpty(optionVal)) {
         _.set(agendaOpts, optionName, optionVal);
       }
     }
 
-    public async sampleFunctionToDemonstrateHowToDefineAJobFunction(job) {
+    public async sampleFunctionToDemonstrateHowToDefineAJobFunction(job: unknown) {
       sails.log.info(`AgendaQueue:: sample function called by job: `);
       sails.log.info(JSON.stringify(job));
     }

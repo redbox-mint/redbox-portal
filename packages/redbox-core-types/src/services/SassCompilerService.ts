@@ -11,8 +11,8 @@ const webpack = require('webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
-declare var sails; // Sails global
-declare var _;
+declare var sails: any; // Sails global
+declare var _: any;
 
 /**
  * SassCompilerService

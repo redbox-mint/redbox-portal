@@ -14,7 +14,7 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public render(req, res) {
+    public render(req: Sails.Req, res: Sails.Res) {
       const view = req.options.locals.view;
       if (view != null) {
         this.sendView(req, res, view);

@@ -33,20 +33,20 @@ export module Controllers {
 
     }
 
-    public render(req, res) {
+    public render(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/report');
     }
 
-    public async get(req, res) {
+    public async get(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const report: any = await ReportsService.get(brand, req.param('name'));
       return this.sendResp(req, res, { data: ReportsService.getReportDto(report), headers: this.getNoCacheHeaders() });
     }
 
-    public getResults(req, res) {
+    public getResults(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       var response = from(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
-      return response.subscribe(responseObject => {
+      return response.subscribe((responseObject: any) => {
         if (responseObject) {
           let response: any = responseObject;
           response.success = true;
@@ -55,14 +55,15 @@ export module Controllers {
           const payload = responseObject ?? { status: false, message: null };
           this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         }
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error("Error updating meta:");
         sails.log.error(error);
-        this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
+        const message = error instanceof Error ? error.message : String(error);
+        this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
       });;
     }
 
-    public async downloadCSV(req, res) {
+    public async downloadCSV(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
 
@@ -73,9 +74,10 @@ export module Controllers {
         res.set('Content-Type', 'text/csv');
         res.status(200).send(results);
         return res
-      } catch (error) {
+      } catch (error: unknown) {
         sails.log.error(error);
-        this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
+        const message = error instanceof Error ? error.message : String(error);
+        return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
       }
     }
 

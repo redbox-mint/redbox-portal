@@ -31,36 +31,36 @@ export module Controllers {
      * ************************************** Add custom methods **************************************
      * *************************************************************************************************
      */
-    public override index(req, res) {
+    public override index(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'asynch/index');
     }
 
-    public start(req, res) {
+    public start(req: Sails.Req, res: Sails.Res) {
       const progressObj = this.createProgressObjFromRequest(req);
-      AsynchsService.start(progressObj).subscribe(progress => {
+      AsynchsService.start(progressObj).subscribe((progress: any) => {
         this.broadcast(req, 'start', progress);
         this.sendResp(req, res, { data: progress, headers: this.getNoCacheHeaders() });
       });
     }
 
-    public stop(req, res) {
+    public stop(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
-      AsynchsService.finish(id).subscribe(progress => {
+      AsynchsService.finish(id).subscribe((progress: any[]) => {
         this.broadcast(req, 'stop', progress[0]);
         this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
       });
     }
 
-    public update(req, res) {
+    public update(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
       const progressObj = this.createProgressObjFromRequest(req);
-      AsynchsService.update({id: id}, progressObj).subscribe(progress => {
+      AsynchsService.update({id: id}, progressObj).subscribe((progress: any[]) => {
         this.broadcast(req, 'update', progress[0]);
         this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
       });
     }
 
-    protected createProgressObjFromRequest(req) {
+    protected createProgressObjFromRequest(req: Sails.Req): Record<string, unknown> {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const username = req.user.username;
       const name = req.param('name');
@@ -87,20 +87,20 @@ export module Controllers {
       return progressObj;
     }
 
-    public progress(req, res) {
+    public progress(req: Sails.Req, res: Sails.Res) {
       const fq = this.getQuery(req.param('fq'));
       if (_.isEmpty(fq)) {
         return this.sendResp(req, res, { data: { status: false, message: 'Empty queries are not allowed.' }, headers: this.getNoCacheHeaders() });
       }
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       fq.where.branding = brand.id;
-      AsynchsService.get(fq).subscribe(progress => {
+      return AsynchsService.get(fq).subscribe((progress: any) => {
         this.sendResp(req, res, { data: progress, headers: this.getNoCacheHeaders() });
       });
     }
 
-    protected getQuery(fq) {
-      if (_.isString(fq)) {
+    protected getQuery(fq: unknown): any {
+      if (typeof fq === 'string') {
         fq = JSON.parse(fq);
       }
       _.unset(fq, '$where');
@@ -109,14 +109,14 @@ export module Controllers {
       return fq;
     }
 
-    public subscribe(req, res) {
+    public subscribe(req: Sails.Req, res: Sails.Res) {
       const roomId = req.param('roomId');
       console.log(`Trying to join: ${roomId}`);
       if (!req.isSocket) {
         return res.badRequest();
       }
 
-      sails.sockets.join(req, roomId, (err) => {
+      sails.sockets.join(req, roomId, (err: unknown) => {
         if (err) {
           console.log(`Failed to join room`);
           return this.sendResp(req, res, { data: err ?? { status: false, message: `Failed to join room: ${roomId}` }, headers: this.getNoCacheHeaders() });
@@ -129,12 +129,12 @@ export module Controllers {
       });
     }
 
-    public unsubscribe(req, res) {
+    public unsubscribe(req: Sails.Req, res: Sails.Res) {
       if (!req.isSocket) {
         return res.badRequest();
       }
       const roomId = req.param('roomId')
-      sails.sockets.leave(req, roomId, (err) => {
+      sails.sockets.leave(req, roomId, (err: unknown) => {
         if (err) {
           return this.sendResp(req, res, { data: err ?? { status: false, message: `Failed to leave room: ${roomId}` }, headers: this.getNoCacheHeaders() });
         }
@@ -145,7 +145,7 @@ export module Controllers {
       });
     }
 
-    protected broadcast(req, eventName, progressObj) {
+    protected broadcast(req: Sails.Req, eventName: string, progressObj: any) {
       if (!_.isEmpty(progressObj.relatedRecordId) && !_.isUndefined(progressObj.relatedRecordId)) {
         sails.sockets.broadcast(progressObj.relatedRecordId, eventName, progressObj, req);
         sails.sockets.broadcast(progressObj.id, eventName, progressObj, req);

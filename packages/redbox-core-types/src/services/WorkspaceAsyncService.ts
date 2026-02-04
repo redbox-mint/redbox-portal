@@ -1,14 +1,21 @@
 import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 
 const util = require('util');
 import { DateTime } from 'luxon';
 
-declare var sails: Sails;
-declare var _this;
-declare var _;
-declare var WorkspaceAsync;
+declare var sails: any;
+declare var _: any;
+declare var WorkspaceAsync: any;
+
+type WorkspaceAsyncStartInput = {
+  name: string;
+  recordType: string;
+  username: string;
+  service: string;
+  method: string;
+  args?: unknown;
+};
 
 export module Services {
   /**
@@ -38,7 +45,7 @@ export module Services {
       }
     ).subscribe(response=>{console.log('started')})
     */
-    public start({name, recordType, username, service, method, args}) {
+    public start({name, recordType, username, service, method, args}: WorkspaceAsyncStartInput) {
       return super.getObservable(
         WorkspaceAsync.create(
           {name: name, started_by: username, recordType: recordType,
@@ -47,7 +54,7 @@ export module Services {
       );
     }
 
-    public update(id, obj) {
+    public update(id: string, obj: Record<string, unknown>) {
       if(obj.status === 'finished'){
         obj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
       }
@@ -62,24 +69,24 @@ export module Services {
       );
     }
 
-    loop() {
+    loop(): void {
       sails.log.verbose('::::LOOP PENDING STATE::::::');
       //sails.log.debug(util.inspect(sails.services, {showHidden: false, depth: null}))
-      this.pending().subscribe(pending => {
-        _.forEach(pending, wa => {
+      this.pending().subscribe((pending: any[]) => {
+        _.forEach(pending, (wa: any) => {
           const args = wa.args || null;
-          sails.services[wa.service][wa.method](args).subscribe(message => {
+          sails.services[wa.service][wa.method](args).subscribe((message: unknown) => {
             this.update(wa.id, {status: 'finished', message: message}).subscribe();
-          }, error => {
+          }, (error: unknown) => {
             this.update(wa.id, {status: 'error', message: error}).subscribe();
           });
         });
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error(error);
       });
     }
 
-    status({ status, recordType }) {
+    status({ status, recordType }: { status: string; recordType: string }) {
       return super.getObservable(
         WorkspaceAsync.find({status: status, recordType: recordType})
       )

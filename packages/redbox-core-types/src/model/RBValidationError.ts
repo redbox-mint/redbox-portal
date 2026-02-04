@@ -63,8 +63,9 @@ export class RBValidationError extends Error {
       collectedErrors.push(error);
 
       // Extract and store displayErrors from any RBValidationErrors
-      if (RBValidationError.isRBValidationError(error) || Array.isArray(error['displayErrors'])) {
-        collectedDisplayErrors.push(...error['displayErrors']);
+      const maybeDisplayErrors = (error as any)?.displayErrors;
+      if (RBValidationError.isRBValidationError(error) || Array.isArray(maybeDisplayErrors)) {
+        collectedDisplayErrors.push(...(maybeDisplayErrors ?? []));
       }
 
       // Add any cause error to the array of errors to process.

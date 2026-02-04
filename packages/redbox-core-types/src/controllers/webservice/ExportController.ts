@@ -27,7 +27,7 @@ export module Controllers {
     /**
      * @override
      */
-    public async downloadRecs(req, res) {
+    public async downloadRecs(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         const format: string = req.param('format');
@@ -43,6 +43,7 @@ export module Controllers {
             RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
             res
           );
+          return res;
         } else {
           const errorResponse = new APIErrorResponse('Unsupported export format');
           return this.sendResp(req, res, {
@@ -51,8 +52,8 @@ export module Controllers {
             headers: this.getNoCacheHeaders()
           });
         }
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],

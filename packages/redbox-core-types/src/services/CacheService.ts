@@ -20,13 +20,12 @@
 import { Observable, of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import {Sails, Model} from "sails";
 import { default as NodeCache } from "node-cache";
 import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
-declare var sails: Sails;
-declare var _;
-declare var CacheEntry: Model;
+declare var sails: any;
+declare var _: any;
+declare var CacheEntry: any;
 
 export module Services {
   /**
@@ -44,8 +43,8 @@ export module Services {
       'getNgAppFileHash'
     ];
 
-    protected cache;
-    protected ngFileAppHash;
+    protected cache!: NodeCache;
+    protected ngFileAppHash: Record<string, string> = {};
 
     public async bootstrap() {
       const cacheOpts = {stdTTL: sails.config.custom_cache.cacheExpiry, checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600};
@@ -55,7 +54,7 @@ export module Services {
       await this.buildNgAppFileHash();
     }
 
-    public get(name): Observable<any> {
+    public get(name: string): Observable<any> {
       const cacheGet = of(this.cache.get(name));
       return cacheGet.pipe(flatMap(data => {
         if (data) {
@@ -83,7 +82,7 @@ export module Services {
       
     }
 
-    public set(name, data, expiry=sails.config.custom_cache.cacheExpiry) {
+    public set(name: string, data: unknown, expiry = sails.config.custom_cache.cacheExpiry): void {
       // update local cache then persist to DB...
       sails.log.verbose(`Setting cache for entry: ${name}...`);
       this.cache.set(name, data, expiry);
@@ -125,7 +124,7 @@ export module Services {
           }
           const ngFiles = await readdir(ngPath);
           for (const fileNamePrefix of targetFilesPrefix) {
-            const fileName = _.find(ngFiles, (file) => { return _.startsWith(file, fileNamePrefix) });
+            const fileName = _.find(ngFiles, (file: string) => { return _.startsWith(file, fileNamePrefix) });
             const nameParts = _.split(fileName, '.');
             let appHash = '';
             //legacy angular app cache path

@@ -13,8 +13,8 @@ export class ExportJSONTransformer extends Transform {
         this.push(`"records":[ `);
     }
 
-    private getDateModifiedRangeObject(modifiedBefore, modifiedAfter) {
-        let rangeObject = {};
+    private getDateModifiedRangeObject(modifiedBefore: string, modifiedAfter: string) {
+        const rangeObject: Record<string, string> = {};
         if (!_.isEmpty(modifiedAfter)) {
             rangeObject["from"] = modifiedAfter;
         } else {

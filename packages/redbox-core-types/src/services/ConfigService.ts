@@ -20,15 +20,14 @@
 import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { Sails, Model } from "sails";
 import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
 import { Services as appConfigServices } from "./AppConfigService"
 import { Services as brandingService } from "./BrandingService"
 import { glob } from 'fs';
-declare var sails: Sails;
-declare var _;
-declare var CacheEntry: Model;
+declare var sails: any;
+declare var _: any;
+declare var CacheEntry: any;
 
 export module Services {
   /**
@@ -85,11 +84,12 @@ export module Services {
       }
       const hook_log_header = hookName;
       let origDontMerge = _.clone(dontMergeFields);
-      const concatArrsFn = function (objValue, srcValue, key, object, source, stack) {
-        const dontMergeIndex = _.findIndex(dontMergeFields, (o) => { return _.isString(o) ? _.isEqual(o, key) : !_.isEmpty(o[key]) });
+      const concatArrsFn = function (objValue: any, srcValue: any, key: string, object: any, source: any, stack: any) {
+        const dontMergeIndex = _.findIndex(dontMergeFields, (o: any) => { return _.isString(o) ? _.isEqual(o, key) : !_.isEmpty(o[key]) });
         if (dontMergeIndex != -1) {
           if (!_.isString(dontMergeFields[dontMergeIndex])) {
-            if (dontMergeFields[key] == "this_file") {
+            const dontMergeFieldMap = dontMergeFields as unknown as Record<string, unknown>;
+            if (dontMergeFieldMap[key] == "this_file") {
               return srcValue;
             } else {
               return objValue;
@@ -99,12 +99,12 @@ export module Services {
         }
       }
       sails.log.verbose(`${hookName}::Merging branded app configuration...`);
-      _.each(branded_app_config_dirs, (branded_app_config_dir) => {
+      _.each(branded_app_config_dirs, (branded_app_config_dir: string) => {
         branded_app_config_dir = `${hook_root_dir}/${branded_app_config_dir}`;
         sails.log.verbose(`${hook_log_header}::Looking at: ${branded_app_config_dir}`);
         if (fs.pathExistsSync(branded_app_config_dir)) {
           var dirs = fs.readdirSync(branded_app_config_dir);
-          _.each(dirs, (dir) => {
+          _.each(dirs, (dir: string) => {
             const fullPath = resolve(branded_app_config_dir, dir);
             if (fs.statSync(fullPath).isDirectory()) {
               let brandName = basename(fullPath)
@@ -113,11 +113,11 @@ export module Services {
               const initFiles = this.walkDirSync(`${fullPath}/init-only`, []);
               sails.log.verbose(hook_log_header + "::Processing:");
               sails.log.verbose(initFiles);
-              _.each(initFiles, (file_path) => {
+              _.each(initFiles, (file_path: string) => {
                 const config_file = require(file_path);
                 let configKey = basename(file_path)
-                AppConfigService.createConfig(brandName, configKey, config_file).then(config => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
-                  .catch(error => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
+                AppConfigService.createConfig(brandName, configKey, config_file).then((config: any) => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
+                  .catch((error: any) => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
               });
 
 
@@ -126,11 +126,11 @@ export module Services {
               const overrideFiles = this.walkDirSync(`${fullPath}/override`, []);
               sails.log.verbose(hook_log_header + "::Processing:");
               sails.log.verbose(overrideFiles);
-              _.each(overrideFiles, (file_path) => {
+              _.each(overrideFiles, (file_path: string) => {
                 const config_file = require(file_path);
                 let configKey = basename(file_path)
                 const brand: BrandingModel = BrandingService.getBrand(brandName);
-                AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then(config => {
+                AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then((config: any) => {
                   sails.log.verbose(hook_log_header + "::Configuration created or updated:");
                   sails.log.verbose(config);
                 });
@@ -149,14 +149,14 @@ export module Services {
       sails.log.verbose(`${hook_log_header}::Merging branded app configuration...complete.`);
 
       sails.log.verbose(`${hookName}::Merging configuration...`);
-      _.each(config_dirs, (config_dir) => {
+      _.each(config_dirs, (config_dir: string) => {
         config_dir = `${hook_root_dir}/${config_dir}`;
         sails.log.verbose(`${hook_log_header}::Looking at: ${config_dir}`);
         if (fs.pathExistsSync(config_dir)) {
           const files = this.walkDirSync(config_dir, []);
           sails.log.verbose(hook_log_header + "::Processing:");
           sails.log.verbose(files);
-          _.each(files, (file_path) => {
+          _.each(files, (file_path: string) => {
             const config_file = require(file_path);
             // for overriding values...
             const hasCustomDontMerge = _.findKey(config_file, "_dontMerge");
@@ -167,7 +167,7 @@ export module Services {
             // for deleting values...
             const hasDeleteFields = _.findKey(config_file, "_delete");
             if (hasDeleteFields) {
-              _.each(config_file[hasDeleteFields]['_delete'], (toDelete) => {
+              _.each(config_file[hasDeleteFields]['_delete'], (toDelete: string) => {
                 _.unset(configMap[hasDeleteFields], toDelete);
               });
               _.unset(config_file[hasDeleteFields], "_delete");
@@ -202,7 +202,7 @@ export module Services {
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...`);
 
       let apiDirs = ["services"];
-      _.each(apiDirs, (apiType) => {
+      _.each(apiDirs, (apiType: string) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
         if (!sails[apiType]) {
           sails[apiType] = {};
@@ -210,24 +210,24 @@ export module Services {
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
         if (!_.isEmpty(files)) {
-          _.each(files, (file) => {
+          _.each(files, (file: string) => {
             const apiDef = require(file);
             const globalName = basename(file, '.js')
             const apiElemName = _.toLower(globalName)
             // TODO: deal with controllers or services in nested directories
             sails[apiType][apiElemName] = apiDef;
-            global[globalName] = apiDef;
+            (globalThis as any)[globalName] = apiDef;
           });
         }
       });
 
       let controllerDirs = ["controllers"];
-      _.each(controllerDirs, (apiType) => {
+      _.each(controllerDirs, (apiType: string) => {
         const files = that.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
         if (!_.isEmpty(files)) {
-          _.each(files, (file) => {
+          _.each(files, (file: string) => {
             const apiDef = require(file);
             const baseName = basename(file, '.js');
             const controllerName = basename(baseName, 'Controller')
@@ -238,7 +238,7 @@ export module Services {
             if (_.isEmpty(sails.config.controllers.moduleDefinitions)) {
               sails.config.controllers.moduleDefinitions = {};
             }
-            _.forOwn(apiDef, (methodFn, methodName) => {
+            _.forOwn(apiDef, (methodFn: any, methodName: string) => {
               if (!_.startsWith(methodName, '_') && _.isFunction(methodFn)) {
                 sails.log.verbose(`Setting: ${controllerName}/${methodName}`);
                 sails.config.controllers.moduleDefinitions[`${controllerName}/${methodName}`] = methodFn;
@@ -271,7 +271,7 @@ export module Services {
       }
       try {
         var files = fs.readdirSync(dir).sort();
-        _.each(files, (file) => {
+        _.each(files, (file: string) => {
           const resolved = resolve(dir, file);
           if (fs.statSync(resolved).isDirectory()) {
             filelist = this.walkDirSync(resolved, filelist);
@@ -335,10 +335,10 @@ export module Services {
     private csvToi18Next(csvPath: string, jsonPath: string, cb: any) {
       const csv = require('csv-parser');
 
-      let languageJson = {};
+      let languageJson: Record<string, string> = {};
       fs.createReadStream(csvPath)
         .pipe(csv())
-        .on('data', (row) => {
+        .on('data', (row: any) => {
           languageJson[row.Key] = row.Message;
         })
         .on('end', () => {

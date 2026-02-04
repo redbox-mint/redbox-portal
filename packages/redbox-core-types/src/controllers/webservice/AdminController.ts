@@ -10,6 +10,9 @@ export module Controllers {
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class Admin extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     /**
      * Exported methods, accessible from internet.
@@ -24,16 +27,16 @@ export module Controllers {
 
     }
 
-    public async refreshCachedResources(req, res) {
+    public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
         let response = new APIActionResponse();
         TranslationService.reloadResources();
         sails.config.startupMinute = Math.floor(Date.now() / 60000);
 
         return this.apiRespond(req, res, response, 200)
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()
@@ -41,7 +44,7 @@ export module Controllers {
       }
     }
 
-    public async setAppConfig(req, res) {
+    public async setAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         let configKey = req.param('configKey')
 
@@ -53,9 +56,9 @@ export module Controllers {
         let response = new APIActionResponse('App configuration updated successfully');
 
         return this.apiRespond(req, res, response, 200)
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()
@@ -63,7 +66,7 @@ export module Controllers {
       }
     }
 
-    public async getAppConfig(req, res) {
+    public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         let configKey = req.param('configKey')
 
@@ -77,9 +80,9 @@ export module Controllers {
         }
 
         return this.apiRespond(req, res, config, 200)
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()

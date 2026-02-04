@@ -64,7 +64,7 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public async renderCss(req, res) {
+    public async renderCss(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
@@ -104,12 +104,12 @@ export module Controllers {
         return res.send(brand.css);
       } catch (e) {
         sails.log.error('Error serving CSS:', e);
-        res.status(500).send('/* error serving theme */');
+        return res.status(500).send('/* error serving theme */');
       }
     }
 
     /** Serve temporary preview CSS using BrandingService preview token (/:branding/:portal/preview/:token.css) */
-    public async renderPreviewCss(req, res) {
+    public async renderPreviewCss(req: Sails.Req, res: Sails.Res) {
       try {
         let token = req.param('token');
         if (!token) {
@@ -142,7 +142,7 @@ export module Controllers {
     }
 
     /** Create a preview token (JSON) */
-    public async createPreview(req, res) {
+    public async createPreview(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
         const portal = req.param('portal');
@@ -160,7 +160,7 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public renderApiB(req, res) {
+    public renderApiB(req: Sails.Req, res: Sails.Res) {
       res.contentType('text/plain');
       req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsapib", { layout: false });
@@ -174,7 +174,7 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public renderSwaggerJSON(req, res) {
+    public renderSwaggerJSON(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/json');
       req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggerjson", { layout: false });
@@ -187,7 +187,7 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public renderSwaggerYAML(req, res) {
+    public renderSwaggerYAML(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/x-yaml');
       req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggeryaml", { layout: false });
@@ -200,7 +200,7 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public async renderImage(req, res) {
+    public async renderImage(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });

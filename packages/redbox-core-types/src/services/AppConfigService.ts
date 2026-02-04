@@ -21,18 +21,12 @@ import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import { ConfigModels } from '../configmodels/ConfigModels';
-import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
-import { Sails } from "sails";
-import { find } from 'lodash';
-import { Services as Brandings } from './BrandingService'
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
-import { config } from 'node:process';
 
-declare var AppConfig;
-
-declare var sails: Sails;
-declare var _;
+declare var AppConfig: any;
+declare var sails: any;
+declare var _: any;
 
 
 export module Services {
@@ -42,8 +36,8 @@ export module Services {
    * 
    */
   export class AppConfigs extends services.Core.Service {
-    brandingAppConfigMap!: {};
-    modelSchemaMap: any = {};
+    brandingAppConfigMap: Record<string, any> = {};
+    modelSchemaMap: Record<string, any> = {};
     private extraTsGlobs: Set<string> = new Set();
 
     protected override _exportedMethods: any = [
@@ -87,7 +81,7 @@ export module Services {
         const modelDefinition: any = ConfigModels.getModelInfo(configKey);
         if (modelDefinition?.tsGlob) {
           const globs = Array.isArray(modelDefinition.tsGlob) ? modelDefinition.tsGlob : [modelDefinition.tsGlob];
-          globs.filter(Boolean).forEach(g => this.extraTsGlobs.add(g));
+          globs.filter(Boolean).forEach((g: string) => this.extraTsGlobs.add(g));
         }
       }
 
@@ -184,7 +178,7 @@ export module Services {
 
     public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<any> {
 
-      let appConfig = await this.getAppConfigurationForBrand(branding.name);
+      let appConfig = this.getAppConfigurationForBrand(branding.name);
 
       let modelDefinition: any = ConfigModels.getModelInfo(configForm);
       let model = _.get(appConfig, configForm, new modelDefinition.class());
@@ -261,8 +255,9 @@ export module Services {
             }
             this.brandingAppConfigMap[brandName] = brandConfig;
           });
-        } catch (e) {
-          sails.log.warn(`registerConfigModel: could not instantiate default for ${info.key}: ${e?.message || e}`);
+        } catch (e: unknown) {
+          const err = e instanceof Error ? e.message : String(e);
+          sails.log.warn(`registerConfigModel: could not instantiate default for ${info.key}: ${err}`);
         }
       }
     }
@@ -273,4 +268,3 @@ export module Services {
 declare global {
   let AppConfigService: Services.AppConfigs;
 }
-

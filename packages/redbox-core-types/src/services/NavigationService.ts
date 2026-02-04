@@ -18,7 +18,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
-import { Sails } from 'sails';
 import {
   MenuItem,
   MenuConfigData,
@@ -45,7 +44,7 @@ import {
   DEFAULT_ADMIN_SIDEBAR_CONFIG
 } from '../configmodels/AdminSidebarConfig';
 
-declare var sails: Sails;
+declare var sails: any;
 declare var _: any;
 
 /**
@@ -708,4 +707,3 @@ export module Services {
 declare global {
   let NavigationService: Services.Navigation;
 }
-

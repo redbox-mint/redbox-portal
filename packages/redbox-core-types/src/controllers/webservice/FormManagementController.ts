@@ -11,6 +11,9 @@ export module Controllers {
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class FormManagement extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     /**
      * Exported methods, accessible from internet.
@@ -30,7 +33,7 @@ export module Controllers {
 
     }
 
-    public async getForm(req, res) {
+    public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
         let name: string = req.param('name');
         let editable: boolean = req.param('editable');
@@ -40,9 +43,9 @@ export module Controllers {
         let form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
 
         return this.apiRespond(req, res, form, 200)
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()
@@ -50,7 +53,7 @@ export module Controllers {
       }
     }
 
-    public async listForms(req, res) {
+    public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
         let forms: FormModel[] = await firstValueFrom(FormsService.listForms());
         let response: ListAPIResponse<any> = new ListAPIResponse();
@@ -58,10 +61,10 @@ export module Controllers {
         summary.numFound = forms.length;
         response.summary = summary;
         response.records = forms;
-        this.apiRespond(req, res, response);
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+        return this.apiRespond(req, res, response);
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()

@@ -19,9 +19,8 @@
 
 import { existsSync } from 'fs';
 import { Services as services } from '../CoreService';
-import { Sails } from 'sails';
 
-declare var sails: Sails;
+declare var sails: any;
 
 export module Services {
   /**
@@ -131,4 +130,3 @@ export module Services {
 declare global {
   let ViewUtilsService: Services.ViewUtils;
 }
-

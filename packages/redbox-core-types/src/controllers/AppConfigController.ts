@@ -40,7 +40,7 @@ export module Controllers {
 
     public bootstrap() { }
 
-    public async editAppConfig(req, res) {
+    public async editAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
         let appConfigId: string = req.param('appConfigId');
@@ -62,7 +62,7 @@ export module Controllers {
         return res.serverError(error);
       }
     }
-    public async saveAppConfig(req, res) {
+    public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
         let appConfigId: string = req.param('appConfigId');
@@ -79,7 +79,7 @@ export module Controllers {
       }
     }
 
-    public async getAppConfigForm(req, res) {
+    public async getAppConfigForm(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
         let appConfigId: string = req.param('appConfigId');

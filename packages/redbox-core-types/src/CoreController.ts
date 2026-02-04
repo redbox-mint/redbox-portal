@@ -146,25 +146,27 @@ export module Controllers.Core {
      */
     public exports(): any {
       // Merge default array and custom array from child.
-      var methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
-      var exportedMethods: any = {};
+      const methods = this._defaultExportedMethods.concat(this._exportedMethods);
+      const exportedMethods: Record<string, unknown> = {};
+      const controller = this as Record<string, unknown>;
 
-      for (var i = 0; i < methods.length; i++) {
+      for (let i = 0; i < methods.length; i++) {
+        const methodName = methods[i];
+        const member = controller[methodName];
         // Check if the method exists.
-        if (typeof this[methods[i]] !== 'undefined') {
+        if (typeof member !== 'undefined') {
           // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-          if (methods[i][0] !== '_' || methods[i] === '_config') {
-
-            if (_.isFunction(this[methods[i]])) {
-              exportedMethods[methods[i]] = this[methods[i]].bind(this);
+          if (methodName[0] !== '_' || methodName === '_config') {
+            if (_.isFunction(member)) {
+              exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
             } else {
-              exportedMethods[methods[i]] = this[methods[i]];
+              exportedMethods[methodName] = member;
             }
           } else {
-            this.logger.error(`The controller method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
+            this.logger.error(`The controller method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
           }
         } else {
-          this.logger.error(`The controller method "${methods[i]}" does not exist on ${this.constructor?.name}`);
+          this.logger.error(`The controller method "${methodName}" does not exist on ${this.constructor?.name}`);
         }
       }
 

@@ -9,6 +9,9 @@ export module Controllers {
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class RecordType extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     /**
      * Exported methods, accessible from internet.
@@ -28,7 +31,7 @@ export module Controllers {
 
     }
 
-    public async getRecordType(req, res) {
+    public async getRecordType(req: Sails.Req, res: Sails.Res) {
 
       try {
         let name = req.param('name');
@@ -36,9 +39,9 @@ export module Controllers {
         let recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
         return this.apiRespond(req, res, recordType, 200)
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()
@@ -46,7 +49,7 @@ export module Controllers {
       }
     }
 
-    public async listRecordTypes(req, res) {
+    public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         let recordTypes: any[] = await firstValueFrom(RecordTypesService.getAll(brand));
@@ -55,10 +58,10 @@ export module Controllers {
         summary.numFound = recordTypes.length;
         response.summary = summary;
         response.records = recordTypes;
-        this.apiRespond(req, res, response);
-      } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
-        this.sendResp(req, res, {
+        return this.apiRespond(req, res, response);
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders()

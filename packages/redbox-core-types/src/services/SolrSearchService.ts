@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-declare var module;
+declare var module: any;
 import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
 import { SolrConfig, SolrCore, SolrOptions } from '../model/config/SolrConfig';
@@ -32,14 +32,11 @@ import { RecordsService } from '../RecordsService';
 const axios = require('axios');
 const util = require('util');
 const querystring = require('querystring');
-import {
-  Sails
-} from "sails";
-declare var sails: Sails;
-declare var _;
-declare var _this;
-let flat;
-import * as luceneEscapeQuery from "lucene-escape-query";
+declare var sails: any;
+declare var _: any;
+declare var _this: any;
+let flat: any;
+import luceneEscapeQuery = require("lucene-escape-query");
 
 
 
@@ -165,7 +162,7 @@ export module Services {
         }
 
         // check if the schema is built....
-        try { 
+        try {
           const flagName: string = core.initSchemaFlag.name;
           const schemaInitFlag = await ref.getSchemaEntry(coreId, 'fields', flagName, ref);
           if (!_.isEmpty(schemaInitFlag)) {
@@ -190,7 +187,7 @@ export module Services {
           schemaDef['add-field'].push(_.get(sails.config.solr.cores, coreId + '.initSchemaFlag'));
           sails.log.verbose(`${ref.logHeader} sending schema definition:`);
           sails.log.verbose(JSON.stringify(schemaDef));
-          const response = await axios.post(schemaUrl, schemaDef).then(response => response.data);
+          const response = await axios.post(schemaUrl, schemaDef).then((response: any) => response.data);
           sails.log.verbose(`${ref.logHeader} Schema build successful, response: `);
           sails.log.verbose(JSON.stringify(response));
         } catch (err) {
@@ -202,14 +199,14 @@ export module Services {
 
     private async getSchemaEntry(coreId: string, fieldName: string, name: string, ref: SolrSearchService = this) {
       const schemaResp = await ref.getSchema(coreId);
-      return _.find(_.get(schemaResp.schema, fieldName), (schemaDef) => { return schemaDef.name == name });
+      return _.find(_.get(schemaResp.schema, fieldName), (schemaDef: any) => { return schemaDef.name == name });
     }
 
     private async getSchema(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
-      return await axios.get(schemaUrl).then(response => response.data);
+      return await axios.get(schemaUrl).then((response: any) => response.data);
     }
 
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
@@ -223,7 +220,7 @@ export module Services {
         try {
           tryCtr++;
           sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
-          const solrStat = await axios.get(urlCheck).then(response => response.data);
+          const solrStat = await axios.get(urlCheck).then((response: any) => response.data);
           sails.log.verbose(`${ref.logHeader} Response is:`);
           sails.log.verbose(JSON.stringify(solrStat));
           if (solrStat.status[coreName].instanceDir) {
@@ -270,7 +267,7 @@ export module Services {
       const coreName = core.options.core;
       let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
-      const response = await axios.get(url).then(response => response.data);
+      const response = await axios.get(url).then((response: any) => response.data);
       return response;
     }
 
@@ -281,12 +278,12 @@ export module Services {
       const coreName = core.options.core;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
-      _.forEach(exactSearches, (exactSearch) => {
+      _.forEach(exactSearches, (exactSearch: any) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });
       if (facetSearches.length > 0) {
         searchParam = `${searchParam}&facet=true`
-        _.forEach(facetSearches, (facetSearch) => {
+        _.forEach(facetSearches, (facetSearch: any) => {
           searchParam = `${searchParam}&facet.field=${facetSearch.name}${_.isEmpty(facetSearch.value) ? '' : `&fq=${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`}`
         });
       }
@@ -294,15 +291,15 @@ export module Services {
       let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false);
       sails.log.verbose(`Searching fuzzy using: ${url}`);
-      const response = await axios.get(url).then(response => response.data);
-      const customResp = {
+      const response = await axios.get(url).then((response: any) => response.data);
+      const customResp: any = {
         records: []
       };
       let totalItems = response.response.numFound;
 
-      _.forEach(response.response.docs, solrdoc => {
-        const customDoc = {};
-        _.forEach(returnFields, retField => {
+      _.forEach(response.response.docs, (solrdoc: any) => {
+        const customDoc: Record<string, unknown> = {};
+        _.forEach(returnFields, (retField: string) => {
           if (_.isArray(solrdoc[retField])) {
             customDoc[retField] = solrdoc[retField][0];
           } else {
@@ -315,10 +312,10 @@ export module Services {
       // check if have facets turned on...
       if (response.facet_counts) {
         customResp['facets'] = [];
-        _.forOwn(response.facet_counts.facet_fields, (facet_field, facet_name) => {
+        _.forOwn(response.facet_counts.facet_fields, (facet_field: any[], facet_name: string) => {
           const numFacetsValues = _.size(facet_field) / 2;
-          const facetValues = [];
-          for (var i = 0, j = 0; i < numFacetsValues; i++) {
+          const facetValues: Array<{ value: string; count: number }> = [];
+          for (let i = 0, j = 0; i < numFacetsValues; i++) {
             facetValues.push({
               value: facet_field[j++],
               count: facet_field[j++]
@@ -451,16 +448,16 @@ export module Services {
     }
 
     protected luceneEscape(str: string) {
-      return luceneEscapeQuery.escape(str);
+      return luceneEscapeQuery(str);
     }
 
-    protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {
+    protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
 
-      var roleString = ""
-      var matched = false;
-      for (var i = 0; i < roles.length; i++) {
-        var role = roles[i]
-        if (role.branding == brand.id) {
+      let roleString = ""
+      let matched = false;
+      for (let i = 0; i < roles.length; i++) {
+        const role = roles[i]
+        if ((role as any).branding?.id == brand.id || (role as any).branding == brand.id) {
           if (matched) {
             roleString += " OR ";
             matched = false;

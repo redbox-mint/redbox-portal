@@ -21,13 +21,12 @@ import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 import i18next from "i18next"
 
-declare var _;
-declare var sails: Sails;
+declare var _: any;
+declare var sails: any;
 // Waterline globals
-declare var I18nBundle: Model;
+declare var I18nBundle: any;
 declare let BrandingService: any;
 
 export module Services {
@@ -189,7 +188,7 @@ export module Services {
       this.logger.debug("**************************");
     }
 
-    private async _fetchResourcesFromDb(brand: BrandingModel = null): Promise<Record<string, Record<string, any>>> {
+    private async _fetchResourcesFromDb(brand: BrandingModel | null = null): Promise<Record<string, Record<string, any>>> {
      
       if(!brand) {
        brand = BrandingService.getBrand('default');
@@ -230,7 +229,7 @@ export module Services {
       return resources;
     }
 
-    public t(key, context = undefined, langCode: string = 'en', brandingName: string = 'default') {
+    public t(key: string, context: Record<string, unknown> | undefined = undefined, langCode: string = 'en', brandingName: string = 'default') {
       const brand = BrandingService.getBrand(brandingName);
 
       const i18nextInstance = this.i18nextInstances[brand.id];
@@ -239,11 +238,14 @@ export module Services {
         this.logger.warn(`No i18next instance found for brand name: ${brandingName}, branding id: ${brand.id}, falling back to key`);
         return key;
       }
+      if (context === undefined) {
+        return i18nextInstance.getFixedT(langCode)(key);
+      }
       return i18nextInstance.getFixedT(langCode)(key, context);
     }
 
-    public tInter(key, context = null, langCode:string = 'en') {
-      return this.t(key, context, langCode);
+    public tInter(key: string, context: Record<string, unknown> | null = null, langCode:string = 'en') {
+      return this.t(key, context ?? undefined, langCode);
     }
 
     public async reloadResources(brandingId?: string) {
@@ -310,7 +312,7 @@ export module Services {
       }
     }
 
-    public async handle(req, res, next) {
+    public async handle(req: any, res: any, next: any) {
       let langCode = req.param('lng');
       let sessLangCode = req.session.lang;
       let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
@@ -332,7 +334,7 @@ export module Services {
       
       // validating language - get available languages from DB for current branding
       const availableLanguages = await this.getAvailableLanguagesForBranding(branding);
-      if (_.findIndex(availableLanguages, (l) => { return langCode == l }) == -1) {
+      if (_.findIndex(availableLanguages, (l: string) => { return langCode == l }) == -1) {
         // unsupported language, set to default
         this.logger.warn(`Unsupported language code: ${langCode}, setting to default.`);
         langCode = defaultLang;
@@ -350,10 +352,16 @@ export module Services {
 
       // Inject branding-specific i18next instance into locals
       req.options.locals.TranslationService = _.merge(this, {
-        t: function(key, context) {
+        t: function(key: string, context?: Record<string, unknown>) {
+          if (context === undefined) {
+            return i18nextInstance.getFixedT(langCode)(key);
+          }
           return i18nextInstance.getFixedT(langCode)(key, context);
         },
-        tInter: function(key, context) {
+        tInter: function(key: string, context?: Record<string, unknown>) {
+          if (context === undefined) {
+            return i18nextInstance.getFixedT(langCode)(key);
+          }
           return i18nextInstance.getFixedT(langCode)(key, context);
         }
       });

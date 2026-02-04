@@ -22,7 +22,6 @@ import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormModel } from '../model/storage/FormModel';
-import {Model, Sails} from "sails";
 import {createSchema} from 'genson-js';
 import {
   ClientFormConfigVisitor,
@@ -31,12 +30,11 @@ import {
   FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
-declare var sails: Sails;
-declare var Form: Model;
-declare var RecordType: Model;
-declare var WorkflowStep: Model;
-
-declare var _;
+declare var sails: any;
+declare var Form: any;
+declare var RecordType: any;
+declare var WorkflowStep: any;
+declare var _: any;
 
 export module Services {
   /**
@@ -60,7 +58,7 @@ export module Services {
       'buildClientFormConfig',
     ];
 
-    public async bootstrap(workflowStep): Promise<any> {
+    public async bootstrap(workflowStep: any): Promise<any> {
       let form = await Form.find({
         workflowStep: workflowStep.id
       })
@@ -71,24 +69,22 @@ export module Services {
         })
         form = null;
       }
-      let formDefs = [];
-      let formName = null;
+      let formDefs: string[] = [];
+      let formName: string | null = null;
       this.logger.verbose("Found : ");
       this.logger.verbose(form);
       if (!form || form.length == 0) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
-        _.forOwn(sails.config.form.forms, (formDef, formName) => {
+        _.forOwn(sails.config.form.forms, (_formDef: any, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
         });
         formDefs = _.uniq(formDefs)
         this.logger.verbose(JSON.stringify(formDefs));
-        if(_.isArray(formDefs)) {
-          formDefs = formDefs[0]
-        }
-        formName = formDefs;
+        const firstFormDef = _.isArray(formDefs) ? formDefs[0] : null;
+        formName = firstFormDef ?? null;
       } else {
         this.logger.verbose("Not Bootstrapping form definitions... ");
 
@@ -97,7 +93,7 @@ export module Services {
       const existingFormDef = await Form.find({
         name: formName
       })
-      let existCheck = {
+      let existCheck: { formName: string | null; existingFormDef: any } = {
         formName: formName,
         existingFormDef: existingFormDef
       };
@@ -115,7 +111,7 @@ export module Services {
       this.logger.verbose("FormName is:");
       this.logger.verbose(formName);
       let result = null;
-      if (!_.isNull(formName)) {
+      if (formName) {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
         const formConfig = sails.config.form.forms[formName];
@@ -167,7 +163,7 @@ export module Services {
     }
 
 
-    public getFormByName = (formName, editMode): Observable<FormModel> => {
+    public getFormByName = (formName: string, editMode: boolean): Observable<FormModel> => {
       return super.getObservable(Form.findOne({
         name: formName
       })).pipe(flatMap(form => {
@@ -475,7 +471,7 @@ export module Services {
       return form;
     }
 
-    protected setFormEditMode(fields, editMode): void{
+    protected setFormEditMode(fields: any[], editMode: boolean): void{
       // TODO: Form is processed differently now, see buildClientFormConfig
       // _.remove(fields, field => {
       //   if (editMode) {
@@ -492,19 +488,19 @@ export module Services {
       // });
     }
 
-    public filterFieldsHasEditAccess(fields, hasEditAccess):void {
-      _.remove(fields, field => {
+    public filterFieldsHasEditAccess(fields: any[], hasEditAccess: boolean): void {
+      _.remove(fields, (field: any) => {
         return field.needsEditAccess && hasEditAccess != true;
       });
-      _.forEach(fields, field => {
+      _.forEach(fields, (field: any) => {
         if (!_.isEmpty(field.definition.fields)) {
           this.filterFieldsHasEditAccess(field.definition.fields, hasEditAccess);
         }
       });
     }
 
-    public flattenFields(fields, fieldArr):void {
-      _.map(fields, (f) => {
+    public flattenFields(fields: any[], fieldArr: any[]): void {
+      _.map(fields, (f: any) => {
         fieldArr.push(f);
         if (f.fields) {
           this.flattenFields(f.fields, fieldArr);

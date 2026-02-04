@@ -1,12 +1,13 @@
 import { Observable, from } from 'rxjs';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 import axios, { AxiosResponse } from 'axios';
 
-declare var sails: Sails;
-declare var _this;
-declare var _;
-declare var Institution, User: Model, WorkspaceApp: Model, Form: Model;
+declare var sails: any;
+declare var _: any;
+declare var Institution: any;
+declare var User: any;
+declare var WorkspaceApp: any;
+declare var Form: any;
 
 export module Services {
 
@@ -34,9 +35,9 @@ export module Services {
       super();
     }
 
-    mapToRecord(obj: any, recordMap: any) {
-      let newObj = {};
-      _.each(recordMap, (value) => {
+    mapToRecord(obj: any, recordMap: Array<{ record: string; ele: string }>) {
+      const newObj: Record<string, unknown> = {};
+      _.each(recordMap, (value: { record: string; ele: string }) => {
         newObj[value.record] = _.get(obj, value.ele);
       });
       return newObj;
@@ -84,10 +85,10 @@ export module Services {
       if (_.isUndefined(targetRecord)) {
         targetRecord = await RecordsService.getMeta(targetRecordOid);
       }
-      const workspaces = [];
-      _.each(_.get(targetRecord, 'metadata.workspaces'), async (workspaceInfo:any) => {
+      const workspaces: any[] = [];
+      for (const workspaceInfo of (_.get(targetRecord, 'metadata.workspaces', []) as Array<{ id: string }>)) {
         workspaces.push(await RecordsService.getMeta(workspaceInfo.id));
-      });
+      }
       return workspaces;
     }
 
@@ -144,13 +145,13 @@ export module Services {
       )
     }
 
-    infoFormUserId(userId) {
+    infoFormUserId(userId: string) {
       return this.getObservable(
         User.findOne({ id: userId }).populate('workspaceApps')
       );
     }
 
-    createWorkspaceInfo(userId, appName, info) {
+    createWorkspaceInfo(userId: string, appName: string, info: unknown) {
       return this.getObservable(
         WorkspaceApp.findOrCreate(
           {app: appName, user: userId},
@@ -159,7 +160,7 @@ export module Services {
       );
     }
 
-    updateWorkspaceInfo(id, info) {
+    updateWorkspaceInfo(id: string, info: unknown) {
       return this.getObservable(
         WorkspaceApp.update(
           {id: id})
@@ -169,13 +170,13 @@ export module Services {
       );
     }
 
-    workspaceAppFromUserId(userId, appName){
+    workspaceAppFromUserId(userId: string, appName: string){
       return this.getObservable(
         WorkspaceApp.findOne({app: appName, user: userId})
       );
     }
 
-    removeAppFromUserId(userId, id){
+    removeAppFromUserId(userId: string, id: string){
       return this.getObservable(
         WorkspaceApp.destroy({id: id, user: userId})
       );

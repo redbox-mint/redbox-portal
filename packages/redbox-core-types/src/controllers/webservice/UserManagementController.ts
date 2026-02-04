@@ -37,13 +37,13 @@ export module Controllers {
 
     }
 
-    public listUsers(req, res) {
+    public listUsers(req: any, res: any) {
       let that = this;
       var page = req.param('page');
       var pageSize = req.param('pageSize');
       var searchField = req.param('searchBy');
       var query = req.param('query');
-      var queryObject = {};
+      const queryObject: Record<string, unknown> = {};
       if (searchField != null && query != null) {
         queryObject[searchField] = query;
       }
@@ -58,7 +58,7 @@ export module Controllers {
 
       User.count({
         where: queryObject
-      }).exec(function (err, count: number) {
+      }).exec(function (err: any, count: number) {
         let response: ListAPIResponse<any> = new ListAPIResponse<any>();
         response.summary.numFound = count;
         response.summary.page = page;
@@ -71,9 +71,9 @@ export module Controllers {
             where: queryObject,
             limit: pageSize,
             skip: skip
-          }).exec(function (err, users: UserModel[]) {
+          }).exec(function (err: any, users: UserModel[]) {
 
-            _.each(users, user => {
+            _.each(users, (user: any) => {
               delete user["token"];
               delete user["password"]
             });
@@ -85,13 +85,13 @@ export module Controllers {
       });
     }
 
-    public getUser(req, res) {
+    public getUser(req: any, res: any) {
       let that = this;
       var searchField = req.param('searchBy');
       var query = req.param('query');
-      var queryObject = {};
+      const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = query;
-      User.findOne(queryObject).exec(function (err, user: UserModel) {
+      User.findOne(queryObject).exec(function (err: any, user: UserModel) {
         if (err != null) {
           sails.log.error(err)
           return that.sendResp(req, res, {
@@ -115,16 +115,16 @@ export module Controllers {
       });
     }
 
-    public createUser(req, res) {
+    public createUser(req: any, res: any) {
       let userReq: UserModel = req.body;
 
-      UsersService.addLocalUser(userReq.username, userReq.name, userReq.email, userReq.password).subscribe(userResponse => {
+      UsersService.addLocalUser(userReq.username || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: UserModel) => {
         const response: UserModel = userResponse;
         if (userReq.roles) {
-          let roles = userReq.roles;
+          const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
           let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
           let roleIds = RolesService.getRoleIds(brand.roles, roles);
-          UsersService.updateUserRoles(response.id, roleIds).subscribe(roleUser => {
+          UsersService.updateUserRoles(response.id, roleIds).subscribe((roleUser: UserModel) => {
             let user: UserModel = roleUser;
             sails.log.verbose(user);
             let userResponse = new CreateUserAPIResponse();
@@ -135,7 +135,7 @@ export module Controllers {
             userResponse.type = response.type;
             userResponse.lastLogin = response.lastLogin;
             return this.apiRespond(req, res, userResponse, 201);
-          }, error => {
+          }, (error: any) => {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
             //TODO: Find more appropriate status code
@@ -146,6 +146,7 @@ export module Controllers {
               headers: this.getNoCacheHeaders()
             });
           });
+          return;
         } else {
           let userResponse = new CreateUserAPIResponse();
           userResponse.id = response.id;
@@ -156,7 +157,7 @@ export module Controllers {
           userResponse.lastLogin = response.lastLogin;
           return this.apiRespond(req, res, userResponse, 201);
         }
-      }, error => {
+      }, (error: any) => {
         sails.log.error(error);
         return this.sendResp(req, res, {
           status: 500,
@@ -165,15 +166,16 @@ export module Controllers {
         });
       });
 
+      return;
     }
 
 
-    public updateUser(req, res) {
+    public updateUser(req: any, res: any) {
       let userReq: UserModel = req.body;
 
-      UsersService.updateUserDetails(userReq.id, userReq.name, userReq.email, userReq.password).subscribe(userResponse => {
-        let response: UserModel[] = userResponse;
-        let user = null;
+      UsersService.updateUserDetails(userReq.id || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: any[]) => {
+        let response: any[] = userResponse;
+        let user: any = null;
         sails.log.verbose(user)
 
         if (!_.isEmpty(response) && _.isArray(response)) {
@@ -186,10 +188,10 @@ export module Controllers {
         }
 
         if (userReq.roles) {
-          let roles = userReq.roles;
+          const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
           let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
           let roleIds = RolesService.getRoleIds(brand.roles, roles);
-          UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
+          UsersService.updateUserRoles(user.id, roleIds).subscribe((user: any) => {
             //TODO: Add roles to the response            
             let userResponse = new CreateUserAPIResponse();
             userResponse.id = user.id;
@@ -199,7 +201,7 @@ export module Controllers {
             userResponse.type = user.type;
             userResponse.lastLogin = user.lastLogin;
             return this.apiRespond(req, res, userResponse, 201);
-          }, error => {
+          }, (error: any) => {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
             //TODO: Find more appropriate status code
@@ -210,6 +212,7 @@ export module Controllers {
               headers: this.getNoCacheHeaders()
             });
           });
+          return;
         } else {
           let userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
           userResponse.id = user.id;
@@ -221,7 +224,7 @@ export module Controllers {
 
           return this.apiRespond(req, res, userResponse, 201)
         }
-      }, error => {
+      }, (error: any) => {
         sails.log.error(error);
         if (error.message.indexOf('No such user with id:') != -1) {
           const errorResponse = new APIErrorResponse(error.message);
@@ -239,21 +242,22 @@ export module Controllers {
         }
       });
 
+      return;
     }
 
-    public generateAPIToken(req, res) {
+    public generateAPIToken(req: any, res: any) {
       let userid: string = req.param('id');
 
       if (userid) {
         let uuid: string = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(userResponse => {
+        UsersService.setUserKey(userid, uuid).subscribe((userResponse: UserModel) => {
           let user: UserModel = userResponse;
           let response = new UserAPITokenAPIResponse();
           response.id = userid
           response.username = user.username
           response.token = uuid
           this.apiRespond(req, res, response)
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
           const errorResponse = new APIErrorResponse(error.message);
@@ -271,23 +275,24 @@ export module Controllers {
           headers: this.getNoCacheHeaders()
         });
       }
+      return;
     }
 
 
-    public revokeAPIToken(req, res) {
+    public revokeAPIToken(req: any, res: any) {
 
       let userid = req.param('id');
 
       if (userid) {
-        var uuid = null;
-        UsersService.setUserKey(userid, uuid).subscribe(userResponse => {
+        const uuid: string = '';
+        UsersService.setUserKey(userid, uuid).subscribe((userResponse: UserModel) => {
           let user: UserModel = userResponse;
           let response = new UserAPITokenAPIResponse();
           response.id = userid
           response.username = user.username
           response.token = uuid
           this.apiRespond(req, res, response)
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
           const errorResponse = new APIErrorResponse(error.message);
@@ -305,9 +310,10 @@ export module Controllers {
           headers: this.getNoCacheHeaders()
         });
       }
+      return;
     }
 
-    public listSystemRoles(req, res) {
+    public listSystemRoles(req: any, res: any) {
       let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       let response: ListAPIResponse<any> = new ListAPIResponse<any>();
       response.summary.numFound = brand.roles.length;
@@ -316,7 +322,7 @@ export module Controllers {
       return this.apiRespond(req, res, response);
     }
 
-    public createSystemRole(req, res) {
+    public createSystemRole(req: any, res: any) {
       let roleName;
       if (_.isUndefined(req.body.roleName)) {
         roleName = req.param('roleName');

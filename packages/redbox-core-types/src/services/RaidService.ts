@@ -20,7 +20,6 @@
 import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import { momentShim as moment } from '../shims/momentShim';
-import { Sails } from "sails";
 import {
   Access,
   AlternateUrl,
@@ -38,8 +37,8 @@ import numeral from 'numeral';
 import axios from 'axios';
 
 
-declare var sails: Sails;
-declare var _;
+declare var sails: any;
+declare var _: any;
 
 export module Services {
   /**
@@ -57,7 +56,11 @@ export module Services {
       'mintRetryJob'
     ];
 
-    protected oauthTokenData = {
+    protected oauthTokenData: {
+      accessTokenExpiryMillis: number | null;
+      accessToken: string | null;
+      responseData: any;
+    } = {
       accessTokenExpiryMillis: null,
       accessToken: null,
       responseData: null
@@ -68,7 +71,7 @@ export module Services {
       this.logHeader = "RaidService::";
     }
 
-    public async mintTrigger(oid, record, options): Promise<any> {
+    public async mintTrigger(oid: string, record: any, options: any): Promise<any> {
       if (this.metTriggerCondition(oid, record, options) === "true") {
         await this.mintRaid(oid, record, options);
       } else {
@@ -92,7 +95,7 @@ export module Services {
      * @param record
      * @param options
      */
-    public async mintPostCreateRetryHandler(oid, record, options) {
+    public async mintPostCreateRetryHandler(oid: string, record: any, options: any) {
       const attemptCount = _.get(record.metaMetadata, 'raid.attemptCount');
       if (!_.isEmpty(oid) && attemptCount > 0) {
         sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);
@@ -147,7 +150,7 @@ export module Services {
           this.oauthTokenData.accessTokenExpiryMillis = Date.now() + (auth1.expires_in * 1000);
           this.oauthTokenData.accessToken = auth1.access_token;
         }
-      } catch (err) {
+      } catch (err: any) {
         throw new RBValidationError({
           message: "Failed to get token",
           options: { cause: err },
@@ -157,7 +160,7 @@ export module Services {
       return this.oauthTokenData.accessToken;
     }
 
-    private async fetchAuthToken(oauthConfig): Promise<any> {
+    private async fetchAuthToken(oauthConfig: any): Promise<any> {
 
       try {
         const response = await axios.post(oauthConfig.url,
@@ -175,7 +178,7 @@ export module Services {
         const tokenData = response.data;
         return tokenData;
 
-      } catch (error) {
+      } catch (error: any) {
         throw new RBValidationError({
           message: "Error fetching the token",
           options: { cause: error },
@@ -184,7 +187,7 @@ export module Services {
       }
     }
 
-    private async mintRaid(oid, record, options, attemptCount: number = 0): Promise<any> {
+    private async mintRaid(oid: string, record: any, options: any, attemptCount: number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;
       const apiToken = await this.getToken();
       const configuration = new Configuration({
@@ -241,7 +244,7 @@ export module Services {
       }
       let raid = undefined;
       let metaMetadataInfo = undefined;
-      let response = undefined;
+      let response: any = undefined;
       let body = undefined;
       try {
         sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Sending data::`);
@@ -263,13 +266,13 @@ export module Services {
           // with the specific fields set to 'required' and not treat these as runtime errors
           throw new RBValidationError({
             message: `Failed to mint RAiD for oid ${oid} statusCode ${response?.status} body ${JSON.stringify(body)}`,
-            displayErrors: [{ code: 'raid-mint-server-error', status: response?.status }],
+            displayErrors: [{ code: 'raid-mint-server-error', status: String(response?.status) }],
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         _.set(error, 'response.request.headers.Authorization', '-redacted-');
         const statusCode = _.get(error, 'statusCode');
-        let msgs = [];
+        const msgs: string[] = [];
         if (statusCode == 401 || statusCode == 403 || statusCode == 400) {
           msgs.push(`Authentication failed for oid ${oid}, check if the auth token is properly configured.`);
           if (statusCode == 400) {
@@ -326,9 +329,9 @@ export module Services {
       AgendaQueueService.schedule(sails.config.raid.retryJobName, sails.config.raid.retryJobSchedule, data);
     }
 
-    public getContributors(record, options, fieldConfig?: any, mappedData?: any) {
+    public getContributors(record: any, options: any, fieldConfig?: any, mappedData?: any) {
       // start with a map to simplify uniqueness guarantees
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contributorMapConfig = fieldConfig.contributorMap;
       const startDate = mappedData?.date?.startDate;
       const endDate = mappedData?.date?.endDate;
@@ -344,10 +347,10 @@ export module Services {
         }
       }
       // convert to array for the API
-      return _.map(contributors, (val) => { return val });
+      return _.map(contributors, (val: any) => { return val });
     }
 
-    public buildContribVal(contributors, contribVal, contribConfig, startDate, endDate) {
+    public buildContribVal(contributors: Record<string, any>, contribVal: any, contribConfig: any, startDate: string, endDate?: string) {
       if (_.isEmpty(contribVal.text_full_name)) {
         sails.log.verbose(`${this.logHeader} buildContribVal() -> Ignoring blank record.`);
         return;
@@ -373,9 +376,9 @@ export module Services {
           if (!_.find(contributors[id].position, { id: position.id })) {
             // as per https://metadata.raid.org/en/latest/core/contributors.html#contributor-position
             // contributors can only have one position for a certain time (unsupported by RB) period so only use the 'highest'
-            const curPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl) => { return lbl == contribConfig.position });
+            const curPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl: string) => { return lbl == contribConfig.position });
             const existPosLabel = _.findKey(sails.config.raid.types.contributor.position, { id: contributors[id].position[0] });
-            const existPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl) => { return lbl == existPosLabel });
+            const existPosIdx = _.findIndex(sails.config.raid.types.contributor.hiearchy.position, (lbl: string) => { return lbl == existPosLabel });
             if (curPosIdx < existPosIdx) {
               // the current position is higher, overwrite existing
               contributors[id].position[0] = position;
@@ -452,8 +455,8 @@ export module Services {
       } // not currently matching to any generated class so returning as POJO
     }
 
-    private getMappedData(record, fields, options): any {
-      const mappedData = {};
+    private getMappedData(record: any, fields: any, options: any): any {
+      const mappedData: Record<string, unknown> = {};
       for (let fieldName in fields) {
         try {
           const fieldConfig = _.get(fields, fieldName);
@@ -498,8 +501,8 @@ export module Services {
       return mappedData;
     }
 
-    public getSubject(record, options, fieldConfig?: any, subjects?: any, subjectType?: string, subjectData?: any) {
-      if (_.isArray(subjectData) && !_.isEmpty(subjectData)) {
+    public getSubject(record: any, options: any, fieldConfig?: any, subjects: any[] = [], subjectType: string = '', subjectData?: any) {
+      if (_.isArray(subjectData) && !_.isEmpty(subjectData) && !_.isEmpty(subjectType)) {
         for (let subject of subjectData) {
           subjects.push({
             id: `${sails.config.raid.types.subject[subjectType].id}${subject.notation}`,
@@ -517,7 +520,7 @@ export module Services {
       return subjects;
     }
 
-    private async saveRaid(raid, record, options, metaMetadataInfo): Promise<void> {
+    private async saveRaid(raid: any, record: any, options: any, metaMetadataInfo: any): Promise<void> {
       // add raid to record, defaults to 'raidUrl'
       _.set(record.metadata, _.get(sails.config.raid, 'raidFieldName', 'raidUrl'), raid.id);
       if (sails.config.raid.saveBodyInMeta) {

@@ -43,7 +43,7 @@ export module Controllers {
        *    • support for multiple email addresses (trivial: make array)
        */
 
-        public sendNotification(req, res) {
+        public sendNotification(req: Sails.Req, res: Sails.Res) {
             if (!req.body.to){
                 sails.log.error("No email recipient in email notification request!");
                 this.sendResp(req, res, {
@@ -101,7 +101,7 @@ export module Controllers {
             // const template = emailProperties.template;
             const templateRendered = emailProperties.templateRendered;
 
-            return templateRendered.subscribe(buildResult => {
+            return templateRendered.subscribe((buildResult: any) => {
                 if (buildResult['status'] != 200) {
                     return this.sendResp(req, res, {
                         status: 500,
@@ -119,7 +119,7 @@ export module Controllers {
                         bccRendered,
                     );
 
-                    sendResponse.subscribe(sendResult => {
+                    return sendResponse.subscribe((sendResult: any) => {
                         if (!sendResult['success']) {
                             return this.sendResp(req, res, {
                                 status: 500,
@@ -131,7 +131,7 @@ export module Controllers {
                         }
                     });
                 }
-            }, error => {
+            }, (error: unknown) => {
                 sails.log.error("Failed to render email template", error);
                 return this.sendResp(req, res, {
                     status: 500,

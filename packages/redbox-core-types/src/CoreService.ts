@@ -150,7 +150,7 @@ export module Services.Core {
      * @returns {*}
      */
     public exports(): any {
-      let exportedMethods: any = {};
+      const exportedMethods: Record<string, unknown> = {};
       if (process.env["sails_redbox__mochaTesting"] === "true") {
         const allProperties = [
           ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
@@ -160,36 +160,39 @@ export module Services.Core {
 
         const uniqueProperties = Array.from(new Set(allProperties));
         uniqueProperties.forEach((property) => {
-          const value = (this as any)[property];
+          const value = (this as Record<string, unknown>)[property];
 
           // Check if the property is a function
           if (typeof value === "function" && property !== "constructor") {
-            exportedMethods[property] = value.bind(this); // Bind the method to maintain `this` context
+            exportedMethods[property] = (value as (...args: unknown[]) => unknown).bind(this); // Bind the method to maintain `this` context
           }
 
         });
         this.logger.error("Exported Methods for Mocha Testing: ", exportedMethods);
       } else {
         // Merge default array and custom array from child.
-        let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
+        const methods = this._defaultExportedMethods.concat(this._exportedMethods);
+        const service = this as Record<string, unknown>;
 
 
         for (let i = 0; i < methods.length; i++) {
+          const methodName = methods[i];
+          const member = service[methodName];
           // Check if the method exists.
-          if (typeof this[methods[i]] !== 'undefined') {
+          if (typeof member !== 'undefined') {
             // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-            if (methods[i][0] !== '_' || methods[i] === '_config') {
+            if (methodName[0] !== '_' || methodName === '_config') {
 
-              if (_.isFunction(this[methods[i]])) {
-                exportedMethods[methods[i]] = this[methods[i]].bind(this);
+              if (_.isFunction(member)) {
+                exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
               } else {
-                exportedMethods[methods[i]] = this[methods[i]];
+                exportedMethods[methodName] = member;
               }
             } else {
-              this.logger.error(`The service method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
+              this.logger.error(`The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
             }
           } else {
-            this.logger.error(`The service method "${methods[i]}" does not exist on ${this.constructor?.name}`);
+            this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
           }
         }
       }

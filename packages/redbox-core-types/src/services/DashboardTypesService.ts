@@ -3,11 +3,10 @@ import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
-import { Sails, Model } from "sails";
 
-declare var sails: Sails;
-declare var DashboardType: Model;
-declare var _;
+declare var sails: any;
+declare var DashboardType: any;
+declare var _: any;
 
 export module Services {
 
@@ -58,9 +57,9 @@ export module Services {
       'extractDashboardTemplates'
     ];
 
-    protected dashboardTypes;
+    protected dashboardTypes: any[] = [];
 
-    public async bootstrap(defBrand): Promise<any> {
+    public async bootstrap(defBrand: BrandingModel): Promise<any> {
       let dashboardTypes = await DashboardType.find({ branding: defBrand.id });
       if (sails.config.appmode.bootstrapAlways) {
         await DashboardType.destroy({ branding: defBrand.id });
@@ -89,7 +88,7 @@ export module Services {
       return dashboardTypes
     }
 
-    public create(brand, name, config) {
+    public create(brand: BrandingModel, name: string, config: any) {
 
       sails.log.verbose(JSON.stringify(config));
 
@@ -102,12 +101,12 @@ export module Services {
       }));
     }
 
-    public get(brand, name) {
+    public get(brand: BrandingModel, name: string) {
       const criteria: any = { where: { branding: brand.id, name: name } };
       return super.getObservable(DashboardType.findOne(criteria));
     }
 
-    public getAll(brand) {
+    public getAll(brand: BrandingModel) {
       const criteria: any = { where: { branding: brand.id } };
       return super.getObservable(DashboardType.find(criteria));
     }
@@ -240,10 +239,10 @@ export module Services {
 
       // Extract templates from rowConfig
       if (dashboardConfig) {
-        const rowConfig = (!_.isEmpty(dashboardConfig.rowConfig)) ? dashboardConfig.rowConfig : this.defaultRowConfig;
+        const rowConfig: DashboardRowConfig[] = (!_.isEmpty(dashboardConfig.rowConfig)) ? (dashboardConfig.rowConfig as DashboardRowConfig[]) : this.defaultRowConfig;
         sails.log.verbose(`DashboardTypesService: extracting ${rowConfig.length} row templates. Using default? ${_.isEmpty(dashboardConfig.rowConfig)}`);
         for (let i = 0; i < rowConfig.length; i++) {
-          const row = rowConfig[i];
+          const row = rowConfig[i] as DashboardRowConfig;
           if (row.template) {
             entries.push({
               key: [recordType, workflowStage, 'rowConfig', i.toString(), row.variable],
@@ -352,4 +351,3 @@ export module Services {
 declare global {
   let DashboardTypesService: Services.DashboardTypes;
 }
-

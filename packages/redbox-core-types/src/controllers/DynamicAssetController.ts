@@ -24,8 +24,8 @@ import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
 
-declare var module;
-declare var sails;
+declare var module: any;
+declare var sails: any;
 
 /**
  * Package that contains all Controllers.
@@ -37,6 +37,9 @@ export module Controllers {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class DynamicAsset extends controllers.Core.Controller {
+    private asError(err: unknown): Error {
+      return err instanceof Error ? err : new Error(String(err));
+    }
 
     /**
      * Exported methods, accessible from internet.
@@ -65,14 +68,14 @@ export module Controllers {
      **************************************************************************************************
      */
 
-    public get(req, res) {
+    public get(req: any, res: any) {
       let assetId = req.param("asset");
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
       this.sendAssetView(res, assetId, { layout: false });
     }
 
-    public async getFormCompiledItems(req, res) {
+    public async getFormCompiledItems(req: any, res: any) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editMode = req.query.edit == "true";
       const formMode = editMode ? "edit" : "view";
@@ -82,7 +85,7 @@ export module Controllers {
 
       try {
         // TODO: this block is very similar to RecordController.getForm - refactor to service?
-        const userRoles = (req.user?.roles ?? []).map(role => role?.name).filter(name => !!name);
+        const userRoles = (req.user?.roles ?? []).map((role: any) => role?.name).filter((name: string) => !!name);
         let form, recordMetadata;
         if (!oid) {
           recordMetadata = null;
@@ -105,14 +108,14 @@ export module Controllers {
             });
           }
           recordMetadata = record?.metadata ?? {};
-          form = await FormsService.getForm(brand, null, editMode, null, record);
+          form = await FormsService.getForm(brand, "", editMode, "", record);
         }
-        const entries = FormRecordConsistencyService.extractRawTemplates(form, formMode, userRoles, recordMetadata, reusableFormDefs);
+        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(form, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
-          errors: [error],
+          errors: [this.asError(error)],
           displayErrors: [{detail: "Could not get form data."}],
         });
       }
@@ -123,14 +126,14 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public getFormStructureValidations(req, res) {
+    public getFormStructureValidations(req: any, res: any) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
       //  Similar to FormRecordConsistency.validateRecordSchema.
-      const entries = [];
+      const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
@@ -140,13 +143,13 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public getFormDataValidations(req, res) {
+    public getFormDataValidations(req: any, res: any) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
-      const entries = [];
+      const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
@@ -155,13 +158,13 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public getFormExpressions(req, res) {
+    public getFormExpressions(req: any, res: any) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const isNewRecord = this.isNewRecord(recordType, oid);
       const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
-      const entries = [];
+      const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
     }
 
@@ -170,7 +173,7 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public async getAdminReportTemplates(req, res) {
+    public async getAdminReportTemplates(req: any, res: any) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const reportName = req.param("reportName") || "";
 
@@ -188,7 +191,7 @@ export module Controllers {
     * @param req
     * @param res
     */
-    public async getRecordDashboardTemplates(req, res) {
+    public async getRecordDashboardTemplates(req: any, res: any) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param("recordType") || "";
       const workflowStage = req.param("workflowStage") || "";
@@ -209,14 +212,14 @@ export module Controllers {
     }
 
     private isNewRecord(recordType: string, oid: string): boolean {
-      return !oid && recordType && recordType !== this._recordTypeAuto;
+      return !!(!oid && recordType && recordType !== this._recordTypeAuto);
     }
 
     private isExistingRecord(recordType: string, oid: string): boolean {
       return !!oid && (recordType === this._recordTypeAuto || !!recordType);
     }
 
-    private sendClientMappingJavascript(res, inputs: TemplateCompileInput[]) {
+    private sendClientMappingJavascript(res: any, inputs: TemplateCompileInput[]) {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
       const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
@@ -230,7 +233,7 @@ export module Controllers {
       });
     }
 
-    private sendAssetView(res, assetId: string, viewContext: Record<string, unknown>) {
+    private sendAssetView(res: any, assetId: string, viewContext: Record<string, unknown>) {
       const dynamicAssetInfo = sails.config.dynamicasset[assetId];
       if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
         return res.notFound();

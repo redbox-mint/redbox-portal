@@ -20,12 +20,20 @@
 import { zip, of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 
-declare var sails: Sails;
-declare var WorkspaceType: Model;
-declare var _this;
-declare var _;
+declare var sails: any;
+declare var WorkspaceType: any;
+declare var _: any;
+
+type BrandingLike = { id: string };
+type WorkspaceTypeConfig = {
+  name: string;
+  label: string;
+  subtitle?: string;
+  description?: string;
+  logo?: string;
+  externallyProvisioned?: boolean;
+};
 
 export module Services {
   /**
@@ -43,15 +51,15 @@ export module Services {
       'getOne'
     ];
 
-    public bootstrap = (defBrand) => {
-      return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(whatever => {
-        const obsArr = [];
+    public bootstrap = (defBrand: BrandingLike) => {
+      return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(() => {
+        const obsArr: any[] = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
-        let workspaceTypes = [];
+        let workspaceTypes: string[] = [];
         if (!_.isEmpty(sails.config.workspacetype)) {
           sails.log.verbose("Bootstrapping workspace type definitions... ");
-          _.forOwn(sails.config.workspacetype, (config, workspaceType) => {
+          _.forOwn(sails.config.workspacetype, (config: WorkspaceTypeConfig, workspaceType: string) => {
             workspaceTypes.push(workspaceType);
             var obs = this.create(defBrand, config);
             obsArr.push(obs);
@@ -72,7 +80,7 @@ export module Services {
       }));
     }
 
-    public create(brand, workspaceType) {
+    public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig) {
       return super.getObservable(
         WorkspaceType.create({
           name: workspaceType['name'],
@@ -86,11 +94,11 @@ export module Services {
       )
     }
 
-    public get(brand) {
+    public get(brand: BrandingLike) {
       return super.getObservable(WorkspaceType.find({ branding: brand.id }));
     }
 
-    public getOne(brand, name) {
+    public getOne(brand: BrandingLike, name: string) {
       return super.getObservable(WorkspaceType.findOne({ branding: brand.id, name: name }));
     }
   }

@@ -30,7 +30,7 @@ export module Controllers {
 
     }
 
-    public render(req, res) {
+    public render(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 
       from(ReportsService.findAllReportsForBrand(brand)).subscribe(reports => {

@@ -55,7 +55,7 @@ export module Controllers {
 
     }
 
-    public render(req, res) {
+    public render(req: Sails.Req, res: Sails.Res) {
       let oid = req.param('oid');
       let params = { 'oid': oid, 'dateFrom': null, 'dateTo': null };
       // Use this.recordsService or fallback to global if strictly needed, but migrated style is class property

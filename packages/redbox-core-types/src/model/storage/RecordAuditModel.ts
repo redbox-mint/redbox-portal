@@ -5,7 +5,7 @@ export class RecordAuditModel {
     user: any;
     record: any;
 
-    constructor(oid, record, user, action:RecordAuditActionType = RecordAuditActionType.updated) {
+    constructor(oid: string, record: any, user: any, action: RecordAuditActionType = RecordAuditActionType.updated) {
         if (user!= null && !_.isEmpty(user.password)) {
             delete user.password;
         }

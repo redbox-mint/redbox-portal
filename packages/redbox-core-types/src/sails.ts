@@ -10,7 +10,10 @@ declare global {
 		export { SailsConfig };
 
 		// ConfigObject now extends SailsConfig for typed access
-		export interface ConfigObject extends SailsConfig { }
+		export interface ConfigObject extends SailsConfig {
+			// Passport is configured at runtime during bootstrap.
+			passport: any;
+		}
 
 		// Log interface based on https://github.com/balderdashy/captains-log
 		export interface Log {
@@ -78,10 +81,10 @@ declare global {
 			count(criteria: string): WaterlinePromise<number>;
 			count(criteria: number): WaterlinePromise<number>;
 
-			count(criteria: Object, cb: (err: Error, found: number) => void);
-			count(criteria: Array<Object>, cb: (err: Error, found: number) => void);
-			count(criteria: string, cb: (err: Error, found: number) => void);
-			count(criteria: number, cb: (err: Error, found: number) => void);
+			count(criteria: Object, cb: (err: Error, found: number) => void): void;
+			count(criteria: Array<Object>, cb: (err: Error, found: number) => void): void;
+			count(criteria: string, cb: (err: Error, found: number) => void): void;
+			count(criteria: number, cb: (err: Error, found: number) => void): void;
 
 			destroy(criteria: Object): WaterlinePromise<Array<Record>>;
 			destroy(criteria: Array<Object>): WaterlinePromise<Array<Record>>;
@@ -122,8 +125,8 @@ declare global {
 			updateOne(criteria: number, changes: Object): WaterlinePromise<T>;
 			updateOne(criteria: number): WaterlinePromise<T>;
 
-			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void);
-			native(cb: (err: Error, collection: Model<T>) => void);
+			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void): void;
+			native(cb: (err: Error, collection: Model<T>) => void): void;
 
 			stream(criteria: Object, writeEnd: Object): NodeJS.WritableStream;
 			stream(criteria: Array<Object>, writeEnd: Object): NodeJS.WritableStream;
@@ -149,6 +152,11 @@ declare global {
 
 		export interface Req extends express.Request {
 			options?: any;
+			session: any;
+			user?: any;
+			query: { [key: string]: any };
+			param(name: string, defaultValue?: any): any;
+			isAuthenticated(): boolean;
 			[key: string]: any;
 		}
 
@@ -175,8 +183,9 @@ declare global {
 		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;
 
 		export class WaterlinePromise<T> extends Promise<T> {
-			exec(cb: (err: Error, results: Array<QueryResult>) => void);
-			exec(cb: (err: Error, result: QueryResult) => void);
+			exec(cb: (err: Error, results: T) => void): void;
+			set(values: Object): WaterlinePromise<T>;
+			meta(options: Object): WaterlinePromise<T>;
 
 			populate(association: string): QueryBuilder;
 			populate(association: string, filter: Object): QueryBuilder;
@@ -195,7 +204,9 @@ declare global {
 		}
 
 		export class QueryBuilder extends Promise<any> {
-			exec(cb: (error: any, results: Array<QueryResult>) => void);
+			exec(cb: (error: any, results: Array<QueryResult>) => void): void;
+			set(values: Object): QueryBuilder;
+			meta(options: Object): QueryBuilder;
 
 			where(condition: Object): QueryBuilder;
 

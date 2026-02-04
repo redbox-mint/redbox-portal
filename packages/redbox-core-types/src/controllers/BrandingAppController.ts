@@ -2,7 +2,6 @@
  * Branding App Controller
  * Endpoints consumed by the Angular admin UI (session / cookie auth, CSRF enabled by default)
  */
-import type { Request, Response } from 'sails';
 import { Controllers as controllers } from '../CoreController';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
@@ -11,6 +10,8 @@ declare const sails: any;
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 declare const BrandingConfig: any;
+type Request = any;
+type Response = any;
 
 function mapError(e: Error): { status: number; body: any } {
   const msg = e.message || '';
@@ -112,7 +113,7 @@ export module Controllers {
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<any[]>((resolve, reject) => {
-          try { (req as any).file('logo').upload((err, uploaded) => err ? reject(err) : resolve(uploaded)); } catch (e) { resolve([]); }
+          try { (req as any).file('logo').upload((err: unknown, uploaded: any[]) => err ? reject(err) : resolve(uploaded)); } catch (e) { resolve([]); }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];

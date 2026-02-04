@@ -106,7 +106,11 @@ export module Controllers {
 
     }
 
-    public async getPermissions(req, res) {
+    private asError(error: unknown): Error {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
+    public async getPermissions(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
@@ -115,13 +119,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: record["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to get record permission.' }]
         });
       }
     }
 
-    public async addUserEdit(req, res) {
+    public async addUserEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -139,7 +143,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to modify record meta for adding an editor.' }]
         });
       }
@@ -156,13 +160,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: recordResult["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding an editor.' }]
         });
       }
     }
 
-    public async addUserView(req, res) {
+    public async addUserView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -180,7 +184,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for adding a viewer.' }]
         });
       }
@@ -197,13 +201,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: resultRecord["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding a viewer.' }]
         });
       }
     }
 
-    public async removeUserEdit(req, res) {
+    public async removeUserEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -221,7 +225,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing an editor.' }]
         });
       }
@@ -238,13 +242,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: resultRecord["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed removing an editor.' }]
         });
       }
     }
 
-    public async removeUserView(req, res) {
+    public async removeUserView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -262,7 +266,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to modify record meta for removing a viewer.' }]
         });
       }
@@ -279,13 +283,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: resultRecord["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed removing a viewer.' }]
         });
       }
     }
 
-    public async getMeta(req, res) {
+    public async getMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
@@ -300,18 +304,18 @@ export module Controllers {
         return this.sendResp(req, res, { data: record["metadata"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: "Get Metadata failed." }]
         });
       }
     }
 
-    public async getRecordAudit(req, res) {
+    public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       var dateFrom = req.param('dateFrom');
       var dateTo = req.param('dateTo');
-      let params = { 'oid': oid, 'dateFrom': null, 'dateTo': null };
+      const params: { oid: string; dateFrom: Date | null; dateTo: Date | null } = { oid, dateFrom: null, dateTo: null };
       if (!_.isEmpty(dateFrom)) {
         params['dateFrom'] = new Date(dateFrom);
       }
@@ -329,13 +333,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to list audit records for ${oid}, please.` }]
         });
       }
     }
 
-    public async getObjectMeta(req, res) {
+    public async getObjectMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
@@ -346,13 +350,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: record["metaMetadata"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to get object meta for ${oid}, please.`, meta: { oid } }]
         });
       }
     }
 
-    public async updateMeta(req, res) {
+    public async updateMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const shouldMerge = req.param('merge', false);
@@ -369,21 +373,21 @@ export module Controllers {
         }
         if (shouldMerge) {
           // behavior modified from replacing arrays to appending to arrays:
-          record["metadata"] = _.mergeWith(record.metadata, req.body, (objValue, srcValue) => {
+          record["metadata"] = _.mergeWith(record.metadata, req.body, (objValue: unknown, srcValue: unknown) => {
             if (_.isArray(objValue)) {
-              return objValue.concat(srcValue);
+              return (objValue as unknown[]).concat(srcValue as unknown[]);
             }
+            return undefined;
           });
         } else {
           record["metadata"] = req.body;
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: "Update Metadata failed." }]
         });
       }
-
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         // check if we need to process data streams
@@ -400,13 +404,13 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: "Update Metadata failed" }]
         });
       }
     }
 
-    public async updateObjectMeta(req, res) {
+    public async updateObjectMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
@@ -415,18 +419,18 @@ export module Controllers {
         record = await this.RecordsService.getMeta(oid);
         record["metaMetadata"] = req.body;
       } catch (err) {
-        return this.sendResp(req, res, { errors: [err], displayErrors: [{ detail: "Updated" }] });
+        return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: "Updated" }] });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         return this.sendResp(req, res, { data: result });
       } catch (err) {
-        return this.sendResp(req, res, { errors: [err], displayErrors: [{ detail: "Updated" }] });
+        return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: "Updated" }] });
       }
     }
 
-    public create(req, res) {
+    public create(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('recordType');
       const user = req.user;
@@ -456,11 +460,11 @@ export module Controllers {
 
         var recordTypeObservable = RecordTypesService.get(brand, recordType);
 
-        recordTypeObservable.subscribe(recordTypeModel => {
+        recordTypeObservable.subscribe((recordTypeModel: any) => {
           if (recordTypeModel) {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
-            var request = {};
+            const request: any = {};
 
             //if no metadata field, no authorization
             if (metadata == null) {
@@ -473,7 +477,7 @@ export module Controllers {
             let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
             var obs = from(createPromise);
-            obs.subscribe(response => {
+            obs.subscribe((response: any) => {
               if (response.isSuccessful()) {
 
                 if (workflowStage) {
@@ -494,12 +498,13 @@ export module Controllers {
                   displayErrors: [{ detail: "Create Record failed" }]
                 });
               }
-            }, error => {
+            }, (error: unknown) => {
               return this.sendResp(req, res, {
-                errors: [error],
+                errors: [this.asError(error)],
                 displayErrors: [{ detail: "Create Record failed" }]
               });
             });
+            return;
 
           } else {
             return this.sendResp(req, res, {
@@ -511,7 +516,7 @@ export module Controllers {
       }
     }
 
-    public async getDataStream(req, res) {
+    public async getDataStream(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
@@ -562,7 +567,7 @@ export module Controllers {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
 
-            response.readstream.on('error', (error) => {
+            response.readstream.on('error', (error: unknown) => {
               // Handle the error here
               sails.log.error('Error reading stream:', error);
               return
@@ -574,27 +579,27 @@ export module Controllers {
           return
         } catch (error) {
           return this.sendResp(req, res, {
-            errors: [error],
+            errors: [this.asError(error)],
             displayErrors: [{ detail: 'There was a problem with the upstream request.' }]
           });
         }
 
       } catch (error) {
         return this.sendResp(req, res, {
-          errors: [error],
+          errors: [this.asError(error)],
           displayErrors: [{ detail: 'There was a problem with the upstream request.' }]
         });
       }
     }
 
-    public async addDataStreams(req, res) {
+    public async addDataStreams(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       const self = this;
       req.file('attachmentFields').upload({
         dirname: `${sails.config.record.attachments.stageDir}`,
         maxBytes: 104857600,
-        saveAs: function (__newFileStream, next) {
+        saveAs: function (__newFileStream: any, next: (err?: Error, value?: string) => void) {
           sails.log.verbose('Generating files....');
           try {
             // const nextPath = path.join(UUIDGenerator(), path.basename(__newFileStream.filename));
@@ -605,16 +610,16 @@ export module Controllers {
             return next(new Error(`Could not determine an appropriate filename for uploaded filestream(s) for oid ${oid}.`));
           }
         }
-      }, async function (error, UploadedFileMetadata) {
+      }, async function (error: unknown, UploadedFileMetadata: any[]) {
         if (error) {
           return self.sendResp(req, res, {
-            errors: [error],
+            errors: [self.asError(error)],
             displayErrors: [{ detail: `There was a problem adding datastream(s) to: ${sails.config.record.attachment.stageDir}` }]
           });
         }
         sails.log.verbose(UploadedFileMetadata);
         sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
-        const fileIds = _.map(UploadedFileMetadata, function (nextDescriptor) {
+        const fileIds = _.map(UploadedFileMetadata, function (nextDescriptor: any) {
           return new Datastream({ fileId: path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd), name: nextDescriptor.filename, mimeType: nextDescriptor.type, size: nextDescriptor.size });
         });
         sails.log.verbose('files to send upstream are:');
@@ -636,7 +641,7 @@ export module Controllers {
 
         } catch (error) {
           return self.sendResp(req, res, {
-            errors: [error],
+            errors: [self.asError(error)],
             displayErrors: [{ detail: defaultErrorMessage }]
           });
         }
@@ -658,8 +663,8 @@ export module Controllers {
     * to RecordsService
     */
 
-    private getDocMetadata(doc) {
-      var metadata = {};
+    private getDocMetadata(doc: { [key: string]: unknown }) {
+      const metadata: { [key: string]: unknown } = {};
       for (var key in doc) {
         if (key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
           metadata[key] = doc[key];
@@ -671,12 +676,12 @@ export module Controllers {
       return metadata;
     }
 
-    protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined) {
+    protected async getRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: any, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, fieldNames: any = undefined, filterString: any = undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
       }
-      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+      if (packageType != null && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
       if (start == null) {
@@ -703,7 +708,7 @@ export module Controllers {
 
       for (var i = 0; i < docs.length; i++) {
         var doc = docs[i];
-        var item = {};
+        const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
         item["title"] = doc["metadata"]["title"];
         item["metadata"] = doc["metadata"];
@@ -717,12 +722,12 @@ export module Controllers {
 
     }
 
-    protected async getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined) {
+    protected async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: any, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, fieldNames: any = undefined, filterString: any = undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
       }
-      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+      if (packageType != null && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
       if (start == null) {
@@ -749,7 +754,7 @@ export module Controllers {
 
       for (var i = 0; i < docs.length; i++) {
         var doc = docs[i];
-        var item = {};
+        const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
         item["title"] = doc["deletedRecordMetadata"]["metadata"]["title"];
         item["deletedRecord"] = doc["deletedRecordMetadata"];
@@ -763,7 +768,7 @@ export module Controllers {
 
     }
 
-    public listRecords(req, res) {
+    public listRecords(req: Sails.Req, res: Sails.Res) {
       //sails.log.debug('api-list-records');
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
@@ -802,18 +807,18 @@ export module Controllers {
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
         // sails.log.debug(`${rows} ${packageType} ${sort}`);
-        this
+        return this
           .getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)
           .then(response => {
             this.sendResp(req, res, { data: response });
           })
           .catch(error => {
-            this.sendResp(req, res, { errors: [error], displayErrors: [{ detail: error['error'] }] });
+            this.sendResp(req, res, { errors: [this.asError(error)], displayErrors: [{ detail: error['error'] }] });
           });
       }
     }
 
-    public async restoreRecord(req, res) {
+    public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       var user = req.user;
       if (_.isEmpty(oid)) {
@@ -836,7 +841,7 @@ export module Controllers {
       }
     }
 
-    public async deleteRecord(req, res) {
+    public async deleteRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user;
@@ -871,7 +876,7 @@ export module Controllers {
       }
     }
 
-    public async destroyDeletedRecord(req, res) {
+    public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const user = req.user;
       if (_.isEmpty(oid)) {
@@ -890,7 +895,7 @@ export module Controllers {
       }
     }
 
-    public async transitionWorkflow(req, res) {
+    public async transitionWorkflow(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const targetStepName = req.param('targetStep');
       try {
@@ -918,13 +923,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to transition workflow to ${targetStepName} for oid ${oid}.` }]
         });
       }
     }
 
-    public async listDatastreams(req, res) {
+    public async listDatastreams(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -941,13 +946,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to list attachments for ${oid}, pleas.` }]
         });
       }
     }
 
-    public async addRoleEdit(req, res) {
+    public async addRoleEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -961,7 +966,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding an editor role.' }]
         });
       }
@@ -977,13 +982,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: recordResult["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding an editor role.' }]
         });
       }
     }
 
-    public async addRoleView(req, res) {
+    public async addRoleView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -997,7 +1002,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for adding a viewer role.' }]
         });
       }
@@ -1014,13 +1019,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: resultRecord["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed updating record meta for adding a viewer role.' }]
         });
       }
     }
 
-    public async removeRoleEdit(req, res) {
+    public async removeRoleEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -1034,7 +1039,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing an editor role.' }]
         });
       }
@@ -1051,13 +1056,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: resultRecord["authorization"] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed updating record meta for removing an editor role.' }]
         });
       }
     }
 
-    public async removeRoleView(req, res) {
+    public async removeRoleView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
@@ -1071,7 +1076,7 @@ export module Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing a viewer role.' }]
         });
       }
@@ -1088,13 +1093,13 @@ export module Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
-          errors: [err],
+          errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing a viewer role.' }]
         });
       }
     }
 
-    public async harvest(req, res) {
+    public async harvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       let updateModes = ["merge", "override", "create"];
 
@@ -1121,7 +1126,7 @@ export module Controllers {
         for (let record of records) {
           let harvestId = record["harvestId"]
           if (_.isEmpty(harvestId)) {
-            recordResponses.push(new APIHarvestResponse(harvestId, null, false, "HarvestId was not specified"));
+            recordResponses.push(new APIHarvestResponse(harvestId, '', false, "HarvestId was not specified"));
           } else {
             let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
             if (existingRecord.length == 0 || updateMode == "create") {
@@ -1154,7 +1159,7 @@ export module Controllers {
       return true;
     }
 
-    public async legacyHarvest(req, res) {
+    public async legacyHarvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
 
       var recordType = req.param('recordType');
@@ -1175,7 +1180,7 @@ export module Controllers {
         for (let record of records) {
           let harvestId = record['harvest_id'];
           if (_.isEmpty(harvestId)) {
-            recordResponses.push(new APIHarvestResponse(harvestId, null, false, 'HarvestId was not specified'));
+            recordResponses.push(new APIHarvestResponse(harvestId, '', false, 'HarvestId was not specified'));
           } else {
             let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
             if (existingRecord.length == 0) {
@@ -1222,10 +1227,11 @@ export module Controllers {
         try {
           if (shouldMerge) {
             // behavior modified from replacing arrays to appending to arrays:
-            record["metadata"] = _.mergeWith(record.metadata, body, (objValue, srcValue) => {
+            record["metadata"] = _.mergeWith(record.metadata, body, (objValue: unknown, srcValue: unknown) => {
               if (_.isArray(objValue)) {
-                return objValue.concat(srcValue);
+                return (objValue as unknown[]).concat(srcValue as unknown[]);
               }
+              return undefined;
             });
           } else {
             record["metadata"] = body;
@@ -1233,7 +1239,7 @@ export module Controllers {
           let sourceMetadata = body["sourceMetadata"];
           if (!_.isEmpty(sourceMetadata)) {
             //Force this to be stored as a string
-            record['metaMetadata']["sourceMetadata"] = "" + sourceMetadata
+            (record['metaMetadata'] as any)["sourceMetadata"] = "" + sourceMetadata
           }
           let result = await this.RecordsService.updateMeta(brand, oid, record, user);
 
@@ -1283,7 +1289,7 @@ export module Controllers {
 
       var metadata = body['metadata'];
       var workflowStage = body['workflowStage'];
-      var request = {};
+      const request: any = {};
       if (updateMode != 'create') {
         // Only set harvestId if not in create mode
         request['harvestId'] = harvestId;
@@ -1307,19 +1313,19 @@ export module Controllers {
         if (response.isSuccessful()) {
           return new APIHarvestResponse(harvestId, response.oid, true, `Record created successfully`);
         } else {
-          const result = new APIHarvestResponse(harvestId, null, false, `Record creation failed`);
+          const result = new APIHarvestResponse(harvestId, '', false, `Record creation failed`);
           sails.log.error(result);
           return result
         }
       } catch (error) {
-        const result = new APIHarvestResponse(harvestId, null, false, error.toString());
+        const result = new APIHarvestResponse(harvestId, '', false, String(error));
         sails.log.error(error, result);
         return result;
       }
     }
 
 
-    public listDeletedRecords(req, res) {
+    public listDeletedRecords(req: Sails.Req, res: Sails.Res) {
       //sails.log.debug('api-list-records');
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
@@ -1358,16 +1364,16 @@ export module Controllers {
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
         // sails.log.debug(`${rows} ${packageType} ${sort}`);
-        this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)
+        return this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)
           .then(response => {
             this.sendResp(req, res, { data: response });
           }).catch(error => {
-            return this.sendResp(req, res, { errors: [error], displayErrors: [{ detail: error['error'] }] });
+            return this.sendResp(req, res, { errors: [this.asError(error)], displayErrors: [{ detail: error['error'] }] });
           });
       }
     }
 
-    private reachedMaxRequestRows(req, res) {
+    private reachedMaxRequestRows(req: Sails.Req, res: Sails.Res) {
       const descr = "You have reached the maximum of request available; Max rows per request " + sails.config.api.max_requests;
       return this.sendResp(req, res, {
         status: 400,

@@ -23,11 +23,10 @@ import { SearchService } from '../SearchService';
 import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
-import { Sails } from 'sails';
 import axios, { AxiosResponse } from 'axios';
 
-declare var sails: Sails;
-declare var _;
+declare var sails: any;
+declare var _: any;
 
 export module Services {
   /**
@@ -54,8 +53,8 @@ export module Services {
     public bootstrap() {
       return _.isEmpty(sails.config.vocab.bootStrapVocabs) ?
         of(null)
-        : from(sails.config.vocab.bootStrapVocabs).pipe(
-            flatMap(vocabId => {
+        : from(sails.config.vocab.bootStrapVocabs as string[]).pipe(
+            flatMap((vocabId: string) => {
               return this.getVocab(vocabId);
             }),
             last()
@@ -132,7 +131,7 @@ export module Services {
       }
     }
 
-    public async findInMint(sourceType, queryString): Promise<any> {
+    public async findInMint(sourceType: string, queryString: string): Promise<any> {
       queryString = _.trim(queryString);
       let searchString = '';
       if (!_.isEmpty(queryString)) {
@@ -164,7 +163,7 @@ export module Services {
         }
       } else if (queryConfig.querySource == 'solr') {
         let solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json',user);
-        let solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, null, solrQuery);
+        let solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, '', solrQuery);
         if(queryConfig.resultObjectMapping) {
           return this.getResultObjectMappings(solrResults,queryConfig);
         } else {
@@ -174,7 +173,7 @@ export module Services {
     }
 
     buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user:any):any {
-      let paramMap = {}
+      const paramMap: Record<string, unknown> = {}
       if (queryConfig.queryField.type == 'text') {
         paramMap[queryConfig.queryField.property] = searchString;
       }
@@ -186,7 +185,7 @@ export module Services {
       return paramMap;
     }
 
-    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json',user):string {
+    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json', user: any):string {
       let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
@@ -231,7 +230,7 @@ export module Services {
           let defaultMetadata = {};
           if(!_.isEmpty(resultObjectMapping)) {
             let resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value, key) {
+            _.forOwn(resultObjectMapping, function(value: any, key: string) {
               _.set(resultMetadata,key,that.runTemplate(value,variables));
             });
             defaultMetadata = resultMetadata;
@@ -258,7 +257,7 @@ export module Services {
       return _.get(variables, templateOrPath);
     }
 
-    public async findInExternalService(providerName, params): Promise<any> {
+    public async findInExternalService(providerName: string, params: any): Promise<any> {
       const method = sails.config.vocab.external[providerName].method;
       let url = sails.config.vocab.external[providerName].url;
 
@@ -292,9 +291,9 @@ export module Services {
       }
     }
 
-    private getTemplateStringFunction(template) {
+    private getTemplateStringFunction(template: string) {
       var sanitized = template
-        .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function (_, match) {
+        .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function (_: string, match: string) {
           return `\$\{map.${match.trim()}\}`;
         })
         // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
@@ -304,7 +303,7 @@ export module Services {
     }
 
 
-    public getVocab = (vocabId): Observable<any> => {
+    public getVocab = (vocabId: string): Observable<any> => {
       // Check cache
       return from(CacheService.get(vocabId)).pipe(
         flatMap(data => {
@@ -316,12 +315,12 @@ export module Services {
             return this.getNonAndsVocab(vocabId);
           }
           const url = `${sails.config.vocab.rootUrl}${vocabId}/${sails.config.vocab.conceptUri}`;
-          let items = null; // a flat array containing all the entries
-          const rawItems = [];
+          let items: Array<{ uri: string; notation: string; label: string }> | null = null; // a flat array containing all the entries
+          const rawItems: any[] = [];
           return this.getConcepts(url, rawItems).pipe(
             flatMap(allRawItems => {
               // we only are interested in notation, label and the uri
-              items = _.map(allRawItems, rawItem => {
+              items = _.map(allRawItems, (rawItem: any) => {
                 return { uri: rawItem._about, notation: rawItem.notation, label: rawItem.prefLabel._value };
               });
               CacheService.set(vocabId, items);
@@ -333,10 +332,10 @@ export module Services {
     }
 
     // have to do this since ANDS endpoint ignores _pageSize
-    protected getConcepts(url, rawItems) {
+    protected getConcepts(url: string, rawItems: any[]): Observable<any[]> {
       console.log(`Getting concepts....${url}`);
       return from(axios.get(url)).pipe(
-        flatMap((resp) => {
+        flatMap((resp): Observable<any[]> => {
           let response: any = resp.data;
           rawItems = rawItems.concat(response.result.items);
           if (response.result && response.result.next) {
@@ -347,7 +346,7 @@ export module Services {
       );
     }
 
-    protected getNonAndsVocab(vocabId): Observable<AxiosResponse<any>> {
+    protected getNonAndsVocab(vocabId: string): Observable<AxiosResponse<any>> {
       const url = sails.config.vocab.nonAnds[vocabId].url;
       return from(axios.get(url)).pipe(flatMap(response => {
         CacheService.set(vocabId, response.data);
@@ -355,12 +354,13 @@ export module Services {
       }));
     }
 
-    loadCollection(collectionId, progressId = null, force = false) {
+    loadCollection(collectionId: string, progressId: string | null = null, force = false) {
+      const progressKey = progressId ?? '';
       const getMethod = sails.config.vocab.collection[collectionId].getMethod;
       const bufferCount = sails.config.vocab.collection[collectionId].processingBuffer;
       const processWindow = sails.config.vocab.collection[collectionId].processingTime;
-      let collectionData = null;
-      return this[getMethod](collectionId).pipe(flatMap(data => {
+      let collectionData: any[] | null = null;
+      return (this as any)[getMethod](collectionId).pipe(flatMap((data: any) => {
         if (_.isEmpty(data) || force) {
           // return a receipt and then start the process of loading...
           const url = sails.config.vocab.collection[collectionId].url;
@@ -374,25 +374,25 @@ export module Services {
               const itemsToSave = _.chunk(response, bufferCount);
               collectionData = itemsToSave;
               // sails.log.verbose(collectionData);
-              const updateObj = { currentIdx: 0, targetIdx: collectionData.length };
-              return AsynchsService.update({ id: progressId }, updateObj);
+              const updateObj = { currentIdx: 0, targetIdx: (collectionData || []).length };
+              return AsynchsService.update({ id: progressKey }, updateObj);
             }),
             flatMap(updateResp => {
               sails.log.verbose(`Updated asynch progress...`);
-              return from(collectionData);
+              return from(collectionData || []);
             }),
-            concatMap((buffer, i) => {
+            concatMap((buffer: any, i: number) => {
               sails.log.verbose(`Processing chunk: ${i}`);
               return of(buffer).pipe(
                   delay(i * processWindow),
                   flatMap(() => this.saveCollectionChunk(methodName, buffer, i).pipe(
                     flatMap(saveResp => {
                       sails.log.verbose(`Updating chunk progress...${i}`);
-                      if (i === collectionData.length - 1) {
+                      if (i === (collectionData || []).length - 1) {
                         sails.log.verbose(`Asynch completed.`);
-                        return AsynchsService.finish(progressId);
+                        return AsynchsService.finish(progressKey);
                       } else {
-                        return AsynchsService.update({ id: progressId }, { currentIdx: i + 1, status: 'processing' });
+                        return AsynchsService.update({ id: progressKey }, { currentIdx: i + 1, status: 'processing' });
                       }
                     })
                   ))
@@ -406,15 +406,15 @@ export module Services {
       }));
     }
 
-    protected saveCollectionChunk(methodName, buffer, i) {
-      return this[methodName](buffer);
+    protected saveCollectionChunk(methodName: string, buffer: any, i: number) {
+      return (this as any)[methodName](buffer);
     }
 
-    findCollection(collectionId, searchString) {
-      return this[sails.config.vocab.collection[collectionId].searchMethod](searchString);
+    findCollection(collectionId: string, searchString: string) {
+      return (this as any)[sails.config.vocab.collection[collectionId].searchMethod](searchString);
     }
 
-    public rvaGetResourceDetails(uri, vocab): Observable<AxiosResponse<any>> {
+    public rvaGetResourceDetails(uri: string, vocab: string): Observable<AxiosResponse<any>> {
       const url = sails.config.vocab.rootUrl + `${vocab}/resource.json?uri=${uri}`;
       return from(axios.get(url)).pipe(flatMap(response => {
         CacheService.set(vocab, response.data);
@@ -422,7 +422,7 @@ export module Services {
       }));
     }
 
-    protected getMintOptions(url, method, contentType = 'application/json; charset=utf-8') {
+    protected getMintOptions(url: string, method: string, contentType = 'application/json; charset=utf-8') {
 
       const opts = {
         method: method,

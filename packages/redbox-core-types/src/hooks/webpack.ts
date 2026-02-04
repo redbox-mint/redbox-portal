@@ -64,7 +64,10 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
 
             // Enable minimization of CSS when explicitly told so
             if (process.env.WEBPACK_CSS_MINI === 'true') {
-                sailsInstance.config.webpack.config[0].optimization.minimize = true;
+                if (sailsInstance.config.webpack.config?.[0]) {
+                    sailsInstance.config.webpack.config[0].optimization = sailsInstance.config.webpack.config[0].optimization || {};
+                    sailsInstance.config.webpack.config[0].optimization.minimize = true;
+                }
                 sailsInstance.log.info(`Webpack hook is configured for CSS minimization.`);
             }
 

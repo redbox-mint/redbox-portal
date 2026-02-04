@@ -24,14 +24,13 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { momentShim as moment } from '../shims/momentShim';
-import { Sails, Model } from "sails";
 import numeral from 'numeral';
 
-declare var sails: Sails;
-declare var RecordType: Model;
-declare var _this;
-declare var _;
-declare var User;
+declare var sails: any;
+declare var RecordType: any;
+declare var _this: any;
+declare var _: any;
+declare var User: any;
 
 export module Services {
   /**
@@ -53,10 +52,10 @@ export module Services {
      * @param  options
      * @return
      */
-    public transitionWorkflow(oid, record, options) {
+    public transitionWorkflow(oid: string, record: any, options: any) {
       const triggerCondition = _.get(options, "triggerCondition", "");
 
-      var variables = {};
+      const variables: Record<string, unknown> = {};
       variables['imports'] = record;
       var compiled = _.template(triggerCondition, variables);
       const compileResult = compiled();
@@ -88,12 +87,12 @@ export module Services {
      *   "hooks" - array, same structure as that of hook option's "pre" and "post" fields
      * @return
      */
-    public runHooksSync(oid, record, options, user) {
+    public runHooksSync(oid: string, record: any, options: any, user: any) {
       sails.log.debug(`runHooksSync, starting...`);
       sails.log.debug(JSON.stringify(options));
       const hookFnArray = _.get(options, 'hooks');
-      const hookFnDefArray = [];
-      _.each(hookFnArray, (hookFnDef) => {
+      const hookFnDefArray: Array<{ hookFn: any; hookOpt: any }> = [];
+      _.each(hookFnArray, (hookFnDef: any) => {
         const hookFnStr = _.get(hookFnDef, "function", null);
         if (!_.isEmpty(hookFnStr) && _.isString(hookFnStr)) {
           const hookFn = eval(hookFnStr);
@@ -113,7 +112,7 @@ export module Services {
       if (!_.isEmpty(hookFnDefArray)) {
         sails.log.debug(`runHooksSync, running..`);
         return from(hookFnDefArray)
-          .pipe(concatMap(hookDef => {
+          .pipe(concatMap((hookDef: any) => {
             return hookDef.hookFn(oid, record, hookDef.hookOpt, user);
           })
             , last());
@@ -123,7 +122,7 @@ export module Services {
       }
     }
 
-    public async applyFieldLevelPermissions(oid, record, options, user) {
+    public async applyFieldLevelPermissions(oid: string, record: any, options: any, user: any) {
       // mandatory
       let fieldDBNames = _.get(options, 'fieldDBNames', []);
       // Allow a certain user to edit
@@ -147,7 +146,7 @@ export module Services {
       return record;
     }
 
-    private userHasRoleEditPermission(user, roleEditPermission) {
+    private userHasRoleEditPermission(user: any, roleEditPermission: string) {
       for (let role of user.roles) {
         if (role.name === roleEditPermission) {
           return true;
@@ -156,7 +155,7 @@ export module Services {
       return false;
     }
 
-    public async validateFieldUsingRegex(oid, record, options) {
+    public async validateFieldUsingRegex(oid: string, record: any, options: any) {
       // mandatory
       let fieldDBName = _.get(options, 'fieldDBName');
       let errorLanguageCode = _.get(options, 'errorLanguageCode');
@@ -177,7 +176,7 @@ export module Services {
       let allowNulls = _.get(options, 'allowNulls', true)?.toString() !== 'false';
 
       // re-usable functions
-      const textRegex = function (value) {
+      const textRegex = function (value: string) {
         let flags = '';
         if (!caseSensitive) {
           flags += 'i';
@@ -197,13 +196,13 @@ export module Services {
           displayErrors: [{ detail: displayErrorDetail, meta: displayErrorMeta }],
         });
       }
-      const hasValue = function (data) {
+      const hasValue = function (data: any) {
         return data !== '' &&
           data !== null &&
           data !== undefined &&
           (data?.length !== undefined && data.length > 0);
       }
-      const evaluate = function (element, fieldName) {
+      const evaluate = function (element: any, fieldName: string) {
         let value = _.get(element, fieldName);
 
         if (trimLeadingAndTrailingSpacesBeforeValidation) {
@@ -283,7 +282,7 @@ export module Services {
      * @param options
      * @returns
      */
-    public async validateFieldsUsingTemplate(oid, record, options) {
+    public async validateFieldsUsingTemplate(oid: string, record: any, options: any) {
       sails.log.verbose('validateFieldsUsingTemplate - enter');
       if (this.metTriggerCondition(oid, record, options) === "true") {
 
@@ -295,7 +294,7 @@ export module Services {
           return baseErrorMessage;
         }
 
-        const addError = function (errorFieldList, name, label, errorLabel) {
+        const addError = function (errorFieldList: any[], name: string, label: string, errorLabel: string) {
           let errorField: any = {};
           _.set(errorField, 'name', name);
           _.set(errorField, 'label', getErrorMessage(label));
@@ -346,14 +345,14 @@ export module Services {
       return record;
     }
 
-    public async validateFieldMapUsingRegex(oid, record, options) {
+    public async validateFieldMapUsingRegex(oid: string, record: any, options: any) {
       sails.log.verbose('validateFieldMapUsingRegex - enter');
       if (this.metTriggerCondition(oid, record, options) === "true") {
 
         sails.log.verbose('validateFieldMapUsingRegex - metTriggerCondition');
 
         // re-usable functions
-        const textRegex = function (value, regexPattern, caseSensitive) {
+        const textRegex = function (value: string, regexPattern: string, caseSensitive: boolean) {
           if (regexPattern == '') {
             return true;
           } else {
@@ -370,13 +369,13 @@ export module Services {
           sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
           return baseErrorMessage;
         }
-        const hasValue = function (data) {
+        const hasValue = function (data: any) {
           return data !== '' &&
             data !== null &&
             data !== undefined &&
             (data?.length !== undefined && data.length > 0);
         }
-        const evaluate = function (element, fieldName, trim, allowNulls, regexPattern, caseSensitive) {
+        const evaluate = function (element: any, fieldName: string, trim: boolean, allowNulls: boolean, regexPattern: string, caseSensitive: boolean) {
           let value = '';
           if (_.isString(element) && fieldName == '') {
             value = element;
@@ -406,7 +405,7 @@ export module Services {
 
         let fieldObjectList = _.get(options, 'fieldObjectList', []);
         let altErrorMessage = _.get(options, 'altErrorMessage', []);
-        let errorMap = {
+        let errorMap: { altErrorMessage: any[]; errorFieldList: any[] } = {
           altErrorMessage: altErrorMessage,
           errorFieldList: []
         };
@@ -485,7 +484,7 @@ export module Services {
       return record;
     }
 
-    public async runTemplatesOnRelatedRecord(relatedOid, relatedRecord, options, user) {
+    public async runTemplatesOnRelatedRecord(relatedOid: string, relatedRecord: any, options: any, user: any) {
 
       if (this.metTriggerCondition(relatedOid, relatedRecord, options) === "true") {
 
@@ -499,8 +498,8 @@ export module Services {
         let runPostSaveTriggers = _.get(options, 'runPostSaveTriggers', false);
         let parseObject = _.get(options, 'parseObject', false);
         let oidStringOrArray = _.get(relatedRecord, pathToRelatedOid, '');
-        let record = null;
-        let oidList = [];
+        let record: any = null;
+        let oidList: string[] = [];
 
         if (!_.isArray(oidStringOrArray) && _.isString(oidStringOrArray)) {
           oidList.push(oidStringOrArray);
@@ -529,7 +528,7 @@ export module Services {
               record = await RecordsService.getMeta(oid);
               if (_.isObject(record)) {
                 sails.log.verbose(`runTemplatesOnRelatedRecord related record found and will run templates...`);
-                _.each(options.templates, (templateConfig) => {
+                _.each(options.templates, (templateConfig: any) => {
                   tmplConfig = templateConfig;
                   const imports = _.extend({
 

@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-declare var module;
-declare var sails;
-declare var _;
+declare var module: any;
+declare var sails: any;
+declare var _: any;
 import { Observable } from 'rxjs';
 import { default as util } from 'util';
 import { default as stream } from 'stream';
@@ -51,11 +51,11 @@ export module Controllers {
      * **************************************** Add custom methods **************************************
      * *************************************************************************************************
      */
-    public override index(req, res) {
+    public override index(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'export/index');
     }
 
-    public async downloadRecs(req, res) {
+    public async downloadRecs(req: Sails.Req, res: Sails.Res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const format = req.param('format');
       const recType = req.param('recType');
@@ -70,8 +70,9 @@ export module Controllers {
           RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
           res
         );
+        return res;
       } else {
-        return res.send(500, 'Unsupported export format');
+        return res.status(500).send('Unsupported export format');
       }
     }
     /**

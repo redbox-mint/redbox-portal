@@ -19,7 +19,7 @@ export module Controllers {
   export class Branding extends controllers.Core.Controller {
     protected override _exportedMethods: any = [ 'draft','preview','publish','rollback','logo','history' ];
 
-    async draft(req, res) {
+    async draft(req: Sails.Req, res: Sails.Res) {
       const branding = req.params['branding'];
       const actor = (req as any).user;
       try {
@@ -32,7 +32,7 @@ export module Controllers {
       }
     }
 
-    async preview(req, res) {
+    async preview(req: Sails.Req, res: Sails.Res) {
       const branding = BrandingService.getBrandFromReq(req);
       const portal = req.params['portal'];
       try {
@@ -62,7 +62,7 @@ export module Controllers {
         return res.status(status).json(body);
       }
     }
-    async publish(req, res) {
+    async publish(req: Sails.Req, res: Sails.Res) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       const actor = (req as any).user;
@@ -77,7 +77,7 @@ export module Controllers {
         return res.status(status).json(body);
       }
     }
-    async rollback(req, res) {
+    async rollback(req: Sails.Req, res: Sails.Res) {
       const versionId = req.params['versionId'];
       const actor = (req as any).user;
       try {
@@ -88,7 +88,7 @@ export module Controllers {
         return res.status(status).json(body);
       }
     }
-    async logo(req, res) {
+    async logo(req: Sails.Req, res: Sails.Res) {
       const branding = req.params['branding'];
       const portal = req.params['portal'];
       try {
@@ -96,7 +96,7 @@ export module Controllers {
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<any[]>((resolve, reject) => {
-          try { (req as any).file('logo').upload((err, uploaded) => err ? reject(err) : resolve(uploaded)); } catch(e) { resolve([]); }
+          try { (req as any).file('logo').upload((err: unknown, uploaded: any[]) => err ? reject(err) : resolve(uploaded)); } catch(e) { resolve([]); }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
@@ -109,7 +109,7 @@ export module Controllers {
         return res.status(status).json(body);
       }
     }
-    async history(req, res){
+    async history(req: Sails.Req, res: Sails.Res){
       const branding = req.params['branding'];
       
       try {

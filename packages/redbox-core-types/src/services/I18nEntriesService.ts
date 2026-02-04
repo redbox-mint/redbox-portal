@@ -20,14 +20,13 @@
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
-import { Sails, Model } from 'sails';
 
-declare var sails: Sails;
-declare var _;
+declare var sails: any;
+declare var _: any;
 
 // Waterline globals
-declare var I18nTranslation: Model;
-declare var I18nBundle: Model;
+declare var I18nTranslation: any;
+declare var I18nBundle: any;
 declare let BrandingService: any;
 
 export module Services {
@@ -420,7 +419,7 @@ export module Services {
 
       // Track existing keys to detect removals
       const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      const existingKeysSet = new Set(existingEntries.map(e => e.key));
+      const existingKeysSet = new Set(existingEntries.map((e: any) => e.key));
 
       for (const key of keys) {
         let val = flat[key];
@@ -512,4 +511,3 @@ export module Services {
 declare global {
   let I18nEntriesService: Services.I18nEntries;
 }
-

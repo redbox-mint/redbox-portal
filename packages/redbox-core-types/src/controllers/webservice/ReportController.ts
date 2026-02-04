@@ -29,7 +29,7 @@ export module Controllers {
     }
 
 
-    public async executeNamedQuery(req, res) {
+    public async executeNamedQuery(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         let queryName = req.param('queryName');
@@ -64,9 +64,9 @@ export module Controllers {
         let response = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         sails.log.verbose(`NamedQueryService response: ${JSON.stringify(response)}`);
         return this.apiRespond(req, res, response, 200)
-      } catch (error) {
+      } catch (error: unknown) {
         sails.log.error(`executeNamedQuery error: ${error}`);
-        const errorResponse = new APIErrorResponse(error.message);
+        const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],

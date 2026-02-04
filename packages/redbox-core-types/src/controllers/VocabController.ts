@@ -64,25 +64,25 @@ export module Controllers {
     **************************************************************************************************
     */
 
-    public get(req, res) {
+    public get(req: Sails.Req, res: Sails.Res) {
       const vocabId = req.param("vocabId");
       let that = this;
-      VocabService.getVocab(vocabId).subscribe(data => {
+      VocabService.getVocab(vocabId).subscribe((data: unknown) => {
         that.sendResp(req, res, { data, headers: that.getNoCacheHeaders() });
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error(`Failed to get vocab: ${vocabId}`);
         sails.log.error(error);
         that.sendResp(req, res, { data: [], headers: that.getNoCacheHeaders() });
       });
     }
 
-    public getCollection(req, res) {
+    public getCollection(req: Sails.Req, res: Sails.Res) {
       const collectionId = req.param('collectionId');
       const searchString = req.query.search ? req.query.search.toLowerCase() : '';
       let that = this;
-      VocabService.findCollection(collectionId, searchString).subscribe(collections => {
+      VocabService.findCollection(collectionId, searchString).subscribe((collections: unknown) => {
         that.sendResp(req, res, { data: collections, headers: that.getNoCacheHeaders() });
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error(`Failed to find collection: ${collectionId}, using: '${searchString}'`);
         sails.log.error(error);
         // return empty data...
@@ -90,12 +90,12 @@ export module Controllers {
       });
     }
 
-    public loadCollection(req, res) {
+    public loadCollection(req: Sails.Req, res: Sails.Res) {
       const collectionId = req.param('collectionId');
       let that = this;
-      VocabService.loadCollection(collectionId).subscribe(receipt => {
+      VocabService.loadCollection(collectionId).subscribe((receipt: unknown) => {
         that.sendResp(req, res, { data: { status: 'queued', message: 'All good.', receipt: receipt }, headers: that.getNoCacheHeaders() });
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error(`Error calling loadCollection:`)
         sails.log.error(error)
         that.sendResp(req, res, { data: "An error occurred", headers: that.getNoCacheHeaders() });
@@ -103,7 +103,7 @@ export module Controllers {
       });
     }
 
-    public async getMint(req, res) {
+    public async getMint(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('mintSourceType');
       const searchString = req.query.search;
       const unflatten = req.param('unflatten');
@@ -131,21 +131,21 @@ export module Controllers {
       }
     }
 
-    public async getRecords(req, res) {
+    public async getRecords(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('queryId');
       const searchString = req.param('search');
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       try {
         let response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'), req.user);
         this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
-      } catch(error) {
+      } catch (error: unknown) {
         sails.log.verbose("Error getting internal records:");
         sails.log.verbose(error);
         this.sendResp(req, res, { data: "An error occurred getting internal records", headers: this.getNoCacheHeaders() });
       }
     }
 
-    public async searchExternalService(req, res) {
+    public async searchExternalService(req: Sails.Req, res: Sails.Res) {
       const providerName = req.param('provider');
       const params = req.body;
       let that = this;
@@ -160,16 +160,16 @@ export module Controllers {
       }
     }
 
-    public searchPeople(req, res) {
+    public searchPeople(req: Sails.Req, res: Sails.Res) {
       const source = req.param('source');
       const page = req.param('page');
       const givenNames = req.param('givenNames');
       const surname = req.param('surname');
       let that = this;
-      sails.config.peopleSearch[source](givenNames, surname, page).subscribe(response => {
+      sails.config.peopleSearch[source](givenNames, surname, page).subscribe((response: unknown) => {
         // only return the response...
         that.sendResp(req, res, { data: response, headers: that.getNoCacheHeaders() });
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error(`Error calling searchPeople:`)
         sails.log.error(error)
         that.sendResp(req, res, { data: "An error occurred", headers: that.getNoCacheHeaders() });
@@ -177,14 +177,14 @@ export module Controllers {
 
     }
 
-    public rvaGetResourceDetails(req, res) {
+    public rvaGetResourceDetails(req: Sails.Req, res: Sails.Res) {
       const uri = req.param('uri');
       const vocab = req.param('vocab');
       let that = this;
-      VocabService.rvaGetResourceDetails(uri, vocab).subscribe(response => {
+      VocabService.rvaGetResourceDetails(uri, vocab).subscribe((response: unknown) => {
         // only return the response...
         that.sendResp(req, res, { data: response, headers: that.getNoCacheHeaders() });
-      }, error => {
+      }, (error: unknown) => {
         that.sendResp(req, res, { data: error, headers: that.getNoCacheHeaders() });
       });
 

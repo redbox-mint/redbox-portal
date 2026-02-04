@@ -21,12 +21,10 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
-import {Sails, Model} from "sails";
 
-declare var sails: Sails;
-declare var RecordType: Model;
-declare var _this;
-declare var _;
+declare var sails: any;
+declare var RecordType: any;
+declare var _: any;
 
 export module Services {
   /**
@@ -51,7 +49,7 @@ export module Services {
       let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id});
       if (sails.config.appmode.bootstrapAlways) {
         await RecordType.destroy({branding:defBrand.id});
-        recordTypes  = null;
+        recordTypes  = [];
       }
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
@@ -96,7 +94,7 @@ export module Services {
       }));
     }
 
-    public get(brand:BrandingModel, name:string, fields:string[]=null): Observable<RecordTypeModel> {
+    public get(brand:BrandingModel, name:string, fields: string[] | null = null): Observable<RecordTypeModel> {
       const criteria:any = {where: {branding: brand.id, name: name}};
       if (fields) {
         criteria.select = fields;
@@ -104,7 +102,7 @@ export module Services {
       return super.getObservable(RecordType.findOne(criteria));
     }
 
-    public getAll(brand:BrandingModel, fields:string[] = null): Observable<RecordTypeModel[]> {
+    public getAll(brand:BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
       const criteria:any = {where: {branding: brand.id}};
       if (fields) {
         criteria.select = fields;

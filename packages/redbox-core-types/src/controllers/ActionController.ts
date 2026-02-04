@@ -23,7 +23,7 @@ export module Controllers {
      **************************************** Add custom methods **************************************
      **************************************************************************************************
      */
-    public callService(req, res) {
+    public callService(req: Sails.Req, res: Sails.Res) {
       const actionName = req.param('action')
       const oid = req.param('oid');
       const config = sails.config.action[actionName];
@@ -33,7 +33,7 @@ export module Controllers {
       // For simpler operations, service functions can write directly to the response object
       const response = serviceFunction(req, res, options);
       if (!res.writableEnded) {
-        return response.subscribe( result => {
+        return response.subscribe((result: unknown) => {
           return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
         });
       }

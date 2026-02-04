@@ -45,15 +45,15 @@ export module Controllers {
      * **************************************************************************************************
      */
 
-    public rolesIndex(req, res) {
+    public rolesIndex(req: any, res: any) {
       return this.sendView(req, res, 'admin/roles');
     }
 
-    public usersIndex(req, res) {
+    public usersIndex(req: any, res: any) {
       return this.sendView(req, res, 'admin/users');
     }
 
-    public supportAgreementIndex(req, res) {
+    public supportAgreementIndex(req: any, res: any) {
       var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       var currentYear = new Date().getFullYear();
       var selectedYear = parseInt(req.query.year) || currentYear;
@@ -87,20 +87,20 @@ export module Controllers {
       });
     }
 
-    public getUsers(req, res) {
+    public getUsers(req: any, res: any) {
       var pageData: any = {};
       const brand = BrandingService.getBrand(req.session.branding);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
-      var users = UsersService.getUsersForBrand(brand).pipe(flatMap(users => {
-        _.map(users, (user) => {
-          if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
+      UsersService.getUsersForBrand(brand).pipe(flatMap((users: any[]) => {
+        _.map(users, (user: any) => {
+          if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser: string) => { return hideUser == user.name }))) {
             // not hidden, adding to view data...
             if (_.isEmpty(pageData.users)) {
               pageData.users = [];
             }
             // need to set a dummy token string, to indicate if this user has a token set, but actual token won't be returned
             user.token = _.isEmpty(user.token) ? null : "user-has-token-but-is-suppressed";
-            user.roles = brandId ? _.filter(user.roles, (role) => role.branding === brandId) : user.roles;
+            user.roles = brandId ? _.filter(user.roles, (role: any) => role.branding === brandId || role.branding?.id === brandId) : user.roles;
             //TODO: Look for config around what other secrets should be hidden from being returned to the client
             delete user.password;
             pageData.users.push(user);
@@ -113,13 +113,13 @@ export module Controllers {
         });
     }
 
-    public getBrandRoles(req, res) {
+    public getBrandRoles(req: any, res: any) {
       // basic roles page: view all users and their roles
       var pageData: any = {};
       var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
-        _.map(roles, (role) => {
-          if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole) => { return hideRole == role.name }))) {
+      RolesService.getRolesWithBrand(brand).pipe(flatMap((roles: any[]) => {
+        _.map(roles, (role: any) => {
+          if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole: string) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
             if (_.isEmpty(pageData.roles)) {
               pageData.roles = [];
@@ -134,13 +134,13 @@ export module Controllers {
         });
     }
 
-    public generateUserKey(req, res) {
+    public generateUserKey(req: any, res: any) {
       var userid = req.body.userid;
       if (userid) {
         var uuid = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        UsersService.setUserKey(userid, uuid).subscribe((user: any) => {
           this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
           this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -149,15 +149,16 @@ export module Controllers {
       else {
         return this.sendResp(req, res, { data: { status: false, message: "Please provide userid" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public revokeUserKey(req, res) {
+    public revokeUserKey(req: any, res: any) {
       var userid = req.body.userid;
       if (userid) {
         var uuid = '';
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        UsersService.setUserKey(userid, uuid).subscribe((user: any) => {
           this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to revoke UUID:");
           sails.log.error(error);
           this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -166,22 +167,25 @@ export module Controllers {
       else {
         return this.sendResp(req, res, { data: { status: false, message: "Please provide userid" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public addLocalUser(req, res) {
+    public addLocalUser(req: any, res: any) {
       var username = req.body.username;
       var details = req.body.details;
-      if (details.name) { var name = details.name };
-      if (details.password) { var password = details.password };
+      let name: string | undefined;
+      let password: string | undefined;
+      if (details.name) { name = details.name };
+      if (details.password) { password = details.password };
       if (username && name && password) {
-        UsersService.addLocalUser(username, name, details.email, password).subscribe(user => {
+        UsersService.addLocalUser(username, name, details.email, password).subscribe((user: any) => {
           if (details.roles) {
             var roles = details.roles;
             var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
+            UsersService.updateUserRoles(user.id, roleIds).subscribe((user: any) => {
               this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
-            }, error => {
+            }, (error: any) => {
               sails.log.error("Failed to update user roles:");
               sails.log.error(error);
               this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -189,7 +193,7 @@ export module Controllers {
           } else {
             this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
           }
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to create user:");
           sails.log.error(error);
           this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -197,21 +201,23 @@ export module Controllers {
       } else {
         this.sendResp(req, res, { data: { status: false, message: "Please provide minimum of username, name and password" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public updateUserDetails(req, res) {
+    public updateUserDetails(req: any, res: any) {
       var userid = req.body.userid;
       var details = req.body.details;
-      if (details.name) { var name = details.name };
+      let name: string | undefined;
+      if (details.name) { name = details.name };
       if (userid && name) {
-        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
+        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe((user: any) => {
           if (details.roles) {
             var roles = details.roles;
             var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
+            UsersService.updateUserRoles(userid, roleIds).subscribe((user: any) => {
               this.sendResp(req, res, { data: { status: true, message: "User updated successfully" }, headers: this.getNoCacheHeaders() });
-            }, error => {
+            }, (error: any) => {
               sails.log.error("Failed to update user roles:");
               sails.log.error(error);
               this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -219,7 +225,7 @@ export module Controllers {
           } else {
             this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
           }
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to update user details:");
           sails.log.error(error);
           this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -227,21 +233,22 @@ export module Controllers {
       } else {
         this.sendResp(req, res, { data: { status: false, message: "Please provide minimum of userid and name" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
     /**
     * Updates a user's roles. Will be accepting the userid and the array of role names. Used role names instead of ids to prevent cross-brand poisoning.
     */
-    public updateUserRoles(req, res) {
+    public updateUserRoles(req: any, res: any) {
       var newRoleNames = req.body.roles;
       var userid = req.body.userid;
       if (userid && newRoleNames) {
         // get the ids of the role names...
         var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         var roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
-        UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
+        UsersService.updateUserRoles(userid, roleIds).subscribe((user: any) => {
           this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
-        }, error => {
+        }, (error: any) => {
           sails.log.error("Failed to update user roles:");
           sails.log.error(error);
           this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
@@ -249,6 +256,7 @@ export module Controllers {
       } else {
         this.sendResp(req, res, { data: { status: false, message: "Please provide userid and/or roles names." }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
     /**

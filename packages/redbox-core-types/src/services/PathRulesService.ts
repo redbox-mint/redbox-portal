@@ -21,13 +21,24 @@ import { Observable, from, of } from 'rxjs';
 import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import {Sails, Model} from "sails";
 import { default as UrlPattern } from 'url-pattern';
 
-declare var sails: Sails;
-declare var PathRule: Model;
-declare var _this;
-declare var _;
+declare var sails: any;
+declare var PathRule: any;
+declare var _: any;
+
+type PathRuleModel = {
+  path: string;
+  role: { id: string };
+  branding: { id: string; name: string };
+  can_read?: boolean;
+  can_update?: boolean;
+};
+
+type PathRulePattern = {
+  pattern: UrlPattern;
+  rule: PathRuleModel;
+};
 
 export module Services {
 
@@ -46,10 +57,10 @@ export module Services {
       'canWrite'
     ]
     // compromising, will cache for speed...
-    protected pathRules;
-    protected rulePatterns;
+    protected pathRules: PathRuleModel[] = [];
+    protected rulePatterns: PathRulePattern[] = [];
 
-    public bootstrap = (defUser, defRoles) => {
+    public bootstrap = (_defUser: unknown, defRoles: any[]) => {
       sails.log.verbose("Bootstrapping path rules....");
       var defBrand:BrandingModel = BrandingService.getDefault();
       return this.loadRules()
@@ -57,20 +68,20 @@ export module Services {
           if (!rules || rules.length == 0) {
             sails.log.verbose("Rules, don't exist, seeding...");
             var seedRules = sails.config.auth.rules;
-            _.forEach(seedRules, (rule) => {
+            _.forEach(seedRules, (rule: any) => {
               var role = RolesService.getRoleWithName(defRoles, rule.role);
               rule.role = role.id;
               rule.branding = defBrand.id;
             });
             return from(seedRules)
-                           .pipe(flatMap(rule => {
+                           .pipe(flatMap((rule: any) => {
                              return super.getObservable(PathRule.create(rule));
                            })
                            ,last()
-                           ,flatMap(rule => {
+                           ,flatMap(() => {
                              return this.loadRules();
                            })
-                           ,flatMap(rules => {
+                           ,flatMap((rules: PathRuleModel[]) => {
                              return of(rules);
                            }));
           } else {
@@ -83,12 +94,12 @@ export module Services {
     /**
     * Loads and caches rules...
     */
-    public loadRules = () => {
+    public loadRules = (): Observable<PathRuleModel[]> => {
       return super.getObservable(PathRule.find({}).populate('role').populate('branding'))
-                  .pipe(flatMap(rules => {
+                  .pipe(flatMap((rules: PathRuleModel[]) => {
                     this.pathRules = rules;
                     this.rulePatterns = [];
-                    _.forEach(rules, (rule) => {
+                    _.forEach(rules, (rule: PathRuleModel) => {
                       this.rulePatterns.push({pattern: new UrlPattern(rule.path), rule: rule});
                     });
                     return of(this.pathRules);
@@ -98,8 +109,8 @@ export module Services {
     * Check path using cached rules...
     @return PathRule[]
     */
-    public getRulesFromPath = (path, brand) => {
-      var matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern) => {
+    public getRulesFromPath = (path: string, brand: BrandingModel): PathRuleModel[] | null => {
+      var matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
         var pattern = rulePattern.pattern;
         // matching by path and brand, meaning only brand-specific rules apply
         return pattern.match(path) && rulePattern.rule.branding.id  == brand.id;
@@ -111,10 +122,10 @@ export module Services {
       }
     }
 
-    public canRead = (rules, roles, brandName) => {
-      var matchRule = _.filter(rules, (rule) => {
+    public canRead = (rules: PathRuleModel[], roles: Array<{ id: string }>, brandName: string): boolean => {
+      var matchRule = _.filter(rules, (rule: PathRuleModel) => {
         // user must have this role, and at least can_read
-        var userRole = _.find(roles, (role) => {
+        var userRole = _.find(roles, (role: { id: string }) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -123,9 +134,9 @@ export module Services {
       return matchRule.length > 0;
     }
 
-    public canWrite = (rules, roles, brandName) => {
-      return _.filter(rules, (rule) => {
-        var userRole = _.find(roles, (role) => {
+    public canWrite = (rules: PathRuleModel[], roles: Array<{ id: string }>, brandName: string): boolean => {
+      return _.filter(rules, (rule: PathRuleModel) => {
+        var userRole = _.find(roles, (role: { id: string }) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -139,4 +150,3 @@ export module Services {
 declare global {
   let PathRulesService: Services.PathRules;
 }
-

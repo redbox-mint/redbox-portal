@@ -21,11 +21,11 @@ import { Observable, of, from, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, last, first } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import {Sails, Model} from "sails";
-
-declare var sails: Sails;
-declare var Role, BrandingConfig: Model;
-declare var _;
+ 
+declare var sails: any;
+declare var Role: any;
+declare var BrandingConfig: any;
+declare var _: any;
 
 
 export module Services {
@@ -53,23 +53,23 @@ export module Services {
       'createRoleWithBrand'
     ];
 
-    public getRoleWithName = (roles, roleName): any => {
-      return _.find(roles, (o) => { return o.name == roleName });
+    public getRoleWithName = (roles: any[], roleName: string): any => {
+      return _.find(roles, (o: any) => { return o.name == roleName });
     }
 
-    public getRole = (brand, roleName): any => {
+    public getRole = (brand: any, roleName: string): any => {
       return this.getRoleWithName(brand.roles, roleName);
     }
 
-    public getRoleByName = (brand, roleName): any => {
+    public getRoleByName = (brand: any, roleName: string): any => {
       return this.getRoleWithName(brand.roles, this.getConfigRole(roleName).name);
     }
 
-    public getAdmin = (brand): any => {
+    public getAdmin = (brand: any): any => {
       return this.getRole(brand, this.getConfigRole('Admin').name);
     }
 
-    public getAdminFromRoles = (roles): any => {
+    public getAdminFromRoles = (roles: any[]): any => {
       return this.getRoleWithName(roles, this.getConfigRole('Admin').name);
     }
 
@@ -78,48 +78,38 @@ export module Services {
       return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name);
     }
 
-    public getNestedRoles = (role, brandRoles) => {
-      var roles = [];
-      switch (role) {
-        case "Admin":
-          roles.push(this.getRoleWithName(brandRoles, 'Admin'));
-        case "Maintainer":
-          roles.push(this.getRoleWithName(brandRoles, 'Maintainer'));
-        case "Researcher":
-          roles.push(this.getRoleWithName(brandRoles, 'Researcher'));
-        case "Guest":
-          roles.push(this.getRoleWithName(brandRoles, 'Guest'));
-          break;
+    public getNestedRoles = (role: string, brandRoles: any[]) => {
+      const hierarchy = ["Admin", "Maintainer", "Researcher", "Guest"];
+      const roleIndex = hierarchy.indexOf(role);
+      if (roleIndex === -1) {
+        return [];
       }
-      return roles;
+      return hierarchy.slice(roleIndex).map((roleName: string) => this.getRoleWithName(brandRoles, roleName));
     }
 
     public getDefUnathenticatedRole = (brand: any): any => {
       return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').defaultRole).name);
     }
 
-    public getRolesWithBrand = (brand): Observable<any> => {
+    public getRolesWithBrand = (brand: any): Observable<any> => {
       return super.getObservable(Role.find({ branding: brand.id }).populate('users'));
     }
 
-    public getRoleIds = (fromRoles, roleNames) => {
+    public getRoleIds = (fromRoles: any[], roleNames: string[]) => {
       sails.log.verbose("Getting id of role names...");
-      return _.map(_.filter(fromRoles, (role) => { return _.includes(roleNames, role.name) }), 'id');
+      return _.map(_.filter(fromRoles, (role: any) => { return _.includes(roleNames, role.name) }), 'id');
     }
 
-    public async createRoleWithBrand(brand, roleName) {
+    public async createRoleWithBrand(brand: any, roleName: string) {
       let roleConfig =
       {
         name: roleName,
         branding: brand.id
       };
       sails.log.verbose('createRoleWithBrand - brand.id ' + brand.id);
-      let rolesResp: any = {};
+      const rolesResp: { roles: any[] } = { roles: [] };
       let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap(roles => {
-        _.map(roles, (role) => {
-          if (_.isEmpty(rolesResp.roles)) {
-            rolesResp.roles = [];
-          }
+        _.map(roles, (role: any) => {
           rolesResp.roles.push(role);
         });
         return of(rolesResp);
@@ -139,16 +129,16 @@ export module Services {
       }
     }
 
-    public bootstrap = (defBrand) => {
-      var adminRole = this.getAdmin(defBrand);
+    public bootstrap = (defBrand: any) => {
+      const adminRole = this.getAdmin(defBrand);
       if (adminRole == null) {
         sails.log.verbose("Creating default admin, and other roles...");
         return from(this.getConfigRoles())
-                         .pipe(flatMap(roleConfig => {
+                         .pipe(flatMap((roleConfig: any) => {
                            return super.getObservable(Role.create(roleConfig))
-                                       .pipe(flatMap(newRole => {
+                                       .pipe(flatMap((newRole: any) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
-                                         var brand:BrandingModel = sails.services.brandingservice.getDefault();
+                                         let brand:BrandingModel = sails.services.brandingservice.getDefault();
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
@@ -158,7 +148,7 @@ export module Services {
                                        }));
                          }),
                          last(),
-                         flatMap(brand => {
+                         flatMap((brand: any) => {
                            return sails.services.brandingservice.loadAvailableBrands();
                          }));
       } else {
@@ -167,16 +157,16 @@ export module Services {
       }
     }
 
-    protected getConfigRole = (roleName) => {
-      return _.find(sails.config.auth.roles, (o) => { return o.name == roleName });
+    protected getConfigRole = (roleName: string) => {
+      return _.find(sails.config.auth.roles, (o: any) => { return o.name == roleName });
     }
 
-    protected getConfigRoles = (roleProp = null, customObj = null) => {
-      var retVal = sails.config.auth.roles;
+    protected getConfigRoles = (roleProp: string | null = null, customObj: any = null) => {
+      let retVal: any[] = sails.config.auth.roles;
       if (roleProp) {
         retVal = []
-        _.map(sails.config.auth.roles, (o) => {
-          var newObj = {};
+        _.map(sails.config.auth.roles, (o: any) => {
+          const newObj: Record<string, unknown> = {};
           newObj[roleProp] = o;
           if (customObj) {
             newObj['custom'] = customObj;
@@ -193,4 +183,3 @@ export module Services {
 declare global {
   let RolesService: Services.Roles;
 }
-

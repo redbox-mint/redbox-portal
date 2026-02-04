@@ -30,17 +30,16 @@ import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
 import { Services as services } from '../CoreService';
 
-import {
-  Sails,
-  Model
-} from "sails";
 import * as crypto from 'crypto';
 
 
-declare var sails: Sails;
-declare var User, Role, UserAudit, Record: Model;
-declare const Buffer;
-declare var _;
+declare var sails: Sails.Application;
+declare var User: Sails.Model<any>;
+declare var Role: Sails.Model<any>;
+declare var UserAudit: Sails.Model<any>;
+declare var Record: Sails.Model<any>;
+declare const Buffer: typeof globalThis.Buffer;
+declare var _: any;
 
 export module Services {
   /**
@@ -84,19 +83,19 @@ export module Services {
       //
       sails.config.passport = require('passport')
       var LocalStrategy = require('passport-local').Strategy;
-      var bcrypt;
+      let bcrypt: any;
       try {
         bcrypt = require('bcrypt');
       } catch (err) {
         bcrypt = require('bcryptjs');
       }
-      sails.config.passport.serializeUser(function (user, done) {
+      sails.config.passport.serializeUser(function (user: any, done: any) {
         done(null, user.id);
       });
-      sails.config.passport.deserializeUser(function (id, done) {
+      sails.config.passport.deserializeUser(function (id: any, done: any) {
         User.findOne({
           id: id
-        }).populate('roles').exec(function (err, user) {
+        }).populate('roles').exec(function (err: any, user: any) {
           done(err, user);
         });
       });
@@ -110,11 +109,11 @@ export module Services {
           usernameField: usernameField,
           passwordField: passwordField
         },
-        function (username, password, done) {
+        function (username: string, password: string, done: any) {
 
           User.findOne({
             username: username
-          }).populate('roles').exec(function (err, foundUser) {
+          }).populate('roles').exec(function (err: any, foundUser: any) {
             if (err) {
               return done(err);
             }
@@ -124,7 +123,7 @@ export module Services {
               });
             }
 
-            bcrypt.compare(password, foundUser.password, function (err, res) {
+            bcrypt.compare(password, foundUser.password, function (err: any, res: any) {
 
               if (!res) {
                 return done(null, false, {
@@ -147,7 +146,7 @@ export module Services {
                         {
                           lastLogin: new Date(),
                           additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
-                        }).exec(function (err, user) {
+                        }).exec(function (err: any, user: any) {
                           if (err) {
                             sails.log.error("Error updating user:");
                             sails.log.error(err);
@@ -187,7 +186,7 @@ export module Services {
 
                 User.update({
                   username: username
-                  }).set({lastLogin: new Date()}).exec(function (err, user) {
+                  }).set({lastLogin: new Date()}).exec(function (err: any, user: any) {
                     if (err) {
                       sails.log.error("Error updating user:");
                       sails.log.error(err);
@@ -362,7 +361,7 @@ export module Services {
       sails.log.verbose(JSON.stringify(config));
       let postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
       if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, postSaveCreateHook => {
+        _.each(postSaveCreateHooks, (postSaveCreateHook: any) => {
           sails.log.debug(postSaveCreateHook);
           let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
           if (postSaveCreateHookFunctionString != null) {
@@ -385,7 +384,7 @@ export module Services {
       }
     }
 
-    private resolveHookResponse(hookResponse) {
+    private resolveHookResponse(hookResponse: any) {
       if (isObservable(hookResponse)) {
         return firstValueFrom(hookResponse);
       } else {
@@ -407,7 +406,7 @@ export module Services {
           ExtractJwt = require('passport-jwt').ExtractJwt;
         const aafOpts = defAuthConfig.aaf.opts;
         aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-        sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
+        sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req: any, jwt_payload: any, done: any) {
           const brandName:string = BrandingService.getBrandFromReq(req);
 
           const brand:BrandingModel = BrandingService.getBrand(brandName);
@@ -652,11 +651,11 @@ export module Services {
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
                 sails.log.verbose(issuer);
                 const oidcClient = new issuer.Client(oidcOpts.client);
-                let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
+                let verifyCallbackFn = (req: any, tokenSet: any, userinfo: any, done: any) => {
                   that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
                 };
                 if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req, tokenSet, done) => {
+                  verifyCallbackFn = (req: any, tokenSet: any, done: any) => {
                     that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
                   };
                 }
@@ -684,7 +683,7 @@ export module Services {
       });
     }
 
-    protected openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo = undefined, done) {
+    protected openIdConnectAuthVerifyCallback(oidcConfig: any, issuer: any, req: any, tokenSet: any, userinfo: any = undefined, done: any) {
       const that = this;
       const logoutFromAuthServer = _.get(oidcConfig,'logoutFromAuthServer', true);
       if(logoutFromAuthServer) {
@@ -931,7 +930,7 @@ export module Services {
     protected bearerTokenAuthInit = () => {
       var BearerStrategy = require('passport-http-bearer').Strategy;
       sails.config.passport.use('bearer', new BearerStrategy(
-        function (token, done) {
+        function (token: string, done: any) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
             const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
             User.findOne({
@@ -956,11 +955,11 @@ export module Services {
       ));
     }
 
-    protected initDefAdmin = (defRoles, defAdminRole) => {
+    protected initDefAdmin = (defRoles: any[], defAdminRole: any) => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var usernameField = authConfig.local.usernameField,
         passwordField = authConfig.local.passwordField;
-      var defaultUser = _.find(defAdminRole.users, (o) => {
+      var defaultUser = _.find(defAdminRole.users, (o: any) => {
         return o[usernameField] == authConfig.local.default.adminUser
       });
 
@@ -979,7 +978,7 @@ export module Services {
         return super.getObservable(User.create(defaultUser))
           .pipe(flatMap(defUser => {
             // START Sails 1.0 upgrade
-            const defRoleIds = _.map(defRoles, (o) => {
+            const defRoleIds = _.map(defRoles, (o: any) => {
               return o.id;
             });
             let q = User.addToCollection(defUser.id, 'roles').members(defRoleIds);
@@ -1012,8 +1011,8 @@ export module Services {
       }
     }
 
-    protected mapAdditionalAttributes(profile, attributeMappings) {
-      let additionalAttributes = {};
+    protected mapAdditionalAttributes(profile: any, attributeMappings: Record<string, string>) {
+      const additionalAttributes: Record<string, unknown> = {};
       for (let attributeMapping in attributeMappings) {
         additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
       }
@@ -1024,13 +1023,13 @@ export module Services {
      * Creates a user audit record
      *
      */
-    public addUserAuditEvent = (user, action, additionalContext) => {
+    public addUserAuditEvent = (user: any, action: string, additionalContext: unknown) => {
       // ignore audit events for users with no user, which had crashed the app when user has already logged out
       if (_.isEmpty(user)) {
         sails.log.verbose('No user to audit, ignoring: ' + action);
         return firstValueFrom(of(null));
       }
-      let auditEvent = {};
+      const auditEvent: Record<string, unknown> = {};
       if (!_.isEmpty(user.password)) {
         delete user.password;
       }
@@ -1057,7 +1056,7 @@ export module Services {
      * @return User: the newly created user
      *
      */
-    public addLocalUser = (username, name, email, password): Observable<UserModel> => {
+    public addLocalUser = (username: string, name: string, email: string, password: string): Observable<UserModel> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var usernameField = authConfig.local.usernameField,
         passwordField = authConfig.local.passwordField;
@@ -1070,7 +1069,7 @@ export module Services {
             if (_.size(emailCheck) > 0) {
               return throwError(new Error(`Email already exists, it must be unique`));
             } else {
-              var newUser = {
+              const newUser: Record<string, any> = {
                 type: 'local',
                 name: name
               };
@@ -1097,7 +1096,7 @@ export module Services {
           defRoles: the default brand's roles
         }
     */
-    public bootstrap = (defRoles) => {
+    public bootstrap = (defRoles: any) => {
       let that = this;
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       sails.log.verbose("Bootstrapping users....");
@@ -1115,13 +1114,13 @@ export module Services {
         }));
     }
 
-    public getUserWithUsername = (username) => {
+    public getUserWithUsername = (username: string) => {
       return this.getObservable(User.findOne({
         username: username
       }).populate('roles'));
     }
 
-    public getUserWithId = (userid) => {
+    public getUserWithId = (userid: string | number) => {
       return this.getObservable(User.findOne({
         id: userid
       }).populate('roles'));
@@ -1146,14 +1145,14 @@ export module Services {
 
       return super.getObservable(User.find({}).populate('roles'))
         .pipe(map(users => {
-          return _.filter(users, (user) => {
-            return _.some(user.roles, (role) => role.branding == brandId);
+          return _.filter(users, (user: any) => {
+            return _.some(user.roles, (role: any) => role.branding == brandId);
           });
         }));
     }
 
-    public setUserKey = (userid, uuid) => {
-      const uuidHash = _.isEmpty(uuid) ? uuid : crypto.createHash('sha256').update(uuid).digest('base64');
+    public setUserKey = (userid: string | number, uuid: string | null) => {
+      const uuidHash = _.isEmpty(uuid) ? null : crypto.createHash('sha256').update(uuid as string).digest('base64');
       return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           const q = User.update({
@@ -1168,12 +1167,12 @@ export module Services {
       }));
     }
 
-    public updateUserDetails = (userid, name, email, password): Observable<UserModel[]> => {
+    public updateUserDetails = (userid: string | number, name: string, email: string, password: string): Observable<UserModel[]> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
-          const update = {
+          const update: Record<string, any> = {
             name: name
           };
 
@@ -1182,13 +1181,13 @@ export module Services {
           }
 
           if (!_.isEmpty(password)) {
-            var bcrypt;
+            let bcrypt: any;
             try {
               bcrypt = require('bcrypt');
             } catch (err) {
               bcrypt = require('bcryptjs');
             }
-            var salt = salt = bcrypt.genSaltSync(10);
+            const salt = bcrypt.genSaltSync(10);
             update[passwordField] = bcrypt.hashSync(password, salt);
           }
           const q = User.update({
@@ -1201,7 +1200,7 @@ export module Services {
       }));
     }
 
-    public updateUserRoles = (userid, newRoleIds): Observable<UserModel> => {
+    public updateUserRoles = (userid: string | number, newRoleIds: Array<string | number>): Observable<UserModel> => {
       return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
@@ -1217,10 +1216,10 @@ export module Services {
       }));
     }
 
-    private updateUserAfterLogin(user,done){
+    private updateUserAfterLogin(user: any, done: (err: any, user: any) => void){
       User.update({
         username: user.username
-        }).set(user).exec(function (err, user) {
+        }).set(user).exec(function (err: any, user: any) {
         if (err) {
           sails.log.error("Error updating user:");
           sails.log.error(err);
@@ -1237,8 +1236,8 @@ export module Services {
       });
     }
 
-    public hasRole(user, targetRole): RoleModel {
-      return _.find(user.roles, (role) => {
+    public hasRole(user: any, targetRole: any): RoleModel {
+      return _.find(user.roles, (role: any) => {
         return role.id == targetRole.id;
       });
     }
@@ -1253,7 +1252,7 @@ export module Services {
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
-    public findUsersWithEmail(email: string, brandId: string, source: any) {
+    public findUsersWithEmail(email: string, brandId: string | null, source: any = null) {
       const query = {
         email: {
           'contains': email
@@ -1262,15 +1261,15 @@ export module Services {
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
-    public findUsersWithQuery(query: any, brandId: string, source: any = null): Observable<UserModel[]> {
+    public findUsersWithQuery(query: any, brandId: string | null, source: any = null): Observable<UserModel[]> {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         query['type'] = source;
       }
       return this.getObservable(User.find(query).populate('roles'))
         .pipe(flatMap(users => {
           if (brandId) {
-            _.remove(users, (user) => {
-              const isInBrand = _.find(user.roles, (role) => {
+            _.remove(users, (user: any) => {
+              const isInBrand = _.find(user.roles, (role: any) => {
                 return role.branding == brandId;
               });
               return !isInBrand;
@@ -1287,7 +1286,7 @@ export module Services {
      * we're not able to reliably determine the username before they login to the system for the first time.
      *
      **/
-    public findAndAssignAccessToRecords(pendingValue, userid):void {
+    public findAndAssignAccessToRecords(pendingValue: string, userid: string):void {
       
       Record.find({
         'or': [{

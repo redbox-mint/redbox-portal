@@ -20,14 +20,13 @@
 import { of, from } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 // import * as request from "request-promise";
 import axios from 'axios';
 
-declare var sails: Sails;
-declare var Report: Model;
-declare var _this;
-declare var _;
+declare var sails: any;
+declare var Report: any;
+declare var _this: any;
+declare var _: any;
 
 
 export module Services {
@@ -43,68 +42,68 @@ export module Services {
       'searchOrcid'
     ];
 
-    public bootstrap = (defBrand) => {
+    public bootstrap = (defBrand: any) => {
 
     }
 
     public searchOrcid(givenNames: string, familyName: string, page: number) {
-      var rows = 10;
-      var start = (page - 1) * rows;
-      var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
-      var options = this.getOptions(url, sails.config.record.api.search.method);
-      
-  var orcidRes = from(axios(options));
+      const rows = 10;
+      const start = (page - 1) * rows;
+      const url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
+      const options = this.getOptions(url, sails.config.record.api.search.method);
+      const orcidRes = from(axios(options));
 
-      return orcidRes.pipe(flatMap(orcidResult => {
-        var results = {};
+      return orcidRes.pipe(flatMap((response: any) => {
+        const orcidResult: any = response.data;
+        const results: Record<string, any> = {};
         results["numFound"] = orcidResult["orcid-search-results"]["num-found"];
         results["items"] = [];
 
-        for (var i = 0; i < orcidResult["orcid-search-results"]["orcid-search-result"].length; i++) {
-          var orcidSearchResult = orcidResult["orcid-search-results"]["orcid-search-result"][i];
-          var item = this.mapToPeopleSearchResult(orcidSearchResult);
+        for (let i = 0; i < orcidResult["orcid-search-results"]["orcid-search-result"].length; i++) {
+          const orcidSearchResult = orcidResult["orcid-search-results"]["orcid-search-result"][i];
+          const item = this.mapToPeopleSearchResult(orcidSearchResult);
           results["items"].push(item);
         }
         return of(results);
       }));
     }
 
-    protected mapToPeopleSearchResult(orcidSearchResult) {
-      var item = {};
+    protected mapToPeopleSearchResult(orcidSearchResult: any) {
+      const item: Record<string, any> = {};
 
-      var profile = orcidSearchResult["orcid-profile"];
+      const profile = orcidSearchResult["orcid-profile"];
       item["givenNames"] = profile["orcid-bio"]["personal-details"]["given-names"]["value"];
       item["familyName"] = profile["orcid-bio"]["personal-details"]["family-name"]["value"];
       item["identifier"] = profile["orcid-identifier"]["uri"];
       item["extendedAttributes"] = [];
 
       // Process extended attributes
-      var otherNames = profile["orcid-bio"]["personal-details"]["other-names"] == null ? null : {};
+      let otherNames: Record<string, unknown> | null = profile["orcid-bio"]["personal-details"]["other-names"] == null ? null : {};
       if (otherNames != null) {
 
-        var otherNamesArray = profile["orcid-bio"]["personal-details"]["other-names"]["other-name"];
+        const otherNamesArray = profile["orcid-bio"]["personal-details"]["other-names"]["other-name"];
 
         otherNames = this.getExtendedAttributeObject('orcid-other-names', otherNamesArray);
         item["extendedAttributes"].push(otherNames);
       }
 
-      var biography = profile["orcid-bio"]["biography"] == null ? null : {};
+      let biography: Record<string, unknown> | null = profile["orcid-bio"]["biography"] == null ? null : {};
       if (biography != null) {
 
-        var biographyValue = profile["orcid-bio"]["biography"];
+        const biographyValue = profile["orcid-bio"]["biography"];
 
         biography = this.getExtendedAttributeObject('orcid-biography', biographyValue);
         item["extendedAttributes"].push(biography);
       }
 
 
-      var researcherUrls = profile["orcid-bio"]["researcher-urls"] == null ? null : {};
+      let researcherUrls: Record<string, any> | null = profile["orcid-bio"]["researcher-urls"] == null ? null : {};
       if (researcherUrls != null) {
-        var researcherUrlsValueArray = [];
-        var researcherUrlsArray = profile["orcid-bio"]["researcher-urls"]["researcher-url"];
+        const researcherUrlsValueArray: any[] = [];
+        const researcherUrlsArray = profile["orcid-bio"]["researcher-urls"]["researcher-url"];
 
-        _.forEach(researcherUrlsArray, function (researcherUrl) {
-            var researcherUrlItem = {};
+        _.forEach(researcherUrlsArray, function (researcherUrl: any) {
+            const researcherUrlItem: Record<string, unknown> = {};
             researcherUrlItem["value"] = researcherUrl["url-name"]["value"];
             researcherUrlItem["url"] = researcherUrl["url"]["value"];
             researcherUrlsValueArray.push(researcherUrlItem);
@@ -115,9 +114,9 @@ export module Services {
         item["extendedAttributes"].push(researcherUrls);
       }
 
-      var keywords = profile["orcid-bio"]["keywords"] == null ? null : {};
+      let keywords: Record<string, unknown> | null = profile["orcid-bio"]["keywords"] == null ? null : {};
       if (keywords != null) {
-        var keywordsArray = profile["orcid-bio"]["keywords"]["keyword"];
+        const keywordsArray = profile["orcid-bio"]["keywords"]["keyword"];
 
         keywords = this.getExtendedAttributeObject('orcid-keywords', keywordsArray);
         item["extendedAttributes"].push(keywords);
@@ -128,14 +127,14 @@ export module Services {
       return item;
     }
 
-    private getExtendedAttributeObject(label: string, value) {
-      var extendedAttributes = {};
+    private getExtendedAttributeObject(label: string, value: any) {
+      const extendedAttributes: Record<string, unknown> = {};
       extendedAttributes["label"] = label;
       extendedAttributes["value"] = value;
       return extendedAttributes;
     }
 
-    protected getOptions(url, method, contentType = 'application/json; charset=utf-8') {
+    protected getOptions(url: string, method: string, contentType = 'application/json; charset=utf-8') {
        const opts = {
           method: method,
           url: url, 

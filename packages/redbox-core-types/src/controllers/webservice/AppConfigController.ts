@@ -16,6 +16,9 @@ export module Controllers {
    * @class AppConfig
    */
   export class AppConfig extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     constructor() {
       super();
@@ -38,7 +41,7 @@ export module Controllers {
     public bootstrap() { }
 
 
-    public async saveAppConfig(req, res) {
+    public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId: string = req.param('appConfigId');
@@ -49,9 +52,9 @@ export module Controllers {
         //TODO: validate post body against key?
         await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
         return this.apiRespond(req, res, appConfig, 200);
-      } catch (error) {
+      } catch (error: unknown) {
         sails.log.error(error);
-        const errorResponse = new APIErrorResponse(error.message);
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -60,7 +63,7 @@ export module Controllers {
       }
     }
 
-    public async getAppConfig(req, res) {
+    public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId: string = req.param('appConfigId');

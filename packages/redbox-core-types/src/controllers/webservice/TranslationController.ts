@@ -9,6 +9,9 @@ export module Controllers {
    * Webservice TranslationController: manage language content via REST.
    */
   export class Translation extends controllers.Core.Controller {
+    private asError(err: unknown): Error {
+      return err instanceof Error ? err : new Error(String(err));
+    }
     protected override _exportedMethods: any = [
       'listEntries',
       'getEntry',
@@ -19,7 +22,7 @@ export module Controllers {
       'updateBundleEnabled'
     ];
 
-    public async listEntries(req, res) {
+    public async listEntries(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -31,7 +34,8 @@ export module Controllers {
         // Ensure metadata fields are included in the response
         return this.apiRespond(req, res, entries, 200);
       } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+        const err = this.asError(error);
+        const errorResponse = new APIErrorResponse(err.message);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -40,7 +44,7 @@ export module Controllers {
       }
     }
 
-    public async getEntry(req, res) {
+    public async getEntry(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -59,7 +63,8 @@ export module Controllers {
         }
         return this.apiRespond(req, res, entry, 200);
       } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+        const err = this.asError(error);
+        const errorResponse = new APIErrorResponse(err.message);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -68,7 +73,7 @@ export module Controllers {
       }
     }
 
-    public async setEntry(req, res) {
+    public async setEntry(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -81,10 +86,11 @@ export module Controllers {
 
         const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
-        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setEntry] reload failed', e?.message || e); }
+        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setEntry] reload failed', err.message); }
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+        const err = this.asError(error);
+        const errorResponse = new APIErrorResponse(err.message);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -93,7 +99,7 @@ export module Controllers {
       }
     }
 
-    public async deleteEntry(req, res) {
+    public async deleteEntry(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -111,10 +117,11 @@ export module Controllers {
           });
         }
         // Refresh i18n cache after deletion
-        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.deleteEntry] reload failed', e?.message || e); }
+        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message); }
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+        const err = this.asError(error);
+        const errorResponse = new APIErrorResponse(err.message);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -123,7 +130,7 @@ export module Controllers {
       }
     }
 
-    public async getBundle(req, res) {
+    public async getBundle(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -141,7 +148,8 @@ export module Controllers {
         }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+        const err = this.asError(error);
+        const errorResponse = new APIErrorResponse(err.message);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -150,7 +158,7 @@ export module Controllers {
       }
     }
 
-    public async setBundle(req, res) {
+    public async setBundle(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -162,10 +170,11 @@ export module Controllers {
 
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, { splitToEntries, overwriteEntries });
         // Refresh i18n cache after bundle update
-        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setBundle] reload failed', e?.message || e); }
+        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setBundle] reload failed', err.message); }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
-        const errorResponse = new APIErrorResponse(error.message);
+        const err = this.asError(error);
+        const errorResponse = new APIErrorResponse(err.message);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -174,7 +183,7 @@ export module Controllers {
       }
     }
 
-    public async updateBundleEnabled(req, res) {
+    public async updateBundleEnabled(req: any, res: any) {
       try {
         const brandName: string = BrandingService.getBrandFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -184,12 +193,13 @@ export module Controllers {
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
-        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', e?.message || e); }
+        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message); }
         return this.sendResp(req, res, { data: bundle, headers: this.getNoCacheHeaders() });
       } catch (error) {
+        const err = this.asError(error);
         return this.sendResp(req, res, {
           status: 500,
-          displayErrors: [{ detail: error.message }],
+          displayErrors: [{ detail: err.message }],
           headers: this.getNoCacheHeaders()
         });
       }
