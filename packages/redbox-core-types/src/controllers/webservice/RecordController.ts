@@ -38,10 +38,6 @@ import { v4 as UUIDGenerator } from 'uuid';
 
 declare var sails: any;
 declare var _: any;
-declare var BrandingService: any;
-declare var RolesService: any;
-declare var RecordTypesService: any;
-declare var WorkflowStepsService: any;
 declare var Record: any;
 
 export module Controllers {
@@ -52,13 +48,13 @@ export module Controllers {
    */
   export class Record extends controllers.Core.Controller {
 
-    RecordsService: RecordsService;
-    SearchService: SearchService;
-    DatastreamService: DatastreamService;
+    RecordsService!: RecordsService;
+    SearchService!: SearchService;
+    DatastreamService!: DatastreamService;
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'init',
       'create',
       'updateMeta',

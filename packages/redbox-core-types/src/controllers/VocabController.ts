@@ -23,8 +23,6 @@ import { BrandingModel } from '../model';
 declare var module: any;
 declare var sails: any;
 declare var _: any;
-declare var VocabService: any;
-declare var BrandingService: any;
 let flat: any;
 
 export module Controllers {
@@ -39,7 +37,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
         'get',
         'getCollection',
         'loadCollection',
@@ -56,7 +54,7 @@ export module Controllers {
     **************************************************************************************************
     */
 
-    protected async processDynamicImports() {
+    protected override async processDynamicImports() {
       flat = await import("flat");
     }
 

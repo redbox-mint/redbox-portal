@@ -23,7 +23,7 @@ export class RequestDetails {
     rawHeaders: any;
 
 
-    constructor(req) {
+    constructor(req: Sails.Req) {
         this.app = req.app;
         this.baseUrl = req.baseUrl;
         this.body = req.body;

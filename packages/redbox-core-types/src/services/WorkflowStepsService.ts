@@ -38,7 +38,7 @@ export module Services {
    */
   export class WorkflowSteps extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'create',
       'get',
@@ -119,4 +119,8 @@ export module Services {
       return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id, starting: true }));
     }
   }
+}
+
+declare global {
+  let WorkflowStepsService: Services.WorkflowSteps;
 }

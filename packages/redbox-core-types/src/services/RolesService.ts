@@ -25,7 +25,6 @@ import {Sails, Model} from "sails";
 
 declare var sails: Sails;
 declare var Role, BrandingConfig: Model;
-declare var ConfigService;
 declare var _;
 
 
@@ -39,7 +38,7 @@ export module Services {
    */
   export class Roles extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'getRole',
       'getAdmin',
@@ -189,5 +188,9 @@ export module Services {
       return retVal;
     }
   }
+}
+
+declare global {
+  let RolesService: Services.Roles;
 }
 

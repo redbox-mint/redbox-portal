@@ -1,13 +1,19 @@
 import DatastreamServiceResponse from './DatastreamServiceResponse';
 import Datastream from './Datastream';
+import { Observable } from 'rxjs';
 
-export interface DatastreamService{
-
+export interface DatastreamService {
   addDatastreams(oid: string, datastreams: Datastream[]): Promise<DatastreamServiceResponse>;
-  updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any;
-  removeDatastream(oid, datastream: Datastream): any;
-  addDatastream(oid, datastream: Datastream): any;
-  addAndRemoveDatastreams(oid, addDatastreams: Datastream[], removeDatastreams: Datastream[]): any;
-  getDatastream(oid, fileId): any;
-  listDatastreams(oid, fileId): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateDatastream(oid: string, record: any, newMetadata: any, fileRoot: string, fileIdsAdded: string[]): Observable<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  removeDatastream(oid: string, datastream: Datastream): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addDatastream(oid: string, datastream: Datastream): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addAndRemoveDatastreams(oid: string, addDatastreams: Datastream[], removeDatastreams: Datastream[]): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getDatastream(oid: string, fileId: string): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  listDatastreams(oid: string, fileId: string): any;
 }

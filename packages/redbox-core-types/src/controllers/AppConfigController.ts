@@ -21,7 +21,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'getAppConfigForm',
       'saveAppConfig',
       'editAppConfig'

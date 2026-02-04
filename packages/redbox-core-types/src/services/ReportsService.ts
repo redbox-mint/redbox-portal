@@ -38,9 +38,7 @@ import Handlebars from "handlebars";
 declare var sails: Sails;
 declare var Report: Model;
 declare var _this;
-declare var NamedQueryService;
 declare var _;
-declare var BrandingService;
 
 export module Services {
   /**
@@ -51,13 +49,13 @@ export module Services {
    */
   export class Reports extends services.Core.Service {
 
-    searchService: SearchService;
+    searchService!: SearchService;
     // Cache for compiled Handlebars templates (keyed by template string)
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
     // Flag to track if helpers are registered
     private helpersRegistered: boolean = false;
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'create',
       'findAllReportsForBrand',
@@ -179,7 +177,7 @@ export module Services {
       }
     }
 
-    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<NamedQueryResponseRecord>, report: ReportConfig) {
+    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Object>, report: ReportConfig) {
       var totalItems = dbResult.summary.numFound;
       var startIndex = dbResult.summary.start;
       var pageNumber = dbResult.summary.page;
@@ -504,4 +502,8 @@ export module Services {
     }
 
   }
+}
+
+declare global {
+  let ReportsService: Services.Reports;
 }

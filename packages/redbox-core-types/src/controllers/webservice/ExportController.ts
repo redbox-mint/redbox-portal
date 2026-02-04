@@ -3,9 +3,6 @@ import { default as util } from 'util';
 import { default as stream } from 'stream';
 
 declare var sails: any;
-declare var RecordsService: any;
-declare var BrandingService: any;
-declare var TranslationService: any;
 declare var _: any;
 
 const pipeline = util.promisify(stream.pipeline);
@@ -23,7 +20,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'downloadRecs'
     ];
 

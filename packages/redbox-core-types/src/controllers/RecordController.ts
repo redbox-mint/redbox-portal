@@ -41,15 +41,6 @@ import { default as checkDiskSpace } from 'check-disk-space';
 declare var module: any;
 declare var sails: any;
 declare var _: any;
-declare var BrandingService: any;
-declare var TranslationService: any;
-declare var RecordTypesService: any;
-declare var DashboardTypesService: any;
-declare var FormsService: any;
-declare var FormRecordConsistencyService: any;
-declare var WorkflowStepsService: any;
-declare var RolesService: any;
-declare var UsersService: any;
 declare var url: any;
 
 /**
@@ -64,9 +55,9 @@ export module Controllers {
    */
   export class Record extends controllers.Core.Controller {
 
-    recordsService: RecordsService;
-    searchService: SearchService;
-    datastreamService: DatastreamService;
+    recordsService!: RecordsService;
+    searchService!: SearchService;
+    datastreamService!: DatastreamService;
 
     public init(): void {
       this.recordsService = sails.services.recordsservice;
@@ -86,7 +77,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'init',
       'edit',
       'getForm',

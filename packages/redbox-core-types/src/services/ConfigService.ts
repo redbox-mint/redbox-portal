@@ -29,8 +29,6 @@ import { glob } from 'fs';
 declare var sails: Sails;
 declare var _;
 declare var CacheEntry: Model;
-declare var AppConfigService: appConfigServices.AppConfigs;
-declare var BrandingService: brandingService.Branding;
 
 export module Services {
   /**
@@ -41,7 +39,7 @@ export module Services {
    */
   export class Config extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'getBrand',
       'mergeHookConfig'
     ];
@@ -352,4 +350,8 @@ export module Services {
     }
 
   }
+}
+
+declare global {
+  let ConfigService: Services.Config;
 }

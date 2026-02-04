@@ -21,7 +21,6 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs';
-declare var RecordsService, DashboardService, BrandingService, TranslationService;
 import { default as util } from 'util';
 import { default as stream } from 'stream';
 const pipeline = util.promisify(stream.pipeline);
@@ -42,7 +41,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
         'index',
         'downloadRecs'
     ];
@@ -52,7 +51,7 @@ export module Controllers {
      * **************************************** Add custom methods **************************************
      * *************************************************************************************************
      */
-    public index(req, res) {
+    public override index(req, res) {
       return this.sendView(req, res, 'export/index');
     }
 

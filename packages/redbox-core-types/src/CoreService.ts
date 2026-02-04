@@ -4,8 +4,12 @@ import { from, bindNodeCallback, bindCallback, Observable } from 'rxjs';
 declare var sails: Sails.Application;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
-import * as  _ from 'lodash';
+import * as _ from 'lodash';
 import { ILogger } from './Logger';
+
+// Type alias for query objects used with RxJS bindings
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryObject = { [key: string]: any };
 
 export module Services.Core {
   export class Service {
@@ -23,10 +27,10 @@ export module Services.Core {
       'convertToType'
     ];
 
-    protected logHeader: string;
+    protected logHeader: string = '';
 
     // Namespaced logger for services
-    private _logger: ILogger;
+    private _logger: ILogger | null = null;
 
     /**
      * Get a namespaced logger for this service class.
@@ -34,12 +38,12 @@ export module Services.Core {
      * Falls back to sails.log if pino namespaced logging is not available.
      */
     protected get logger(): ILogger {
-      if (typeof sails !== 'undefined' && !this._logger && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
+      if (typeof sails !== 'undefined' && this._logger === null && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
         const serviceName = this.constructor.name + 'Service';
         this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
       }
       // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      if (this._logger) {
+      if (this._logger !== null) {
         return this._logger;
       }
       
@@ -88,26 +92,30 @@ export module Services.Core {
     }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
+    * @param q The query object with an exec or similar method
+    * @param method The method to call on q (default: 'exec')
+    * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
     */
-    protected getObservable(q, method = 'exec', type = 'node'): Observable<any> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected getObservable<T = any>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
       if (type == 'node')
-        return bindNodeCallback(q[method].bind(q))();
+        return bindNodeCallback(q[method].bind(q))() as Observable<T>;
       else
-        return bindCallback(q[method].bind(q))();
+        return bindCallback(q[method].bind(q))() as Observable<T>;
     }
 
     /**
     * Wrapper for straightforward query, no chaining..
     */
-    protected exec(q, successFn, errorFn) {
+    protected exec(q: QueryObject, successFn: (value: unknown) => void, errorFn: (error: unknown) => void): void {
       this.getObservable(q).subscribe(successFn, errorFn);
     }
 
     constructor() {
-      this.processDynamicImports().then(result => {
+      this.processDynamicImports().then(() => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
-      })
+      });
     }
 
     /**
@@ -198,9 +206,9 @@ export module Services.Core {
      * @param  user The user that triggered the hook, optional.
      * @return {"true"|"false"} "true" if the condition passed, otherwise "false".
      */
-    protected metTriggerCondition(oid, record, options, user?) {
-      const triggerCondition = _.get(options, "triggerCondition", "");
-      const forceRun = _.get(options, "forceRun", false);
+    protected metTriggerCondition(oid: string, record: Record<string, unknown>, options: Record<string, unknown>, user?: Record<string, unknown> | null): string {
+      const triggerCondition = _.get(options, "triggerCondition", "") as string;
+      const forceRun = _.get(options, "forceRun", false) as boolean;
       const variables = {
         imports: {
           record: record,
@@ -223,9 +231,9 @@ export module Services.Core {
       }
     }
 
-    protected sleep(ms) {
+    protected sleep(ms: number): Promise<void> {
       return new Promise(resolve => {
-        setTimeout(resolve, ms)
+        setTimeout(resolve, ms);
       });
     }
     /**

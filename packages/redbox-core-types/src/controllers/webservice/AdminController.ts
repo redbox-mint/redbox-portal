@@ -1,9 +1,6 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
 declare var sails: any;
-declare var BrandingService: any;
-declare var AppConfigService: any;
-declare var TranslationService: any;
 declare var _: any;
 
 export module Controllers {
@@ -17,7 +14,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'refreshCachedResources',
       'setAppConfig',
       'getAppConfig'

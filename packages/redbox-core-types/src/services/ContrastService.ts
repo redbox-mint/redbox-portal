@@ -57,7 +57,7 @@ export interface ContrastViolation {
 export module Services {
     export class Contrast extends services.Core.Service {
 
-        protected _exportedMethods: any = [
+        protected override _exportedMethods: any = [
             'validate',
             'suggestCompliant',
             'calculateRatio',
@@ -266,5 +266,9 @@ export module Services {
             return { suggested: bestHex, originalRatio, newRatio: bestRatio, adjustments };
         }
     }
+}
+
+declare global {
+    let ContrastService: Services.Contrast;
 }
 

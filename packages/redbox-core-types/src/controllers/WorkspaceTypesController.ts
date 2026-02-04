@@ -3,8 +3,6 @@ import { BrandingModel } from '../index';
 
 declare var sails: any;
 declare var _: any;
-declare var BrandingService: any;
-declare var WorkspaceTypesService: any;
 
 export module Controllers {
   /**
@@ -16,7 +14,7 @@ export module Controllers {
 
     private blobAdapter: any;
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'init',
       'get',
       'getOne',

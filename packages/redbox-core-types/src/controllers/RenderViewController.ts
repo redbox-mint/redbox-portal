@@ -4,7 +4,7 @@ export module Controllers {
 
   export class RenderView extends controllers.Core.Controller {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'render'
     ];
 

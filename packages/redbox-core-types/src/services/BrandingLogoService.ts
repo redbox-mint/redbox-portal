@@ -219,3 +219,7 @@ export module Services {
   }
 }
 
+declare global {
+  let BrandingLogoService: Services.BrandingLogo;
+}
+

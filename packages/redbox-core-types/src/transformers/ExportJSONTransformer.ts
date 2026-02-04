@@ -35,8 +35,8 @@ export class ExportJSONTransformer extends Transform {
      * @param {String} encoding Encoding of the incoming data. Defaults to 'utf8'
      * @param {Function} done Called when the proceesing of the supplied chunk is done
      */
-    _transform(chunk: any, encoding, done) {
-        let data = chunk.toString();
+    override _transform(chunk: unknown, encoding: BufferEncoding, done: () => void): void {
+        const data = String(chunk);
 
         if (!this.first) {
             this.push(",\n");
@@ -47,7 +47,7 @@ export class ExportJSONTransformer extends Transform {
         done();
     }
 
-    _flush(done) {
+    override _flush(done: () => void): void {
         this.push("]\n }");
         done();
     }

@@ -32,7 +32,6 @@ import { config } from 'node:process';
 declare var AppConfig;
 
 declare var sails: Sails;
-declare var BrandingService: Brandings.Branding;
 declare var _;
 
 
@@ -43,11 +42,11 @@ export module Services {
    * 
    */
   export class AppConfigs extends services.Core.Service {
-    brandingAppConfigMap: {};
+    brandingAppConfigMap!: {};
     modelSchemaMap: any = {};
     private extraTsGlobs: Set<string> = new Set();
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'getAllConfigurationForBrand',
       'loadAppConfigurationModel',
@@ -269,5 +268,9 @@ export module Services {
     }
   }
 
+}
+
+declare global {
+  let AppConfigService: Services.AppConfigs;
 }
 

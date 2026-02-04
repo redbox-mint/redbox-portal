@@ -3,7 +3,6 @@ import { Services as services } from '../CoreService';
 import { Sails, Model } from "sails";
 import axios, { AxiosResponse } from 'axios';
 
-declare var RecordsService, BrandingService;
 declare var sails: Sails;
 declare var _this;
 declare var _;
@@ -13,7 +12,7 @@ export module Services {
 
   export class WorkspaceService extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'createWorkspaceRecord',
       'getRecordMeta',
       'updateRecordMeta',
@@ -184,4 +183,8 @@ export module Services {
 
   }
 
+}
+
+declare global {
+  let WorkspaceService: Services.WorkspaceService;
 }

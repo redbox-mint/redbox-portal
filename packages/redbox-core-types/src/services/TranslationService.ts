@@ -362,3 +362,7 @@ export module Services {
     }
   }
 }
+
+declare global {
+  let TranslationService: Services.Translation;
+}

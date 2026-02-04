@@ -29,8 +29,6 @@ declare var _;
 declare var BrandingConfig;
 declare var BrandingConfigHistory;
 declare var CacheEntry;
-declare var SassCompilerService;
-declare var ContrastService;
 
 export module Services {
   /**
@@ -40,7 +38,7 @@ export module Services {
    */
   export class Branding extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'loadAvailableBrands',
       'getDefault',
@@ -311,5 +309,9 @@ export module Services {
 
   }
 
+}
+
+declare global {
+  let BrandingService: Services.Branding;
 }
 

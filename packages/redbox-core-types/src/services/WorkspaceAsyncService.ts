@@ -18,7 +18,7 @@ export module Services {
    */
   export class WorkspaceAsyncService extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'start',
       'update',
       'pending',
@@ -79,7 +79,7 @@ export module Services {
       });
     }
 
-    status(status, recordType) {
+    status({ status, recordType }) {
       return super.getObservable(
         WorkspaceAsync.find({status: status, recordType: recordType})
       )
@@ -87,4 +87,8 @@ export module Services {
 
   }
 
+}
+
+declare global {
+  let WorkspaceAsyncService: Services.WorkspaceAsyncService;
 }

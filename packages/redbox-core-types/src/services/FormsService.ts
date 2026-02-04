@@ -47,7 +47,7 @@ export module Services {
    */
   export class Forms extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'getForm',
       'flattenFields',
@@ -542,4 +542,8 @@ export module Services {
       return result;
     }
   }
+}
+
+declare global {
+  let FormsService: Services.Forms;
 }

@@ -37,7 +37,7 @@ export module Services {
    */
   export class Cache extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'get',
       'set',
@@ -154,4 +154,8 @@ export module Services {
     }
 
   }
+}
+
+declare global {
+  let CacheService: Services.Cache;
 }

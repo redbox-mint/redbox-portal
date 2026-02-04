@@ -22,9 +22,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 
 declare var sails: any;
-declare var BrandingService: any;
 declare var I18nEntriesService: any;
-declare var TranslationService: any;
 
 export module Controllers {
   /**
@@ -35,7 +33,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'getNamespace',
       'getLanguages',
       'listEntriesApp',

@@ -34,7 +34,7 @@ export module Services {
    */
   export class Asynchs extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'start',
       'update',
       'finish',
@@ -69,5 +69,9 @@ export module Services {
 
   }
 
+}
+
+declare global {
+  let AsynchsService: Services.Asynchs;
 }
 

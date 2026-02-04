@@ -1,8 +1,6 @@
 import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
-declare var BrandingService: any;
-declare var RecordTypesService: any;
 
 export module Controllers {
   /**
@@ -15,7 +13,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'getRecordType',
       'listRecordTypes'
     ];

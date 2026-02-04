@@ -44,7 +44,7 @@ export module Services {
 
   
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       "bootstrap",
       "getNamedQueryConfig",
       "performNamedQuery",
@@ -387,14 +387,15 @@ enum NamedQueryFormatOptions {
 type NamedQuerySortConfig = Record<string, "ASC" | "DESC">[];
 
 class QueryParameterDefinition {
-  required:boolean
-  type:DataType
-  defaultValue: any
-  queryType:string
-  whenUndefined:NamedQueryWhenUndefinedOptions
-  format: NamedQueryFormatOptions;
-  path: string;
-  template: string;
+  required: boolean = false;
+  type: DataType = DataType.String;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  defaultValue: any = null;
+  queryType: string = '';
+  whenUndefined: NamedQueryWhenUndefinedOptions = NamedQueryWhenUndefinedOptions.ignore;
+  format: NamedQueryFormatOptions = NamedQueryFormatOptions.days;
+  path: string = '';
+  template: string = '';
 }
 
 export class NamedQueryConfig {
@@ -441,4 +442,8 @@ export class NamedQueryResponseRecord {
       this.lastSaveDate= values.lastSaveDate
       this.dateCreated= values.dateCreated
   }
+}
+
+declare global {
+  let NamedQueryService: Services.NamedQueryService;
 }

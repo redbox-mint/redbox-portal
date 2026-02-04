@@ -2,9 +2,6 @@ import { APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, Li
 import { v4 as uuidv4 } from 'uuid';
 
 declare var sails: any;
-declare var BrandingService: any;
-declare var RolesService: any;
-declare var UsersService: any;
 declare var User: any;
 declare var _: any;
 
@@ -19,7 +16,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'listUsers',
       'getUser',
       'createUser',

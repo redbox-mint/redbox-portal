@@ -152,19 +152,24 @@ declare global {
 			[key: string]: any;
 		}
 
-		export interface Res extends express.Response {
-			attachement(filename: string);
+		// Sails.js Response interface - uses intersection type to add Sails-specific methods
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		export interface Res extends Omit<express.Response, 'badRequest'> {
+			attachement(filename: string): void;
 
-			badRequest();
-			badRequest(data: any);
-			badRequest(data: any, pathToView: string);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			badRequest(data?: any, pathToView?: string): any;
 
-			serverError();
-			serverError(data: any);
-			serverError(data: any, pathToView: string);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			serverError(data?: any, pathToView?: string): any;
 
-			view(route: string, options?: any);
-			guessView(options: any, cb: () => void);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			notFound(data?: any, pathToView?: string): any;
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			view(route: string, options?: any): void;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			guessView(options: any, cb: () => void): void;
 		}
 
 		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;

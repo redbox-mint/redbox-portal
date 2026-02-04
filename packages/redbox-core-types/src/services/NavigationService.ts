@@ -46,10 +46,6 @@ import {
 } from '../configmodels/AdminSidebarConfig';
 
 declare var sails: Sails;
-declare var BrandingService: any;
-declare var RolesService: any;
-declare var UsersService: any;
-declare var TranslationService: any;
 declare var _: any;
 
 /**
@@ -88,7 +84,7 @@ export module Services {
    * Author: Generated based on design.md
    */
   export class Navigation extends services.Core.Service {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'resolveMenu',
       'resolveHomePanels',
       'resolveAdminSidebar',
@@ -707,5 +703,9 @@ export module Services {
       return `${brandPortalPath}/${href}`;
     }
   }
+}
+
+declare global {
+  let NavigationService: Services.Navigation;
 }
 

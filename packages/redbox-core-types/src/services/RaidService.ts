@@ -39,9 +39,6 @@ import axios from 'axios';
 
 
 declare var sails: Sails;
-declare var RecordsService;
-declare var TranslationService;
-declare var AgendaQueueService;
 declare var _;
 
 export module Services {
@@ -52,7 +49,7 @@ export module Services {
    *
    */
   export class Raid extends services.Core.Service {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'mintTrigger',
       'buildContributors',
       'buildContribVal',
@@ -543,4 +540,8 @@ export module Services {
       }
     }
   }
+}
+
+declare global {
+  let RaidService: Services.Raid;
 }

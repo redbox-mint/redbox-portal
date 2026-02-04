@@ -209,3 +209,7 @@ export module Services {
         }
     }
 }
+
+declare global {
+    let TemplateService: Services.Template;
+}

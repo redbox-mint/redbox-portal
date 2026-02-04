@@ -43,7 +43,7 @@ export module Services {
    */
   export class Email extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'sendMessage',
       'buildFromTemplate',
       'sendTemplate',
@@ -561,5 +561,9 @@ export module Services {
 
 
 
+}
+
+declare global {
+  let EmailService: Services.Email;
 }
 

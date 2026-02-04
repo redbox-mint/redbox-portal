@@ -13,7 +13,8 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 export module Controllers {
 
   export class Branding extends controllers.Core.Controller {
-    private mongoUri: string;
+    private mongoUri!: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private blobAdapter: any;
 
     /**
@@ -37,7 +38,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'init',
       'renderCss',
       'renderImage',

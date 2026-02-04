@@ -1,8 +1,6 @@
 import { APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
 declare var sails: any;
-declare var BrandingService: any;
-declare var NamedQueryService: any;
 declare var _: any;
 
 export module Controllers {
@@ -16,7 +14,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'executeNamedQuery'
     ];
 

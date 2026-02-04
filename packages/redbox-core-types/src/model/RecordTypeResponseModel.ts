@@ -14,11 +14,10 @@ export class RecordTypeResponseModel{
 }
 
 export class SearchFilter {
-    name:string;
-    title:string;
-    type: SearchFilterType;
-    typeLabel: string;
-
+    name: string = '';
+    title: string = '';
+    type: SearchFilterType = SearchFilterType.exact;
+    typeLabel: string = '';
 }
 
 export enum SearchFilterType {

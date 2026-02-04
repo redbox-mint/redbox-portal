@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 declare var module: any;
 declare var sails: any;
 declare var _: any;
-declare var BrandingService: any, RolesService: any, UsersService: any;
 
 export module Controllers {
   /**
@@ -20,7 +19,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
         'rolesIndex',
         'usersIndex',
         'getBrandRoles',

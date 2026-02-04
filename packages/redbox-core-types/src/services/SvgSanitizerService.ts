@@ -475,3 +475,7 @@ declare var exports: any;
 export default Services;
 PopulateExportedMethods(Services.SvgSanitizer);
 
+declare global {
+  let SvgSanitizerService: Services.SvgSanitizer;
+}
+

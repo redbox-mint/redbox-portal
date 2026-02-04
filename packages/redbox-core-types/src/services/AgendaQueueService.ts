@@ -54,7 +54,7 @@ export module Services {
    *
    */
   export class AgendaQueue extends services.Core.Service implements QueueService {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'every',
       'schedule',
       'now',
@@ -65,7 +65,7 @@ export module Services {
       'init'
     ];
 
-    protected agenda: Agenda;
+    protected agenda!: Agenda;
 
     constructor() {
       super();
@@ -77,7 +77,7 @@ export module Services {
      * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
      * @return
      */
-    public async init() {
+    public override async init() {
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
 
@@ -238,4 +238,8 @@ export module Services {
       return await this.agenda.jobs(query, sort, limit, skip);
     }
   }
+}
+
+declare global {
+  let AgendaQueueService: Services.AgendaQueue;
 }

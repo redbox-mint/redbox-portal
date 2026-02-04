@@ -26,14 +26,6 @@ import { firstValueFrom } from "rxjs";
 
 declare var module;
 declare var sails;
-declare var TemplateService;
-declare var FormsService;
-declare var BrandingService;
-declare var FormRecordConsistencyService;
-declare var RecordsService;
-declare var DashboardTypesService;
-declare var ReportsService;
-declare var TranslationService;
 
 /**
  * Package that contains all Controllers.
@@ -49,7 +41,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'get',
       'getFormCompiledItems',
       'getFormStructureValidations',

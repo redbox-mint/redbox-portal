@@ -26,7 +26,7 @@ function mapError(e: Error): { status: number; body: any } {
 
 export module Controllers {
   export class BrandingApp extends controllers.Core.Controller {
-    protected _exportedMethods: any = ['config', 'draft', 'preview', 'publish', 'logo'];
+    protected override _exportedMethods: any = ['config', 'draft', 'preview', 'publish', 'logo'];
 
     /** 9.1 Return current draft/active branding config + logo meta */
     async config(req: Request, res: Response) {

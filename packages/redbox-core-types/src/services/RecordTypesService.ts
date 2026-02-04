@@ -37,7 +37,7 @@ export module Services {
    */
   export class RecordTypes extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'create',
       'get',
@@ -45,7 +45,7 @@ export module Services {
       'getAllCache'
     ];
 
-    protected recordTypes:RecordTypeModel[];
+    protected recordTypes!:RecordTypeModel[];
 
     public async bootstrap (defBrand:BrandingModel):Promise<RecordTypeModel[]> {
       let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id});
@@ -116,4 +116,8 @@ export module Services {
       return this.recordTypes;
         }
   }
+}
+
+declare global {
+  let RecordTypesService: Services.RecordTypes;
 }

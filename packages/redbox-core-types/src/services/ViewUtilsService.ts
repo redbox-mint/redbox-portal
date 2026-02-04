@@ -31,7 +31,7 @@ export module Services {
    */
   export class ViewUtils extends services.Core.Service {
 
-    protected _exportedMethods: string[] = [
+    protected override _exportedMethods: string[] = [
       'displayValue',
       'resolvePartialPath'
     ];
@@ -126,5 +126,9 @@ export module Services {
       return partialLocation;
     }
   }
+}
+
+declare global {
+  let ViewUtilsService: Services.ViewUtils;
 }
 

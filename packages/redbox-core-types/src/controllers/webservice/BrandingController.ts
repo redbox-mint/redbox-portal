@@ -1,8 +1,6 @@
 import { Controllers as controllers } from '../../index';
 
 declare var sails: any;
-declare var BrandingService: any;
-declare var BrandingLogoService: any;
 declare var BrandingConfigHistory: any;
 
 function mapError(e: Error): { status: number; body: any } {
@@ -19,7 +17,7 @@ function mapError(e: Error): { status: number; body: any } {
 
 export module Controllers {
   export class Branding extends controllers.Core.Controller {
-    protected _exportedMethods: any = [ 'draft','preview','publish','rollback','logo','history' ];
+    protected override _exportedMethods: any = [ 'draft','preview','publish','rollback','logo','history' ];
 
     async draft(req, res) {
       const branding = req.params['branding'];

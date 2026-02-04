@@ -2,7 +2,6 @@ import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsServ
 import { firstValueFrom } from 'rxjs';
 
 declare var sails: any;
-declare var FormsService: FormsServiceModule.Services.Forms;
 declare var _: any;
 
 export module Controllers {
@@ -16,7 +15,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'getForm',
       'listForms'
     ];

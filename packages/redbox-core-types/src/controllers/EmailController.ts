@@ -12,12 +12,12 @@ export module Controllers {
    */
   export class Email extends controllers.Core.Controller {
 
-      protected emailService: Services.Email;
+      protected emailService!: Services.Email;
 
       /**
        * Exported methods, accessible from internet.
        */
-      protected _exportedMethods: any = [
+      protected override _exportedMethods: any = [
           'init',
           'sendNotification'
       ];

@@ -88,10 +88,10 @@ export module Services {
 
   export class FigshareService extends services.Core.Service {
 
-    private datastreamService: DatastreamService;
-    private queueService: QueueService;
+    private datastreamService!: DatastreamService;
+    private queueService!: QueueService;
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'createUpdateFigshareArticle',
       'uploadFilesToFigshareArticle',
       'deleteFilesFromRedbox',
@@ -286,7 +286,7 @@ export module Services {
       return [status, statusText, responseMessage, message].filter(Boolean).join(' - ');
     }
 
-    protected async sleep(delayMs: number): Promise<void> {
+    protected override async sleep(delayMs: number): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
@@ -2383,3 +2383,7 @@ export module Services {
   }
 }
 module.exports.Services = Services;
+
+declare global {
+  let FigshareService: Services.FigshareService;
+}

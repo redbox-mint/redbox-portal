@@ -186,3 +186,7 @@ export module Services {
         }
     }
 }
+
+declare global {
+    let SassCompilerService: Services.SassCompiler;
+}

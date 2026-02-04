@@ -1,9 +1,7 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
 declare var sails: any;
-declare var BrandingService: any;
 declare var I18nEntriesService: any;
-declare var TranslationService: any;
 declare var _: any;
 
 export module Controllers {
@@ -11,7 +9,7 @@ export module Controllers {
    * Webservice TranslationController: manage language content via REST.
    */
   export class Translation extends controllers.Core.Controller {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'listEntries',
       'getEntry',
       'setEntry',

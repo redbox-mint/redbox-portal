@@ -39,7 +39,7 @@ export module Services {
    */
   export class Orcids extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'searchOrcid'
     ];
 
@@ -147,4 +147,8 @@ export module Services {
 
   }
 
+}
+
+declare global {
+  let OrcidService: Services.Orcids;
 }

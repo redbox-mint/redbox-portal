@@ -3,8 +3,6 @@ import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
 declare var sails: any;
-declare var BrandingService: any;
-declare var ReportsService: any;
 
 export module Controllers {
   /**
@@ -18,7 +16,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'render',
       'get',
       'getResults',

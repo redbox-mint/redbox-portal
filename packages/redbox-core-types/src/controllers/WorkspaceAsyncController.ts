@@ -1,7 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 
 declare var sails: any;
-declare var WorkspaceAsyncService: any;
 
 export module Controllers {
   /**
@@ -14,7 +13,7 @@ export module Controllers {
     /**
      * Methods required for workspace dashboard.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'start',
       'loop',
       'status'

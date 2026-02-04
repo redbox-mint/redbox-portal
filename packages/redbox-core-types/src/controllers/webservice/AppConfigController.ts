@@ -8,8 +8,6 @@ import {
 
 declare var sails: any;
 declare var _: any;
-declare var AppConfigService: AppConfigServiceModule.Services.AppConfigs;
-declare var BrandingService: BrandingServiceModule.Services.Branding;
 
 export module Controllers {
   /**
@@ -26,7 +24,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'getAppConfig',
       'saveAppConfig'
     ];

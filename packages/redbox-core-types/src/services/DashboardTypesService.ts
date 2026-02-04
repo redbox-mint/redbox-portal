@@ -7,8 +7,6 @@ import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var DashboardType: Model;
-declare var WorkflowStepsService: any;
-declare var RecordTypesService: any;
 declare var _;
 
 export module Services {
@@ -50,7 +48,7 @@ export module Services {
    */
   export class DashboardTypes extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'create',
       'get',
@@ -349,5 +347,9 @@ export module Services {
       return entries;
     }
   }
+}
+
+declare global {
+  let DashboardTypesService: Services.DashboardTypes;
 }
 

@@ -32,8 +32,6 @@ import {firstValueFrom} from "rxjs";
 
 declare var sails: Sails;
 declare var _;
-declare var RecordsService;
-declare var FormsService;
 
 export module Services {
 
@@ -112,7 +110,7 @@ export module Services {
             // get the original record's form config
             const formName = changed?.metaMetadata?.['form'];
             const isEditMode = formMode === "edit";
-            const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as unknown as FormConfigFrame;
 
             // build the client form config
             const userRoles: string[] | undefined = undefined;
@@ -475,7 +473,7 @@ export module Services {
             const isEditMode = formMode === "edit";
 
             // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
+            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as unknown as FormConfigFrame;
 
             // Get the validator definitions from the sails config, so the definitions can be overwritten.
             const validatorDefinitions = sails.config.validators.definitions;
@@ -549,4 +547,8 @@ export module Services {
             return base?.every((value, index) => check?.length > index && check?.[index] == value);
         }
     }
+}
+
+declare global {
+    let FormRecordConsistencyService: Services.FormRecordConsistency;
 }

@@ -509,3 +509,7 @@ export module Services {
   }
 }
 
+declare global {
+  let I18nEntriesService: Services.I18nEntries;
+}
+

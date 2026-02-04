@@ -26,7 +26,6 @@ import { default as UrlPattern } from 'url-pattern';
 
 declare var sails: Sails;
 declare var PathRule: Model;
-declare var RolesService, BrandingService;
 declare var _this;
 declare var _;
 
@@ -40,7 +39,7 @@ export module Services {
    */
   export class PathRules extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'getRulesFromPath',
       'canRead',
@@ -135,5 +134,9 @@ export module Services {
     }
 
   }
+}
+
+declare global {
+  let PathRulesService: Services.PathRules;
 }
 

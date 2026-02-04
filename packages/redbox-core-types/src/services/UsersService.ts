@@ -39,8 +39,6 @@ import * as crypto from 'crypto';
 
 declare var sails: Sails;
 declare var User, Role, UserAudit, Record: Model;
-declare var BrandingService, RolesService, ConfigService, RecordsService;
-declare var VocabService;
 declare const Buffer;
 declare var _;
 
@@ -54,7 +52,7 @@ export module Services {
    */
   export class Users extends services.Core.Service {
     
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'updateUserRoles',
       'updateUserDetails',
@@ -73,7 +71,7 @@ export module Services {
       'checkAuthorizedEmail',
     ];
 
-    searchService: SearchService;
+    searchService!: SearchService;
 
     protected localAuthInit () {
       // users the default brand's configuration on startup
@@ -1389,4 +1387,8 @@ export module Services {
       return false;
     }
   }
+}
+
+declare global {
+  let UsersService: Services.Users;
 }

@@ -2,8 +2,6 @@ import { APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers a
 import { firstValueFrom } from 'rxjs';
 
 declare var sails: any;
-declare var BrandingService: any;
-declare var RecordTypesService: any;
 declare var _: any;
 
 export module Controllers {
@@ -14,8 +12,8 @@ export module Controllers {
    */
   export class Search extends controllers.Core.Controller {
 
-    searchService: SearchService;
-    RecordsService: RecordsService;
+    searchService!: SearchService;
+    RecordsService!: RecordsService;
 
     public init(): void {
       this.registerSailsHook('after', 'ready', () => {
@@ -27,7 +25,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'init',
       'search',
       'index',
@@ -45,7 +43,7 @@ export module Controllers {
 
     }
 
-    public async index(req, res) {
+    public override async index(req, res) {
       let oid = req.param('oid');
       let record: RecordModel = await this.RecordsService.getMeta(oid);
       await this.searchService.index(oid, record);

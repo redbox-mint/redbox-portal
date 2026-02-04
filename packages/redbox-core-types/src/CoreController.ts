@@ -1,4 +1,5 @@
 import { existsSync } from 'fs';
+import * as _ from 'lodash';
 import { ILogger } from './Logger';
 import {
   BuildResponseType,
@@ -9,9 +10,7 @@ import {
 } from "./model";
 
 
-declare var _;
 declare var sails: Sails.Application;
-declare var TranslationService;
 
 
 export module Controllers.Core {
@@ -71,7 +70,7 @@ export module Controllers.Core {
     ];
 
     // Namespaced logger for controllers
-    private _logger: ILogger;
+    private _logger: ILogger | null = null;
 
     /**
      * Get a namespaced logger for this controller class.
@@ -79,12 +78,12 @@ export module Controllers.Core {
      * Falls back to sails.log if pino namespaced logging is not available.
      */
     protected get logger(): ILogger {
-      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+      if (this._logger === null && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
         const controllerName = this.constructor.name + 'Controller';
         this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
       }
       // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this._logger || (sails?.log as unknown as ILogger);
+      return this._logger ?? (sails?.log as unknown as ILogger);
     }
 
     /**
@@ -111,10 +110,10 @@ export module Controllers.Core {
     }
 
     constructor() {
-      this.processDynamicImports().then(result => {
+      this.processDynamicImports().then(() => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
-      })
+      });
     }
 
     /**
@@ -190,7 +189,7 @@ export module Controllers.Core {
      *          controller  Controller      Child controller class. (static)
      *
      */
-    protected _handleRequest(req, res, callback, options: any = {}): void {
+    protected _handleRequest(req: Sails.Req, res: Sails.Res, callback: (req: Sails.Req, res: Sails.Res, options: Record<string, unknown>) => void, options: Record<string, unknown> = {}): void {
       callback(req, res, options);
     }
 
@@ -209,31 +208,31 @@ export module Controllers.Core {
      * @param callback  Function to execute.
      * @param options   Object that contains options.
      */
-    public index(req, res, callback: any, options: any = {}) {
+    public index(req: Sails.Req, res: Sails.Res, callback: unknown, options: Record<string, unknown> = {}): void {
       res.notFound();
     }
 
 
-    public _getResolvedView(branding: string, portal: string, view: string): string {
-      var resolvedView: string = null;
+    public _getResolvedView(branding: string, portal: string, view: string): string | null {
+      let resolvedView: string | null = null;
 
       //Check if view exists for branding and portal
-      var viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
+      const viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
       if (existsSync(viewToTest)) {
         resolvedView = branding + "/" + portal + "/" + view;
       }
       // If view doesn't exist, next try for portal with default branding
-      if (resolvedView == null) {
-        viewToTest = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
-        if (existsSync(viewToTest)) {
+      if (resolvedView === null) {
+        const viewToTest2 = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
+        if (existsSync(viewToTest2)) {
           resolvedView = "default/" + portal + "/" + view;
         }
       }
 
       // If view still doesn't exist, next try for default portal with default branding
-      if (resolvedView == null) {
-        viewToTest = sails.config.appPath + "/views/default/default/" + view + ".ejs";
-        if (existsSync(viewToTest)) {
+      if (resolvedView === null) {
+        const viewToTest3 = sails.config.appPath + "/views/default/default/" + view + ".ejs";
+        if (existsSync(viewToTest3)) {
           resolvedView = "default/default/" + view;
         }
       }
@@ -241,16 +240,16 @@ export module Controllers.Core {
       return resolvedView;
     }
 
-    public _getResolvedLayout(branding: string, portal: string): string {
-      var resolvedLayout: string = null;
+    public _getResolvedLayout(branding: string, portal: string): string | null {
+      let resolvedLayout: string | null = null;
 
       //Check if view exists for branding and portal
-      var layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
+      let layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
       if (existsSync(layoutToTest)) {
         resolvedLayout = branding + "/" + portal + "/layout";
       }
       // If view doesn't exist, next try for portal with default branding
-      if (resolvedLayout == null) {
+      if (resolvedLayout === null) {
         layoutToTest = sails.config.appPath + "/views/default/" + portal + "/layout.ejs";
         if (existsSync(layoutToTest)) {
           resolvedLayout = "/default/" + portal + "/layout";
@@ -258,7 +257,7 @@ export module Controllers.Core {
       }
 
       // If view still doesn't exist, next try for default portal with default branding
-      if (resolvedLayout == null) {
+      if (resolvedLayout === null) {
         layoutToTest = sails.config.appPath + "/views/default/default/" + "layout.ejs";
         if (existsSync(layoutToTest)) {
           resolvedLayout = "default/default/layout";
@@ -268,37 +267,38 @@ export module Controllers.Core {
       return resolvedLayout;
     }
 
-    public sendView(req, res, view: string, locals: any = {}) {
+    public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
 
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      var mergedLocal = (<any>Object).assign({}, req.options.locals, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals, locals);
 
-      var branding = mergedLocal['branding'];
-      var portal = mergedLocal['portal'];
+      const branding = mergedLocal['branding'] as string;
+      const portal = mergedLocal['portal'] as string;
 
-      var resolvedView: string = this._getResolvedView(branding, portal, view);
-      var resolvedLayout: string = this._getResolvedLayout(branding, portal);
+      const resolvedView: string | null = this._getResolvedView(branding, portal, view);
+      const resolvedLayout: string | null = this._getResolvedLayout(branding, portal);
 
       // If we can resolve a layout set it.
-      if (resolvedLayout != null && mergedLocal["layout"] != false) {
+      if (resolvedLayout !== null && mergedLocal["layout"] !== false) {
         res.locals.layout = resolvedLayout;
       }
 
       // View still doesn't exist so return a 404
-      if (resolvedView == null) {
+      if (resolvedView === null) {
         res.notFound(mergedLocal, "404");
+        return;
       }
 
       // Add some properties blueprints usually adds
       // TODO: Doesn't seem to be binding properly. Investigate
       mergedLocal.view = {};
-      mergedLocal.view.pathFromApp = resolvedView;
-      mergedLocal.view.ext = 'ejs';
+      (mergedLocal.view as Record<string, string>).pathFromApp = resolvedView;
+      (mergedLocal.view as Record<string, string>).ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
-      let fullViewPath = sails.config.appPath + "/views/" + resolvedView;
+      const fullViewPath = sails.config.appPath + "/views/" + resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
       this.logger.debug("resolvedView");
@@ -313,22 +313,22 @@ export module Controllers.Core {
     /**
      * @deprecated Use `sendResp` instead.
      */
-    public respond(req, res, ajaxCb, normalCb, forceAjax = false) {
-      if (this.isAjax(req) || forceAjax == true) {
+    public respond(req: Sails.Req, res: Sails.Res, ajaxCb: (req: Sails.Req, res: Sails.Res) => unknown, normalCb: (req: Sails.Req, res: Sails.Res) => unknown, _forceAjax = false): unknown {
+      if (this.isAjax(req) || _forceAjax === true) {
         return ajaxCb(req, res);
       } else {
         return normalCb(req, res);
       }
     }
 
-    protected isAjax(req) {
-      return req.headers['x-source'] == 'jsclient';
+    protected isAjax(req: Sails.Req): boolean {
+      return req.headers['x-source'] === 'jsclient';
     }
 
     /**
      * @deprecated Use `sendResp` instead.
      */
-    protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
+    protected ajaxOk(req: Sails.Req, res: Sails.Res, msg = '', data: unknown = null, _forceAjax = false): Response {
       const payload = data ?? { status: true, message: msg };
       return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
@@ -336,7 +336,7 @@ export module Controllers.Core {
     /**
      * @deprecated Use `sendResp` instead.
      */
-    protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
+    protected ajaxFail(req: Sails.Req, res: Sails.Res, msg = '', data: unknown = null, _forceAjax = false): Response {
       const payload = data ?? { status: false, message: msg };
       return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
@@ -344,7 +344,7 @@ export module Controllers.Core {
     /**
      * @deprecated Use `sendResp` instead.
      */
-    protected apiFail(req, res, statusCode = 500, errorResponse?: APIErrorResponse) {
+    protected apiFail(req: Sails.Req, res: Sails.Res, statusCode = 500, errorResponse?: APIErrorResponse): Response {
       const displayErrors = [{
         title: errorResponse?.message ?? 'An error has occurred',
         detail: errorResponse?.details
@@ -355,25 +355,26 @@ export module Controllers.Core {
     /**
      * @deprecated Use `sendResp` instead.
      */
-    protected apiSuccess(req, res, jsonObj = null, statusCode = 200) {
+    protected apiSuccess(req: Sails.Req, res: Sails.Res, jsonObj: unknown = null, statusCode = 200): Response {
       return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
     /**
      * @deprecated Use `sendResp` instead.
      */
-    protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
+    protected apiRespond(req: Sails.Req, res: Sails.Res, jsonObj: unknown = null, statusCode = 200): Response {
       return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
     /**
      * @deprecated Use `sendResp` instead.
      */
-    protected ajaxRespond(req, res, jsonObj = null, forceAjax) {
+    protected ajaxRespond(req: Sails.Req, res: Sails.Res, jsonObj: unknown = null, _forceAjax?: boolean): Response {
       return this.sendResp(req, res, { data: jsonObj, headers: this.getNoCacheHeaders() });
     }
 
-    protected getNg2Apps(viewPath) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected getNg2Apps(viewPath: string): { ng2_apps: any } {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
         return { ng2_apps: sails.config.ng2.apps[viewPath] };
       } else {
@@ -388,7 +389,7 @@ export module Controllers.Core {
      * @return The API version string.
      * @private
      */
-    private getApiVersion(req): ApiVersionStrings {
+    private getApiVersion(req: Sails.Req): ApiVersionStrings {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;
@@ -411,7 +412,7 @@ export module Controllers.Core {
       // Use the HTTP header value first, then the query string value, then the default.
       const version = headerValue ?? qsValue ?? defaultVersion;
 
-      const available = Array.from(Object.values(ApiVersion));
+      const available: string[] = Object.values(ApiVersion);
       if (!available.includes(version)) {
         sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
           `Using default API version (${defaultVersion}).`);
@@ -419,7 +420,7 @@ export module Controllers.Core {
       }
 
       sails.log.verbose(`Using API version '${version}' for url '${req.url}'.`);
-      return version;
+      return version as ApiVersionStrings;
     }
 
     /**
@@ -747,7 +748,7 @@ export module Controllers.Core {
       };
     }
 
-    private setNoCacheHeaders(req, res) {
+    private setNoCacheHeaders(_req: Sails.Req, res: Sails.Res): void {
       res.set(this.getNoCacheHeaders());
     }
   }

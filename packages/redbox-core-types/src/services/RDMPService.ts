@@ -37,7 +37,6 @@ declare var RecordType, Counter: Model;
 declare var _this;
 declare var User;
 declare var _;
-declare var TranslationService, WorkspaceService;
 
 export module Services {
   /**
@@ -50,7 +49,7 @@ export module Services {
 
     protected queueService: QueueService = null;
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'assignPermissions',
       'complexAssignPermissions',
       'processRecordCounters',
@@ -714,4 +713,8 @@ export module Services {
       return workspaceData;
     }
   }
+}
+
+declare global {
+  let RDMPService: Services.RDMPS;
 }

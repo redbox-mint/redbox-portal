@@ -26,10 +26,6 @@ import {
 
 declare var sails: any;
 declare var _: any;
-declare var BrandingService: any;
-declare var UsersService: any;
-declare var ConfigService: any;
-declare var TranslationService: any;
 
 export module Controllers {
   /**
@@ -42,7 +38,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'login',
       'logout',
       'info',

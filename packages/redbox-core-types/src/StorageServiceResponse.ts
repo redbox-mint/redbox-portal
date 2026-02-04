@@ -21,12 +21,14 @@
  * Response class for StorageService methods.
  */
 export class StorageServiceResponse {
-  success: boolean;
-  oid: string;
-  message: string;
-  metadata:  any;
-  totalItems: number;
-  items: any[];
+  success: boolean = false;
+  oid: string = '';
+  message: string = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: any = null;
+  totalItems: number = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  items: any[] = [];
   constructor() {
 
   }

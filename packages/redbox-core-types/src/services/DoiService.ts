@@ -27,9 +27,6 @@ import { DateTime } from 'luxon';
 import axios from 'axios';
 
 declare var sails: Sails;
-declare var RecordsService;
-declare var BrandingService;
-declare var TranslationService;
 declare var _;
 
 export module Services {
@@ -41,7 +38,7 @@ export module Services {
    *
    */
   export class Doi extends services.Core.Service {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'publishDoi',
       'publishDoiTrigger',
       'publishDoiTriggerSync',
@@ -50,7 +47,7 @@ export module Services {
       'changeDoiState'
     ];
 
-    private _msgPrefix: string;
+    private _msgPrefix!: string;
     private msgPrefix() {
       if (!this._msgPrefix) {
         this._msgPrefix = TranslationService.t('Datacite API error');
@@ -541,5 +538,9 @@ export module Services {
       return _.get(variables, template);
     }
   }
+}
+
+declare global {
+  let DoiService: Services.Doi;
 }
 

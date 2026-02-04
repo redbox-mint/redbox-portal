@@ -38,7 +38,6 @@ import {
 declare var sails: Sails;
 declare var _;
 declare var _this;
-declare var RecordsService: RecordsService;
 let flat;
 import * as luceneEscapeQuery from "lucene-escape-query";
 
@@ -105,7 +104,7 @@ export module Services {
    *
    */
   export class SolrSearchService extends services.Core.Service implements SearchService {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'index',
       'remove',
       'searchFuzzy',
@@ -116,7 +115,7 @@ export module Services {
       'init'
     ]
 
-    protected queueService: QueueService;
+    protected queueService!: QueueService;
     private clients: {
       [key: string]: SolrClient;
     } = {};
@@ -126,7 +125,7 @@ export module Services {
       this.logHeader = "SolrIndexer::";
     }
 
-    public init() {
+    public override init() {
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
         that.queueService = sails.services[sails.config.queue.serviceName];
@@ -135,7 +134,7 @@ export module Services {
       });
     }
 
-    protected async processDynamicImports() {
+    protected override async processDynamicImports() {
       flat = await import("flat");
     }
 
@@ -490,4 +489,8 @@ export module Services {
       }
     }
   }
+}
+
+declare global {
+  let SolrSearchService: Services.SolrSearchService;
 }

@@ -3,7 +3,6 @@ import { menuResolver } from '../../src/policies/menuResolver';
 
 // Mock globals
 declare var sails: any;
-declare var NavigationService: any;
 
 (global as any).sails = {
     log: {

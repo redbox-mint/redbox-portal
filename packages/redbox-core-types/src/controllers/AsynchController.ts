@@ -4,9 +4,6 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 
 declare var sails: any;
 declare var _: any;
-declare var AsynchsService: any;
-declare var VocabService: any;
-declare var BrandingService: any;
 
 export module Controllers {
   /**
@@ -19,7 +16,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
         'index',
         'start',
         'progress',
@@ -34,7 +31,7 @@ export module Controllers {
      * ************************************** Add custom methods **************************************
      * *************************************************************************************************
      */
-    public index(req, res) {
+    public override index(req, res) {
       return this.sendView(req, res, 'asynch/index');
     }
 

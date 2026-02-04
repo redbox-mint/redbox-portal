@@ -36,7 +36,7 @@ export module Services {
    */
   export class WorkspaceTypes extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'create',
       'get',
@@ -94,4 +94,8 @@ export module Services {
       return super.getObservable(WorkspaceType.findOne({ branding: brand.id, name: name }));
     }
   }
+}
+
+declare global {
+  let WorkspaceTypesService: Services.WorkspaceTypes;
 }

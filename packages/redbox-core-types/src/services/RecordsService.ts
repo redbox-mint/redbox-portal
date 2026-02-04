@@ -55,11 +55,10 @@ import {
 
 const util = require('util');
 
-declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService, SolrSearchService;
 declare var sails: Sails;
 declare var _;
 declare var _this;
-declare var TranslationService;
+declare var RedboxJavaStorageService: StorageService & DatastreamService;
 
 export module Services {
   /**
@@ -83,7 +82,7 @@ export module Services {
 
     }
 
-    public init() {
+    public override init() {
       const that = this;
       this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         that.getStorageService(that);
@@ -118,7 +117,7 @@ export module Services {
       }
     }
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'create',
       'updateMeta',
       'getMeta',
@@ -335,8 +334,8 @@ export module Services {
 
 
     async updateMeta(brand: any, oid: any, record: any, user?: any, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true, nextStep: any = {}, metadata: any = {}): Promise<StorageServiceResponse> {
-
-      let updateResponse = new StorageServiceResponse();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let updateResponse: any = new StorageServiceResponse();
       let preTriggerResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
       const failedMessage = "Failed to update record, please check server logs.";
@@ -1251,4 +1250,8 @@ export module Services {
         );
     }
   }
+}
+
+declare global {
+  let RecordsService: Services.Records;
 }

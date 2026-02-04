@@ -26,8 +26,6 @@ import { Services as services } from '../CoreService';
 import { Sails } from 'sails';
 import axios, { AxiosResponse } from 'axios';
 
-declare var CacheService, AsynchsService;
-declare var NamedQueryService;
 declare var sails: Sails;
 declare var _;
 
@@ -41,7 +39,7 @@ export module Services {
    */
   export class Vocab extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'bootstrap',
       'getVocab',
       'loadCollection',
@@ -438,4 +436,8 @@ export module Services {
       return opts;
     }
   }
+}
+
+declare global {
+  let VocabService: Services.Vocab;
 }

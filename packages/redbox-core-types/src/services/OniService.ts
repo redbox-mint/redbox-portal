@@ -35,7 +35,6 @@ import {ROCrate} from "ro-crate";
 
 let wktParserHelper;
 declare var sails: Sails;
-declare var RecordsService, UsersService;
 declare var _;
 
 const URL_PLACEHOLDER = '{ID_WILL_BE_HERE}'; // config
@@ -51,7 +50,7 @@ export module Services {
 	 */
 	export class OniService extends services.Core.Service {
 
-		protected _exportedMethods: any = [
+		protected override _exportedMethods: any = [
 			'exportDataset'
 		];
 
@@ -66,7 +65,7 @@ export module Services {
 			});
 		}
 
-		protected async processDynamicImports() {
+		protected override async processDynamicImports() {
       	  	wktParserHelper = await import("wkt-parser-helper");
     	}
 
@@ -675,4 +674,8 @@ export module Services {
 
 	}
 
+}
+
+declare global {
+  let OniService: Services.OniService;
 }

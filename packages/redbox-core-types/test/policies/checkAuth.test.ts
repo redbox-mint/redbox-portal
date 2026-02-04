@@ -3,9 +3,6 @@ import { checkAuth } from '../../src/policies/checkAuth';
 
 // Mock globals
 declare var sails: any;
-declare var BrandingService: any;
-declare var RolesService: any;
-declare var PathRulesService: any;
 
 (global as any).sails = {
     config: {

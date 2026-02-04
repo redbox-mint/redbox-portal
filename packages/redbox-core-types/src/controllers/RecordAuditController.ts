@@ -31,12 +31,12 @@ export module Controllers {
    */
   export class RecordAudit extends controllers.Core.Controller {
 
-    protected recordsService: RecordsService;
+    protected recordsService!: RecordsService;
 
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: any = [
       'render',
       'init'
     ];
