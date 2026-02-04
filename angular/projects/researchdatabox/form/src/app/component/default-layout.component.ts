@@ -71,7 +71,7 @@ import {FormService} from "../form.service";
             @if (componentValidationList.length > 0) {
               <div class="invalid-feedback">
                 Invalid value:
-                @for (error of componentValidationList; track error.class ?? $index) {
+                @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
                   <span [attr.data-validation-error-class]="error.class"
                         [attr.data-validation-error-message]="error.message">
                     {{ $index + 1 }}) {{ error.message | i18next: error.params }}
