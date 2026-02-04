@@ -1,7 +1,7 @@
-import {logger} from "./helpers";
 import {MigrationV4ToV5FormConfigVisitor} from "../../src/config/visitor/migrate-config-v4-v5.visitor";
 import fs from "fs";
 import path from "path";
+import {log} from "@researchdatabox/redbox-core-types";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -20,7 +20,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
             }
             const v5InputFile = v4InputFile.replace('.js', '.ts');
 
-            const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+            const visitor = new MigrationV4ToV5FormConfigVisitor(log.custom);
             const actual = visitor.start(formConfig);
 
             const tsContent = `
@@ -28,8 +28,8 @@ import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 const formConfig: FormConfigFrame = ${JSON.stringify(actual, null, 2)};
 module.exports = formConfig;
 `;
-            // fs.writeFileSync(`${outputFiles}/parsed-${v5InputFile}`, tsContent, "utf8");
-            // expect(actual).to.not.be.empty;
+            fs.writeFileSync(`${outputFiles}/parsed-${v5InputFile}`, tsContent, "utf8");
+            expect(actual).to.not.be.empty;
         }
     });
 });

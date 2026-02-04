@@ -136,7 +136,7 @@ type MappingResult = V5ClassNames & { errorMessage: string };
  *
  * There are a few places to update to properly map from a v4 form config to a v5 form config:
  * 1. Add the v4 class name and comp class name to formConfigV4ToV5Mapping, along with the matching v5 class names.
- * 2. Add any component-specific mapping post processing to postProcessingFormConfigV4ToV5Mapping.
+ * 2. Add any component-specific mapping post-processing to postProcessingFormConfigV4ToV5Mapping.
  * 3. Check the 'visit<Name>[Field|Form]...' methods, and see if there is any special processing needed.
  *
  */
@@ -169,12 +169,20 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         },
     },
     "TabOrAccordionContainer": {
+        "": {
+            componentClassName: TabComponentName,
+            layoutClassName: TabLayoutName
+        },
         "TabOrAccordionContainerComponent": {
             componentClassName: TabComponentName,
             layoutClassName: TabLayoutName
         },
     },
     "ButtonBarContainer": {
+        "": {
+            componentClassName: GroupFieldComponentName,
+            modelClassName: GroupFieldModelName
+        },
         "ButtonBarContainerComponent": {
             componentClassName: GroupFieldComponentName,
             modelClassName: GroupFieldModelName
@@ -187,6 +195,10 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         },
     },
     "RepeatableContainer": {
+        "": {
+            componentClassName: RepeatableComponentName,
+            modelClassName: RepeatableModelName
+        },
         "RepeatableTextfieldComponent": {
             componentClassName: RepeatableComponentName,
             modelClassName: RepeatableModelName
@@ -203,6 +215,10 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         }
     },
     "RepeatableVocab": {
+        "": {
+            componentClassName: RepeatableComponentName,
+            modelClassName: RepeatableModelName
+        },
         "RepeatableVocabComponent": {
             componentClassName: RepeatableComponentName,
             modelClassName: RepeatableModelName
