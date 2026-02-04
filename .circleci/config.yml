@@ -357,7 +357,7 @@ jobs:
           name: Install packages
           command: |
             cd ./packages/sails-ng-common
-            npm ci
+            npm ci --include=dev
       - run:
           name: Run Mocha tests
           no_output_timeout: 30m
@@ -404,7 +404,7 @@ jobs:
           name: Install packages
           command: |
             cd ./packages/redbox-core-types
-            npm ci
+            npm ci --include=dev
       - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
