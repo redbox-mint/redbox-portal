@@ -533,7 +533,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                 this.removePropsAll(item)
             }
         } catch (error) {
-            // rethrow error - the finally block will ensure the constraintPath is correct
             throw error;
         } finally {
             this.constraintPath = currentConstraintPath;

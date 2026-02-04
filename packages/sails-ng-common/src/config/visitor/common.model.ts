@@ -264,7 +264,6 @@ export class FormPathHelper {
             this._formPath = buildLineagePaths(original, more);
             item.accept(this.visitor);
         } catch (error) {
-            // Rethrow error - the finally block will ensure the original is restored.
             throw error;
         } finally {
             this._formPath = original;
