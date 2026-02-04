@@ -11,7 +11,7 @@ import {
     FieldLayoutDefinitionMap,
     FieldModelDefinitionMap,
     FormComponentClassDefMapType,
-    FormComponentDefinitionMap,
+    FormComponentDefinitionMap, KindNameDefaultsMap, KindNameDefaultsMapType,
     LayoutClassDefMapType,
     ModelClassDefMapType,
 } from "../dictionary.model";
@@ -22,18 +22,21 @@ import {
     LineagePathsPartial,
 } from "../names/naming-helpers";
 import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
+import {FieldLayoutDefinitionKind, FieldModelDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
 
 export class PropertiesHelper {
     private fieldComponentMap: ComponentClassDefMapType;
     private fieldModelMap: ModelClassDefMapType;
     private fieldLayoutMap: LayoutClassDefMapType;
     private formComponentMap: FormComponentClassDefMapType;
+    private kindNameDefaultsMap: KindNameDefaultsMapType;
 
     constructor() {
         this.fieldComponentMap = FieldComponentDefinitionMap;
         this.fieldModelMap = FieldModelDefinitionMap;
         this.fieldLayoutMap = FieldLayoutDefinitionMap;
         this.formComponentMap = FormComponentDefinitionMap;
+        this.kindNameDefaultsMap = KindNameDefaultsMap;
     }
 
     /**
@@ -77,28 +80,39 @@ export class PropertiesHelper {
         // Set the overrides, as they might be used to transform this component into other components.
         item.overrides = currentData.overrides;
 
-        // Get the class string names.
+        // Create the field component class instance.
         const componentClassString = currentData?.component?.class;
-        const modelClassString = currentData?.model?.class;
-        const layoutClassString = currentData?.layout?.class;
-
-        // Get the classes
         const componentClass = this.fieldComponentMap?.get(componentClassString);
-        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
-        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
-
-        // Create new instances
         if (!componentClass) {
             throw new Error(`Could not find class for field component class string '${componentClassString}'.`)
         }
         const component = new componentClass();
-        const model = modelClass ? new modelClass() : null;
-        const layout = layoutClass ? new layoutClass() : null;
-
-        // Set the instances
         item.component = component;
-        item.model = model || undefined;
-        item.layout = layout || undefined;
+
+        const sourceDefaultsMap = this.kindNameDefaultsMap.get(FormComponentDefinitionKind);
+        const targetDefaultsMap = sourceDefaultsMap?.get(componentClassString);
+
+        // Create the model class instance.
+        // If there is no model class, use the default if there is one.
+        const modelClassDefaultName = targetDefaultsMap?.get(FieldModelDefinitionKind);
+        const modelClassString = currentData?.model?.class ?? modelClassDefaultName;
+        const modelClass = modelClassString ? this.fieldModelMap?.get(modelClassString) : null;
+        const model = modelClass ? new modelClass() : undefined;
+        item.model = model;
+        if (model) {
+            this.setFieldClassName(currentData, "model", modelClassString);
+        }
+
+        // Create the layout class instance.
+        // If there is no layout class, use the default if there is one.
+        const layoutClassDefaultName = targetDefaultsMap?.get(FieldLayoutDefinitionKind);
+        const layoutClassString = currentData?.layout?.class ?? layoutClassDefaultName;
+        const layoutClass = layoutClassString ? this.fieldLayoutMap?.get(layoutClassString) : null;
+        const layout = layoutClass ? new layoutClass() : undefined;
+        item.layout = layout;
+        if (layout) {
+            this.setFieldClassName(currentData, "layout", layoutClassString);
+        }
 
         return item;
     }
@@ -200,6 +214,18 @@ export class PropertiesHelper {
             target[name] = propValue;
         }
     }
+
+    private setFieldClassName(currentData: FormComponentDefinitionFrame, fieldTypeName: "model" | "layout", className: string | null | undefined) {
+        if (currentData === undefined || currentData === null || className === undefined || className === null) {
+            return;
+        }
+        if (currentData[fieldTypeName] === undefined || currentData[fieldTypeName] === null) {
+            currentData[fieldTypeName] = {class: className};
+            return;
+        } else if (currentData[fieldTypeName]?.class === undefined || currentData[fieldTypeName]?.class === null) {
+            currentData[fieldTypeName].class = className;
+        }
+    }
 }
 
 export class FormPathHelper {
@@ -278,7 +304,7 @@ export class FormPathHelper {
     public lineagePathsForTabFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
         return {
             formConfig: ["config", "tabs", index.toString()],
-            // tab component does not participate in data model
+            dataModel: this.getFormPathDataModel(item),
             angularComponents: this.getFormPathAngularComponents(item),
         };
     }
@@ -286,7 +312,7 @@ export class FormPathHelper {
     public lineagePathsForTabContentFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
         return {
             formConfig: ["config", "componentDefinitions", index.toString()],
-            // tab content component does not participate in data model
+            dataModel: this.getFormPathDataModel(item),
             angularComponents: this.getFormPathAngularComponents(item),
         }
     }
@@ -308,10 +334,10 @@ export class FormPathHelper {
         // TODO: does this need to cater for components that have no model but need the model data, like content component?
 
         const dataModel = [];
-        if (itemName && item.model !== undefined && item.model !== null){
+        if (itemName && item.model !== undefined && item.model !== null) {
             dataModel.push(itemName);
         }
-        this.logger.error(`getFormPathDataModel dataModel ${JSON.stringify(dataModel)} item ${JSON.stringify(item)}`);
+
         return dataModel;
     }
 
@@ -322,7 +348,6 @@ export class FormPathHelper {
         if (itemName) {
             angularComponents.push(itemName)
         }
-        this.logger.error(`getFormPathAngularComponents angularComponents ${JSON.stringify(angularComponents)} item ${JSON.stringify(item)}`);
         return angularComponents;
     }
 }

@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
-import {AbstractControl, FormArray, FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty,  merge as _merge, set as _set, isUndefined as _isUndefined, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
+import {AbstractControl, FormControl} from '@angular/forms';
+import {isEmpty as _isEmpty,  merge as _merge, set as _set, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
 import {
   StaticComponentClassMap,
   StaticModelClassMap,
@@ -53,7 +53,8 @@ import {
   buildLineagePaths as buildLineagePathsHelper,
   queryJSONata,
   getObjectWithJsonPointer,
-  FormModesConfig,
+  FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
+  FormComponentDefinitionKind, KindNameDefaultsMapType,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
@@ -81,6 +82,7 @@ export class FormService extends HttpClientService {
   protected compClassMap: AllComponentClassMapType = {};
   protected modelClassMap: AllModelClassMapType = {};
   protected layoutClassMap: AllLayoutClassMapType = {};
+  protected kindNameDefaultsMap: KindNameDefaultsMapType;
   protected validatorsSupport: ValidatorsSupport;
 
   private requestOptions: Record<string, unknown> = {};
@@ -112,6 +114,8 @@ export class FormService extends HttpClientService {
     this.loggerService.debug(`${this.logName}: Static layout classes:`,
       Object.fromEntries(Object.entries(this.layoutClassMap).map(([key, value]) => [key, value?.constructor?.name]))
     );
+
+    this.kindNameDefaultsMap = KindNameDefaultsMap;
 
     this.validatorsSupport = new ValidatorsSupport();
   }
@@ -329,23 +333,33 @@ export class FormService extends HttpClientService {
     const ModelType = compMapEntry.modelClass;
     const modelConfig = compMapEntry.compConfigJson.model;
     const enabledGroups = this.loadedFormConfig?.enabledValidationGroups ?? ["all"];
+
+    const componentClassName = compMapEntry?.compConfigJson?.component?.class;
+    const name = compMapEntry?.compConfigJson?.name;
+    const layoutClassName = compMapEntry?.compConfigJson?.layout?.class;
+    const modelClassName = compMapEntry?.compConfigJson?.model?.class;
+
     if (ModelType && modelConfig) {
       compMapEntry.model = new ModelType(modelConfig);
       this.setValidators(compMapEntry.model.formControl, compMapEntry.model.validators, enabledGroups);
       return compMapEntry.model;
-    } else {
-      // TODO: Is there some way to indicate which components must have a model, and which ones must not?
-      //       Then this could throw an error instead of warning about components that can't have a model.
-      // Model is now optional, so we can return null if the model is not defined.
-      // Log appropriate warning to highlight potential config errors.
-      const name = compMapEntry?.compConfigJson?.name;
-      const componentClassName = compMapEntry?.compConfigJson?.component?.class;
-      const layoutClassName = compMapEntry?.compConfigJson?.layout?.class;
-      const modelClassName = compMapEntry?.compConfigJson?.model?.class;
-      this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component name ${JSON.stringify(name)}. ` +
-        `Component class ${JSON.stringify(componentClassName)} layout class ${JSON.stringify(layoutClassName)} model class ${JSON.stringify(modelClassName)}. ` +
-        `If this is unexpected, check your form configuration.`);
     }
+
+    // Check if there is a default model class name for this field component.
+    const sourceDefaultsMap = this.kindNameDefaultsMap.get(FormComponentDefinitionKind);
+    const targetDefaultsMap = sourceDefaultsMap?.get(componentClassName);
+    const modelClassDefaultName = targetDefaultsMap?.get(FieldModelDefinitionKind);
+    const hasModelClassDefault = modelClassDefaultName !== undefined && modelClassDefaultName !== null;
+
+    if (hasModelClassDefault) {
+      // If there is a default model class name, then assume that there must be a model class.
+      // It is an error to not provide ModelType or not provide modelConfig when there is a default model class name.
+      throw new Error(`${this.logName}: Model class or model config is not defined for component name ${JSON.stringify(name)}. ` +
+        `Component class ${JSON.stringify(componentClassName)} layout class ${JSON.stringify(layoutClassName)} model class ${JSON.stringify(modelClassName)}. ` +
+        `The assumption is that if there is a default model class '${JSON.stringify(modelClassDefaultName)}', then a model class must be provided.`);
+    }
+
+    // Model is optional, so we can return null if the model is not defined and there is no default model class name.
     return null;
   }
 

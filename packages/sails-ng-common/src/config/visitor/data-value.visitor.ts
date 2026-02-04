@@ -327,7 +327,6 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
      */
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
         const dataModelPath = this.formPathHelper.formPath.dataModel;
-        this.logger.info(`setFromModelDefinition item.config ${JSON.stringify(item?.config)} dataModelPath ${JSON.stringify(dataModelPath)}`);
         if (item?.config?.value !== undefined) {
             _set(this.dataValues, dataModelPath, item?.config?.value);
         }

@@ -314,7 +314,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
-        this.logger.info(`TemplateFormConfigVisitor: Extracting expressions...`);
+        this.logger.debug(`TemplateFormConfigVisitor: Extracting expressions...`);
         (expressions ?? []).forEach((expression, index) => {
             for (const prop of ['template', 'condition'] as const) {
                 const value = (expression.config as any)?.[prop];

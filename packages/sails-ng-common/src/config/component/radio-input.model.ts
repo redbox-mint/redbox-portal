@@ -90,4 +90,11 @@ export const RadioInputMap = [
     {kind: FieldModelDefinitionKind, def: RadioInputFieldModelDefinition, class: RadioInputModelName},
     {kind: FormComponentDefinitionKind, def: RadioInputFormComponentDefinition, class: RadioInputComponentName},
 ];
-
+export const RadioInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [RadioInputComponentName]: {
+            [FieldComponentDefinitionKind]: RadioInputComponentName,
+            [FieldModelDefinitionKind]: RadioInputModelName,
+        },
+    },
+};

@@ -255,7 +255,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         const currentData = this.getData();
         if (!isTypeFormConfig(currentData)) {
-            return;
+            throw new Error(`Invalid FormConfigFrame at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Set the simple properties, using the class instance property values as the defaults.
@@ -296,9 +296,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             const formComponent = this.constructFormComponent(componentDefinition);
 
             // Visit children
+            const testing = this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index);
             this.formPathHelper.acceptFormPath(
                 formComponent,
-                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index),
+                testing,
             );
 
             // After the construction is done, apply any transforms
@@ -315,7 +316,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<SimpleInputFieldComponentDefinitionFrame>(currentData, SimpleInputComponentName)) {
-            return;
+            throw new Error(`Invalid ${SimpleInputComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -331,7 +332,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<SimpleInputFieldModelDefinitionFrame>(currentData, SimpleInputModelName)) {
-            return;
+            throw new Error(`Invalid ${SimpleInputModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -352,7 +353,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<ContentFieldComponentDefinitionFrame>(currentData, ContentComponentName)) {
-            return;
+            throw new Error(`Invalid ${ContentComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -376,7 +377,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(currentData, RepeatableComponentName)) {
-            return;
+            throw new Error(`Invalid ${RepeatableComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const frame = currentData?.config;
 
@@ -431,7 +432,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RepeatableFieldModelDefinitionFrame>(currentData, RepeatableModelName)) {
-            return;
+            throw new Error(`Invalid ${RepeatableModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -446,7 +447,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RepeatableElementFieldLayoutDefinitionFrame>(currentData, RepeatableElementLayoutName)) {
-            return;
+            throw new Error(`Invalid ${RepeatableElementLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -465,7 +466,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<ValidationSummaryFieldComponentDefinitionFrame>(currentData, ValidationSummaryComponentName)) {
-            return;
+            throw new Error(`Invalid ${ValidationSummaryComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -485,7 +486,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
-            return;
+            throw new Error(`Invalid ${GroupFieldComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const frame = currentData?.config ?? {componentDefinitions: []};
 
@@ -518,7 +519,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<GroupFieldModelDefinitionFrame>(currentData, GroupFieldModelName)) {
-            return;
+            throw new Error(`Invalid ${GroupFieldModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -539,7 +540,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
-            return;
+            throw new Error(`Invalid ${TabComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const frame = currentData?.config ?? {tabs: []};
 
@@ -585,7 +586,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabFieldLayoutDefinitionFrame>(currentData, TabLayoutName)) {
-            return;
+            throw new Error(`Invalid ${TabLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -610,7 +611,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
-            return;
+            throw new Error(`Invalid ${TabContentComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config ?? {componentDefinitions: []};
 
@@ -645,7 +646,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TabContentFieldLayoutDefinitionFrame>(currentData, TabContentLayoutName)) {
-            return;
+            throw new Error(`Invalid ${TabContentLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -667,7 +668,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<SaveButtonFieldComponentDefinitionFrame>(currentData, SaveButtonComponentName)) {
-            return;
+            throw new Error(`Invalid ${SaveButtonComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -692,7 +693,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TextAreaFieldComponentDefinitionFrame>(currentData, TextAreaComponentName)) {
-            return;
+            throw new Error(`Invalid ${TextAreaComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -710,7 +711,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<TextAreaFieldModelDefinitionFrame>(currentData, TextAreaModelName)) {
-            return;
+            throw new Error(`Invalid ${TextAreaModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -731,7 +732,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DefaultFieldLayoutDefinitionFrame>(currentData, DefaultLayoutName)) {
-            return;
+            throw new Error(`Invalid ${DefaultLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -746,7 +747,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<CheckboxInputFieldComponentDefinitionFrame>(currentData, CheckboxInputComponentName)) {
-            return;
+            throw new Error(`Invalid ${CheckboxInputComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -764,7 +765,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<CheckboxInputFieldModelDefinitionFrame>(currentData, CheckboxInputModelName)) {
-            return;
+            throw new Error(`Invalid ${CheckboxInputModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -785,7 +786,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DropdownInputFieldComponentDefinitionFrame>(currentData, DropdownInputComponentName)) {
-            return;
+            throw new Error(`Invalid ${DropdownInputComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -802,7 +803,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DropdownInputFieldModelDefinitionFrame>(currentData, DropdownInputModelName)) {
-            return;
+            throw new Error(`Invalid ${DropdownInputModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -823,7 +824,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RadioInputFieldComponentDefinitionFrame>(currentData, RadioInputComponentName)) {
-            return;
+            throw new Error(`Invalid ${RadioInputComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -839,7 +840,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<RadioInputFieldModelDefinitionFrame>(currentData, RadioInputModelName)) {
-            return;
+            throw new Error(`Invalid ${RadioInputModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -860,7 +861,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DateInputFieldComponentDefinitionFrame>(currentData, DateInputComponentName)) {
-            return;
+            throw new Error(`Invalid ${DateInputComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
         const config = currentData?.config;
 
@@ -881,7 +882,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Get the current raw data for constructing the class instance.
         const currentData = this.getData();
         if (!isTypeFieldDefinitionName<DateInputFieldModelDefinitionFrame>(currentData, DateInputModelName)) {
-            return;
+            throw new Error(`Invalid ${DateInputModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
         // Create the class instance for the config
@@ -1034,7 +1035,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const recordValue = this.currentRecordValue();
 
         // For debugging:
-        this.logger.error(`currentModelValue itemDefaultValue ${JSON.stringify(itemDefaultValue)} defaultValue ${JSON.stringify(defaultValue)} recordValue ${JSON.stringify(recordValue)} formPath ${JSON.stringify(this.formPathHelper.formPath)}`);
+        // this.logger.info(`currentModelValue itemDefaultValue ${JSON.stringify(itemDefaultValue)} defaultValue ${JSON.stringify(defaultValue)} recordValue ${JSON.stringify(recordValue)} formPath ${JSON.stringify(this.formPathHelper.formPath.dataModel)}`);
 
         return useFormConfigDefaultValues ? defaultValue : recordValue;
     }

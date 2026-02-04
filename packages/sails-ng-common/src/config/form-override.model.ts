@@ -278,7 +278,7 @@ export class FormOverride {
         }
 
         if (isTransformExpected) {
-            this.logger.warn(`Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
+            this.logger.info(`Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
                 `from '${originalComponentClassName}' to '${transformComponentClassName}'.`);
         }
 
