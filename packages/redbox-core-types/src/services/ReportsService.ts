@@ -27,11 +27,41 @@ import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { DateTime } from 'luxon';
 import { ReportDto, TemplateCompileInput, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import { stringify } from 'csv-stringify/sync';
-import { NamedQueryResponseRecord } from './NamedQueryService'
 import Handlebars from "handlebars";
+
+type RequestLike = {
+  param: (name: string) => string | undefined | null;
+  params?: Record<string, unknown>;
+  body?: Record<string, unknown>;
+  session?: Record<string, unknown>;
+};
+
+type ReportColumnLike = {
+  label: string;
+  property: string;
+  exportTemplate?: string;
+  template?: string;
+  multivalue?: boolean;
+};
+
+type ReportFilterLike = ReportConfig['filter'][number] & {
+  [key: string]: unknown;
+};
+
+type TemplateConfig = {
+  template: string;
+  json?: boolean;
+};
+
+type SolrSearchResponse = {
+  response: {
+    numFound: number;
+    start: number;
+    docs: Array<Record<string, unknown>>;
+  };
+};
 
 
 export module Services {
@@ -49,7 +79,7 @@ export module Services {
     // Flag to track if helpers are registered
     private helpersRegistered: boolean = false;
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'findAllReportsForBrand',
@@ -128,7 +158,7 @@ export module Services {
       }));
     }
 
-    private buildSolrParams(brand: BrandingModel, req: UnsafeAny, report: ReportConfig, start: number, rows: number, format = 'json') {
+    private buildSolrParams(brand: BrandingModel, req: RequestLike, report: ReportConfig, start: number, rows: number, format = 'json') {
       let params = this.getQueryValue(report);
       params = this.addPaginationParams(params, start, rows);
       params = params + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
@@ -162,7 +192,7 @@ export module Services {
       return params;
     }
 
-    public async getResults(brand: BrandingModel, name = '', req: UnsafeAny, start = 0, rows = 10) {
+    public async getResults(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 10) {
       const reportModel = this.getReportModel();
       const reportObs = super.getObservable(reportModel.findOne({
         key: brand.id + "_" + name
@@ -180,7 +210,7 @@ export module Services {
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
         const paramMap = this.buildNamedQueryParamMap(req, report)
         const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
-        return this.getTranslateDatabaseResultToReportResult(dbResult, report);
+        return this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
       } else {
         if (!report.solrQuery) {
           throw new Error(`Report '${name}' is missing solrQuery config`);
@@ -191,7 +221,7 @@ export module Services {
       }
     }
 
-    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Object>, report: ReportConfig) {
+    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, report: ReportConfig) {
       const totalItems = dbResult.summary.numFound;
       const startIndex = dbResult.summary.start;
       const pageNumber = dbResult.summary.page;
@@ -201,7 +231,7 @@ export module Services {
       response.pageNum = pageNumber;
       response.recordPerPage = startIndex;
 
-      const items: UnsafeAny[] = [];
+      const items: Array<Record<string, unknown>> = [];
       const docs = dbResult.records;
 
       for (let i = 0; i < docs.length; i++) {
@@ -215,7 +245,7 @@ export module Services {
       return response;
     }
 
-    buildNamedQueryParamMap(req: UnsafeAny, report: ReportConfig) {
+    buildNamedQueryParamMap(req: RequestLike, report: ReportConfig) {
       const paramMap: Record<string, unknown> = {}
       if (report.filter != null) {
         for (let filter of report.filter) {
@@ -240,9 +270,9 @@ export module Services {
     }
 
 
-    getTranslateSolrResultToReportResult(results: UnsafeAny, noItems: number) {
-      const totalItems = results["response"]["numFound"];
-      const startIndex = results["response"]["start"];
+    getTranslateSolrResultToReportResult(results: SolrSearchResponse, noItems: number) {
+      const totalItems = results.response.numFound;
+      const startIndex = results.response.start;
       const pageNumber = (startIndex / noItems) + 1;
 
       const response: ReportResult = new ReportResult();
@@ -251,7 +281,7 @@ export module Services {
       response.recordPerPage = _.toNumber(noItems);
 
       const items: Array<Record<string, unknown>> = [];
-      const docs = results["response"]["docs"];
+      const docs = results.response.docs;
 
       for (let i = 0; i < docs.length; i++) {
         const doc = docs[i];
@@ -270,19 +300,21 @@ export module Services {
       return sails.services[sails.config.search.serviceName];
     }
 
-    private convertLegacyReport(report: UnsafeAny) {
-      if (!_.isArray(report["filter"])) {
-        let filterArray: object[] = []
-        if (report["filter"] != null) {
-          report["filter"]["paramName"] = "dateRange"
-          filterArray.push(report["filter"])
+    private convertLegacyReport(report: ReportModel): ReportModel {
+      const legacyReport = report as ReportModel & { filter?: unknown };
+      if (!_.isArray(legacyReport.filter)) {
+        const filterArray: ReportConfig['filter'] = []
+        if (legacyReport.filter != null && typeof legacyReport.filter === 'object') {
+          const filter = legacyReport.filter as ReportFilterLike;
+          filter.paramName = "dateRange";
+          filterArray.push(filter);
         }
-        report["filter"] = filterArray;
+        legacyReport.filter = filterArray;
       }
-      return report;
+      return legacyReport;
     }
 
-    public async getCSVResult(brand: BrandingModel, name = '', req: UnsafeAny, start = 0, rows = 1000000000) {
+    public async getCSVResult(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 1000000000) {
       const reportModel = this.getReportModel();
       var report:ReportModel = await firstValueFrom(super.getObservable(reportModel.findOne({
         key: brand.id + "_" + name
@@ -300,7 +332,7 @@ export module Services {
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName);
         const paramMap = this.buildNamedQueryParamMap(req, report);
         const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
-        result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
+        result = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
       } else {
         if (!report.solrQuery) {
           throw new Error(`Report '${name}' is missing solrQuery config`);
@@ -319,15 +351,15 @@ export module Services {
 
     }
 
-    buildOptTemplateData(req: UnsafeAny) {
-      let templateData = {
+    buildOptTemplateData(req: RequestLike) {
+      const templateData: Record<string, unknown> = {
         'brandingAndPortalUrl': BrandingService.getFullPath(req)
       }
       return templateData;
     }
 
     //TODO: It's public only because we need it at the moment to unit test it
-    public getDataRows(report: UnsafeAny, data: UnsafeAny[], optTemplateData: UnsafeAny): string[][] {
+    public getDataRows(report: ReportConfig, data: Array<Record<string, unknown>>, optTemplateData: Record<string, unknown>): string[][] {
       let dataRows: string[][] = [];
 
       for (let row of data) {
@@ -337,7 +369,7 @@ export module Services {
       return dataRows;
     }
 
-    getDataRow(row: UnsafeAny, columns: UnsafeAny, optTemplateData: UnsafeAny): string[] {
+    getDataRow(row: Record<string, unknown>, columns: ReportColumnLike[], optTemplateData: Record<string, unknown>): string[] {
       let dataRow: string[] = [];
       for (let column of columns) {
         dataRow.push(this.getColValue(row, column, optTemplateData))
@@ -345,21 +377,24 @@ export module Services {
       return dataRow;
     }
 
-    getColValue(row: UnsafeAny, col: UnsafeAny, optTemplateData: UnsafeAny): string {
+    getColValue(row: Record<string, unknown>, col: ReportColumnLike, optTemplateData: Record<string, unknown>): string {
       if (col.multivalue) {
-        let retVal = [];
-        for (let val of _.get(row, col.property)) {
-          retVal.push(this.getEntryValue(row, col, val, optTemplateData));
+        const retVal: string[] = [];
+        const values = _.get(row, col.property);
+        if (Array.isArray(values)) {
+          for (let val of values) {
+            retVal.push(this.getEntryValue(row, col, val, optTemplateData) as string);
+          }
         }
         return retVal.join('');
       } else {
-        return this.getEntryValue(row, col, _.get(row, col.property), optTemplateData);
+        return this.getEntryValue(row, col, _.get(row, col.property), optTemplateData) as string;
       }
     }
 
-    getEntryValue(row: UnsafeAny, col: UnsafeAny, val: UnsafeAny = undefined, optTemplateData: UnsafeAny = {}) {
-      let retVal = '';
-      let template = this.getExportTemplate(col);
+    getEntryValue(row: Record<string, unknown>, col: ReportColumnLike, val: unknown = undefined, optTemplateData: Record<string, unknown> = {}) {
+      let retVal: unknown = '';
+      const template = this.getExportTemplate(col);
       if (template != null) {
         const data = _.merge({}, row, {
           recordTableMeta: {
@@ -376,7 +411,7 @@ export module Services {
       return retVal;
     }
 
-    getExportTemplate(col: UnsafeAny) {
+    getExportTemplate(col: ReportColumnLike) {
       if (!_.isEmpty(col.exportTemplate)) {
         return col.exportTemplate;
       }
@@ -420,7 +455,7 @@ export module Services {
      * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
      * @param field Optional field data (deprecated, for backward compat)
      */
-    runTemplate(data: UnsafeAny, config: UnsafeAny, additionalImports: UnsafeAny = {}, field: UnsafeAny = undefined) {
+    runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, field: unknown = undefined) {
       try {
         const template = this.getCompiledTemplate(config.template);
         // Build context compatible with the new Handlebars templates
@@ -489,7 +524,7 @@ export module Services {
       return entries;
     }
 
-    public getCSVHeaderRow(report: UnsafeAny): string[] {
+    public getCSVHeaderRow(report: ReportConfig): string[] {
       let headerRow: string[] = [];
       for (let column of report.columns) {
         headerRow.push(column.label)
@@ -517,7 +552,7 @@ export module Services {
       return params;
     }
 
-    public getReportDto(reportModel: UnsafeAny): ReportDto {
+    public getReportDto(reportModel: ReportModel): ReportDto {
       return this.convertToType<ReportDto>(reportModel, new ReportDto(), {
         "solr_query": "solrQuery"
       }, true);

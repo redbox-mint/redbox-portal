@@ -88,7 +88,7 @@ export module Controllers {
       var pageData: any = {};
       const brand = BrandingService.getBrand(req.session.branding);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
-      UsersService.getUsersForBrand(brand).pipe(flatMap((users: any[]) => {
+      (UsersService.getUsersForBrand(brand as any) as any).pipe(flatMap((users: any[]) => {
         _.map(users, (user: any) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser: string) => { return hideUser == user.name }))) {
             // not hidden, adding to view data...
@@ -105,7 +105,7 @@ export module Controllers {
         });
         return of(pageData);
       }))
-        .subscribe(pageData => {
+        .subscribe((pageData: any) => {
           this.sendResp(req, res, { data: pageData.users, headers: this.getNoCacheHeaders() });
         });
     }

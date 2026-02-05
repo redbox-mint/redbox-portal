@@ -32,7 +32,7 @@ const { Collector, generateArcpId } = require('oni-ocfl');
 const { languageProfileURI } = require('language-data-commons-vocabs');
 const { ROCrate } = require('ro-crate');
 
-let wktParserHelper: UnsafeAny = null;
+let wktParserHelper: any = null;
 
 const URL_PLACEHOLDER = '{ID_WILL_BE_HERE}'; // config
 const DEFAULT_IDENTIFIER_NAMESPACE = 'redbox';
@@ -46,11 +46,11 @@ export module Services {
 	 *
 	 */
 	export class OniService extends services.Core.Service {
-    private asError(err: unknown): Error {
+    private asError(err: any): Error {
       return err instanceof Error ? err : new Error(String(err));
     }
 
-		protected override _exportedMethods: UnsafeAny = [
+		protected override _exportedMethods: string[] = [
 			'exportDataset'
 		];
 
@@ -86,7 +86,7 @@ export module Services {
 		 * @param user
 		 */
 
-		public async exportDataset(oid: string, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+		public async exportDataset(oid: string, record: any, options: any, user: any) {
 			if( this.metTriggerCondition(oid, record, options) === "true") {
 				const rootColConfig = sails.config.datapubs.rootCollection;
 				const site = sails.config.datapubs.sites[options['site']];
@@ -190,8 +190,8 @@ export module Services {
           });
 				}
 
-				try {
-					await RecordsService.updateMeta(sails.config.auth.defaultBrand, oid, record, null, true, false);
+					try {
+						await RecordsService.updateMeta(sails.config.auth.defaultBrand as any, oid, record, {}, true, false);
 				} catch (err) {
 					this.recordPublicationError(oid, record, this.asError(err));
           const msg = `Error updating record metadata`;
@@ -216,7 +216,7 @@ export module Services {
 		 * @param record
 		 * @param tempDir
 		 */
-			private async writeDatasetObject(creator: UnsafeAny, approver: UnsafeAny, oid: string, drid: string, targetCollector: UnsafeAny, rootCollection: UnsafeAny, record: UnsafeAny, tempDir:string): Promise<UnsafeAny> {
+			private async writeDatasetObject(creator: any, approver: any, oid: string, drid: string, targetCollector: any, rootCollection: any, record: any, tempDir:string): Promise<void> {
       if (!this.datastreamService) {
         throw new Error('Datastream service is not initialized');
       }
@@ -224,12 +224,12 @@ export module Services {
 			const metaMetadata = record['metaMetadata'];
 			const mdOnly = metadata['accessRightsToggle'];
 				const attachments = metadata['dataLocations'].filter(
-					(a: UnsafeAny) => ( !mdOnly && a['type'] === 'attachment' && a['selected'] )
+					(a: any) => ( !mdOnly && a['type'] === 'attachment' && a['selected'] )
 				);
 			// write all valid attachments to temp directory
 			const oidTempDir = path.join(tempDir, oid);
 			try {
-				attachments.map((a: UnsafeAny) => {
+				attachments.map((a: any) => {
 					// a['fileId'] necessary to avoid file name clashes within the dataset
 					a['parentDir'] = path.join(oidTempDir, a['fileId']);
 					a['path'] = path.join(a['parentDir'] , a['name']);
@@ -289,7 +289,7 @@ export module Services {
 		 * @param targetCollector
 		 * @param rootCollection
 		 */
-		private async writeDatasetROCrate(creator: UnsafeAny, approver: UnsafeAny, oid:string, attachments: UnsafeAny[], record: UnsafeAny, targetCollector: UnsafeAny, rootCollection: UnsafeAny) {
+		private async writeDatasetROCrate(creator: any, approver: any, oid:string, attachments: any[], record: any, targetCollector: any, rootCollection: any) {
 			const metadata = record['metadata'];
 			const metaMetadata = record['metaMetadata'];
 			// Create Dataset/Repository Object
@@ -324,7 +324,7 @@ export module Services {
 			if (contactPoint) {
 				contactPoint['contactType'] = "Data Manager";
 				contactPoint['identifier'] = contactPoint['id'];
-			const author = _.find(targetRepoObj.rootDataset.author, (a: UnsafeAny) => a['@id'] === contactPoint['@id']);
+			const author = _.find(targetRepoObj.rootDataset.author, (a: any) => a['@id'] === contactPoint['@id']);
 				contactPoint['@id'] = `mailto:${contactPoint['email']}`
 				if (author) {
 					author['contactPoint'] = contactPoint;
@@ -359,12 +359,12 @@ export module Services {
 			await targetRepoObj.addToRepo();
 		}
 
-		private addHistory(targetRepoObj: UnsafeAny, metadata: UnsafeAny, creator: UnsafeAny, approver: UnsafeAny) {
+		private addHistory(targetRepoObj: any, metadata: any, creator: any, approver: any) {
 			// check if the creator and approver are in the author list, if not add them
 			sails.log.verbose(`${this.logHeader} addHistory() -> adding creator and approver to the author list`);
 			const people = _.concat(targetRepoObj.rootDataset.author, targetRepoObj.rootDataset.contributor);
-			let creatorPerson =  _.find(people, (a: UnsafeAny) => a && a['email'] == creator['email']);
-			let approverPerson = _.find(people, (a: UnsafeAny) => a && a['email'] == approver['email']);
+			let creatorPerson =  _.find(people, (a: any) => a && a['email'] == creator['email']);
+			let approverPerson = _.find(people, (a: any) => a && a['email'] == approver['email']);
 
 			if (!creatorPerson) {
 				creatorPerson = this.getPerson(creator, "Person");
@@ -395,7 +395,7 @@ export module Services {
 			});
 		}
 
-		private addSubjects(targetRepoObj: UnsafeAny, metadata: UnsafeAny, extraContext: UnsafeAny) {
+		private addSubjects(targetRepoObj: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addSubjects() -> adding subjects to the dataset`);
 			const subjects = [];
 			for (let subjectField of sails.config.datapubs.metadata.subjects) {
@@ -420,7 +420,7 @@ export module Services {
 			targetRepoObj.rootDataset['about'] = subjects;
 		}
 
-		private addFunders(targetRepoObj: UnsafeAny, metadata: UnsafeAny, extraContext: UnsafeAny) {
+		private addFunders(targetRepoObj: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addFunders() -> adding funders to the dataset`);
 			let funders = [];
 			for (let fundingField of sails.config.datapubs.metadata.funders) {
@@ -443,7 +443,7 @@ export module Services {
 			targetRepoObj.rootDataset['funder'] = funders;
 		}
 
-		private addTemporalCoverage(targetRepoObj: UnsafeAny, metadata: UnsafeAny, extraContext: UnsafeAny) {
+		private addTemporalCoverage(targetRepoObj: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addTemporalCoverage() -> adding temporal coverage to the dataset`);
 			var tc = '';
 			if( metadata['startDate'] ) {
@@ -466,7 +466,7 @@ export module Services {
 			}
 		}
 
-		private addSpatialCoverage(targetRepoOjb: UnsafeAny, metadata: UnsafeAny, extraContext: UnsafeAny) {
+		private addSpatialCoverage(targetRepoOjb: any, metadata: any, extraContext: any) {
 			sails.log.verbose(`${this.logHeader} addSpatialCoverage() -> adding spatial coverage to the dataset`);
 			if (!_.isEmpty(metadata['geospatial'])) {
 				if (_.isEmpty(extraContext['Geometry'])) {
@@ -479,7 +479,7 @@ export module Services {
 					geospatial = [geospatial];
 				}
 				// COmmenting out the "proper way" of GEOMETRYCOLLECTION as it doesn't show up in the UI!
-				const convertedGeoJson = _.map(geospatial, (geoJson: UnsafeAny, idx: number) => {
+				const convertedGeoJson = _.map(geospatial, (geoJson: any, idx: number) => {
 					return {
 						"@id": `_:place-${idx}`,
 						"@type": "Place",
@@ -514,7 +514,7 @@ export module Services {
 			}
 		}
 
-		private convertToWkt(id: string, geoJsonSrc: UnsafeAny) {
+		private convertToWkt(id: string, geoJsonSrc: any) {
 			let geoJson = _.cloneDeep(geoJsonSrc);
 			_.unset(geoJson, '@type');
 			const wkt = wktParserHelper.convertToWK(geoJson);
@@ -526,7 +526,7 @@ export module Services {
 			};
 		}
 
-		private addRelatedWorks(targetRepoObj: UnsafeAny, metadata: UnsafeAny) {
+		private addRelatedWorks(targetRepoObj: any, metadata: any) {
 			for (let relatedFieldConf of sails.config.datapubs.metadata.related_works) {
 				let relatedWorks = [];
 				const fieldVals = _.isArray(metadata[`related_${relatedFieldConf.field}`]) ? metadata[`related_${relatedFieldConf.field}`] : [metadata[`related_${relatedFieldConf.field}`]];
@@ -534,7 +534,7 @@ export module Services {
 
 				for (let fieldVal of fieldVals) {
 					if (!_.isEmpty(fieldVal) && !_.isEmpty(fieldVal['related_url'])) {
-							const relatedWork: UnsafeAny = {
+							const relatedWork: any = {
 							'@id': fieldVal['related_url'],
 							'@type': relatedFieldConf.type,
 							'name': fieldVal['related_title'],
@@ -550,7 +550,7 @@ export module Services {
 			}
 		}
 
-		private async addFiles(targetRepoObj: UnsafeAny, record: UnsafeAny, attachments: UnsafeAny[]) {
+		private async addFiles(targetRepoObj: any, record: any, attachments: any[]) {
 			for (let a of attachments) {
 				const fileAttMetaPart = {
 					"name": a['name'],
@@ -562,7 +562,7 @@ export module Services {
 			}
 		}
 
-		private getLicense(metadata: UnsafeAny): UnsafeAny {
+		private getLicense(metadata: any): any {
 			const licenses = [];
 			if (!_.isEmpty(metadata['license_other_url']) || !_.isEmpty(metadata['license_notes'])) {
 				if(metadata['license_other_url'] ) {
@@ -604,10 +604,10 @@ export module Services {
 			return licenses;
 		}
 
-		private getCreators(metadata: UnsafeAny, organization: UnsafeAny): UnsafeAny[] {
-			let creators: UnsafeAny[] = [];
+		private getCreators(metadata: any, organization: any): any[] {
+			let creators: any[] = [];
 			if (metadata['creators']) {
-				creators = _.compact(metadata['creators'].map((creator: UnsafeAny) => {
+				creators = _.compact(metadata['creators'].map((creator: any) => {
 					 const person = this.getPerson(creator, "Person");
 					 if (person) {
 						 person['affiliation'] = organization;
@@ -619,7 +619,7 @@ export module Services {
 			return creators;
 		}
 
-		private getPerson(rbPerson: UnsafeAny, type:string): UnsafeAny {
+		private getPerson(rbPerson: any, type:string): any {
 			// ORCID prioritised as per https://www.researchobject.org/ro-crate/specification/1.1/contextual-entities.html#identifiers-for-contextual-entities
 			const id = rbPerson['orcid'] || rbPerson['email'] || rbPerson['text_full_name'];
 			if (!id) {
@@ -660,7 +660,7 @@ export module Services {
 			}
 		}
 
-		private async writeToFileUsingStream(filePath: string, inputStream: UnsafeAny): Promise<void> {
+		private async writeToFileUsingStream(filePath: string, inputStream: any): Promise<void> {
 			const writeStream = createWriteStream(filePath);
 	    inputStream.pipe(writeStream);
   	  await finished(writeStream); // Wait for the stream to finish
@@ -668,18 +668,18 @@ export module Services {
 
 		// writeDatastream works for new redbox-storage -- using sails-hook-redbox-storage-mongo.
 
-		private async writeDatastream(stream: UnsafeAny, dir: string, fn: string) {
+		private async writeDatastream(stream: any, dir: string, fn: string) {
 			await this.ensureDir(dir);
 			await this.writeToFileUsingStream(path.join(dir, fn), stream);
 		}
 
-		private async recordPublicationError(oid: string, record: UnsafeAny, err: Error): Promise<UnsafeAny> {
-			const branding = sails.config.auth.defaultBrand;
+			private async recordPublicationError(oid: string, record: any, err: Error): Promise<void> {
+				const branding = sails.config.auth.defaultBrand;
 			// turn off postsave triggers
 			sails.log.verbose(`${this.logHeader} recordPublicationError() -> recording publication error in record metadata`);
 			record['metadata']['publication_error'] = "Data publication failed with error: " + err.name + " " + err.message;
-			await RecordsService.updateMeta(branding, oid, record, null, true, false);
-		}
+				await RecordsService.updateMeta(branding as any, oid, record, {}, true, false);
+			}
 
 	}
 

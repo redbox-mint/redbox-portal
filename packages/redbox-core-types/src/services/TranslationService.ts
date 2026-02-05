@@ -35,12 +35,12 @@ interface ResponseLike {
 
 type NextFunction = () => void;
 
-// Waterline globals
-declare let BrandingService: {
-  getBrand: (name: string) => BrandingModel;
-  getAvailable: () => string[];
-  getBrandFromReq: (req: RequestLike) => string;
-};
+// // Waterline globals
+// declare let BrandingService: {
+//   getBrand: (name: string) => BrandingModel;
+//   getAvailable: () => string[];
+//   getBrandFromReq: (req: RequestLike) => string;
+// };
 
 export module Services {
   /**

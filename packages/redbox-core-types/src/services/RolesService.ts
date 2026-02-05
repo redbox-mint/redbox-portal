@@ -21,10 +21,16 @@ import { Observable, of, from, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, last, first } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { RoleModel } from '../model/storage/RoleModel';
  
 
 
 export module Services {
+  interface AuthRoleConfig {
+    name: string;
+    [key: string]: unknown;
+  }
+
   interface AuthBrandConfig {
     aaf?: { defaultRole?: string };
     defaultRole?: string;
@@ -39,7 +45,7 @@ export module Services {
    */
   export class Roles extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'getRole',
       'getAdmin',
@@ -54,34 +60,34 @@ export module Services {
       'createRoleWithBrand'
     ];
 
-    public getRoleWithName = (roles: UnsafeAny[], roleName: string): UnsafeAny => {
-      return _.find(roles, (o: UnsafeAny) => { return o.name == roleName });
+    public getRoleWithName = (roles: RoleModel[], roleName: string): RoleModel | undefined => {
+      return _.find(roles, (o: RoleModel) => { return o.name == roleName });
     }
 
-    public getRole = (brand: UnsafeAny, roleName: string): UnsafeAny => {
+    public getRole = (brand: BrandingModel, roleName: string): RoleModel | undefined => {
       return this.getRoleWithName(brand.roles, roleName);
     }
 
-    public getRoleByName = (brand: UnsafeAny, roleName: string): UnsafeAny => {
+    public getRoleByName = (brand: BrandingModel, roleName: string): RoleModel | undefined => {
       return this.getRoleWithName(brand.roles, this.getConfigRole(roleName).name);
     }
 
-    public getAdmin = (brand: UnsafeAny): UnsafeAny => {
+    public getAdmin = (brand: BrandingModel): RoleModel | undefined => {
       return this.getRole(brand, this.getConfigRole('Admin').name);
     }
 
-    public getAdminFromRoles = (roles: UnsafeAny[]): UnsafeAny => {
+    public getAdminFromRoles = (roles: RoleModel[]): RoleModel | undefined => {
       return this.getRoleWithName(roles, this.getConfigRole('Admin').name);
     }
 
-    public getDefAuthenticatedRole = (brand: UnsafeAny): UnsafeAny => {
+    public getDefAuthenticatedRole = (brand: BrandingModel): RoleModel | undefined => {
       const authConfig = (ConfigService.getBrand(brand.name, 'auth') as AuthBrandConfig) ?? {};
       const defaultRole = authConfig.aaf?.defaultRole ?? 'Researcher';
       sails.log.verbose(this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name));
       return this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name);
     }
 
-    public getNestedRoles = (role: string, brandRoles: UnsafeAny[]) => {
+    public getNestedRoles = (role: string, brandRoles: RoleModel[]): Array<RoleModel | undefined> => {
       const hierarchy = ["Admin", "Maintainer", "Researcher", "Guest"];
       const roleIndex = hierarchy.indexOf(role);
       if (roleIndex === -1) {
@@ -90,31 +96,31 @@ export module Services {
       return hierarchy.slice(roleIndex).map((roleName: string) => this.getRoleWithName(brandRoles, roleName));
     }
 
-    public getDefUnathenticatedRole = (brand: UnsafeAny): UnsafeAny => {
+    public getDefUnathenticatedRole = (brand: BrandingModel): RoleModel | undefined => {
       const authConfig = (ConfigService.getBrand(brand.name, 'auth') as AuthBrandConfig) ?? {};
       const defaultRole = authConfig.defaultRole ?? 'Guest';
       return this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name);
     }
 
-    public getRolesWithBrand = (brand: UnsafeAny): Observable<UnsafeAny> => {
+    public getRolesWithBrand = (brand: BrandingModel): Observable<RoleModel[]> => {
       return super.getObservable(Role.find({ branding: brand.id }).populate('users'));
     }
 
-    public getRoleIds = (fromRoles: UnsafeAny[], roleNames: string[]) => {
+    public getRoleIds = (fromRoles: RoleModel[], roleNames: string[]) => {
       sails.log.verbose("Getting id of role names...");
-      return _.map(_.filter(fromRoles, (role: UnsafeAny) => { return _.includes(roleNames, role.name) }), 'id');
+      return _.map(_.filter(fromRoles, (role: RoleModel) => { return _.includes(roleNames, role.name) }), 'id');
     }
 
-    public async createRoleWithBrand(brand: UnsafeAny, roleName: string) {
+    public async createRoleWithBrand(brand: BrandingModel, roleName: string) {
       let roleConfig =
       {
         name: roleName,
         branding: brand.id
       };
       sails.log.verbose('createRoleWithBrand - brand.id ' + brand.id);
-      const rolesResp: { roles: UnsafeAny[] } = { roles: [] };
-      let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap(roles => {
-        _.map(roles, (role: UnsafeAny) => {
+      const rolesResp: { roles: RoleModel[] } = { roles: [] };
+      let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap((roles: RoleModel[]) => {
+        _.map(roles, (role: RoleModel) => {
           rolesResp.roles.push(role);
         });
         return of(rolesResp);
@@ -134,14 +140,14 @@ export module Services {
       }
     }
 
-    public bootstrap = (defBrand: UnsafeAny) => {
+    public bootstrap = (defBrand: BrandingModel) => {
       const adminRole = this.getAdmin(defBrand);
       if (adminRole == null) {
         sails.log.verbose("Creating default admin, and other roles...");
         return from(this.getConfigRoles())
-                         .pipe(flatMap((roleConfig: UnsafeAny) => {
+                         .pipe(flatMap((roleConfig: AuthRoleConfig) => {
                            return super.getObservable(Role.create(roleConfig))
-                                       .pipe(flatMap((newRole: UnsafeAny) => {
+                                       .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
                                          let brand:BrandingModel = sails.services.brandingservice.getDefault();
                                          // START Sails 1.0 upgrade
@@ -153,7 +159,7 @@ export module Services {
                                        }));
                          }),
                          last(),
-                         flatMap((brand: UnsafeAny) => {
+                         flatMap((brand: BrandingModel) => {
                            return sails.services.brandingservice.loadAvailableBrands();
                          }));
       } else {
@@ -162,15 +168,17 @@ export module Services {
       }
     }
 
-    protected getConfigRole = (roleName: string) => {
-      return _.find(sails.config.auth.roles, (o: UnsafeAny) => { return o.name == roleName }) ?? { name: roleName };
+    protected getConfigRole = (roleName: string): AuthRoleConfig => {
+      const rolesConfig = sails.config.auth.roles as AuthRoleConfig[];
+      return (_.find(rolesConfig, (o: AuthRoleConfig) => { return o.name == roleName }) ?? { name: roleName }) as AuthRoleConfig;
     }
 
-    protected getConfigRoles = (roleProp: string | null = null, customObj: UnsafeAny = null) => {
-      let retVal: UnsafeAny[] = sails.config.auth.roles;
+    protected getConfigRoles = (roleProp: string | null = null, customObj: Record<string, unknown> | null = null): any[] => {
+      const rolesConfig = sails.config.auth.roles as AuthRoleConfig[];
+      let retVal: any[] = rolesConfig;
       if (roleProp) {
         retVal = []
-        _.map(sails.config.auth.roles, (o: UnsafeAny) => {
+        _.map(rolesConfig, (o: AuthRoleConfig) => {
           const newObj: Record<string, unknown> = {};
           newObj[roleProp] = o;
           if (customObj) {

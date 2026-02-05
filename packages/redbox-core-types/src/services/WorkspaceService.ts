@@ -75,11 +75,11 @@ export module Services {
      * @param  targetRecord
      * @return list of workspaces
      */
-    public async getWorkspaces(targetRecordOid: string, targetRecord: Record<string, unknown> | undefined = undefined) {
+    public async getWorkspaces(targetRecordOid: string, targetRecord: any = undefined) {
       if (_.isUndefined(targetRecord)) {
         targetRecord = await RecordsService.getMeta(targetRecordOid);
       }
-      const workspaces: Record<string, unknown>[] = [];
+      const workspaces: any[] = [];
       for (const workspaceInfo of (_.get(targetRecord, 'metadata.workspaces', []) as Array<{ id: string }>)) {
         workspaces.push(await RecordsService.getMeta(workspaceInfo.id));
       }

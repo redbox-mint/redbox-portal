@@ -29,15 +29,16 @@ import { RecordsService } from '../RecordsService';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 
-declare const RedboxJavaStorageService: UnsafeAny;
+declare const RedboxJavaStorageService: any;
 import { StorageService } from '../StorageService';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { RecordAuditParams } from '../RecordAuditParams';
 import { RBValidationError } from '../model/RBValidationError';
 import { ErrorResponseItemV2 } from '../model/api/APIResponseVersion2';
+import { RecordModel } from '../model/storage/RecordModel';
 
 import axios from 'axios';
-const luceneEscapeQueryModule: UnsafeAny = require("lucene-escape-query");
+const luceneEscapeQueryModule: any = require("lucene-escape-query");
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
     ? luceneEscapeQueryModule
@@ -59,6 +60,7 @@ const util = require('util');
 
 
 export module Services {
+  type AnyRecord = Record<string, any>;
   /**
    * Records related functions...
    *
@@ -80,7 +82,7 @@ export module Services {
 
     }
 
-    private asError(error: unknown): Error {
+    private asError(error: any): Error {
       return error instanceof Error ? error : new Error(String(error));
     }
 
@@ -120,7 +122,7 @@ export module Services {
       }
     }
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'create',
       'updateMeta',
       'getMeta',
@@ -159,7 +161,7 @@ export module Services {
       'init'
     ];
 
-    protected initRecordMetaMetadata(brandId: string, username: string, recordType: UnsafeAny, metaMetadataWorkflowStep: UnsafeAny, form: UnsafeAny, dateCreated: string): UnsafeAny {
+    protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
 
       let metaMetadata = {};
       if (recordType.packageType) {
@@ -187,7 +189,7 @@ export module Services {
     }
 
 
-    async create(brand: UnsafeAny, record: UnsafeAny, recordType: UnsafeAny, user?: UnsafeAny, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true, targetStep = null) {
+    async create(brand: any, record: AnyRecord, recordType: any, user: AnyRecord = {}, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true, targetStep = null) {
 
 
 
@@ -195,9 +197,10 @@ export module Services {
       let wfStep = await firstValueFrom(WorkflowStepsService.getFirst(recordType));
       let formName = _.get(wfStep, 'config.form');
 
-      let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
+      let form = await FormsService.getForm(brand as any, formName, true, recordType.name, record);
 
-      let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, DateTime.local().toISO());
+      const username = user?.username ?? 'unknown';
+      let metaMetadata = this.initRecordMetaMetadata(brand.id, username, recordType, wfStep, form, DateTime.local().toISO());
       _.set(record, 'metaMetadata', metaMetadata);
       //set the initial workflow metadata to the first step
       this.setWorkflowStepRelatedMetadata(record, wfStep);
@@ -234,10 +237,10 @@ export module Services {
         sails.log.verbose(`RecordsService - create - oid ${oid}`);
         if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
           // check if we have any pending-oid elements
-          _.each(record.metaMetadata.attachmentFields, (attFieldName: UnsafeAny) => {
-            _.each(_.get(record.metadata, attFieldName), (attFieldEntry: UnsafeAny, attFieldIdx: UnsafeAny) => {
+          _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
+            _.each(_.get(record.metadata, attFieldName), (attFieldEntry: any, attFieldIdx: any) => {
               if (!_.isEmpty(attFieldEntry)) {
-                _.each(fieldsToCheck, (fldName: UnsafeAny) => {
+                _.each(fieldsToCheck, (fldName: any) => {
                   const fldVal = _.get(attFieldEntry, fldName);
                   if (!_.isEmpty(fldVal)) {
                     sails.log.verbose(`RecordsService - create - fldVal ${fldVal}`);
@@ -252,7 +255,7 @@ export module Services {
             // handle datastream update
             // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
             const emptyDatastreamRecord = _.cloneDeep(record);
-            _.each(record.metaMetadata.attachmentFields, (attFieldName: UnsafeAny) => {
+            _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
               _.set(emptyDatastreamRecord.metadata, attFieldName, []);
             });
             // update the datastreams in RB, this is a terminal call
@@ -336,9 +339,9 @@ export module Services {
     }
 
 
-    async updateMeta(brand: UnsafeAny, oid: UnsafeAny, record: UnsafeAny, user?: UnsafeAny, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true, nextStep: UnsafeAny = {}, metadata: UnsafeAny = {}): Promise<StorageServiceResponse> {
+    async updateMeta(brand: any, oid: string, record: AnyRecord, user: AnyRecord = {}, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true, nextStep: any = {}, metadata: AnyRecord = {}): Promise<StorageServiceResponse> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let updateResponse: UnsafeAny = new StorageServiceResponse();
+      let updateResponse: any = new StorageServiceResponse();
       let preTriggerResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
       const failedMessage = "Failed to update record, please check server logs.";
@@ -352,14 +355,14 @@ export module Services {
 
       let recordType = null;
       if (!_.isEmpty(brand)) {
-        recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+        recordType = await firstValueFrom(RecordTypesService.get(brand as any, record.metaMetadata.type));
       }
 
       if (!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
         if (nextStep.config.authorization.transitionRoles != undefined) {
           if (nextStep.config.authorization.transitionRoles.length > 0) {
-            let validRoles = _.filter(nextStep.config.authorization.transitionRoles, (role: UnsafeAny) => {
-              let val = _.find(user.roles, (userRole: UnsafeAny) => {
+            let validRoles = _.filter(nextStep.config.authorization.transitionRoles, (role: any) => {
+              let val = _.find(user.roles ?? [], (userRole: any) => {
                 return role == userRole || role == userRole.name;
               });
               if (val != undefined) {
@@ -389,14 +392,14 @@ export module Services {
         }
       }
 
-      let form: UnsafeAny = await firstValueFrom(FormsService.getFormByName(record.metaMetadata.form, true))
+      let form: any = await firstValueFrom(FormsService.getFormByName(record.metaMetadata.form, true))
       record.metaMetadata.attachmentFields = form != undefined ? form.attachmentFields : [];
 
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
-          recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+          recordType = await firstValueFrom(RecordTypesService.get(brand as any, record.metaMetadata.type));
           record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onUpdate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
@@ -415,10 +418,10 @@ export module Services {
       const fieldsToCheck = ['location', 'uploadUrl'];
       if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
         // check if we have any pending-oid elements
-        _.each(record.metaMetadata.attachmentFields, (attFieldName: UnsafeAny) => {
-          _.each(_.get(record.metadata, attFieldName), (attFieldEntry: UnsafeAny, attFieldIdx: UnsafeAny) => {
+        _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
+          _.each(_.get(record.metadata, attFieldName), (attFieldEntry: any, attFieldIdx: any) => {
             if (!_.isEmpty(attFieldEntry)) {
-              _.each(fieldsToCheck, (fldName: UnsafeAny) => {
+              _.each(fieldsToCheck, (fldName: any) => {
                 const fldVal = _.get(attFieldEntry, fldName);
                 if (!_.isEmpty(fldVal)) {
                   sails.log.verbose(`RecordService - updateMeta - fldVal ${fldVal}`);
@@ -446,7 +449,7 @@ export module Services {
         //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
         //therefore try to set recordType if triggerPostSaveTriggers is true
         if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
-          recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+          recordType = await firstValueFrom(RecordTypesService.get(brand as any, record.metaMetadata.type));
         }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
@@ -509,7 +512,7 @@ export module Services {
       return updateResponse;
     }
 
-    hasPostSaveSyncHooks(recordType: UnsafeAny, mode: string): boolean {
+    hasPostSaveSyncHooks(recordType: any, mode: string): boolean {
       let postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, []);
       if (_.isArray(postSaveSyncHooks) && postSaveSyncHooks.length > 0) {
         return true;
@@ -517,27 +520,27 @@ export module Services {
       return false;
     }
 
-    getMeta(oid: UnsafeAny): Promise<UnsafeAny> {
-      return this.storageService.getMeta(oid);
+    getMeta(oid: string): Promise<RecordModel> {
+      return this.storageService.getMeta(oid) as Promise<RecordModel>;
     }
 
-    getRecordAudit(params: RecordAuditParams): Promise<UnsafeAny> {
+    getRecordAudit(params: RecordAuditParams): Promise<unknown> {
       return this.storageService.getRecordAudit(params);
     }
 
-    createBatch(type: UnsafeAny, data: UnsafeAny, harvestIdFldName: UnsafeAny): Promise<UnsafeAny> {
+    createBatch(type: any, data: AnyRecord, harvestIdFldName: any): Promise<unknown> {
       return this.storageService.createBatch(type, data, harvestIdFldName);
     }
 
-    provideUserAccessAndRemovePendingAccess(oid: UnsafeAny, userid: UnsafeAny, pendingValue: UnsafeAny): void {
+    provideUserAccessAndRemovePendingAccess(oid: string, userid: any, pendingValue: any): void {
       this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
     }
 
-    getRelatedRecords(oid: UnsafeAny, brand: UnsafeAny): Promise<UnsafeAny> {
+    getRelatedRecords(oid: string, brand: any): Promise<unknown> {
       return this.storageService.getRelatedRecords(oid, brand);
     }
 
-    async delete(oid: UnsafeAny, permanentlyDelete: boolean, currentRec: UnsafeAny, recordType: UnsafeAny, user: UnsafeAny) {
+    async delete(oid: string, permanentlyDelete: boolean, currentRec: any, recordType: any, user: AnyRecord) {
 
       let preTriggerResponse = new StorageServiceResponse();
       const failedMessage = "Failed to delete record, please check server logs.";
@@ -579,16 +582,16 @@ export module Services {
       return response;
     }
 
-    updateNotificationLog(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
+    updateNotificationLog(oid: string, record: AnyRecord, options: AnyRecord): Promise<unknown> {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
 
-    public getRecords(workflowState: UnsafeAny, recordType: UnsafeAny = undefined, start: UnsafeAny, rows: UnsafeAny = 10, username: UnsafeAny, roles: UnsafeAny, brand: UnsafeAny, editAccessOnly: UnsafeAny = undefined, packageType: UnsafeAny = undefined, sort: UnsafeAny = undefined, fieldNames: UnsafeAny = undefined, filterString: UnsafeAny = undefined, filterMode: UnsafeAny = undefined, secondarySort: UnsafeAny = undefined): Promise<UnsafeAny> {
+    public getRecords(workflowState: string, recordType: any = undefined, start: any, rows: any = 10, username: any, roles: AnyRecord[], brand: any, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, fieldNames: any = undefined, filterString: any = undefined, filterMode: any = undefined, secondarySort: any = undefined): Promise<unknown> {
 
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode, secondarySort);
     }
 
-    public exportAllPlans(username: UnsafeAny, roles: UnsafeAny, brand: UnsafeAny, format: UnsafeAny, modBefore: UnsafeAny, modAfter: UnsafeAny, recType: UnsafeAny): Readable {
+    public exportAllPlans(username: any, roles: AnyRecord[], brand: any, format: any, modBefore: any, modAfter: any, recType: any): Readable {
       return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
     }
 
@@ -597,11 +600,11 @@ export module Services {
     // Params:
     // oid - record idea
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
-    public async getAttachments(oid: string, labelFilterStr: string | undefined = undefined): Promise<UnsafeAny> {
+    public async getAttachments(oid: string, labelFilterStr: string | undefined = undefined): Promise<unknown> {
       sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
       let datastreams = await this.datastreamService.listDatastreams(oid, '');
-      const attachments: UnsafeAny[] = [];
-      _.each(datastreams, (datastream: UnsafeAny) => {
+      const attachments: any[] = [];
+      _.each(datastreams, (datastream: any) => {
         let attachment: Record<string, unknown> = {};
         attachment['dateUpdated'] = DateTime.fromJSDate(new Date(datastream['uploadDate'])).toISO();
         attachment['label'] = _.get(datastream.metadata, 'name');
@@ -621,7 +624,7 @@ export module Services {
     /*
      *
      */
-    public async checkRedboxRunning(): Promise<UnsafeAny> {
+    public async checkRedboxRunning(): Promise<unknown> {
       // check if a valid storage plugin is loaded....
       if (!_.isEmpty(sails.config.storage)) {
         sails.log.info("ReDBox storage plugin is active!");
@@ -630,7 +633,7 @@ export module Services {
       let retries = 1000;
       for (let i = 0; i < retries; i++) {
         try {
-          let response: UnsafeAny = await this.info();
+          let response: any = await this.info();
           if (response['applicationVersion']) {
             return true;
           }
@@ -643,12 +646,12 @@ export module Services {
     }
 
 
-    public auditRecord(id: string, record: UnsafeAny, user: UnsafeAny, action: RecordAuditActionType = RecordAuditActionType.updated) {
+    public auditRecord(id: string, record: AnyRecord, user: AnyRecord, action: RecordAuditActionType = RecordAuditActionType.updated) {
       if (this.queueService == null) {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
       }
-      const auditingEnabled = sails.config.record.auditing.enabled as UnsafeAny;
+      const auditingEnabled = sails.config.record.auditing.enabled as unknown;
       if (auditingEnabled !== true && auditingEnabled !== "true") {
         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
         return;
@@ -662,24 +665,24 @@ export module Services {
       this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
     }
 
-    public storeRecordAudit(job: UnsafeAny) {
+    public storeRecordAudit(job: AnyRecord) {
       let data = job.attrs.data;
       sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
       sails.log.verbose(JSON.stringify(data));
-      (this.storageService as UnsafeAny).createRecordAudit(data).then((response: UnsafeAny) => {
+      (this.storageService as any).createRecordAudit(data).then((response: any) => {
         if (response.isSuccessful()) {
           sails.log.verbose(`${this.logHeader} Record Audit stored successfully `);
         } else {
           sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record:`);
           sails.log.verbose(JSON.stringify(response));
         }
-      }).catch((err: unknown) => {
+      }).catch((err: any) => {
         sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record: `);
         sails.log.error(JSON.stringify(err));
       });
     }
 
-    private info(): Promise<UnsafeAny> {
+    private info(): Promise<unknown> {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url, sails.config.record.api.info.method);
 
@@ -697,7 +700,7 @@ export module Services {
         method: method,
         url: url,
         headers: {
-          'Authorization': `Bearer ${(sails.config as UnsafeAny).redbox.apiKey}`,
+          'Authorization': `Bearer ${(sails.config as any).redbox.apiKey}`,
           'Content-Type': contentType
         }
       };
@@ -721,7 +724,7 @@ export module Services {
      * @param  targetRecord - leave blank, otherwise will use this record for updates...
      * @return - response of the update
      */
-    public async appendToRecord(targetRecordOid: string, linkData: UnsafeAny, fieldName: string, fieldType: string | undefined = undefined, targetRecord: UnsafeAny = undefined) {
+    public async appendToRecord(targetRecordOid: string, linkData: any, fieldName: string, fieldType: string | undefined = undefined, targetRecord: any = undefined) {
       sails.log.verbose(`RecordsService::Appending to record:${targetRecordOid}`);
       if (_.isEmpty(targetRecord)) {
         sails.log.verbose(`RecordsService::Getting record metadata:${targetRecordOid}`);
@@ -751,7 +754,7 @@ export module Services {
      * @param  targetRecord - leave blank, otherwise will use this record for updates...
      * @return - response of the update
      */
-    public async removeFromRecord(targetRecordOid: string, dataToRemove: UnsafeAny, fieldName: string, targetRecord: UnsafeAny = undefined) {
+    public async removeFromRecord(targetRecordOid: string, dataToRemove: any, fieldName: string, targetRecord: any = undefined) {
       sails.log.verbose(`RecordsService::Removing field from record:${targetRecordOid}`);
       if (_.isEmpty(targetRecord)) {
         sails.log.verbose(`RecordsService::Getting record metadata:${targetRecordOid}`);
@@ -762,7 +765,7 @@ export module Services {
       if (_.isUndefined(existingData)) {
         // Data doesn't exist, nothing to remove
       } else if (_.isArray(existingData)) {
-        removedData = _.remove(existingData, (dataElem: UnsafeAny) => {
+        removedData = _.remove(existingData, (dataElem: any) => {
           return _.isEqual(dataElem, dataToRemove);
         });
       } else {
@@ -777,22 +780,22 @@ export module Services {
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasViewAccess(brand: UnsafeAny, user: UnsafeAny, roles: UnsafeAny, record: UnsafeAny): boolean {
+    public hasViewAccess(brand: any, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
       // merge with the edit user and roles, since editors are viewers too...
       const viewArr = record.authorization ? _.union(record.authorization.view, record.authorization.edit) : _.union(record.authorization_view, record.authorization_edit);
       const viewRolesArr = record.authorization ? _.union(record.authorization.viewRoles, record.authorization.editRoles) : _.union(record.authorization_viewRoles, record.authorization_editRoles);
 
       const uname = user.username;
 
-      const isInUserView = _.find(viewArr, (username: UnsafeAny) => {
+      const isInUserView = _.find(viewArr, (username: any) => {
         return uname == username;
       });
       if (!_.isUndefined(isInUserView)) {
         return true;
       }
-      const isInRoleView = _.find(viewRolesArr, (roleName: UnsafeAny) => {
-        const role = RolesService.getRole(brand, roleName);
-        return role && !_.isUndefined(_.find(roles, (r: UnsafeAny) => {
+      const isInRoleView = _.find(viewRolesArr, (roleName: any) => {
+        const role = RolesService.getRole(brand as any, roleName);
+        return role && !_.isUndefined(_.find(roles, (r: any) => {
           return role.id == r.id;
         }));
       });
@@ -817,12 +820,12 @@ export module Services {
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasEditAccess(brand: UnsafeAny, user: UnsafeAny, roles: UnsafeAny, record: UnsafeAny): boolean {
+    public hasEditAccess(brand: any, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
       const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
       const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
       const uname = user.username;
 
-      const isInUserEdit = _.find(editArr, (username: UnsafeAny) => {
+      const isInUserEdit = _.find(editArr, (username: any) => {
         // sails.log.verbose(`Username: ${uname} == ${username}`);
         return uname == username;
       });
@@ -830,9 +833,9 @@ export module Services {
       if (!_.isUndefined(isInUserEdit)) {
         return true;
       }
-      const isInRoleEdit = _.find(editRolesArr, (roleName: UnsafeAny) => {
-        const role = RolesService.getRole(brand, roleName);
-        return role && !_.isUndefined(_.find(roles, (r: UnsafeAny) => {
+      const isInRoleEdit = _.find(editRolesArr, (roleName: any) => {
+        const role = RolesService.getRole(brand as any, roleName);
+        return role && !_.isUndefined(_.find(roles, (r: any) => {
           return role.id == r.id;
         }));
       });
@@ -841,18 +844,18 @@ export module Services {
     }
 
 
-    public searchFuzzy(type: UnsafeAny, workflowState: UnsafeAny, searchQuery: UnsafeAny, exactSearches: UnsafeAny, facetSearches: UnsafeAny, brand: UnsafeAny, user: UnsafeAny, roles: UnsafeAny, returnFields: UnsafeAny): Promise<UnsafeAny> {
+    public searchFuzzy(type: any, workflowState: string, searchQuery: any, exactSearches: any, facetSearches: any, brand: any, user: AnyRecord, roles: AnyRecord[], returnFields: any): Promise<unknown> {
 
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
-      _.forEach(exactSearches, (exactSearch: UnsafeAny) => {
+      _.forEach(exactSearches, (exactSearch: any) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });
       if (facetSearches.length > 0) {
         searchParam = `${searchParam}&facet=true`
-        _.forEach(facetSearches, (facetSearch: UnsafeAny) => {
+        _.forEach(facetSearches, (facetSearch: any) => {
           searchParam = `${searchParam}&facet.field=${facetSearch.name}${_.isEmpty(facetSearch.value) ? '' : `&fq=${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`}`
         });
       }
@@ -864,13 +867,13 @@ export module Services {
 
       return firstValueFrom(from(axios(options))
         .pipe(flatMap(resp => {
-          let response: UnsafeAny = resp;
-          const customResp: UnsafeAny = {
+          let response: any = resp;
+          const customResp: any = {
             records: []
           };
-          _.forEach(response.response.docs, (solrdoc: UnsafeAny) => {
-            const customDoc: UnsafeAny = {};
-            _.forEach(returnFields, (retField: UnsafeAny) => {
+          _.forEach(response.response.docs, (solrdoc: any) => {
+            const customDoc: any = {};
+            _.forEach(returnFields, (retField: any) => {
               if (_.isArray(solrdoc[retField])) {
                 customDoc[retField] = solrdoc[retField][0];
               } else {
@@ -883,7 +886,7 @@ export module Services {
           // check if have facets turned on...
           if (response.facet_counts) {
             customResp['facets'] = [];
-            _.forOwn(response.facet_counts.facet_fields, (facet_field: UnsafeAny, facet_name: UnsafeAny) => {
+            _.forOwn(response.facet_counts.facet_fields, (facet_field: any, facet_name: any) => {
               const numFacetsValues = _.size(facet_field) / 2;
               const facetValues = [];
               for (var i = 0, j = 0; i < numFacetsValues; i++) {
@@ -902,7 +905,7 @@ export module Services {
         })));
     }
 
-    protected addAuthFilter(url: UnsafeAny, username: UnsafeAny, roles: UnsafeAny, brand: UnsafeAny, editAccessOnly: UnsafeAny = undefined) {
+    protected addAuthFilter(url: any, username: any, roles: AnyRecord[], brand: any, editAccessOnly: any = undefined) {
 
       var roleString = ""
       var matched = false;
@@ -922,9 +925,9 @@ export module Services {
     }
 
 
-    protected getSearchTypeUrl(type: UnsafeAny, searchField: string | null = null, searchStr: string | null = null) {
+    protected getSearchTypeUrl(type: any, searchField: string | null = null, searchStr: string | null = null) {
       const searchParam = searchField ? ` AND ${searchField}:${searchStr}*` : '';
-      const redboxConfig = (sails.config as UnsafeAny).redbox || '';
+      const redboxConfig = (sails.config as any).redbox || '';
       return `${sails.config.record.baseUrl.redbox ?? redboxConfig}${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
     }
 
@@ -938,7 +941,7 @@ export module Services {
      *  Pre-save trigger to clear and re-assign permissions based on security config
      *
      */
-    public assignPermissions(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+    public assignPermissions(oid: string, record: AnyRecord, options: AnyRecord, user: AnyRecord) {
 
       // sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
       // sails.log.verbose(JSON.stringify(options));
@@ -990,37 +993,37 @@ export module Services {
 
 
 
-    async restoreRecord(oid: UnsafeAny, user: UnsafeAny): Promise<UnsafeAny> {
+    async restoreRecord(oid: string, user: AnyRecord): Promise<unknown> {
       let record = await this.storageService.restoreRecord(oid);
       this.searchService.index(oid, record);
       this.auditRecord(oid, record, user, RecordAuditActionType.restored)
       return record
     }
 
-    async destroyDeletedRecord(oid: UnsafeAny, user: UnsafeAny): Promise<UnsafeAny> {
+    async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<unknown> {
       let record = await this.storageService.destroyDeletedRecord(oid);
       this.auditRecord(oid, record, user, RecordAuditActionType.destroyed)
       return record
     }
 
-    async getDeletedRecords(workflowState: UnsafeAny, recordType: UnsafeAny, start: UnsafeAny, rows: UnsafeAny, username: UnsafeAny, roles: UnsafeAny, brand: UnsafeAny, editAccessOnly: UnsafeAny, packageType: UnsafeAny, sort: UnsafeAny, fieldNames?: UnsafeAny, filterString?: UnsafeAny, filterMode?: UnsafeAny): Promise<UnsafeAny> {
+    async getDeletedRecords(workflowState: string, recordType: any, start: any, rows: any, username: any, roles: AnyRecord[], brand: any, editAccessOnly: any, packageType: any, sort: any, fieldNames?: any, filterString?: any, filterMode?: any): Promise<unknown> {
       return await this.storageService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode);
     }
 
-    async createRecordAudit(record: UnsafeAny): Promise<UnsafeAny> {
-      return await (this.storageService as UnsafeAny).createRecordAudit(record);
+    async createRecordAudit(record: AnyRecord): Promise<unknown> {
+      return await (this.storageService as any).createRecordAudit(record);
     }
 
-    public async transitionWorkflowStep(currentRec: UnsafeAny, recordType: UnsafeAny, nextStep: UnsafeAny, user: UnsafeAny, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true) {
+    public async transitionWorkflowStep(currentRec: any, recordType: any, nextStep: any, user: AnyRecord, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true) {
       throw new Error("Use separate calls to 'transitionWorkflowStepMetadata', 'triggerPreSaveTransitionWorkflowTriggers', and 'triggerPostSaveTransitionWorkflowTriggers' instead.")
     }
 
-    public setWorkflowStepRelatedMetadata(currentRec: UnsafeAny, nextStep: UnsafeAny) {
+    public setWorkflowStepRelatedMetadata(currentRec: any, nextStep: any) {
       sails.log.warn('Deprecated call to setWorkflowStepRelatedMetadata. Use transitionWorkflowStepMetadata instead.');
       return this.transitionWorkflowStepMetadata(currentRec, nextStep);
     }
 
-    public transitionWorkflowStepMetadata(currentRec: UnsafeAny, nextStep: UnsafeAny) {
+    public transitionWorkflowStepMetadata(currentRec: any, nextStep: any) {
       sails.log.verbose(`transitionWorkflowStepMetadata - start - previousWorkflow: ${currentRec.previousWorkflow}; workflow: ${currentRec.workflow}; nextStep: ${nextStep}`);
       if (!_.isEmpty(nextStep)) {
         currentRec.previousWorkflow = currentRec.workflow;
@@ -1048,14 +1051,14 @@ export module Services {
       sails.log.verbose(`transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRec.previousWorkflow}; workflow: ${currentRec.workflow}; nextStep: ${nextStep}`);
     }
 
-    public async triggerPreSaveTransitionWorkflowTriggers(oid: string | null, record: UnsafeAny, recordType: UnsafeAny, nextStep: UnsafeAny, user: UnsafeAny = undefined) {
+    public async triggerPreSaveTransitionWorkflowTriggers(oid: string | null, record: AnyRecord, recordType: any, nextStep: any, user: any = {}) {
       if (!_.isEmpty(nextStep)) {
         record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onTransitionWorkflow', user);
       }
       return record;
     }
 
-    public async triggerPostSaveTransitionWorkflowTriggers(oid: string | null, record: UnsafeAny, recordType: UnsafeAny, nextStep: UnsafeAny, user: UnsafeAny = undefined, response: UnsafeAny = {}) {
+    public async triggerPostSaveTransitionWorkflowTriggers(oid: string | null, record: AnyRecord, recordType: any, nextStep: any, user: any = {}, response: any = {}) {
       try {
         if (!_.isEmpty(nextStep)) {
           response = await this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onTransitionWorkflow', user, response);
@@ -1075,7 +1078,7 @@ export module Services {
       return response;
     }
 
-    public async triggerPreSaveTriggers(oid: string | null, record: UnsafeAny, recordType: UnsafeAny, mode: string = 'onUpdate', user: UnsafeAny = undefined) {
+    public async triggerPreSaveTriggers(oid: string | null, record: AnyRecord, recordType: any, mode: string = 'onUpdate', user: any = {}) {
       sails.log.verbose("Triggering pre save triggers for record type: ");
       sails.log.verbose(`hooks.${mode}.pre`);
       sails.log.verbose(JSON.stringify(recordType));
@@ -1113,7 +1116,7 @@ export module Services {
       return record;
     }
 
-    public async triggerPostSaveSyncTriggers(oid: string | null, record: UnsafeAny, recordType: UnsafeAny, mode: string = 'onUpdate', user: UnsafeAny = undefined, response: UnsafeAny = {}) {
+    public async triggerPostSaveSyncTriggers(oid: string | null, record: AnyRecord, recordType: any, mode: string = 'onUpdate', user: any = {}, response: any = {}) {
       sails.log.debug("Triggering post save sync triggers ");
       sails.log.debug(`hooks.${mode}.postSync`);
       sails.log.debug(recordType);
@@ -1160,13 +1163,13 @@ export module Services {
     }
 
 
-    public triggerPostSaveTriggers(oid: string | null, record: UnsafeAny, recordType: UnsafeAny, mode: string = 'onUpdate', user: UnsafeAny = undefined): void {
+    public triggerPostSaveTriggers(oid: string | null, record: AnyRecord, recordType: any, mode: string = 'onUpdate', user: any = {}): void {
       sails.log.debug("Triggering post save triggers ");
       sails.log.debug(`hooks.${mode}.post`);
       sails.log.debug(recordType);
       let postSaveCreateHooks = _.get(recordType, `hooks.${mode}.post`, null);
       if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, (postSaveCreateHook: UnsafeAny) => {
+        _.each(postSaveCreateHooks, (postSaveCreateHook: any) => {
           sails.log.debug(postSaveCreateHook);
           let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
           if (postSaveCreateHookFunctionString != null) {
@@ -1180,9 +1183,9 @@ export module Services {
               //.then().catch() and propagates to the front end and this has to be prevented
               try {
                 let hookResponse = postSaveCreateHookFunction(oid, record, options, user);
-                this.resolveHookResponse(hookResponse).then((result: UnsafeAny) => {
+                this.resolveHookResponse(hookResponse).then((result: any) => {
                   sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`);
-                }).catch((error: UnsafeAny) => {
+                }).catch((error: any) => {
                   sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`);
                   sails.log.error(error);
                 });
@@ -1199,7 +1202,7 @@ export module Services {
       }
     }
 
-    private resolveHookResponse(hookResponse: UnsafeAny) {
+    private resolveHookResponse(hookResponse: any) {
       let response = hookResponse;
       if (isObservable(hookResponse)) {
         response = firstValueFrom(hookResponse);
@@ -1213,26 +1216,26 @@ export module Services {
       return this.storageService.exists(oid);
     }
 
-    public handleUpdateDataStream(oid: UnsafeAny, origRecord: UnsafeAny, metadata: UnsafeAny) {
-      const fileIdsAdded: UnsafeAny[] = [];
+    public handleUpdateDataStream(oid: string, origRecord: any, metadata: AnyRecord) {
+      const fileIdsAdded: any[] = [];
       return this.datastreamService
         .updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
         .pipe(
-          concatMap((reqs: UnsafeAny) => {
+          concatMap((reqs: any) => {
             if (reqs) {
               sails.log.verbose(`Updating data streams...`);
-              return from(reqs as UnsafeAny[]);
+              return from(reqs as unknown[]);
             } else {
               sails.log.verbose(`No datastreams to update...`);
               return of(null);
             }
           }),
-          concatMap((promise: UnsafeAny) => {
+          concatMap((promise: any) => {
             if (promise) {
               sails.log.verbose(`Update datastream request is...`);
               sails.log.verbose(JSON.stringify(promise));
               return from(promise).pipe(
-                catchError((e: UnsafeAny) => {
+                catchError((e: any) => {
                   sails.log.verbose(`Error in updating stream::::`);
                   sails.log.verbose(JSON.stringify(e));
                   return throwError(new Error(TranslationService.t('attachment-upload-error')));

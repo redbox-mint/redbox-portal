@@ -115,7 +115,7 @@ export module Services {
             const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode, reusableFormDefs);
+            return this.mergeRecordClientFormConfig(original as unknown as BasicRedboxRecord, changed, clientFormConfig, formMode, reusableFormDefs);
         }
 
         /**

@@ -30,6 +30,18 @@ import numeral from 'numeral';
 
 
 export module Services {
+  type RecordWithMeta = {
+    metaMetadata: any;
+    metadata?: any;
+    [key: string]: any;
+  };
+
+  type UserLike = {
+    username?: string;
+    email?: string;
+    roles?: any[];
+    [key: string]: any;
+  };
   /**
    * WorkflowSteps related functions...
    *
@@ -40,7 +52,7 @@ export module Services {
 
     protected queueService!: QueueService;
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'assignPermissions',
       'complexAssignPermissions',
       'processRecordCounters',
@@ -87,9 +99,11 @@ export module Services {
      * @param  user
      * @return
      */
-    public async processRecordCounters(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+    public async processRecordCounters(oid: string, record: RecordWithMeta, options: any, user: any) {
+      const recordData = record as RecordWithMeta;
+      const optionsData = options as { counters?: any[] };
 
-      const brandId = record.metaMetadata.brandId;
+      const brandId = recordData.metaMetadata.brandId as string;
       let processRecordCountersLogLevel = 'verbose';
       if (sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
@@ -101,23 +115,24 @@ export module Services {
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
-      sails.log[processRecordCountersLogLevel](`processRecordCounters - brandId: ${record.metaMetadata.brandId}`);
+      sails.log[processRecordCountersLogLevel](`processRecordCounters - brandId: ${recordData.metaMetadata.brandId}`);
       sails.log[processRecordCountersLogLevel]('processRecordCounters - options:');
       sails.log[processRecordCountersLogLevel](options);
       // get the counters
-      for (let counter of options.counters) {
-        sails.log[processRecordCountersLogLevel](`processRecordCounters - counter.strategy: ${counter.strategy}`);
+      for (let counter of optionsData.counters ?? []) {
+        const counterData = counter as { field_name?: string; strategy?: string; source_field?: string };
+        sails.log[processRecordCountersLogLevel](`processRecordCounters - counter.strategy: ${counterData.strategy}`);
 
-        if (counter.strategy == "global") {
+        if (counterData.strategy == "global") {
 
           sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
           sails.log[processRecordCountersLogLevel](counter);
 
           const promiseCounter = await firstValueFrom(this.getObservable(Counter.findOrCreate({
-            name: counter.field_name,
+            name: counterData.field_name,
             branding: brandId
           }, {
-            name: counter.field_name,
+            name: counterData.field_name,
             branding: brandId,
             value: 0
           })));
@@ -136,7 +151,7 @@ export module Services {
             sails.log[processRecordCountersLogLevel](newVal);
 
             //increment counter to get new value for the record's field associated to the counter
-            this.incrementCounter(record, counter, newVal);
+            this.incrementCounter(recordData, counterData, newVal);
 
             //Update global counter
             const updateOnePromise = await firstValueFrom(this.getObservable(Counter.updateOne({
@@ -150,13 +165,13 @@ export module Services {
 
         } else if (counter.strategy == "field") {
           sails.log[processRecordCountersLogLevel]('processRecordCounters - field - enter');
-          let srcVal = record.metadata[counter.field_name];
-          if (!_.isEmpty(counter.source_field)) {
-            srcVal = record.metadata[counter.source_field];
+          let srcVal = (recordData.metadata ?? {})[counterData.field_name ?? ''];
+          if (!_.isEmpty(counterData.source_field)) {
+            srcVal = (recordData.metadata ?? {})[counterData.source_field ?? ''];
           }
           let newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal) + 1;
           sails.log[processRecordCountersLogLevel](`processRecordCounters - field - newVal: ${newVal}`);
-          this.incrementCounter(record, counter, newVal);
+          this.incrementCounter(recordData, counterData, newVal);
         }
       }
 
@@ -164,7 +179,9 @@ export module Services {
       return record;
     }
 
-    private incrementCounter(record: UnsafeAny, counter: UnsafeAny, newVal: UnsafeAny) {
+    private incrementCounter(record: RecordWithMeta, counter: any, newVal: any) {
+      const counterData = counter as { template?: any; prefix?: string; field_name?: string; add_value_to_array?: string };
+      const metadata = record.metadata ?? {};
 
       let processRecordCountersLogLevel = 'verbose';
       if (sails.config.record.processRecordCountersLogLevel != null) {
@@ -179,37 +196,42 @@ export module Services {
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
       sails.log[processRecordCountersLogLevel]('incrementCounter - enter');
 
-      if (!_.isEmpty(counter.template)) {
+      if (!_.isEmpty(counterData.template)) {
         sails.log[processRecordCountersLogLevel](`incrementCounter - newVal: ${newVal}`);
         sails.log[processRecordCountersLogLevel]('incrementCounter - counter:');
         sails.log[processRecordCountersLogLevel](counter);
-        const templateData = _.extend({ newVal: newVal }, counter);
+        const templateData = _.extend({ newVal: newVal }, counterData);
         const templateImportData = {
           imports: {
             moment: moment,
             numeral: numeral
           }
         };
-        if (_.isString(counter.template)) {
-          const compiledTemplate = _.template(counter.template, templateImportData);
-          counter.template = compiledTemplate;
+        if (_.isString(counterData.template)) {
+          const compiledTemplate = _.template(counterData.template, templateImportData);
+          counterData.template = compiledTemplate;
         }
-        newVal = counter.template(templateData);
+        newVal = (counterData.template as (data: any) => unknown)(templateData);
       }
-      const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
+      const recVal = `${TranslationService.t(counterData.prefix ?? '')}${newVal}`;
       sails.log[processRecordCountersLogLevel](`incrementCounter - recVal: ${recVal}`);
-      _.set(record.metadata, counter.field_name, recVal);
-      if (!_.isEmpty(counter.add_value_to_array)) {
-        const arrayVal = _.get(record, counter.add_value_to_array, []);
+      const fieldName = counterData.field_name ?? '';
+      if (fieldName) {
+        _.set(metadata, fieldName, recVal);
+      }
+      record.metadata = metadata;
+      const arrayPath = counterData.add_value_to_array ?? '';
+      if (!_.isEmpty(arrayPath)) {
+        const arrayVal = _.get(record, arrayPath, []);
         arrayVal.push(recVal);
-        _.set(record, counter.add_value_to_array, arrayVal);
+        _.set(record, arrayPath, arrayVal);
         sails.log[processRecordCountersLogLevel]('incrementCounter - arrayVal:');
         sails.log[processRecordCountersLogLevel](arrayVal);
       }
       sails.log[processRecordCountersLogLevel]('incrementCounter - end');
     }
 
-    public checkTotalSizeOfFilesInRecord(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+    public checkTotalSizeOfFilesInRecord(oid: string, record: RecordWithMeta, options: any, user: any) {
       let functionLogLevel = 'verbose';
       const triggerCondition = _.get(options, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options, user) === "true") {
@@ -219,10 +241,10 @@ export module Services {
         } else {
           sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
         }
-        let dataLocations = record['metadata']['dataLocations'];
+        let dataLocations = _.get(record, 'metadata.dataLocations', []);
         sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
         sails.log[functionLogLevel](dataLocations);
-        if (!_.isUndefined(dataLocations)) {
+        if (Array.isArray(dataLocations)) {
           let foundAttachment = false;
 
           for (let attachmentFile of dataLocations) {
@@ -291,7 +313,7 @@ export module Services {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    protected addEmailToList(contributor: UnsafeAny, emailProperty: string, emailList: string[], lowerCaseEmailAddresses: boolean = true) {
+    protected addEmailToList(contributor: any, emailProperty: string, emailList: string[], lowerCaseEmailAddresses: boolean = true) {
       let contributorEmailAddress = _.get(contributor, emailProperty, null);
       if (!contributorEmailAddress) {
         if (!contributor) {
@@ -313,15 +335,15 @@ export module Services {
       }
     }
 
-    protected populateContribList(contribProperties: UnsafeAny[], record: UnsafeAny, emailProperty: string, emailList: string[]) {
-      _.each(contribProperties, (editContributorProperty: UnsafeAny) => {
+    protected populateContribList(contribProperties: any[], record: RecordWithMeta, emailProperty: string, emailList: string[]) {
+      _.each(contribProperties, (editContributorProperty: any) => {
         let editContributor = _.get(record, editContributorProperty, null);
 
         if (editContributor) {
           sails.log.verbose(`Contributor:`);
           sails.log.verbose(JSON.stringify(editContributor));
           if (_.isArray(editContributor)) {
-            _.each(editContributor, (contributor: UnsafeAny) => {
+            _.each(editContributor, (contributor: any) => {
               this.addEmailToList(contributor, emailProperty, emailList);
             });
           } else {
@@ -332,16 +354,16 @@ export module Services {
       return _.uniq(emailList);
     }
 
-    protected getContribListByRule(contribProperties: UnsafeAny[], record: UnsafeAny, rule: UnsafeAny, emailProperty: string, emailList: string[]) {
+    protected getContribListByRule(contribProperties: any[], record: RecordWithMeta, rule: any, emailProperty: string, emailList: string[]) {
       let compiledRule = _.template(rule);
-      _.each(contribProperties, (contributorProperty: UnsafeAny) => {
+      _.each(contribProperties, (contributorProperty: any) => {
         sails.log.verbose(`Processing contributor property ${contributorProperty}`)
         let contributor = _.get(record, contributorProperty, null);
         if (contributor) {
           sails.log.verbose(`Contributor:`);
           sails.log.verbose(JSON.stringify(contributor));
           if (_.isArray(contributor)) {
-            _.each(contributor, (individualContributor: UnsafeAny) => {
+            _.each(contributor, (individualContributor: any) => {
               const compiledResult = String(compiledRule(individualContributor));
               if (compiledResult === "true") {
                 this.addEmailToList(individualContributor, emailProperty, emailList);
@@ -358,8 +380,8 @@ export module Services {
       return _.uniq(emailList);
     }
 
-    protected filterPending(users: UnsafeAny[], userEmails: string[], userList: string[]) {
-      _.each(users, (user: UnsafeAny) => {
+    protected filterPending(users: any[], userEmails: string[], userList: string[]) {
+      _.each(users, (user: any) => {
         if (user != null) {
           _.remove(userEmails, (email: string) => {
             return email == user['email'];
@@ -369,7 +391,7 @@ export module Services {
       });
     }
 
-    public queueTriggerCall(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+    public queueTriggerCall(oid: string, record: RecordWithMeta, options: any, user: any) {
       const triggerCondition = _.get(options, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
         let jobName = _.get(options, "jobName", null);
@@ -387,7 +409,7 @@ export module Services {
       return of(record);
     }
 
-    public queuedTriggerSubscriptionHandler(job: UnsafeAny) {
+    public queuedTriggerSubscriptionHandler(job: any) {
       let data = job.attrs.data;
       let oid = _.get(data, "oid", null);
       let triggerConfiguration = _.get(data, "triggerConfiguration", null);
@@ -414,7 +436,7 @@ export module Services {
       return of(record);
     }
 
-    private convertToObservable(hookResponse: UnsafeAny) {
+    private convertToObservable(hookResponse: any) {
       let response = hookResponse;
       if (isObservable(hookResponse)) {
         return hookResponse;
@@ -430,7 +452,7 @@ export module Services {
      * @param record The record to update.
      * @param options The options for modifying the record.
      */
-    public complexAssignPermissions(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny) {
+    public complexAssignPermissions(oid: string, record: RecordWithMeta, options: any) {
       const triggerCondition = _.get(options, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
         sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
@@ -444,8 +466,8 @@ export module Services {
         const editPermissionRule = _.get(options, "editPermissionRule");
         const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
 
-        let editContributorObs: Array<Observable<UnsafeAny>> = [];
-        let viewContributorObs: Array<Observable<UnsafeAny>> = [];
+        let editContributorObs: Array<Observable<unknown>> = [];
+        let viewContributorObs: Array<Observable<unknown>> = [];
         let editContributorEmails: string[] = [];
         let viewContributorEmails: string[] = [];
 
@@ -469,7 +491,7 @@ export module Services {
      * @param record The record to update.
      * @param options The options for modifying the record.
      */
-    public assignPermissions(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny) {
+    public assignPermissions(oid: string, record: RecordWithMeta, options: any) {
       const triggerCondition = _.get(options, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, options) === "true") {
         sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
@@ -481,8 +503,8 @@ export module Services {
         const editContributorProperties = _.get(options, "editContributorProperties", []);
         const viewContributorProperties = _.get(options, "viewContributorProperties", []);
         const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
-        let editContributorObs: Array<Observable<UnsafeAny>> = [];
-        let viewContributorObs: Array<Observable<UnsafeAny>> = [];
+        let editContributorObs: Array<Observable<unknown>> = [];
+        let viewContributorObs: Array<Observable<unknown>> = [];
         let editContributorEmails: string[] = [];
         let viewContributorEmails: string[] = [];
 
@@ -512,9 +534,9 @@ export module Services {
      * @private
      */
     private assignContributorRecordPermissions(
-      oid: UnsafeAny, record: UnsafeAny, recordCreatorPermissions: UnsafeAny,
-      editContributorEmails: string[], editContributorObs: Array<Observable<UnsafeAny>>,
-      viewContributorEmails: string[], viewContributorObs: Array<Observable<UnsafeAny>>) {
+      oid: string, record: RecordWithMeta, recordCreatorPermissions: any,
+      editContributorEmails: string[], editContributorObs: Array<Observable<unknown>>,
+      viewContributorEmails: string[], viewContributorObs: Array<Observable<unknown>>) {
       if (_.isEmpty(editContributorEmails)) {
         sails.log.error(`No editors for record: ${oid}`);
       }
@@ -538,12 +560,12 @@ export module Services {
       if (editContributorObs.length === 0 && viewContributorObs.length === 0) {
         return of(record);
       }
-      let zippedViewContributorUsers: Observable<UnsafeAny[]>;
+      let zippedViewContributorUsers: Observable<any>;
       if (editContributorObs.length == 0) {
         zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
         zippedViewContributorUsers = zip(...editContributorObs)
-          .pipe(flatMap((editContributorUsers: UnsafeAny[]) => {
+          .pipe(flatMap((editContributorUsers: any[]) => {
             let newEditList: string[] = [];
             this.filterPending(editContributorUsers, editContributorEmails, newEditList);
             if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
@@ -558,7 +580,7 @@ export module Services {
             }
           }));
       }
-      return zippedViewContributorUsers.pipe(flatMap((viewContributorUsers: UnsafeAny[]) => {
+      return zippedViewContributorUsers.pipe(flatMap((viewContributorUsers: any[]) => {
         let newViewList: string[] = [];
         this.filterPending(viewContributorUsers, viewContributorEmails, newViewList);
         if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
@@ -570,7 +592,7 @@ export module Services {
       }));
     }
 
-    public stripUserBasedPermissions(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+    public stripUserBasedPermissions(oid: string, record: RecordWithMeta, options: any, user: any) {
       if (this.metTriggerCondition(oid, record, options) === "true") {
         let mode = options.permissionTypes;
         if (mode == null) {
@@ -612,7 +634,7 @@ export module Services {
       return of(record);
     }
 
-    public restoreUserBasedPermissions(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
+    public restoreUserBasedPermissions(oid: string, record: RecordWithMeta, options: any, user: any) {
       if (this.metTriggerCondition(oid, record, options) === "true") {
         if (record.authorization.stored != undefined) {
           record.authorization.edit = _.map(record.authorization.stored.edit, _.clone);
@@ -629,7 +651,7 @@ export module Services {
       return of(record);
     }
 
-    public runTemplates(oid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny, response: StorageServiceResponse | null = null) {
+    public runTemplates(oid: string, record: RecordWithMeta, options: any, user: any, response: StorageServiceResponse | null = null) {
 
       sails.log.verbose(`runTemplates config:`);
       sails.log.verbose(JSON.stringify(options.templates));
@@ -639,7 +661,7 @@ export module Services {
       let parseObject = _.get(options, 'parseObject', false);
       let tmplConfig = null;
       try {
-        _.each(options.templates, (templateConfig: UnsafeAny) => {
+        _.each(options.templates, (templateConfig: any) => {
           tmplConfig = templateConfig;
           const imports = _.extend({
 
@@ -678,7 +700,7 @@ export module Services {
 
     }
 
-    public async addWorkspaceToRecord(oid: UnsafeAny, workspaceData: UnsafeAny, options: UnsafeAny, user: UnsafeAny, response: UnsafeAny) {
+    public async addWorkspaceToRecord(oid: string, workspaceData: any, options: any, user: any, response: any) {
       const rdmpOidField = _.get(options, 'rdmpOidField', 'rdmpOid');
       const rdmpOid = _.get(workspaceData.metadata, rdmpOidField, null);
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
@@ -692,7 +714,7 @@ export module Services {
       return workspaceData;
     }
 
-    public async removeWorkspaceFromRecord(oid: UnsafeAny, workspaceData: UnsafeAny, options: UnsafeAny, user: UnsafeAny, response: UnsafeAny) {
+    public async removeWorkspaceFromRecord(oid: string, workspaceData: any, options: any, user: any, response: any) {
       const rdmpOidField = _.get(options, 'rdmpOidField', 'rdmpOid');
       const rdmpOid = _.get(workspaceData.metadata, rdmpOidField, null);
       sails.log.verbose(`Generic removing workspace ${oid} from record: ${rdmpOid}`);

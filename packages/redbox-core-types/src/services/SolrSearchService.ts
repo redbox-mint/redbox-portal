@@ -35,8 +35,8 @@ type SolrConfig = SolrSearchConfig;
 const axios = require('axios');
 const util = require('util');
 const querystring = require('querystring');
-let flat: UnsafeAny;
-const luceneEscapeQueryModule: UnsafeAny = require("lucene-escape-query");
+let flat: any = null;
+const luceneEscapeQueryModule: any = require("lucene-escape-query");
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
     ? luceneEscapeQueryModule
@@ -46,7 +46,7 @@ const luceneEscapeQuery: (value: string) => string =
 
 class SolrClient {
   options: SolrOptions;
-  axios: UnsafeAny = axios;
+  axios: { post: (url: string, body: unknown) => Promise<unknown> };
   autoCommit: boolean = true; 
   constructor(options: SolrOptions) {
     this.options = options;
@@ -57,7 +57,7 @@ class SolrClient {
     });
   }
 
-  public async add(doc: UnsafeAny): Promise<void> {
+  public async add(doc: Record<string, unknown>): Promise<void> {
     try {
       await this.axios.post('/update', [doc]);
       if (this.autoCommit) {
@@ -69,7 +69,7 @@ class SolrClient {
     }
   }
 
-  public async delete(field: string, value: UnsafeAny): Promise<void> {
+  public async delete(field: string, value: string | number): Promise<void> {
     try {
       const deleteQuery = { delete: { query: `${field}:"${value}"` } };
       await this.axios.post('/update', deleteQuery);
@@ -100,12 +100,16 @@ class Solr {
 }
 
 export module Services {
+  type SolrResponse = any;
+  type SearchField = { name: string; value?: string | number | null };
+  type QueueJob = { attrs: { data: any } };
+
   /**
    * Service class for adding documents to Solr.
    *
    */
   export class SolrSearchService extends services.Core.Service implements SearchService {
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'index',
       'remove',
       'searchFuzzy',
@@ -194,7 +198,7 @@ export module Services {
           schemaDef['add-field'].push(initSchemaFlag);
           sails.log.verbose(`${ref.logHeader} sending schema definition:`);
           sails.log.verbose(JSON.stringify(schemaDef));
-          const response = await axios.post(schemaUrl, schemaDef).then((response: UnsafeAny) => response.data);
+          const response = await axios.post(schemaUrl, schemaDef).then((response: { data: unknown }) => response.data);
           sails.log.verbose(`${ref.logHeader} Schema build successful, response: `);
           sails.log.verbose(JSON.stringify(response));
         } catch (err) {
@@ -206,14 +210,14 @@ export module Services {
 
     private async getSchemaEntry(coreId: string, fieldName: string, name: string, ref: SolrSearchService = this) {
       const schemaResp = await ref.getSchema(coreId);
-      return _.find(_.get(schemaResp.schema, fieldName), (schemaDef: UnsafeAny) => { return schemaDef.name == name });
+      return _.find(_.get(schemaResp.schema, fieldName), (schemaDef: Record<string, unknown>) => { return schemaDef.name == name });
     }
 
     private async getSchema(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
-      return await axios.get(schemaUrl).then((response: UnsafeAny) => response.data);
+      return await axios.get(schemaUrl).then((response: { data: unknown }) => response.data);
     }
 
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
@@ -227,7 +231,7 @@ export module Services {
         try {
           tryCtr++;
           sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
-          const solrStat = await axios.get(urlCheck).then((response: UnsafeAny) => response.data);
+          const solrStat = await axios.get(urlCheck).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
           sails.log.verbose(`${ref.logHeader} Response is:`);
           sails.log.verbose(JSON.stringify(solrStat));
           if (solrStat.status[coreName].instanceDir) {
@@ -268,29 +272,29 @@ export module Services {
     }
     
 
-    public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<UnsafeAny> {
+    public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
-      const response = await axios.get(url).then((response: UnsafeAny) => response.data);
+      const response = await axios.get(url).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
     }
 
-    public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: UnsafeAny, facetSearches: UnsafeAny, brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<UnsafeAny> {
+    public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: SearchField[], facetSearches: SearchField[], brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<Record<string, unknown>> {
       const username = user.username;
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
-      _.forEach(exactSearches, (exactSearch: UnsafeAny) => {
+      _.forEach(exactSearches, (exactSearch: SearchField) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });
       if (facetSearches.length > 0) {
         searchParam = `${searchParam}&facet=true`
-        _.forEach(facetSearches, (facetSearch: UnsafeAny) => {
+        _.forEach(facetSearches, (facetSearch: SearchField) => {
           searchParam = `${searchParam}&facet.field=${facetSearch.name}${_.isEmpty(facetSearch.value) ? '' : `&fq=${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`}`
         });
       }
@@ -298,14 +302,14 @@ export module Services {
       let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false);
       sails.log.verbose(`Searching fuzzy using: ${url}`);
-      const response = await axios.get(url).then((response: UnsafeAny) => response.data);
-      const customResp: UnsafeAny = {
+      const response = await axios.get(url).then((response: { data: SolrResponse }) => response.data);
+      const customResp: any = {
         records: []
       };
       let totalItems = response.response.numFound;
 
-      _.forEach(response.response.docs, (solrdoc: UnsafeAny) => {
-        const customDoc: Record<string, unknown> = {};
+      _.forEach(response.response.docs, (solrdoc: any) => {
+        const customDoc: any = {};
         _.forEach(returnFields, (retField: string) => {
           if (_.isArray(solrdoc[retField])) {
             customDoc[retField] = solrdoc[retField][0];
@@ -319,7 +323,7 @@ export module Services {
       // check if have facets turned on...
       if (response.facet_counts) {
         customResp['facets'] = [];
-        _.forOwn(response.facet_counts.facet_fields, (facet_field: UnsafeAny[], facet_name: string) => {
+        _.forOwn(response.facet_counts.facet_fields, (facet_field: any[], facet_name: string) => {
           const numFacetsValues = _.size(facet_field) / 2;
           const facetValues: Array<{ value: string; count: number }> = [];
           for (let i = 0, j = 0; i < numFacetsValues; i++) {
@@ -347,9 +351,9 @@ export module Services {
       }
     }
 
-    public async solrAddOrUpdate(job: UnsafeAny) {
+    public async solrAddOrUpdate(job: QueueJob) {
       try {
-        let data: RecordModel = job.attrs.data;
+        let data: RecordModel = job.attrs.data as unknown as RecordModel;
         let coreId = _.get(data, 'metaMetadata.searchCore', 'default');
         // storage_id is used as the main ID in searches
         let solrDocument: SolrDocument = new SolrDocument(data);
@@ -370,17 +374,17 @@ export module Services {
 
     // TODO: This method shouldn't need to be public 
     // but can't unit test it easily if it isn't
-    public preIndex(data: SolrDocument): UnsafeAny {
-      let processedData: UnsafeAny = _.cloneDeep(data);
+    public preIndex(data: SolrDocument): Record<string, unknown> {
+      let processedData: any = _.cloneDeep(data);
 
       let coreId = _.get(data, 'metaMetadata.searchCore', 'default');
-      let moveObj = _.get(sails.config.solr.cores, coreId + '.preIndex.move');
+      let moveObj = _.get(sails.config.solr.cores, coreId + '.preIndex.move') as unknown as any[];
       // moving
-      _.each(moveObj, (moveConfig: UnsafeAny) => {
+      _.each(moveObj, (moveConfig: any) => {
         const source: string = moveConfig.source;
         const dest: string = moveConfig.dest;
         // the data used will always be the original object
-        const moveData: UnsafeAny = _.get(data, source);
+        const moveData: unknown = _.get(data, source);
         if (!_.isEmpty(moveData)) {
           _.unset(processedData, source);
           if (_.isEmpty(dest)) {
@@ -393,60 +397,63 @@ export module Services {
           sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
-      let copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy');
+      let copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as any[];
       // copying
-      _.each(copyObj, (copyConfig: UnsafeAny) => {
+      _.each(copyObj, (copyConfig: any) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
-      let jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString');
-      _.each(jsonStringObj, (jsonStringConfig: UnsafeAny) => {
+      let jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString') as unknown as any[];
+      _.each(jsonStringObj, (jsonStringConfig: any) => {
         let setProperty: string = jsonStringConfig.source;
         if (jsonStringConfig.dest != null) {
           setProperty = jsonStringConfig.dest;
         }
         _.set(processedData, setProperty, JSON.stringify(_.get(data, jsonStringConfig.source, undefined)));
       });
-      let templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template');
+      let templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template') as unknown as any[];
       //Evaluate a template to generate a value for the solr document
-      _.each(templateObj, (templateConfig: UnsafeAny) => {
+      _.each(templateObj, (templateConfig: any) => {
         let setProperty: string = templateConfig.source;
         if (templateConfig.dest != null) {
           setProperty = templateConfig.dest;
         }
 
         // If no source property set, use the whole data object
-        let templateData: UnsafeAny;
+        let templateData: unknown;
         if (templateConfig.source != null) {
           templateData = _.get(data, templateConfig.source)
         } else {
           templateData = _.cloneDeep(data);
         }
 
-        let template: UnsafeAny = _.template(templateConfig.template)
+        const template = _.template(templateConfig.template)
         _.set(processedData, setProperty, template({ data: templateData }));
       });
 
-      let flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special');
+      let flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special') as unknown as any[];
       // flattening...
       // first remove those with special flattening options
-      _.each(flattenSpecialObj, (specialFlattenConfig: UnsafeAny) => {
+      _.each(flattenSpecialObj, (specialFlattenConfig: any) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
       let flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options');
+      if (!flat) {
+        throw new Error('flat module not loaded');
+      }
       processedData = flat.flatten(processedData, flattenOptionsObj);
-      _.each(flattenSpecialObj, (specialFlattenConfig: UnsafeAny) => {
-        const dataToFlatten: UnsafeAny = {};
+      _.each(flattenSpecialObj, (specialFlattenConfig: any) => {
+        const dataToFlatten: Record<string, unknown> = {};
         if (specialFlattenConfig.dest) {
           _.set(dataToFlatten, specialFlattenConfig.dest, _.get(data, specialFlattenConfig.source));
         } else {
           _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
         }
-        let flattened: UnsafeAny = flat.flatten(dataToFlatten, specialFlattenConfig.options);
+        let flattened = flat.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
       });
 
       // sanitise any empty keys so SOLR doesn't complain
-      _.forOwn(processedData, (v: UnsafeAny, k: UnsafeAny) => {
+      _.forOwn(processedData, (_v: unknown, k: string) => {
         if (_.isEmpty(k)) {
           _.unset(processedData, k);
         }
@@ -454,8 +461,8 @@ export module Services {
       return processedData;
     }
 
-    protected luceneEscape(str: string) {
-      return luceneEscapeQuery(str);
+    protected luceneEscape(str: string | number | null | undefined) {
+      return luceneEscapeQuery(String(str ?? ''));
     }
 
     protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
@@ -464,7 +471,8 @@ export module Services {
       let matched = false;
       for (let i = 0; i < roles.length; i++) {
         const role = roles[i]
-        if ((role as UnsafeAny).branding?.id == brand.id || (role as UnsafeAny).branding == brand.id) {
+        const roleBrandId = (role.branding as BrandingModel | string | undefined);
+        if ((typeof roleBrandId === 'object' ? roleBrandId?.id : roleBrandId) == brand.id) {
           if (matched) {
             roleString += " OR ";
             matched = false;
@@ -477,7 +485,7 @@ export module Services {
       return url;
     }
 
-    public async solrDelete(job: UnsafeAny, done: UnsafeAny) {
+    public async solrDelete(job: QueueJob, done: unknown) {
       try {
         let data = job.attrs.data;
         let coreId = _.get(data, 'searchCore', 'default');
