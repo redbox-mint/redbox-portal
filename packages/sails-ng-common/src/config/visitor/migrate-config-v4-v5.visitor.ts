@@ -114,7 +114,7 @@ import {FormConfigVisitor} from "./base.model";
 import {FormPathHelper, PropertiesHelper} from "./common.model";
 import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {CanVisit} from "./base.outline";
-import {LineagePathsPartial} from "../names/naming-helpers";
+import {LineagePath, LineagePathsPartial} from "../names/naming-helpers";
 import {FormComponentClassDefMapType, FormComponentDefinitionMap} from "../dictionary.model";
 import {isTypeFormComponentDefinitionName} from "../form-types.outline";
 import {ILogger} from "../../logger.interface";
@@ -321,7 +321,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     private v4FormConfig: Record<string, unknown>;
     private v5FormConfig: FormConfigOutline;
 
-    private v4FormPath: string[];
+    private mostRecentRepeatableElementTemplatePath: LineagePath | null;
+
+    private v4FormPath: LineagePath;
     private formPathHelper: FormPathHelper;
     private sharedProps: PropertiesHelper;
 
@@ -345,15 +347,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.v5FormConfig = new FormConfig();
         this.v4FormPath = [];
 
+        this.mostRecentRepeatableElementTemplatePath = null;
+
         this.formPathHelper = new FormPathHelper(logger, this);
         this.sharedProps = new PropertiesHelper();
-
     }
 
     start(options: { data: any }): FormConfigOutline {
         this.v4FormConfig = _cloneDeep(this.normaliseV4FormConfig(options.data));
         this.v5FormConfig = new FormConfig();
         this.v4FormPath = [];
+
+        this.mostRecentRepeatableElementTemplatePath = null;
 
         this.formPathHelper.reset();
 
@@ -397,14 +402,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const fields: Record<string, unknown>[] = currentData.fields ?? [];
         // this.logger.info(`Processing '${item.name}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
+            const v4FormPathMore = ["fields", index.toString()];
             // Create the instance from the v4 config
-            const formComponent = this.constructFormComponent(field);
+            const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
             // Visit children
             this.acceptV4FormConfigPath(
                 formComponent,
                 this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index),
-                ["fields", index.toString()],
+                v4FormPathMore,
             );
 
             // Store the instance on the item
@@ -454,36 +460,59 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const field = this.getV4Data();
         item.config = new RepeatableFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
+        const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
 
         const fields = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
 
         if (fields.length === 1) {
+            const v4Field = fields[0];
 
-            // Create the instance from the v4 config
-            const formComponent = this.constructFormComponent(fields[0]);
+            // Track the most recent element template.
+            // - Ensure newEntryValue is used only in elementTemplate definitions.
+            // - Ensure defaultValue is not defined in elementTemplate or any nested components.
+            const previousMostRecentRepeatableElementTemplatePath = this.mostRecentRepeatableElementTemplatePath === null
+                ? null : [...this.mostRecentRepeatableElementTemplatePath];
+            this.mostRecentRepeatableElementTemplatePath = [...currentFormConfigPath, "config", "elementTemplate"];
 
-            // The elementTemplate's name must be a falsy value.
-            formComponent.name = "";
+            try {
+                const v4FormPathMore = ["definition", "fields", "0"];
+                // Create the instance from the v4 config
+                const formComponent = this.constructFormComponent(v4Field, v4FormPathMore);
 
-            // Visit children
-            this.acceptV4FormConfigPath(
-                formComponent,
-                this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent),
-                ["definition", "fields", "0"],
-            );
+                // The elementTemplate's name must be a falsy value.
+                formComponent.name = "";
 
-            // TODO: this check & change needs to be done for all nested components as well.
-            // Overall repeatable default: repeatable.model.config.defaultValue
-            // New item default: elementTemplate.model.config.newEntryValue
-            // The elementTemplate defaultValue must be set in newEntryValue
-            if (formComponent?.model?.config?.defaultValue !== undefined) {
-                formComponent.model.config.newEntryValue = formComponent?.model?.config?.defaultValue;
-                formComponent.model.config.defaultValue = undefined;
+                // Visit children
+                this.acceptV4FormConfigPath(
+                    formComponent,
+                    this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent),
+                    v4FormPathMore,
+                );
+
+                // TODO: This check & change needs to be expanded to collect the defaultValues for all nested components as well.
+                //       Likely something similar to how the construct visitor does it could be adapted for this.
+                // Overall repeatable default: repeatable.model.config.defaultValue
+                // New item default: elementTemplate.model.config.newEntryValue
+                // The elementTemplate defaultValue must be set in newEntryValue
+                if (formComponent?.model?.config?.defaultValue !== undefined) {
+                    formComponent.model.config.newEntryValue = formComponent?.model?.config?.defaultValue;
+                    const i = formComponent.model.config;
+                    delete i['defaultValue'];
+                }
+
+                // The newEntryValue must have a value.
+                // if (formComponent?.model?.config !== undefined && formComponent.model.config.newEntryValue === undefined) {
+                //     formComponent.model.config.newEntryValue = {};
+                // }
+
+
+                // Store the instance on the item
+                item.config.elementTemplate = formComponent;
+            } finally {
+                // Restore the previous element template state.
+                this.mostRecentRepeatableElementTemplatePath = previousMostRecentRepeatableElementTemplatePath;
             }
-
-            // Store the instance on the item
-            item.config.elementTemplate = formComponent;
         } else {
             this.logger.error(`${this.logName}: Expected one field in definition for repeatable, but found ${fields.length}: ${JSON.stringify(field)}`);
         }
@@ -528,14 +557,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
+            const v4FormPathMore = ["definition", "fields", index.toString()];
             // Create the instance from the v4 config
-            const formComponent = this.constructFormComponent(field);
+            const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
             // Visit children
             this.acceptV4FormConfigPath(
                 formComponent,
                 this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
-                ["definition", "fields", index.toString()],
+                v4FormPathMore,
             );
 
             // Store the instance on the item
@@ -564,6 +594,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
+            const v4FormPathMore = ["definition", "fields", index.toString()];
 
             // TODO: Does this approach to mapping the tab content component lose data?
             // build tab component from field by setting 'placeholder' v4 class
@@ -571,14 +602,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             field.class = "TabContentContainer";
 
             // Create the instance from the v4 config
-            const formComponent = this.constructFormComponent(field);
+            const formComponent = this.constructFormComponent(field, v4FormPathMore);
             if (isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(formComponent, TabContentComponentName)) {
 
                 // Visit children
                 this.acceptV4FormConfigPath(
                     formComponent,
-                    this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
-                    ["definition", "fields", index.toString()],
+                    this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index),
+                    v4FormPathMore,
                 );
 
                 // Store the instance on the item
@@ -608,13 +639,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
+            const v4FormPathMore = ["definition", "fields", index.toString()];
             // Create the instance from the v4 config
-            const formComponent = this.constructFormComponent(field);
+            const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
             // Visit children
             this.acceptV4FormConfigPath(
                 formComponent,
-                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
+                this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, index),
                 ["definition", "fields", index.toString()],
             );
 
@@ -626,6 +658,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
         const field = this.getV4Data();
         item.config = new TabContentFieldLayoutConfig();
+        if (field?.definition?.label) {
+            item.config.buttonLabel = field?.definition?.label;
+        }
         this.sharedPopulateFieldLayoutConfig(item.config, field);
     }
 
@@ -704,13 +739,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         item.config = new DropdownInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
-        const options = (field?.definition?.options ?? []).map((option: any) => {
-            return {
-                label: option?.label ?? '',
-                value: option?.value ?? '',
-                disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
-            }
-        });
+        const options = this.migrateOptions(field);
         this.sharedProps.setPropOverride('options', item.config, {options: options});
     }
 
@@ -786,10 +815,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
     }
 
-    protected constructFormComponent(field: Record<string, any>): AllFormComponentDefinitionOutlines {
+    protected constructFormComponent(field: Record<string, any>, more?: LineagePath): AllFormComponentDefinitionOutlines {
         let {componentClassName, modelClassName, layoutClassName, errorMessage} = this.mapV4ToV5(field);
 
-        const name = field?.definition?.name || field?.definition?.id || `${componentClassName}-${this.v4FormPath.join('-')}`;
+        const name = field?.definition?.name || field?.definition?.id || [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-');
 
         // Build the form component definition frame
         const currentData: FormComponentDefinitionFrame = {
@@ -802,9 +831,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         if (modelClassName) {
             currentData.model = {class: modelClassName, config: {}};
         }
-        if (layoutClassName) {
-            currentData.layout = {class: layoutClassName, config: {}};
+        // TODO: Give everything a layout for now.
+        if (!layoutClassName) {
+            layoutClassName = "DefaultLayout";
         }
+        currentData.layout = {class: layoutClassName, config: {}};
+
 
         // Set the constraints
         currentData.constraints = {};
@@ -892,13 +924,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             item.validators.push({class: 'maxLength', config: {maxLength: field?.definition?.maxLength}});
         }
         const config = {
-            defaultValue: field?.definition?.defaultValue ?? field?.definition?.value,
+            defaultValue: field?.definition?.value ?? field?.definition?.defaultValue,
         };
+        // TODO: Components that are a descendant of a repeatable element template cannot have a default value.
+        //       The default values should be collected and set as the element template newEntryValue.
+        if (this.isRepeatableElementTemplateDescendant()) {
+            delete config['defaultValue'];
+        }
         this.sharedProps.sharedPopulateFieldModelConfig(item, config);
     }
 
     protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
         const config = {
+            label: field?.definition?.label,
             helpText: field?.definition?.help,
         };
         this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
@@ -908,12 +946,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const data = this.v4FormConfig;
         const path = this.v4FormPath;
 
-        let result;
-        if (!path || path.length < 1) {
-            result = data;
-        } else {
-            result = _get(data, path.map(i => i.toString()));
-        }
+        const result = (!path || path.length < 1) ? data : _get(data, path.map(i => i.toString()));
 
         // this.logger.info(JSON.stringify({path, result}));
         return result;
@@ -953,5 +986,55 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             formConfig.name = 'v4FormConfig';
         }
         return formConfig;
+    }
+
+    protected migrateOptions(field: Record<string, unknown>) {
+        return ((field?.definition as Record<string, unknown>)?.options as string[] ?? []).map((option: any) => {
+            return {
+                label: option?.label ?? '',
+                value: option?.value ?? '',
+                disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
+            }
+        });
+    }
+
+    /**
+     * Check whether the current form config path matches the
+     * most recent repeatable element template path.
+     * @protected
+     */
+    protected isMostRecentRepeatableElementTemplate(): boolean {
+        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const array2 = this.formPathHelper.formPath.formConfig;
+        if (!array1 || array1.length === 0 || !array2 || array2.length === 0) {
+            return false;
+        }
+        // Either array can have 'component', 'model', 'layout' at the end and
+        // still match if the other array is one item shorter.
+        const allowedExtras: LineagePath = ["component", "model", "layout"];
+        if (array1.length === array2.length) {
+            return array1.every((value, index) => value === array2[index]);
+        } else if (array1.length === array2.length - 1) {
+            return allowedExtras.includes(array2[array2.length - 1]) &&
+                array1.every((value, index) => value === array2[index]);
+        } else if (array1.length - 1 === array2.length) {
+            return allowedExtras.includes(array1[array1.length - 1]) &&
+                array2.every((value, index) => value === array1[index]);
+        }
+        return false;
+    }
+
+    /**
+     * Check whether the current form config path is a descendant (and not a match)
+     * of the most recent repeatable element template path.
+     * @protected
+     */
+    protected isRepeatableElementTemplateDescendant(): boolean {
+        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const array2 = this.formPathHelper.formPath.formConfig;
+        if (!array1 || array1.length === 0 || !array2 || array2.length === 0 || array2.length + 2 <= array1.length) {
+            return false;
+        }
+        return array1.every((value, index) => value === array2[index]);
     }
 }

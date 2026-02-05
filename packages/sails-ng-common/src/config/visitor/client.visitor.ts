@@ -156,7 +156,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             // Visit children
             that.formPathHelper.acceptFormPath(
                 componentDefinition,
-            that.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
+                that.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
             );
         });
         item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
@@ -601,8 +601,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             const path = current.path;
             const schema = current.schema;
 
-            const currentValue = path.length > 0 ? _get(value, path) : value;
-            const currentValueType = guessType(currentValue);
+            let currentValue = path.length > 0 ? _get(value, path) : value;
+            let currentValueType = guessType(currentValue);
 
             const errMsg1 = `Component and data model do not match. Component at '${JSON.stringify(path)}' expected`;
             const errMsg2 = `but got '${currentValueType}':`;
@@ -610,6 +610,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
                 const schemaCurrent = schemaValue as Record<string, unknown>;
                 switch (schemaKey) {
                     case "properties":
+                        // Allow the value to be undefined - set an empty object.
+                        if (currentValue === undefined) {
+                            currentValue = {};
+                            currentValueType = "object";
+                        }
                         if (currentValueType !== "object") {
                             throw new Error(`${errMsg1} an object, ${errMsg2} ${JSON.stringify(currentValue)}`);
                         }

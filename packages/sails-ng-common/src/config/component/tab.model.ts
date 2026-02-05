@@ -19,6 +19,7 @@ import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
 
 export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigOutline {
     tabs: TabContentFormComponentDefinitionOutline[];
+    hostCssClasses = 'tab-content';
 
     constructor() {
         super();
