@@ -21,7 +21,7 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
  * Usage: await SassCompilerService.compile({ 'site-branding-area-background': '#ffffff' })
  * Returns: { css, hash }
  */
-export module Services {
+export namespace Services {
 
     @PopulateExportedMethods
     export class SassCompiler extends services.Core.Service {

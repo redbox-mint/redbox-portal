@@ -25,7 +25,7 @@ function mapError(e: Error): { status: number; body: any } {
   return { status: 500, body: { error: 'server-error', detail: msg } };
 }
 
-export module Controllers {
+export namespace Controllers {
   export class BrandingApp extends controllers.Core.Controller {
     protected override _exportedMethods: any = ['config', 'draft', 'preview', 'publish', 'logo'];
 

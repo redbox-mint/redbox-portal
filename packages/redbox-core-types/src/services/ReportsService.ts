@@ -64,7 +64,7 @@ type SolrSearchResponse = {
 };
 
 
-export module Services {
+export namespace Services {
   /**
    * Reporting related functions...
    *
@@ -165,9 +165,9 @@ export module Services {
 
       if (report.filter != null) {
         let filterQuery = ""
-        for (let filter of report.filter) {
+        for (const filter of report.filter) {
           if (filter.type == ReportFilterType.dateRange) {
-            let paramName = filter.paramName;
+            const paramName = filter.paramName;
             const fromDate = req.param(paramName + "_fromDate");
             const toDate = req.param(paramName + "_toDate");
             const searchProperty = filter.property;
@@ -177,10 +177,10 @@ export module Services {
             filterQuery = filterQuery + (toDate == null ? "NOW" : toDate) + "]";
           }
           if (filter.type == ReportFilterType.text) {
-            let paramName = filter.paramName;
-            let value = req.param(paramName)
+            const paramName = filter.paramName;
+            const value = req.param(paramName)
             if (!_.isEmpty(value)) {
-              let searchProperty = filter.property;
+              const searchProperty = filter.property;
               filterQuery = filterQuery + "&fq=" + searchProperty + ":"
               filterQuery = filterQuery + value + "*"
             }
@@ -248,9 +248,9 @@ export module Services {
     buildNamedQueryParamMap(req: RequestLike, report: ReportConfig) {
       const paramMap: Record<string, unknown> = {}
       if (report.filter != null) {
-        for (let filter of report.filter) {
+        for (const filter of report.filter) {
           if (filter.type == ReportFilterType.dateRange) {
-            let paramName = filter.paramName;
+            const paramName = filter.paramName;
             const fromDate = req.param(paramName + "_fromDate");
             const toDate = req.param(paramName + "_toDate");
             if (filter.database) {
@@ -259,8 +259,8 @@ export module Services {
             }
           }
           if (filter.type == ReportFilterType.text) {
-            let paramName = filter.paramName;
-            let value = req.param(paramName)
+            const paramName = filter.paramName;
+            const value = req.param(paramName)
             paramMap[paramName] = value;
           }
         }
@@ -316,7 +316,7 @@ export module Services {
 
     public async getCSVResult(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 1000000000) {
       const reportModel = this.getReportModel();
-      var report:ReportModel = await firstValueFrom(super.getObservable(reportModel.findOne({
+      let report:ReportModel = await firstValueFrom(super.getObservable(reportModel.findOne({
         key: brand.id + "_" + name
       })));
 
@@ -343,10 +343,10 @@ export module Services {
       }
 
       const headerRow: string[] = this.getCSVHeaderRow(report)
-      let optTemplateData = this.buildOptTemplateData(req)
-      let dataRows: string[][] = this.getDataRows(report, result.records, optTemplateData);
+      const optTemplateData = this.buildOptTemplateData(req)
+      const dataRows: string[][] = this.getDataRows(report, result.records, optTemplateData);
       dataRows.unshift(headerRow);
-      let csvString = stringify(dataRows);
+      const csvString = stringify(dataRows);
       return csvString;
 
     }
@@ -360,9 +360,9 @@ export module Services {
 
     //TODO: It's public only because we need it at the moment to unit test it
     public getDataRows(report: ReportConfig, data: Array<Record<string, unknown>>, optTemplateData: Record<string, unknown>): string[][] {
-      let dataRows: string[][] = [];
+      const dataRows: string[][] = [];
 
-      for (let row of data) {
+      for (const row of data) {
         dataRows.push(this.getDataRow(row, report.columns, optTemplateData));
       }
 
@@ -370,8 +370,8 @@ export module Services {
     }
 
     getDataRow(row: Record<string, unknown>, columns: ReportColumnLike[], optTemplateData: Record<string, unknown>): string[] {
-      let dataRow: string[] = [];
-      for (let column of columns) {
+      const dataRow: string[] = [];
+      for (const column of columns) {
         dataRow.push(this.getColValue(row, column, optTemplateData))
       }
       return dataRow;
@@ -382,7 +382,7 @@ export module Services {
         const retVal: string[] = [];
         const values = _.get(row, col.property);
         if (Array.isArray(values)) {
-          for (let val of values) {
+          for (const val of values) {
             retVal.push(this.getEntryValue(row, col, val, optTemplateData) as string);
           }
         }
@@ -525,8 +525,8 @@ export module Services {
     }
 
     public getCSVHeaderRow(report: ReportConfig): string[] {
-      let headerRow: string[] = [];
-      for (let column of report.columns) {
+      const headerRow: string[] = [];
+      for (const column of report.columns) {
         headerRow.push(column.label)
       }
       return headerRow;

@@ -143,7 +143,7 @@ const DOMPurify = initialiseDOMPurify();
 
 (globalThis as typeof globalThis & { DOMPurify?: DomPurifyInstance }).DOMPurify = DOMPurify;
 
-export module Services {
+export namespace Services {
   /**
    * SVG and DOM sanitization service using DOMPurify.
    * 

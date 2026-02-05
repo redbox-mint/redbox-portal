@@ -6,7 +6,7 @@ import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import type { DashboardTypeDefinition } from '../config/dashboardtype.config';
 
 
-export module Services {
+export namespace Services {
 
   /**
    * Dashboard row configuration interface
@@ -88,9 +88,9 @@ export module Services {
       if (_.isEmpty(dashboardTypes)) {
         const dashTypes: Array<{ name?: string }> = [];
         sails.log.verbose("Bootstrapping DashboardTypes definitions... ");
-        for (let dashboardType in sails.config.dashboardtype) {
-          let config = sails.config.dashboardtype[dashboardType];
-          var createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
+        for (const dashboardType in sails.config.dashboardtype) {
+          const config = sails.config.dashboardtype[dashboardType];
+          const createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
           dashTypes.push(createdDashboardType);
         };
         this.dashboardTypes = dashTypes;

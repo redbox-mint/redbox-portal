@@ -52,7 +52,7 @@ export interface ContrastViolation {
  * Usage: await ContrastService.suggestCompliant(colorA, colorB)
  * Returns: { suggested: string, originalRatio: number, newRatio: number }
  */
-export module Services {
+export namespace Services {
     export class Contrast extends services.Core.Service {
 
         protected override _exportedMethods: string[] = [

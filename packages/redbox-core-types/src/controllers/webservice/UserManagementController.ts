@@ -3,7 +3,7 @@ import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to user management
    *
@@ -36,11 +36,11 @@ export module Controllers {
     }
 
     public listUsers(req: any, res: any) {
-      let that = this;
-      var page = req.param('page');
-      var pageSize = req.param('pageSize');
-      var searchField = req.param('searchBy');
-      var query = req.param('query');
+      const that = this;
+      let page = req.param('page');
+      let pageSize = req.param('pageSize');
+      const searchField = req.param('searchBy');
+      const query = req.param('query');
       const queryObject: Record<string, unknown> = {};
       if (searchField != null && query != null) {
         queryObject[searchField] = query;
@@ -52,12 +52,12 @@ export module Controllers {
       if (pageSize == null) {
         pageSize = 10;
       }
-      let skip = (page - 1) * pageSize;
+      const skip = (page - 1) * pageSize;
 
       User.count({
         where: queryObject
       }).exec(function (err: any, count: number) {
-        let response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
+        const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
         response.summary.numFound = count;
         response.summary.page = page;
 
@@ -85,9 +85,9 @@ export module Controllers {
     }
 
     public getUser(req: any, res: any) {
-      let that = this;
-      var searchField = req.param('searchBy');
-      var query = req.param('query');
+      const that = this;
+      const searchField = req.param('searchBy');
+      const query = req.param('query');
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = query;
       User.findOne(queryObject).exec(function (err: any, user: UserAttributes | null) {
@@ -115,18 +115,18 @@ export module Controllers {
     }
 
     public createUser(req: any, res: any) {
-      let userReq: UserModel = req.body;
+      const userReq: UserModel = req.body;
 
       UsersService.addLocalUser(userReq.username || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: UserModel) => {
         const response: UserModel = userResponse;
         if (userReq.roles) {
           const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
-          let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-          let roleIds = RolesService.getRoleIds(brand.roles, roles);
+          const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+          const roleIds = RolesService.getRoleIds(brand.roles, roles);
           UsersService.updateUserRoles(response.id, roleIds).subscribe((roleUser: UserModel) => {
-            let user: UserModel = roleUser;
+            const user: UserModel = roleUser;
             sails.log.verbose(user);
-            let userResponse = new CreateUserAPIResponse();
+            const userResponse = new CreateUserAPIResponse();
             userResponse.id = response.id;
             userResponse.username = response.username;
             userResponse.name = response.name;
@@ -147,7 +147,7 @@ export module Controllers {
           });
           return;
         } else {
-          let userResponse = new CreateUserAPIResponse();
+          const userResponse = new CreateUserAPIResponse();
           userResponse.id = response.id;
           userResponse.username = response.username;
           userResponse.name = response.name;
@@ -170,15 +170,15 @@ export module Controllers {
 
 
     public updateUser(req: any, res: any) {
-      let userReq: UserModel = req.body;
+      const userReq: UserModel = req.body;
 
       UsersService.updateUserDetails(userReq.id || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: any[]) => {
-        let response: any[] = userResponse;
+        const response: any[] = userResponse;
         let user: any = null;
         sails.log.verbose(user)
 
         if (!_.isEmpty(response) && _.isArray(response)) {
-          for (let userItem of response) {
+          for (const userItem of response) {
             if (!_.isEmpty(response) && _.isArray(userItem)) {
               user = userItem[0];
               break;
@@ -188,11 +188,11 @@ export module Controllers {
 
         if (userReq.roles) {
           const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
-          let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-          let roleIds = RolesService.getRoleIds(brand.roles, roles);
+          const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+          const roleIds = RolesService.getRoleIds(brand.roles, roles);
           UsersService.updateUserRoles(user.id, roleIds).subscribe((user: any) => {
             //TODO: Add roles to the response            
-            let userResponse = new CreateUserAPIResponse();
+            const userResponse = new CreateUserAPIResponse();
             userResponse.id = user.id;
             userResponse.username = user.username;
             userResponse.name = user.name;
@@ -213,7 +213,7 @@ export module Controllers {
           });
           return;
         } else {
-          let userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
+          const userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
           userResponse.id = user.id;
           userResponse.username = user.username;
           userResponse.name = user.name;
@@ -245,13 +245,13 @@ export module Controllers {
     }
 
     public generateAPIToken(req: any, res: any) {
-      let userid: string = req.param('id');
+      const userid: string = req.param('id');
 
       if (userid) {
-        let uuid: string = uuidv4();
+        const uuid: string = uuidv4();
         UsersService.setUserKey(userid, uuid).subscribe((userResponse: UserModel) => {
-          let user: UserModel = userResponse;
-          let response = new UserAPITokenAPIResponse();
+          const user: UserModel = userResponse;
+          const response = new UserAPITokenAPIResponse();
           response.id = userid
           response.username = user.username
           response.token = uuid
@@ -280,13 +280,13 @@ export module Controllers {
 
     public revokeAPIToken(req: any, res: any) {
 
-      let userid = req.param('id');
+      const userid = req.param('id');
 
       if (userid) {
         const uuid: string = '';
         UsersService.setUserKey(userid, uuid).subscribe((userResponse: UserModel) => {
-          let user: UserModel = userResponse;
-          let response = new UserAPITokenAPIResponse();
+          const user: UserModel = userResponse;
+          const response = new UserAPITokenAPIResponse();
           response.id = userid
           response.username = user.username
           response.token = uuid
@@ -313,8 +313,8 @@ export module Controllers {
     }
 
     public listSystemRoles(req: any, res: any) {
-      let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      let response: ListAPIResponse<any> = new ListAPIResponse<any>();
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const response: ListAPIResponse<any> = new ListAPIResponse<any>();
       response.summary.numFound = brand.roles.length;
       response.records = brand.roles;
 
@@ -330,9 +330,9 @@ export module Controllers {
       }
       sails.log.verbose('createSystemRole - roleName ' + roleName);
       if (!_.isUndefined(roleName)) {
-        let brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
         RolesService.createRoleWithBrand(brand, roleName);
-        let response: APIActionResponse = new APIActionResponse(roleName + ' create call success', roleName + ' create call success');
+        const response: APIActionResponse = new APIActionResponse(roleName + ' create call success', roleName + ' create call success');
         return this.apiRespond(req, res, response);
       } else {
         const errorResponse = new APIErrorResponse("Role name has to be passed in as url param or in the body { roleName: nameOfRole }");

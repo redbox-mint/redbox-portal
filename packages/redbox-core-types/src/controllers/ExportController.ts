@@ -27,7 +27,7 @@ const pipeline = util.promisify(stream.pipeline);
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
    *

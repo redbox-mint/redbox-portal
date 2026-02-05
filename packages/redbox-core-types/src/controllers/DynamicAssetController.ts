@@ -28,7 +28,7 @@ import { firstValueFrom } from "rxjs";
 /**
  * Package that contains all Controllers.
  */
-export module Controllers {
+export namespace Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
    *
@@ -90,13 +90,14 @@ export module Controllers {
           form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
         } else {
           const record = await RecordsService.getMeta(oid);
+          const recordAny = record as unknown as Record<string, unknown>;
           let hasAccess: boolean = false;
           if (editMode) {
             //find form to edit a record
-            hasAccess = await RecordsService.hasEditAccess(brand, req.user, req.user.roles, record);
+            hasAccess = await RecordsService.hasEditAccess(brand, req.user, req.user.roles, recordAny);
           } else {
             //find form to view a record
-            hasAccess = await RecordsService.hasViewAccess(brand, req.user, req.user.roles, record);
+            hasAccess = await RecordsService.hasViewAccess(brand, req.user, req.user.roles, recordAny);
           }
           if (!hasAccess) {
             return this.sendResp(req, res, {

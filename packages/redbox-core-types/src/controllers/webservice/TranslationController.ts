@@ -1,7 +1,7 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Webservice TranslationController: manage language content via REST.
    */

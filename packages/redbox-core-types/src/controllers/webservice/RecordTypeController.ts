@@ -2,7 +2,7 @@ import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIRes
 import { firstValueFrom } from 'rxjs';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -34,9 +34,9 @@ export module Controllers {
     public async getRecordType(req: Sails.Req, res: Sails.Res) {
 
       try {
-        let name = req.param('name');
+        const name = req.param('name');
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let recordType = await firstValueFrom(RecordTypesService.get(brand, name));
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
         return this.apiRespond(req, res, recordType, 200)
       } catch (error: unknown) {
@@ -52,9 +52,9 @@ export module Controllers {
     public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let recordTypes: any[] = await firstValueFrom(RecordTypesService.getAll(brand));
-        let response: ListAPIResponse<any> = new ListAPIResponse();
-        let summary: ListAPISummary = new ListAPISummary();
+        const recordTypes: any[] = await firstValueFrom(RecordTypesService.getAll(brand));
+        const response: ListAPIResponse<any> = new ListAPIResponse();
+        const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = recordTypes.length;
         response.summary = summary;
         response.records = recordTypes;

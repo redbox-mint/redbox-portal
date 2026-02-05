@@ -24,7 +24,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import * as crypto from 'crypto';
 
 
-export module Services {
+export namespace Services {
   /**
    * Branding related functions...
    *
@@ -79,7 +79,7 @@ export module Services {
         .pipe(flatMap(brands => {
           this.brandings = brands as BrandingModel[];
           this.availableBrandings = _.map(this.brandings, 'name');
-          var defBrandEntry: BrandingModel = this.getDefault();
+          const defBrandEntry: BrandingModel = this.getDefault();
           if (defBrandEntry == null) {
             sails.log.error("Failed to load default brand!");
             return throwError(new Error("Failed to load default brand!"));
@@ -135,7 +135,7 @@ export module Services {
     }
 
     public getBrandFromReq(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
-      var branding = null;
+      let branding = null;
       if (req && req.params) {
         const paramBranding = req.params['branding'];
         branding = typeof paramBranding === 'string' ? paramBranding : null;
@@ -160,7 +160,7 @@ export module Services {
     }
 
     public getPortalFromReq(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
-      var portal = null;
+      let portal = null;
       if (req && req.params) {
         const paramPortal = req.params['portal'];
         portal = typeof paramPortal === 'string' ? paramPortal : null;

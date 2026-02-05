@@ -42,7 +42,7 @@ type NextFunction = () => void;
 //   getBrandFromReq: (req: RequestLike) => string;
 // };
 
-export module Services {
+export namespace Services {
   /**
    * Translation services...
    *
@@ -189,7 +189,7 @@ export module Services {
       
       // Initialize the default branding instance
       const availableBrandings = BrandingService.getAvailable();
-      for(let availableBranding of availableBrandings) {
+      for(const availableBranding of availableBrandings) {
         const branding = BrandingService.getBrand(availableBranding);  
         await this.getI18nextForBranding(branding);
       }
@@ -328,8 +328,8 @@ export module Services {
 
     public async handle(req: RequestLike, res: ResponseLike, next: NextFunction) {
       let langCode = req.param('lng');
-      let sessLangCode = req.session?.lang;
-      let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
+      const sessLangCode = req.session?.lang;
+      const defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
       if (_.isEmpty(langCode) && _.isEmpty(sessLangCode)) {
         // use the default
         langCode = defaultLang;

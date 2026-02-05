@@ -26,7 +26,7 @@ import type { RecordTypeModel } from '../model/storage/RecordTypeModel';
 
 type RecordTypeLike = Partial<RecordTypeModel> & { id?: string; name?: string };
 
-export module Services {
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -73,15 +73,15 @@ export module Services {
           this.logger.verbose(`wfSteps: `);
           this.logger.verbose(JSON.stringify(wfSteps));
           const workflowSteps: unknown[] = [];
-          for(let recordTypeName in wfSteps) {
-            let workflowStepsObject = wfSteps[recordTypeName] as Array<{ recordType: RecordTypeLike; workflow: string }>;
-            for (let workflowStep of workflowStepsObject){
-              let workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]] as WorkflowStageDefinition & { hidden?: boolean };
-              let form = _.get(workflowConf,'config.form','');
+          for(const recordTypeName in wfSteps) {
+            const workflowStepsObject = wfSteps[recordTypeName] as Array<{ recordType: RecordTypeLike; workflow: string }>;
+            for (const workflowStep of workflowStepsObject){
+              const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]] as WorkflowStageDefinition & { hidden?: boolean };
+              const form = _.get(workflowConf,'config.form','');
               if(form == '') {
                 _.set(workflowConf.config,'form','generated-view-only');
               }
-              var obs = await firstValueFrom(this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf.hidden));
+              const obs = await firstValueFrom(this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf.hidden));
               workflowSteps.push(obs);
             };
           }

@@ -5,7 +5,7 @@ import { Services as AppConfigServiceModule } from '../services/AppConfigService
 import { Services as BrandingServiceModule } from '../services/BrandingService';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to application configuration
    *
@@ -42,7 +42,7 @@ export module Controllers {
     public async editAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
+        const appConfigId: string = req.param('appConfigId');
 
         if (appConfigId === undefined) {
           return res.notFound('appConfigId is required');
@@ -64,8 +64,8 @@ export module Controllers {
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
-        let appConfig = req.body;
+        const appConfigId: string = req.param('appConfigId');
+        const appConfig = req.body;
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
@@ -81,11 +81,11 @@ export module Controllers {
     public async getAppConfigForm(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
+        const appConfigId: string = req.param('appConfigId');
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
-        let appConfig = await this.appConfigService.getAppConfigForm(brand, appConfigId)
+        const appConfig = await this.appConfigService.getAppConfigForm(brand, appConfigId)
 
         return res.json(appConfig);
       } catch (error) {

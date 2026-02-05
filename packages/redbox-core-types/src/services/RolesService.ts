@@ -25,7 +25,7 @@ import { RoleModel } from '../model/storage/RoleModel';
  
 
 
-export module Services {
+export namespace Services {
   interface AuthRoleConfig {
     name: string;
     [key: string]: unknown;
@@ -114,14 +114,14 @@ export module Services {
     }
 
     public async createRoleWithBrand(brand: BrandingModel, roleName: string) {
-      let roleConfig =
+      const roleConfig =
       {
         name: roleName,
         branding: brand.id
       };
       sails.log.verbose('createRoleWithBrand - brand.id ' + brand.id);
       const rolesResp: { roles: RoleModel[] } = { roles: [] };
-      let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap((roles: RoleModel[]) => {
+      const rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap((roles: RoleModel[]) => {
         _.map(roles, (role: RoleModel) => {
           rolesResp.roles.push(role);
         });
@@ -129,10 +129,10 @@ export module Services {
       }), first()));
 
       sails.log.verbose(rolesRespPromise);
-      let roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
+      const roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
       if (_.isUndefined(roleToCreate)) {
         sails.log.verbose('createRoleWithBrand - roleConfig ' + JSON.stringify(roleConfig));
-        let newRole = await Role.create(roleConfig);
+        const newRole = await Role.create(roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
   return await firstValueFrom(super.getObservable(q, 'exec', 'simplecb'));
@@ -151,7 +151,7 @@ export module Services {
                            return super.getObservable(Role.create(roleConfig))
                                        .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
-                                         let brand:BrandingModel = sails.services.brandingservice.getDefault();
+                                         const brand:BrandingModel = sails.services.brandingservice.getDefault();
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);

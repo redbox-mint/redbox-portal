@@ -3,7 +3,7 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
    *

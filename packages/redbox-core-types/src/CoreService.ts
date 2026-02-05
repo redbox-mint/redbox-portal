@@ -10,7 +10,7 @@ import { ILogger } from './Logger';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type QueryObject = { [key: string]: any };
 
-export module Services.Core {
+export namespace Services.Core {
   export class Service {
     /**
      * Exported methods. Must be overridden by the child to add custom methods.

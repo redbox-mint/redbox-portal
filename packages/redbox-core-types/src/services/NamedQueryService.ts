@@ -41,7 +41,7 @@ const parseJson = <T>(input: unknown, fallback: T): T => {
   }
 };
 
-export module Services {
+export namespace Services {
   type RecordLike = RecordModel & { createdAt?: string | Date; updatedAt?: string | Date };
   type UserLike = UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
 
@@ -68,7 +68,7 @@ export module Services {
       
         if (!_.isEmpty(namedQueries)) {
           if (sails.config.appmode.bootstrapAlways) {
-            for(let namedQuery of namedQueries) {
+            for(const namedQuery of namedQueries) {
               await NamedQuery.destroyOne({id: namedQuery.id});
             }
           } else {
@@ -101,7 +101,7 @@ export module Services {
 
 
     async getNamedQueryConfig(brand: BrandingModel, namedQuery: string) {
-      let nQDBEntry = await NamedQuery.findOne({
+      const nQDBEntry = await NamedQuery.findOne({
         key: brand.id + "_" + namedQuery
       });
       return new NamedQueryConfig(nQDBEntry)
@@ -123,7 +123,7 @@ export module Services {
       const criteriaMeta = {enableExperimentalDeepTargets: true};
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
 
-      let that = this;
+      const that = this;
 
       // Add branding
       if(brandIdFieldPath != '') {
@@ -163,17 +163,17 @@ export module Services {
         }
       }
       
-      let responseRecords: NamedQueryResponseRecord[] = []
-      for (let record of results) {
+      const responseRecords: NamedQueryResponseRecord[] = []
+      for (const record of results) {
 
         if(collectionName == 'user') {
           const userRecord = record as UserLike;
 
           let defaultMetadata: NamedQueryResponseMetadata = {};
-          let variables: Record<string, unknown> = { record: userRecord };
+          const variables: Record<string, unknown> = { record: userRecord };
 
           if(!_.isEmpty(resultObjectMapping)) {
-            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            const resultMetadata = _.cloneDeep(resultObjectMapping);
             _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
               _.set(resultMetadata,key,that.runTemplate(value as string,variables));
             });
@@ -189,7 +189,7 @@ export module Services {
             };
           }
 
-          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+          const responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
             oid: '',
             title: '',
             metadata: defaultMetadata,
@@ -202,10 +202,10 @@ export module Services {
           const recordItem = record as RecordLike;
 
           let defaultMetadata: NamedQueryResponseMetadata = {};
-          let variables: Record<string, unknown> = { record: recordItem };
+          const variables: Record<string, unknown> = { record: recordItem };
 
           if(!_.isEmpty(resultObjectMapping)) {
-            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            const resultMetadata = _.cloneDeep(resultObjectMapping);
             _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
               _.set(resultMetadata,key,that.runTemplate(value as string,variables));
             });
@@ -215,7 +215,7 @@ export module Services {
             defaultMetadata =  that.runTemplate('record.metadata',variables) as NamedQueryResponseMetadata;
           }
 
-          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+          const responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
             oid: recordItem.redboxOid ?? '',
             title: (recordItem.metadata as Record<string, unknown> | undefined)?.title as string ?? '',
             metadata: defaultMetadata,
@@ -226,12 +226,12 @@ export module Services {
 
         }
       }
-      let response = new ListAPIResponse<NamedQueryResponseRecord>();
+      const response = new ListAPIResponse<NamedQueryResponseRecord>();
 
 
-      let startIndex = start;
-      let noItems = rows;
-      let pageNumber = Math.floor((startIndex / noItems) + 1);
+      const startIndex = start;
+      const noItems = rows;
+      const pageNumber = Math.floor((startIndex / noItems) + 1);
 
       response.records = responseRecords;
       response.summary.start = start
@@ -242,10 +242,10 @@ export module Services {
     }
 
     setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
-      for (let queryParamKey in queryParams) {
+      for (const queryParamKey in queryParams) {
         
         let value = paramMap[queryParamKey];
-        let queryParam:QueryParameterDefinition = queryParams[queryParamKey];
+        const queryParam:QueryParameterDefinition = queryParams[queryParamKey];
         sails.log.debug(`${queryParamKey} has value ${value}`);
         if (value == undefined && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
@@ -259,7 +259,7 @@ export module Services {
 
         if (queryParam.type == DataType.String) {
           if (!_.isEmpty(queryParam.queryType)) {
-            let query: Record<string, unknown> = {}
+            const query: Record<string, unknown> = {}
             // if there is no value pass empty string
             if (value == undefined) {
               if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
@@ -276,7 +276,7 @@ export module Services {
 
         if(queryParam.type == DataType.Date) {
           if (!_.isEmpty(queryParam.queryType)) { 
-            let query: Record<string, unknown> = {};
+            const query: Record<string, unknown> = {};
             if (_.isUndefined(value)) {
               if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
                 value = queryParam.defaultValue;
@@ -308,7 +308,7 @@ export module Services {
             delete mongoQuery[queryParam.path];
         } else {
 
-          let existingValue = _.get(mongoQuery,queryParam.path)
+          const existingValue = _.get(mongoQuery,queryParam.path)
           if(existingValue != null && _.isObject(existingValue)) {
             _.merge(value,existingValue);
           }

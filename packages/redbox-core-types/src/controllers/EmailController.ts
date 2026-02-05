@@ -2,7 +2,7 @@ import { Controllers as controllers } from '../CoreController';
 import { Services } from '../services/EmailService';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    *  Redbox email message queue stuff
    *

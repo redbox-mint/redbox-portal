@@ -22,7 +22,7 @@ import { Services as services } from '../CoreService';
 
 import { DateTime } from 'luxon';
 
-export module Services {
+export namespace Services {
   /**
    * Asynch related functions...
    *

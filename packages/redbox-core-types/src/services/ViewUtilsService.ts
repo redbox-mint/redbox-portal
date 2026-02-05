@@ -21,7 +21,7 @@ import { existsSync } from 'fs';
 import { Services as services } from '../CoreService';
 
 
-export module Services {
+export namespace Services {
   /**
    * View utility functions for template resolution and display value extraction.
    *

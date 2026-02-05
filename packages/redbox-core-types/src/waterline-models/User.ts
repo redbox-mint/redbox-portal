@@ -39,7 +39,7 @@ const hashPassword = (user: Record<string, any>, cb: (err?: Error) => void) => {
   if (!user.password) {
     return cb();
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   const bcryptLib = require('bcryptjs');
   bcryptLib.genSalt(10, (err: Error | null, salt: string) => {
     if (err) {

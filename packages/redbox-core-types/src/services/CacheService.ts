@@ -24,7 +24,7 @@ import { default as NodeCache } from "node-cache";
 import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
 
-export module Services {
+export namespace Services {
   /**
    * Cache related functions...
    *

@@ -7,7 +7,7 @@ export class RecordTypeModel {
     searchFilters: SearchFilter[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transferResponsibility: any = null; //Legacy to be removed in a future version
-    searchable: false = false;
+    searchable = false as const;
 }
 
 export class SearchFilter {

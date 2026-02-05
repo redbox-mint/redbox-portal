@@ -79,7 +79,7 @@ interface FilterableItem {
   external?: boolean;
 }
 
-export module Services {
+export namespace Services {
   /**
    * Navigation service that provides brand-aware menu and home panel configuration
    * 
@@ -339,7 +339,7 @@ export module Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? (item.external === true);
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -462,7 +462,7 @@ export module Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? (item.external === true);
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -571,7 +571,7 @@ export module Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? (item.external === true);
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);

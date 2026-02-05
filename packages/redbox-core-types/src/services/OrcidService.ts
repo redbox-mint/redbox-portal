@@ -25,7 +25,7 @@ import axios, { type AxiosResponse } from 'axios';
 
 
 
-export module Services {
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -50,14 +50,16 @@ export module Services {
       const orcidRes = from(axios(options));
 
       return orcidRes.pipe(flatMap((response: AxiosResponse<Record<string, unknown>>) => {
-        const orcidResult = response.data as Record<string, any>;
+        const orcidResult = response.data as Record<string, unknown>;
+        const searchResults = _.get(orcidResult, "orcid-search-results", {}) as Record<string, unknown>;
+        const searchResultList = (_.get(searchResults, "orcid-search-result", []) as Record<string, unknown>[]) || [];
         const results: { numFound: number; items: Record<string, unknown>[] } = {
-          numFound: orcidResult["orcid-search-results"]["num-found"],
+          numFound: _.toNumber(_.get(searchResults, "num-found", 0)),
           items: []
         };
 
-        for (let i = 0; i < orcidResult["orcid-search-results"]["orcid-search-result"].length; i++) {
-          const orcidSearchResult = orcidResult["orcid-search-results"]["orcid-search-result"][i];
+        for (let i = 0; i < searchResultList.length; i++) {
+          const orcidSearchResult = searchResultList[i];
           const item = this.mapToPeopleSearchResult(orcidSearchResult);
           results.items.push(item);
         }
@@ -68,42 +70,42 @@ export module Services {
     protected mapToPeopleSearchResult(orcidSearchResult: Record<string, unknown>) {
       const item: Record<string, unknown> = {};
 
-      const profile = (orcidSearchResult as Record<string, any>)["orcid-profile"];
-      item["givenNames"] = profile["orcid-bio"]["personal-details"]["given-names"]["value"];
-      item["familyName"] = profile["orcid-bio"]["personal-details"]["family-name"]["value"];
-      item["identifier"] = profile["orcid-identifier"]["uri"];
+      const profile = ((orcidSearchResult as Record<string, unknown>)["orcid-profile"] ?? {}) as Record<string, unknown>;
+      item["givenNames"] = _.get(profile, "orcid-bio.personal-details.given-names.value");
+      item["familyName"] = _.get(profile, "orcid-bio.personal-details.family-name.value");
+      item["identifier"] = _.get(profile, "orcid-identifier.uri");
       const extendedAttributes: Record<string, unknown>[] = [];
       item["extendedAttributes"] = extendedAttributes;
 
       // Process extended attributes
-      let otherNames: Record<string, unknown> | null = profile["orcid-bio"]["personal-details"]["other-names"] == null ? null : {};
+      let otherNames: Record<string, unknown> | null = _.get(profile, "orcid-bio.personal-details.other-names") == null ? null : {};
       if (otherNames != null) {
 
-        const otherNamesArray = profile["orcid-bio"]["personal-details"]["other-names"]["other-name"];
+        const otherNamesArray = _.get(profile, "orcid-bio.personal-details.other-names.other-name");
 
         otherNames = this.getExtendedAttributeObject('orcid-other-names', otherNamesArray);
         extendedAttributes.push(otherNames);
       }
 
-      let biography: Record<string, unknown> | null = profile["orcid-bio"]["biography"] == null ? null : {};
+      let biography: Record<string, unknown> | null = _.get(profile, "orcid-bio.biography") == null ? null : {};
       if (biography != null) {
 
-        const biographyValue = profile["orcid-bio"]["biography"];
+        const biographyValue = _.get(profile, "orcid-bio.biography");
 
         biography = this.getExtendedAttributeObject('orcid-biography', biographyValue);
         extendedAttributes.push(biography);
       }
 
 
-      let researcherUrls: Record<string, unknown> | null = profile["orcid-bio"]["researcher-urls"] == null ? null : {};
+      let researcherUrls: Record<string, unknown> | null = _.get(profile, "orcid-bio.researcher-urls") == null ? null : {};
       if (researcherUrls != null) {
         const researcherUrlsValueArray: Record<string, unknown>[] = [];
-        const researcherUrlsArray = profile["orcid-bio"]["researcher-urls"]["researcher-url"];
+        const researcherUrlsArray = _.get(profile, "orcid-bio.researcher-urls.researcher-url") as Record<string, unknown>[];
 
-        _.forEach(researcherUrlsArray, function (researcherUrl: Record<string, any>) {
+        _.forEach(researcherUrlsArray, function (researcherUrl: Record<string, unknown>) {
           const researcherUrlItem: Record<string, unknown> = {};
-          researcherUrlItem["value"] = researcherUrl["url-name"]["value"];
-          researcherUrlItem["url"] = researcherUrl["url"]["value"];
+          researcherUrlItem["value"] = _.get(researcherUrl, "url-name.value");
+          researcherUrlItem["url"] = _.get(researcherUrl, "url.value");
           researcherUrlsValueArray.push(researcherUrlItem);
         });
 
@@ -112,9 +114,9 @@ export module Services {
         extendedAttributes.push(researcherUrls);
       }
 
-      let keywords: Record<string, unknown> | null = profile["orcid-bio"]["keywords"] == null ? null : {};
+      let keywords: Record<string, unknown> | null = _.get(profile, "orcid-bio.keywords") == null ? null : {};
       if (keywords != null) {
-        const keywordsArray = profile["orcid-bio"]["keywords"]["keyword"];
+        const keywordsArray = _.get(profile, "orcid-bio.keywords.keyword");
 
         keywords = this.getExtendedAttributeObject('orcid-keywords', keywordsArray);
         extendedAttributes.push(keywords);

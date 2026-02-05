@@ -7,7 +7,7 @@ const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.
  */
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for exporting data
    *

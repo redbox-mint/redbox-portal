@@ -22,7 +22,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * TranslationController - serves i18next namespace JSON for http-backend.
    */

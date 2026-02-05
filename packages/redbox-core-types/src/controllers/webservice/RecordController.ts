@@ -37,7 +37,7 @@ import {
 import { v4 as UUIDGenerator } from 'uuid';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * RecordController API version
    *
@@ -83,9 +83,9 @@ export module Controllers {
 
     public init(): void {
       this.RecordsService = sails.services.recordsservice;
-      let that = this;
+      const that = this;
       this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
-        let datastreamServiceName = sails.config.record.datastreamService;
+        const datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
           that.DatastreamService = sails.services[datastreamServiceName];
@@ -309,9 +309,9 @@ export module Controllers {
 
     public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      var oid = req.param('oid');
-      var dateFrom = req.param('dateFrom');
-      var dateTo = req.param('dateTo');
+      const oid = req.param('oid');
+      const dateFrom = req.param('dateFrom');
+      const dateTo = req.param('dateTo');
       const params: { oid: string; dateFrom: Date | null; dateTo: Date | null } = { oid, dateFrom: null, dateTo: null };
       if (!_.isEmpty(dateFrom)) {
         params['dateFrom'] = new Date(dateFrom);
@@ -323,7 +323,7 @@ export module Controllers {
 
       try {
         const audit = await this.RecordsService.getRecordAudit(params);
-        let response: ListAPIResponse<any> = new ListAPIResponse<any>();
+        const response: ListAPIResponse<any> = new ListAPIResponse<any>();
         response.summary.numFound = _.size(audit);
         response.summary.page = 1;
         response.records = audit;
@@ -340,7 +340,7 @@ export module Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
-      var oid = req.param('oid');
+      const oid = req.param('oid');
 
       try {
         const record = await this.RecordsService.getMeta(oid);
@@ -390,7 +390,7 @@ export module Controllers {
         // check if we need to process data streams
         if (shouldProcessDatastreams) {
           sails.log.verbose(`Processing datastreams of: ${oid}`);
-          for (let attField of record.metaMetadata.attachmentFields) {
+          for (const attField of record.metaMetadata.attachmentFields) {
             // TODO: add support for removing datastreams
             const result: DatastreamServiceResponse = await this.DatastreamService.addDatastreams(oid, _.get(record['metadata'], attField, []));
           }
@@ -432,9 +432,9 @@ export module Controllers {
       const recordType = req.param('recordType');
       const user = req.user;
       const body = req.body;
-      let that = this;
+      const that = this;
       if (body != null) {
-        var authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
+        let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
         if (body["authorization"] != null) {
           authorizationEdit = body["authorization"]["edit"];
           authorizationView = body["authorization"]["view"];
@@ -455,12 +455,12 @@ export module Controllers {
           viewPending: authorizationViewPending
         }
 
-        var recordTypeObservable = RecordTypesService.get(brand, recordType);
+        const recordTypeObservable = RecordTypesService.get(brand, recordType);
 
         recordTypeObservable.subscribe((recordTypeModel: any) => {
           if (recordTypeModel) {
-            var metadata = body["metadata"];
-            var workflowStage = body["workflowStage"];
+            const metadata = body["metadata"];
+            const workflowStage = body["workflowStage"];
             const request: any = {};
 
             //if no metadata field, no authorization
@@ -471,9 +471,9 @@ export module Controllers {
             }
             request["authorization"] = authorization;
 
-            let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
+            const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
-            var obs = from(createPromise);
+            const obs = from(createPromise);
             obs.subscribe((response: any) => {
               if (response.isSuccessful()) {
 
@@ -534,7 +534,7 @@ export module Controllers {
 
         let found: any = null;
         const attachments = await this.RecordsService.getAttachments(oid);
-        for (let attachment of attachments) {
+        for (const attachment of attachments) {
           if (attachment.fileId == datastreamId) {
             found = attachment;
           }
@@ -551,7 +551,7 @@ export module Controllers {
         const fileName = req.param('fileName') ? req.param('fileName') : found.name ? found.name : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
 
-        let size = found.size;
+        const size = found.size;
         if (!_.isEmpty(size)) {
           res.set('Content-Length', size);
         }
@@ -591,7 +591,7 @@ export module Controllers {
 
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      var oid = req.param('oid');
+      const oid = req.param('oid');
       const self = this;
       req.file('attachmentFields').upload({
         dirname: `${sails.config.record.attachments.stageDir}`,
@@ -662,7 +662,7 @@ export module Controllers {
 
     private getDocMetadata(doc: { [key: string]: unknown }) {
       const metadata: { [key: string]: unknown } = {};
-      for (var key in doc) {
+      for (const key in doc) {
         if (key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
           metadata[key] = doc[key];
         }
@@ -687,24 +687,24 @@ export module Controllers {
       if (rows == undefined) {
         rows = 10;
       }
-      var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
+      const results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
       sails.log.debug(results);
-      let apiReponse: ListAPIResponse<any> = new ListAPIResponse();
-      var totalItems = results.totalItems
-      var startIndex = start;
-      var noItems = rows;
-      var pageNumber = Math.floor((startIndex / noItems) + 1);
+      const apiReponse: ListAPIResponse<any> = new ListAPIResponse();
+      const totalItems = results.totalItems
+      const startIndex = start;
+      const noItems = rows;
+      const pageNumber = Math.floor((startIndex / noItems) + 1);
 
       apiReponse.summary.numFound = totalItems;
       apiReponse.summary.start = startIndex;
       apiReponse.summary.page = pageNumber;
 
 
-      var items = [];
-      var docs = results["items"];
+      const items = [];
+      const docs = results["items"];
 
-      for (var i = 0; i < docs.length; i++) {
-        var doc = docs[i];
+      for (let i = 0; i < docs.length; i++) {
+        const doc = docs[i];
         const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
         item["title"] = doc["metadata"]["title"];
@@ -733,24 +733,24 @@ export module Controllers {
       if (rows == undefined) {
         rows = 10;
       }
-      var results = await this.RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
+      const results = await this.RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
       sails.log.debug(results);
-      let apiReponse: ListAPIResponse<any> = new ListAPIResponse();
-      var totalItems = results.totalItems
-      var startIndex = start;
-      var noItems = rows;
-      var pageNumber = Math.floor((startIndex / noItems) + 1);
+      const apiReponse: ListAPIResponse<any> = new ListAPIResponse();
+      const totalItems = results.totalItems
+      const startIndex = start;
+      const noItems = rows;
+      const pageNumber = Math.floor((startIndex / noItems) + 1);
 
       apiReponse.summary.numFound = totalItems;
       apiReponse.summary.start = startIndex;
       apiReponse.summary.page = pageNumber;
 
 
-      var items = [];
-      var docs = results["items"];
+      const items = [];
+      const docs = results["items"];
 
-      for (var i = 0; i < docs.length; i++) {
-        var doc = docs[i];
+      for (let i = 0; i < docs.length; i++) {
+        const doc = docs[i];
         const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
         item["title"] = doc["deletedRecordMetadata"]["metadata"]["title"];
@@ -770,8 +770,8 @@ export module Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
-      var roles = [];
-      var username = "guest";
+      let roles = [];
+      let username = "guest";
       let user: any = {};
       if (req.isAuthenticated()) {
         roles = req.user.roles;
@@ -817,7 +817,7 @@ export module Controllers {
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
-      var user = req.user;
+      const user = req.user;
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
@@ -847,7 +847,7 @@ export module Controllers {
           status: 400, displayErrors: [{ detail: "Missing ID of record." }]
         });
       }
-      let record = await this.RecordsService.getMeta(oid);
+      const record = await this.RecordsService.getMeta(oid);
       if (_.isEmpty(record)) {
         return this.sendResp(req, res, {
           status: 400,
@@ -861,7 +861,7 @@ export module Controllers {
           displayErrors: [{ detail: "Missing brand." }]
         });
       }
-      let recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+      const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
       const response = await this.RecordsService.delete(oid, permanentlyDelete, record, recordType, user);
       if (response.isSuccessful()) {
         return this.sendResp(req, res, { data: response });
@@ -936,7 +936,7 @@ export module Controllers {
       try {
         const attachments = await this.RecordsService.getAttachments(oid);
         sails.log.verbose(JSON.stringify(attachments));
-        let response: ListAPIResponse<any> = new ListAPIResponse<any>();
+        const response: ListAPIResponse<any> = new ListAPIResponse<any>();
         response.summary.numFound = _.size(attachments);
         response.summary.page = 1;
         response.records = attachments;
@@ -1098,38 +1098,38 @@ export module Controllers {
 
     public async harvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      let updateModes = ["merge", "override", "create"];
+      const updateModes = ["merge", "override", "create"];
 
       let updateMode = req.param('updateMode')
       if (_.isEmpty(updateMode)) {
         updateMode = "override";
       }
 
-      var recordType = req.param('recordType');
-      var recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
+      const recordType = req.param('recordType');
+      const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: "Record Type provided is not valid" }] });
       }
-      var user = req.user;
-      var body = req.body;
+      const user = req.user;
+      const body = req.body;
       if (body != null) {
 
         if (_.isEmpty(body["records"])) {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: "Invalid request body" }] });
         }
-        let recordResponses = [];
-        let records = body['records'];
-        for (let record of records) {
-          let harvestId = record["harvestId"]
+        const recordResponses = [];
+        const records = body['records'];
+        for (const record of records) {
+          const harvestId = record["harvestId"]
           if (_.isEmpty(harvestId)) {
             recordResponses.push(new APIHarvestResponse(harvestId, '', false, "HarvestId was not specified"));
           } else {
-            let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
+            const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
             if (existingRecord.length == 0 || updateMode == "create") {
               recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['recordRequest'], harvestId, updateMode, user));
             } else {
-              let oid = existingRecord[0].redboxOid;
+              const oid = existingRecord[0].redboxOid;
               if (updateMode != "ignore") {
                 recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
               } else {
@@ -1145,9 +1145,9 @@ export module Controllers {
 
     private isMetadataEqual(meta1: any, meta2: any): boolean {
 
-      let keys = _.keys(meta1);
+      const keys = _.keys(meta1);
 
-      for (let key of keys) {
+      for (const key of keys) {
         if (!_.isEqual(meta1?.[key], meta2?.[key])) {
           return false;
         }
@@ -1159,27 +1159,27 @@ export module Controllers {
     public async legacyHarvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
 
-      var recordType = req.param('recordType');
-      var recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
+      const recordType = req.param('recordType');
+      const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type provided is not valid' }] });
       }
-      var user = req.user;
-      var body = req.body;
+      const user = req.user;
+      const body = req.body;
       if (body != null) {
 
         if (_.isEmpty(body['records'])) {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request body' }] });
         }
-        let recordResponses = [];
-        let records = body['records'];
-        for (let record of records) {
-          let harvestId = record['harvest_id'];
+        const recordResponses = [];
+        const records = body['records'];
+        for (const record of records) {
+          const harvestId = record['harvest_id'];
           if (_.isEmpty(harvestId)) {
             recordResponses.push(new APIHarvestResponse(harvestId, '', false, 'HarvestId was not specified'));
           } else {
-            let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
+            const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
             if (existingRecord.length == 0) {
               recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'], harvestId, 'update', user));
             } else {
@@ -1188,9 +1188,9 @@ export module Controllers {
               if (merge == 'true') {
                 updateMode = 'merge';
               }
-              let oid = existingRecord[0].redboxOid;
-              let oldMetadata = existingRecord[0].metadata;
-              let newMetadata = record['metadata']['data'];
+              const oid = existingRecord[0].redboxOid;
+              const oldMetadata = existingRecord[0].metadata;
+              const newMetadata = record['metadata']['data'];
 
               if (this.isMetadataEqual(newMetadata, oldMetadata)) {
                 const response = {
@@ -1217,7 +1217,7 @@ export module Controllers {
 
       const shouldMerge = updateMode == "merge" ? true : false;
       try {
-        let record: RecordModel = await this.RecordsService.getMeta(oid);
+        const record: RecordModel = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return new APIHarvestResponse(harvestId, oid, false, `Failed to update meta, cannot find existing record with oid: ${oid}`);
         }
@@ -1233,12 +1233,12 @@ export module Controllers {
           } else {
             record["metadata"] = body;
           }
-          let sourceMetadata = body["sourceMetadata"];
+          const sourceMetadata = body["sourceMetadata"];
           if (!_.isEmpty(sourceMetadata)) {
             //Force this to be stored as a string
             (record['metaMetadata'] as any)["sourceMetadata"] = "" + sourceMetadata
           }
-          let result = await this.RecordsService.updateMeta(brand, oid, record, user);
+          const result = await this.RecordsService.updateMeta(brand, oid, record, user);
 
           let updateMessage = "Record updated successfully";
           if (shouldMerge) {
@@ -1259,7 +1259,7 @@ export module Controllers {
     }
 
     private async findExistingHarvestRecord(harvestId: string, recordType: string) {
-      let results = await (global as any).Record.find({
+      const results = await (global as any).Record.find({
         'harvestId': harvestId,
         'metaMetadata.type': recordType
       }).meta({
@@ -1284,8 +1284,8 @@ export module Controllers {
         authorizationView.push(user.username);
       }
 
-      var metadata = body['metadata'];
-      var workflowStage = body['workflowStage'];
+      const metadata = body['metadata'];
+      const workflowStage = body['workflowStage'];
       const request: any = {};
       if (updateMode != 'create') {
         // Only set harvestId if not in create mode
@@ -1300,10 +1300,10 @@ export module Controllers {
       }
 
       try {
-        let response = await this.RecordsService.create(brand, request, recordTypeModel, user);
+        const response = await this.RecordsService.create(brand, request, recordTypeModel, user);
 
         if (workflowStage) {
-          let wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage));
+          const wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage));
           this.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
         }
 
@@ -1327,8 +1327,8 @@ export module Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
-      var roles = [];
-      var username = "guest";
+      let roles = [];
+      let username = "guest";
       let user: any = {};
       if (req.isAuthenticated()) {
         roles = req.user.roles;

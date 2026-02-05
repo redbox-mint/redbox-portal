@@ -1,7 +1,7 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -27,7 +27,7 @@ export module Controllers {
 
     public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
-        let response = new APIActionResponse();
+        const response = new APIActionResponse();
         TranslationService.reloadResources();
         sails.config.startupMinute = Math.floor(Date.now() / 60000);
 
@@ -44,14 +44,14 @@ export module Controllers {
 
     public async setAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        let configKey = req.param('configKey')
+        const configKey = req.param('configKey')
 
-        let brandName: string = BrandingService.getBrandFromReq(req);
-        let brand: BrandingModel = BrandingService.getBrand(brandName);
+        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        let config = await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
+        const config = await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
 
-        let response = new APIActionResponse('App configuration updated successfully');
+        const response = new APIActionResponse('App configuration updated successfully');
 
         return this.apiRespond(req, res, response, 200)
       } catch (error: unknown) {
@@ -66,11 +66,11 @@ export module Controllers {
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        let configKey = req.param('configKey')
+        const configKey = req.param('configKey')
 
-        let brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req);
 
-        let brand: BrandingModel = BrandingService.getBrand(brandName);
+        const brand: BrandingModel = BrandingService.getBrand(brandName);
 
         let config = AppConfigService.getAppConfigurationForBrand(brand.name)
         if (!_.isEmpty(configKey)) {

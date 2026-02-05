@@ -2,7 +2,7 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../index';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * WorkspaceType related methods
    *

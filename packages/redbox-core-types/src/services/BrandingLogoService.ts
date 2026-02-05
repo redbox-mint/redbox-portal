@@ -23,7 +23,7 @@ declare const SvgSanitizerService: {
 
 
 
-export module Services {
+export namespace Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
 

@@ -2,7 +2,7 @@ import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsServ
 import { firstValueFrom } from 'rxjs';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -33,12 +33,12 @@ export module Controllers {
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
-        let name: string = req.param('name');
+        const name: string = req.param('name');
         let editable: boolean = req.param('editable');
         if (editable == null) {
           editable = true;
         }
-        let form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
+        const form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
 
         return this.apiRespond(req, res, form, 200)
       } catch (error: unknown) {
@@ -53,9 +53,9 @@ export module Controllers {
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        let forms: FormModel[] = await firstValueFrom(FormsService.listForms());
-        let response: ListAPIResponse<any> = new ListAPIResponse();
-        let summary: ListAPISummary = new ListAPISummary();
+        const forms: FormModel[] = await firstValueFrom(FormsService.listForms());
+        const response: ListAPIResponse<any> = new ListAPIResponse();
+        const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;
         response.records = forms;

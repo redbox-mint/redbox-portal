@@ -1,6 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 
-export module Controllers {
+export namespace Controllers {
 
   export class RenderView extends controllers.Core.Controller {
 

@@ -23,7 +23,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 
 
-export module Services {
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -62,9 +62,9 @@ export module Services {
           // });
 
           this.recordTypes= recordTypes;
-          let rTypes = [];
-          for(let recordType in sails.config.recordtype) {
-            let config:RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
+          const rTypes = [];
+          for(const recordType in sails.config.recordtype) {
+            const config:RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
             rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)))
           }    
           return rTypes;

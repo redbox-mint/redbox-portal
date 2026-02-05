@@ -66,7 +66,7 @@ interface DatacitePostBody {
 }
 
 
-export module Services {
+export namespace Services {
   /**
    *
    *
@@ -94,11 +94,11 @@ export module Services {
 
     private async makeCreateDoiCall(instance: AxiosInstance, postBody: DatacitePostBody, _record: RecordWithMetadata, _oid: string) {
       try {
-        let response: AxiosResponse<Record<string, any>> = await instance.post('/dois', postBody);
+        const response: AxiosResponse<Record<string, unknown>> = await instance.post('/dois', postBody);
 
         if (response.status == 201) {
-          let responseBody = response.data;
-          let doi = responseBody.data.id
+          const responseBody = response.data as { data: { id: string } };
+          const doi = responseBody.data.id
           sails.log.debug(`DOI created: ${doi}`)
           return doi;
         } else {
@@ -116,11 +116,11 @@ export module Services {
 
     private async makeUpdateDoiCall(instance: AxiosInstance, postBody: DatacitePostBody, doi: string) {
       try {
-        let response: AxiosResponse<Record<string, any>> = await instance.patch(`/dois/${doi}`, postBody)
+        const response: AxiosResponse<Record<string, unknown>> = await instance.patch(`/dois/${doi}`, postBody)
 
         if (response.status == 200) {
-          let responseBody = response.data
-          let doi = responseBody.data.id
+          const responseBody = response.data as { data: { id: string } };
+          const doi = responseBody.data.id
           sails.log.debug(`DOI Updated: ${doi}`)
           return doi;
         } else {
@@ -138,9 +138,9 @@ export module Services {
 
     public async deleteDoi(doi: string): Promise<boolean> {
       try {
-        let baseUrl = sails.config.datacite.baseUrl;
+        const baseUrl = sails.config.datacite.baseUrl;
 
-        let authenticationStringEncoded = this.getAuthenticationString();
+        const authenticationStringEncoded = this.getAuthenticationString();
         const instance = axios.create({
           baseURL: baseUrl,
           timeout: 10000,
@@ -149,7 +149,7 @@ export module Services {
             'Content-Type': 'application/vnd.api+json'
           }
         });
-        let response = await instance.delete(`/dois/${doi}`);
+        const response = await instance.delete(`/dois/${doi}`);
         if (response.status == 204) {
           return true;
         } else {
@@ -167,8 +167,8 @@ export module Services {
 
     public async changeDoiState(doi: string, event: string): Promise<boolean> {
       try {
-        let baseUrl = sails.config.datacite.baseUrl
-        let authenticationStringEncoded = this.getAuthenticationString()
+        const baseUrl = sails.config.datacite.baseUrl
+        const authenticationStringEncoded = this.getAuthenticationString()
         const instance = axios.create({
           baseURL: baseUrl,
           timeout: 10000,
@@ -177,7 +177,7 @@ export module Services {
             'Content-Type': 'application/vnd.api+json'
           }
         });
-        let putBody = {
+        const putBody = {
           "data": {
             "type": "dois",
             "attributes": {
@@ -186,7 +186,7 @@ export module Services {
           }
         }
 
-        let response = await instance.put(`/dois/${doi}`, putBody)
+        const response = await instance.put(`/dois/${doi}`, putBody)
         if (response.status == 200) {
           return true
         } else {
@@ -228,9 +228,9 @@ export module Services {
     }
 
     private processForCodes(forCodes: DataciteForCode[]) {
-      let doiForCodeList: Array<{ subject: string; schemeUri: string; subjectScheme: string; classificationCode: string }> = []
+      const doiForCodeList: Array<{ subject: string; schemeUri: string; subjectScheme: string; classificationCode: string }> = []
       if (!_.isUndefined(forCodes)) {
-        for (let forCode of forCodes) {
+        for (const forCode of forCodes) {
           doiForCodeList.push({
             subject: forCode.name,
             schemeUri: "https://www.abs.gov.au/ausstats/abs@.nsf/0",
@@ -244,11 +244,11 @@ export module Services {
 
     public async publishDoi(oid: string, record: RecordWithMetadata, event = 'publish', action = 'create') {
 
-      let doiPrefix = sails.config.datacite.doiPrefix;
-      let baseUrl = sails.config.datacite.baseUrl;
+      const doiPrefix = sails.config.datacite.doiPrefix;
+      const baseUrl = sails.config.datacite.baseUrl;
 
-      let authenticationStringEncoded = this.getAuthenticationString();
-      let lodashTemplateContext = {
+      const authenticationStringEncoded = this.getAuthenticationString();
+      const lodashTemplateContext = {
         record: record,
         oid: oid,
         moment: moment,
@@ -264,12 +264,12 @@ export module Services {
         }
       });
 
-      let mappings = sails.config.datacite.mappings
-      let url = this.runTemplate(mappings.url, lodashTemplateContext)
-      let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
-      let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
+      const mappings = sails.config.datacite.mappings
+      const url = this.runTemplate(mappings.url, lodashTemplateContext)
+      const publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
+      const publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
 
-      let postBody: DatacitePostBody = {
+      const postBody: DatacitePostBody = {
         "data": {
           "type": "dois",
           "attributes": {
@@ -298,19 +298,19 @@ export module Services {
         }
       }
 
-      let title = this.runTemplate(mappings.title, lodashTemplateContext)
+      const title = this.runTemplate(mappings.title, lodashTemplateContext)
 
       if (!_.isEmpty(title)) {
         postBody.data.attributes.titles.push({ "lang": null, "title": title, "titleType": null })
       }
 
-      let creatorTemplateContext: Record<string, unknown> = _.clone(lodashTemplateContext)
-      let creatorsProperty = sails.config.datacite.creatorsProperty
-      for (let creator of (record.metadata[creatorsProperty] as Array<Record<string, unknown>>)) {
+      const creatorTemplateContext: Record<string, unknown> = _.clone(lodashTemplateContext)
+      const creatorsProperty = sails.config.datacite.creatorsProperty
+      for (const creator of (record.metadata[creatorsProperty] as Array<Record<string, unknown>>)) {
         creatorTemplateContext['creator'] = creator
-        let creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
-        let creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
-        let creatorIdentifier = this.runTemplate(mappings.creatorIdentifier, creatorTemplateContext)
+        const creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
+        const creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
+        const creatorIdentifier = this.runTemplate(mappings.creatorIdentifier, creatorTemplateContext)
         if (!_.isEmpty(creatorFamilyName) && !_.isEmpty(creatorGivenName)) {
           postBody.data.attributes.creators.push({
             'nameType': 'Personal', 'givenName': creatorGivenName, 'familyName': creatorFamilyName, nameIdentifiers: [{
@@ -322,23 +322,23 @@ export module Services {
         }
       }
 
-      let dates = mappings.dates
+      const dates = mappings.dates
       if (!_.isEmpty(dates) && _.isArray(dates)) {
-        for (let oDate of dates) {
-          let aDate = this.runTemplate(oDate.template, lodashTemplateContext)
+        for (const oDate of dates) {
+          const aDate = this.runTemplate(oDate.template, lodashTemplateContext)
           if (!_.isEmpty(aDate)) {
             postBody.data.attributes.dates.push({ "date": aDate, "dateType": oDate.dateType, "dateInformation": oDate.dateInformation })
           }
         }
       }
 
-      let fundingReferences = mappings.fundingReferences
+      const fundingReferences = mappings.fundingReferences
 
       if (!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)) {
-        for (let fundingReference of fundingReferences) {
-          let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
-          let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
-          for (var j = 0; j < funderName.length; j++) {
+        for (const fundingReference of fundingReferences) {
+          const funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
+          const awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
+          for (let j = 0; j < funderName.length; j++) {
             if (!_.isEmpty(funderName[j])) {
               postBody.data.attributes.fundingReferences.push({ "funderName": funderName[j], "awardTitle": awardTitle[j] })
             }
@@ -347,12 +347,12 @@ export module Services {
       }
 
 
-      let descriptions = mappings.descriptions
+      const descriptions = mappings.descriptions
       if (!_.isEmpty(descriptions) && _.isArray(descriptions)) {
-        for (let description of descriptions) {
-          let descriptionType = description.descriptionType
-          let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
-          for (let aDescription of allDescriptions) {
+        for (const description of descriptions) {
+          const descriptionType = description.descriptionType
+          const allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
+          for (const aDescription of allDescriptions) {
             if (!_.isEmpty(aDescription)) {
               postBody.data.attributes.descriptions.push({ "descriptionType": descriptionType, "description": aDescription })
             }
@@ -360,11 +360,11 @@ export module Services {
         }
       }
 
-      let rightsList = mappings.rightsList
+      const rightsList = mappings.rightsList
       if (!_.isEmpty(rightsList) && _.isArray(rightsList)) {
-        for (let rights of rightsList) {
-          let key = rights.key
-          let value = this.runTemplate(rights.template, lodashTemplateContext)
+        for (const rights of rightsList) {
+          const key = rights.key
+          const value = this.runTemplate(rights.template, lodashTemplateContext)
           if (!_.isEmpty(value)) {
             postBody.data.attributes.rightsList.push({ [key]: value })
           }
@@ -392,13 +392,13 @@ export module Services {
       if (!_.isEmpty(identifiers) && _.isArray(identifiers)) {
         for (const item of identifiers) {
           if (!_.isEmpty(item)) {
-            let identifier = { "identifier": item, "identifierType": "Other" }
+            const identifier = { "identifier": item, "identifierType": "Other" }
             postBody.data.attributes.identifiers.push(identifier)
           }
         }
       }
 
-      for (let subjectTemplate of mappings.subjects) {
+      for (const subjectTemplate of mappings.subjects) {
 
         let subjects = this.runTemplate(subjectTemplate, lodashTemplateContext)
         if (!_.isEmpty(subjects)) {
@@ -422,7 +422,7 @@ export module Services {
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
 
-      let postBodyValidateError: string[] = []
+      const postBodyValidateError: string[] = []
 
       if (_.isEmpty(postBody.data.attributes.titles)) {
         postBodyValidateError.push('title-required')
@@ -456,9 +456,9 @@ export module Services {
       }
 
       if (!_.isEmpty(postBody.data.attributes.dates)) {
-        let dates = postBody.data.attributes.dates
+        const dates = postBody.data.attributes.dates
         for (const dateItem of dates) {
-          let date = DateTime.fromJSDate(new Date(dateItem.date)).toFormat('yyyy-LL-dd')
+          const date = DateTime.fromJSDate(new Date(dateItem.date)).toFormat('yyyy-LL-dd')
           if (!DateTime.fromFormat(date, 'yyyy-LL-dd', { zone: 'utc' }).isValid) {
             postBodyValidateError.push('date-invalid')
           }
@@ -502,10 +502,10 @@ export module Services {
     }
 
     getAuthenticationString() {
-      let username = sails.config.datacite.username;
-      let password = sails.config.datacite.password;
-      let authenticationString = `${username}:${password}`;
-      let buff = Buffer.from(authenticationString);
+      const username = sails.config.datacite.username;
+      const password = sails.config.datacite.password;
+      const authenticationString = `${username}:${password}`;
+      const buff = Buffer.from(authenticationString);
       return buff.toString('base64');
     }
 
@@ -513,7 +513,7 @@ export module Services {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         const brand: BrandingModel = BrandingService.getBrand('default');
-        let doi = await this.publishDoi(oid, record);
+        const doi = await this.publishDoi(oid, record);
 
         if (doi != null) {
           record = this.addDoiDataToRecord(oid, record, doi)
@@ -527,7 +527,7 @@ export module Services {
     public async publishDoiTriggerSync(oid: string, record: RecordWithMetadata, options: Record<string, unknown>): Promise<RecordWithMetadata> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        let doi = await this.publishDoi(oid, record, options["event"] as string);
+        const doi = await this.publishDoi(oid, record, options["event"] as string);
 
         if (doi != null) {
           record = this.addDoiDataToRecord(oid, record, doi)
@@ -547,22 +547,22 @@ export module Services {
     }
 
     addDoiDataToRecord(oid: string, record: RecordWithMetadata, doi: string) {
-      let lodashTemplateContext = {
+      const lodashTemplateContext = {
         record: record,
         oid: oid,
         moment: moment
       };
 
-      let citationUrlProperty = sails.config.datacite.citationUrlProperty;
-      let citationDoiProperty = sails.config.datacite.citationDoiProperty;
-      let generatedCitationStringProperty = sails.config.datacite.generatedCitationStringProperty;
-      let citationStringTemplate = sails.config.datacite.citationStringTemplate;
+      const citationUrlProperty = sails.config.datacite.citationUrlProperty;
+      const citationDoiProperty = sails.config.datacite.citationDoiProperty;
+      const generatedCitationStringProperty = sails.config.datacite.generatedCitationStringProperty;
+      const citationStringTemplate = sails.config.datacite.citationStringTemplate;
 
-      let generatedCitation = this.runTemplate(citationStringTemplate, {
+      const generatedCitation = this.runTemplate(citationStringTemplate, {
         data: record,
         moment: moment
       });
-      let url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext);
+      const url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext);
       _.set(record, citationUrlProperty, url);
       _.set(record, citationDoiProperty, doi);
       _.set(record, generatedCitationStringProperty, generatedCitation);

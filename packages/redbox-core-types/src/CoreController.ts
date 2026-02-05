@@ -15,7 +15,7 @@ import {
 
 
 
-export module Controllers.Core {
+export namespace Controllers.Core {
 
   /**
    * Core controller which defines common logic between controllers.
@@ -645,7 +645,7 @@ export module Controllers.Core {
       return collectedDisplayErrors.map(displayError => {
         const code = displayError.code?.toString()?.trim() || "";
         let title = displayError.title?.toString()?.trim() || "";
-        let detail = displayError.detail?.toString()?.trim() || "";
+        const detail = displayError.detail?.toString()?.trim() || "";
 
         if (code && !title && !detail) {
           title = code;

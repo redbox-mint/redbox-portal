@@ -3,7 +3,7 @@ import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -44,10 +44,10 @@ export module Controllers {
 
     public getResults(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      var response = from(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
+      const response = from(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
       return response.subscribe((responseObject: any) => {
         if (responseObject) {
-          let response: any = responseObject;
+          const response: any = responseObject;
           response.success = true;
           this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
         } else {
@@ -66,8 +66,8 @@ export module Controllers {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
 
-        var results = await ReportsService.getCSVResult(brand, req.param('name'), req);
-        let fileName = req.param('name') + '.csv';
+        const results = await ReportsService.getCSVResult(brand, req.param('name'), req);
+        const fileName = req.param('name') + '.csv';
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         res.set('Content-Type', 'text/csv');

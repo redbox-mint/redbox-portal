@@ -32,7 +32,7 @@ type WorkspaceTypeConfig = {
   externallyProvisioned?: boolean;
 };
 
-export module Services {
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -53,12 +53,12 @@ export module Services {
         const obsArr: Array<Observable<unknown>> = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
-        let workspaceTypes: string[] = [];
+        const workspaceTypes: string[] = [];
         if (!_.isEmpty(sails.config.workspacetype)) {
           sails.log.verbose("Bootstrapping workspace type definitions... ");
           _.forOwn(sails.config.workspacetype, (config: WorkspaceTypeConfig, workspaceType: string) => {
             workspaceTypes.push(workspaceType);
-            var obs = this.create(defBrand, config);
+            const obs = this.create(defBrand, config);
             obsArr.push(obs);
           });
         }

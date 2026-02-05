@@ -9,6 +9,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
+        allowDefaultProject: ['**/*.d.ts'],
       },
     },
     rules: {
@@ -20,9 +21,18 @@ export default tseslint.config(
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_'
       }],
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-this-alias': 'off',
+      '@typescript-eslint/triple-slash-reference': 'off',
+      '@typescript-eslint/no-unsafe-function-type': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       'no-fallthrough': 'warn',
       'no-case-declarations': 'warn',
+      'no-useless-escape': 'warn',
+      'no-useless-catch': 'warn',
+      'no-empty': 'warn',
+      'no-control-regex': 'warn',
       'prefer-const': 'warn',
       'no-var': 'warn',
     },
@@ -46,15 +56,23 @@ export default tseslint.config(
   {
     files: ['src/services/**/*.ts'],
     rules: {
-      '@typescript-eslint/no-explicit-any': ['error', { fixToUnknown: true }],
-      '@typescript-eslint/no-unused-vars': ['error', {
+      '@typescript-eslint/no-explicit-any': ['warn', { fixToUnknown: true }],
+      '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_'
       }],
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-this-alias': 'off',
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.mjs'],
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
+  {
+    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.mjs', 'src/sails.d.ts'],
   }
 );

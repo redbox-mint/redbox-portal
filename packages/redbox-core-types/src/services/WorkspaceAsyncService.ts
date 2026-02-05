@@ -15,7 +15,7 @@ type WorkspaceAsyncStartInput = {
   args?: unknown;
 };
 
-export module Services {
+export namespace Services {
   /**
    * WorkspaceAsync Service
    *

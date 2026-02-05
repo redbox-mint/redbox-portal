@@ -25,7 +25,7 @@ import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registe
 
 
 
-export module Services {
+export namespace Services {
 
     @PopulateExportedMethods
     export class Template extends services.Core.Service {

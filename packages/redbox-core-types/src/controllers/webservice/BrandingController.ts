@@ -13,7 +13,7 @@ function mapError(e: Error): { status: number; body: any } {
   return { status: 500, body: { error: 'server-error', detail: msg } };
 }
 
-export module Controllers {
+export namespace Controllers {
   export class Branding extends controllers.Core.Controller {
     protected override _exportedMethods: any = [ 'draft','preview','publish','rollback','logo','history' ];
 

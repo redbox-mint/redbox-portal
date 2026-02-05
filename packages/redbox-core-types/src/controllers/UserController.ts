@@ -25,7 +25,7 @@ import {
 } from '../index';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    *  User-related features...
    *
@@ -119,7 +119,7 @@ export module Controllers {
     }
 
     public logout(req: Sails.Req, res: Sails.Res) {
-      let requestDetails = new RequestDetails(req);
+      const requestDetails = new RequestDetails(req);
       let redirUrl = sails.config.auth.postLogoutRedir;
       if (req.session.user && req.session.user.type == 'oidc') {
         redirUrl = req.session.logoutUrl;
@@ -130,7 +130,7 @@ export module Controllers {
         redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req)}/home` : sails.config.auth.postLogoutRedir;
       }
 
-      let user = req.session.user ? req.session.user : req.user;
+      const user = req.session.user ? req.session.user : req.user;
       req.logout(function (err: unknown) {
         if (err) { return res.status(500).send('Logout failed'); }
         UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
@@ -146,7 +146,7 @@ export module Controllers {
     }
 
     public info(req: Sails.Req, res: Sails.Res) {
-      let user = req.user;
+      const user = req.user;
       delete user.token;
       return res.json({
         user: user
@@ -154,7 +154,7 @@ export module Controllers {
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
-      var userid;
+      let userid;
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
@@ -165,12 +165,12 @@ export module Controllers {
         return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
 
-      var details = req.body.details;
+      const details = req.body.details;
       if (!details) {
         return this.sendResp(req, res, { data: { status: false, message: "Error: user details not specified" }, headers: this.getNoCacheHeaders() });
       }
 
-      var name;
+      let name;
       if (details.name) {
         name = details.name
       };
@@ -189,7 +189,7 @@ export module Controllers {
     }
 
     public generateUserKey(req: Sails.Req, res: Sails.Res) {
-      var userid;
+      let userid;
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
@@ -197,7 +197,7 @@ export module Controllers {
       }
 
       if (userid) {
-        var uuid = uuidv4();
+        const uuid = uuidv4();
         UsersService.setUserKey(userid, uuid).subscribe(user => {
           this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
         }, error => {
@@ -212,7 +212,7 @@ export module Controllers {
     }
 
     public revokeUserKey(req: Sails.Req, res: Sails.Res) {
-      var userid;
+      let userid;
       if (req.isAuthenticated()) {
         userid = req.user.id;
       } else {
@@ -220,7 +220,7 @@ export module Controllers {
       }
 
       if (userid) {
-        var uuid = null;
+        const uuid = null;
         UsersService.setUserKey(userid, uuid).subscribe(user => {
           this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
         }, error => {
@@ -243,7 +243,7 @@ export module Controllers {
             user: user
           });
         }
-        let requestDetails = new RequestDetails(req);
+        const requestDetails = new RequestDetails(req);
         // We don't want to store the password!
         delete requestDetails.body.password;
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
@@ -278,7 +278,7 @@ export module Controllers {
       if (!_.isEmpty(req.param('id'))) {
         passportIdentifier = `oidc-${req.param('id')}`
       }
-      let that = this;
+      const that = this;
       sails.config.passport.authenticate(passportIdentifier, function (err: any, user: any, info: any) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
         sails.log.verbose("Error:");
@@ -301,7 +301,7 @@ export module Controllers {
 
           const branding = BrandingService.getBrandFromReq(req);
           const oidcConfig = _.get(ConfigService.getBrand(branding, 'auth'), 'oidc', {});
-          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
+          const errorMessage = _.get(err, 'message', err?.toString() ?? '');
 
           // Handle specific OIDC errors that should return 403 instead of 500
           if (errorMessage === "authorized-email-denied") {
@@ -321,7 +321,7 @@ export module Controllers {
             return res.forbidden(req.session['data']);
           }
 
-          let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
+          const errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
           sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
           if (!_.isEmpty(errorMessageDecoded)) {
             req.session['data'] = errorMessageDecoded;
@@ -345,7 +345,7 @@ export module Controllers {
           const url = `${BrandingService.getFullPath(req)}/home`;
           return res.redirect(url);
         }
-        let requestDetails = new RequestDetails(req);
+        const requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {
@@ -375,22 +375,22 @@ export module Controllers {
       sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
       let errorMessageDecoded: any = 'oidc-default-unknown-error';
-      let errorMappingList = _.get(options, 'errorMappings', []);
+      const errorMappingList = _.get(options, 'errorMappings', []);
 
       let errorMessageDecodedAsObject = {};
 
       if (!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
 
         sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
-        for (let errorMappingDetails of errorMappingList) {
+        for (const errorMappingDetails of errorMappingList) {
 
           let matchRegex = false;
           let matchString = false;
-          let matchRegexWithGroups = _.get(errorMappingDetails, 'matchRegexWithGroups', false);
-          let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
-          let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
-          let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
-          let regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
+          const matchRegexWithGroups = _.get(errorMappingDetails, 'matchRegexWithGroups', false);
+          const fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
+          const fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
+          const asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
+          const regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
 
           if (!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
             matchRegex = true;
@@ -413,7 +413,7 @@ export module Controllers {
                 }
                 break;
               } else if (matchRegexWithGroups && _.isRegExp(regexPattern)) {
-                let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
+                const matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
                 if (!_.isEmpty(matchRegexGroupsDecoded)) {
                   sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
                   sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
@@ -432,7 +432,7 @@ export module Controllers {
             }
 
           } else if (matchString) {
-            let errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
+            const errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
             if (errorMessage.includes(errorRefDesc)) {
               if (asObject) {
                 errorMessageDecodedAsObject = {
@@ -458,9 +458,9 @@ export module Controllers {
 
     private validateRegex(errorMessage: string, regexPattern: string | RegExp) {
       if (_.isRegExp(regexPattern)) {
-        let re = new RegExp(regexPattern);
+        const re = new RegExp(regexPattern);
         sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
-        let reTestResult = re.test(errorMessage.toString());
+        const reTestResult = re.test(errorMessage.toString());
         sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
         return reTestResult;
       } else {
@@ -470,11 +470,11 @@ export module Controllers {
 
     private validateRegexWithGroups(errorMessage: string, regexPattern: string | RegExp) {
       // let decodedGroups = _.clone(groups);
-      let re = new RegExp(regexPattern);
+      const re = new RegExp(regexPattern);
       const matches = re.exec(errorMessage);
 
       let interpolationMap = {}
-      let groups = _.get(matches, 'groups');
+      const groups = _.get(matches, 'groups');
       if (!_.isUndefined(groups)) {
         interpolationMap = groups;
       }
@@ -495,7 +495,7 @@ export module Controllers {
           sails.log.error(err)
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
 
-          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
+          const errorMessage = _.get(err, 'message', err?.toString() ?? '');
           if (errorMessage === "authorized-email-denied") {
             req.session['data'] = {
               message: "error-auth",
@@ -516,7 +516,7 @@ export module Controllers {
           return res.serverError();
         }
 
-        let requestDetails = new RequestDetails(req);
+        const requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {

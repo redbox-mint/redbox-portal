@@ -3,7 +3,7 @@ import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *

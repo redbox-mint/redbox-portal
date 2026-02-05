@@ -1,7 +1,7 @@
 import { Controllers as controllers } from '../CoreController';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * WorkspaceAsync Controller
    *

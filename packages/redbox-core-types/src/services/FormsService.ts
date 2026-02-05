@@ -47,7 +47,7 @@ type FormFieldLike = {
   [key: string]: unknown;
 };
 
-export module Services {
+export namespace Services {
   /**
    * Forms related functions...
    *
@@ -104,7 +104,7 @@ export module Services {
       const existingFormDef = await Form.find({
         name: formName
       })
-      let existCheck: { formName: string | null; existingFormDef: FormModel[] } = {
+      const existCheck: { formName: string | null; existingFormDef: FormModel[] } = {
         formName: formName,
         existingFormDef: existingFormDef
       };
@@ -204,7 +204,7 @@ export module Services {
 
     public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormModel> {
 
-      let starting = true;
+      const starting = true;
 
       return super.getObservable(RecordType.findOne({
         key: branding.id + "_" + recordType
@@ -251,11 +251,11 @@ export module Services {
 
       let form: FormConfigFrame;
 
-      let schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
+      const schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
 
-      let fieldKeys = _.keys(schema.properties ?? {});
+      const fieldKeys = _.keys(schema.properties ?? {});
 
-      let buttonsList = [
+      const buttonsList = [
         {
           class: 'AnchorOrButton',
           roles: ['Admin', 'Librarians'],
@@ -289,7 +289,7 @@ export module Services {
         }
       ];
 
-      let textFieldTemplate = {
+      const textFieldTemplate = {
         class: 'TextField',
         viewOnly: true,
         definition: {
@@ -309,7 +309,7 @@ export module Services {
         }
       };
 
-      let groupComponentTemplate = {
+      const groupComponentTemplate = {
         class: 'Container',
         compClass: 'GenericGroupComponent',
         definition: {
@@ -319,7 +319,7 @@ export module Services {
         }
       };
 
-      let groupTextFieldTemplate = {
+      const groupTextFieldTemplate = {
         class: 'TextField',
         definition: {
           name: '',
@@ -331,7 +331,7 @@ export module Services {
         }
       };
 
-      let repeatableGroupComponentTemplate = {
+      const repeatableGroupComponentTemplate = {
         class: 'RepeatableContainer',
         compClass: 'RepeatableGroupComponent',
         definition: {
@@ -343,7 +343,7 @@ export module Services {
         }
       };
 
-      let objectFieldHeadingTemplate = {
+      const objectFieldHeadingTemplate = {
         class: 'Container',
         compClass: 'TextBlockComponent',
         definition: {
@@ -352,14 +352,14 @@ export module Services {
         }
       };
 
-      let mainTitleFieldName = 'title';
+      const mainTitleFieldName = 'title';
 
-      let fieldList = [
+      const fieldList = [
       ];
 
-      for(let fieldKey of fieldKeys) {
+      for(const fieldKey of fieldKeys) {
 
-        let schemaProperty = (schema.properties?.[fieldKey] as {
+        const schemaProperty = (schema.properties?.[fieldKey] as {
           type?: string;
           items?: { type?: string; properties?: Record<string, { type?: string }> };
           properties?: Record<string, { type?: string }>;
@@ -368,7 +368,7 @@ export module Services {
         const schemaType = schemaProperty.type;
         if(schemaType === 'string') {
 
-          let textField = _.cloneDeep(textFieldTemplate);
+          const textField = _.cloneDeep(textFieldTemplate);
           _.set(textField.definition,'name',fieldKey);
           _.set(textField.definition,'label',fieldKey);
           _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.trim(field.fieldMap["'+fieldKey+'"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["'+fieldKey+'"].field.value %>');
@@ -378,7 +378,7 @@ export module Services {
           const itemType = schemaProperty.items?.type;
           if(itemType === 'string') {
 
-            let textField = _.cloneDeep(textFieldTemplate);
+            const textField = _.cloneDeep(textFieldTemplate);
             _.set(textField.definition,'name',fieldKey);
             _.set(textField.definition,'label',fieldKey);
             _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.isEmpty(_.trim(field.fieldMap["'+fieldKey+'"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["'+fieldKey+'"].field.value %>');
@@ -386,15 +386,15 @@ export module Services {
 
           } else if(itemType === 'object') {
 
-            let objectFieldKeys = _.keys(schemaProperty.items?.properties ?? {});
-            let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
-            let groupField = _.cloneDeep(groupComponentTemplate);
-            let groupFieldList = [];
+            const objectFieldKeys = _.keys(schemaProperty.items?.properties ?? {});
+            const repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
+            const groupField = _.cloneDeep(groupComponentTemplate);
+            const groupFieldList = [];
 
-            for(let objectFieldKey of objectFieldKeys) {
-              let innerProperty = schemaProperty.items?.properties?.[objectFieldKey];
+            for(const objectFieldKey of objectFieldKeys) {
+              const innerProperty = schemaProperty.items?.properties?.[objectFieldKey];
               if(innerProperty?.type === 'string') {
-                let textField = _.cloneDeep(groupTextFieldTemplate);
+                const textField = _.cloneDeep(groupTextFieldTemplate);
                 _.set(textField.definition,'name',objectFieldKey);
                 _.set(textField.definition,'label',objectFieldKey);
                 _.set(textField.definition,'groupName','item');
@@ -412,14 +412,14 @@ export module Services {
 
         } else if(schemaType === 'object') {
 
-          let objectFieldKeys = _.keys(schemaProperty.properties ?? {});
-          let groupField = _.cloneDeep(groupComponentTemplate);
-          let groupFieldList = [];
+          const objectFieldKeys = _.keys(schemaProperty.properties ?? {});
+          const groupField = _.cloneDeep(groupComponentTemplate);
+          const groupFieldList = [];
 
-          for(let objectFieldKey of objectFieldKeys) {
-            let innerProperty = schemaProperty.properties?.[objectFieldKey];
+          for(const objectFieldKey of objectFieldKeys) {
+            const innerProperty = schemaProperty.properties?.[objectFieldKey];
             if(innerProperty?.type === 'string') {
-              let textField = _.cloneDeep(groupTextFieldTemplate);
+              const textField = _.cloneDeep(groupTextFieldTemplate);
               _.set(textField.definition,'name',objectFieldKey);
               _.set(textField.definition,'label',objectFieldKey);
               _.set(textField.definition,'groupName',fieldKey);
@@ -427,7 +427,7 @@ export module Services {
             }
           }
 
-          let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+          const objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
           _.set(objectFieldHeading.definition, 'value', fieldKey);
           fieldList.push(objectFieldHeading);
 
@@ -437,7 +437,7 @@ export module Services {
         }
       }
 
-      let formObject = {
+      const formObject = {
         name: 'generated-view-only',
         type: recordType,
         editCssClasses: 'row col-md-12',

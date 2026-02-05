@@ -5,7 +5,7 @@ import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Admin Controller
    *
@@ -51,14 +51,14 @@ export module Controllers {
     }
 
     public supportAgreementIndex(req: any, res: any) {
-      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      var currentYear = new Date().getFullYear();
-      var selectedYear = parseInt(req.query.year) || currentYear;
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const currentYear = new Date().getFullYear();
+      const selectedYear = parseInt(req.query.year) || currentYear;
       
       // Get support agreement information from the new structure
       // TODO: Remove the any cast once this is merged to develop and it's using the right core package version
-      var supportInfo = (brand as any).supportAgreementInformation || {};
-      var yearData = supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 };
+      const supportInfo = (brand as any).supportAgreementInformation || {};
+      let yearData = supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 };
       
       // If no data exists for the selected year but legacy data exists, use legacy for current year
       if (!supportInfo[selectedYear] && selectedYear === currentYear) {
@@ -69,7 +69,7 @@ export module Controllers {
       }
       
       // Get all available years from support agreement information
-      var availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
+      const availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
       if (availableYears.length === 0 || availableYears.indexOf(currentYear) === -1) {
         availableYears.push(currentYear);
       }
@@ -85,7 +85,7 @@ export module Controllers {
     }
 
     public getUsers(req: any, res: any) {
-      var pageData: any = {};
+      const pageData: any = {};
       const brand = BrandingService.getBrand(req.session.branding);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
       (UsersService.getUsersForBrand(brand as any) as any).pipe(flatMap((users: any[]) => {
@@ -112,8 +112,8 @@ export module Controllers {
 
     public getBrandRoles(req: any, res: any) {
       // basic roles page: view all users and their roles
-      var pageData: any = {};
-      var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const pageData: any = {};
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       RolesService.getRolesWithBrand(brand).pipe(flatMap((roles: any[]) => {
         _.map(roles, (role: any) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole: string) => { return hideRole == role.name }))) {
@@ -132,9 +132,9 @@ export module Controllers {
     }
 
     public generateUserKey(req: any, res: any) {
-      var userid = req.body.userid;
+      const userid = req.body.userid;
       if (userid) {
-        var uuid = uuidv4();
+        const uuid = uuidv4();
         UsersService.setUserKey(userid, uuid).subscribe((user: any) => {
           this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
         }, (error: any) => {
@@ -150,9 +150,9 @@ export module Controllers {
     }
 
     public revokeUserKey(req: any, res: any) {
-      var userid = req.body.userid;
+      const userid = req.body.userid;
       if (userid) {
-        var uuid = '';
+        const uuid = '';
         UsersService.setUserKey(userid, uuid).subscribe((user: any) => {
           this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
         }, (error: any) => {
@@ -168,8 +168,8 @@ export module Controllers {
     }
 
     public addLocalUser(req: any, res: any) {
-      var username = req.body.username;
-      var details = req.body.details;
+      const username = req.body.username;
+      const details = req.body.details;
       let name: string | undefined;
       let password: string | undefined;
       if (details.name) { name = details.name };
@@ -177,9 +177,9 @@ export module Controllers {
       if (username && name && password) {
         UsersService.addLocalUser(username, name, details.email, password).subscribe((user: any) => {
           if (details.roles) {
-            var roles = details.roles;
-            var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-            var roleIds = RolesService.getRoleIds(brand.roles, roles);
+            const roles = details.roles;
+            const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+            const roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(user.id, roleIds).subscribe((user: any) => {
               this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
             }, (error: any) => {
@@ -202,16 +202,16 @@ export module Controllers {
     }
 
     public updateUserDetails(req: any, res: any) {
-      var userid = req.body.userid;
-      var details = req.body.details;
+      const userid = req.body.userid;
+      const details = req.body.details;
       let name: string | undefined;
       if (details.name) { name = details.name };
       if (userid && name) {
         UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe((user: any) => {
           if (details.roles) {
-            var roles = details.roles;
-            var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-            var roleIds = RolesService.getRoleIds(brand.roles, roles);
+            const roles = details.roles;
+            const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+            const roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles(userid, roleIds).subscribe((user: any) => {
               this.sendResp(req, res, { data: { status: true, message: "User updated successfully" }, headers: this.getNoCacheHeaders() });
             }, (error: any) => {
@@ -237,12 +237,12 @@ export module Controllers {
     * Updates a user's roles. Will be accepting the userid and the array of role names. Used role names instead of ids to prevent cross-brand poisoning.
     */
     public updateUserRoles(req: any, res: any) {
-      var newRoleNames = req.body.roles;
-      var userid = req.body.userid;
+      const newRoleNames = req.body.roles;
+      const userid = req.body.userid;
       if (userid && newRoleNames) {
         // get the ids of the role names...
-        var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        var roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
         UsersService.updateUserRoles(userid, roleIds).subscribe((user: any) => {
           this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
         }, (error: any) => {

@@ -24,7 +24,7 @@ import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
 import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
 
 
-export module Services {
+export namespace Services {
 
 export type Bundle = I18nBundleAttributes;
 type I18nData = Record<string, unknown>;

@@ -39,7 +39,7 @@ function toDateTime(input: any): DateTime {
 }
 
 export function momentShim(input?: any) {
-    let dt = input ? toDateTime(input) : DateTime.local();
+    const dt = input ? toDateTime(input) : DateTime.local();
     const api: any = {
         format(fmt?: string) {
             if (!dt.isValid) return '';

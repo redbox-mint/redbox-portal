@@ -167,7 +167,7 @@ describe('The RDMPService', function () {
             };
             RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).eql([userAdminDefault.name, undefined]);
-                expect(record.authorization.view).eql([undefined,undefined,undefined,undefined,undefined]);
+                expect(record.authorization.view).eql([undefined]);
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
@@ -270,7 +270,7 @@ describe('The RDMPService', function () {
             };
             RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).to.eql([userAdminDefault.name, undefined]);
-                expect(record.authorization.view).to.eql([undefined,undefined,undefined,undefined,undefined]);
+                expect(record.authorization.view).to.eql([undefined]);
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {

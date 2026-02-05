@@ -59,7 +59,7 @@ type AgendaJobHandler = (job: Job) => Promise<void>;
 
 
 
-export module Services {
+export namespace Services {
   /**
    * Service class for queuing using Agenda: https://github.com/agenda/agenda
    *

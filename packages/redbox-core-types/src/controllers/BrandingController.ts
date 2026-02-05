@@ -10,7 +10,7 @@ declare const BrandingConfig: any;
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 
-export module Controllers {
+export namespace Controllers {
 
   export class Branding extends controllers.Core.Controller {
     private mongoUri!: string;

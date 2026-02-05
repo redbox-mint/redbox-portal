@@ -29,7 +29,7 @@ import { globSync } from 'glob';
 
 
 
-export module Services {
+export namespace Services {
   /**
    * AppConfig related functions...
    *
@@ -64,10 +64,10 @@ export module Services {
       this.initAllConfigFormSchemas().then(result => {
         sails.log.info("Config Form Schemas Loaded");
       })
-      let availableBrandings = BrandingService.getAvailable();
-      for (let availableBranding of availableBrandings) {
-        let branding: BrandingModel = BrandingService.getBrand(availableBranding);
-        let appConfigObject = await this.loadAppConfigurationModel(branding.id);
+      const availableBrandings = BrandingService.getAvailable();
+      for (const availableBranding of availableBrandings) {
+        const branding: BrandingModel = BrandingService.getBrand(availableBranding);
+        const appConfigObject = await this.loadAppConfigurationModel(branding.id);
         this.brandingAppConfigMap[availableBranding] = appConfigObject as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
       }
 
@@ -96,7 +96,7 @@ export module Services {
     }
 
     private async refreshBrandingAppConfigMap(branding: BrandingModel) {
-      let appConfig = await this.loadAppConfigurationModel(branding.id)
+      const appConfig = await this.loadAppConfigurationModel(branding.id)
       this.brandingAppConfigMap[branding.name] = appConfig as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
@@ -109,15 +109,15 @@ export module Services {
     }
 
     public async loadAppConfigurationModel(brandId: string): Promise<BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails }> {
-      let appConfiguration: Record<string, unknown> = {};
+      const appConfiguration: Record<string, unknown> = {};
       const modelNames = ConfigModels.getConfigKeys();
-      for (let modelName of modelNames) {
+      for (const modelName of modelNames) {
         const modelInfo = ConfigModels.getModelInfo(modelName);
         if (!modelInfo) {
           continue;
         }
         const modelClass = modelInfo.class;
-        let defaultModel = new modelClass();
+        const defaultModel = new modelClass();
         _.set(appConfiguration, modelName, defaultModel);
       }
 
@@ -125,15 +125,15 @@ export module Services {
       _.merge(appConfiguration, sails.config.brandingConfigurationDefaults);
 
 
-      let appConfigItems: AppConfigAttributes[] = await this.getAllConfigurationForBrand(brandId);
-      for (let appConfigItem of appConfigItems) {
+      const appConfigItems: AppConfigAttributes[] = await this.getAllConfigurationForBrand(brandId);
+      for (const appConfigItem of appConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
       }
       return appConfiguration as unknown as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
     public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<unknown> {
-      let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
+      const dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
 
       // If no config exists in the DB return the default settings
       if (dbConfig != null) {
@@ -168,12 +168,12 @@ export module Services {
     }
 
     public async createConfig(brandName: string, configKey: string, configData: string): Promise<unknown> {
-      let branding: BrandingModel = BrandingService.getBrand(brandName);
-      let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      const branding: BrandingModel = BrandingService.getBrand(brandName);
+      const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
       // Create if no config exists
       if (dbConfig == null) {
-        let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
+        const createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
 
         await this.refreshBrandingAppConfigMap(branding);
         return (createdRecord as unknown as AppConfigAttributes).configData;
@@ -184,17 +184,17 @@ export module Services {
 
     public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[] }> {
 
-      let appConfig = this.getAppConfigurationForBrand(branding.name);
+      const appConfig = this.getAppConfigurationForBrand(branding.name);
 
-      let modelDefinition: ConfigModelInfo | undefined = ConfigModels.getModelInfo(configForm);
+      const modelDefinition: ConfigModelInfo | undefined = ConfigModels.getModelInfo(configForm);
       if (!modelDefinition) {
         throw new Error(`Config model not found for form ${configForm}`);
       }
       const modelCtor = modelDefinition.class as { new (...args: never[]): object; getFieldOrder?: () => string[] };
-      let model = _.get(appConfig, configForm, new modelCtor()) as object;
+      const model = _.get(appConfig, configForm, new modelCtor()) as object;
       const jsonSchema = this.getJsonSchema(modelDefinition);
       const fieldOrder = typeof modelCtor.getFieldOrder === 'function' ? modelCtor.getFieldOrder() : [];
-      let configData = { model: model, schema: jsonSchema, fieldOrder: fieldOrder };
+      const configData = { model: model, schema: jsonSchema, fieldOrder: fieldOrder };
       return configData;
     }
 
